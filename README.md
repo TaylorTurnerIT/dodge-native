@@ -29,6 +29,10 @@ the alternate button, and `Escape` to quit.
 The original cartridge is kept in `assets/dodge.p8` as the build-time source
 for the native graphics data. No PICO-8 runtime is required.
 
+## Attribution
+
+Original game by [Artridge](https://artridge.itch.io/dodge).
+
 ## Check the build
 
 ```sh
@@ -36,6 +40,3 @@ cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace
 ```
-
-The project is currently source-only and has no license file; add a license
-before redistributing modified source.
