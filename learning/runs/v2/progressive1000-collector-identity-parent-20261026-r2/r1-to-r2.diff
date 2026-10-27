@@ -1,0 +1,94 @@
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/successor/curriculum.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-collector-identity-parent-20261026-r2/successor/curriculum.py
+@@ -98,6 +98,7 @@
+         self.pending_update = None
+         self.rows = []
+         self.assignments = {}
++        self.assignment_seeds = {}
+         self.assignment_events, self.completions, self.boundaries = [], [], []
+         self.intervals, self.update_exposure = {}, {}
+         self.gameplay_frames = self.reset_startup_frames = 0
+@@ -148,6 +149,7 @@
+         else:
+             assignment = Assignment(None, 18000, None)
+         self.assignments[slot] = assignment
++        self.assignment_seeds[slot] = copy.deepcopy(info["seed"])
+         self.assignment_events.append({"update": update, "decision": decision,
+             "slot": slot, **asdict(assignment), "seed": copy.deepcopy(info["seed"]),
+             "block": None if assignment.ordinal is None else assignment.ordinal // 100,
+@@ -317,6 +319,24 @@
+         self.pending_update = None
+         return boundary
+ 
++    def _in_flight(self):
++        """Join an assignment only to the exact episode that received it.
++
++        A returned reset can precede a failed guard or metadata audit. Retain
++        that live episode as unassigned; snapshotting never assigns or retries.
++        """
++        rows = []
++        for slot, info in enumerate(self.env.episode_info()):
++            if info["terminated"] or info["truncated"]:
++                continue
++            matched = equal(self.assignment_seeds.get(slot), info["seed"])
++            assignment = (asdict(self.assignments[slot]) if matched else
++                          {"generation": None, "horizon": None, "ordinal": None})
++            rows.append({"slot": slot, **assignment,
++                         "assignment_status": "assigned" if matched else "unassigned_unaudited",
++                         "native_info": copy.deepcopy(info)})
++        return rows
++
+     def snapshot(self):
+         """No stepping/draining; preserve terminal or failed in-flight exposure."""
+         return {"preparation_only": True, "replica": self.replica, "arm": self.arm,
+@@ -343,10 +363,7 @@
+             "update_exposure": [{"update": key[0], "generation": key[1],
+                 "horizon": key[2], "scheduler_generation": key[3], "raw_frames": frames}
+                 for key, frames in self.update_exposure.items()],
+-            "in_flight": [{"slot": slot, **asdict(self.assignments[slot]),
+-                "native_info": copy.deepcopy(info)}
+-                for slot, info in enumerate(self.env.episode_info())
+-                if not info["terminated"] and not info["truncated"]],
++            "in_flight": self._in_flight(),
+             "scheduler": None if self.scheduler is None else asdict(self.scheduler)}
+ 
+ 
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/tests/test_collector.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-collector-identity-parent-20261026-r2/tests/test_collector.py
+@@ -230,6 +230,36 @@
+         self.assertEqual(snap["normal_reset_count"], 0)
+         self.assertEqual(len(snap["assignments"]), 1)
+         self.assertEqual(boundary.scheduler.update, 0)
++        row = snap["in_flight"][0]
++        self.assertEqual(row["native_info"]["seed"]["episode"], 1)
++        self.assertEqual(row["assignment_status"], "unassigned_unaudited")
++        self.assertTrue(all(row[key] is None for key in ("generation", "horizon", "ordinal")))
++        self.assertEqual(boundary.assignment_seeds[0]["episode"], 0)
++        self.assertEqual(boundary.scheduler.assignment_ordinal, 1)
++
++    def test_successful_reset_snapshot_uses_new_episode_assignment(self):
++        env = FakeEnv(1)
++        boundary = adapter(env)
++        env.infos = [info(0, frame=996)]
++        boundary.begin_update(1)
++        collect(env, boundary, 1)
++        row = boundary.snapshot()["in_flight"][0]
++        self.assertEqual(row["native_info"]["seed"]["episode"], 1)
++        self.assertEqual(row["assignment_status"], "assigned")
++        self.assertEqual(row["ordinal"], 1)
++        self.assertEqual(row["horizon"], 1000)
++        self.assertEqual(len(boundary.assignment_events), 2)
++
++    def test_same_slot_episode_number_but_different_seed_has_no_assignment(self):
++        env = FakeEnv(1)
++        boundary = adapter(env)
++        env.infos[0]["seed"]["actual_seed"] += 1
++        before = boundary.scheduler.assignment_ordinal
++        row = boundary.snapshot()["in_flight"][0]
++        self.assertEqual(row["assignment_status"], "unassigned_unaudited")
++        self.assertTrue(all(row[key] is None for key in ("generation", "horizon", "ordinal")))
++        self.assertEqual(boundary.scheduler.assignment_ordinal, before)
++        self.assertEqual(len(boundary.assignment_events), 1)
+ 
+     def test_control_matches_frozen_collector_all_buffers_and_rng(self):
+         frozen_path = Path(__file__).resolve().parents[2] / 'D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/ppo.py'

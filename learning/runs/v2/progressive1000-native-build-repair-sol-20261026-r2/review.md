@@ -1,0 +1,13 @@
+# Source review
+
+No remaining blocking findings in the owned practice API scope. This is implementation self-review plus synthetic CPU evidence, not independent parent review or runtime qualification.
+
+Fixed: R1 validated the horizon against only the configured cap. With a cap above 18000, an alive slot at H18000 could be practice-truncated contrary to this task's fixed ceiling. `source/crates/dodge-rl-env/src/env.rs:511-519` now rejects horizons at or above 18000 and at or above the configured cap. The new native ceiling test reaches frame18000 with a synthetic cap20000 and verifies atomic rejection; another case independently verifies the configured-cap bound.
+
+`env.rs:485-535` validates the whole request before `env.rs:537-538` changes selected `truncated` fields. It checks poison, lengths, K4, bounds, uniqueness, ended/native-alive state, horizon, exact aligned frame and episode overflow. Snapshot creation uses existing `Slot::info`; reset and seed exhaustion remain inherited. The Python parser copies both strict integer inputs and performs checked conversions before detached work. The cutoff does not invoke the step, reward, observation/history or reset paths.
+
+Relative to R1, the only production behavior change is the ceiling check. `features.rs` adds a test-only Debug derive so atomicity tests compare all history fields, alongside canonical native state, observation/pixel buffers, EpisodeInfo, diagnostics, poison and failures. Two added tests cover the ceiling and real996/1004 undershoot/overshoot. Core, Python binding source, dependency lock and other environment behavior remain byte-identical to R1.
+
+Native tests cover H1000/H2000, ordinary18000, deathH-1/H/H+1 at both practice horizons, mixed slots, atomic errors, owned final buffers, rewards/counters, one reset, poison, overflow/exhaustion and thread/chunk layouts. Binding tests exercise strict types/shapes/overflow, native errors, noncontiguous int64 input, owned arrays/dicts and live H1000 request order. The Python survival fixture uses only fixed tiny unit seeds and a deterministic observation-only action rule; it is not an evaluator or competence result.
+
+Unresolved parent gates: accepted-binary correspondence and disabled-cutoff parity; collector mask/info synchronization and final-value-before-reset/GAE/rollout boundaries; one shared successor binary/runtime/config/evaluator and identity/member validation; authenticated accepted324 restore/reseed references; seed ancestry/exclusions/reservations; resource/cleanup/one-shot calibration; independent review, registration and launch acceptance. B/E remain closed. No production forced-death/restore API or weakened validator was added.

@@ -1,0 +1,30 @@
+{
+  "schema": "confirmed324_paired_worker_source_review_findings_v1",
+  "decision": "source_repair_required_pending_parent_review",
+  "findings": [
+    {
+      "id": "R2-01",
+      "severity": "P2",
+      "title": "Persist completed rollout episode events before fallible PPO work",
+      "path": "learning/runs/v2/confirmed324-paired-worker-contract-repair-sol-20261026-r2/runtime_adapter.py",
+      "line_start": 153,
+      "line_end": 157,
+      "related_locations": [
+        {
+          "path": "learning/runs/v2/confirmed324-paired-worker-contract-repair-sol-20261026-r2/runtime_adapter.py",
+          "line_start": 158,
+          "line_end": 165
+        },
+        {
+          "path": "learning/runs/v2/confirmed324-paired-worker-contract-repair-sol-20261026-r2/worker.py",
+          "line_start": 120,
+          "line_end": 124
+        }
+      ],
+      "trigger": "collect_rollout returns a collection containing completed_episodes/reset_info, then ppo_update or subsequent metric/diagnostic validation raises before RuntimeAdapter.update returns.",
+      "consequence": "study_loop never receives the completed collection and never emits its episode/reset records. execute retains failure/progress but closes the environment without retaining the collection. The transition claim remains spent. That one-shot failure permanently loses already-observed training episode evidence, contrary to README.md:24. The pinned historical runner journals these events before ppo_update (runner.py:808-813). No invalid candidate is saved; the defect is lost failure evidence.",
+      "repair": "Expose or durably journal completed rollout events immediately after collection and before PPO/diagnostic work. Keep completed-update counters and candidate eligibility unchanged. Add an owned fake control with nonempty completed/reset events followed by PPO or diagnostic failure; verify records survive, claim remains spent, progress remains diagnostic-only, and no candidate is saved.",
+      "evidence": "Static call order only. No target function, test, runtime, model, environment, or campaign was executed."
+    }
+  ]
+}

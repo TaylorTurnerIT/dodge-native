@@ -1,0 +1,256 @@
+{
+  "artifact_sha256": {
+    "review.md": "9180bdea582a3ab7dfd020e411b15294226d89ab9a69de90a7b09ef373e1a9dd"
+  },
+  "authority": {
+    "launch": false,
+    "parent_acceptance": false,
+    "registration": false,
+    "resource_calibration": false,
+    "seed_reservation": false
+  },
+  "checks": {
+    "PPO_GAE_KL_scheduler_optional_diagnostics_byte_identical_to_r1": true,
+    "curriculum_AST_identical_after_reverting_only_identity_repair": true,
+    "exact_r1_to_r2_diff_reconstructed": true,
+    "full_seed_mapping_compared_without_key_projection": true,
+    "manifest_payload_entries_verified": 10,
+    "new_test_methods": 2,
+    "only_original_failure_test_extended": true,
+    "original_test_methods_retained": 39,
+    "other_python_files_byte_identical_to_r1": 8,
+    "parent_receipt_manifest_and_log_pins_verified": true,
+    "partial_reset_and_old_generation_cases": "static source traces only",
+    "predecessor_payload_entries_verified": 19,
+    "review_tests_executed": 0,
+    "shared_config_byte_identical_to_r1": true,
+    "snapshot_does_not_consume_assignment_or_reset": true,
+    "target_code_executed_or_imported": false,
+    "target_json_files_parsed": 5,
+    "target_python_files_ast_parsed": 10,
+    "upstream_manifest_and_previous_review_pins_verified": true
+  },
+  "closed_findings": [
+    {
+      "id": "F1",
+      "locations": [
+        "successor/curriculum.py:61-71",
+        "successor/curriculum.py:145-157",
+        "successor/curriculum.py:322-338",
+        "tests/test_collector.py:215-262"
+      ],
+      "prior_severity": "P2",
+      "reason": "Full independently copied seed mapping gates frozen-assignment join; changed live identities remain unassigned/null without consuming an ordinal.",
+      "status": "closed_in_source_scope"
+    }
+  ],
+  "evidence_limits": [
+    "No independent runtime execution.",
+    "Individual mutations of every seed key, snapshot mutation and mid-record_reset batch failure were assessed from source, not additional tests.",
+    "No native binary/integration/parity, restore, evaluator, seed or resource qualification.",
+    "Existing unreturned native-exception work costs remain outside this repair."
+  ],
+  "findings": [],
+  "input_hashes": {
+    "learning/runs/v2/progressive1000-collector-identity-parent-20261026-r2/README.md": {
+      "bytes": 773,
+      "sha256": "66f1eaf8b63ab5a04bc7687d4f3606ad4c1bc3bd54778c55153d881656580811"
+    },
+    "learning/runs/v2/progressive1000-collector-identity-parent-20261026-r2/logs/fake-controls.json": {
+      "bytes": 4438,
+      "sha256": "584a6e83560db0fc121fad77796843d25783d1f8ce91af1fee7b267375a8b08d"
+    },
+    "learning/runs/v2/progressive1000-collector-identity-parent-20261026-r2/logs/parent-tests.log": {
+      "bytes": 6434,
+      "sha256": "794c859927125e5eea757025ac5714f776114e4038fc584f6fda29a30e9e194a"
+    },
+    "learning/runs/v2/progressive1000-collector-identity-parent-20261026-r2/preparation.json": {
+      "bytes": 560,
+      "sha256": "3f66088ee72efec89e1908c815f0cb215c603220faea2fc56b67358923fd5d03"
+    },
+    "learning/runs/v2/progressive1000-collector-identity-parent-20261026-r2/r1-to-r2.diff": {
+      "bytes": 5258,
+      "sha256": "72208d7ef0368c326b5a143deb503dfd0047f2db275b829b05c25da53651b02c"
+    },
+    "learning/runs/v2/progressive1000-collector-identity-parent-20261026-r2/receipt.json": {
+      "bytes": 1033,
+      "sha256": "b5fbf8837eeb2d07364090e7b6a11e905ec6ea05bc521f4a7d58ce5acc81b465"
+    },
+    "learning/runs/v2/progressive1000-collector-identity-parent-20261026-r2/run_tests.py": {
+      "bytes": 1305,
+      "sha256": "b6f492570099e87f239c148e90c96af40ca4b1438c07c62e85a67315312c3c1d"
+    },
+    "learning/runs/v2/progressive1000-collector-identity-parent-20261026-r2/shared-config-contract.json": {
+      "bytes": 1167,
+      "sha256": "91dd9dabca931032e444e1934dacb30c750edaafd348e32898f93ebe4d83c0ce"
+    },
+    "learning/runs/v2/progressive1000-collector-identity-parent-20261026-r2/source-manifest.json": {
+      "bytes": 3274,
+      "sha256": "16200c082f53f62eb01c068de18ebd826da8d3a06969ce82de1c218c70f9d8f9"
+    },
+    "learning/runs/v2/progressive1000-collector-identity-parent-20261026-r2/successor/__init__.py": {
+      "bytes": 88,
+      "sha256": "52a74191425bdd8dbcaac85899c0d0a77dcc19a3ca734e8ce26a08048778b633"
+    },
+    "learning/runs/v2/progressive1000-collector-identity-parent-20261026-r2/successor/critic_diagnostics.py": {
+      "bytes": 6526,
+      "sha256": "272059f7c12ebe30e36dc6e9e2388c5b088c11bcd002ee95478459a61e452dbe"
+    },
+    "learning/runs/v2/progressive1000-collector-identity-parent-20261026-r2/successor/curriculum.py": {
+      "bytes": 23316,
+      "sha256": "6d10405b51941df17e0b96e5ff3a10b48f942cf0061fe963a4273ac1f20585bf"
+    },
+    "learning/runs/v2/progressive1000-collector-identity-parent-20261026-r2/successor/gradient_alignment.py": {
+      "bytes": 5192,
+      "sha256": "cd7d16aebe9eed247b0a4747956d8106991b3637ab0b45118ea9e7ebc0c1e25f"
+    },
+    "learning/runs/v2/progressive1000-collector-identity-parent-20261026-r2/successor/ppo.py": {
+      "bytes": 33468,
+      "sha256": "95cf870e5358e9bcb9c29567f04b7f6c2bbbe6e5532b735da0e44994b9c67d56"
+    },
+    "learning/runs/v2/progressive1000-collector-identity-parent-20261026-r2/successor/scheduler_reference.py": {
+      "bytes": 6437,
+      "sha256": "a467b7219a9cd801fa3b403a6af112fc693ec3d14c9d311e8845632ef61d844b"
+    },
+    "learning/runs/v2/progressive1000-collector-identity-parent-20261026-r2/tests/fakes.py": {
+      "bytes": 6209,
+      "sha256": "797cffd8c7dc3ad63832aa47d75604cb15824926973701aad8fe55048d0ef6c7"
+    },
+    "learning/runs/v2/progressive1000-collector-identity-parent-20261026-r2/tests/test_collector.py": {
+      "bytes": 24650,
+      "sha256": "5b8d082be5298c5952f62d1a9e768f33714d1cb4e08970534cebf3dc4f6396aa"
+    },
+    "learning/runs/v2/progressive1000-collector-identity-parent-20261026-r2/tests/test_scheduler_reference.py": {
+      "bytes": 10786,
+      "sha256": "4dc599173d227791c640b781b26ef4dc2013c303042225c160e72b5cb6c6fee4"
+    },
+    "learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/README.md": {
+      "bytes": 7699,
+      "sha256": "bb5772526dd0a4e0d7f9cb2fab980f7c6e152d8ff90a92b6bf44c8d5b1bbb293"
+    },
+    "learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/SHA256SUMS": {
+      "bytes": 1885,
+      "sha256": "447773223129fe372c23c7c807c7736958f5df3781fe597e0520cb190a5984c6"
+    },
+    "learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/accepted-to-successor.diff": {
+      "bytes": 68185,
+      "sha256": "356cd34e77c0ee4fb49f2c2cbb168967e766197468efdf5bf8afd45aec4ac04b"
+    },
+    "learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/external-inputs-before.json": {
+      "bytes": 5249,
+      "sha256": "8f7268bdf47487f2853a2f623d92d41bff51014725baecd31e40869d5096ab74"
+    },
+    "learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/logs/fake-controls.json": {
+      "bytes": 4438,
+      "sha256": "6e05fb333698a174c311c4e31d07bf63983c45e967b9e2e6c9207d2099c87f99"
+    },
+    "learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/logs/source-checks.json": {
+      "bytes": 919,
+      "sha256": "8ce14aea12a9079d0b71d8d40a517cf6b8edbc219d7835ad8e498478a9897dcf"
+    },
+    "learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/logs/tests-attempt-01.log": {
+      "bytes": 4994,
+      "sha256": "2f33c6312411616482651eb68ca97c5945d314be2561f7e34edede6faed950c6"
+    },
+    "learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/logs/tests-attempt-02.log": {
+      "bytes": 5622,
+      "sha256": "2a2fe63c042098a201d961600899c795cef509cc893ed145dcce5472f990a492"
+    },
+    "learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/logs/tests-attempt-03.log": {
+      "bytes": 6106,
+      "sha256": "1cda5fcffa5e0553a8baf54b2ada8dbcf22a4d6c40daa6c9bdd73e8298dc4ce3"
+    },
+    "learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/receipt.json": {
+      "bytes": 3388,
+      "sha256": "47b9b502334b0a113ecfbf635426ba263b46a712f02992772de4f829a9ee33b3"
+    },
+    "learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/run_tests.py": {
+      "bytes": 1305,
+      "sha256": "b6f492570099e87f239c148e90c96af40ca4b1438c07c62e85a67315312c3c1d"
+    },
+    "learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/shared-config-contract.json": {
+      "bytes": 1167,
+      "sha256": "91dd9dabca931032e444e1934dacb30c750edaafd348e32898f93ebe4d83c0ce"
+    },
+    "learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/source-manifest.json": {
+      "bytes": 17038,
+      "sha256": "1839e0f89a08f1c79e0e2a26e26019b2ad951ac1f461a3a2de7a83ff7d214f24"
+    },
+    "learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/successor/__init__.py": {
+      "bytes": 88,
+      "sha256": "52a74191425bdd8dbcaac85899c0d0a77dcc19a3ca734e8ce26a08048778b633"
+    },
+    "learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/successor/critic_diagnostics.py": {
+      "bytes": 6526,
+      "sha256": "272059f7c12ebe30e36dc6e9e2388c5b088c11bcd002ee95478459a61e452dbe"
+    },
+    "learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/successor/curriculum.py": {
+      "bytes": 22542,
+      "sha256": "e97d46b06cc21a2455f8a7a6f73c7e26e561433aaecb93648e26399d6152cede"
+    },
+    "learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/successor/gradient_alignment.py": {
+      "bytes": 5192,
+      "sha256": "cd7d16aebe9eed247b0a4747956d8106991b3637ab0b45118ea9e7ebc0c1e25f"
+    },
+    "learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/successor/ppo.py": {
+      "bytes": 33468,
+      "sha256": "95cf870e5358e9bcb9c29567f04b7f6c2bbbe6e5532b735da0e44994b9c67d56"
+    },
+    "learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/successor/scheduler_reference.py": {
+      "bytes": 6437,
+      "sha256": "a467b7219a9cd801fa3b403a6af112fc693ec3d14c9d311e8845632ef61d844b"
+    },
+    "learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/tests/fakes.py": {
+      "bytes": 6209,
+      "sha256": "797cffd8c7dc3ad63832aa47d75604cb15824926973701aad8fe55048d0ef6c7"
+    },
+    "learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/tests/test_collector.py": {
+      "bytes": 23073,
+      "sha256": "1dc39a686c4437ed8fc941e2d828bded2cc758cb702e6d80f677c5258c385cc5"
+    },
+    "learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/tests/test_scheduler_reference.py": {
+      "bytes": 10786,
+      "sha256": "4dc599173d227791c640b781b26ef4dc2013c303042225c160e72b5cb6c6fee4"
+    },
+    "learning/runs/v2/progressive1000-collector-r1-review-sol-20261026-r1/SHA256SUMS": {
+      "bytes": 323,
+      "sha256": "4894c2dc5e957f5fac29bbe8e7d29a5bc98866988d64240e99b35a9235f7acdd"
+    },
+    "learning/runs/v2/progressive1000-collector-r1-review-sol-20261026-r1/receipt.json": {
+      "bytes": 3490,
+      "sha256": "467ec0a42d1159b5db951bf956b9774e807751d5fdb434d7867685891f60ff88"
+    },
+    "learning/runs/v2/progressive1000-collector-r1-review-sol-20261026-r1/review.md": {
+      "bytes": 7250,
+      "sha256": "2e30aa48d73b6a28456861ce0495482ddc1c79f00035e61a5e4ebbef09e46d91"
+    },
+    "learning/runs/v2/progressive1000-collector-r1-review-sol-20261026-r1/source-checks.json": {
+      "bytes": 7909,
+      "sha256": "8a12d5d9d41499c8d898bb55ad7917a6fde53c4013cabda632aa4b9179166216"
+    },
+    "learning/runs/v2/progressive1000-collector-r1-review-sol-20261026-r1/verify_source.py": {
+      "bytes": 6518,
+      "sha256": "fe6687950f1bc65d8e6927a3ee9ce2c31c0acb7b56f16f867e3a3624645afd52"
+    }
+  },
+  "owned_output_directory": "learning/runs/v2/progressive1000-collector-identity-r2-review-sol-20261026-r2",
+  "parent_validation": {
+    "log": "learning/runs/v2/progressive1000-collector-identity-parent-20261026-r2/logs/parent-tests.log",
+    "reported_passed": 41,
+    "reported_seconds": 3.378,
+    "review_reran_tests": false,
+    "scope": "synthetic CPU fake model/environment; not native integration or parity",
+    "sha256": "794c859927125e5eea757025ac5714f776114e4038fc584f6fda29a30e9e194a"
+  },
+  "preservation": {
+    "limit": "Listed-input hashing, not exhaustive concurrent-workspace audit.",
+    "listed_input_count": 45,
+    "listed_inputs_unchanged_at_packaging": true,
+    "writes_issued_only_inside_owned_output": true
+  },
+  "remaining_gates": "Parent-owned integration/authenticated restore/native parity/identity/evaluator/seed/resource/registration and subsequent execution remain separate.",
+  "schema": "progressive1000_collector_identity_r2_source_review_v1",
+  "scope": "stdlib source read/hash/AST/JSON with Python -B only; no target imports/tests/Torch/NumPy/native/model/environment/checkpoint/MPS/build/repair/subdelegation/commits/push",
+  "status": "no_source_blockers_F1_closed_source_scope_only",
+  "target_directory": "learning/runs/v2/progressive1000-collector-identity-parent-20261026-r2"
+}

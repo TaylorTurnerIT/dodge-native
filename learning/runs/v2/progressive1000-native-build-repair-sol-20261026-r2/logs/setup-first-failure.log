@@ -1,0 +1,11 @@
+First successor setup invocation exited 1 after copying source, originals and offline registry.
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-native-build-repair-sol-20261026-r2/prepare.py", line 50, in <module>
+    (OUT / name).mkdir()
+  File "/Users/taylor/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/pathlib.py", line 1311, in mkdir
+    os.mkdir(self, mode)
+FileExistsError: [Errno 17] File exists: '/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-native-build-repair-sol-20261026-r2/scripts'
+
+Cause: scripts directory already existed for the capture driver. No Cargo/native command ran.
+Recovery: --finish-existing verifies every copied file against predecessor before completing setup.
+This log transcribes the tool result; it is not captured subprocess stdout.

@@ -1,0 +1,103 @@
+--- a/crates/dodge-rl-env/src/env.rs
++++ b/crates/dodge-rl-env/src/env.rs
+@@ -470,7 +470,7 @@
+     /// End selected alive episodes after their exact H-reaching K=4 step.
+     ///
+     /// Validate the entire request before mutation. Horizons are positive 1000
+-    /// multiples below the configured ordinary cap (18000 in the experiment).
++    /// multiples below both 18000 and the configured ordinary cap.
+     /// True deaths and ordinary cap endings must be excluded by the caller;
+     /// explicitly supplying either rejects the whole request. No frame, reward,
+     /// native state, observation/history, diagnostic or seed counter advances.
+@@ -508,7 +508,11 @@
+                     "practice cutoff requires alive Mode::Game",
+                 ));
+             }
+-            if horizon == 0 || horizon % 1000 != 0 || horizon >= self.config.raw_frame_cap {
++            if horizon == 0
++                || horizon % 1000 != 0
++                || horizon >= 18_000
++                || horizon >= self.config.raw_frame_cap
++            {
+                 return Err(EnvError::PracticeHorizon {
+                     slot: index,
+                     horizon,
+--- a/crates/dodge-rl-env/src/features.rs
++++ b/crates/dodge-rl-env/src/features.rs
+@@ -150,6 +150,7 @@
+ /// Only selected geometry and observed charge are retained. A None-pattern raw
+ /// frame clears rectangle history even if another activation appears within K.
+ #[derive(Default)]
++#[cfg_attr(test, derive(Debug))]
+ pub(crate) struct History {
+     enemies: Vec<EnemyHistory>,
+     rectangles: Vec<RectHistory>,
+--- a/crates/dodge-rl-env/src/practice_tests.rs
++++ b/crates/dodge-rl-env/src/practice_tests.rs
+@@ -58,6 +58,7 @@
+     observations: Vec<Option<Observation>>,
+     pixels: Vec<Option<Vec<u8>>>,
+     history_diagnostics: Vec<crate::Diagnostics>,
++    history_fields: Vec<String>,
+     poisoned: bool,
+     failures: Vec<(usize, String)>,
+ }
+@@ -76,6 +77,11 @@
+             .slots
+             .iter()
+             .map(|s| s.history.cumulative_diagnostics())
++            .collect(),
++        history_fields: env
++            .slots
++            .iter()
++            .map(|s| format!("{:?}", s.history))
+             .collect(),
+         poisoned: env.poisoned,
+         failures: env.last_failures.clone(),
+@@ -367,7 +373,46 @@
+     assert!(cap.info[0].bootstrap);
+     assert_eq!(cap.elapsed_raw_frames, vec![4]);
+     assert_eq!(cap.rewards, vec![0.04]);
++    assert!(matches!(
++        rejects_unchanged(&mut env, &[0], &[17000]),
++        EnvError::SlotEnded(0)
++    ));
+     assert_eq!(env.reset_done(&[0])?.info[0].seed.episode, 1);
++    Ok(())
++}
++
++#[test]
++fn practice_fixed_18000_ceiling_and_configured_cap_both_reject() -> crate::Result<()> {
++    let mut env = safe_env(2, 2, 1, false)?;
++    env.config.raw_frame_cap = 20_000; // Synthetic configuration fixture.
++    advance(&mut env, 4500)?;
++    assert!(env.episode_info().iter().all(|i| !i.truncated));
++    for horizon in [18_000, 19_000] {
++        assert!(matches!(
++            rejects_unchanged(&mut env, &[0, 1], &[horizon, horizon]),
++            EnvError::PracticeHorizon { .. }
++        ));
++    }
++    let mut env = safe_env(2, 2, 1, false)?;
++    advance(&mut env, 250)?;
++    env.config.raw_frame_cap = 1000; // Cap check independent of ended flags.
++    assert!(matches!(
++        rejects_unchanged(&mut env, &[0, 1], &[1000, 1000]),
++        EnvError::PracticeHorizon { .. }
++    ));
++    Ok(())
++}
++
++#[test]
++fn practice_real_undershoot_and_overshoot_are_atomic() -> crate::Result<()> {
++    let mut env = safe_env(2, 2, 1, false)?;
++    advance(&mut env, 249)?;
++    assert_eq!(env.episode_info()[0].gameplay_frames, 996);
++    rejects_unchanged(&mut env, &[0, 1], &[1000, 1000]);
++    env.step(&[0, 0])?;
++    env.step(&[0, 0])?;
++    assert_eq!(env.episode_info()[0].gameplay_frames, 1004);
++    rejects_unchanged(&mut env, &[0, 1], &[1000, 1000]);
+     Ok(())
+ }
+ 

@@ -1,0 +1,70 @@
+{
+  "artifact_sha256": {
+    "review.md": "2e30aa48d73b6a28456861ce0495482ddc1c79f00035e61a5e4ebbef09e46d91",
+    "source-checks.json": "8a12d5d9d41499c8d898bb55ad7917a6fde53c4013cabda632aa4b9179166216",
+    "verify_source.py": "fe6687950f1bc65d8e6927a3ee9ce2c31c0acb7b56f16f867e3a3624645afd52"
+  },
+  "authority": {
+    "acceptance": false,
+    "launch": false,
+    "registration": false,
+    "resource_calibration": false,
+    "seed_reservation": false
+  },
+  "checks": {
+    "design_and_scheduler_pins_match": true,
+    "entire_ppo_ast_identical_after_removing_only_collector_argument_and_hooks": true,
+    "exact_diff_sections_reconstructed_in_memory": 9,
+    "listed_inputs_unchanged_at_end": true,
+    "manifest_payload_entries_verified": 19,
+    "optional_diagnostics_byte_identical": true,
+    "parent_python_copies_byte_identical": 10,
+    "parent_reported_tests": 39,
+    "review_tests_executed": 0,
+    "scope": "stdlib read/hash/AST/JSON only; source evidence, not runtime qualification",
+    "shared_ppo_json_matches_design": true,
+    "target_code_executed_or_imported": false,
+    "target_python_files_ast_parsed": 10,
+    "target_seal_entries_verified": 21,
+    "test_methods_read_not_run": {
+      "tests/test_collector.py": 18,
+      "tests/test_scheduler_reference.py": 21
+    }
+  },
+  "findings": [
+    {
+      "consequence": "in_flight reports prior episode ordinal/generation/horizon for unassigned new episode",
+      "evidence": "static control-flow trace through existing post-reset guard failure test; not executed",
+      "id": "F1",
+      "line_end": 349,
+      "line_start": 346,
+      "path": "learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/successor/curriculum.py",
+      "repair_performed": false,
+      "scope": "current in-memory snapshot correctness, not deferred durable telemetry",
+      "severity": "P2",
+      "title": "Failed-reset snapshot attaches ended-episode assignment to new active episode",
+      "trigger": "reset_done succeeds; post-reset guard raises before record_reset; snapshot called"
+    }
+  ],
+  "owned_output_directory": "learning/runs/v2/progressive1000-collector-r1-review-sol-20261026-r1",
+  "parent_validation": {
+    "log": "learning/runs/v2/progressive1000-collector-r1-parent-validation-20261026-r1/tests.log",
+    "receipt": "learning/runs/v2/progressive1000-collector-r1-parent-validation-20261026-r1/receipt.json",
+    "reported_passed": 39,
+    "reported_seconds": 3.574,
+    "review_reran_tests": false,
+    "scope": "synthetic CPU fake model/env only; not runtime or native qualification"
+  },
+  "preservation": {
+    "limit": "listed-input hashing, not exhaustive concurrent workspace mutation audit",
+    "listed_inputs_unchanged_at_packaging": true,
+    "writes_issued_only_inside_owned_output": true
+  },
+  "prohibited_work_performed": false,
+  "remaining_gates": "Full runner/identity/evaluator/native integration and parity; real restore/reseed; parent ancestry/cohort reservations; durable telemetry, resources and cleanup; parent registration/launch/acceptance. B/E closed.",
+  "review_scope": "stdlib read/hash/AST/JSON source inspection only; zero tests and zero target imports",
+  "schema": "progressive1000_collector_source_review_v1",
+  "status": "one_P2_source_blocker_no_runtime_qualification",
+  "target_directory": "learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1",
+  "target_manifest_sha256": "1839e0f89a08f1c79e0e2a26e26019b2ad951ac1f461a3a2de7a83ff7d214f24"
+}
