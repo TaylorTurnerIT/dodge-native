@@ -1,0 +1,168 @@
+{
+  "SUP-R1-02": {
+    "locations": {
+      "binding.py": [
+        [
+          50,
+          70
+        ],
+        [
+          39,
+          47
+        ]
+      ]
+    },
+    "reason": "Complete fsynced staging inode, atomic non-overwriting same-directory link, directory fsync; strict JSON reads unchanged.",
+    "status": "fixed_at_source_level"
+  },
+  "SUP-R2-01": {
+    "coverage_limit": "Separate pre-snapshot-failure and family tests do not combine early failure with a descendant surviving leader TERM/reap.",
+    "locations": {
+      "execute_once.py": [
+        [
+          26,
+          62
+        ]
+      ],
+      "observe.py": [
+        [
+          66,
+          80
+        ],
+        [
+          85,
+          103
+        ],
+        [
+          122,
+          122
+        ],
+        [
+          168,
+          180
+        ],
+        [
+          238,
+          243
+        ]
+      ],
+      "tests/stdlib_child.py": [
+        [
+          39,
+          51
+        ]
+      ],
+      "tests/test_real_processes.py": [
+        [
+          104,
+          114
+        ],
+        [
+          123,
+          132
+        ]
+      ]
+    },
+    "required_identity_rule": "Preserve exact owned-group identity through escalation; never signal an unproven post-reap group.",
+    "trace": [
+      "anchors starts empty; worker-launch publication precedes first snapshot",
+      "exception invokes stop_owned with signal_owned callback",
+      "TERM uses unreaped direct child proof",
+      "process.wait reaps direct child; returncode becomes non-null",
+      "surviving group makes group_exists true through TERM grace",
+      "KILL callback takes post-reap signal_group path",
+      "fresh group has no saved matching anchor; signal_group raises before killpg",
+      "stop_owned records error and returns; descendant remains; final receipt is failed"
+    ],
+    "trigger": "Failure before first group snapshot; same-group descendant survives TERM; direct worker terminates on TERM."
+  },
+  "SUP-R2-02": {
+    "consequence": "Potential substantial controller overrun of 1800 total seconds; failure remains ineligible, but return-time bound is not enforced.",
+    "coverage_limit": "Current total-deadline test has no training journals and asserts elapsed_seconds sampled before final accounting.",
+    "locations": {
+      "observe.py": [
+        [
+          139,
+          149
+        ],
+        [
+          233,
+          243
+        ],
+        [
+          244,
+          273
+        ]
+      ],
+      "terminal.py": [
+        [
+          12,
+          50
+        ]
+      ],
+      "tests/test_real_processes.py": [
+        [
+          139,
+          152
+        ]
+      ]
+    },
+    "trace": [
+      "setitimer calls specify no repeat interval",
+      "total deadline branch latches and raises without rearming",
+      "exception handler rearms only if clock is before hard_at",
+      "finally reads worker-result and unconditionally scans training journals",
+      "inner BaseException handlers can consume the sole hard-deadline exception",
+      "subsequent accounting and durable receipt writes have no active timer or pre-work deadline check",
+      "elapsed_seconds was captured before these operations",
+      "clock deadline is checked after both primary receipts are written"
+    ],
+    "trigger": "Total deadline fires during postflight or the final worker-result read, before terminal.accounting finishes."
+  },
+  "actual_process_probes": 0,
+  "bindings": {
+    "locations": {
+      "../progressive1000-shared-runtime-staticmethod-repair-sol-20261026-r2/contracts.py": [
+        [
+          210,
+          224
+        ]
+      ],
+      "../progressive1000-shared-runtime-staticmethod-repair-sol-20261026-r2/worker_cli.py": [
+        [
+          9,
+          21
+        ]
+      ],
+      "binding.py": [
+        [
+          86,
+          108
+        ],
+        [
+          111,
+          116
+        ],
+        [
+          140,
+          180
+        ]
+      ]
+    },
+    "status": "safe_in_principle_pending_parent_finalization_and_blocker_resolution"
+  },
+  "launch_authority": false,
+  "reviewer_tests_run": 0,
+  "schema": "progressive1000_R2_static_control_flow_review_v1",
+  "source_excerpt_sha256": {
+    "binding.py": "15492cf7416519ed9198fd491f8865f07604672a135a1a7532941254eb2f0e96",
+    "execute_once.py": "629a64c97d224fd591ea31be3fbdfce6dfa66ec63ae6d23705e138e85fb85e7e",
+    "observe.py": "66075c4752eabcc79e045aa113a29a3a0769b745f6ae4cc717f1bf7b8b8c8503",
+    "terminal.py": "8b87779e04f873c99ed8f953aac81eb0703adc8a83873a36345961fdf3a8fb9e",
+    "tests/stdlib_child.py": "73649ba9ebebb1cd938ea39fe04150be9a687f3ea279dc4d9c6a3457296da37f",
+    "tests/test_real_processes.py": "25f9187337309accc7853d1be7155563a193c5f9a48af7dd265fd04e03914d3b"
+  },
+  "source_execution": false,
+  "target_imports": false,
+  "verification": "Source control-flow reasoning only; no target imports, execution, tests, fake replay, process probes or injected failures."
+}

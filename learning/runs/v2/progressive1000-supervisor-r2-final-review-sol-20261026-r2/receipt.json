@@ -1,0 +1,289 @@
+{
+  "actual_process_probes": 0,
+  "artifacts": {
+    "input-pin-checks.json": "efe51840f3f345baa6e9c0a92a29b54b75c6e5b58c2b8e677a7b7f261a948d45",
+    "preservation-after.json": "cab4f339e2e16a280e0eb6199319862684259e5380870e2111d52b673f47ea3f",
+    "preservation-before.json": "5279e60ca3366292c26221e6068fd0cc00d3741acb23ef5ffe29e4d02ddb16ce",
+    "review.md": "bd2fda1de060fb09d2e2d7c1739e8527a2f398cd069294bcdd1e0f50d7be55d3",
+    "static-checks.json": "c79821a9a82fa4226ed41f2234df83fee57d187e03e9f05458652f2fc521c4bb",
+    "static_review.py": "6ce8be83dd6952fa080ae31e1c94956644f1c242dd5e12cd6ff3b5d5300f81b4"
+  },
+  "author_evidence": {
+    "control_body_reuse": {
+      "adapted": [
+        "test_cancellation_cleans_exact_owned_group_once",
+        "test_external_watchdog_term_kill_and_raw_exit",
+        "test_failed_worker_preserves_raw_exit_string_and_partial_optimizer",
+        "test_lease_drift_fails_before_worker_dispatch"
+      ],
+      "matches_claim": true,
+      "unchanged": [
+        "test_cli_binds_launch_approval_and_shared_start",
+        "test_completed_global60_json_and_hash_binding",
+        "test_exact_parent_marker_and_gate_contract",
+        "test_inert_envelope_rejected_without_control_creation",
+        "test_observer_refuses_stale_identity",
+        "test_original_cleanup_term_kill_with_fake_process",
+        "test_sampled_rss_new_field_and_torn_tail"
+      ]
+    },
+    "fake": {
+      "actual_subprocess_launches": [],
+      "elapsed_seconds": 0.6116217919625342,
+      "errors": 0,
+      "failures": 0,
+      "forbidden_runtime_imports": [],
+      "raw_exit": 0,
+      "schema": "progressive1000_supervisor_stdlib_controls_v1",
+      "scope": "Synthetic process objects and JSON/hash controls only; no actual restore, runtime, cleanup or campaign qualification.",
+      "successful": true,
+      "tests_run": 11
+    },
+    "parent_independent_21_control_replay": "Reported in brief as ongoing; completion not asserted by reviewer.",
+    "real": {
+      "cpu_seconds_bound": 15,
+      "descendant_reaps": [
+        {
+          "directly_reaped": true,
+          "pid": 93768,
+          "raw_exit": -15
+        }
+      ],
+      "direct_helpers": [
+        {
+          "directly_reaped": true,
+          "group_absent": true,
+          "pid": 93757,
+          "raw_exit": 0
+        },
+        {
+          "directly_reaped": true,
+          "group_absent": true,
+          "pid": 93758,
+          "raw_exit": -15
+        },
+        {
+          "directly_reaped": true,
+          "group_absent": true,
+          "pid": 93762,
+          "raw_exit": -15
+        },
+        {
+          "directly_reaped": true,
+          "group_absent": true,
+          "pid": 93763,
+          "raw_exit": -9
+        },
+        {
+          "directly_reaped": true,
+          "group_absent": true,
+          "pid": 93764,
+          "raw_exit": -15
+        },
+        {
+          "directly_reaped": true,
+          "group_absent": true,
+          "pid": 93766,
+          "raw_exit": 1
+        },
+        {
+          "directly_reaped": true,
+          "group_absent": true,
+          "pid": 93767,
+          "raw_exit": 0
+        },
+        {
+          "directly_reaped": true,
+          "group_absent": true,
+          "pid": 93773,
+          "raw_exit": -9
+        },
+        {
+          "directly_reaped": true,
+          "group_absent": true,
+          "pid": 93817,
+          "raw_exit": 0
+        },
+        {
+          "directly_reaped": true,
+          "group_absent": true,
+          "pid": 93820,
+          "raw_exit": -15
+        }
+      ],
+      "elapsed_seconds": 7.239102874998935,
+      "errors": 0,
+      "failures": 0,
+      "raw_exit": 0,
+      "remaining_owned_handles": [],
+      "reviewer_replayed": false,
+      "scope": "Real bounded stdlib processes with mocked gates and synthetic control paths only. No model, native, Torch, NumPy, MPS, checkpoint, campaign or acceptance evidence.",
+      "successful": true,
+      "tests_run": 10,
+      "wall_seconds_bound": 35
+    }
+  },
+  "checkpoint_deserializations": 0,
+  "created_at_utc": "2026-10-27T04:06:38.768882+00:00",
+  "delegations": 0,
+  "exact_run_bindings": {
+    "all_six_inert_templates_match_final_index_and_R2_pins": true,
+    "common_finite_monotonic_started_exact_four_field_marker": true,
+    "new_restore_probe_required": false,
+    "shared_source_acceptance_separate": true,
+    "status": "safe_in_principle_parent_finalization_required_supervisor_not_cleared",
+    "timestamp_review_loop_required": false,
+    "worker_cli_binds_later_per_run_launch_approval": true,
+    "worker_output_and_controls_separate": true
+  },
+  "finding_count": 2,
+  "findings": [
+    {
+      "consequence": "stop_owned reaps the direct worker after TERM, then post-reap signal_group rejects KILL for lack of anchors. An owned descendant can survive controller return.",
+      "id": "SUP-R2-01",
+      "line": 47,
+      "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-race-repair-sol-20261026-r2/execute_once.py",
+      "related_locations": [
+        {
+          "lines": [
+            66,
+            74
+          ],
+          "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-race-repair-sol-20261026-r2/observe.py"
+        },
+        {
+          "lines": [
+            94,
+            103
+          ],
+          "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-race-repair-sol-20261026-r2/observe.py"
+        },
+        {
+          "lines": [
+            168,
+            180
+          ],
+          "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-race-repair-sol-20261026-r2/observe.py"
+        },
+        {
+          "lines": [
+            238,
+            243
+          ],
+          "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-race-repair-sol-20261026-r2/observe.py"
+        }
+      ],
+      "required_resolution": "Retain unreaped kernel identity through escalation, or establish sufficient exact identity before reaping. Preserve fresh post-reap identity checks; no broad command signaling.",
+      "severity": "P1",
+      "title": "TERM cleanup can reap the only identity pin before KILL of an unanchored surviving group",
+      "trigger": "worker-launch publication or first process snapshot fails before anchors exist; an owned same-group descendant survives TERM while the directly owned worker terminates.",
+      "verification": "Source control-flow trace only. No failure injection or process execution."
+    },
+    {
+      "consequence": "Finally performs full worker-result reads, journal accounting and durable receipt writes after the timer is consumed, without another time guard until after both primary receipts. Large journals can exceed 1800 total seconds; elapsed_seconds excludes this work.",
+      "id": "SUP-R2-02",
+      "line": 255,
+      "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-race-repair-sol-20261026-r2/observe.py",
+      "related_locations": [
+        {
+          "lines": [
+            139,
+            149
+          ],
+          "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-race-repair-sol-20261026-r2/observe.py"
+        },
+        {
+          "lines": [
+            233,
+            236
+          ],
+          "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-race-repair-sol-20261026-r2/observe.py"
+        },
+        {
+          "lines": [
+            248,
+            273
+          ],
+          "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-race-repair-sol-20261026-r2/observe.py"
+        },
+        {
+          "lines": [
+            24,
+            50
+          ],
+          "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-race-repair-sol-20261026-r2/terminal.py"
+        }
+      ],
+      "required_resolution": "Avoid expensive finalization after budget exhaustion, retain bounded partial failure receipts, and enforce the remaining deadline through accounting/publication.",
+      "severity": "P2",
+      "title": "Hard-deadline exception does not bound subsequent failure accounting and publication",
+      "trigger": "The one-shot total alarm fires during postflight, or during the final worker-result read and is caught by its BaseException handler.",
+      "verification": "Source control-flow trace only. Existing author control uses absent training journals and checks the earlier elapsed field; not replayed."
+    }
+  ],
+  "history_queries": 0,
+  "launch_authority": false,
+  "launches": 0,
+  "limits": [
+    "Source/hash/AST/JSON conclusions only; neither observed runtime failure nor runtime/cleanup qualification.",
+    "Author fake/real controls are receipt evidence only; reviewer did not replay them.",
+    "Expected outcome tables, checkpoint and live-state files were opaque byte hashes only; no B/E table or outcome content inspected.",
+    "Parent owns approval, exact marker/lease/launch and terminal/embedded checkpoint acceptance; formal evaluation remains separate.",
+    "Named pin/path preservation only; not a whole-workspace snapshot."
+  ],
+  "memory_queries": 0,
+  "ownership": {
+    "only_output_directory": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-r2-final-review-sol-20261026-r2",
+    "parent_source_registration_state_lease_marker_edits": 0,
+    "writes": "Review artifacts only"
+  },
+  "prelaunch_scope": "Resolved bounded historical same-parent restore/resource support and accepted actual new-reference/native-parity/source scope retained. No new qualification prerequisite or successor-success claim.",
+  "preservation": {
+    "drift_since_reviewer_snapshot": [],
+    "historical_mutable_state_baseline_mismatches": [
+      {
+        "actual": "028d83c1c32228ff298efc626fba9339e547933bfae7668cea24d2e7e863d816",
+        "expected": "1cbead0a82325a1ca64ca6018f36bdae70f1a32c6201a18a248008fea56cf405",
+        "label": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2-orchestration/state.json",
+        "matches": false
+      }
+    ],
+    "historical_state_mismatch_interpretation": "Opaque mutable bytes differ from author baseline; current content and lease were not inspected. No immutable source mismatch, attribution, or new approval demand.",
+    "outputs_attempt_claims_launch_markers_launch_approvals_and_target_dispatch_absent": true,
+    "pins_checked": 14292,
+    "registered_caches_existing_empty": true,
+    "registered_path_states_unchanged": true
+  },
+  "prior_blockers": {
+    "SUP-R1-01": {
+      "reason": "Intermediate launcher handoff removed; direct child is owned from Popen return, but exceptional TERM cleanup can reap the only ownership pin before KILL. See SUP-R2-01.",
+      "status": "partially_resolved_not_cleared"
+    },
+    "SUP-R1-02": {
+      "reason": "Atomic non-overwriting fsynced staging/link/directory publication; no observer parses a visible partial committed receipt.",
+      "status": "fixed_at_source_level"
+    }
+  },
+  "promotion": false,
+  "reviewed": {
+    "ast_files_parsed": 15,
+    "binding_AST_unchanged_except_save": true,
+    "dependency_binding_byte_identical": true,
+    "final_registration_index_sha256": "7144e7ab3852eac4307e64fecf884d1dc8b21a769f48267d065cf679b3bedaef",
+    "installed_dependency_pins_checked": 13513,
+    "original_supervisor_source_manifest_sha256": "8351fabd8a54685007e74a050200f2e25ac19e2e6ae3a4b11cf98535ef4c3d4f",
+    "prelaunch_evidence_scope_sha256": "333d3aada22ddf2959b155160e92d97bb162b95247a1cdac16e6bad089885d6c",
+    "registrations_checked": 6,
+    "supervisor_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-race-repair-sol-20261026-r2",
+    "supervisor_source_manifest_sha256": "df65bb051c9232497d223dc4a73c41e90af9556323d6a16b0aa378724931b12a",
+    "terminal_byte_identical": true,
+    "worker_source_manifest_sha256": "be7b8b3c9ef90d1e820df417f54863b6943fb746c451105078923916f19a04a2"
+  },
+  "reviewer": "Independent Codex review sub-agent, fresh R2",
+  "runtime_model_environment_probes": 0,
+  "schema": "progressive1000_supervisor_R2_independent_final_review_v1",
+  "source_execution": false,
+  "status": "blocking_findings_parent_resolution_required",
+  "target_imports": false,
+  "tests_run": 0
+}
