@@ -1,0 +1,273 @@
+{
+  "schema": "progressive1000_monitored_comparison_r2_independent_source_review_v1",
+  "reviewer": "sol",
+  "reviewed_at_utc": "2026-10-27T15:12:15.331940+00:00",
+  "verdict": "no_blocking_findings_source_only",
+  "blocking_findings": [],
+  "nonblocking_observations": [
+    {
+      "severity": "P3",
+      "category": "stale_validation_expectation",
+      "path": "learning/runs/v2/progressive1000-throughput-supervisor-parent-20261027-r2/tests/test_bindings.py",
+      "line": 180,
+      "trigger": "R2 work/total limits increase to 3780/3790 seconds while the inherited synthetic test still asserts elapsed_seconds < 1800.",
+      "evidence": "AssertionError: 3786.0 not less than 1800",
+      "consequence": "One synthetic test fails on an obsolete threshold; the simulated elapsed time remains within the new 3790-second total cap. No clean-pass claim for the R2 supervisor suite.",
+      "source_blocker": false,
+      "followup": "Preserve failed evidence. Any test correction must use separately owned successor work."
+    }
+  ],
+  "launch_authority": false,
+  "runtime_qualified": false,
+  "parent_acceptance_required": true,
+  "review_sha256": "ed468026abe6fd5792242389e7d83edb3becd98eb0ef983cadf3a28272d93e83",
+  "owned_outputs": [
+    "review.md",
+    "receipt.json"
+  ],
+  "execution": {
+    "project_modules_imported": false,
+    "torch_imported": false,
+    "native_imported": false,
+    "checkpoint_modules_imported": false,
+    "checkpoint_deserialized": false,
+    "checkpoint_access": "byte hashing only",
+    "tests_run": 0,
+    "training_executed": false,
+    "launch_preflight_executed": false,
+    "qualification_exposure": false,
+    "ledger_lease_or_marker_mutated": false,
+    "source_mutated": false,
+    "probe_interfered_with": false,
+    "spent_attempts_modified": false,
+    "further_agents_spawned": false
+  },
+  "method": [
+    "stdlib file reads",
+    "SHA-256 hashing",
+    "AST parsing without execution",
+    "baseline source diffs",
+    "recursive registration comparisons",
+    "static callable, parent-launch and terminal-accounting review"
+  ],
+  "prior_review": "learning/runs/v2/progressive1000-throughput-probe24-review-sol-20261027-r1",
+  "scope": "Narrow successor review of R2 source/bindings, measured wall limits, six matched registrations and parent launch_one.py. Unchanged supervisor design retained.",
+  "verified": {
+    "changed_source_members": {
+      "progressive1000-throughput-runtime-parent-20261027-r2": [
+        "driver_binding.py",
+        "progress_monitor.py",
+        "tests/test_progress_monitor.py"
+      ],
+      "progressive1000-throughput-supervisor-parent-20261027-r2": [
+        "binding.py"
+      ]
+    },
+    "comparison_parent_gate_files_present": {
+      "progressive1000-confirmed324-20261026-r1-replica-1-control_constant_3e-5": {
+        "gate-acceptance.json": false,
+        "launch-approval.json": false,
+        "launch-envelope.json": false,
+        "source-acceptance.json": false
+      },
+      "progressive1000-confirmed324-20261026-r1-replica-1-progressive1000_curriculum_constant_3e-5": {
+        "gate-acceptance.json": false,
+        "launch-approval.json": false,
+        "launch-envelope.json": false,
+        "source-acceptance.json": false
+      },
+      "progressive1000-confirmed324-20261026-r1-replica-2-control_constant_3e-5": {
+        "gate-acceptance.json": false,
+        "launch-approval.json": false,
+        "launch-envelope.json": false,
+        "source-acceptance.json": false
+      },
+      "progressive1000-confirmed324-20261026-r1-replica-2-progressive1000_curriculum_constant_3e-5": {
+        "gate-acceptance.json": false,
+        "launch-approval.json": false,
+        "launch-envelope.json": false,
+        "source-acceptance.json": false
+      },
+      "progressive1000-confirmed324-20261026-r1-replica-3-control_constant_3e-5": {
+        "gate-acceptance.json": false,
+        "launch-approval.json": false,
+        "launch-envelope.json": false,
+        "source-acceptance.json": false
+      },
+      "progressive1000-confirmed324-20261026-r1-replica-3-progressive1000_curriculum_constant_3e-5": {
+        "gate-acceptance.json": false,
+        "launch-approval.json": false,
+        "launch-envelope.json": false,
+        "source-acceptance.json": false
+      }
+    },
+    "existing_test_evidence": {
+      "progressive1000-throughput-runtime-parent-20261027-r2/logs/test-summary.json": {
+        "errors": 0,
+        "failures": 0,
+        "sha256": "e6c78925c9931ff88a91414c489e0e1dcf3440022d4cb3e1dd199cd30c59df4f",
+        "success": true,
+        "tests_run": 106
+      },
+      "progressive1000-throughput-supervisor-parent-20261027-r2/validation/fake/test-receipt.json": {
+        "errors": 0,
+        "failures": 1,
+        "raw_exit": 1,
+        "sha256": "85d51e239ef778155af3214ec6dc7066021fe7a1b5a42b532adc9e1de6724064",
+        "successful": false,
+        "tests_run": 11
+      },
+      "progressive1000-throughput-supervisor-parent-20261027-r2/validation/ps/ps-test-receipt.json": {
+        "errors": 0,
+        "failures": 0,
+        "raw_exit": 0,
+        "sha256": "7a130453ee7097e8bde73ae9e73694966b980e046667c5abbb895644616e05fb",
+        "successful": true,
+        "tests_run": 4
+      },
+      "progressive1000-throughput-supervisor-parent-20261027-r2/validation/real/real-test-receipt.json": {
+        "errors": 0,
+        "failures": 0,
+        "raw_exit": 0,
+        "sha256": "c39fc99c01918ad095c56e0e0543ccebe4181fb2b66033dec4cd64cf724e3b43",
+        "successful": true,
+        "tests_run": 14
+      }
+    },
+    "input_pins_checked": 253,
+    "matched_replica_differences": {
+      "1": [],
+      "2": [],
+      "3": []
+    },
+    "parent_checkpoint_byte_hash_matches": true,
+    "pin_mismatches": [],
+    "probe": {
+      "formal_evaluation_local_updates": [],
+      "purpose": "timing_probe24",
+      "registration_sha256": "6c463f48385056db388cfea165e6a68696ac2b92934e654603e3bd680ea929b0",
+      "source_manifest_sha256": "2f80ac3f58674e4dc23ff8a68ee68ab2a2915c3b4d24ab0baaa96f552536d60e",
+      "total_seconds": 1800,
+      "updates": 24,
+      "work_seconds": 1790
+    },
+    "registration_changed_fields_from_original": [
+      "attempt_claim_path",
+      "expected_lease.owner_token",
+      "expected_lease.registration_path",
+      "import_policy.pycache_prefix",
+      "launch_marker_path",
+      "limits.total_seconds",
+      "limits.work_seconds",
+      "output",
+      "purpose",
+      "runtime_root",
+      "source_manifest_sha256"
+    ],
+    "registrations": [
+      {
+        "dispatch_absent": true,
+        "empty_cache": true,
+        "fresh_lease_token": true,
+        "paths_distinct_from_original_and_probe": true,
+        "run_id": "progressive1000-confirmed324-20261026-r1-replica-1-control_constant_3e-5",
+        "sha256": "1a29f80999a828fc7e75fe71795e5eda115ddc1a69b2354d1a24ba2d57c26191",
+        "unspent_paths": true
+      },
+      {
+        "dispatch_absent": true,
+        "empty_cache": true,
+        "fresh_lease_token": true,
+        "paths_distinct_from_original_and_probe": true,
+        "run_id": "progressive1000-confirmed324-20261026-r1-replica-1-progressive1000_curriculum_constant_3e-5",
+        "sha256": "c25e4906671a25474cdc2536e6e40f413f2088a1bb73fad2d834f23dd6560acc",
+        "unspent_paths": true
+      },
+      {
+        "dispatch_absent": true,
+        "empty_cache": true,
+        "fresh_lease_token": true,
+        "paths_distinct_from_original_and_probe": true,
+        "run_id": "progressive1000-confirmed324-20261026-r1-replica-2-control_constant_3e-5",
+        "sha256": "b1e31a24c49e76d501dab1dec6e5d2ac2f8ff05165f0a53e86c2e1fc7d0e8d9c",
+        "unspent_paths": true
+      },
+      {
+        "dispatch_absent": true,
+        "empty_cache": true,
+        "fresh_lease_token": true,
+        "paths_distinct_from_original_and_probe": true,
+        "run_id": "progressive1000-confirmed324-20261026-r1-replica-2-progressive1000_curriculum_constant_3e-5",
+        "sha256": "9cd59b002dd65ce7514abcfd227798d6d9ce96238f1c330a430d866b725aa738",
+        "unspent_paths": true
+      },
+      {
+        "dispatch_absent": true,
+        "empty_cache": true,
+        "fresh_lease_token": true,
+        "paths_distinct_from_original_and_probe": true,
+        "run_id": "progressive1000-confirmed324-20261026-r1-replica-3-control_constant_3e-5",
+        "sha256": "fed8502191acf863784cc208299579b7090f0d76599595cb195a83e729a007ab",
+        "unspent_paths": true
+      },
+      {
+        "dispatch_absent": true,
+        "empty_cache": true,
+        "fresh_lease_token": true,
+        "paths_distinct_from_original_and_probe": true,
+        "run_id": "progressive1000-confirmed324-20261026-r1-replica-3-progressive1000_curriculum_constant_3e-5",
+        "sha256": "da9584ceb5123d8aa82669bf8f76d67b03cff534443f19cdf615ef52e1611f70",
+        "unspent_paths": true
+      }
+    ],
+    "runtime": {
+      "bytes_identical_to_r1_and_accepted": true,
+      "exact_members": 12,
+      "manifest_sha256": "f41c4435e952a560f8aa18f6939c35bfa5573adbaf08cbeb53f5380b9aa09b6e"
+    },
+    "source_member_counts": {
+      "progressive1000-throughput-runtime-parent-20261027-r1": 45,
+      "progressive1000-throughput-runtime-parent-20261027-r2": 45,
+      "progressive1000-throughput-supervisor-parent-20261027-r1": 13,
+      "progressive1000-throughput-supervisor-parent-20261027-r2": 13
+    },
+    "subjects": {
+      "progressive1000-monitored-comparison-parent-20261027-r1/launch_one.py": "4be0df0d4e9f8ee7084678f694199ebdd4a058db563dbd9eed744957457d3323",
+      "progressive1000-monitored-comparison-parent-20261027-r1/registration-index.json": "2ac6c09ffe4397747fa0fc24807aaa5226549a4cf9087e946c1943f6d4d241fe",
+      "progressive1000-monitored-comparison-parent-20261027-r1/wall-budget.json": "ef74fe6b9f374a662bfce8653f65d7862a3a4d7801cab3f1ec3ddebab5f177f8",
+      "progressive1000-throughput-runtime-parent-20261027-r1/source-manifest.json": "2f80ac3f58674e4dc23ff8a68ee68ab2a2915c3b4d24ab0baaa96f552536d60e",
+      "progressive1000-throughput-runtime-parent-20261027-r2/source-manifest.json": "e14147338e8da864b1e51c1928124b5103700e22c3ae389e5642bf92c6561f0a",
+      "progressive1000-throughput-supervisor-parent-20261027-r1/source-manifest.json": "1f5da3ba50b63e465891a9067d01b19e5fe61b2f18fe7f6ec2591c89d0e544b5",
+      "progressive1000-throughput-supervisor-parent-20261027-r2/source-manifest.json": "1ae9732aad426337bd14f5bf4ef3ff8346363058a21870e77308d4c36a6a17cb"
+    },
+    "supervisor_observe_terminal_execute_unchanged": true,
+    "wall": {
+      "historical_rate": 49.565493517332165,
+      "history_sha256": "d4a1f1c0fceaa1739c8d55db8fa2b08d8dc4517deec73777c1987136cd4820f5",
+      "limits": {
+        "cleanup_seconds": 10,
+        "mps_bytes": 6442450944,
+        "raw_frames": 16712512,
+        "resets": 983040,
+        "retries": 0,
+        "rss_bytes": 6442450944,
+        "total_seconds": 3790,
+        "work_seconds": 3780
+      },
+      "work_formula_result": 3780
+    },
+    "subject_drift": [],
+    "all_new_tokens_disjoint_from_original_six_and_probe": true
+  },
+  "existing_test_evidence_independently_rerun": false,
+  "limits": [
+    "Source-only. No actual loaded-object, native or MPS execution qualification.",
+    "Installed dependency inventory not independently rehashed in this narrow round; unchanged binding and launch verification inspected.",
+    "Historical rate and warning-only forecasts do not guarantee completion under concurrent le-caissa GPU/MPS training.",
+    "Actual probe terminal parent audit was not performed by this reviewer.",
+    "Parent must accept actual probe terminal evidence before issuing comparison gate acceptance.",
+    "Each arm still requires exact parent source/gate acceptance, approval, envelope, registered interpreter/cache environment, lease and marker.",
+    "Parent terminal checkpoint-content audit and descriptive comparison acceptance remain required.",
+    "No retry, best-of-N selection or checkpoint promotion."
+  ]
+}

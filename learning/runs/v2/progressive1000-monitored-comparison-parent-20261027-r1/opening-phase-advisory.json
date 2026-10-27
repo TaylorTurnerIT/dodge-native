@@ -1,0 +1,14 @@
+{
+  "source_name": "Fixing-PPO-Opening-Phase-Without-Forgetting.md",
+  "source_sha256": "273e1cb0dea51fc4608aeef9e432992a25a6b32fd2384a20a515f7123d9d6fc2",
+  "current_experiment_changed": false,
+  "assessment": [
+    "Forgetting is a risk, not an established diagnosis.",
+    "Current70/30 stage mix rehearses earlier stages; it does not maintain unrestricted late-game exposure at the opening stage.",
+    "A future full-run maintenance variant should use fresh on-policy trajectories, not arbitrary stale PPO replay.",
+    "For the current minimized PPO loss, an added reference KL penalty has a positive sign.",
+    "Correct practice-cutoff bootstrapping does not require a frozen critic. A frozen late-policy critic is a separate handoff design.",
+    "Measure full normal-start Worst,Q1,Mean,Q4,Best and milestones before claiming preservation."
+  ],
+  "next_variant": "Consider full-run maintenance if formal comparison shows late-game regression. No current loss/reward/architecture change."
+}
