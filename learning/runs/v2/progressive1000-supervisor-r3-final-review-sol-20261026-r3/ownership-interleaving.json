@@ -1,0 +1,23 @@
+{
+  "schema": "source_only_owned_group_interleaving_v1",
+  "finding": "SUP-R3-01",
+  "execution": false,
+  "scope": "Static trace of existing normal observation loop and cleanup; no synthetic or real process execution.",
+  "identities": {
+    "L": "direct Popen leader, PID and PGID L",
+    "C": "new descendant, PID C, inherited PGID L, remains alive"
+  },
+  "steps": [
+    {"location": "observe.py:185-193", "event": "process_rows returns only L in the owned group; anchors receives L; process.returncode is None"},
+    {"location": "between observe.py:193 and :194", "event": "L forks C, then L exits; C has never appeared in an anchor snapshot"},
+    {"location": "observe.py:194", "event": "proc.poll reaps L and sets its returncode"},
+    {"location": "observe.py:195-197", "event": "refreshed process_rows contains C in PGID L; anchors still contains only L"},
+    {"location": "observe.py:212-215", "event": "owned_group_survived_worker latches; TERM is attempted"},
+    {"location": "observe.py:94-103 and :69-74", "event": "reaped leader selects signal_group; C is not anchored, L is gone; RuntimeError occurs before os.killpg"},
+    {"location": "observe.py:251-255", "event": "group exists, so exceptional stop_owned runs with already-reaped L and anchors containing only L"},
+    {"location": "execute_once.py:35-68", "event": "both send callbacks reject unproven C; errors are recorded; waits cannot restore L ownership; C remains alive"},
+    {"location": "observe.py:261-287", "event": "failure receipt reports group absence false; controller can return failure with live owned C"}
+  ],
+  "not_claimed": ["Observed runtime failure", "Accepted worker actually created this descendant", "False success receipt", "Reviewer test replay"],
+  "contract": "Requested independent owned-group cancellation, TERM/KILL/reap and bounded cleanup include surviving same-group descendants."
+}
