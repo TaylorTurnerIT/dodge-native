@@ -1,0 +1,235 @@
+[
+  {
+    "classification": "failed_before_constructor",
+    "directory": "learning/runs/v2/critic-diagnostic-D2-20261025-r1",
+    "evidence": [
+      "learning/runs/v2/critic-diagnostic-D2-20261025-r1/worker-result.json",
+      {
+        "evidence_lines": [
+          [
+            309,
+            "            need(all(equality.values()), \"D1 state restoration differs\")"
+          ],
+          [
+            312,
+            "            env = dodge_rl.VecDodgeEnv(batch_size=64, action_repeat=4, difficulty=2,"
+          ]
+        ],
+        "path": "learning/runs/v2/critic-diagnostic-runner-prepare-20261025-r2/runner.py",
+        "sha256": "5aa564528b5f173c4f94dd5bc3c38c8ec5796571b3da45be47f52ee40475851c"
+      }
+    ],
+    "master": 3192039780,
+    "reason": "ValueError('D1 state restoration differs')",
+    "status": "closed",
+    "training_constructor_bound": 0
+  },
+  {
+    "classification": "byte_identical_observer_copy_of_failed_critic_r1",
+    "directory": "learning/runs/v2/critic-diagnostic-execution-observer-20261025-r1",
+    "new_constructor_bound": 0,
+    "status": "closed"
+  },
+  {
+    "classification": "byte_identical_observer_copy_of_journaled_critic_r2",
+    "directory": "learning/runs/v2/critic-diagnostic-execution-observer-20261025-r2",
+    "new_constructor_bound": 0,
+    "represented_campaign": "critic-diagnostic-D2-20261025-r2",
+    "status": "closed"
+  },
+  {
+    "classification": "trajectory_argument_conversion_failed_before_Rust_constructor",
+    "directory": "learning/runs/v2/milestone2-validation-campaign-r1",
+    "error": "TypeError(\"argument 'excluded_seed_ranges': 'list' object cannot be cast as 'tuple'\")",
+    "master": 5562594895196603457,
+    "qualification_seed_metadata_only": {
+      "B_range": [
+        2952790016,
+        2952791015
+      ],
+      "outcomes_used": false
+    },
+    "status": "closed",
+    "training_constructor_bound": 0
+  },
+  {
+    "classification": "real_training_mode_validation_not_optimizer_training",
+    "directory": "learning/runs/v2/milestone2-validation-campaign-r2",
+    "initial_episode_indices": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "master": 5562594895196603457,
+    "memory_final_resume_indices": [
+      1646,
+      1669,
+      1629,
+      1646,
+      1642,
+      1636,
+      1649,
+      1646
+    ],
+    "native_parity_outcomes_used": false,
+    "possible_inclusive_episode_end": [
+      1646,
+      1669,
+      1629,
+      1646,
+      1642,
+      1636,
+      1649,
+      1646,
+      49,
+      31,
+      37,
+      34,
+      39,
+      34,
+      35,
+      34,
+      35,
+      38,
+      37,
+      34,
+      32,
+      35,
+      33,
+      36,
+      33,
+      33,
+      31,
+      33,
+      34,
+      35,
+      31,
+      37
+    ],
+    "returned_memory_resets": 13155,
+    "slots": 32,
+    "source": {
+      "evidence_lines": [
+        [
+          293,
+          "def base_config(plan: dict, **changes) -> dict:"
+        ],
+        [
+          294,
+          "    config = {\"batch_size\": 8, \"action_repeat\": 4, \"difficulty\": 2, \"patterns_enabled\": True, \"powerups_enabled\": True, \"raw_frame_cap\": 18000, \"num_threads\": 4, \"chunk_size\": 2, \"render_pixels\": True, \"auxiliary_targets\": True, \"run_seed\": plan[\"training_run_seed\"], \"excluded_seed_ranges\": [tuple(pair) for pair in plan[\"effective_reserved_ranges\"]]}"
+        ],
+        [
+          334,
+          "def worker_trajectory(np, Env, plan: dict, directory: Path) -> dict:"
+        ],
+        [
+          352,
+          "        for _ in range(case[\"decisions\"]):"
+        ],
+        [
+          367,
+          "                a_reset, b_reset = left.reset_done(ended[::-1]), right.reset_done(ended[::-1])"
+        ],
+        [
+          379,
+          "def worker_memory(np, Env, plan: dict, directory: Path) -> dict:"
+        ],
+        [
+          409,
+          "                reset = env.reset_done(ended)"
+        ],
+        [
+          430,
+          "def worker_throughput(np, Env, plan: dict, directory: Path) -> dict:"
+        ],
+        [
+          457,
+          "                    note_seeds(env.reset_done(ended)[\"info\"], \"warmup_reset\", warm_index + 1)"
+        ],
+        [
+          469,
+          "                    reset = env.reset_done(ended)"
+        ]
+      ],
+      "path": "learning/scripts/v2_validate_environment.py",
+      "sha256": "2a542c52413fd3ef9529688e6f7ea34652ae102c89481d8b593690664adf3303"
+    },
+    "status": "closed_finite_seed_bound",
+    "trajectory_aggregate_resets": [
+      48,
+      40
+    ]
+  },
+  {
+    "classification": "real_evaluation_only_diagnostic",
+    "directory": "learning/runs/v2/postovernight-action-mode-campaign-r1",
+    "master": null,
+    "native_step_calls": 184280,
+    "seed_mode": "evaluation",
+    "seed_range": [
+      3489660928,
+      3489660991
+    ],
+    "source": {
+      "evidence_lines": [
+        [
+          35,
+          "SEEDS = tuple(range(3489660928, 3489660992))"
+        ],
+        [
+          440,
+          "                        'auxiliary_targets': False, 'seeds_by_slot': [[seed]]}"
+        ],
+        [
+          522,
+          "    result = [rows[i] for i in range(64)]"
+        ],
+        [
+          563,
+          "            delta.append([a[j] - b[j] for j in range(2)])"
+        ],
+        [
+          615,
+          "            from dodge_rl import VecDodgeEnv"
+        ],
+        [
+          649,
+          "                                        torch=torch, np=np, env_factory=VecDodgeEnv,"
+        ]
+      ],
+      "path": "learning/runs/v2/postovernight-action-mode-prepare-r3/source-snapshot/learning/runs/v2/postovernight-action-mode-prepare-r3/runner.py",
+      "sha256": "8c4be28db13db8df2c4fb647ea10fdd815ef6612139dc497b04b4b6915f9e329"
+    },
+    "status": "closed_finite_seed_list",
+    "worker_exit_code": 0
+  }
+]

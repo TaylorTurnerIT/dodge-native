@@ -1,0 +1,177 @@
+[
+  {
+    "basis": "two eight-decision collections, terminal counters; one extra failed reset endpoint",
+    "campaign": "learning/runs/v2/milestone3-real-collector-smoke-r1",
+    "initial_episode_indices": [
+      0,
+      0
+    ],
+    "master": 5562870565502797569,
+    "possible_inclusive_episode_end": [
+      4,
+      4
+    ],
+    "slots": 2,
+    "source": {
+      "evidence_lines": [
+        [
+          42,
+          "    from dodge_rl import VecDodgeEnv"
+        ],
+        [
+          44,
+          "    from dodge_rl.ppo import PPOConfig, collect_rollout, compute_gae"
+        ],
+        [
+          52,
+          "    env = VecDodgeEnv(**config)"
+        ],
+        [
+          55,
+          "    first = collect_rollout(model, env, 8, \"cpu\", **kwargs)"
+        ],
+        [
+          57,
+          "    second = collect_rollout(model, env, 8, \"cpu\", observation=first.observations, **kwargs)"
+        ],
+        [
+          99,
+          "                          \"next_episode_indices\": collection.batch_info[\"next_episode_indices\"]})"
+        ]
+      ],
+      "path": "learning/runs/v2/milestone3-real-collector-smoke-r1/smoke.py",
+      "sha256": "18572ee336337f091802d23642d73b92912e8ec939941ceae889e8d3b67ed293"
+    }
+  },
+  {
+    "basis": "at most 256 decisions per fixed case; one reset per slot per decision; include injected post-reset guard consumption",
+    "campaign": "learning/runs/v2/progressive1000-native-collector-integration-sol-20261026-r1",
+    "initial_episode_indices": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "master": 777,
+    "possible_inclusive_episode_end": [
+      257,
+      257,
+      257,
+      257,
+      257,
+      257,
+      257,
+      257
+    ],
+    "slots": 8,
+    "source": {
+      "evidence_lines": [
+        [
+          28,
+          "OPTIONS = dict(batch_size=8, action_repeat=4, difficulty=1, patterns_enabled=False,"
+        ],
+        [
+          30,
+          "    render_pixels=False, auxiliary_targets=False, run_seed=777,"
+        ],
+        [
+          106,
+          "    def reset_done(self, indices):"
+        ],
+        [
+          112,
+          "        returned = self.inner.reset_done(indices)"
+        ],
+        [
+          131,
+          "            raise RuntimeError('intentional_unit_guard_after_actual_native_reset')"
+        ],
+        [
+          271,
+          "        if not failure or str(exc) != 'intentional_unit_guard_after_actual_native_reset':"
+        ],
+        [
+          314,
+          "    for args in [('enabled_full256', True, [256]), ('disabled_full256', False, [256]),"
+        ],
+        [
+          315,
+          "                 ('enabled_split128_128', True, [128, 128]),"
+        ],
+        [
+          316,
+          "                 ('enabled_post_reset_guard_failure', True, [256], True)]:"
+        ]
+      ],
+      "path": "learning/runs/v2/progressive1000-native-collector-integration-sol-20261026-r1/integration_driver.py",
+      "sha256": "c02bec4cc90265d4d919ce2663bc87c327ad14ef3fccc52ca6d19bc462116a53"
+    }
+  },
+  {
+    "basis": "300-decision two-environment trajectory; seed reference arithmetic is not construction",
+    "campaign": "learning/runs/v2/milestone2-wrapper-r1",
+    "exclusions": [
+      [
+        2952790016,
+        2952791015
+      ]
+    ],
+    "initial_episode_indices": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "master": 18446744069720004216,
+    "possible_inclusive_episode_end": [
+      301,
+      301,
+      301,
+      301,
+      301,
+      301,
+      301,
+      301,
+      301
+    ],
+    "slots": 9,
+    "source": {
+      "evidence_lines": [
+        [
+          6,
+          "        seed_mode:SeedMode::Training{run_seed:0xFFFF_FFFF_1234_5678},..EnvConfig::default()};"
+        ],
+        [
+          11,
+          "    for decision in 0..300 {"
+        ],
+        [
+          18,
+          "        if !ended.is_empty() {assert_eq!(a.reset_done(&ended)?,b.reset_done(&ended)?);resets+=ended.len();}"
+        ],
+        [
+          22,
+          "    for run in [0_u64,1,0x1_0000_0001,u64::MAX] {"
+        ]
+      ],
+      "path": "learning/runs/v2/milestone2-wrapper-r1/trajectory_probe.rs",
+      "sha256": "915424b6c38e45d226e5eea22ca6f79c202ea77715bd7a85fabccb417a751cc8"
+    },
+    "source_algorithm": {
+      "archive": "learning/runs/v2/milestone2-wrapper-r1/source.tar.gz",
+      "archive_sha256": "1d2f26d27f1d076696c5a943d1793132d35790ad0718dc1ea4715844f922439c",
+      "member": "crates/dodge-rl-env/src/seed.rs",
+      "member_sha256": "7478aabe705fc538f806f7a14bc6ad6a9b08a77b1a3978ab5f238e2565b612eb",
+      "version": "dodge_slot_splitmix64_high32_reject_v1; mandatory B only"
+    }
+  }
+]

@@ -1,0 +1,1290 @@
+[
+  {
+    "archive": "learning/runs/v2/milestone1-r1/source.tar.gz",
+    "member": "crates/dodge-core/src/game.rs",
+    "sha256": "4390a4bc8053fbe1eec4d8d1ff57ed0c25c6ef71c8d325594fed694b74a85216",
+    "constructor_seed_sites": [
+      {
+        "line": 2378,
+        "text": "    fn reset_starts_at_menu_frame_zero() {\n        let game = NativeGame::new(NativeConfig::new(42));\n        assert_eq!(game.lifecycle().frame, 0);\n        assert_eq!(game.lifecycle().mode, Mode::Menu);"
+      },
+      {
+        "line": 2386,
+        "text": "    fn v102_start_crosses_transition_on_observed_thirteenth_frame() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        let first = game.advance_frame(BUTTON_X_MASK);\n        assert!(first.is_ok());"
+      },
+      {
+        "line": 2404,
+        "text": "    fn action_step_advances_exact_frames_and_neutral_is_zero_mask() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        let result = game.step(Action::Neutral, 4);\n        assert!(result.is_ok());"
+      },
+      {
+        "line": 2417,
+        "text": "    fn invalid_input_and_zero_step_fail_without_mutation() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        assert_eq!(\n            game.advance_frame(64),"
+      },
+      {
+        "line": 2432,
+        "text": "    fn player_movement_uses_fixed_friction_and_clamped_bounds() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        start_game(&mut game);\n        let first = game.advance_frame(1);"
+      },
+      {
+        "line": 2446,
+        "text": "    fn first_friendly_spawn_and_normal_enemy_match_seed_42_slice() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        start_game(&mut game);\n        for _ in 0..44 {"
+      },
+      {
+        "line": 2468,
+        "text": "    fn first_normal_spawn_preserves_source_init_rng_offset() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        start_game(&mut game);\n        for _ in 0..54 {"
+      },
+      {
+        "line": 2487,
+        "text": "    fn initial_pattern_rng_branch_is_seed_dependent() {\n        let mut game = NativeGame::new(NativeConfig::new(7));\n        start_game(&mut game);\n        for _ in 0..57 {"
+      },
+      {
+        "line": 2501,
+        "text": "    fn first_pattern_selection_converts_sample_to_integer_index() {\n        let mut game = NativeGame::new(NativeConfig::new(17));\n        game.lifecycle.mode = Mode::Game;\n        game.lifecycle.game_ready = true;"
+      },
+      {
+        "line": 2522,
+        "text": "    fn normal_spawn_size_is_reused_by_later_friendly_spawn() {\n        let mut game = NativeGame::new(NativeConfig::new(7));\n        start_game(&mut game);\n        for _ in 0..95 {"
+      },
+      {
+        "line": 2592,
+        "text": "    fn v149_collision_flags_gate_player_and_enemy_collision() {\n        let mut player_game = NativeGame::new(NativeConfig::default());\n        start_game(&mut player_game);\n        player_game.enemies.clear();"
+      },
+      {
+        "line": 2604,
+        "text": "\n        let mut enemy_game = NativeGame::new(NativeConfig::default());\n        start_game(&mut enemy_game);\n        enemy_game.enemies.clear();"
+      },
+      {
+        "line": 2643,
+        "text": "\n            let mut config = NativeConfig::new(42);\n            config.difficulty = difficulty;\n            let mut full = NativeGame::new(config);"
+      },
+      {
+        "line": 2645,
+        "text": "            config.difficulty = difficulty;\n            let mut full = NativeGame::new(config);\n            full.apply_difficulty(false);\n            assert_eq!("
+      },
+      {
+        "line": 2680,
+        "text": "\n            let mut half = NativeGame::new(config);\n            half.apply_difficulty(true);\n            assert_eq!("
+      },
+      {
+        "line": 2719,
+        "text": "    fn v153_powerup_explosion_preserves_source_mutable_list_order() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        game.enemies.push(EnemyState {\n            personality: 2,"
+      },
+      {
+        "line": 2771,
+        "text": "    fn v154_powerup_pattern_collision_uses_pre_growth_source_size() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        game.patterns = vec![crate::PatternState {\n            id: 1,"
+      },
+      {
+        "line": 2828,
+        "text": "    fn v122_restore_replays_the_same_next_frame() {\n        let mut original = NativeGame::new(NativeConfig::new(42));\n        start_game(&mut original);\n        for _ in 0..90 {"
+      },
+      {
+        "line": 2861,
+        "text": "    fn v157_pattern_targets_warnings_and_completion_follow_source_order() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        let moving = PatternRect {\n            x: PicoFixed::from_int(10),"
+      },
+      {
+        "line": 2947,
+        "text": "    fn normal_enemy_collision_marks_terminal_without_survival_reward() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        start_game(&mut game);\n        game.enemies.push(EnemyState::normal("
+      },
+      {
+        "line": 2975,
+        "text": "    fn v161_static_pattern_collision_matches_source() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        start_game(&mut game);\n        game.player.x = PicoFixed::from_int(5);"
+      },
+      {
+        "line": 3022,
+        "text": "    fn powerup_collision_applies_size_reward_and_difficulty_without_terminal() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        start_game(&mut game);\n        game.enemies.push(EnemyState {"
+      },
+      {
+        "line": 3042,
+        "text": "    fn v158_audio_events_preserve_source_order_and_restart_boundary() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        let start = game.advance_frame(BUTTON_X_MASK);\n        assert_eq!("
+      },
+      {
+        "line": 3093,
+        "text": "    fn v162_retry_resets_player_to_center_and_clears_velocity() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        start_game(&mut game);\n        game.player.x = PicoFixed::from_int(11);"
+      },
+      {
+        "line": 3111,
+        "text": "    fn v158_settings_change_emits_one_source_sfx() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        game.lifecycle.mode = Mode::Settings;\n        let result = game.advance_frame(crate::Button::Right.mask());"
+      },
+      {
+        "line": 3126,
+        "text": "    fn v109_ordered_enemy_overlap_removes_marked_entries_and_applies_side_effects() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        start_game(&mut game);\n        game.enemies.push(EnemyState::normal("
+      },
+      {
+        "line": 3154,
+        "text": "    fn draw_side_effect_rng_is_consumed_for_powerup_enemy_trails() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        start_game(&mut game);\n        game.enemies.push(EnemyState {"
+      },
+      {
+        "line": 3179,
+        "text": "    fn v140_kamikaze_speed_updates_once_before_movement() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        start_game(&mut game);\n        game.enemies.push(EnemyState {"
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone1-r1/source.tar.gz",
+    "member": "crates/dodge-core/src/snapshot.rs",
+    "sha256": "975fa296d97c3fead5abe89963005f6852f091dda30d4a3f8a2b97159f853a62",
+    "constructor_seed_sites": [
+      {
+        "line": 2103,
+        "text": "    fn reset_snapshot_exposes_typed_state_and_indexed_pixels() {\n        let game = NativeGame::new(NativeConfig::default());\n        let snapshot = game.snapshot();\n        assert_eq!(snapshot.logical_state().lifecycle.frame, 0);"
+      },
+      {
+        "line": 2117,
+        "text": "    fn snapshot_roundtrip_preserves_bytes_state_and_pixel_hash() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        let _ = game.step(Action::Right, 17);\n        let snapshot = game.snapshot();"
+      },
+      {
+        "line": 2135,
+        "text": "    fn rendering_does_not_mutate_simulation_state_or_rng() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        let _ = game.step(Action::Right, 17);\n        let before = game.full_state();"
+      },
+      {
+        "line": 2187,
+        "text": "    fn truncated_snapshot_is_rejected_before_decode() {\n        let snapshot = NativeGame::new(NativeConfig::default()).snapshot();\n        let bytes = snapshot.canonical_bytes();\n        assert!(!bytes.is_empty());"
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone1-r1/source.tar.gz",
+    "member": "crates/dodge-core/src/headless_tests.rs",
+    "sha256": "472c7d5c8e5900d43e6ffa487d599a13ce3da8494a9b4950c821e77eceb9b1a2",
+    "constructor_seed_sites": [
+      {
+        "line": 32,
+        "text": "    .into_iter();\n    for seed in [7, 42, 1234] {\n        let mut game = NativeGame::new(NativeConfig::new(seed));\n        let mut actions = PicoRng::new(seed + 100);"
+      },
+      {
+        "line": 33,
+        "text": "    for seed in [7, 42, 1234] {\n        let mut game = NativeGame::new(NativeConfig::new(seed));\n        let mut actions = PicoRng::new(seed + 100);\n        for frame in 1..=2000 {"
+      },
+      {
+        "line": 117,
+        "text": "fn running_game() -> Result<NativeGame, CoreError> {\n    let mut game = NativeGame::new(NativeConfig::new(42));\n    game.advance_frame_headless(crate::BUTTON_X_MASK)?;\n    for _ in 1..13 {"
+      },
+      {
+        "line": 145,
+        "text": "    let mut dead_frames = 0;\n    for seed in 0..100 {\n        let mut full = NativeGame::new(NativeConfig::new(seed));\n        let mut headless = full.clone();"
+      },
+      {
+        "line": 146,
+        "text": "    for seed in 0..100 {\n        let mut full = NativeGame::new(NativeConfig::new(seed));\n        let mut headless = full.clone();\n        let mut actions = PicoRng::new(seed + 1000);"
+      },
+      {
+        "line": 173,
+        "text": "fn headless_start_boundary_preserves_extra_trail_and_cached_pixels() -> Result<(), CoreError> {\n    let mut full = NativeGame::new(NativeConfig::new(42));\n    let mut headless = full.clone();\n    let cached_pixels = headless.snapshot().pixels().to_owned();"
+      },
+      {
+        "line": 397,
+        "text": "        let mut full = if initial == 0 {\n            NativeGame::new(NativeConfig::new(42))\n        } else {\n            running_game()?"
+      },
+      {
+        "line": 613,
+        "text": "                theme_shadow: 8,\n                ..NativeConfig::new(17)\n            };\n            let mut full = NativeGame::new(config);"
+      },
+      {
+        "line": 615,
+        "text": "            };\n            let mut full = NativeGame::new(config);\n            let mut headless = full.clone();\n            let mut actions = PicoRng::new(100);"
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone1-r1/source.tar.gz",
+    "member": "crates/dodge-core/examples/headless_profile.rs",
+    "sha256": "a53ffd29b1541b40893b6c0f5b51978291771b6bf5c2eae975c8b1dd0b833e7d",
+    "constructor_seed_sites": [
+      {
+        "line": 32,
+        "text": "fn started(seed: u32, path: Path) -> Result<NativeGame, CoreError> {\n    let mut game = NativeGame::new(NativeConfig::new(seed));\n    for frame in 0..13 {\n        let mask = if frame == 0 { BUTTON_X_MASK } else { 0 };"
+      },
+      {
+        "line": 58,
+        "text": "    let mut episodes = Vec::new();\n    for seed in 1000..1000 + SEEDS {\n        let mut game = started(seed, Path::Headless)?;\n        let mut rng = PicoRng::new(seed + 10_000);"
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone1-r2/source.tar.gz",
+    "member": "crates/dodge-core/src/game.rs",
+    "sha256": "4390a4bc8053fbe1eec4d8d1ff57ed0c25c6ef71c8d325594fed694b74a85216",
+    "constructor_seed_sites": [
+      {
+        "line": 2378,
+        "text": "    fn reset_starts_at_menu_frame_zero() {\n        let game = NativeGame::new(NativeConfig::new(42));\n        assert_eq!(game.lifecycle().frame, 0);\n        assert_eq!(game.lifecycle().mode, Mode::Menu);"
+      },
+      {
+        "line": 2386,
+        "text": "    fn v102_start_crosses_transition_on_observed_thirteenth_frame() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        let first = game.advance_frame(BUTTON_X_MASK);\n        assert!(first.is_ok());"
+      },
+      {
+        "line": 2404,
+        "text": "    fn action_step_advances_exact_frames_and_neutral_is_zero_mask() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        let result = game.step(Action::Neutral, 4);\n        assert!(result.is_ok());"
+      },
+      {
+        "line": 2417,
+        "text": "    fn invalid_input_and_zero_step_fail_without_mutation() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        assert_eq!(\n            game.advance_frame(64),"
+      },
+      {
+        "line": 2432,
+        "text": "    fn player_movement_uses_fixed_friction_and_clamped_bounds() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        start_game(&mut game);\n        let first = game.advance_frame(1);"
+      },
+      {
+        "line": 2446,
+        "text": "    fn first_friendly_spawn_and_normal_enemy_match_seed_42_slice() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        start_game(&mut game);\n        for _ in 0..44 {"
+      },
+      {
+        "line": 2468,
+        "text": "    fn first_normal_spawn_preserves_source_init_rng_offset() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        start_game(&mut game);\n        for _ in 0..54 {"
+      },
+      {
+        "line": 2487,
+        "text": "    fn initial_pattern_rng_branch_is_seed_dependent() {\n        let mut game = NativeGame::new(NativeConfig::new(7));\n        start_game(&mut game);\n        for _ in 0..57 {"
+      },
+      {
+        "line": 2501,
+        "text": "    fn first_pattern_selection_converts_sample_to_integer_index() {\n        let mut game = NativeGame::new(NativeConfig::new(17));\n        game.lifecycle.mode = Mode::Game;\n        game.lifecycle.game_ready = true;"
+      },
+      {
+        "line": 2522,
+        "text": "    fn normal_spawn_size_is_reused_by_later_friendly_spawn() {\n        let mut game = NativeGame::new(NativeConfig::new(7));\n        start_game(&mut game);\n        for _ in 0..95 {"
+      },
+      {
+        "line": 2592,
+        "text": "    fn v149_collision_flags_gate_player_and_enemy_collision() {\n        let mut player_game = NativeGame::new(NativeConfig::default());\n        start_game(&mut player_game);\n        player_game.enemies.clear();"
+      },
+      {
+        "line": 2604,
+        "text": "\n        let mut enemy_game = NativeGame::new(NativeConfig::default());\n        start_game(&mut enemy_game);\n        enemy_game.enemies.clear();"
+      },
+      {
+        "line": 2643,
+        "text": "\n            let mut config = NativeConfig::new(42);\n            config.difficulty = difficulty;\n            let mut full = NativeGame::new(config);"
+      },
+      {
+        "line": 2645,
+        "text": "            config.difficulty = difficulty;\n            let mut full = NativeGame::new(config);\n            full.apply_difficulty(false);\n            assert_eq!("
+      },
+      {
+        "line": 2680,
+        "text": "\n            let mut half = NativeGame::new(config);\n            half.apply_difficulty(true);\n            assert_eq!("
+      },
+      {
+        "line": 2719,
+        "text": "    fn v153_powerup_explosion_preserves_source_mutable_list_order() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        game.enemies.push(EnemyState {\n            personality: 2,"
+      },
+      {
+        "line": 2771,
+        "text": "    fn v154_powerup_pattern_collision_uses_pre_growth_source_size() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        game.patterns = vec![crate::PatternState {\n            id: 1,"
+      },
+      {
+        "line": 2828,
+        "text": "    fn v122_restore_replays_the_same_next_frame() {\n        let mut original = NativeGame::new(NativeConfig::new(42));\n        start_game(&mut original);\n        for _ in 0..90 {"
+      },
+      {
+        "line": 2861,
+        "text": "    fn v157_pattern_targets_warnings_and_completion_follow_source_order() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        let moving = PatternRect {\n            x: PicoFixed::from_int(10),"
+      },
+      {
+        "line": 2947,
+        "text": "    fn normal_enemy_collision_marks_terminal_without_survival_reward() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        start_game(&mut game);\n        game.enemies.push(EnemyState::normal("
+      },
+      {
+        "line": 2975,
+        "text": "    fn v161_static_pattern_collision_matches_source() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        start_game(&mut game);\n        game.player.x = PicoFixed::from_int(5);"
+      },
+      {
+        "line": 3022,
+        "text": "    fn powerup_collision_applies_size_reward_and_difficulty_without_terminal() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        start_game(&mut game);\n        game.enemies.push(EnemyState {"
+      },
+      {
+        "line": 3042,
+        "text": "    fn v158_audio_events_preserve_source_order_and_restart_boundary() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        let start = game.advance_frame(BUTTON_X_MASK);\n        assert_eq!("
+      },
+      {
+        "line": 3093,
+        "text": "    fn v162_retry_resets_player_to_center_and_clears_velocity() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        start_game(&mut game);\n        game.player.x = PicoFixed::from_int(11);"
+      },
+      {
+        "line": 3111,
+        "text": "    fn v158_settings_change_emits_one_source_sfx() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        game.lifecycle.mode = Mode::Settings;\n        let result = game.advance_frame(crate::Button::Right.mask());"
+      },
+      {
+        "line": 3126,
+        "text": "    fn v109_ordered_enemy_overlap_removes_marked_entries_and_applies_side_effects() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        start_game(&mut game);\n        game.enemies.push(EnemyState::normal("
+      },
+      {
+        "line": 3154,
+        "text": "    fn draw_side_effect_rng_is_consumed_for_powerup_enemy_trails() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        start_game(&mut game);\n        game.enemies.push(EnemyState {"
+      },
+      {
+        "line": 3179,
+        "text": "    fn v140_kamikaze_speed_updates_once_before_movement() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        start_game(&mut game);\n        game.enemies.push(EnemyState {"
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone1-r2/source.tar.gz",
+    "member": "crates/dodge-core/src/snapshot.rs",
+    "sha256": "975fa296d97c3fead5abe89963005f6852f091dda30d4a3f8a2b97159f853a62",
+    "constructor_seed_sites": [
+      {
+        "line": 2103,
+        "text": "    fn reset_snapshot_exposes_typed_state_and_indexed_pixels() {\n        let game = NativeGame::new(NativeConfig::default());\n        let snapshot = game.snapshot();\n        assert_eq!(snapshot.logical_state().lifecycle.frame, 0);"
+      },
+      {
+        "line": 2117,
+        "text": "    fn snapshot_roundtrip_preserves_bytes_state_and_pixel_hash() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        let _ = game.step(Action::Right, 17);\n        let snapshot = game.snapshot();"
+      },
+      {
+        "line": 2135,
+        "text": "    fn rendering_does_not_mutate_simulation_state_or_rng() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        let _ = game.step(Action::Right, 17);\n        let before = game.full_state();"
+      },
+      {
+        "line": 2187,
+        "text": "    fn truncated_snapshot_is_rejected_before_decode() {\n        let snapshot = NativeGame::new(NativeConfig::default()).snapshot();\n        let bytes = snapshot.canonical_bytes();\n        assert!(!bytes.is_empty());"
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone1-r2/source.tar.gz",
+    "member": "crates/dodge-core/src/headless_tests.rs",
+    "sha256": "c4db5f8a71b6337513c2c6ea01167ac52a979f665c833c3133c8af380d782b82",
+    "constructor_seed_sites": [
+      {
+        "line": 124,
+        "text": "    .into_iter();\n    for seed in [7, 42, 1234] {\n        let mut game = NativeGame::new(NativeConfig::new(seed));\n        let mut actions = PicoRng::new(seed + 100);"
+      },
+      {
+        "line": 125,
+        "text": "    for seed in [7, 42, 1234] {\n        let mut game = NativeGame::new(NativeConfig::new(seed));\n        let mut actions = PicoRng::new(seed + 100);\n        for frame in 1..=2000 {"
+      },
+      {
+        "line": 212,
+        "text": "fn running_game() -> Result<NativeGame, CoreError> {\n    let mut game = NativeGame::new(NativeConfig::new(42));\n    game.advance_frame_headless(crate::BUTTON_X_MASK)?;\n    for _ in 1..13 {"
+      },
+      {
+        "line": 239,
+        "text": "    let mut coverage = TestCoverage::new(\"headless_equivalence_100_seeds_2000_raw_frames\");\n    for seed in 0..100 {\n        let mut full = NativeGame::new(NativeConfig::new(seed));\n        let mut headless = full.clone();"
+      },
+      {
+        "line": 240,
+        "text": "    for seed in 0..100 {\n        let mut full = NativeGame::new(NativeConfig::new(seed));\n        let mut headless = full.clone();\n        let mut actions = PicoRng::new(seed + 1000);"
+      },
+      {
+        "line": 268,
+        "text": "        TestCoverage::new(\"headless_start_boundary_preserves_extra_trail_and_cached_pixels\");\n    let mut full = NativeGame::new(NativeConfig::new(42));\n    let mut headless = full.clone();\n    let cached_pixels = headless.snapshot().pixels().to_owned();"
+      },
+      {
+        "line": 635,
+        "text": "        let mut full = if initial == 0 {\n            NativeGame::new(NativeConfig::new(42))\n        } else {\n            running_game()?"
+      },
+      {
+        "line": 880,
+        "text": "                theme_shadow: 8,\n                ..NativeConfig::new(17)\n            };\n            let mut full = NativeGame::new(config);"
+      },
+      {
+        "line": 882,
+        "text": "            };\n            let mut full = NativeGame::new(config);\n            let mut headless = full.clone();\n            let mut actions = PicoRng::new(100);"
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone1-r2/source.tar.gz",
+    "member": "crates/dodge-core/examples/headless_profile.rs",
+    "sha256": "a53ffd29b1541b40893b6c0f5b51978291771b6bf5c2eae975c8b1dd0b833e7d",
+    "constructor_seed_sites": [
+      {
+        "line": 32,
+        "text": "fn started(seed: u32, path: Path) -> Result<NativeGame, CoreError> {\n    let mut game = NativeGame::new(NativeConfig::new(seed));\n    for frame in 0..13 {\n        let mask = if frame == 0 { BUTTON_X_MASK } else { 0 };"
+      },
+      {
+        "line": 58,
+        "text": "    let mut episodes = Vec::new();\n    for seed in 1000..1000 + SEEDS {\n        let mut game = started(seed, Path::Headless)?;\n        let mut rng = PicoRng::new(seed + 10_000);"
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone2-core-r1/source.tar.gz",
+    "member": "crates/dodge-core/examples/headless_profile.rs",
+    "sha256": "a53ffd29b1541b40893b6c0f5b51978291771b6bf5c2eae975c8b1dd0b833e7d",
+    "constructor_seed_sites": [
+      {
+        "line": 32,
+        "text": "fn started(seed: u32, path: Path) -> Result<NativeGame, CoreError> {\n    let mut game = NativeGame::new(NativeConfig::new(seed));\n    for frame in 0..13 {\n        let mask = if frame == 0 { BUTTON_X_MASK } else { 0 };"
+      },
+      {
+        "line": 58,
+        "text": "    let mut episodes = Vec::new();\n    for seed in 1000..1000 + SEEDS {\n        let mut game = started(seed, Path::Headless)?;\n        let mut rng = PicoRng::new(seed + 10_000);"
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone2-core-r1/source.tar.gz",
+    "member": "crates/dodge-core/src/game.rs",
+    "sha256": "e781973c0390fde26342ec24113abdbfa3a8e9ef98844d41cf33c1977ecdccbd",
+    "constructor_seed_sites": [
+      {
+        "line": 2414,
+        "text": "    fn reset_starts_at_menu_frame_zero() {\n        let game = NativeGame::new(NativeConfig::new(42));\n        assert_eq!(game.lifecycle().frame, 0);\n        assert_eq!(game.lifecycle().mode, Mode::Menu);"
+      },
+      {
+        "line": 2422,
+        "text": "    fn v102_start_crosses_transition_on_observed_thirteenth_frame() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        let first = game.advance_frame(BUTTON_X_MASK);\n        assert!(first.is_ok());"
+      },
+      {
+        "line": 2440,
+        "text": "    fn action_step_advances_exact_frames_and_neutral_is_zero_mask() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        let result = game.step(Action::Neutral, 4);\n        assert!(result.is_ok());"
+      },
+      {
+        "line": 2453,
+        "text": "    fn invalid_input_and_zero_step_fail_without_mutation() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        assert_eq!(\n            game.advance_frame(64),"
+      },
+      {
+        "line": 2468,
+        "text": "    fn player_movement_uses_fixed_friction_and_clamped_bounds() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        start_game(&mut game);\n        let first = game.advance_frame(1);"
+      },
+      {
+        "line": 2482,
+        "text": "    fn first_friendly_spawn_and_normal_enemy_match_seed_42_slice() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        start_game(&mut game);\n        for _ in 0..44 {"
+      },
+      {
+        "line": 2504,
+        "text": "    fn first_normal_spawn_preserves_source_init_rng_offset() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        start_game(&mut game);\n        for _ in 0..54 {"
+      },
+      {
+        "line": 2523,
+        "text": "    fn initial_pattern_rng_branch_is_seed_dependent() {\n        let mut game = NativeGame::new(NativeConfig::new(7));\n        start_game(&mut game);\n        for _ in 0..57 {"
+      },
+      {
+        "line": 2537,
+        "text": "    fn first_pattern_selection_converts_sample_to_integer_index() {\n        let mut game = NativeGame::new(NativeConfig::new(17));\n        game.lifecycle.mode = Mode::Game;\n        game.lifecycle.game_ready = true;"
+      },
+      {
+        "line": 2558,
+        "text": "    fn normal_spawn_size_is_reused_by_later_friendly_spawn() {\n        let mut game = NativeGame::new(NativeConfig::new(7));\n        start_game(&mut game);\n        for _ in 0..95 {"
+      },
+      {
+        "line": 2628,
+        "text": "    fn v149_collision_flags_gate_player_and_enemy_collision() {\n        let mut player_game = NativeGame::new(NativeConfig::default());\n        start_game(&mut player_game);\n        player_game.enemies.clear();"
+      },
+      {
+        "line": 2640,
+        "text": "\n        let mut enemy_game = NativeGame::new(NativeConfig::default());\n        start_game(&mut enemy_game);\n        enemy_game.enemies.clear();"
+      },
+      {
+        "line": 2679,
+        "text": "\n            let mut config = NativeConfig::new(42);\n            config.difficulty = difficulty;\n            let mut full = NativeGame::new(config);"
+      },
+      {
+        "line": 2681,
+        "text": "            config.difficulty = difficulty;\n            let mut full = NativeGame::new(config);\n            full.apply_difficulty(false);\n            assert_eq!("
+      },
+      {
+        "line": 2716,
+        "text": "\n            let mut half = NativeGame::new(config);\n            half.apply_difficulty(true);\n            assert_eq!("
+      },
+      {
+        "line": 2755,
+        "text": "    fn v153_powerup_explosion_preserves_source_mutable_list_order() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        game.enemies.push(EnemyState {\n            personality: 2,"
+      },
+      {
+        "line": 2807,
+        "text": "    fn v154_powerup_pattern_collision_uses_pre_growth_source_size() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        game.patterns = vec![crate::PatternState {\n            id: 1,"
+      },
+      {
+        "line": 2864,
+        "text": "    fn v122_restore_replays_the_same_next_frame() {\n        let mut original = NativeGame::new(NativeConfig::new(42));\n        start_game(&mut original);\n        for _ in 0..90 {"
+      },
+      {
+        "line": 2897,
+        "text": "    fn v157_pattern_targets_warnings_and_completion_follow_source_order() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        let moving = PatternRect {\n            x: PicoFixed::from_int(10),"
+      },
+      {
+        "line": 2983,
+        "text": "    fn normal_enemy_collision_marks_terminal_without_survival_reward() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        start_game(&mut game);\n        game.enemies.push(EnemyState::normal("
+      },
+      {
+        "line": 3011,
+        "text": "    fn v161_static_pattern_collision_matches_source() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        start_game(&mut game);\n        game.player.x = PicoFixed::from_int(5);"
+      },
+      {
+        "line": 3058,
+        "text": "    fn powerup_collision_applies_size_reward_and_difficulty_without_terminal() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        start_game(&mut game);\n        game.enemies.push(EnemyState {"
+      },
+      {
+        "line": 3078,
+        "text": "    fn v158_audio_events_preserve_source_order_and_restart_boundary() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        let start = game.advance_frame(BUTTON_X_MASK);\n        assert_eq!("
+      },
+      {
+        "line": 3129,
+        "text": "    fn v162_retry_resets_player_to_center_and_clears_velocity() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        start_game(&mut game);\n        game.player.x = PicoFixed::from_int(11);"
+      },
+      {
+        "line": 3147,
+        "text": "    fn v158_settings_change_emits_one_source_sfx() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        game.lifecycle.mode = Mode::Settings;\n        let result = game.advance_frame(crate::Button::Right.mask());"
+      },
+      {
+        "line": 3162,
+        "text": "    fn v109_ordered_enemy_overlap_removes_marked_entries_and_applies_side_effects() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        start_game(&mut game);\n        game.enemies.push(EnemyState::normal("
+      },
+      {
+        "line": 3190,
+        "text": "    fn draw_side_effect_rng_is_consumed_for_powerup_enemy_trails() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        start_game(&mut game);\n        game.enemies.push(EnemyState {"
+      },
+      {
+        "line": 3215,
+        "text": "    fn v140_kamikaze_speed_updates_once_before_movement() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        start_game(&mut game);\n        game.enemies.push(EnemyState {"
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone2-core-r1/source.tar.gz",
+    "member": "crates/dodge-core/src/headless_tests.rs",
+    "sha256": "1dff4888fbbdd5c634bb33205f29b7943ead2d555bb52ae19a73fd10b2305b7e",
+    "constructor_seed_sites": [
+      {
+        "line": 124,
+        "text": "    .into_iter();\n    for seed in [7, 42, 1234] {\n        let mut game = NativeGame::new(NativeConfig::new(seed));\n        let mut actions = PicoRng::new(seed + 100);"
+      },
+      {
+        "line": 125,
+        "text": "    for seed in [7, 42, 1234] {\n        let mut game = NativeGame::new(NativeConfig::new(seed));\n        let mut actions = PicoRng::new(seed + 100);\n        for frame in 1..=2000 {"
+      },
+      {
+        "line": 223,
+        "text": "fn running_game() -> Result<NativeGame, CoreError> {\n    let mut game = NativeGame::new(NativeConfig::new(42));\n    game.advance_frame_headless(crate::BUTTON_X_MASK)?;\n    for _ in 1..13 {"
+      },
+      {
+        "line": 250,
+        "text": "    let mut coverage = TestCoverage::new(\"headless_equivalence_100_seeds_2000_raw_frames\");\n    for seed in 0..100 {\n        let mut full = NativeGame::new(NativeConfig::new(seed));\n        let mut headless = full.clone();"
+      },
+      {
+        "line": 251,
+        "text": "    for seed in 0..100 {\n        let mut full = NativeGame::new(NativeConfig::new(seed));\n        let mut headless = full.clone();\n        let mut actions = PicoRng::new(seed + 1000);"
+      },
+      {
+        "line": 279,
+        "text": "        TestCoverage::new(\"headless_start_boundary_preserves_extra_trail_and_cached_pixels\");\n    let mut full = NativeGame::new(NativeConfig::new(42));\n    let mut headless = full.clone();\n    let cached_pixels = headless.snapshot().pixels().to_owned();"
+      },
+      {
+        "line": 647,
+        "text": "        let mut full = if initial == 0 {\n            NativeGame::new(NativeConfig::new(42))\n        } else {\n            running_game()?"
+      },
+      {
+        "line": 892,
+        "text": "                theme_shadow: 8,\n                ..NativeConfig::new(17)\n            };\n            let mut full = NativeGame::new(config);"
+      },
+      {
+        "line": 894,
+        "text": "            };\n            let mut full = NativeGame::new(config);\n            let mut headless = full.clone();\n            let mut actions = PicoRng::new(100);"
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone2-core-r1/source.tar.gz",
+    "member": "crates/dodge-core/src/observation_tests.rs",
+    "sha256": "7bda3328cf8c1dfdfee14c5eedd7a4dcfc89562131ec731cb3daf7a7393f0cb1",
+    "constructor_seed_sites": [
+      {
+        "line": 5,
+        "text": "fn running() -> Result<NativeGame, CoreError> {\n    let mut game = NativeGame::new(NativeConfig::new(42));\n    game.advance_frame_headless(crate::BUTTON_X_MASK)?;\n    for _ in 1..13 {"
+      },
+      {
+        "line": 223,
+        "text": "    assert_eq!(restored.snapshot().canonical_bytes(), bytes);\n    let mut fresh = NativeGame::new(NativeConfig::new(42));\n    fresh.enemies.push(row(0, 100, 100));\n    assert_ne!(ids(&fresh)?, original);"
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone2-core-r1/source.tar.gz",
+    "member": "crates/dodge-core/src/snapshot.rs",
+    "sha256": "c63d89617eedc830e1a58abb8f700f55df0720a60b13c54fb7626c4af036c447",
+    "constructor_seed_sites": [
+      {
+        "line": 2110,
+        "text": "    fn reset_snapshot_exposes_typed_state_and_indexed_pixels() {\n        let game = NativeGame::new(NativeConfig::default());\n        let snapshot = game.snapshot();\n        assert_eq!(snapshot.logical_state().lifecycle.frame, 0);"
+      },
+      {
+        "line": 2124,
+        "text": "    fn snapshot_roundtrip_preserves_bytes_state_and_pixel_hash() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        let _ = game.step(Action::Right, 17);\n        let snapshot = game.snapshot();"
+      },
+      {
+        "line": 2142,
+        "text": "    fn rendering_does_not_mutate_simulation_state_or_rng() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        let _ = game.step(Action::Right, 17);\n        let before = game.full_state();"
+      },
+      {
+        "line": 2194,
+        "text": "    fn truncated_snapshot_is_rejected_before_decode() {\n        let snapshot = NativeGame::new(NativeConfig::default()).snapshot();\n        let bytes = snapshot.canonical_bytes();\n        assert!(!bytes.is_empty());"
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone2-core-r1/source.tar.gz",
+    "member": "crates/dodge-native-runner/src/main.rs",
+    "sha256": "9802e2ce6982ca75001376fbb632f144411583308e378ba8c2f0b9d96e0292ac",
+    "constructor_seed_sites": [
+      {
+        "line": 108,
+        "text": "    let schedule = expand_schedule(&commands)?;\n    let mut game = NativeGame::new(NativeConfig::new(options.seed));\n    let mut frames = Vec::new();\n    if options.include_initial_frame && frames.len() < options.max_frames as usize {"
+      },
+      {
+        "line": 393,
+        "text": "        assert!(schedule.is_ok());\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        for (simulation_mask, post_frame_mask) in schedule.unwrap_or_default() {\n            assert!("
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone2-core-r1/source.tar.gz",
+    "member": "crates/dodge-viewer/src/lib.rs",
+    "sha256": "904060a629e4bcf4050666a6d19c22b4a428055f336f4f83a44794aa2aecadc2",
+    "constructor_seed_sites": [
+      {
+        "line": 330,
+        "text": "    fn sample_frame() -> PresentedFrame {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        let result = game.advance_frame(BUTTON_X_MASK);\n        assert!(result.is_ok());"
+      },
+      {
+        "line": 423,
+        "text": "            schema_version: 1,\n            seed: 42,\n            frames: vec![TraceRecord {\n                frame: frame.frame(),"
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone2-core-r1/source.tar.gz",
+    "member": "crates/dodge-viewer/src/main.rs",
+    "sha256": "3326a2d418788c1a879e5ab076f72c6bf9953a7e46e9bca5b1553b05b395c8eb",
+    "constructor_seed_sites": [
+      {
+        "line": 52,
+        "text": "        .is_none()\n        .then(|| NativeGame::new(NativeConfig::new(options.seed)));\n    let initial_frame = if let Some(trace) = trace.as_ref() {\n        present_trace_frame(trace, options.frame)?"
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone2-binding-r1/source-final.tar.gz",
+    "member": "crates/dodge-core/examples/headless_profile.rs",
+    "sha256": "a53ffd29b1541b40893b6c0f5b51978291771b6bf5c2eae975c8b1dd0b833e7d",
+    "constructor_seed_sites": [
+      {
+        "line": 32,
+        "text": "fn started(seed: u32, path: Path) -> Result<NativeGame, CoreError> {\n    let mut game = NativeGame::new(NativeConfig::new(seed));\n    for frame in 0..13 {\n        let mask = if frame == 0 { BUTTON_X_MASK } else { 0 };"
+      },
+      {
+        "line": 58,
+        "text": "    let mut episodes = Vec::new();\n    for seed in 1000..1000 + SEEDS {\n        let mut game = started(seed, Path::Headless)?;\n        let mut rng = PicoRng::new(seed + 10_000);"
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone2-binding-r1/source-final.tar.gz",
+    "member": "crates/dodge-core/src/game.rs",
+    "sha256": "e781973c0390fde26342ec24113abdbfa3a8e9ef98844d41cf33c1977ecdccbd",
+    "constructor_seed_sites": [
+      {
+        "line": 2414,
+        "text": "    fn reset_starts_at_menu_frame_zero() {\n        let game = NativeGame::new(NativeConfig::new(42));\n        assert_eq!(game.lifecycle().frame, 0);\n        assert_eq!(game.lifecycle().mode, Mode::Menu);"
+      },
+      {
+        "line": 2422,
+        "text": "    fn v102_start_crosses_transition_on_observed_thirteenth_frame() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        let first = game.advance_frame(BUTTON_X_MASK);\n        assert!(first.is_ok());"
+      },
+      {
+        "line": 2440,
+        "text": "    fn action_step_advances_exact_frames_and_neutral_is_zero_mask() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        let result = game.step(Action::Neutral, 4);\n        assert!(result.is_ok());"
+      },
+      {
+        "line": 2453,
+        "text": "    fn invalid_input_and_zero_step_fail_without_mutation() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        assert_eq!(\n            game.advance_frame(64),"
+      },
+      {
+        "line": 2468,
+        "text": "    fn player_movement_uses_fixed_friction_and_clamped_bounds() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        start_game(&mut game);\n        let first = game.advance_frame(1);"
+      },
+      {
+        "line": 2482,
+        "text": "    fn first_friendly_spawn_and_normal_enemy_match_seed_42_slice() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        start_game(&mut game);\n        for _ in 0..44 {"
+      },
+      {
+        "line": 2504,
+        "text": "    fn first_normal_spawn_preserves_source_init_rng_offset() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        start_game(&mut game);\n        for _ in 0..54 {"
+      },
+      {
+        "line": 2523,
+        "text": "    fn initial_pattern_rng_branch_is_seed_dependent() {\n        let mut game = NativeGame::new(NativeConfig::new(7));\n        start_game(&mut game);\n        for _ in 0..57 {"
+      },
+      {
+        "line": 2537,
+        "text": "    fn first_pattern_selection_converts_sample_to_integer_index() {\n        let mut game = NativeGame::new(NativeConfig::new(17));\n        game.lifecycle.mode = Mode::Game;\n        game.lifecycle.game_ready = true;"
+      },
+      {
+        "line": 2558,
+        "text": "    fn normal_spawn_size_is_reused_by_later_friendly_spawn() {\n        let mut game = NativeGame::new(NativeConfig::new(7));\n        start_game(&mut game);\n        for _ in 0..95 {"
+      },
+      {
+        "line": 2628,
+        "text": "    fn v149_collision_flags_gate_player_and_enemy_collision() {\n        let mut player_game = NativeGame::new(NativeConfig::default());\n        start_game(&mut player_game);\n        player_game.enemies.clear();"
+      },
+      {
+        "line": 2640,
+        "text": "\n        let mut enemy_game = NativeGame::new(NativeConfig::default());\n        start_game(&mut enemy_game);\n        enemy_game.enemies.clear();"
+      },
+      {
+        "line": 2679,
+        "text": "\n            let mut config = NativeConfig::new(42);\n            config.difficulty = difficulty;\n            let mut full = NativeGame::new(config);"
+      },
+      {
+        "line": 2681,
+        "text": "            config.difficulty = difficulty;\n            let mut full = NativeGame::new(config);\n            full.apply_difficulty(false);\n            assert_eq!("
+      },
+      {
+        "line": 2716,
+        "text": "\n            let mut half = NativeGame::new(config);\n            half.apply_difficulty(true);\n            assert_eq!("
+      },
+      {
+        "line": 2755,
+        "text": "    fn v153_powerup_explosion_preserves_source_mutable_list_order() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        game.enemies.push(EnemyState {\n            personality: 2,"
+      },
+      {
+        "line": 2807,
+        "text": "    fn v154_powerup_pattern_collision_uses_pre_growth_source_size() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        game.patterns = vec![crate::PatternState {\n            id: 1,"
+      },
+      {
+        "line": 2864,
+        "text": "    fn v122_restore_replays_the_same_next_frame() {\n        let mut original = NativeGame::new(NativeConfig::new(42));\n        start_game(&mut original);\n        for _ in 0..90 {"
+      },
+      {
+        "line": 2897,
+        "text": "    fn v157_pattern_targets_warnings_and_completion_follow_source_order() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        let moving = PatternRect {\n            x: PicoFixed::from_int(10),"
+      },
+      {
+        "line": 2983,
+        "text": "    fn normal_enemy_collision_marks_terminal_without_survival_reward() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        start_game(&mut game);\n        game.enemies.push(EnemyState::normal("
+      },
+      {
+        "line": 3011,
+        "text": "    fn v161_static_pattern_collision_matches_source() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        start_game(&mut game);\n        game.player.x = PicoFixed::from_int(5);"
+      },
+      {
+        "line": 3058,
+        "text": "    fn powerup_collision_applies_size_reward_and_difficulty_without_terminal() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        start_game(&mut game);\n        game.enemies.push(EnemyState {"
+      },
+      {
+        "line": 3078,
+        "text": "    fn v158_audio_events_preserve_source_order_and_restart_boundary() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        let start = game.advance_frame(BUTTON_X_MASK);\n        assert_eq!("
+      },
+      {
+        "line": 3129,
+        "text": "    fn v162_retry_resets_player_to_center_and_clears_velocity() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        start_game(&mut game);\n        game.player.x = PicoFixed::from_int(11);"
+      },
+      {
+        "line": 3147,
+        "text": "    fn v158_settings_change_emits_one_source_sfx() {\n        let mut game = NativeGame::new(NativeConfig::default());\n        game.lifecycle.mode = Mode::Settings;\n        let result = game.advance_frame(crate::Button::Right.mask());"
+      },
+      {
+        "line": 3162,
+        "text": "    fn v109_ordered_enemy_overlap_removes_marked_entries_and_applies_side_effects() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        start_game(&mut game);\n        game.enemies.push(EnemyState::normal("
+      },
+      {
+        "line": 3190,
+        "text": "    fn draw_side_effect_rng_is_consumed_for_powerup_enemy_trails() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        start_game(&mut game);\n        game.enemies.push(EnemyState {"
+      },
+      {
+        "line": 3215,
+        "text": "    fn v140_kamikaze_speed_updates_once_before_movement() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        start_game(&mut game);\n        game.enemies.push(EnemyState {"
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone2-binding-r1/source-final.tar.gz",
+    "member": "crates/dodge-core/src/headless_tests.rs",
+    "sha256": "1dff4888fbbdd5c634bb33205f29b7943ead2d555bb52ae19a73fd10b2305b7e",
+    "constructor_seed_sites": [
+      {
+        "line": 124,
+        "text": "    .into_iter();\n    for seed in [7, 42, 1234] {\n        let mut game = NativeGame::new(NativeConfig::new(seed));\n        let mut actions = PicoRng::new(seed + 100);"
+      },
+      {
+        "line": 125,
+        "text": "    for seed in [7, 42, 1234] {\n        let mut game = NativeGame::new(NativeConfig::new(seed));\n        let mut actions = PicoRng::new(seed + 100);\n        for frame in 1..=2000 {"
+      },
+      {
+        "line": 223,
+        "text": "fn running_game() -> Result<NativeGame, CoreError> {\n    let mut game = NativeGame::new(NativeConfig::new(42));\n    game.advance_frame_headless(crate::BUTTON_X_MASK)?;\n    for _ in 1..13 {"
+      },
+      {
+        "line": 250,
+        "text": "    let mut coverage = TestCoverage::new(\"headless_equivalence_100_seeds_2000_raw_frames\");\n    for seed in 0..100 {\n        let mut full = NativeGame::new(NativeConfig::new(seed));\n        let mut headless = full.clone();"
+      },
+      {
+        "line": 251,
+        "text": "    for seed in 0..100 {\n        let mut full = NativeGame::new(NativeConfig::new(seed));\n        let mut headless = full.clone();\n        let mut actions = PicoRng::new(seed + 1000);"
+      },
+      {
+        "line": 279,
+        "text": "        TestCoverage::new(\"headless_start_boundary_preserves_extra_trail_and_cached_pixels\");\n    let mut full = NativeGame::new(NativeConfig::new(42));\n    let mut headless = full.clone();\n    let cached_pixels = headless.snapshot().pixels().to_owned();"
+      },
+      {
+        "line": 647,
+        "text": "        let mut full = if initial == 0 {\n            NativeGame::new(NativeConfig::new(42))\n        } else {\n            running_game()?"
+      },
+      {
+        "line": 892,
+        "text": "                theme_shadow: 8,\n                ..NativeConfig::new(17)\n            };\n            let mut full = NativeGame::new(config);"
+      },
+      {
+        "line": 894,
+        "text": "            };\n            let mut full = NativeGame::new(config);\n            let mut headless = full.clone();\n            let mut actions = PicoRng::new(100);"
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone2-binding-r1/source-final.tar.gz",
+    "member": "crates/dodge-core/src/observation_tests.rs",
+    "sha256": "7bda3328cf8c1dfdfee14c5eedd7a4dcfc89562131ec731cb3daf7a7393f0cb1",
+    "constructor_seed_sites": [
+      {
+        "line": 5,
+        "text": "fn running() -> Result<NativeGame, CoreError> {\n    let mut game = NativeGame::new(NativeConfig::new(42));\n    game.advance_frame_headless(crate::BUTTON_X_MASK)?;\n    for _ in 1..13 {"
+      },
+      {
+        "line": 223,
+        "text": "    assert_eq!(restored.snapshot().canonical_bytes(), bytes);\n    let mut fresh = NativeGame::new(NativeConfig::new(42));\n    fresh.enemies.push(row(0, 100, 100));\n    assert_ne!(ids(&fresh)?, original);"
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone2-binding-r1/source-final.tar.gz",
+    "member": "crates/dodge-core/src/snapshot.rs",
+    "sha256": "c63d89617eedc830e1a58abb8f700f55df0720a60b13c54fb7626c4af036c447",
+    "constructor_seed_sites": [
+      {
+        "line": 2110,
+        "text": "    fn reset_snapshot_exposes_typed_state_and_indexed_pixels() {\n        let game = NativeGame::new(NativeConfig::default());\n        let snapshot = game.snapshot();\n        assert_eq!(snapshot.logical_state().lifecycle.frame, 0);"
+      },
+      {
+        "line": 2124,
+        "text": "    fn snapshot_roundtrip_preserves_bytes_state_and_pixel_hash() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        let _ = game.step(Action::Right, 17);\n        let snapshot = game.snapshot();"
+      },
+      {
+        "line": 2142,
+        "text": "    fn rendering_does_not_mutate_simulation_state_or_rng() {\n        let mut game = NativeGame::new(NativeConfig::new(42));\n        let _ = game.step(Action::Right, 17);\n        let before = game.full_state();"
+      },
+      {
+        "line": 2194,
+        "text": "    fn truncated_snapshot_is_rejected_before_decode() {\n        let snapshot = NativeGame::new(NativeConfig::default()).snapshot();\n        let bytes = snapshot.canonical_bytes();\n        assert!(!bytes.is_empty());"
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone2-binding-r1/source-final.tar.gz",
+    "member": "crates/dodge-rl-env/src/config.rs",
+    "sha256": "49d631bed0bd99fc195de102508a84730381d891c5c55be7c9ed81f48f8d7ac6",
+    "constructor_seed_sites": [
+      {
+        "line": 7,
+        "text": "pub enum SeedMode {\n    Training { run_seed: u64 },\n    Evaluation { seeds_by_slot: Vec<Vec<u32>> },\n}"
+      },
+      {
+        "line": 8,
+        "text": "    Training { run_seed: u64 },\n    Evaluation { seeds_by_slot: Vec<Vec<u32>> },\n}\n"
+      },
+      {
+        "line": 24,
+        "text": "    pub auxiliary_targets: bool,\n    pub seed_mode: SeedMode,\n    /// Additional inclusive training exclusions. The mandatory B range remains.\n    pub excluded_seed_ranges: Vec<(u32, u32)>,"
+      },
+      {
+        "line": 44,
+        "text": "            auxiliary_targets: false,\n            seed_mode: SeedMode::Training { run_seed: 0 },\n            excluded_seed_ranges: Vec::new(),\n            initial_episode_indices: None,"
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone2-binding-r1/source-final.tar.gz",
+    "member": "crates/dodge-rl-env/src/env.rs",
+    "sha256": "d4a9182720beb2d8cf77f9ad5b2f859db2aa479ebcd610d691a3f7bf61afd17a",
+    "constructor_seed_sites": [
+      {
+        "line": 88,
+        "text": "    fn unstarted(config: &EnvConfig, seed: SeedMetadata) -> Self {\n        let mut native = NativeConfig::new(seed.actual_seed);\n        native.difficulty = config.difficulty;\n        native.patterns_enabled = config.patterns_enabled;"
+      },
+      {
+        "line": 93,
+        "text": "        Self {\n            game: NativeGame::new(native),\n            seed,\n            history: History::default(),"
+      },
+      {
+        "line": 281,
+        "text": "        let mut slots = Vec::with_capacity(config.batch_size);\n        for seed in seeds {\n            let mut slot = Slot::unstarted(&config, seed);\n            slot.start(&config)?;"
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone2-binding-r1/source-final.tar.gz",
+    "member": "crates/dodge-rl-env/src/python.rs",
+    "sha256": "3b5f8c388b33721f47050e2a99606ad2f34debbf74ca763b50fb5590f1d428ff",
+    "constructor_seed_sites": [
+      {
+        "line": 253,
+        "text": "    #[new]\n    #[pyo3(signature = (batch_size=1, action_repeat=4, difficulty=2, patterns_enabled=true, powerups_enabled=true, raw_frame_cap=18_000, num_threads=1, chunk_size=8, render_pixels=false, auxiliary_targets=false, run_seed=0, seeds_by_slot=None, excluded_seed_ranges=None, initial_episode_indices=None))]\n    #[allow(clippy::too_many_arguments)]\n    fn new("
+      },
+      {
+        "line": 267,
+        "text": "        auxiliary_targets: bool,\n        run_seed: u64,\n        seeds_by_slot: Option<Vec<Vec<u32>>>,\n        excluded_seed_ranges: Option<Vec<(u32, u32)>>,"
+      },
+      {
+        "line": 268,
+        "text": "        run_seed: u64,\n        seeds_by_slot: Option<Vec<Vec<u32>>>,\n        excluded_seed_ranges: Option<Vec<(u32, u32)>>,\n        initial_episode_indices: Option<Vec<u64>>,"
+      },
+      {
+        "line": 283,
+        "text": "            auxiliary_targets,\n            seed_mode: seeds_by_slot.map_or(SeedMode::Training { run_seed }, |seeds_by_slot| {\n                SeedMode::Evaluation { seeds_by_slot }\n            }),"
+      },
+      {
+        "line": 292,
+        "text": "        let inner = py\n            .detach(move || VecDodgeEnv::new(config))\n            .map_err(env_error)?;\n        Ok(Self { inner })"
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone2-binding-r1/source-final.tar.gz",
+    "member": "crates/dodge-rl-env/src/seed_extension_tests.rs",
+    "sha256": "abe564cdef23107f2e4e35ed314d0264862cba2f8c6674a34c3df470a2c0626b",
+    "constructor_seed_sites": [
+      {
+        "line": 10,
+        "text": "    assert_ne!(expected.actual_seed, original.actual_seed);\n    let mut env = VecDodgeEnv::new(EnvConfig {\n        seed_mode: SeedMode::Training { run_seed: 7 },\n        excluded_seed_ranges: ranges.clone(),"
+      },
+      {
+        "line": 11,
+        "text": "    let mut env = VecDodgeEnv::new(EnvConfig {\n        seed_mode: SeedMode::Training { run_seed: 7 },\n        excluded_seed_ranges: ranges.clone(),\n        ..EnvConfig::default()"
+      },
+      {
+        "line": 21,
+        "text": "    let before = env.observations()?;\n    let mut reference = VecDodgeEnv::new(EnvConfig {\n        seed_mode: SeedMode::Evaluation {\n            seeds_by_slot: vec![vec![expected.actual_seed]],"
+      },
+      {
+        "line": 22,
+        "text": "    let mut reference = VecDodgeEnv::new(EnvConfig {\n        seed_mode: SeedMode::Evaluation {\n            seeds_by_slot: vec![vec![expected.actual_seed]],\n        },"
+      },
+      {
+        "line": 23,
+        "text": "        seed_mode: SeedMode::Evaluation {\n            seeds_by_slot: vec![vec![expected.actual_seed]],\n        },\n        ..EnvConfig::default()"
+      },
+      {
+        "line": 37,
+        "text": "fn default_seed_identity_offsets_and_reset_continuity() -> crate::Result<()> {\n    let mut default_env = VecDodgeEnv::new(EnvConfig::default())?;\n    assert_eq!(default_env.episode_info()[0].seed, training_seed(0, 0, 0)?);\n    assert_eq!("
+      },
+      {
+        "line": 43,
+        "text": "    );\n    let mut env = VecDodgeEnv::new(EnvConfig {\n        batch_size: 2,\n        initial_episode_indices: Some(vec![9, 27]),"
+      },
+      {
+        "line": 73,
+        "text": "    ] {\n        assert!(VecDodgeEnv::new(config).is_err());\n    }\n    let mut env = VecDodgeEnv::new(EnvConfig {"
+      },
+      {
+        "line": 75,
+        "text": "    }\n    let mut env = VecDodgeEnv::new(EnvConfig {\n        batch_size: 2,\n        initial_episode_indices: Some(vec![0, u64::MAX]),"
+      },
+      {
+        "line": 89,
+        "text": "fn evaluation_offsets_do_not_reject_reserved_seeds_or_fall_back() -> crate::Result<()> {\n    let mut env = VecDodgeEnv::new(EnvConfig {\n        seed_mode: SeedMode::Evaluation {\n            seeds_by_slot: vec![vec![1, 0xD000_0000, 0xB000_0000]],"
+      },
+      {
+        "line": 90,
+        "text": "    let mut env = VecDodgeEnv::new(EnvConfig {\n        seed_mode: SeedMode::Evaluation {\n            seeds_by_slot: vec![vec![1, 0xD000_0000, 0xB000_0000]],\n        },"
+      },
+      {
+        "line": 91,
+        "text": "        seed_mode: SeedMode::Evaluation {\n            seeds_by_slot: vec![vec![1, 0xD000_0000, 0xB000_0000]],\n        },\n        excluded_seed_ranges: vec![(0xD000_0000, 0xD000_007F)],"
+      },
+      {
+        "line": 119,
+        "text": "    };\n    let mut a = VecDodgeEnv::new(EnvConfig {\n        chunk_size: 1,\n        ..config.clone()"
+      },
+      {
+        "line": 123,
+        "text": "    })?;\n    let mut b = VecDodgeEnv::new(EnvConfig {\n        num_threads: 4,\n        chunk_size: 3,"
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone2-binding-r1/source-final.tar.gz",
+    "member": "crates/dodge-rl-env/src/tests.rs",
+    "sha256": "832d091b775af081e6501973572ead94b27c1bd519ad0199ba75bdece63e8379",
+    "constructor_seed_sites": [
+      {
+        "line": 65,
+        "text": "fn ids(n: usize) -> crate::Result<Vec<EnemySerial>> {\n    let game = NativeGame::new(NativeConfig::new(1));\n    let game = NativeGame::restore(&wire_fixture::with_enemies(\n        &game,"
+      },
+      {
+        "line": 83,
+        "text": "        batch_size: seeds.len(),\n        seed_mode: SeedMode::Evaluation {\n            seeds_by_slot: seeds,\n        },"
+      },
+      {
+        "line": 84,
+        "text": "        seed_mode: SeedMode::Evaluation {\n            seeds_by_slot: seeds,\n        },\n        ..EnvConfig::default()"
+      },
+      {
+        "line": 549,
+        "text": "    }\n    let mut env = VecDodgeEnv::new(EnvConfig {\n        raw_frame_cap: 1,\n        ..EnvConfig::default()"
+      },
+      {
+        "line": 577,
+        "text": "fn action_and_reset_requests_validate_whole_batch_before_mutation() -> crate::Result<()> {\n    let mut env = VecDodgeEnv::new(EnvConfig {\n        batch_size: 3,\n        raw_frame_cap: 1,"
+      },
+      {
+        "line": 621,
+        "text": "fn cap_ragged_steps_alive_bootstrap_and_terminal_stack() -> crate::Result<()> {\n    let mut env = VecDodgeEnv::new(EnvConfig {\n        raw_frame_cap: 5,\n        render_pixels: true,"
+      },
+      {
+        "line": 642,
+        "text": "    assert_eq!(b.info[0].diagnostics.raw_history_samples, 6);\n    let mut dead = VecDodgeEnv::new(EnvConfig {\n        raw_frame_cap: 1,\n        render_pixels: true,"
+      },
+      {
+        "line": 677,
+        "text": "        for pickup_first in [false, true] {\n            let mut env = VecDodgeEnv::new(EnvConfig {\n                batch_size: 2,\n                raw_frame_cap: 3,"
+      },
+      {
+        "line": 716,
+        "text": "fn returned_buffers_are_owned_and_resets_refill_pixel_history() -> crate::Result<()> {\n    let mut env = VecDodgeEnv::new(EnvConfig {\n        raw_frame_cap: 1,\n        render_pixels: true,"
+      },
+      {
+        "line": 744,
+        "text": "fn parallel_error_poison_retains_partial_state_and_only_reset_all_recovers() -> crate::Result<()> {\n    let mut env = VecDodgeEnv::new(EnvConfig {\n        batch_size: 3,\n        num_threads: 2,"
+      },
+      {
+        "line": 780,
+        "text": "{\n    let mut env = VecDodgeEnv::new(EnvConfig {\n        raw_frame_cap: 1,\n        ..evaluation_config(vec![vec![0xB0000000], vec![0xB0000001, 9]])"
+      },
+      {
+        "line": 808,
+        "text": "    };\n    let mut a = VecDodgeEnv::new(EnvConfig {\n        num_threads: 1,\n        chunk_size: 1,"
+      },
+      {
+        "line": 813,
+        "text": "    })?;\n    let mut b = VecDodgeEnv::new(EnvConfig {\n        num_threads: 3,\n        chunk_size: 2,"
+      },
+      {
+        "line": 863,
+        "text": "            );\n            let mut full = NativeGame::new(NativeConfig::new(expected.seed));\n            let mut frame = full.advance_frame(dodge_core::BUTTON_X_MASK)?;\n            for _ in 0..12 {"
+      },
+      {
+        "line": 872,
+        "text": "            let vector_policy = Arc::new(Mutex::new(Policy::new(kind, expected.seed)));\n            let mut env = VecDodgeEnv::new(evaluation_config(vec![vec![expected.seed]]))?;\n            vector_policy\n                .lock()"
+      },
+      {
+        "line": 1021,
+        "text": "    use crate::geometry::{enemy_footprint, powerup_footprint};\n    let env = VecDodgeEnv::new(EnvConfig::default())?;\n    let game = env.test_game(0);\n    let mut base = [0; 16384];"
+      },
+      {
+        "line": 1069,
+        "text": "    use crate::geometry::rectangle_footprint;\n    let env = VecDodgeEnv::new(EnvConfig::default())?;\n    let game = env.test_game(0);\n    let mut base = [0; 16384];"
+      },
+      {
+        "line": 1122,
+        "text": "fn actual_rectangle_overflow_after_raw_mutation_poisons_batch() -> crate::Result<()> {\n    let mut env = VecDodgeEnv::new(EnvConfig {\n        batch_size: 2,\n        num_threads: 2,"
+      },
+      {
+        "line": 1150,
+        "text": "    use std::sync::{Arc, Mutex};\n    let mut env = VecDodgeEnv::new(EnvConfig::default())?;\n    let mut growing = enemy(0, 10, 10, 1);\n    growing.max_size = q(6);"
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone2-binding-r1/source-final.tar.gz",
+    "member": "crates/dodge-rl-env/tests/support/m0_policy.rs",
+    "sha256": "eeae605299b1018437a54df66f4eabf6e6d4defc20334c1baf93692900601b85",
+    "constructor_seed_sites": [
+      {
+        "line": 451,
+        "text": "    fn strict_type_specific_boxes_include_zero_half_extent_player() {\n        let game = NativeGame::new(NativeConfig::new(1));\n        let mut state = game.snapshot().logical_state().clone();\n        let policy = Policy::new(PolicyKind::AabbDodger, 1);"
+      },
+      {
+        "line": 482,
+        "text": "    fn active_rects_use_w_minus_one_charge_and_current_displacement() {\n        let game = NativeGame::new(NativeConfig::new(1));\n        let mut state = game.snapshot().logical_state().clone();\n        state.active_pattern = Some(0);"
+      },
+      {
+        "line": 527,
+        "text": "    fn hidden_control_has_no_action_effect_even_for_safe_powerup_choice() -> crate::Result<()> {\n        let mut state = NativeGame::new(NativeConfig::new(1))\n            .snapshot()\n            .logical_state()"
+      },
+      {
+        "line": 559,
+        "text": "    fn charge_forecast_requires_observed_raw_frame_increase_and_resets() -> crate::Result<()> {\n        let mut state = NativeGame::new(NativeConfig::new(1))\n            .snapshot()\n            .logical_state()"
+      },
+      {
+        "line": 607,
+        "text": "    fn zero_explosions_narrow_boxes_and_partly_offscreen_geometry_survive() -> crate::Result<()> {\n        let mut state = NativeGame::new(NativeConfig::new(1))\n            .snapshot()\n            .logical_state()"
+      },
+      {
+        "line": 651,
+        "text": "    fn shrunk_pattern_player_is_strict_point_with_negative_interior_gap() -> crate::Result<()> {\n        let mut state = NativeGame::new(NativeConfig::new(1))\n            .snapshot()\n            .logical_state()"
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone2-binding-r1/source-final.tar.gz",
+    "member": "python/tests/test_env.py",
+    "sha256": "dd1a8e653988e3870a5a7b01b03a0664536d4b14f3d00a6a36328d31cb8b6c4e",
+    "constructor_seed_sites": [
+      {
+        "line": 200,
+        "text": "    extra = [E, D, (first, first), (5, 7), (3, 4), (7, 8)]\n    env = VecDodgeEnv(batch_size=2, run_seed=run,\n                      excluded_seed_ranges=extra, initial_episode_indices=[9, 27])\n    metadata = env.batch_info()"
+      },
+      {
+        "line": 324,
+        "text": "    kwargs = dict(batch_size=9, raw_frame_cap=203, render_pixels=True,\n                  auxiliary_targets=True, run_seed=2**63 + 9,\n                  excluded_seed_ranges=[D, E], initial_episode_indices=list(range(9)))\n    a = VecDodgeEnv(**kwargs, num_threads=1, chunk_size=1)"
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone2-wrapper-r1/source.tar.gz",
+    "member": "crates/dodge-rl-env/src/config.rs",
+    "sha256": "a1b87f34294dae6962bb3a3dee36599d4627c86d641d7cedcc5f3d09814db682",
+    "constructor_seed_sites": [
+      {
+        "line": 7,
+        "text": "pub enum SeedMode {\n    Training { run_seed: u64 },\n    Evaluation { seeds_by_slot: Vec<Vec<u32>> },\n}"
+      },
+      {
+        "line": 8,
+        "text": "    Training { run_seed: u64 },\n    Evaluation { seeds_by_slot: Vec<Vec<u32>> },\n}\n"
+      },
+      {
+        "line": 24,
+        "text": "    pub auxiliary_targets: bool,\n    pub seed_mode: SeedMode,\n}\n"
+      },
+      {
+        "line": 40,
+        "text": "            auxiliary_targets: false,\n            seed_mode: SeedMode::Training { run_seed: 0 },\n        }\n    }"
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone2-wrapper-r1/source.tar.gz",
+    "member": "crates/dodge-rl-env/src/env.rs",
+    "sha256": "edf65603636614a6c369d0030875d1cd595649cca1bc2b6a437752a9e8dfc339",
+    "constructor_seed_sites": [
+      {
+        "line": 85,
+        "text": "    fn unstarted(config: &EnvConfig, seed: SeedMetadata) -> Self {\n        let mut native = NativeConfig::new(seed.actual_seed);\n        native.difficulty = config.difficulty;\n        native.patterns_enabled = config.patterns_enabled;"
+      },
+      {
+        "line": 90,
+        "text": "        Self {\n            game: NativeGame::new(native),\n            seed,\n            history: History::default(),"
+      },
+      {
+        "line": 273,
+        "text": "        let mut slots = Vec::with_capacity(config.batch_size);\n        for seed in seeds {\n            let mut slot = Slot::unstarted(&config, seed);\n            slot.start(&config)?;"
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone2-wrapper-r1/source.tar.gz",
+    "member": "crates/dodge-rl-env/src/tests.rs",
+    "sha256": "6a6bdb4760b2af40869e2075ac46c125a124f1413459b7977e539db4e0ace42a",
+    "constructor_seed_sites": [
+      {
+        "line": 65,
+        "text": "fn ids(n: usize) -> crate::Result<Vec<EnemySerial>> {\n    let game = NativeGame::new(NativeConfig::new(1));\n    let game = NativeGame::restore(&wire_fixture::with_enemies(\n        &game,"
+      },
+      {
+        "line": 83,
+        "text": "        batch_size: seeds.len(),\n        seed_mode: SeedMode::Evaluation {\n            seeds_by_slot: seeds,\n        },"
+      },
+      {
+        "line": 84,
+        "text": "        seed_mode: SeedMode::Evaluation {\n            seeds_by_slot: seeds,\n        },\n        ..EnvConfig::default()"
+      },
+      {
+        "line": 517,
+        "text": "    }\n    let mut env = VecDodgeEnv::new(EnvConfig {\n        raw_frame_cap: 1,\n        ..EnvConfig::default()"
+      },
+      {
+        "line": 545,
+        "text": "fn action_and_reset_requests_validate_whole_batch_before_mutation() -> crate::Result<()> {\n    let mut env = VecDodgeEnv::new(EnvConfig {\n        batch_size: 3,\n        raw_frame_cap: 1,"
+      },
+      {
+        "line": 589,
+        "text": "fn cap_ragged_steps_alive_bootstrap_and_terminal_stack() -> crate::Result<()> {\n    let mut env = VecDodgeEnv::new(EnvConfig {\n        raw_frame_cap: 5,\n        render_pixels: true,"
+      },
+      {
+        "line": 610,
+        "text": "    assert_eq!(b.info[0].diagnostics.raw_history_samples, 6);\n    let mut dead = VecDodgeEnv::new(EnvConfig {\n        raw_frame_cap: 1,\n        render_pixels: true,"
+      },
+      {
+        "line": 645,
+        "text": "        for pickup_first in [false, true] {\n            let mut env = VecDodgeEnv::new(EnvConfig {\n                batch_size: 2,\n                raw_frame_cap: 3,"
+      },
+      {
+        "line": 684,
+        "text": "fn returned_buffers_are_owned_and_resets_refill_pixel_history() -> crate::Result<()> {\n    let mut env = VecDodgeEnv::new(EnvConfig {\n        raw_frame_cap: 1,\n        render_pixels: true,"
+      },
+      {
+        "line": 712,
+        "text": "fn parallel_error_poison_retains_partial_state_and_only_reset_all_recovers() -> crate::Result<()> {\n    let mut env = VecDodgeEnv::new(EnvConfig {\n        batch_size: 3,\n        num_threads: 2,"
+      },
+      {
+        "line": 748,
+        "text": "{\n    let mut env = VecDodgeEnv::new(EnvConfig {\n        raw_frame_cap: 1,\n        ..evaluation_config(vec![vec![0xB0000000], vec![0xB0000001, 9]])"
+      },
+      {
+        "line": 776,
+        "text": "    };\n    let mut a = VecDodgeEnv::new(EnvConfig {\n        num_threads: 1,\n        chunk_size: 1,"
+      },
+      {
+        "line": 781,
+        "text": "    })?;\n    let mut b = VecDodgeEnv::new(EnvConfig {\n        num_threads: 3,\n        chunk_size: 2,"
+      },
+      {
+        "line": 831,
+        "text": "            );\n            let mut full = NativeGame::new(NativeConfig::new(expected.seed));\n            let mut frame = full.advance_frame(dodge_core::BUTTON_X_MASK)?;\n            for _ in 0..12 {"
+      },
+      {
+        "line": 840,
+        "text": "            let vector_policy = Arc::new(Mutex::new(Policy::new(kind, expected.seed)));\n            let mut env = VecDodgeEnv::new(evaluation_config(vec![vec![expected.seed]]))?;\n            vector_policy\n                .lock()"
+      },
+      {
+        "line": 989,
+        "text": "    use crate::geometry::{enemy_footprint, powerup_footprint};\n    let env = VecDodgeEnv::new(EnvConfig::default())?;\n    let game = env.test_game(0);\n    let mut base = [0; 16384];"
+      },
+      {
+        "line": 1037,
+        "text": "    use crate::geometry::rectangle_footprint;\n    let env = VecDodgeEnv::new(EnvConfig::default())?;\n    let game = env.test_game(0);\n    let mut base = [0; 16384];"
+      },
+      {
+        "line": 1090,
+        "text": "fn actual_rectangle_overflow_after_raw_mutation_poisons_batch() -> crate::Result<()> {\n    let mut env = VecDodgeEnv::new(EnvConfig {\n        batch_size: 2,\n        num_threads: 2,"
+      },
+      {
+        "line": 1118,
+        "text": "    use std::sync::{Arc, Mutex};\n    let mut env = VecDodgeEnv::new(EnvConfig::default())?;\n    let mut growing = enemy(0, 10, 10, 1);\n    growing.max_size = q(6);"
+      }
+    ]
+  },
+  {
+    "archive": "learning/runs/v2/milestone2-wrapper-r1/source.tar.gz",
+    "member": "crates/dodge-rl-env/tests/support/m0_policy.rs",
+    "sha256": "eeae605299b1018437a54df66f4eabf6e6d4defc20334c1baf93692900601b85",
+    "constructor_seed_sites": [
+      {
+        "line": 451,
+        "text": "    fn strict_type_specific_boxes_include_zero_half_extent_player() {\n        let game = NativeGame::new(NativeConfig::new(1));\n        let mut state = game.snapshot().logical_state().clone();\n        let policy = Policy::new(PolicyKind::AabbDodger, 1);"
+      },
+      {
+        "line": 482,
+        "text": "    fn active_rects_use_w_minus_one_charge_and_current_displacement() {\n        let game = NativeGame::new(NativeConfig::new(1));\n        let mut state = game.snapshot().logical_state().clone();\n        state.active_pattern = Some(0);"
+      },
+      {
+        "line": 527,
+        "text": "    fn hidden_control_has_no_action_effect_even_for_safe_powerup_choice() -> crate::Result<()> {\n        let mut state = NativeGame::new(NativeConfig::new(1))\n            .snapshot()\n            .logical_state()"
+      },
+      {
+        "line": 559,
+        "text": "    fn charge_forecast_requires_observed_raw_frame_increase_and_resets() -> crate::Result<()> {\n        let mut state = NativeGame::new(NativeConfig::new(1))\n            .snapshot()\n            .logical_state()"
+      },
+      {
+        "line": 607,
+        "text": "    fn zero_explosions_narrow_boxes_and_partly_offscreen_geometry_survive() -> crate::Result<()> {\n        let mut state = NativeGame::new(NativeConfig::new(1))\n            .snapshot()\n            .logical_state()"
+      },
+      {
+        "line": 651,
+        "text": "    fn shrunk_pattern_player_is_strict_point_with_negative_interior_gap() -> crate::Result<()> {\n        let mut state = NativeGame::new(NativeConfig::new(1))\n            .snapshot()\n            .logical_state()"
+      }
+    ]
+  }
+]

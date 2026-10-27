@@ -1,0 +1,387 @@
+{
+  "calibration_terminal_proofs": [
+    {
+      "path": "learning/runs/v2/current-pair-resource-calibration-parent-audit-20261026-r6/audit.json",
+      "real_game_episodes": 0,
+      "sha256": "badc6f11cee99f4e801fa0a7419688f98cce2cdfd124ad3dc9302e6739bc4217",
+      "status": "failed_actual_probe_no_retry"
+    },
+    {
+      "path": "learning/runs/v2/current-pair-resource-calibration-parent-audit-20261026-r7/audit.json",
+      "real_game_episodes": 0,
+      "sha256": "7320e9bec8c715ceaad9a3bf970f42100059c480d3fe651874eb9681cb4bfe5c",
+      "status": "accepted_synthetic_resource_calibration_only"
+    }
+  ],
+  "limits": "IPC scripts spawn only their own stdlib roles. Lifecycle discriminators call failure/monitor/acceptance methods with stub process and guard, not worker/model/environment paths. Source proof is limited to these exact entrypoints.",
+  "source_proofs": [
+    {
+      "evidence_lines": [
+        [
+          4,
+          "import array, fcntl, json, os, signal, socket, subprocess, sys, time"
+        ],
+        [
+          79,
+          "        w = subprocess.Popen([PY, '-B', os.path.abspath(__file__), 'worker', str(gfd), ev, case], start_new_session=True, pass_fds=(gfd,))"
+        ],
+        [
+          117,
+          "    p = subprocess.Popen([PY, '-B', os.path.abspath(__file__), 'supervisor', case, str(child_socket.fileno()), ev, owned],"
+        ],
+        [
+          159,
+          "def main(out, wrapper_deadline):"
+        ]
+      ],
+      "path": "learning/runs/v2/postovernight-long-D2-IPC-close-order-probe-sonnet-r2/close_order_probe.py",
+      "sha256": "1a0ba4e989477fa4cc5c8dc110473e07c4e003004fdd7c5df50aaba52cb3d599"
+    },
+    {
+      "evidence_lines": [
+        [
+          3,
+          "import hashlib, json, os, signal, subprocess, sys, time"
+        ],
+        [
+          6,
+          "OUT = os.path.dirname(os.path.abspath(__file__))"
+        ],
+        [
+          48,
+          "def main():"
+        ],
+        [
+          52,
+          "              wrapper_sha256=sha(__file__), script_sha256=sha(SCRIPT), plan_script_sha256=plan['script_sha256'], plan_wrapper_sha256=plan['wrapper_sha256'])"
+        ],
+        [
+          62,
+          "        p = subprocess.Popen(argv, stdout=out_f, stderr=err_f, env=env, start_new_session=True); main_pid = p.pid"
+        ]
+      ],
+      "path": "learning/runs/v2/postovernight-long-D2-IPC-close-order-probe-sonnet-r2/probe_wrapper.py",
+      "sha256": "baf0cfcb46a93ec1ee32a88261dab8c3eea22778ce2e5c5a62f8e3b770be6689"
+    },
+    {
+      "evidence_lines": [
+        [
+          5,
+          "import array, json, os, socket, subprocess, sys, time, signal"
+        ],
+        [
+          71,
+          "    me = os.path.abspath(__file__)"
+        ],
+        [
+          72,
+          "    p = subprocess.Popen([sys.executable, '-B', me, 'supervisor', str(child_socket.fileno()), ev, variant],"
+        ],
+        [
+          97,
+          "    w = subprocess.Popen([sys.executable, '-B', os.path.abspath(__file__), 'worker', str(gate.fileno()), ev, variant],"
+        ],
+        [
+          117,
+          "def main():"
+        ]
+      ],
+      "path": "learning/runs/v2/postovernight-long-D2-boundary-IPC-diagnosis-sonnet-r1/ipc_probe.py",
+      "sha256": "19b338027ea57738680e71aef5a46e86a4b1632d3c8f6ff14f184f2837766154"
+    },
+    {
+      "evidence_lines": [
+        [
+          2,
+          "import json, threading, time"
+        ]
+      ],
+      "path": "learning/runs/v2/postovernight-long-D2-boundary-IPC-diagnosis-sonnet-r1/starvation_model.py",
+      "sha256": "068c2f95596917d388136a668020181825514fc6cc196c582feefe44c1c2cb83"
+    },
+    {
+      "evidence_lines": [
+        [
+          4,
+          "import json, sys"
+        ],
+        [
+          5,
+          "from pathlib import Path"
+        ],
+        [
+          9,
+          "import long_d2_executor as e  # noqa: E402"
+        ],
+        [
+          23,
+          "out = [dict(case=n, accepted=e.accept_observed(r, raw, 3.0)) for n, r, raw in cases]"
+        ]
+      ],
+      "path": "learning/runs/v2/postovernight-long-D2-boundary-failure-diagnosis-sonnet-r1/discriminator_acceptance.py",
+      "sha256": "ec61e02a12613bac919ab8e6db7c42dd52648d6cf49e265828ecbbf23db3f9de"
+    },
+    {
+      "evidence_lines": [
+        [
+          12,
+          "import json"
+        ],
+        [
+          13,
+          "import sys"
+        ],
+        [
+          14,
+          "import threading"
+        ],
+        [
+          15,
+          "import time"
+        ],
+        [
+          16,
+          "import types"
+        ],
+        [
+          17,
+          "from pathlib import Path"
+        ],
+        [
+          22,
+          "import lifecycle as life          # noqa: E402"
+        ],
+        [
+          23,
+          "import long_d2 as c              # noqa: E402"
+        ],
+        [
+          24,
+          "import long_d2_executor as e     # noqa: E402"
+        ],
+        [
+          27,
+          "class StubProc:"
+        ],
+        [
+          31,
+          "class StubGuard:"
+        ],
+        [
+          43,
+          "    ex.guard = StubGuard()"
+        ],
+        [
+          44,
+          "    ex.child = types.SimpleNamespace(process=StubProc(), report=dict("
+        ],
+        [
+          45,
+          "        pid=StubProc.pid, raw_wait_status=returncode << 8, returncode=returncode,"
+        ],
+        [
+          82,
+          "    import signal"
+        ],
+        [
+          86,
+          "def main():"
+        ]
+      ],
+      "path": "learning/runs/v2/postovernight-long-D2-boundary-failure-diagnosis-sonnet-r1/discriminator_monitor.py",
+      "sha256": "1761deb0de8cb3ffefcdc990d9e81242a12a1d0755137d0c9c0a84998d239c89"
+    },
+    {
+      "evidence_lines": [
+        [
+          9,
+          "import json"
+        ],
+        [
+          10,
+          "import sys"
+        ],
+        [
+          11,
+          "import time"
+        ],
+        [
+          12,
+          "from pathlib import Path"
+        ],
+        [
+          17,
+          "import lifecycle as life   # noqa: E402"
+        ],
+        [
+          18,
+          "import long_d2 as c        # noqa: E402"
+        ],
+        [
+          40,
+          "    return c.worker_failure(RuntimeError('plain worker exception'), None, None, None, result, permission), pool.first_global"
+        ],
+        [
+          47,
+          "    return c.worker_failure(c.Stop('stop exception', 'safety_stop'), None, None, None, result, permission), pool.first_global"
+        ],
+        [
+          85,
+          "def main():"
+        ],
+        [
+          87,
+          "        ('worker_failure(plain RuntimeError) [long_d2.py:938]', site_worker_failure_plain_exception),"
+        ],
+        [
+          88,
+          "        ('worker_failure(Stop) [long_d2.py:938]', site_worker_failure_stop),"
+        ]
+      ],
+      "path": "learning/runs/v2/postovernight-long-D2-boundary-failure-diagnosis-sonnet-r1/discriminator_timestamp.py",
+      "sha256": "0956e3e2ee8bdc8a0324f9adb5eb32efc198bd3bc3d5c6bebd359e63bd3860b4"
+    },
+    {
+      "evidence_lines": [
+        [
+          4,
+          "import json, socket, sys, platform"
+        ]
+      ],
+      "path": "learning/runs/v2/postovernight-long-D2-boundary-startup-reap-diagnosis-sonnet-r1/dgram_close_probe.py",
+      "sha256": "bbfacae0f6d1d91c259951121cbea0387dbf4eba834f9a2404e982cfde672053"
+    },
+    {
+      "evidence_lines": [
+        [
+          2,
+          "import time"
+        ],
+        [
+          4,
+          "from pathlib import Path"
+        ],
+        [
+          5,
+          "import cProfile"
+        ],
+        [
+          6,
+          "import json"
+        ],
+        [
+          7,
+          "import os"
+        ],
+        [
+          8,
+          "import pstats"
+        ],
+        [
+          9,
+          "import sys"
+        ],
+        [
+          10,
+          "import threading"
+        ],
+        [
+          11,
+          "import traceback"
+        ],
+        [
+          13,
+          "HERE = Path(__file__).resolve().parent"
+        ],
+        [
+          17,
+          "import long_d2 as c"
+        ],
+        [
+          18,
+          "import lifecycle as life"
+        ],
+        [
+          19,
+          "import boundary_integrity as integrity"
+        ],
+        [
+          22,
+          "def main():"
+        ],
+        [
+          33,
+          "    result = dict(status='failed', diagnostic_only=True, ML_imports=False,"
+        ],
+        [
+          80,
+          "                      forbidden_modules=[name for name in sys.modules if name.split('.')[0] in {'torch','numpy','dodge_rl'}],"
+        ]
+      ],
+      "path": "learning/runs/v2/postovernight-long-D2-boundary-profile-r1/profile_once.py",
+      "sha256": "0b01fb600c40b5292c878e39190989db7a1dbd001c17414634e5435b5367f83e"
+    },
+    {
+      "evidence_lines": [
+        [
+          2,
+          "import time"
+        ],
+        [
+          4,
+          "from pathlib import Path"
+        ],
+        [
+          5,
+          "import json"
+        ],
+        [
+          6,
+          "import math"
+        ],
+        [
+          7,
+          "import os"
+        ],
+        [
+          8,
+          "import sys"
+        ],
+        [
+          9,
+          "import threading"
+        ],
+        [
+          10,
+          "import traceback"
+        ],
+        [
+          12,
+          "HERE = Path(__file__).resolve().parent"
+        ],
+        [
+          16,
+          "import long_d2 as c"
+        ],
+        [
+          17,
+          "import lifecycle as life"
+        ],
+        [
+          18,
+          "import boundary_integrity as integrity"
+        ],
+        [
+          21,
+          "def main():"
+        ],
+        [
+          126,
+          "                      forbidden_modules=[name for name in sys.modules"
+        ]
+      ],
+      "path": "learning/runs/v2/postovernight-long-D2-switchinterval-probe-r1/probe_once.py",
+      "sha256": "170e94c0cf03dbc2c082e264e809a7c71e439ff51516c39cb7a07051b261a34f"
+    }
+  ]
+}

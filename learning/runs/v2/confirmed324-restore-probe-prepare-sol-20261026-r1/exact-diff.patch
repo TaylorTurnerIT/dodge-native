@@ -1,0 +1,2012 @@
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/build_registration.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/build_registration.py
+@@ -1,19 +1,22 @@
+-"""Build a parent-review draft for the dedicated probe supervisor."""
+-import hashlib,json
++"""Build an inert parent-review draft. Never install a lease or claim a marker."""
++import hashlib,json,sys
+ from pathlib import Path
+-RUN=Path(__file__).resolve().parent
+-VECTORS=RUN.parent/'confirmed324-seed-vectors-parent-20261026-r1'/'seed-vectors.json'
+-CHECKPOINT=RUN.parent/'D2-retained300-continuation-20261026-r1'/'checkpoint-000324-candidate.pt'
+-PARENT_RECEIPT=RUN.parent/'D2-retained300-parent-terminal-audit-20261026-r1'/'retained-best-candidate-receipt.json'
+-ACCEPTANCE=RUN.parent/'expanded-confirmation-parent-20261026-r1'/'parent-acceptance.json'
+-ACCEPTANCE_SHA='3e84979c4c8da76d0f98666a23f90eb15c1e813ca5edf1001e19daebaf4d5bbd'
+-FINGERPRINT=RUN.parent/'confirmed324-transition-parent-repair-20261026-r3'/'fingerprints.py'
+-PRIMITIVE_SHA='4a5d084359ee48fe5351c96e0ec4455fdcd95a428a17bbcf59d0653f6922de98'
+-def sha(p): return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+-def build(*,state_path,expected_lease,marker_path,cancel_path,output_path,python_path,runtime_root,empty_cache_path,expected_venv_prefix=None):
+- vraw=VECTORS.read_bytes(); vectors=json.loads(vraw)
+- import probe
+- probe.validate_vectors(vectors)
+- src={'worker_path':str(RUN/'worker_cli.py'),'worker_sha256':sha(RUN/'worker_cli.py'),'supervisor_path':str(RUN/'supervisor_cli.py'),'supervisor_sha256':sha(RUN/'supervisor_cli.py'),'probe_path':str(RUN/'probe.py'),'probe_sha256':sha(RUN/'probe.py'),'fingerprint_path':str(FINGERPRINT),'fingerprint_sha256':sha(FINGERPRINT),'cleanup_primitives_sha256':PRIMITIVE_SHA}
+- return {'schema':'d2_layerb_rng_reference_probe_registration_v1','status':'draft_parent_review_required','authority':'none_until_parent_registration_review_and_lease_installation','run_id':'PENDING_PARENT_UNIQUE_RUN_ID','study_id':vectors['study_id'],'source':src,'runtime':{'python_path':str(Path(python_path).absolute()),'expected_venv_prefix':str(Path(expected_venv_prefix).absolute() if expected_venv_prefix is not None else Path(python_path).absolute().parent.parent),'python_version':'3.12.15','interpreter_sha256':sha(python_path),'runtime_root':str(Path(runtime_root).resolve()),'torch_version':'2.14.1','numpy_version':'2.5.4','empty_cache_path':str(Path(empty_cache_path).resolve()),'pycache_policy':'PYTHONDONTWRITEBYTECODE=1 -B; ownedemptycache'},'vectors_path':str(VECTORS.resolve()),'vectors_sha256':hashlib.sha256(vraw).hexdigest(),'vectors':vectors,'checkpoint_path':str(CHECKPOINT.resolve()),'checkpoint_sha256':sha(CHECKPOINT),'parent_receipt_path':str(PARENT_RECEIPT.resolve()),'parent_receipt_sha256':sha(PARENT_RECEIPT),'acceptance_path':str(ACCEPTANCE.resolve()),'acceptance_sha256':ACCEPTANCE_SHA,'state_path':str(Path(state_path).resolve()),'expected_lease':expected_lease,'one_shot_marker':str(Path(marker_path).resolve()),'cancel_path':str(Path(cancel_path).resolve()),'output_dir':str(Path(output_path).resolve()),'limits':{'work_seconds':45,'outer_seconds':55,'cleanup_seconds':10,'startup_grace_seconds':12,'RSS_bytes':6*1024**3,'MPS_driver_bytes':6*1024**3,'guard_poll_seconds':.2,'heartbeat_stale_seconds':2.0},'references':{'required_replicas':[1,2,3],'receipt_fields':sorted(probe.RECEIPT_FIELDS),'same_reference_for_both_arms':True}}
+-if __name__=='__main__': raise SystemExit('Import build() to create a draft; parent must complete and approve registration before execution.')
++import probe as p
++HERE=Path(__file__).resolve().parent
++
++def build(parent_dir=None):
++    parent=Path(parent_dir or HERE/'proposed-parent').absolute()
++    old=p.read(p.BASE/'confirmed324-probe-finalization-repair-sol-20261026-r5/registration-template.json')
++    source={}
++    for name,path in {'worker':HERE/'worker_cli.py','supervisor':HERE/'supervisor_cli.py','probe':HERE/'probe.py','fingerprint':p.R3/'fingerprints.py'}.items():
++        source[name+'_path']=str(path); source[name+'_sha256']=p.sha(path)
++    source['cleanup_primitives_sha256']='4a5d084359ee48fe5351c96e0ec4455fdcd95a428a17bbcf59d0653f6922de98'
++    run='confirmed324-restore-probe-PENDING_PARENT_UNIQUE_ID'
++    vector=next(v for v in old['vectors']['vectors'] if v['replica']==1)
++    ref=p.read(p.BASE/'confirmed324-rng-reference-parent-20261026-r3/parent-terminal-audit.json')['references'][0]
++    lease=dict(run_id=run,study_id=p.STUDY,kind='confirmed324_claimed_restore_probe',owner_token='PENDING_PARENT_NEW_TOKEN',parent_checkpoint_sha256=p.PARENT)
++    reg={k:old[k] for k in ('vectors_path','vectors_sha256','vectors','checkpoint_path','checkpoint_sha256','parent_receipt_path','parent_receipt_sha256','acceptance_path','acceptance_sha256','state_path')}
++    reg.update(schema=p.SCHEMA,status='draft_parent_review_required',authority='none',run_id=run,study_id=p.STUDY,source=source,runtime=dict(old['runtime'],empty_cache_path=str(parent/'empty-pycache')),expected_lease=lease,one_shot_marker=str(parent/(run+'.outer.claimed')),attempt_claim_path=str(parent/(run+'.restore.claimed')),cancel_path=str(parent/'CANCEL'),output_dir=str(parent/run),limits=p.LIMITS,references={'required_replicas':[1],'kind':'existing_initial_CPU_MPS_state_reference'},replica=1,arm=p.ARM,pair_id=p.STUDY+'-replica-1',vector=vector,reference=dict(receipt_path=ref['path'],receipt_sha256=ref['sha256'],vector_sha256=ref['vector_sha256']),input_manifest_path=str(HERE/'input-manifest.json'),input_manifest_sha256=p.sha(HERE/'input-manifest.json'),expected_parent_fingerprints=p.EXPECTED,scope=p.SCOPE,budget_semantics='45s work within 55s outer decisions; cleanup <=10s remaining; no hard filesystem watchdog')
++    assert set(reg)==p.FIELDS
++    return json.loads(json.dumps(reg))
++if __name__=='__main__': raise SystemExit('Import build() for an inert draft; parent freezes, reviews and authorizes separately.')
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/finalize_preparation.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/finalize_preparation.py
+@@ -1,7 +1,6 @@
+-"""Package owned R5 artifacts; never register, claim, lease or launch real work."""
++"""Package owned source/fake evidence only. No runtime or launch operations."""
+ import ast
+-import copy
+-import datetime
++from datetime import datetime,timezone
+ import difflib
+ import hashlib
+ import json
+@@ -9,122 +8,70 @@
+ from pathlib import Path
+ import re
+ import sys
+-
+-RUN=Path(__file__).absolute().parent
+-ROOT=RUN.parents[3]
+-BASE=RUN.parent
+-OLD=BASE/'confirmed324-probe-signal-postflight-repair-sol-20261026-r4'
+-PARENTS=[BASE/f'confirmed324-rng-reference-parent-20261026-r{i}'/'registration-final.json' for i in (1,2)]
+-PARENT_PINS=['e0e94321c17dbfc69cbde7da689bab43f8d7088a9c59cda6f30be9727b58f56b','34b35307a9559ca2a7f74f0ca4567c3d30590af4e285b6295e21bbc8ae898895']
+-
+-
++import probe
++import build_registration
++HERE=Path(__file__).resolve().parent
++OLD=HERE.parent/'confirmed324-probe-finalization-repair-sol-20261026-r5'
+ def sha(p): return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+-def load(p): return json.loads(Path(p).read_text())
+-def info(p): return {'path':str(Path(p).absolute()),'bytes':Path(p).stat().st_size,'sha256':sha(p)}
+-def save(name,obj): (RUN/name).write_text(json.dumps(obj,sort_keys=True,indent=2)+'\n')
+-
+-
+-def main():
+-    assert Path(sys.executable).absolute()==ROOT/'python/.venv/bin/python'
+-    assert sys.prefix==str(ROOT/'python/.venv') and sys.version.split()[0]=='3.12.15'
+-    assert sys.dont_write_bytecode and os.environ['PYTHONDONTWRITEBYTECODE']=='1'
+-    assert os.environ['PYTHONPYCACHEPREFIX']==str(RUN/'empty-pycache')
+-    assert all(sha(p)==pin for p,pin in zip(PARENTS,PARENT_PINS))
+-    original,successor=[load(p) for p in PARENTS]
+-
+-    sources=sorted(RUN.glob('*.py'))
+-    for p in sources: ast.parse(p.read_bytes(),filename=str(p))
+-    tested=load(RUN/'tested-source-before.json')
+-    assert all(sha(row['path'])==row['sha256'] for row in tested['files'])
+-    tested_paths={row['path'] for row in tested['files']}
+-    assert {str(p) for p in sources}-tested_paths=={str(RUN/'finalize_preparation.py')}
+-    unchanged_names=('worker_cli.py','probe.py','build_registration.py','fake_runtime.py','test_campaign.py','test_probe.py')
+-    assert all(sha(RUN/name)==sha(OLD/name) for name in unchanged_names)
+-
+-    log=(RUN/'tests.log').read_text()
+-    match=re.search(r'Ran (\d+) tests in ([0-9.]+)s\n\nOK\s*$',log)
+-    assert match and int(match[1])==48 and log.count(' ... ok')==48
+-    methods=re.findall(r'^(test_\w+) \(([^)]+)\)',log,re.MULTILINE)
+-    assert len(methods)==48 and len(set(methods))==48
+-    previous=load(OLD/'test-results.json')['tests']
+-    prior={(r['method'],r['class']) for r in previous}
+-    assert len(prior)==33 and prior<=set(methods)
+-    added=set(methods)-prior
+-    assert len(added)==15 and all(c.startswith('test_finalization_controls.') for m,c in added)
+-    save('test-results.json',{'schema':'synthetic_control_results_v1','passed':48,'failed':0,'r4_controls_replayed':33,'original_r3_controls_included':7,'new_first_signal_controls':15,'elapsed_seconds':float(match[2]),'test_exit_code':0,'attempts':1,'tests':[{'method':m,'class':c} for m,c in methods],'r4_assertion_adjustment':'Exactly nine signals observed before outcome freeze; three publication-time signals now ignored. Child TERM delivery and raw -SIGKILL exit retained.','real_generator_reference_proof':False})
+-
+-    receipts=[]; focused=[]
+-    for p in sorted((RUN/'test-tmp').glob('*/out/outer-receipt.json')):
+-        rec=load(p)
+-        assert rec['process_group_absent']
+-        receipts.append(dict(info(p),status=rec['status'],stop_reason=rec['stop_reason'],raw_worker_exit_code=rec['raw_worker_exit_code'],process_group_absent=rec['process_group_absent'],handled_signals=rec['handled_signals']))
+-        driver_path=p.parent.parent/'driver-result.json'
+-        if not p.parent.parent.name.startswith('finalization-'): continue
+-        evidence=load(driver_path)
+-        assert evidence['injections']==1 and evidence['handlers_restored'] and evidence['trace_restored']
+-        assert rec['raw_worker_exit_code']==0 and rec['process_group_remaining']==[]
+-        assert len(rec['postflight'])==19 and all(row['status']=='pass' for row in rec['postflight'].values())
+-        assert evidence['post_return_group_rows']==[] and not evidence['post_return_group_error']
+-        assert evidence['publication_sha256']==evidence['receipt_sha256_after_return']==sha(p)
+-        if evidence['phase']=='before_freeze':
+-            assert rec['status']=='partial_failure_preserved' and not evidence['returned']
+-            assert rec['stop_reason']=='supervisor_signal:'+evidence['signal']
+-            assert rec['handled_signals']==[evidence['signal']]
+-        else:
+-            assert rec['status']=='accepted_pending_parent_postflight' and evidence['returned']
+-            assert rec['stop_reason'] is None and rec['handled_signals']==[]
+-            assert evidence['returned_result']==rec
+-        focused.append({'phase':evidence['phase'],'signal':evidence['signal'],'returned':evidence['returned'],'handlers_restored':True,'raw_worker_exit_code':0,'process_group_absent':True,'status':rec['status'],'stop_reason':rec['stop_reason'],'handled_signals':rec['handled_signals'],'receipt':info(p),'driver_evidence':info(driver_path)})
+-    assert len(focused)==15
+-    assert len({(r['phase'],r['signal']) for r in focused})==15
+-    save('synthetic-receipt-index.json',{'scope':'Owned stdlib synthetic fixtures only; no real parent outputs','receipts':receipts,'first_signal_controls':focused})
+-
+-    sys.path.insert(0,str(RUN))
+-    import build_registration
+-    lease=copy.deepcopy(original['expected_lease'])
+-    lease.update(run_id='PENDING_PARENT_UNIQUE_RUN_ID',owner_token='PENDING_PARENT_OWNER_TOKEN',registration_path=str(RUN/'proposed-parent'/'registration-final.json'))
+-    draft=build_registration.build(state_path=original['state_path'],expected_lease=lease,marker_path=RUN/'proposed-parent'/'one-shot.claimed',cancel_path=RUN/'proposed-parent'/'CANCEL',output_path=RUN/'proposed-parent'/'outputs',python_path=original['runtime']['python_path'],runtime_root=original['runtime']['runtime_root'],empty_cache_path=RUN/'empty-pycache',expected_venv_prefix=original['runtime']['expected_venv_prefix'])
+-    preserved=('schema','study_id','vectors_path','vectors_sha256','vectors','checkpoint_path','checkpoint_sha256','parent_receipt_path','parent_receipt_sha256','acceptance_path','acceptance_sha256','state_path','limits','references')
+-    assert set(draft)==set(original)==set(successor)
+-    for old in (original,successor):
+-        assert all(draft[k]==old[k] for k in preserved)
+-        assert {k:v for k,v in draft['runtime'].items() if k!='empty_cache_path'}=={k:v for k,v in old['runtime'].items() if k!='empty_cache_path'}
+-        assert all(draft['source'][k]==old['source'][k] for k in ('fingerprint_path','fingerprint_sha256','cleanup_primitives_sha256'))
+-    assert draft['status']=='draft_parent_review_required'
+-    assert not (RUN/'proposed-parent').exists()
+-    save('registration-template.json',draft)
+-
+-    def diff(paths):
+-        result=[]
+-        for p in paths:
+-            old=OLD/p.name
+-            result.extend(difflib.unified_diff(old.read_text().splitlines(keepends=True) if old.exists() else [],p.read_text().splitlines(keepends=True),fromfile=str(old.relative_to(ROOT)) if old.exists() else '/dev/null',tofile=str(p.relative_to(ROOT))))
+-        return ''.join(result)
+-    (RUN/'production-diff.patch').write_text(diff([RUN/'supervisor_cli.py',RUN/'worker_cli.py',RUN/'probe.py',RUN/'build_registration.py']))
+-    (RUN/'exact-diff.patch').write_text(diff(sources+[RUN/'README.md',RUN/'registration-template.json']))
+-    external=[Path(original['source']['fingerprint_path']),BASE/'confirmation-proof-binding-parent-repair-20261026-r4'/'execute_once.py']
+-    save('source-hashes.json',{'schema':'confirmed324_probe_r5_authoritative_source_manifest_v1','authoritative':True,'hash_algorithm':'sha256','source_directory':str(RUN),'files':[dict(info(p),validation='48-control suite; exact bytes match tested-source-before.json' if str(p) in tested_paths else 'artifact-packaging helper; AST parsed and run after tests') for p in sources],'external_pinned_source':[info(p) for p in external],'byte_identical_to_R4':list(unchanged_names),'only_production_change':'supervisor finalization outcome flag and signal-handler guard','interpreter_invocation':info(ROOT/'python/.venv/bin/python')})
+-
+-    before=load(RUN/'preservation-before.json')
+-    observed=[]
+-    for row in before['files']:
+-        actual=sha(row['path'])
+-        observed.append(dict(row,after_sha256=actual,unchanged=actual==row['sha256']))
+-    state=next(row for row in observed if row['path']==original['state_path'])
+-    immutable=all(row['unchanged'] for row in observed if row['path']!=original['state_path'])
+-    parents=[]
+-    for path,reg in zip(PARENTS,(original,successor)):
+-        paths_exist={k:Path(reg[k]).exists() for k in ('one_shot_marker','cancel_path','output_dir')}
+-        cache=Path(reg['runtime']['empty_cache_path'])
+-        assert not any(paths_exist.values()) and cache.is_dir() and not any(cache.iterdir())
+-        parents.append({'registration':info(path),'paths_exist':paths_exist,'cache':str(cache),'cache_entries':[]})
+-    assert immutable and (RUN/'empty-pycache').is_dir() and not any((RUN/'empty-pycache').iterdir())
+-    save('preservation-after.json',{'files':observed,'enumerated_files':len(observed),'immutable_read_set_unchanged':immutable,'state_writes_by_this_task':0,'independently_managed_state':state,'parent_observations':parents,'owned_cache_empty':True})
+-
+-    boundary=next(i for i,line in enumerate((RUN/'supervisor_cli.py').read_text().splitlines(),1) if line.strip()=='outcome_frozen=True')
+-    artifacts=['README.md','production-diff.patch','exact-diff.patch','source-hashes.json','registration-template.json','tests.log','tested-source-before.json','test-results.json','synthetic-receipt-index.json','preservation-before.json','preservation-after.json']
+-    save('receipt.json',{'schema':'confirmed324_probe_finalization_repair_preparation_v1','status':'source_prepared_not_registered_not_runtime_qualified','created_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'role':'implementation_sub_agent','owned_output':str(RUN),'repaired_finding':'Fresh R4 review R1/P2: first handled signal during otherwise-successful receipt publication could diverge verdict/history/terminal outcome','source_manifest':info(RUN/'source-hashes.json'),'source_predecessor':str(OLD),'reviews':[info(BASE/name/'review.md') for name in ('confirmed324-probe-r3-frozen-registration-review-sol-20261026-r1','confirmed324-probe-r4-frozen-review-sol-20261026-r2')],'frozen_parent_registrations':[info(p) for p in PARENTS],'outcome_policy':{'path':str(RUN/'supervisor_cli.py'),'boundary_line':boundary,'assignment':'outcome_frozen=True','prerequisites':'Worker cleanup/reap, all 19 checks and decisions, artifact inventory and decisions complete','before_boundary':'Handled signals establish failure and append history','after_boundary':'Installed supervisor handler ignores SIGTERM/SIGHUP/SIGINT without changing reason/history/result','restoration':'Policy stays frozen until each original handler is restored; that original policy then resumes','child_signal_mask_changed':False,'published_receipt_mutated':False,'I/O_failure_semantics':'Unchanged: exclusive publication may fail or leave partial JSON; no hard finalization watchdog'},'test_summary':load(RUN/'test-results.json'),'actual_interpreter':dict(tested['interpreter'],version_short=sys.version.split()[0],interpreter_sha256=sha(sys.executable),owned_cache_empty=True),'test_command':tested['planned_test_command'],'test_environment':{'PYTHONDONTWRITEBYTECODE':'1','PYTHONPYCACHEPREFIX':str(RUN/'empty-pycache')},'contract_fields_preserved':list(preserved),'accepted_checkpoint_sha256':original['checkpoint_sha256'],'accepted_integrity_receipt_sha256':original['parent_receipt_sha256'],'accepted_parent_record_sha256':original['acceptance_sha256'],'runtime_contract_preserved_except_owned_cache_path':True,'limits_unchanged':draft['limits'],'preservation':{'enumerated_files':len(observed),'immutable_read_set_unchanged':immutable,'root_README_unchanged':True,'parent_markers_cancel_outputs_absent':True,'parent_registered_caches_empty':True,'state_writes_by_this_task':0,'independently_managed_state_unchanged':state['unchanged']},'execution_scope':{'stdlib_and_inert_owned_source_only':True,'Torch_NumPy_native_project_imports':0,'actual_RNG_MPS_calls':0,'checkpoint_deserializations':0,'models_environments_training_evaluation':0,'actual_campaign_launches':0,'actual_parent_marker_claims':0,'actual_lease_writes':0,'subdelegations':0,'writes_outside_owned_output':0},'evidence_limits':['Synthetic controls and source preparation only; no real CPU/MPS references, dependency/runtime qualification, or resource/timing qualification.','55-second worker/cleanup decisions do not hard-bound blocking filesystem/hash/fsync/receipt finalization.','Startup imports precede the first MPS heartbeat.','Exclusive final JSON writes can leave partial files; no atomic visibility or directory-fsync crash durability.','Package bytes unpinned; runtime_root remains metadata.','Preservation equality covers the enumerated read set, not every file in the repository.'],'remaining_parent_gates':['Exact-source review','Successor identity/destination and final registration freeze','Fresh state/precondition audit and exact lease installation','Separately authorized exactly-once real run','Parent output acceptance'],'artifacts':[info(RUN/name) for name in artifacts]})
+-    print(json.dumps({'status':'prepared_not_registered','controls_passed':48,'original_R4_replayed':33,'new_controls':15,'source_manifest_sha256':sha(RUN/'source-hashes.json'),'receipt_sha256':sha(RUN/'receipt.json'),'immutable_read_set_unchanged':immutable,'independently_managed_state_unchanged':state['unchanged']},sort_keys=True))
+-
+-
+-if __name__=='__main__': main()
++def write(p,v): Path(p).write_text(json.dumps(v,sort_keys=True,indent=2)+'\n')
++assert sys.dont_write_bytecode and sys.pycache_prefix==str(HERE/'empty-pycache')
++assert not any((HERE/'empty-pycache').iterdir())
++assert not any(k.split('.')[0] in {'torch','numpy','dodge_rl'} for k in sys.modules)
++# Move preparation-history scripts away from the final review entrypoints.
++history=HERE/'tmp/preparation-history'; history.mkdir(exist_ok=True)
++for name in ('prepare_files.py','adapt_supervisor.py','refine_source.py','tighten_source.py','harden_consumer.py','update_test_fixtures.py','fix_synthetic_controls.py','final_contract_refinements.py','final_sampler_fix.py'):
++    path=HERE/name
++    if path.exists(): path.rename(history/name)
++reg=build_registration.build()
++assert reg['status']=='draft_parent_review_required' and not Path(reg['output_dir']).exists()
++assert not Path(reg['one_shot_marker']).exists() and not Path(reg['attempt_claim_path']).exists()
++write(HERE/'registration-template.json',reg)
++write(HERE/'parent-run-command-template.json',{'status':'inert_not_launch_authority','prerequisites':'separate parent freeze/review/calibration/lease/once-only authorization','environment':{'PYTHONDONTWRITEBYTECODE':'1','PYTHONPYCACHEPREFIX':'PARENT_REGISTERED_NEW_EMPTY_CACHE'},'argv':[reg['runtime']['python_path'],'-B',str(HERE/'supervisor_cli.py'),'--registration','PARENT_FROZEN_ABSOLUTE_REGISTRATION_PATH','--registration-sha256','PARENT_FROZEN_REGISTRATION_SHA256'],'required_venv_prefix':reg['runtime']['expected_venv_prefix'],'expected_registration_schema':probe.SCHEMA})
++source_files=sorted(p for p in HERE.iterdir() if p.suffix=='.py')
++for p in source_files: ast.parse(p.read_bytes(),filename=str(p))
++source={p.name:sha(p) for p in source_files}
++write(HERE/'source-manifest.json',{'schema':'confirmed324_restore_probe_prepared_source_v1','authority':'inventory only; no parent source acceptance','files':source,'input_manifest_sha256':sha(HERE/'input-manifest.json'),'external_R3_manifest_sha256':probe.R3_SHA,'authoritative_R5_manifest_sha256':probe.R5_SHA})
++production=('build_registration.py','probe.py','supervisor_cli.py','worker_cli.py')
++def diff(names):
++    text=''
++    for name in names:
++        before=(OLD/name).read_text().splitlines(True) if (OLD/name).is_file() else []
++        after=(HERE/name).read_text().splitlines(True)
++        text+=''.join(difflib.unified_diff(before,after,fromfile=str(OLD/name) if before else '/dev/null',tofile=str(HERE/name)))
++    return text
++(HERE/'production-diff.patch').write_text(diff(production))
++(HERE/'exact-diff.patch').write_text(diff([p.name for p in source_files]+['README.md','input-manifest.json','registration-template.json','parent-run-command-template.json']))
++# Verify R5 execute() body changed only telemetry/result schema, not lifecycle.
++a=ast.parse((OLD/'supervisor_cli.py').read_text()); b=ast.parse((HERE/'supervisor_cli.py').read_text())
++old_execute=next(n for n in a.body if isinstance(n,ast.FunctionDef) and n.name=='execute')
++new_execute=next(n for n in b.body if isinstance(n,ast.FunctionDef) and n.name=='execute')
++old_body=ast.get_source_segment((OLD/'supervisor_cli.py').read_text(),old_execute)
++new_body=ast.get_source_segment((HERE/'supervisor_cli.py').read_text(),new_execute)
++normalized=new_body.replace('rows=None; resource_samples=[]','rows=None')
++normalized=normalized.replace("\n     resource_samples.append({'elapsed_seconds':now-start,'process_group_current_rss_bytes':rss,'process_rows':rows})",'')
++normalized=normalized.replace("'schema':'confirmed324_claimed_restore_probe_outer_receipt_v1'","'schema':'d2_layerb_rng_reference_probe_outer_receipt_v1'")
++normalized=normalized.replace("'resource_samples':resource_samples,'registered_limits':reg['limits'],",'')
++assert normalized==old_body,'unexpected lifecycle-body change'
++summary=probe.read(HERE/'fake-test-summary.json')
++assert summary['tests_run']==46 and not summary['failures'] and not summary['errors'] and not summary['loaded_runtime_modules'] and not summary['blocked_runtime_import_requests']
++legacy_log=(HERE/'lifecycle-tests-pass2.log').read_text()
++assert 'Ran 48 tests' in legacy_log and legacy_log.rstrip().endswith('OK')
++focused_log=(HERE/'tests.log').read_text(); assert 'Ran 46 tests' in focused_log and focused_log.rstrip().endswith('OK')
++write(HERE/'test-results.json',{'schema':'source_only_synthetic_controls_v1','passed':94,'carried_predecessor':48,'focused':46,'lifecycle_log':'lifecycle-tests-pass2.log','focused_log':'tests.log','focused_summary':summary,'lifecycle_execute_body_preserved_except_telemetry_and_receipt_schema':True,'limits_are_proposals_not_measurements':True,'actual_runtime_qualified':False,'final_source_files':source,'retained_initial_failures':['tests-pass1.log','lifecycle-tests.log','tests-pass4.log'],'test_instrumentation':'synthetic_worker_driver.py bypasses gates only in test subprocess; supervisor tests substitute only the child executable; consumer semantic fixtures are fabricated'})
++before=probe.read(HERE/'preservation-before.json')
++after={p:sha(p) for p in before['immutable']}
++assert after==before['immutable'],'immutable input drift'
++state=before['state']; now=sha(state['path'])
++write(HERE/'preservation-after.json',{'immutable':after,'immutable_unchanged':True,'enumerated_files':len(after),'state':{'path':state['path'],'before_sha256':state['sha256'],'after_sha256':now,'unchanged':now==state['sha256'],'owned_by_parent_not_written_by_this_task':True},'root_README_unchanged':after[str(probe.ROOT/'README.md')]==before['immutable'][str(probe.ROOT/'README.md')],'cache_empty':not any((HERE/'empty-pycache').iterdir()),'scope':'enumerated read set only; no global filesystem claim'})
++receipts=[]
++for p in sorted((HERE/'tmp').rglob('*.json')):
++    if p.name in ('outer-receipt.json','result.json','worker-failure.json','COMMITTED.json','driver-result.json','driver-scope.json'):
++        receipts.append(dict(path=str(p.relative_to(HERE)),sha256=sha(p),bytes=p.stat().st_size))
++write(HERE/'synthetic-receipt-index.json',{'schema':'synthetic_evidence_index_v1','authority':'synthetic only; never runtime qualification or parent acceptance','files':receipts})
++receipt={'schema':'confirmed324_restore_probe_source_preparation_v1','status':'prepared_not_registered_not_runtime_qualified','created_at_utc':datetime.now(timezone.utc).isoformat(),'owned_output':str(HERE),'source_manifest':{'path':str(HERE/'source-manifest.json'),'sha256':sha(HERE/'source-manifest.json')},'input_manifest':{'path':str(HERE/'input-manifest.json'),'sha256':sha(HERE/'input-manifest.json')},'accepted_R3_manifest_sha256':probe.R3_SHA,'authoritative_R5_manifest_sha256':probe.R5_SHA,'accepted_checkpoint_sha256':probe.PARENT,'accepted_integrity_receipt_sha256':probe.PARENT_RECEIPT,'accepted_confirmation_sha256':probe.ACCEPTANCE,'reference_registration_sha256':'0150cfcdbec53ff4322f72e5fa224cb6a914f3505ea732c0722511b5e031c398','seed_vectors_sha256':reg['vectors_sha256'],'replica':1,'study_id':probe.STUDY,'arm':probe.ARM,'scope':probe.SCOPE,'limits':probe.LIMITS,'limits_status':'proposed, not measured','test_summary':{'passed':94,'carried':48,'focused':46,'stdlib_fake_only':True,'initial_failures_retained':True},'preparation_operations':dict(real_Torch_NumPy_native_imports=0,real_MPS_calls=0,checkpoint_deserializations=0,actual_models_environments_training_evaluation=0,actual_probe_launches=0,actual_lease_writes=0,actual_marker_or_transition_claims=0,actual_training_seeds_consumed=0,subdelegations=0,commits=0,pushes=0,writes_outside_owned_output=0),'interpreter':summary,'preservation':{'enumerated_files':len(after),'unchanged':True,'parent_state_unchanged_at_packaging':now==state['sha256'],'root_README_unchanged':True},'lifecycle_execute_body_preserved_except_telemetry_and_receipt_schema':True,'template_authority':'none; proposed parent directory absent; no lease installed','remaining_parent_gates':['unique run/output/owner-token/outer-marker/subclaim and fresh empty cache','full registration/source/input freeze','independent exact-source review','separate actual dependency/runtime/resource calibration decision','fresh parent state and exact probe lease installation','separately authorized exactly-once execution without retry','parent terminal audit, process absence and replica-1 qualification only'],'evidence_limits':['No real runtime validation or timing/memory measurement.','No hard filesystem/hash/fsync/finalization watchdog.','MPS heartbeat sampling begins after adapter authentication/checkpoint validation.','Package bytes are unpinned.','Python profile is not general native-code instrumentation.','SIGKILL cannot run worker cleanup; parent supervises/reaps groups.','Exclusive publication can leave partial files; I/O failures can prevent complete receipts.','Preservation checks cover enumerated inputs only.']}
++write(HERE/'receipt.json',receipt)
++artifacts=[]
++for p in sorted(HERE.iterdir()):
++    if p.is_file() and p.name not in ('artifact-manifest.json','finalization.log'): artifacts.append(dict(path=p.name,bytes=p.stat().st_size,sha256=sha(p)))
++write(HERE/'artifact-manifest.json',{'schema':'restore_probe_preparation_artifacts_v1','files':artifacts,'synthetic_evidence_index':'synthetic-receipt-index.json','excluded_live_packaging_stdout':'finalization.log'})
++print(json.dumps(dict(status=receipt['status'],tests_passed=94,immutable_files_unchanged=len(after),parent_state_unchanged=now==state['sha256'],cache_empty=True,source_manifest_sha256=sha(HERE/'source-manifest.json'))))
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/probe.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/probe.py
+@@ -1,107 +1,325 @@
+-"""One-shot RNG state reference worker contract. Import is inert."""
++"""Replica-1 accepted restore probe contract. Imports are stdlib only.
++
++This module is not launch authority. The supervisor requires a separately frozen,
++parent-approved registration and exact lease before consuming its outer marker.
++"""
++from __future__ import annotations
++import builtins
++import gc
+ import hashlib
++import inspect
++import importlib.metadata
+ import json
++import math
+ import os
+-import threading
++from pathlib import Path
++import random
++import sys
+ import time
+-from pathlib import Path
+-
+-SCHEMA = "d2_layerb_rng_real_state_preflight_v1"
+-RECEIPT_FIELDS = frozenset({"schema", "status", "backend", "torch_version",
+-    "accepted_checkpoint_sha256", "parent_receipt_sha256", "study_id", "replica",
+-    "complete_seed_vector", "vector_sha256", "cpu_rng_state_sha256", "mps_rng_state_sha256"})
+-SEED_FIELDS = frozenset({"constructor_init_seed", "python_random_seed", "numpy_global_seed",
+-    "torch_cpu_global_seed", "action_sampler_torch_mps_seed", "env_master_seed"})
+-PARENT = "c10d90ec0e67503afef8f4d90c4968581d430ef2065117a75e81c445a04c8ddc"
+-PARENT_RECEIPT = "76cb15733e87518cb3b473b7f8ebd847ed206351fb9f17d89b8b92e6bf853f08"
+-FINGERPRINT_SOURCE_SHA256 = "6ef9cf3f08fe800f54230801a921a2f5c82e47e5013ef3087ead6499d2533d61"
+-
+-def canonical_vector_sha256(study, replica, seeds):
+-    raw=json.dumps({"study_id":study,"replica":replica,"seeds":seeds},sort_keys=True,
+-                   separators=(",",":"),ensure_ascii=True,allow_nan=False).encode()
+-    return hashlib.sha256(raw).hexdigest()
+-
+-def strict_int(value): return type(value) is int
+-
+-def validate_vectors(obj, study="paired-lr-confirmed324-20261026-r1"):
+-    if not isinstance(obj,dict) or obj.get("schema")!="d2_layerb_proposed_rng_seed_vectors_v3" or obj.get("study_id")!=study:
+-        raise ValueError("vector study/schema mismatch")
+-    if obj.get("status")!="proposed_only_not_reserved_not_applied": raise ValueError("vectors not pending")
+-    rows=obj.get("vectors")
+-    if not isinstance(rows,list) or len(rows)!=3: raise ValueError("exactly three vectors required")
+-    seen=set(); out=[]
+-    for i,row in enumerate(rows,1):
+-        if not isinstance(row,dict) or type(row.get("replica")) is not int or row.get("replica")!=i or set(row.get("seeds",{}))!=SEED_FIELDS:
+-            raise ValueError("replica/vector fields mismatch")
+-        seeds=row["seeds"]
+-        bounds={"constructor_init_seed":(1,4294967295),"python_random_seed":(1,9223372036854775807),
+-          "numpy_global_seed":(0,4294967295),"torch_cpu_global_seed":(1,9223372036854775807),
+-          "action_sampler_torch_mps_seed":(1,9223372036854775807),"env_master_seed":(1,18446744073709551615)}
+-        if any(not strict_int(v) or not bounds[k][0]<=v<=bounds[k][1] for k,v in seeds.items()): raise ValueError("seed values outside strict stream bounds")
+-        digest=canonical_vector_sha256(study,i,seeds)
+-        if row.get("vector_sha256")!=digest or digest in seen: raise ValueError("vector hash mismatch or duplicate")
+-        seen.add(digest); out.append({"replica":i,"complete_seed_vector":seeds,"vector_sha256":digest})
+-    return out
+-
+-def capture_references(*, vectors, study_id, torch_api, numpy_version, python_version,
+-                       torch_version, backend_available, fingerprint, checkpoint_sha256=PARENT,
+-                       parent_receipt_sha256=PARENT_RECEIPT, heartbeat=None):
+-    """Capture actual state using injected APIs; production caller supplies pinned modules."""
+-    if checkpoint_sha256!=PARENT or parent_receipt_sha256!=PARENT_RECEIPT:
+-        raise ValueError("parent pins mismatch")
+-    if not backend_available: raise RuntimeError("MPS unavailable")
+-    rows=validate_vectors(vectors,study_id)
+-    if numpy_version!="2.5.4" or torch_version!="2.14.1": raise RuntimeError("pinned library version mismatch")
+-    captured=[]
+-    for row in rows:
+-        s=row["complete_seed_vector"]
+-        # Reference contract: CPU seed first, explicit MPS seed last, then read states.
+-        torch_api.manual_seed(s["torch_cpu_global_seed"])
+-        torch_api.mps.manual_seed(s["action_sampler_torch_mps_seed"])
+-        cpu=fingerprint(torch_api.get_rng_state())
+-        mps=fingerprint(torch_api.mps.get_rng_state())
+-        vals={"schema":SCHEMA,"status":"measured","backend":"mps","torch_version":torch_version,
+-              "accepted_checkpoint_sha256":checkpoint_sha256,"parent_receipt_sha256":parent_receipt_sha256,
+-              "study_id":study_id,"replica":row["replica"],"complete_seed_vector":s,
+-              "vector_sha256":row["vector_sha256"],"cpu_rng_state_sha256":cpu,"mps_rng_state_sha256":mps}
+-        if set(vals)!=RECEIPT_FIELDS: raise RuntimeError("reference receipt schema drift")
+-        captured.append(vals)
+-        if heartbeat: heartbeat()
+-    return {"schema":"d2_layerb_rng_reference_probe_receipt_v1","status":"captured_pending_parent_postflight",
+-            "study_id":study_id,"references":captured,"runtime":{"python":python_version,
+-            "numpy":numpy_version,"torch":torch_version,"backend":"mps"},
+-            "scope":{"checkpoint_bytes_hashed_only":True,"model_constructed":False,"environment_constructed":False,
+-            "checkpoint_deserialized":False,"training":False,"evaluation":False,"launch_authority":False}}
+-
+-def atomic_publish(directory, receipt):
+-    """Publish exclusive files, then exclusive commit manifest; parent requires manifest."""
+-    dest=Path(directory)
+-    rows=receipt.get("references",[])
+-    if len(rows)!=3 or [r.get("replica") for r in rows]!=[1,2,3]: raise ValueError("partial references cannot publish")
+-    if dest.exists() and not dest.is_dir(): raise FileExistsError("reference output collision")
+-    dest.parent.mkdir(parents=True,exist_ok=True)
+-    dest.mkdir(exist_ok=True)
+-    def exclusive(path,obj):
+-        raw=(json.dumps(obj,sort_keys=True,indent=2)+"\n").encode()
+-        fd=os.open(path,os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)
+-        with os.fdopen(fd,"wb") as f: f.write(raw); f.flush(); os.fsync(f.fileno())
+-        return hashlib.sha256(raw).hexdigest()
+-    files=[]
+-    for row in rows:
+-        if set(row)!=RECEIPT_FIELDS or row.get("schema")!=SCHEMA or row.get("status")!="measured": raise ValueError("reference fields/status invalid")
+-        p=dest/f"replica-{row['replica']}.json"; files.append({"path":p.name,"sha256":exclusive(p,row)})
+-    rpath=dest/"receipt.json"; files.append({"path":rpath.name,"sha256":exclusive(rpath,receipt)})
+-    # This exclusive commit record is the sole completeness signal.
+-    exclusive(dest/"COMMITTED.json",{"schema":"d2_layerb_rng_reference_probe_commit_v1","files":files,"references":3})
+-
+-def heartbeat_loop(path, identity, stop, memory_sample):
+-    seq=0
+-    while not stop.is_set():
+-        rss,mps=memory_sample()
+-        if type(rss)is not int or rss<0 or type(mps)is not int or not 0<=mps<=identity["mps_cap_bytes"]:
+-            raise RuntimeError("invalid memory sample")
+-        rec={"run_id":identity["run_id"],"registration_sha256":identity["registration_sha256"],
+-             "pid":os.getpid(),"timestamp_ns":time.time_ns(),"sequence":seq,"rss_bytes":rss,"mps_driver_bytes":mps}
+-        tmp=Path(path).with_suffix(".tmp")
+-        tmp.write_text(json.dumps(rec,sort_keys=True));os.replace(tmp,path);seq+=1
+-        stop.wait(.2)
++import types
++
++HERE=Path(__file__).resolve().parent
++ROOT=HERE.parents[3]
++BASE=HERE.parent
++R3=BASE/'confirmed324-worker-event-repair-sol-20261026-r3'
++R3_SHA='5cb2cdf6bb857473600c7671caa579bb9d49bd3b3bc573ee4c76d635508757ab'
++R5=BASE/'confirmed324-private-bindings-r5-parent-validation-20261026-r1/source-manifest.json'
++R5_SHA='2b0caf00a5d5e765726d080fd5647211190e472d74ffb33b3466e477cb2906a9'
++STUDY='paired-lr-confirmed324-20261026-r1'
++ARM='A_constant_3e-5'
++PARENT='c10d90ec0e67503afef8f4d90c4968581d430ef2065117a75e81c445a04c8ddc'
++PARENT_RECEIPT='76cb15733e87518cb3b473b7f8ebd847ed206351fb9f17d89b8b92e6bf853f08'
++ACCEPTANCE='3e84979c4c8da76d0f98666a23f90eb15c1e813ca5edf1001e19daebaf4d5bbd'
++EXPECTED={'model':'3b72815fef4d8fa0084044739f5a5eaf9f74971b36dff9d8b26ed3bea5c562bc','Adam':'cf5e2a7ac5d3f7f131a26f7c2b8b778b7692850cff606a0ea9080941b960451c','RNG':'cb96ee8d2c40114a51abb8031dc7457a6da6d1be7262c6a4859bd34cab5813af'}
++SCHEMA='confirmed324_claimed_restore_probe_registration_v1'
++RESULT_SCHEMA='confirmed324_claimed_restore_probe_result_v1'
++LIMITS={'work_seconds':45,'outer_seconds':55,'cleanup_seconds':10,'startup_grace_seconds':12,'RSS_bytes':6442450944,'MPS_driver_bytes':6442450944,'guard_poll_seconds':.2,'heartbeat_stale_seconds':2.0}
++SCOPE={'model_constructed':True,'Adam_constructed':True,'checkpoint_deserialized':True,'replicas':[1],'environment_constructions':0,'rollouts':0,'forwards':0,'optimizer_steps':0,'candidate_saves':0,'training_updates':0,'qualification':'replica-1 only; parent audit required','automatic_retry':False}
++FIELDS={'schema','status','authority','run_id','study_id','source','runtime','vectors_path','vectors_sha256','vectors','checkpoint_path','checkpoint_sha256','parent_receipt_path','parent_receipt_sha256','acceptance_path','acceptance_sha256','state_path','expected_lease','one_shot_marker','cancel_path','output_dir','limits','references','replica','arm','pair_id','vector','reference','attempt_claim_path','input_manifest_path','input_manifest_sha256','expected_parent_fingerprints','scope','budget_semantics'}
++MODULES=('fingerprints','rng_reference','attempt_claim','transition','driver_binding','contracts','runtime_adapter')
++RESULT_FIELDS={'schema','status','run_id','registration_sha256','study_id','replica','arm','vector_sha256','reference','parent_fingerprints','snapshots','transition','events','counts','runtime','cleanup','scope','resources'}
++
++def need(ok,message):
++    if not ok: raise ValueError(message)
++def sha(path):
++    h=hashlib.sha256()
++    with Path(path).open('rb') as f:
++        for b in iter(lambda:f.read(1048576),b''): h.update(b)
++    return h.hexdigest()
++def read(path):
++    def unique(pairs):
++        d={}
++        for k,v in pairs:
++            need(k not in d,'duplicate JSON field: '+k); d[k]=v
++        return d
++    return json.loads(Path(path).read_bytes(),object_pairs_hook=unique,parse_constant=lambda v:(_ for _ in ()).throw(ValueError(v)))
++def verified(path,digest):
++    raw=Path(path).read_bytes(); need(hashlib.sha256(raw).hexdigest()==digest,'source buffer pin mismatch: '+str(path)); return raw
++
++def private_modules():
++    """Load exact R3 source buffers under private identities, including local imports.
++
++    No sys.path insertion for worker modules, no worker/worker_cli execution, no
++    edits to accepted code objects, globals, classes or API contracts.
++    """
++    manifest=json.loads(verified(R3/'source-manifest.json',R3_SHA))
++    authoritative=json.loads(verified(R5,R5_SHA))
++    for name in ('attempt_claim','driver_binding','fingerprints','rng_reference','transition'):
++        original=next(h for p,h in authoritative['files'].items() if Path(p).name==name+'.py')
++        need(manifest['files'][name+'.py']==original,'R5 binding differs')
++    loaded={}
++    original_import=builtins.__import__
++    def local_import(name,globals=None,locals=None,fromlist=(),level=0):
++        if level==0 and name in MODULES: return load(name)
++        return original_import(name,globals,locals,fromlist,level)
++    def load(name):
++        if name in loaded: return loaded[name]
++        path=R3/(name+'.py'); raw=verified(path,manifest['files'][name+'.py'])
++        module=types.ModuleType('_restore_probe_r3_'+name); module.__file__=str(path)
++        module.__dict__['__builtins__']=dict(vars(builtins),__import__=local_import)
++        loaded[name]=module; sys.modules[module.__name__]=module
++        exec(compile(raw,str(path),'exec'),module.__dict__)
++        return module
++    for name in MODULES: load(name)
++    return loaded
++
++def verify_immutable(reg):
++    manifest=json.loads(verified(reg['input_manifest_path'],reg['input_manifest_sha256']))
++    need(manifest['schema']=='confirmed324_restore_probe_read_only_inputs_v1' and manifest['root']==str(ROOT),'input manifest binding')
++    for p,h in manifest['pins'].items(): need(sha(p)==h,'immutable input drift: '+p)
++    need(sha(R3/'source-manifest.json')==R3_SHA and sha(R5)==R5_SHA,'accepted source manifest drift')
++    for p,h in read(R5)['files'].items(): need(sha(p)==h,'authoritative R5 member drift: '+p)
++    r3=read(R3/'source-manifest.json')
++    for name,h in r3['files'].items(): need(sha(R3/name)==h,'accepted R3 member drift: '+name)
++    review=read(BASE/'confirmed324-worker-events-r3-review-sol-20261026-r2/receipt.json')
++    need(review['findings']==[] and review['test_evidence']['parent_reported_tests']==43,'accepted R3 review gate differs')
++    runtime=read(R3/'input-manifest.json')
++    root=Path(runtime['runtime_root'])
++    expected={p:h for p,h in runtime['pins'].items() if p.startswith(str(root.relative_to(ROOT))+'/')}
++    actual={str(p.relative_to(ROOT)) for p in root.rglob('*') if p.is_file() and '__pycache__' not in p.parts}
++    need(set(expected)==actual,'runtime member set differs')
++    for p,h in expected.items(): need(sha(ROOT/p)==h,'runtime member drift: '+p)
++    producing=read(BASE/'D2-retained300-continuation-freeze-20261026-r5/registration.json')
++    need({str((ROOT/p).relative_to(root)):h for p,h in expected.items()}==producing['runtime_continuity']['member_sha256'],'accepted runtime lineage differs')
++    need(reg['runtime']['runtime_root']==str(root) and runtime['runtime_versions']==producing['runtime_versions']=={'python':reg['runtime']['python_version'],'numpy':reg['runtime']['numpy_version'],'torch':reg['runtime']['torch_version']},'runtime versions/root differ')
++    need(sha(reg['vectors_path'])==reg['vectors_sha256']=='33ada951394fd3ce674955d43de1919b1cd3c2192e066722e33d5b49549c070b','vector source drift')
++    vectors=read(reg['vectors_path']); need(vectors==reg['vectors'] and vectors['study_id']==STUDY,'vector content/study differs')
++    vector=next(v for v in vectors['vectors'] if type(v['replica']) is int and v['replica']==1)
++    need(reg['vector']==vector,'replica-1 full vector differs')
++    parent=read(reg['parent_receipt_path']); acceptance=read(reg['acceptance_path'])
++    for name,h in (('checkpoint',PARENT),('parent_receipt',PARENT_RECEIPT),('acceptance',ACCEPTANCE)):
++        need(reg[name+'_sha256']==h and sha(reg[name+'_path'])==h,'accepted '+name+' pin differs')
++    need(acceptance['status']=='accepted_checkpoint324_replaces348_by_registered_fresh_confirmation' and acceptance['retained_update']==324 and acceptance['checkpoint_sha256']==PARENT and acceptance['source_integrity_receipt_sha256']==PARENT_RECEIPT and acceptance['candidate_cumulative_counters']==parent['candidate_cumulative_counters'],'accepted confirmation binding differs')
++    need(parent['checkpoint_sha256']==PARENT and parent['candidate_phase_update']==324 and parent['candidate_cumulative_counters']['updates']==372,'accepted parent counters differ')
++    need(parent['learner_fingerprints']=={'model':EXPECTED['model'],'optimizer':EXPECTED['Adam'],'rng':EXPECTED['RNG']} and vector['env_control']['episode_indices']==parent['next_episode_indices'],'accepted parent state differs')
++    refroot=BASE/'confirmed324-rng-reference-parent-20261026-r3'
++    audit=read(refroot/'parent-terminal-audit.json')
++    need(audit['status']=='accepted_three_initial_CPU_MPS_generator_references' and audit['registration_sha256']=='0150cfcdbec53ff4322f72e5fa224cb6a914f3505ea732c0722511b5e031c398','reference parent gate differs')
++    accepted=next(r for r in audit['references'] if r['replica']==1)
++    reference={'receipt_path':accepted['path'],'receipt_sha256':accepted['sha256'],'vector_sha256':accepted['vector_sha256']}
++    need(reg['reference']==reference and reg['references']=={'required_replicas':[1],'kind':'existing_initial_CPU_MPS_state_reference'},'replica-1 reference binding differs')
++    m=private_modules(); c=m['contracts']; c.binding.verify_pinned_sources(ROOT)
++    c.transition.validate_seeds(vector['seeds'])
++    m['rng_reference'].load_bound_reference(receipt_path=reference['receipt_path'],expected_receipt_sha256=reference['receipt_sha256'],expected_study_id=STUDY,expected_replica=1,expected_seed_vector=vector['seeds'],expected_vector_sha256=vector['vector_sha256'],expected_torch_version=reg['runtime']['torch_version'])
++    return m,dict(manifest=runtime,parent=parent,vector=vector)
++
++def preflight(rp,rsha,reg,worker,*,worker_phase=False):
++    need(sha(rp)==rsha and read(rp)==reg,'external registration SHA/content mismatch')
++    need(type(reg) is dict and set(reg)==FIELDS,'restore-probe registration fields mismatch')
++    need(reg['schema']==SCHEMA and reg['status']=='parent_registered' and reg['authority']=='parent_approved_one_shot','parent registration/approval absent')
++    need(type(reg['replica']) is int and reg['replica']==1 and reg['arm']==ARM and reg['study_id']==STUDY and reg['pair_id']==STUDY+'-replica-1','replica-1 paired LR identity required')
++    need(reg['expected_parent_fingerprints']==EXPECTED and reg['scope']==SCOPE and reg['limits']==LIMITS,'probe state/scope/limits differ')
++    need(reg['budget_semantics']=='45s work within 55s outer decisions; cleanup <=10s remaining; no hard filesystem watchdog','budget semantics differ')
++    need(type(reg['run_id']) is str and reg['run_id'].startswith('confirmed324-restore-probe-') and 'PENDING' not in reg['run_id'],'new unique probe run identity required')
++    need(Path(worker)==HERE/'worker_cli.py','dedicated restore worker required')
++    for name,path in {'worker':HERE/'worker_cli.py','supervisor':HERE/'supervisor_cli.py','probe':HERE/'probe.py','fingerprint':R3/'fingerprints.py'}.items():
++        need(Path(reg['source'][name+'_path'])==path and sha(path)==reg['source'][name+'_sha256'],'probe source pin differs: '+name)
++    need(reg['source']['cleanup_primitives_sha256']=='4a5d084359ee48fe5351c96e0ec4455fdcd95a428a17bbcf59d0653f6922de98','cleanup pin differs')
++    rt=reg['runtime']; exe=ROOT/'python/.venv/bin/python'
++    need(Path(rt['python_path'])==exe and Path(sys.executable).absolute()==exe and sys.prefix==rt['expected_venv_prefix']==str(exe.parent.parent) and sys.version.split()[0]==rt['python_version']=='3.12.15' and sha(exe)==rt['interpreter_sha256'],'interpreter invocation/prefix/version differs')
++    cache=Path(rt['empty_cache_path'])
++    need(cache.is_dir() and not any(cache.iterdir()) and sys.dont_write_bytecode and sys.pycache_prefix==str(cache) and os.environ.get('PYTHONPYCACHEPREFIX')==str(cache),'owned empty cache policy differs')
++    need(rt['torch_version']=='2.14.1' and rt['numpy_version']=='2.5.4','dependency versions differ')
++    paths=[Path(reg[k]) for k in ('one_shot_marker','cancel_path','output_dir','attempt_claim_path')]
++    need(all(p.is_absolute() and p.resolve()==p for p in paths) and len(set(paths))==4,'probe destinations must be distinct absolute paths')
++    marker,cancel,out,claim=paths
++    need(out.parent.is_dir() and marker.parent==claim.parent==cancel.parent==out.parent,'parent registration directory must exist')
++    need(claim.name==reg['run_id']+'.restore.claimed' and marker.name==reg['run_id']+'.outer.claimed' and out.name==reg['run_id'],'unique registered destination names differ')
++    need(not cancel.exists(),'cancel present')
++    if worker_phase:
++        mark=read(marker); need(mark.get('run_id')==reg['run_id'] and mark.get('registration_sha256')==rsha,'outer marker binding differs')
++        allowed={'worker.log','worker-heartbeat.json','events.jsonl','resources.jsonl','worker-failure.json'}
++        need(out.is_dir() and all(p.name in allowed or p.name.startswith('worker-heartbeat.json.tmp.') for p in out.iterdir()),'worker output collision')
++    else: need(not marker.exists() and not claim.exists() and not out.exists(),'spent marker/subclaim or output collision')
++    state=read(reg['state_path']); lease=reg['expected_lease']
++    need(type(lease) is dict and lease.get('run_id')==reg['run_id'] and lease.get('study_id')==STUDY and lease.get('kind')=='confirmed324_claimed_restore_probe' and lease.get('parent_checkpoint_sha256')==PARENT and type(lease.get('owner_token')) is str and lease['owner_token'] and 'PENDING' not in lease['owner_token'],'restore-probe lease identity differs')
++    need(state.get('active_inference_diagnostic')==lease and all(state.get(k) in (None,False) for k in ('active_long_campaign','active_long','active_inference')),'exact probe lease absent/conflicting')
++    verify_immutable(reg)
++    return state
++
++def adapter_subset(reg,context):
++    """Only fields read by R3 __init__/validate_parent/bootstrap/source.
++
++    This is explicitly not a paired_confirmed324_worker_registration_v2. R3's
++    training verify_registration and 1790/1800 limits are never called or reused.
++    """
++    return dict(runtime_root=reg['runtime']['runtime_root'],runtime_versions={'python':reg['runtime']['python_version'],'numpy':reg['runtime']['numpy_version'],'torch':reg['runtime']['torch_version']},initial_episode_indices=context['parent']['next_episode_indices'],vector=reg['vector'])
++
++def snapshot(adapter,modules):
++    fp=modules['fingerprints'].fingerprint; raw=adapter.callbacks['rng_capture']()
++    need(type(raw) is dict and set(raw)==modules['driver_binding'].RAW_RNG_KEYS and raw['numpy_generator'] is None and raw['sampling_backend']=='torch_global_mps','raw six-key RNG contract differs')
++    return dict(model=fp(adapter.model.state_dict()),Adam=fp(adapter.optimizer.state_dict()),RNG=fp(raw),raw_components={k:fp(v) for k,v in raw.items()},lr=[g['lr'] for g in adapter.optimizer.param_groups])
++
++def run_claimed(reg,context,modules,adapter,event):
++    """Exactly one accepted transition; no environment or training entrypoint."""
++    t=modules['transition']; fp=modules['fingerprints'].fingerprint
++    need(type(adapter) is modules['runtime_adapter'].RuntimeAdapter,'exact pinned RuntimeAdapter class required')
++    need(not Path(reg['attempt_claim_path']).exists(),'transition subclaim already spent')
++    counts=dict(restores=0,environment_constructions=0,rollouts=0,forwards=0,optimizer_steps=0,candidate_saves=0,training_updates=0)
++    snapshots={}; old=sys.getprofile()
++    adapter._probe_partial=dict(counts=counts,snapshots=snapshots)
++    forbidden={'make_env':'environment_constructions','VecDodgeEnv':'environment_constructions','collect_rollout':'rollouts','ppo_update':'training_updates','forward':'forwards','step':'optimizer_steps','candidate':'candidate_saves','save_checkpoint':'candidate_saves','update':'training_updates'}
++    def profile(frame,kind,arg):
++        name=frame.f_code.co_name if kind in ('call','return') else getattr(arg,'__name__','')
++        # Only the accepted adapter/runtime methods and learner methods are banned;
++        # stdlib dict.update is harmless and must not be classified as PPO.
++        if kind=='call' and name in forbidden and (name!='update' or frame.f_code is modules['runtime_adapter'].RuntimeAdapter.update.__code__):
++            counts[forbidden[name]]+=1; raise RuntimeError('forbidden probe call: '+name)
++        if kind=='call' and name=='restore_learner':
++            counts['restores']+=1
++            need(counts['restores']==1,'multiple accepted restore calls')
++            claim_record=claim_identity(reg)
++            need(Path(reg['attempt_claim_path']).read_bytes()==modules['attempt_claim'].canonical_claim(claim_record),'durable subclaim required before restore')
++            event('accepted_restore_enter')
++        callbacks=getattr(adapter,'callbacks',None)
++        if kind=='return' and callbacks and frame.f_code is callbacks['restore_trusted'].__code__:
++            snapshots['restored_before_reseed']=snapshot(adapter,modules)
++            need({k:snapshots['restored_before_reseed'][k] for k in EXPECTED}==EXPECTED,'live accepted restore fingerprint differs')
++            event('accepted_restore_verified')
++        if kind=='call' and frame.f_code is t.controller_lr.__code__ and 'reseeded_before_lr' not in snapshots:
++            snapshots['reseeded_before_lr']=snapshot(adapter,modules); event('study_reseed_verified_before_lr')
++    sys.setprofile(profile)
++    try:
++        adapter.bootstrap(); event('disposable_bootstrap_complete')
++        snapshots['disposable_bootstrap']=snapshot(adapter,modules)
++        need(not Path(reg['attempt_claim_path']).exists(),'bootstrap must precede subclaim')
++        need(not inspect.signature(adapter.callbacks['restore_trusted']).parameters,'trusted restore must be zero argument')
++        seeds=reg['vector']['seeds']
++        result=t.transition(session=t.TransitionSession(),attempt_claim=modules['attempt_claim'].AttemptClaim(reg['attempt_claim_path'],claim_identity(reg)),backend='mps',seeds=seeds,pair=dict(pair_id=reg['pair_id'],A=dict(seeds),B=dict(seeds)),verify_trusted_source=adapter.source,restore_trusted=adapter.callbacks['restore_trusted'],model=adapter.model,optimizer=adapter.optimizer,rng_capture=adapter.callbacks['rng_capture'],pinned_rng_reference=reg['reference'],python_api=random,numpy_api=adapter.np.random,torch_api=adapter.torch,pair_id=reg['pair_id'],arm=reg['arm'],study_id=STUDY,replica=1,torch_version=reg['runtime']['torch_version'],run_id=reg['run_id'])
++    finally: sys.setprofile(old)
++    need(counts['restores']==1 and all(v==0 for k,v in counts.items() if k!='restores'),'probe call counts differ')
++    snapshots['post_lr']=snapshot(adapter,modules)
++    need(result['parent_fingerprints']==EXPECTED and result['fingerprint_contract_status']=='concrete state_dict fingerprints verified','R5 result contract differs')
++    ref=read(reg['reference']['receipt_path'])
++    for name in ('reseeded_before_lr','post_lr'):
++        snap=snapshots[name]
++        need(snap['model']==EXPECTED['model'] and snap['Adam']==EXPECTED['Adam'],'model/Adam changed through reseed/no-op LR')
++        need(snap['raw_components']['torch_cpu']==ref['cpu_rng_state_sha256'] and snap['raw_components']['torch_mps']==ref['mps_rng_state_sha256'],'initial CPU/MPS reference mismatch')
++        need(snap['raw_components']['python']==fp(random.Random(seeds['python_random_seed']).getstate()) and snap['raw_components']['numpy_global']==fp(adapter.np.random.RandomState(seeds['numpy_global_seed']).get_state()),'Python/NumPy initial readback mismatch')
++        need(snap['lr'] and all(type(v) in (int,float) and v==3e-5 for v in snap['lr']),'3e-5 no-op LR mismatch')
++    need(snapshots['reseeded_before_lr']==snapshots['post_lr'],'no-op LR changed learner/raw RNG state')
++    need(adapter.env is None,'probe environment must remain absent')
++    event('lr_noop_verified_stop_before_environment')
++    return dict(transition=result,snapshots=snapshots,counts=counts)
++
++def claim_identity(reg):
++    return dict(run_id=reg['run_id'],study_id=STUDY,replica=1,arm=ARM,vector_sha256=reg['vector']['vector_sha256'],parent_checkpoint_sha256=PARENT)
++
++def runtime_identity(adapter,modules):
++    rows=[]
++    for name,module in sorted(sys.modules.items()):
++        if name in ('torch','numpy','dodge_rl') or name.startswith('dodge_rl.'):
++            path=getattr(module,'__file__',None)
++            rows.append(dict(name=name,path=path,sha256=sha(path) if path and Path(path).is_file() else None,version=str(getattr(module,'__version__','not_declared'))))
++    cls=type(adapter.model); optimizer=type(adapter.optimizer)
++    dependencies=[]
++    for requirement in importlib.metadata.requires('torch') or []:
++        name=requirement.split(';',1)[0].strip().split(' ',1)[0]
++        for delimiter in ('>=','==','<=','!=','~=','>','<','['): name=name.split(delimiter,1)[0]
++        try: version=importlib.metadata.version(name)
++        except importlib.metadata.PackageNotFoundError: version='not_installed_or_inactive_marker'
++        dependencies.append(dict(requirement=requirement,distribution=name,installed_version=version))
++    return dict(trusted_callback_sources=adapter.callbacks['verified_sources'],authoritative_R5_manifest_sha256=R5_SHA,R3_manifest_sha256=R3_SHA,torch_dependencies=dependencies,python=sys.version,executable=sys.executable,prefix=sys.prefix,torch=str(adapter.torch.__version__),numpy=str(adapter.np.__version__),backend='mps',model_class=cls.__module__+'.'+cls.__qualname__,model_class_source=inspect.getsourcefile(cls),optimizer_class=optimizer.__module__+'.'+optimizer.__qualname__,adapter_source=str(R3/'runtime_adapter.py'),adapter_sha256=sha(R3/'runtime_adapter.py'),loaded_modules=rows)
++
++def release(adapter):
++    """Attempt every cleanup stage, including partially initialized adapters."""
++    stages={}
++    def attempt(name,fn):
++        try: fn(); stages[name]={'status':'pass'}
++        except BaseException as e: stages[name]={'status':'fail','error':type(e).__name__+':'+str(e)}
++    torch=getattr(adapter,'torch',None)
++    if torch is not None: attempt('synchronize_before_release',torch.mps.synchronize)
++    def drop():
++        for name in ('callbacks','parent','optimizer','model','runner','env'):
++            if hasattr(adapter,name): setattr(adapter,name,None)
++    attempt('release_learner_and_parent',drop); attempt('gc_collect',gc.collect)
++    if torch is not None:
++        attempt('synchronize_after_release',torch.mps.synchronize)
++        attempt('empty_mps_cache',torch.mps.empty_cache)
++        attempt('synchronize_after_cache',torch.mps.synchronize)
++    return stages
++
++def validate_result(reg,row,rsha):
++    need(type(row) is dict and set(row)==RESULT_FIELDS,'restore result fields differ')
++    need(row['schema']==RESULT_SCHEMA and row['status']=='verified_pending_parent_audit' and row['run_id']==reg['run_id'] and row['registration_sha256']==rsha,'restore result identity differs')
++    need(row['study_id']==STUDY and type(row['replica']) is int and row['replica']==1 and row['arm']==ARM and row['vector_sha256']==reg['vector']['vector_sha256'] and row['reference']==reg['reference'] and row['scope']==SCOPE,'restore result study/reference/scope differs')
++    need(type(row['counts']) is dict,'counts must be a mapping')
++    need(all(type(v) is int for v in row['counts'].values()),'probe counts must be strict integers')
++    need(row['parent_fingerprints']==EXPECTED and row['counts']==dict(restores=1,environment_constructions=0,rollouts=0,forwards=0,optimizer_steps=0,candidate_saves=0,training_updates=0),'restore result fingerprints/counts differ')
++    snaps=row['snapshots']; need(set(snaps)=={'disposable_bootstrap','restored_before_reseed','reseeded_before_lr','post_lr'},'state stage inventory differs')
++    raw_keys={'python','numpy_global','numpy_generator','torch_cpu','torch_mps','sampling_backend'}
++    def digest(value): return type(value) is str and len(value)==64 and all(ch in '0123456789abcdef' for ch in value)
++    for stage,state in snaps.items():
++        need(set(state)=={'model','Adam','RNG','raw_components','lr'} and all(digest(state[k]) for k in EXPECTED) and set(state['raw_components'])==raw_keys and all(digest(v) for v in state['raw_components'].values()),'snapshot/raw RNG schema differs')
++    need({k:snaps['restored_before_reseed'][k] for k in EXPECTED}==EXPECTED,'restored parent state differs')
++    reference=read(reg['reference']['receipt_path'])
++    need(snaps['post_lr']==snaps['reseeded_before_lr'],'LR no-op state differs')
++    for name in ('reseeded_before_lr','post_lr'):
++        s=snaps[name]
++        need(s['model']==EXPECTED['model'] and s['Adam']==EXPECTED['Adam'] and s['lr'] and all(type(v) in (int,float) and v==3e-5 for v in s['lr']),'post-reseed model/Adam/LR differs')
++        need(s['raw_components']['torch_cpu']==reference['cpu_rng_state_sha256'] and s['raw_components']['torch_mps']==reference['mps_rng_state_sha256'],'result reference state mismatch')
++    transition_fields={'pair_id','arm','backend','study_id','replica','seed_vector','vector_sha256','constructor_seed_status','environment_seed_status','seed_evidence','parent_fingerprints','post_lr_fingerprints','required_fingerprint_contract','fingerprint_contract_status','old_controller_provenance','new_controller'}
++    tr=row['transition']
++    need(type(tr) is dict and set(tr)==transition_fields,'accepted transition result schema differs')
++    need(tr['pair_id']==reg['pair_id'] and tr['arm']==ARM and tr['backend']=='mps' and tr['study_id']==STUDY and type(tr['replica']) is int and tr['replica']==1 and tr['vector_sha256']==reg['vector']['vector_sha256'],'accepted transition identity differs')
++    need(tr['constructor_seed_status']==tr['environment_seed_status']=='driver_deferred_not_applied' and tr['fingerprint_contract_status']=='concrete state_dict fingerprints verified','accepted R5 deferred-seed contract differs')
++    need(set(tr['seed_evidence'])=={'torch_cpu_initial_seed','torch_cpu_rng_state_sha256','torch_mps_rng_state_sha256'} and type(tr['seed_evidence']['torch_cpu_initial_seed']) is int,'transition seed evidence schema differs')
++    need(set(tr['post_lr_fingerprints'])=={'model','Adam','Adam_content_excluding_lr'} and digest(tr['post_lr_fingerprints']['Adam_content_excluding_lr']),'transition post-LR schema differs')
++    need(tr['old_controller_provenance']=={'origin':372,'horizon':60,'completed':0,'saved_lr':3e-5,'schedule':'none'} and tr['new_controller']=={'kind':'constant','origin':372,'horizon':60,'first_update':373,'last_update':432,'start_lr':3e-5,'end_lr':3e-5},'paired LR controller provenance differs')
++    need(tr['required_fingerprint_contract']=='full model and Adam exact through reseed; post-LR optimizer content exact excluding only param_groups[].lr','accepted fingerprint contract differs')
++    need(tr['post_lr_fingerprints']['model']==EXPECTED['model'] and tr['post_lr_fingerprints']['Adam']==EXPECTED['Adam'] and tr['seed_evidence']['torch_cpu_initial_seed']==reg['vector']['seeds']['torch_cpu_global_seed'],'transition learner/CPU seed readback differs')
++    need(row['transition']['parent_fingerprints']==EXPECTED and row['transition']['seed_vector']==reg['vector']['seeds'] and row['transition']['seed_evidence']['torch_cpu_rng_state_sha256']==reference['cpu_rng_state_sha256'] and row['transition']['seed_evidence']['torch_mps_rng_state_sha256']==reference['mps_rng_state_sha256'],'accepted transition result differs')
++    runtime=row['runtime']
++    need(runtime.get('R3_manifest_sha256')==R3_SHA and runtime.get('authoritative_R5_manifest_sha256')==R5_SHA,'loaded source manifest evidence differs')
++    need(runtime.get('model_class')=='dodge_rl.models.teacher.OmniscientEntityTeacher' and runtime.get('optimizer_class')=='torch.optim.adam.Adam','loaded learner class evidence differs')
++    need(runtime.get('model_class_source')==str(Path(reg['runtime']['runtime_root'])/'dodge_rl/models/teacher.py'),'loaded model source differs')
++    loaded={v['name']:v for v in runtime.get('loaded_modules',[])}
++    runtime_pins=read(R3/'input-manifest.json')['pins']
++    for name,relative in {'dodge_rl':'dodge_rl/__init__.py','dodge_rl._native':'dodge_rl/_native.cpython-312-darwin.so','dodge_rl.checkpoints':'dodge_rl/checkpoints.py','dodge_rl.ppo':'dodge_rl/ppo.py','dodge_rl.models.teacher':'dodge_rl/models/teacher.py','dodge_rl.identity':'dodge_rl/identity.py'}.items():
++        path=Path(reg['runtime']['runtime_root'])/relative
++        need(name in loaded and loaded[name]['path']==str(path) and loaded[name]['sha256']==runtime_pins[str(path.relative_to(ROOT))],'loaded native/runtime identity differs: '+name)
++    need({'torch','numpy'}<=set(loaded) and type(runtime.get('torch_dependencies')) is list and runtime['torch_dependencies'],'loaded dependency evidence missing')
++    need(runtime.get('trusted_callback_sources')==private_modules()['driver_binding'].verify_pinned_sources(ROOT),'trusted callback source identities differ')
++    need(row['runtime']['backend']=='mps'  and row['runtime']['torch']==reg['runtime']['torch_version'] and row['runtime']['numpy']==reg['runtime']['numpy_version'] and row['runtime']['adapter_sha256']==sha(R3/'runtime_adapter.py'),'loaded runtime evidence differs')
++    expected_cleanup={'synchronize_before_release','release_learner_and_parent','gc_collect','synchronize_after_release','empty_mps_cache','synchronize_after_cache'}
++    need(set(row['cleanup'])==expected_cleanup and all(v=={'status':'pass'} for v in row['cleanup'].values()),'cleanup incomplete')
++    names=[e['event'] for e in row['events']]
++    need(names==['runtime_authenticated_checkpoint_validated','disposable_bootstrap_complete','accepted_restore_enter','accepted_restore_verified','study_reseed_verified_before_lr','lr_noop_verified_stop_before_environment','cleanup_complete'],'restore event order/count differs')
++    need(all(set(e)=={'event','sequence','monotonic_ns'} and type(e['sequence']) is int and e['sequence']==i and type(e['monotonic_ns']) is int and e['monotonic_ns']>=0 for i,e in enumerate(row['events'])),'event result schema differs')
++    need(all(a['monotonic_ns']<=b['monotonic_ns'] for a,b in zip(row['events'],row['events'][1:])),'event timestamps out of order')
++    need(row['resources'] and all(set(v)=={'phase','elapsed_seconds','rss_high_water_bytes','mps_driver_bytes'} and type(v['phase']) is str and type(v['elapsed_seconds']) in (int,float) and math.isfinite(v['elapsed_seconds']) and 0<=v['elapsed_seconds']<=LIMITS['work_seconds'] and type(v['rss_high_water_bytes']) is int and 0<=v['rss_high_water_bytes']<=LIMITS['RSS_bytes'] and type(v['mps_driver_bytes']) is int and 0<=v['mps_driver_bytes']<=LIMITS['MPS_driver_bytes'] for v in row['resources']),'resource samples invalid')
++    return row
++
++def committed_check(reg,rsha):
++    out=Path(reg['output_dir']); commit=read(out/'COMMITTED.json')
++    allowed={'worker.log','worker-heartbeat.json','events.jsonl','resources.jsonl','result.json','COMMITTED.json','outer-receipt.json'}
++    need(all(v.is_file() and v.name in allowed for v in out.iterdir()),'unexpected output/candidate/failure artifact')
++    need(set(commit)=={'schema','result_sha256','registration_sha256'} and commit['schema']=='confirmed324_restore_probe_commit_v1' and commit['registration_sha256']==rsha,'restore commit schema/binding differs')
++    raw=verified(out/'result.json',commit['result_sha256']); row=json.loads(raw)
++    validate_result(reg,row,rsha)
++    claim=read(reg['attempt_claim_path']); need(claim==claim_identity(reg),'persistent restore subclaim differs')
++    events=[json.loads(line) for line in (out/'events.jsonl').read_text().splitlines()]
++    need(events==row['events'],'durable event journal differs')
++    resources=[json.loads(line) for line in (out/'resources.jsonl').read_text().splitlines()]
++    need(resources==row['resources'],'durable resource journal differs')
++    return {'replicas':1,'restores':1,'qualification':'pending_parent_audit'}
+--- /dev/null
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/run_fake_tests.py
+@@ -0,0 +1,23 @@
++"""Fail closed on real runtime imports; fixture writes only in owned tmp."""
++import importlib.abc
++import json
++import os
++from pathlib import Path
++import sys
++import tempfile
++import unittest
++HERE=Path(__file__).resolve().parent
++assert sys.dont_write_bytecode and sys.pycache_prefix==str(HERE/'empty-pycache')
++assert not any((HERE/'empty-pycache').iterdir())
++tempfile.tempdir=str(HERE/'tmp')
++blocked=[]
++class NoRuntime(importlib.abc.MetaPathFinder):
++    def find_spec(self,fullname,path=None,target=None):
++        if fullname.split('.')[0] in {'torch','numpy','dodge_rl'}:
++            blocked.append(fullname); raise RuntimeError('real runtime import forbidden: '+fullname)
++sys.meta_path.insert(0,NoRuntime())
++suite=unittest.defaultTestLoader.discover(str(HERE),pattern='test_restore_probe.py')
++result=unittest.TextTestRunner(verbosity=2).run(suite)
++summary=dict(tests_run=result.testsRun,failures=len(result.failures),errors=len(result.errors),blocked_runtime_import_requests=blocked,loaded_runtime_modules=[n for n in sys.modules if n.split('.')[0] in {'torch','numpy','dodge_rl'}],cache_empty=not any((HERE/'empty-pycache').iterdir()),executable=sys.executable,prefix=sys.prefix,version=sys.version)
++(HERE/'fake-test-summary.json').write_text(json.dumps(summary,indent=2)+'\n')
++raise SystemExit(0 if result.wasSuccessful() and not blocked and not summary['loaded_runtime_modules'] else 1)
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/supervisor_cli.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/supervisor_cli.py
+@@ -1,4 +1,4 @@
+-"""Dedicated fail-closed supervisor for the RNG reference probe schema."""
++"""Dedicated supervisor for the claimed restore probe; R5 lifecycle retained."""
+ import argparse,hashlib,json,os,signal,subprocess,sys,time,uuid
+ from pathlib import Path
+ PIN='4a5d084359ee48fe5351c96e0ec4455fdcd95a428a17bbcf59d0653f6922de98'
+@@ -19,50 +19,15 @@
+  ns={'__file__':str(PRIMITIVES),'__name__':'_verified_cleanup'}
+  exec(compile(raw,str(PRIMITIVES),'exec'),ns)
+  return ns
++def verified_probe(reg):
++ path=Path(reg['source']['probe_path']); raw=path.read_bytes()
++ if hashlib.sha256(raw).hexdigest()!=reg['source']['probe_sha256']: raise RuntimeError('probe source buffer pin mismatch')
++ import types
++ module=types.ModuleType('_verified_restore_probe_supervisor'); module.__file__=str(path)
++ exec(compile(raw,str(path),'exec'),module.__dict__)
++ return module
+ def preflight(rp,rsha,reg,worker):
+- if sha(rp)!=rsha: raise RuntimeError('external registration SHA mismatch')
+- required={'schema','status','authority','run_id','study_id','source','runtime','vectors_path','vectors_sha256','vectors','checkpoint_path','checkpoint_sha256','parent_receipt_path','parent_receipt_sha256','acceptance_path','acceptance_sha256','state_path','expected_lease','one_shot_marker','cancel_path','output_dir','limits','references'}
+- synthetic_extra={'synthetic_test_dependencies'} if reg.get('status')=='synthetic_test_only' else set()
+- if set(reg)!=required|synthetic_extra: raise RuntimeError('registration top-level fields mismatch')
+- synthetic=(reg.get('status')=='synthetic_test_only' and reg.get('authority')=='synthetic_test_only' and os.environ.get('RNG_PROBE_SYNTHETIC_TEST')=='1' and bool(reg.get('synthetic_test_dependencies')))
+- if reg.get('schema')!='d2_layerb_rng_reference_probe_registration_v1' or (reg.get('status')!='parent_registered' and not synthetic): raise RuntimeError('registration schema/status mismatch')
+- if reg.get('authority')!='parent_approved_one_shot' and not synthetic: raise RuntimeError('parent approval absent')
+- src=reg['source']
+- pins={'worker':Path(worker),'supervisor':Path(__file__),'probe':Path(__file__).with_name('probe.py'),'fingerprint':Path(src['fingerprint_path'])}
+- for n,p in pins.items():
+-  if Path(src[n+'_path']).absolute()!=p.absolute() or sha(p)!=src[n+'_sha256']: raise RuntimeError(n+' source pin mismatch')
+- if synthetic and sha(reg['synthetic_test_dependencies']['runtime_path'])!=reg['synthetic_test_dependencies']['runtime_sha256']: raise RuntimeError('synthetic runtime source pin mismatch')
+- if sha(PRIMITIVES)!=PIN or src.get('cleanup_primitives_sha256')!=PIN: raise RuntimeError('verified cleanup source pin mismatch')
+- vectors=read(reg['vectors_path'])
+- if sha(reg['vectors_path'])!=reg['vectors_sha256'] or vectors!=reg['vectors']: raise RuntimeError('vectors pin/content mismatch')
+- # Load exact pinned probe buffer into a private module before marker.
+- import importlib.util
+- probe_path=Path(src['probe_path']); probe_raw=probe_path.read_bytes()
+- if hashlib.sha256(probe_raw).hexdigest()!=src['probe_sha256']: raise RuntimeError('probe source buffer pin mismatch')
+- spec=importlib.util.spec_from_file_location('_verified_probe_preflight',probe_path); probe=importlib.util.module_from_spec(spec); exec(compile(probe_raw,str(probe_path),'exec'),probe.__dict__)
+- probe.validate_vectors(vectors,reg['study_id'])
+- if reg['references']!={'required_replicas':[1,2,3],'receipt_fields':sorted(probe.RECEIPT_FIELDS),'same_reference_for_both_arms':True}: raise RuntimeError('reference contract mismatch')
+- if sha(reg['checkpoint_path'])!=reg['checkpoint_sha256'] or reg['checkpoint_sha256']!=probe.PARENT: raise RuntimeError('checkpoint byte pin mismatch')
+- if sha(reg['parent_receipt_path'])!=reg['parent_receipt_sha256'] or reg['parent_receipt_sha256']!=probe.PARENT_RECEIPT: raise RuntimeError('accepted receipt pin mismatch')
+- acceptance=read(reg['acceptance_path'])
+- if reg['acceptance_sha256']!='3e84979c4c8da76d0f98666a23f90eb15c1e813ca5edf1001e19daebaf4d5bbd' or sha(reg['acceptance_path'])!=reg['acceptance_sha256'] or acceptance.get('status')!='accepted_checkpoint324_replaces348_by_registered_fresh_confirmation' or acceptance.get('retained_update')!=324 or acceptance.get('checkpoint_sha256')!=reg['checkpoint_sha256'] or acceptance.get('source_integrity_receipt_sha256')!=reg['parent_receipt_sha256']: raise RuntimeError('accepted parent binding mismatch')
+- rt=reg['runtime']; exe=Path(rt['python_path'])
+- if not exe.is_file() or sha(exe)!=rt['interpreter_sha256']: raise RuntimeError('interpreter byte pin mismatch')
+- if Path(sys.executable).absolute()!=exe.absolute() or sys.prefix!=rt['expected_venv_prefix'] or sys.version.split()[0]!=rt['python_version']: raise RuntimeError('interpreter invocation/prefix/version mismatch')
+- if rt['python_version']!='3.12.15' or rt['torch_version']!='2.14.1' or rt['numpy_version']!='2.5.4': raise RuntimeError('runtime version registration mismatch')
+- cache=Path(rt['empty_cache_path'])
+- if not cache.is_dir() or any(cache.iterdir()): raise RuntimeError('owned empty cache missing/not empty')
+- for k in ('state_path','one_shot_marker','cancel_path','output_dir'):
+-  if not Path(reg[k]).is_absolute(): raise RuntimeError(k+' must be absolute')
+- state=read(reg['state_path'])
+- if state.get('active_inference_diagnostic')!=reg['expected_lease']: raise RuntimeError('exact active inference diagnostic lease absent')
+- if any(state.get(k) not in (None,False) for k in ('active_long_campaign','active_long','active_inference')): raise RuntimeError('conflicting active lease')
+- if Path(reg['cancel_path']).exists() or Path(reg['one_shot_marker']).exists(): raise RuntimeError('cancel or marker already exists')
+- out=Path(reg['output_dir'])
+- if out.exists() and any(out.iterdir()): raise RuntimeError('output collision/nonempty output')
+- lim=reg['limits']; expected={'work_seconds':45,'outer_seconds':55,'cleanup_seconds':10,'startup_grace_seconds':12,'RSS_bytes':6*1024**3,'MPS_driver_bytes':6*1024**3,'guard_poll_seconds':.2,'heartbeat_stale_seconds':2.0}
+- if lim!=expected: raise RuntimeError('resource/time limits mismatch')
+- return state
++ return verified_probe(reg).preflight(rp,rsha,reg,worker)
+ def require(ok,message):
+  if not ok: raise ValueError(message)
+ def cache_check(reg):
+@@ -75,43 +40,7 @@
+  marker=read(reg['one_shot_marker'])
+  require(marker.get('run_id')==reg['run_id'] and marker.get('registration_sha256')==rsha,'marker binding mismatch')
+ def committed_check(reg):
+- """Independent consumer: hashes alone do not establish semantic bindings."""
+- out=Path(reg['output_dir']); commit=read(out/'COMMITTED.json')
+- require(set(commit)=={'schema','references','files'} and commit['schema']=='d2_layerb_rng_reference_probe_commit_v1' and type(commit['references']) is int and commit['references']==3,'commit schema/count mismatch')
+- names={'replica-1.json','replica-2.json','replica-3.json','receipt.json'}
+- items=commit['files']
+- require(isinstance(items,list) and len(items)==4 and all(set(x)=={'path','sha256'} for x in items) and {x['path'] for x in items}==names,'commit inventory mismatch')
+- require({p.name for p in out.glob('replica-*.json')}==names-{'receipt.json'},'replica inventory mismatch')
+- # Parse the same bytes that were hashed, including the aggregate.
+- parsed={}
+- for item in items:
+-  raw=(out/item['path']).read_bytes()
+-  require(hashlib.sha256(raw).hexdigest()==item['sha256'],'committed artifact hash mismatch')
+-  parsed[item['path']]=json.loads(raw)
+- probe_path=Path(reg['source']['probe_path']); raw=probe_path.read_bytes()
+- require(hashlib.sha256(raw).hexdigest()==reg['source']['probe_sha256'],'probe postflight buffer pin mismatch')
+- ns={'__file__':str(probe_path),'__name__':'_verified_probe_postflight'}; exec(compile(raw,str(probe_path),'exec'),ns)
+- require(reg['references']=={'required_replicas':[1,2,3],'receipt_fields':sorted(ns['RECEIPT_FIELDS']),'same_reference_for_both_arms':True},'registered reference contract mismatch')
+- canonical=lambda obj:json.dumps(obj,sort_keys=True,allow_nan=False,separators=(',',':'))
+- rows=[]
+- for i in (1,2,3):
+-  row=parsed[f'replica-{i}.json']; vector=reg['vectors']['vectors'][i-1]
+-  require(set(row)==ns['RECEIPT_FIELDS'] and row['schema']==ns['SCHEMA'] and row['status']=='measured' and type(row['replica']) is int and row['replica']==i,'reference schema/status/replica invalid')
+-  require(row['study_id']==reg['study_id'] and canonical(row['complete_seed_vector'])==canonical(vector['seeds']) and row['vector_sha256']==vector['vector_sha256'],'reference vector binding mismatch')
+-  require(row['accepted_checkpoint_sha256']==reg['checkpoint_sha256'] and row['parent_receipt_sha256']==reg['parent_receipt_sha256'],'reference parent binding mismatch')
+-  require(row['backend']=='mps' and row['torch_version']==reg['runtime']['torch_version'],'reference backend/torch binding mismatch')
+-  for field in ('cpu_rng_state_sha256','mps_rng_state_sha256'):
+-   value=row[field]
+-   require(isinstance(value,str) and len(value)==64 and all(c in '0123456789abcdef' for c in value),'reference digest invalid')
+-  rows.append(row)
+- agg=parsed['receipt.json']
+- expected_runtime={'python':reg['runtime']['python_version'],'numpy':reg['runtime']['numpy_version'],'torch':reg['runtime']['torch_version'],'backend':'mps'}
+- scope={'checkpoint_bytes_hashed_only':True,'model_constructed':False,'environment_constructed':False,'checkpoint_deserialized':False,'training':False,'evaluation':False,'launch_authority':False}
+- require(set(agg)=={'schema','status','study_id','references','runtime','scope'} and agg['schema']=='d2_layerb_rng_reference_probe_receipt_v1' and agg['status']=='captured_pending_parent_postflight' and agg['study_id']==reg['study_id'],'aggregate schema/status/study mismatch')
+- require(canonical(agg['runtime'])==canonical(expected_runtime),'aggregate runtime mismatch')
+- require(canonical(agg['references'])==canonical(rows),'aggregate references differ from replicas')
+- require(canonical(agg['scope'])==canonical(scope),'aggregate scope mismatch')
+- return {'replicas':3,'runtime':expected_runtime}
++ return verified_probe(reg).committed_check(reg,read(reg['one_shot_marker'])['registration_sha256'])
+ def integrity_postflight(reg,rp,rsha,ns,proc):
+  """Each required observation survives failure or unavailability of every other check."""
+  checks={}
+@@ -142,6 +71,17 @@
+   if error: raise OSError(error)
+   require(rows==[],'process group remains'); return {'rows':rows,'worker_spawned':True}
+  check('process_absence',absent)
++ check('input_manifest',lambda:pinned(reg['input_manifest_path'],reg['input_manifest_sha256']))
++ try:
++  immutable=read(reg['input_manifest_path'])['pins']
++ except Exception as e:
++  immutable={}; checks['immutable_manifest_parse']={'status':'unavailable','error':type(e).__name__+':'+str(e)}
++ for path,digest in immutable.items():
++  check('immutable:'+path,lambda path=path,digest=digest:pinned(path,digest))
++ def subclaim():
++  p=verified_probe(reg)
++  require(read(reg['attempt_claim_path'])==p.claim_identity(reg),'restore subclaim differs')
++ check('restore_subclaim',subclaim)
+  check('committed_output',lambda:committed_check(reg))
+  return checks
+ def inventory(directory):
+@@ -155,7 +95,7 @@
+  return artifacts,errors
+ def execute(rp,rsha,worker):
+  reg=read(rp); ns=verified_primitives(); preflight(rp,rsha,reg,worker)
+- start=time.monotonic(); work_deadline=start+45; outer_deadline=start+55; proc=None; reason=None; raw_exit=None; claimed=False; claim_complete=False; claim_identity=None; rows=None
++ start=time.monotonic(); work_deadline=start+45; outer_deadline=start+55; proc=None; reason=None; raw_exit=None; claimed=False; claim_complete=False; claim_identity=None; rows=None; resource_samples=[]
+  log=Path(reg['output_dir'])/'worker.log'; hb=Path(reg['output_dir'])/'worker-heartbeat.json'; receipt_path=Path(reg['output_dir'])/'outer-receipt.json'
+  old={}; received=[]; deferred=True; outcome_frozen=False; errors=[]; result=None
+  def handler(sig,frame):
+@@ -195,6 +135,7 @@
+     if now>=work_deadline: reason='work_limit'; break
+     if now-last>=.2:
+      rss,rows=ns['aggregate_rss'](proc.pid)
++     resource_samples.append({'elapsed_seconds':now-start,'process_group_current_rss_bytes':rss,'process_rows':rows})
+      if rss>reg['limits']['RSS_bytes']: reason='rss_limit'; break
+      if hb.exists():
+       h=read(hb)
+@@ -243,7 +184,7 @@
+     # Signals before this assignment still cancel; signals after it are ignored
+     # through receipt publication/restoration. No OS signal mask reaches children.
+     outcome_frozen=True
+-    result={'schema':'d2_layerb_rng_reference_probe_outer_receipt_v1','run_id':reg['run_id'],'registration_sha256':rsha,'raw_worker_exit_code':raw_exit,'stop_reason':reason,'process_group_remaining':rows,'process_group_absent':checks['process_absence']['status']=='pass','artifacts':artifacts,'inventory_errors':inventory_errors,'errors':errors,'postflight':checks,'failed_checks':failed,'claim_created':True,'claim_write_completed':claim_complete,'claim_identity':claim_identity,'handled_signals':received,'elapsed_seconds':time.monotonic()-start,'status':'accepted_pending_parent_postflight' if reason is None else 'partial_failure_preserved','bounds_limit':'55-second decisions; filesystem/hash/fsync/receipt finalization lack a hard watchdog'}
++    result={'schema':'confirmed324_claimed_restore_probe_outer_receipt_v1','run_id':reg['run_id'],'registration_sha256':rsha,'raw_worker_exit_code':raw_exit,'stop_reason':reason,'process_group_remaining':rows,'process_group_absent':checks['process_absence']['status']=='pass','resource_samples':resource_samples,'registered_limits':reg['limits'],'artifacts':artifacts,'inventory_errors':inventory_errors,'errors':errors,'postflight':checks,'failed_checks':failed,'claim_created':True,'claim_write_completed':claim_complete,'claim_identity':claim_identity,'handled_signals':received,'elapsed_seconds':time.monotonic()-start,'status':'accepted_pending_parent_postflight' if reason is None else 'partial_failure_preserved','bounds_limit':'55-second decisions; filesystem/hash/fsync/receipt finalization lack a hard watchdog'}
+     exclusive_json(receipt_path,result)
+  finally:
+   # No handlers are restored until receipt finalization completes or raises.
+--- /dev/null
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/synthetic_payload.py
+@@ -0,0 +1,32 @@
++"""Fabricated semantic fixtures, never actual runtime evidence or launch inputs."""
++import copy
++import json
++from pathlib import Path
++import time
++import probe as p
++
++def runtime_fixture(reg):
++    root=Path(reg['runtime']['runtime_root']); pins=p.read(p.R3/'input-manifest.json')['pins']
++    rows=[]
++    for name,rel in {'dodge_rl':'dodge_rl/__init__.py','dodge_rl._native':'dodge_rl/_native.cpython-312-darwin.so','dodge_rl.checkpoints':'dodge_rl/checkpoints.py','dodge_rl.ppo':'dodge_rl/ppo.py','dodge_rl.models.teacher':'dodge_rl/models/teacher.py','dodge_rl.identity':'dodge_rl/identity.py'}.items():
++        path=root/rel; rows.append(dict(name=name,path=str(path),sha256=pins[str(path.relative_to(p.ROOT))],version='synthetic'))
++    rows.extend([dict(name=n,path='synthetic',sha256='0'*64,version='synthetic') for n in ('torch','numpy')])
++    return dict(backend='mps',torch='2.14.1',numpy='2.5.4',adapter_sha256=p.sha(p.R3/'runtime_adapter.py'),R3_manifest_sha256=p.R3_SHA,authoritative_R5_manifest_sha256=p.R5_SHA,model_class='dodge_rl.models.teacher.OmniscientEntityTeacher',optimizer_class='torch.optim.adam.Adam',model_class_source=str(root/'dodge_rl/models/teacher.py'),loaded_modules=rows,torch_dependencies=[dict(requirement='synthetic',distribution='synthetic',installed_version='synthetic')],trusted_callback_sources=p.private_modules()['driver_binding'].verify_pinned_sources(p.ROOT))
++
++def semantic_fixture(reg,rsha):
++    reference=p.read(reg['reference']['receipt_path'])
++    raw={k:'0'*64 for k in ('python','numpy_global','numpy_generator','torch_cpu','torch_mps','sampling_backend')}
++    raw.update(torch_cpu=reference['cpu_rng_state_sha256'],torch_mps=reference['mps_rng_state_sha256'])
++    snap=dict(**p.EXPECTED,raw_components=raw,lr=[3e-5])
++    events=['runtime_authenticated_checkpoint_validated','disposable_bootstrap_complete','accepted_restore_enter','accepted_restore_verified','study_reseed_verified_before_lr','lr_noop_verified_stop_before_environment','cleanup_complete']
++    tr=dict(pair_id=reg['pair_id'],arm=p.ARM,backend='mps',study_id=p.STUDY,replica=1,seed_vector=reg['vector']['seeds'],vector_sha256=reg['vector']['vector_sha256'],constructor_seed_status='driver_deferred_not_applied',environment_seed_status='driver_deferred_not_applied',seed_evidence=dict(torch_cpu_initial_seed=reg['vector']['seeds']['torch_cpu_global_seed'],torch_cpu_rng_state_sha256=reference['cpu_rng_state_sha256'],torch_mps_rng_state_sha256=reference['mps_rng_state_sha256']),parent_fingerprints=p.EXPECTED,post_lr_fingerprints=dict(model=p.EXPECTED['model'],Adam=p.EXPECTED['Adam'],Adam_content_excluding_lr='0'*64),required_fingerprint_contract='full model and Adam exact through reseed; post-LR optimizer content exact excluding only param_groups[].lr',fingerprint_contract_status='concrete state_dict fingerprints verified',old_controller_provenance={'origin':372,'horizon':60,'completed':0,'saved_lr':3e-5,'schedule':'none'},new_controller={'kind':'constant','origin':372,'horizon':60,'first_update':373,'last_update':432,'start_lr':3e-5,'end_lr':3e-5})
++    return copy.deepcopy(dict(schema=p.RESULT_SCHEMA,status='verified_pending_parent_audit',run_id=reg['run_id'],registration_sha256=rsha,study_id=p.STUDY,replica=1,arm=p.ARM,vector_sha256=reg['vector']['vector_sha256'],reference=reg['reference'],parent_fingerprints=p.EXPECTED,snapshots={k:copy.deepcopy(snap) for k in ('disposable_bootstrap','restored_before_reseed','reseeded_before_lr','post_lr')},transition=tr,events=[dict(event=e,sequence=i,monotonic_ns=i) for i,e in enumerate(events)],counts=dict(restores=1,environment_constructions=0,rollouts=0,forwards=0,optimizer_steps=0,candidate_saves=0,training_updates=0),runtime=runtime_fixture(reg),cleanup={k:{'status':'pass'} for k in ('synchronize_before_release','release_learner_and_parent','gc_collect','synchronize_after_release','empty_mps_cache','synchronize_after_cache')},scope=p.SCOPE,resources=[dict(phase='synthetic',elapsed_seconds=0.1,rss_high_water_bytes=0,mps_driver_bytes=0)]))
++
++def publish_fixture(reg,rsha,row=None):
++    out=Path(reg['output_dir']); out.mkdir(exist_ok=True)
++    row=row or semantic_fixture(reg,rsha)
++    (out/'result.json').write_text(json.dumps(row))
++    for name in ('events','resources'):
++        (out/(name+'.jsonl')).write_text(''.join(json.dumps(x)+'\n' for x in row[name]))
++    (out/'COMMITTED.json').write_text(json.dumps(dict(schema='confirmed324_restore_probe_commit_v1',result_sha256=p.sha(out/'result.json'),registration_sha256=rsha)))
++    return row
+--- /dev/null
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/synthetic_worker_driver.py
+@@ -0,0 +1,59 @@
++"""Test-only instrumentation of the real worker CLI. Never used by registrations."""
++import builtins
++import importlib.abc
++import json
++import os
++from pathlib import Path
++import sys
++import time
++HERE=Path(__file__).resolve().parent
++class NoRuntime(importlib.abc.MetaPathFinder):
++    def find_spec(self,fullname,path=None,target=None):
++        if fullname.split('.')[0] in {'torch','numpy','dodge_rl'}: raise RuntimeError('runtime import forbidden by synthetic driver: '+fullname)
++sys.meta_path.insert(0,NoRuntime())
++import probe
++import worker_cli
++from test_restore_probe import ProbeControls
++mode=sys.argv[1]; root=Path(sys.argv[2]); root.mkdir(exist_ok=True)
++f=ProbeControls(); f.setUp(); f.temp._finalizer.detach()  # retain every synthetic input/receipt
++reg=f.reg; out=root/'out'; out.mkdir()
++reg['output_dir']=str(out); reg['one_shot_marker']=str(root/'outer.claimed')
++reg['cancel_path']=str(root/'CANCEL'); reg['state_path']=str(root/'state.json')
++rp=root/'registration.json'; rp.write_text(json.dumps(reg)); rsha=probe.sha(rp)
++f.adapter.torch.mps.driver_allocated_memory=lambda:0
++if mode=='mutating-restore': f.mutate=True
++if mode=='cleanup-failure':
++    def broken_sync(): raise RuntimeError('synthetic sync failure')
++    f.adapter.torch.mps.synchronize=broken_sync
++if mode=='signal-bootstrap':
++    def blocked_bootstrap():
++        (root/'ready').write_text('stdlib worker ready')
++        time.sleep(30)
++    f.adapter.bootstrap=blocked_bootstrap
++cls=f.modules['runtime_adapter'].RuntimeAdapter
++
++def fake_init(self,reg,context):
++    self.__dict__.update(f.adapter.__dict__)
++    if mode=='constructor-failure': raise RuntimeError('synthetic constructor failure after torch assignment')
++cls.__init__=fake_init
++f.t.EXPECTED_PARENT=f.expected
++f.t._sha256_file=lambda path:probe.PARENT_RECEIPT if Path(path)==f.receipt else probe.PARENT
++real_exec=builtins.exec
++
++def instrument(code,globals=None,locals=None,**kwargs):
++    result=real_exec(code,globals,locals,**kwargs)
++    if getattr(code,'co_filename',None)==str(HERE/'probe.py') and globals.get('__name__')=='_verified_restore_probe':
++        # Explicit test-only bypass of parent gates. Registration gate controls run
++        # separately against unmodified production functions with real frozen pins.
++        globals['preflight']=lambda *args,**kw:None
++        globals['verify_immutable']=lambda reg:(f.modules,{})
++        globals['adapter_subset']=lambda reg,context:{}
++        globals['EXPECTED']=f.expected
++        globals['runtime_identity']=lambda *args:__import__('synthetic_payload').runtime_fixture(reg)
++    return result
++builtins.exec=instrument
++sys.argv=[str(HERE/'worker_cli.py'),'--registration',str(rp),'--registration-sha256',rsha,'--heartbeat',str(out/'worker-heartbeat.json'),'--deadline',str(time.monotonic()+12)]
++try: worker_cli.main()
++finally:
++    modules=[n for n in sys.modules if n.split('.')[0] in {'torch','numpy','dodge_rl'}]
++    (root/'driver-scope.json').write_text(json.dumps(dict(mode=mode,real_runtime_modules=modules,test_only_instrumentation=True,real_parent_gates_bypassed=True)))
+--- /dev/null
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/test_restore_probe.py
+@@ -0,0 +1,349 @@
++"""Strict stdlib controls. Toy learner/RNG only; no runtime imports."""
++import copy
++import inspect
++import json
++from pathlib import Path
++import random
++import sys
++import tempfile
++import types
++import unittest
++from unittest.mock import patch
++import probe as p
++import build_registration
++
++class FakeTorch:
++    __version__='2.14.1'
++    def __init__(self):
++        self.cpu=b'cpu-parent'; self.mps_state=b'mps-parent'; self.seed=None
++        self.backends=types.SimpleNamespace(mps=types.SimpleNamespace(is_available=lambda:True))
++        self.mps=types.SimpleNamespace(manual_seed=self.mps_seed,get_rng_state=lambda:self.mps_state,synchronize=lambda:None,empty_cache=lambda:None)
++    def manual_seed(self,seed): self.seed=seed; self.cpu=str(seed).encode()
++    def mps_seed(self,seed): self.mps_state=str(seed).encode()
++    def get_rng_state(self): return self.cpu
++    def initial_seed(self): return self.seed
++class FakeNumpyRandom:
++    def __init__(self): self.value=5
++    def seed(self,seed): self.value=seed
++    def get_state(self): return ('numpy_fake',self.value)
++    def RandomState(self,seed): return types.SimpleNamespace(get_state=lambda:('numpy_fake',seed))
++class Model:
++    def __init__(self): self.value='disposable'
++    def state_dict(self): return {'weights':self.value}
++class Adam:
++    def __init__(self): self.param_groups=[dict(lr=3e-5,params=[0])]; self.value='disposable'
++    def state_dict(self): return dict(state={0:dict(moment=self.value,step=324)},param_groups=self.param_groups)
++
++class ProbeControls(unittest.TestCase):
++    def setUp(self):
++        self.temp=tempfile.TemporaryDirectory(dir=p.HERE/'tmp'); self.addCleanup(self.temp.cleanup); self.root=Path(self.temp.name)
++        self.saved_rng=random.getstate(); self.addCleanup(random.setstate,self.saved_rng)
++        self.modules=p.private_modules(); self.t=self.modules['transition']; self.fp=self.modules['fingerprints'].fingerprint
++        self.reg=build_registration.build(self.root); self.reg['run_id']='confirmed324-restore-probe-toy'
++        self.reg['attempt_claim_path']=str(self.root/'toy.restore.claimed')
++        self.reg['runtime']['empty_cache_path']=str(p.HERE/'empty-pycache')
++        cls=self.modules['runtime_adapter'].RuntimeAdapter; self.adapter=cls.__new__(cls)
++        self.adapter.reg=self.reg; self.adapter.env=None
++        self.adapter.torch=FakeTorch(); self.adapter.np=types.SimpleNamespace(random=FakeNumpyRandom())
++        self.adapter.model=Model(); self.adapter.optimizer=Adam()
++        self.parent_model='parent'; self.parent_Adam='parent'
++        self.parent_python=random.Random(6).getstate()
++        self.parent_raw=dict(python=self.parent_python,numpy_global=('numpy_fake',5),numpy_generator=None,torch_cpu=b'cpu-parent',torch_mps=b'mps-parent',sampling_backend='torch_global_mps')
++        self.adapter.model.value=self.parent_model; self.adapter.optimizer.value=self.parent_Adam
++        self.expected=dict(model=self.fp(self.adapter.model.state_dict()),Adam=self.fp(self.adapter.optimizer.state_dict()),RNG=self.fp(self.parent_raw))
++        self.adapter.model.value='disposable'; self.adapter.optimizer.value='disposable'
++        self.events=[]; self.mutate=False; self.forbid=None; self.restore_calls=0
++        self.checkpoint=self.root/'checkpoint'; self.checkpoint.write_bytes(b'fake never deserialized')
++        self.receipt=self.root/'receipt'; self.receipt.write_bytes(b'fake')
++        def capture():
++            return dict(python=random.getstate(),numpy_global=self.adapter.np.random.get_state(),numpy_generator=None,torch_cpu=self.adapter.torch.cpu,torch_mps=self.adapter.torch.mps_state,sampling_backend='torch_global_mps')
++        def restore_learner():
++            self.restore_calls+=1
++            self.assertTrue(Path(self.reg['attempt_claim_path']).is_file())
++            if self.forbid:
++                def forward(): pass
++                def ppo_update(): pass
++                def make_env(): pass
++                {'forward':forward,'ppo_update':ppo_update,'make_env':make_env}[self.forbid]()
++            self.adapter.model.value=self.parent_model
++            self.adapter.optimizer.value='mutated' if self.mutate else self.parent_Adam
++            random.setstate(self.parent_python); self.adapter.np.random.value=5
++            self.adapter.torch.cpu=b'cpu-parent'; self.adapter.torch.mps_state=b'mps-parent'
++        def restore_trusted(): return restore_learner()
++        self.adapter.callbacks=dict(restore_trusted=restore_trusted,rng_capture=capture)
++        self.adapter.bootstrap=lambda:None
++        self.adapter.source=lambda:dict(receipt_sha256=p.PARENT_RECEIPT,checkpoint_sha256=p.PARENT,checkpoint_path=str(self.checkpoint),receipt_path=str(self.receipt),checkpoint_fingerprints=self.expected,learner_fingerprints=self.expected)
++        seeds=self.reg['vector']['seeds']; rr=self.modules['rng_reference']
++        reference=dict(schema=rr.SCHEMA,status='measured',backend='mps',torch_version='2.14.1',accepted_checkpoint_sha256=p.PARENT,parent_receipt_sha256=p.PARENT_RECEIPT,study_id=p.STUDY,replica=1,complete_seed_vector=seeds,vector_sha256=rr.canonical_vector_sha256(p.STUDY,1,seeds),cpu_rng_state_sha256=self.fp(str(seeds['torch_cpu_global_seed']).encode()),mps_rng_state_sha256=self.fp(str(seeds['action_sampler_torch_mps_seed']).encode()))
++        self.reference_path=self.root/'reference.json'; self.reference_path.write_text(json.dumps(reference))
++        self.reg['reference']=dict(receipt_path=str(self.reference_path),receipt_sha256=p.sha(self.reference_path),vector_sha256=self.reg['vector']['vector_sha256'])
++    def call(self):
++        with patch.object(p,'EXPECTED',self.expected),patch.object(self.t,'EXPECTED_PARENT',self.expected),patch.object(self.t,'_sha256_file',side_effect=lambda path:p.PARENT_RECEIPT if Path(path)==self.receipt else p.PARENT):
++            return p.run_claimed(self.reg,{},self.modules,self.adapter,self.events.append)
++    def test_success_single_claimed_restore_raw_states_and_noop(self):
++        result=self.call(); self.assertEqual(self.restore_calls,1)
++        self.assertEqual(result['counts']['restores'],1)
++        self.assertTrue(all(v==0 for k,v in result['counts'].items() if k!='restores'))
++        self.assertEqual(result['snapshots']['reseeded_before_lr'],result['snapshots']['post_lr'])
++        self.assertEqual(result['snapshots']['post_lr']['Adam'],self.expected['Adam'])
++        self.assertEqual(self.events,['disposable_bootstrap_complete','accepted_restore_enter','accepted_restore_verified','study_reseed_verified_before_lr','lr_noop_verified_stop_before_environment'])
++        self.assertIsNone(self.adapter.env)
++    def test_spent_subclaim_blocks_new_call_before_bootstrap(self):
++        self.call(); self.adapter.bootstrap=lambda:self.fail('bootstrap after spent subclaim')
++        with self.assertRaisesRegex(ValueError,'already spent'): self.call()
++        self.assertEqual(self.restore_calls,1)
++    def test_wrong_reference_rejected_before_claim_restore(self):
++        self.reg['reference']['vector_sha256']='f'*64
++        with self.assertRaisesRegex(ValueError,'expected vector hash'): self.call()
++        self.assertEqual(self.restore_calls,0); self.assertFalse(Path(self.reg['attempt_claim_path']).exists())
++    def test_mutating_restore_failure_keeps_spent_claim(self):
++        self.mutate=True
++        with self.assertRaisesRegex(ValueError,'live accepted restore fingerprint'): self.call()
++        self.assertTrue(Path(self.reg['attempt_claim_path']).exists())
++        with self.assertRaisesRegex(ValueError,'already spent'): self.call()
++        self.assertEqual(self.restore_calls,1)
++    def test_forbidden_forward_before_any_forward_body(self):
++        self.forbid='forward'
++        with self.assertRaisesRegex(RuntimeError,'forbidden probe call: forward'): self.call()
++        self.assertTrue(Path(self.reg['attempt_claim_path']).exists())
++    def test_forbidden_ppo(self):
++        self.forbid='ppo_update'
++        with self.assertRaisesRegex(RuntimeError,'forbidden probe call: ppo_update'): self.call()
++    def test_forbidden_environment(self):
++        self.forbid='make_env'
++        with self.assertRaisesRegex(RuntimeError,'forbidden probe call: make_env'): self.call()
++    def test_post_reseed_mutation_fails_and_claim_stays_spent(self):
++        original=self.adapter.torch.manual_seed
++        def mutated(seed): original(seed); self.adapter.optimizer.value='mutated'
++        self.adapter.torch.manual_seed=mutated
++        with self.assertRaisesRegex(ValueError,'reseeding changed'): self.call()
++        self.assertTrue(Path(self.reg['attempt_claim_path']).exists())
++    def test_private_modules_preserve_code_globals_and_class_identity(self):
++        self.assertIs(self.modules['contracts'].transition,self.t)
++        self.assertIs(self.modules['runtime_adapter'].binding,self.modules['driver_binding'])
++        self.assertIs(self.t.transition.__globals__,self.t.__dict__)
++        self.assertIs(self.modules['runtime_adapter'].RuntimeAdapter.bootstrap.__globals__,self.modules['runtime_adapter'].__dict__)
++        self.assertEqual(Path(inspect.getsourcefile(type(self.adapter))),p.R3/'runtime_adapter.py')
++        self.assertNotIn('worker',self.modules); self.assertNotIn('worker_cli',self.modules)
++        self.assertFalse(any(k.startswith('dodge_rl') or k in ('torch','numpy') for k in sys.modules))
++    def test_required_subset_excludes_training_contract_and_limits(self):
++        subset=p.adapter_subset(self.reg,{'parent':{'next_episode_indices':[7]*64}})
++        self.assertEqual(set(subset),{'runtime_root','runtime_versions','initial_episode_indices','vector'})
++        self.assertNotIn('schedule',subset); self.assertNotIn('limits',subset)
++    def test_real_input_gates_are_stdlib_only(self):
++        reg=build_registration.build(); modules,context=p.verify_immutable(reg)
++        self.assertEqual(context['parent']['candidate_phase_update'],324)
++        self.assertEqual(modules['contracts'].PPO['adam_eps'],1e-5)
++        self.assertFalse(any(k.startswith('dodge_rl') or k in ('torch','numpy') for k in sys.modules))
++    def test_cleanup_attempts_every_stage_after_sync_failure(self):
++        calls=[]
++        def fail(): calls.append('sync'); raise RuntimeError('fake sync failure')
++        self.adapter.torch.mps.synchronize=fail
++        self.adapter.torch.mps.empty_cache=lambda:calls.append('empty')
++        result=p.release(self.adapter)
++        self.assertEqual(calls,['sync','sync','empty','sync'])
++        self.assertIsNone(self.adapter.model); self.assertIsNone(self.adapter.parent if hasattr(self.adapter,'parent') else None)
++        self.assertEqual(result['empty_mps_cache'],{'status':'pass'})
++        self.assertEqual(result['synchronize_after_cache']['status'],'fail')
++
++class RegistrationControls(unittest.TestCase):
++    def setUp(self):
++        self.temp=tempfile.TemporaryDirectory(dir=p.HERE/'tmp'); self.addCleanup(self.temp.cleanup); self.root=Path(self.temp.name)
++        self.reg=build_registration.build(self.root)
++    def preflight(self):
++        rp=self.root/'registration.json'; rp.write_text(json.dumps(self.reg)); return p.preflight(rp,p.sha(rp),self.reg,p.HERE/'worker_cli.py')
++    def registered(self):
++        r=self.reg; r.update(status='parent_registered',authority='parent_approved_one_shot',run_id='confirmed324-restore-probe-fixture')
++        r['expected_lease'].update(run_id=r['run_id'],owner_token='new-owner-token')
++        for field,suffix in [('one_shot_marker','.outer.claimed'),('attempt_claim_path','.restore.claimed'),('output_dir','')]: r[field]=str(self.root/(r['run_id']+suffix))
++        r['runtime']['empty_cache_path']=str(p.HERE/'empty-pycache')
++        r['state_path']=str(self.root/'state.json'); (self.root/'state.json').write_text(json.dumps({'active_inference_diagnostic':r['expected_lease']}))
++    def test_inert_template_rejected_without_marker(self):
++        with self.assertRaisesRegex(ValueError,'approval absent'): self.preflight()
++        self.assertFalse(Path(self.reg['one_shot_marker']).exists())
++    def test_old_training_schema_rejected(self):
++        self.reg['schema']='paired_confirmed324_worker_registration_v2'
++        with self.assertRaisesRegex(ValueError,'approval absent'): self.preflight()
++    def test_strict_extra_field(self):
++        self.reg['synthetic_test_dependencies']={}
++        with self.assertRaisesRegex(ValueError,'fields mismatch'): self.preflight()
++    def test_replica_bool_rejected_before_marker(self):
++        self.registered(); self.reg['replica']=True
++        with self.assertRaisesRegex(ValueError,'replica-1'): self.preflight()
++    def test_replica2_rejected(self):
++        self.registered(); self.reg['replica']=2
++        with self.assertRaisesRegex(ValueError,'replica-1'): self.preflight()
++    def test_new_curriculum_study_rejected(self):
++        self.registered(); self.reg['study_id']='new-curriculum'
++        with self.assertRaisesRegex(ValueError,'replica-1'): self.preflight()
++    def test_training_limits_rejected(self):
++        self.registered(); self.reg['limits']['work_seconds']=1790
++        with self.assertRaisesRegex(ValueError,'limits differ'): self.preflight()
++    def test_spent_outer_marker_rejected(self):
++        self.registered(); Path(self.reg['one_shot_marker']).write_text('spent')
++        with self.assertRaisesRegex(ValueError,'spent marker'): self.preflight()
++    def test_spent_subclaim_rejected(self):
++        self.registered(); Path(self.reg['attempt_claim_path']).write_text('spent')
++        with self.assertRaisesRegex(ValueError,'spent marker'): self.preflight()
++    def test_all_real_immutable_gates_before_outer_marker(self):
++        self.registered(); self.preflight(); self.assertFalse(Path(self.reg['one_shot_marker']).exists())
++    def test_reference_swap_fails_before_outer_marker(self):
++        self.registered(); self.reg['reference']['receipt_path']='wrong'
++        with self.assertRaisesRegex(ValueError,'reference binding'): self.preflight()
++        self.assertFalse(Path(self.reg['one_shot_marker']).exists())
++
++class ResultControls(ProbeControls):
++    # Reuse toy setup, but do not inherit the test methods below twice.
++    def make_result(self):
++        result=self.call(); events=['runtime_authenticated_checkpoint_validated']+self.events+['cleanup_complete']
++        row=dict(schema=p.RESULT_SCHEMA,status='verified_pending_parent_audit',run_id=self.reg['run_id'],registration_sha256='a'*64,study_id=p.STUDY,replica=1,arm=p.ARM,vector_sha256=self.reg['vector']['vector_sha256'],reference=self.reg['reference'],parent_fingerprints=self.expected,events=[dict(event=n,sequence=i,monotonic_ns=i) for i,n in enumerate(events)],runtime=__import__('synthetic_payload').runtime_fixture(self.reg),cleanup={k:{'status':'pass'} for k in ('synchronize_before_release','release_learner_and_parent','gc_collect','synchronize_after_release','empty_mps_cache','synchronize_after_cache')},scope=copy.deepcopy(p.SCOPE),resources=[dict(phase='final',elapsed_seconds=1.,rss_high_water_bytes=0,mps_driver_bytes=0)],**result)
++        return row
++    def validate(self,row):
++        with patch.object(p,'EXPECTED',self.expected): return p.validate_result(self.reg,row,'a'*64)
++    def test_result_strict_schema(self):
++        row=self.make_result(); self.validate(row); row['extra']=True
++        with self.assertRaisesRegex(ValueError,'fields differ'): self.validate(row)
++    def test_result_event_schema_and_order(self):
++        row=self.make_result(); row['events'][2]['sequence']=99
++        with self.assertRaisesRegex(ValueError,'event result schema'): self.validate(row)
++    def test_result_env_count_rejected(self):
++        row=self.make_result(); row['counts']['environment_constructions']=1
++        with self.assertRaisesRegex(ValueError,'counts differ'): self.validate(row)
++    def test_result_wrong_reference_rehashed_semantics(self):
++        row=self.make_result(); row['snapshots']['post_lr']['raw_components']['torch_cpu']='f'*64
++        with self.assertRaisesRegex(ValueError,'LR no-op|reference state'): self.validate(row)
++    def test_result_cleanup_failure_rejected(self):
++        row=self.make_result(); row['cleanup']['empty_mps_cache']['status']='fail'
++        with self.assertRaisesRegex(ValueError,'cleanup incomplete'): self.validate(row)
++    def test_result_lr_override_mutation_rejected(self):
++        row=self.make_result(); row['snapshots']['post_lr']['Adam']='f'*64
++        with self.assertRaisesRegex(ValueError,'LR no-op'): self.validate(row)
++# ResultControls uses fixture methods without duplicating the inherited controls.
++for _name in list(ProbeControls.__dict__):
++    if _name.startswith('test_') and _name not in ResultControls.__dict__: setattr(ResultControls,_name,None)
++
++class WorkerCLIControls(unittest.TestCase):
++    def run_case(self,mode):
++        import os,signal,subprocess,time
++        root=Path(tempfile.mkdtemp(prefix='worker-'+mode+'-',dir=p.HERE/'tmp'))
++        process=subprocess.Popen([sys.executable,'-B',str(p.HERE/'synthetic_worker_driver.py'),mode,str(root)],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1',PYTHONPYCACHEPREFIX=str(p.HERE/'empty-pycache')))
++        if mode=='signal-bootstrap':
++            deadline=time.monotonic()+6
++            while not (root/'ready').exists() and process.poll() is None and time.monotonic()<deadline: time.sleep(.02)
++            self.assertTrue((root/'ready').exists(),'synthetic worker failed to reach bootstrap')
++            process.send_signal(signal.SIGTERM)
++        log,_=process.communicate(timeout=15); (root/'driver.log').write_text(log)
++        self.assertEqual(json.loads((root/'driver-scope.json').read_text())['real_runtime_modules'],[])
++        return root,process.returncode,log
++    def test_worker_cli_success_commits_only_after_cleanup(self):
++        root,code,log=self.run_case('success'); self.assertEqual(code,0,log)
++        row=json.loads((root/'out/result.json').read_text())
++        self.assertEqual(row['counts']['restores'],1)
++        self.assertEqual(row['events'][-1]['event'],'cleanup_complete')
++        self.assertTrue(all(v['status']=='pass' for v in row['cleanup'].values()))
++        self.assertTrue((root/'out/COMMITTED.json').exists())
++    def failure(self,mode):
++        root,code,log=self.run_case(mode); self.assertNotEqual(code,0,log)
++        self.assertFalse((root/'out/COMMITTED.json').exists())
++        return json.loads((root/'out/worker-failure.json').read_text())
++    def test_worker_constructor_failure_still_releases(self):
++        row=self.failure('constructor-failure')
++        self.assertIn('constructor failure',row['error']); self.assertFalse(row['subclaim_exists'])
++        self.assertEqual(len(row['cleanup']),6)
++    def test_worker_mutating_restore_keeps_claim_and_partial_fingerprints(self):
++        row=self.failure('mutating-restore'); self.assertTrue(row['subclaim_exists'])
++        self.assertEqual(row['partial_probe']['counts']['restores'],1)
++        self.assertIn('restored_before_reseed',row['partial_probe']['snapshots'])
++    def test_worker_cleanup_failure_has_no_commit(self):
++        row=self.failure('cleanup-failure')
++        self.assertEqual(row['cleanup']['synchronize_before_release']['status'],'fail')
++        self.assertEqual(row['cleanup']['empty_mps_cache']['status'],'pass')
++        self.assertEqual(row['cleanup']['synchronize_after_cache']['status'],'fail')
++    def test_worker_sigterm_before_claim_releases_and_records_signal(self):
++        row=self.failure('signal-bootstrap')
++        self.assertEqual(row['handled_signals'],['SIGTERM']); self.assertFalse(row['subclaim_exists'])
++        self.assertEqual(len(row['cleanup']),6)
++
++class ConsumerControls(RegistrationControls):
++    def setUp(self):
++        RegistrationControls.setUp(self); self.registered()
++        self.rsha='a'*64
++    def bundle(self):
++        from synthetic_payload import publish_fixture
++        return publish_fixture(self.reg,self.rsha)
++    def mutate(self,fn):
++        row=self.bundle(); fn(row)
++        from synthetic_payload import publish_fixture
++        publish_fixture(self.reg,self.rsha,row)
++    def claim(self):
++        self.modules=p.private_modules(); self.modules['attempt_claim'].AttemptClaim(self.reg['attempt_claim_path'],p.claim_identity(self.reg)).claim()
++    def test_committed_bundle_and_raw_claim_pass(self):
++        self.bundle(); self.claim(); self.assertEqual(p.committed_check(self.reg,self.rsha)['restores'],1)
++    def test_rehashed_result_wrong_reference_rejected(self):
++        self.mutate(lambda r:r['reference'].update(receipt_path='wrong')); self.claim()
++        with self.assertRaisesRegex(ValueError,'reference/scope'): p.committed_check(self.reg,self.rsha)
++    def test_rehashed_result_extra_event_field_rejected(self):
++        self.mutate(lambda r:r['events'][0].update(extra=True)); self.claim()
++        with self.assertRaisesRegex(ValueError,'event result schema'): p.committed_check(self.reg,self.rsha)
++    def test_extra_candidate_artifact_rejected(self):
++        self.bundle(); self.claim(); (Path(self.reg['output_dir'])/'checkpoint.pt').write_text('fake')
++        with self.assertRaisesRegex(ValueError,'unexpected output'): p.committed_check(self.reg,self.rsha)
++    def test_claim_payload_substitution_rejected(self):
++        self.bundle(); self.claim(); Path(self.reg['attempt_claim_path']).write_text('{}')
++        with self.assertRaisesRegex(ValueError,'subclaim differs'): p.committed_check(self.reg,self.rsha)
++    def test_event_journal_divergence_rejected(self):
++        self.bundle(); self.claim(); (Path(self.reg['output_dir'])/'events.jsonl').write_text('')
++        with self.assertRaisesRegex(ValueError,'event journal differs'): p.committed_check(self.reg,self.rsha)
++    def test_native_identity_substitution_rejected(self):
++        self.mutate(lambda r:r['runtime']['loaded_modules'][1].update(sha256='f'*64)); self.claim()
++        with self.assertRaisesRegex(ValueError,'native/runtime identity'): p.committed_check(self.reg,self.rsha)
++    def test_boolean_restore_count_rejected(self):
++        self.mutate(lambda r:r['counts'].update(restores=True)); self.claim()
++        with self.assertRaisesRegex(ValueError,'strict integers'): p.committed_check(self.reg,self.rsha)
++    def test_callback_source_substitution_rejected(self):
++        self.mutate(lambda r:r['runtime'].update(trusted_callback_sources={'wrong':True})); self.claim()
++        with self.assertRaisesRegex(ValueError,'callback source identities'): p.committed_check(self.reg,self.rsha)
++    def test_rehashed_boolean_event_sequence_rejected(self):
++        self.mutate(lambda r:r['events'][1].update(sequence=True)); self.claim()
++        with self.assertRaisesRegex(ValueError,'event result schema'): p.committed_check(self.reg,self.rsha)
++for _name in list(RegistrationControls.__dict__):
++    if _name.startswith('test_') and _name not in ConsumerControls.__dict__: setattr(ConsumerControls,_name,None)
++
++class SupervisorControls(RegistrationControls):
++    def setUp(self):
++        RegistrationControls.setUp(self); self.registered()
++        # Retain every supervisor fixture and receipt under own tmp.
++        self.temp._finalizer.detach(); self._cleanups=[]
++    def run_synthetic(self,mode='success'):
++        import os,subprocess
++        import supervisor_cli as s
++        reg=self.reg; rp=self.root/'registration.json'; rp.write_text(json.dumps(reg)); rsha=p.sha(rp)
++        child=self.root/'fake_child.py'
++        child.write_text("import sys\nfrom pathlib import Path\nsys.path.insert(0,"+repr(str(p.HERE))+")\nimport json,os,time\nimport probe as p\nfrom synthetic_payload import publish_fixture,semantic_fixture\na=sys.argv; rp=Path(a[a.index('--registration')+1]); reg=p.read(rp); rsha=a[a.index('--registration-sha256')+1]; hb=Path(a[a.index('--heartbeat')+1])\np.private_modules()['attempt_claim'].AttemptClaim(reg['attempt_claim_path'],p.claim_identity(reg)).claim()\nrow=semantic_fixture(reg,rsha)\n"+("row['counts']['forwards']=1\n" if mode=='bad-result' else '')+"publish_fixture(reg,rsha,row)\nhb.write_text(json.dumps(dict(run_id=reg['run_id'],registration_sha256=rsha,pid=os.getpid(),timestamp_ns=time.time_ns(),sequence=time.monotonic_ns(),rss_bytes=0,mps_driver_bytes=0)))\n")
++        real_popen=subprocess.Popen
++        def injected(cmd,*args,**kwargs):
++            changed=list(cmd)
++            if len(changed)>2 and changed[2]==str(p.HERE/'worker_cli.py'): changed[2]=str(child)
++            return real_popen(changed,*args,**kwargs)
++        # Only child executable is replaced. All new production registration,
++        # marker, cleanup, process supervision and independent consumer paths run.
++        with patch.object(s.subprocess,'Popen',injected):
++            if mode=='bad-result':
++                with self.assertRaisesRegex(RuntimeError,'postflight_failed'): s.execute(rp,rsha,p.HERE/'worker_cli.py')
++            else: s.execute(rp,rsha,p.HERE/'worker_cli.py')
++        return p.read(Path(reg['output_dir'])/'outer-receipt.json')
++    def test_new_supervisor_lifecycle_and_consumer_success(self):
++        row=self.run_synthetic(); self.assertEqual(row['raw_worker_exit_code'],0)
++        self.assertTrue(row['process_group_absent']); self.assertTrue(row['claim_write_completed'])
++        self.assertTrue(all(v['status']=='pass' for v in row['postflight'].values()))
++        self.assertEqual(row['postflight']['restore_subclaim']['status'],'pass')
++        self.assertEqual(row['status'],'accepted_pending_parent_postflight')
++    def test_new_supervisor_rejects_semantically_bad_zero_exit_worker(self):
++        row=self.run_synthetic('bad-result'); self.assertEqual(row['raw_worker_exit_code'],0)
++        self.assertEqual(row['postflight']['committed_output']['status'],'fail')
++        self.assertEqual(row['status'],'partial_failure_preserved'); self.assertTrue(row['process_group_absent'])
++for _name in list(RegistrationControls.__dict__):
++    if _name.startswith('test_') and _name not in SupervisorControls.__dict__: setattr(SupervisorControls,_name,None)
++
++
++if __name__=='__main__': unittest.main(verbosity=2)
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/worker_cli.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/worker_cli.py
+@@ -1,115 +1,113 @@
+-"""One-shot RNG reference worker CLI. Production imports occur after byte/path gates."""
+-import argparse,hashlib,json,os,sys,threading,time
++"""One independent process; accepted restore/reseed only, then cleanup and exit."""
++import argparse
++import hashlib
++import json
++import os
+ from pathlib import Path
++import resource
++import signal
++import sys
++import threading
++import time
++import types
+ 
+-def sha(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+-def j(path): return json.loads(Path(path).read_text())
+-def check(regpath,regsha,reg,workerpath):
+-    global probe
+-    if sha(regpath)!=regsha: raise RuntimeError('registration hash drift')
+-    if reg.get('schema')!='d2_layerb_rng_reference_probe_registration_v1': raise RuntimeError('registration schema mismatch')
+-    if reg.get('_external_registration_sha256') not in (None,regsha): raise RuntimeError('registration external hash mismatch')
+-    for n in ('worker','supervisor','probe','fingerprint'):
+-        p=reg['source'][n+'_path']; h=reg['source'][n+'_sha256']
+-        if Path(p).absolute()!=Path({'worker':workerpath,'supervisor':Path(__file__).with_name('supervisor_cli.py'),'probe':Path(__file__).with_name('probe.py'),'fingerprint':reg['source']['fingerprint_path']}[n]).absolute() or sha(p)!=h: raise RuntimeError(n+' source drift')
+-    if sha(reg['acceptance_path'])!=reg['acceptance_sha256'] or reg['acceptance_sha256']!='3e84979c4c8da76d0f98666a23f90eb15c1e813ca5edf1001e19daebaf4d5bbd': raise RuntimeError('acceptance pin mismatch')
+-    acceptance=j(reg['acceptance_path'])
+-    if acceptance.get('status')!='accepted_checkpoint324_replaces348_by_registered_fresh_confirmation' or acceptance.get('retained_update')!=324 or acceptance.get('checkpoint_sha256')!=reg['checkpoint_sha256'] or acceptance.get('source_integrity_receipt_sha256')!=reg['parent_receipt_sha256']: raise RuntimeError('accepted parent binding mismatch')
+-    if j(reg['vectors_path'])!=reg['vectors']: raise RuntimeError('vector content drift')
+-    if sha(reg['vectors_path'])!=reg['vectors_sha256']: raise RuntimeError('vector file drift')
+-    if sha(reg['checkpoint_path'])!=reg['checkpoint_sha256'] or reg['checkpoint_sha256']!=probe.PARENT: raise RuntimeError('checkpoint bytes pin mismatch')
+-    if sha(reg['parent_receipt_path'])!=reg['parent_receipt_sha256'] or reg['parent_receipt_sha256']!=probe.PARENT_RECEIPT: raise RuntimeError('parent receipt pin mismatch')
+-    rt=reg['runtime']
+-    if Path(sys.executable).absolute()!=Path(rt['python_path']).absolute() or sys.prefix!=rt['expected_venv_prefix'] or sys.version.split()[0]!=rt['python_version']: raise RuntimeError('interpreter invocation/prefix/version mismatch')
+-    cache=Path(rt['empty_cache_path'])
+-    if not cache.exists() or not cache.is_dir() or any(cache.iterdir()): raise RuntimeError('owned empty cache check failed')
+-    allowed={'worker.log','worker-heartbeat.json'}
+-    if Path(reg['output_dir']).exists() and any(p.name not in allowed for p in Path(reg['output_dir']).iterdir()): raise RuntimeError('output collision')
+-    if Path(reg['cancel_path']).exists(): raise RuntimeError('cancelled')
+-    st=j(reg['state_path'])
+-    if st.get('active_inference_diagnostic')!=reg['expected_lease']: raise RuntimeError('lease changed')
+-    if any(st.get(k) not in (None,False) for k in ('active_long_campaign','active_long','active_inference')): raise RuntimeError('conflicting lease')
+-    m=j(reg['one_shot_marker'])
+-    if m.get('run_id')!=reg['run_id'] or m.get('registration_sha256')!=regsha: raise RuntimeError('marker changed')
+ 
+ def main():
+-    global probe
+-    ap=argparse.ArgumentParser(); ap.add_argument('--registration',required=True); ap.add_argument('--registration-sha256',required=True); ap.add_argument('--heartbeat',required=True); ap.add_argument('--deadline',type=float,required=True); a=ap.parse_args()
+-    rp=Path(a.registration); reg=j(rp)
+-    if sha(rp)!=a.registration_sha256: raise RuntimeError('registration hash drift')
+-    probe_path=Path(reg['source']['probe_path']); raw_probe=probe_path.read_bytes()
+-    if hashlib.sha256(raw_probe).hexdigest()!=reg['source']['probe_sha256']: raise RuntimeError('probe source buffer pin mismatch')
+-    import importlib.util
+-    spec=importlib.util.spec_from_file_location('_verified_probe',probe_path); probe=importlib.util.module_from_spec(spec); exec(compile(raw_probe,str(probe_path),'exec'),probe.__dict__)
+-    check(rp,a.registration_sha256,reg,Path(__file__))
+-    # Test injection exists only for explicit isolated synthetic registration.
+-    test=reg.get('synthetic_test_dependencies')
+-    if test:
+-        if reg.get('status')!='synthetic_test_only' or reg.get('authority')!='synthetic_test_only' or os.environ.get('RNG_PROBE_SYNTHETIC_TEST')!='1': raise RuntimeError('synthetic dependency gate rejected')
+-        import importlib.util
+-        def load(name,path):
+-            raw=Path(path).read_bytes(); expected=test['runtime_sha256'] if name=='_fake_runtime' else reg['source']['fingerprint_sha256']
+-            if hashlib.sha256(raw).hexdigest()!=expected: raise RuntimeError('synthetic source buffer pin mismatch')
+-            spec=importlib.util.spec_from_file_location(name,path); mod=importlib.util.module_from_spec(spec); exec(compile(raw,str(path),'exec'),mod.__dict__); return mod
+-        api=load('_fake_runtime',test['runtime_path']); fpmod=load('_fake_fingerprint',reg['source']['fingerprint_path'])
+-        torch_api=api.Torch(); numpy_version='2.5.4'; torch_version='2.14.1'; python_version='3.12.15'; backend=True
+-        memory_sample=api.memory_sample
+-    else:
+-        rt=reg['runtime'];
+-        if Path(sys.executable).absolute()!=Path(rt['python_path']).absolute() or sys.version.split()[0]!=rt['python_version']: raise RuntimeError('interpreter pin mismatch')
+-        cache=Path(rt['empty_cache_path'])
+-        if not cache.is_dir() or any(cache.iterdir()): raise RuntimeError('owned empty cache preflight failed')
+-        import numpy,torch
+-        if numpy.__version__!='2.5.4' or torch.__version__!='2.14.1' or not torch.backends.mps.is_available(): raise RuntimeError('pinned runtime/MPS preflight failed')
+-        torch_api=torch; numpy_version=numpy.__version__; torch_version=torch.__version__; python_version=sys.version.split()[0]; backend=True
+-        import resource
+-        def memory_sample():
+-            peak=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+-            rss=int(peak if sys.platform=='darwin' else peak*1024)
+-            return rss,int(torch.mps.driver_allocated_memory())
+-        fpmod=None
+-    stop=threading.Event(); errors=[]; lock=threading.Lock()
+-    def sample_and_publish():
+-        rss,mps=memory_sample()
+-        if type(rss)is not int or type(mps)is not int or rss<0 or mps<0 or rss>reg['limits']['RSS_bytes'] or mps>reg['limits']['MPS_driver_bytes']: raise RuntimeError('heartbeat resource cap exceeded')
+-        rec={'run_id':reg['run_id'],'registration_sha256':a.registration_sha256,'pid':os.getpid(),'timestamp_ns':time.time_ns(),'sequence':time.monotonic_ns(),'rss_bytes':rss,'mps_driver_bytes':mps}
+-        tmp=Path(a.heartbeat).with_name(Path(a.heartbeat).name+'.tmp.'+str(os.getpid())); fd=os.open(tmp,os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)
+-        with os.fdopen(fd,'w') as f: json.dump(rec,f); f.flush(); os.fsync(f.fileno())
+-        os.replace(tmp,a.heartbeat)
++    ap=argparse.ArgumentParser()
++    ap.add_argument('--registration',required=True); ap.add_argument('--registration-sha256',required=True)
++    ap.add_argument('--heartbeat',required=True); ap.add_argument('--deadline',required=True,type=float)
++    a=ap.parse_args(); rp=Path(a.registration)
++    raw=rp.read_bytes()
++    if hashlib.sha256(raw).hexdigest()!=a.registration_sha256: raise ValueError('registration hash drift')
++    reg=json.loads(raw); path=Path(reg['source']['probe_path']); raw=path.read_bytes()
++    if hashlib.sha256(raw).hexdigest()!=reg['source']['probe_sha256']: raise ValueError('probe source buffer pin mismatch')
++    p=types.ModuleType('_verified_restore_probe'); p.__file__=str(path); exec(compile(raw,str(path),'exec'),p.__dict__)
++    p.preflight(rp,a.registration_sha256,reg,Path(__file__),worker_phase=True)
++    modules,context=p.verify_immutable(reg)
++    out=Path(reg['output_dir']); events=[]; resources=[]; start=time.monotonic()
++    stop=threading.Event(); errors=[]; lock=threading.RLock(); adapter=None; t=None; outcome=None; failure=None; cleanup={}; runtime_ready=False
++    def save(path,value):
++        with Path(path).open('x') as f:
++            json.dump(value,f,sort_keys=True,allow_nan=False); f.write('\n'); f.flush(); os.fsync(f.fileno())
++    def guard():
++        p.need(time.monotonic()<a.deadline,'worker deadline elapsed')
++        p.need(not Path(reg['cancel_path']).exists(),'cancel present')
++        p.need(not errors,'heartbeat thread failed')
++        p.need(not received,'worker signal observed')
++    def memory():
++        peak=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
++        rss=int(peak if sys.platform=='darwin' else peak*1024)
++        torch=getattr(adapter,'torch',None)
++        mps=int(torch.mps.driver_allocated_memory()) if runtime_ready else 0
++        p.need(0<=rss<=reg['limits']['RSS_bytes'] and 0<=mps<=reg['limits']['MPS_driver_bytes'],'heartbeat resource cap exceeded')
++        return rss,mps,runtime_ready
++    def sample(phase):
++        rss,mps,available=memory(); p.need(available,'MPS memory sample unavailable')
++        row=dict(phase=phase,elapsed_seconds=time.monotonic()-start,rss_high_water_bytes=rss,mps_driver_bytes=mps)
++        with lock:
++            resources.append(row); rf.write(json.dumps(row,sort_keys=True)+'\n'); rf.flush(); os.fsync(rf.fileno())
++    def event(name):
++        guard()
++        row=dict(event=name,sequence=len(events),monotonic_ns=time.monotonic_ns())
++        events.append(row); ef.write(json.dumps(row,sort_keys=True)+'\n'); ef.flush(); os.fsync(ef.fileno())
++        sample(name)
++    def publish_heartbeat():
++        rss,mps,available=memory()
++        row=dict(run_id=reg['run_id'],registration_sha256=a.registration_sha256,pid=os.getpid(),timestamp_ns=time.time_ns(),sequence=time.monotonic_ns(),rss_bytes=rss,mps_driver_bytes=mps,rss_semantics='process lifetime high-water bytes',mps_sample_status='measured' if available else 'unavailable_until_adapter_validation')
++        temp=Path(a.heartbeat+'.tmp.'+str(os.getpid()))
++        with temp.open('x') as f: json.dump(row,f); f.flush(); os.fsync(f.fileno())
++        os.replace(temp,a.heartbeat)
+     def heartbeat():
+         while not stop.is_set():
+-            try:
+-                sample_and_publish()
+-            except BaseException as e:
+-                with lock: errors.append(e)
+-                stop.set(); return
++            try: publish_heartbeat()
++            except BaseException as exc: errors.append(type(exc).__name__+':'+str(exc)); stop.set(); return
+             stop.wait(.2)
+-    t=threading.Thread(target=heartbeat,daemon=True); t.start()
+-    try:
+-        check(rp,a.registration_sha256,reg,Path(__file__))
+-        if time.monotonic()>=a.deadline: raise TimeoutError('worker deadline elapsed')
+-        fingerprint=(lambda b: __import__('hashlib').sha256(bytes(b)).hexdigest()) if test else None
+-        if test:
+-            fingerprint=lambda b: hashlib.sha256(bytes(b)).hexdigest()
+-        else:
+-            raw=Path(reg['source']['fingerprint_path']).read_bytes()
+-            if hashlib.sha256(raw).hexdigest()!=reg['source']['fingerprint_sha256'] or reg['source']['fingerprint_sha256']!='6ef9cf3f08fe800f54230801a921a2f5c82e47e5013ef3087ead6499d2533d61': raise RuntimeError('fingerprint source buffer pin mismatch')
+-            mod=type(sys)('_verified_fp'); exec(compile(raw,reg['source']['fingerprint_path'],'exec'),mod.__dict__); fingerprint=mod.fingerprint
+-        captured=probe.capture_references(vectors=reg['vectors'],study_id=reg['study_id'],torch_api=torch_api,numpy_version=numpy_version,python_version=python_version,torch_version=torch_version,backend_available=backend,fingerprint=fingerprint)
+-        check(rp,a.registration_sha256,reg,Path(__file__))
+-        stop.set(); t.join(1)
+-        if t.is_alive(): raise RuntimeError('heartbeat thread did not stop')
+-        if errors: raise RuntimeError('heartbeat thread failed') from errors[0]
+-        if time.monotonic()>=a.deadline: raise TimeoutError('worker deadline elapsed')
+-        check(rp,a.registration_sha256,reg,Path(__file__))
+-        # Force a fresh RSS/MPS sample after capture and after heartbeat shutdown.
+-        sample_and_publish()
+-        latest=j(a.heartbeat)
+-        if (time.time_ns()-latest.get('timestamp_ns',0))/1e9>reg['limits']['heartbeat_stale_seconds']: raise RuntimeError('heartbeat stale before publish')
+-        if latest.get('mps_driver_bytes',-1)>reg['limits']['MPS_driver_bytes'] or latest.get('rss_bytes',-1)>reg['limits']['RSS_bytes']: raise RuntimeError('resource cap before publish')
+-        check(rp,a.registration_sha256,reg,Path(__file__))
+-        if time.monotonic()>=a.deadline: raise TimeoutError('worker deadline elapsed')
+-        probe.atomic_publish(reg['output_dir'],captured)
+-    finally:
+-        stop.set(); t.join(1)
++    received=[]; handling_cleanup=False; outcome_frozen=False
++    def handled_signal(sig,frame):
++        nonlocal handling_cleanup
++        if outcome_frozen: return
++        received.append(signal.Signals(sig).name)
++        if handling_cleanup: return
++        handling_cleanup=True
++        raise KeyboardInterrupt('worker signal: '+signal.Signals(sig).name)
++    for sig in (signal.SIGTERM,signal.SIGHUP,signal.SIGINT): signal.signal(sig,handled_signal)
++    with (out/'events.jsonl').open('x') as ef,(out/'resources.jsonl').open('x') as rf:
++        try:
++            # Retain even a partially initialized instance for cleanup on failure.
++            cls=modules['runtime_adapter'].RuntimeAdapter
++            adapter=cls.__new__(cls)
++            t=threading.Thread(target=heartbeat,daemon=True); t.start()
++            cls.__init__(adapter,p.adapter_subset(reg,context),context)
++            runtime_ready=True
++            guard(); event('runtime_authenticated_checkpoint_validated')
++            result=p.run_claimed(reg,context,modules,adapter,event)
++            identity=p.runtime_identity(adapter,modules)
++            outcome=dict(schema=p.RESULT_SCHEMA,status='verified_pending_parent_audit',run_id=reg['run_id'],registration_sha256=a.registration_sha256,study_id=p.STUDY,replica=1,arm=p.ARM,vector_sha256=reg['vector']['vector_sha256'],reference=reg['reference'],parent_fingerprints=p.EXPECTED,events=events,runtime=identity,scope=p.SCOPE,resources=resources,**result)
++        except BaseException as exc:
++            failure=type(exc).__name__+':'+str(exc)
++        finally:
++            handling_cleanup=True
++            # Stop the sampler before releasing model, parent tensors and callbacks.
++            stop.set()
++            if t is not None: t.join(1)
++            if t is not None and t.is_alive(): failure=failure or 'heartbeat thread did not stop'
++            if received: failure=failure or 'worker signals:'+repr(received)
++            if errors: failure=failure or 'heartbeat:'+repr(errors)
++            if adapter is not None: cleanup=p.release(adapter)
++            if any(v['status']!='pass' for v in cleanup.values()): failure=failure or 'cleanup failed'
++            if failure is None:
++                try:
++                    guard(); event('cleanup_complete'); publish_heartbeat()
++                    p.preflight(rp,a.registration_sha256,reg,Path(__file__),worker_phase=True)
++                    guard(); outcome['cleanup']=cleanup
++                    p.validate_result(reg,outcome,a.registration_sha256)
++                    guard()
++                    outcome_frozen=True
++                    p.need(not received,'worker signal before outcome freeze')
++                    save(out/'result.json',outcome)
++                    save(out/'COMMITTED.json',dict(schema='confirmed324_restore_probe_commit_v1',result_sha256=p.sha(out/'result.json'),registration_sha256=a.registration_sha256))
++                except BaseException as exc: failure=type(exc).__name__+':'+str(exc)
++            if failure is not None:
++                save(out/'worker-failure.json',dict(schema='confirmed324_restore_probe_failure_v1',run_id=reg['run_id'],registration_sha256=a.registration_sha256,error=failure,events=events,resources=resources,cleanup=cleanup,subclaim_exists=Path(reg['attempt_claim_path']).exists(),partial_result=outcome,partial_probe=getattr(adapter,'_probe_partial',None),handled_signals=received))
++                raise RuntimeError('restore probe failed; partial evidence preserved: '+failure)
+ if __name__=='__main__': main()
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/README.md
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/README.md
+@@ -1,15 +1,39 @@
+-# Confirmed324 probe R5 finalization repair
++# Confirmed324 replica-1 claimed restore probe preparation
+ 
+-Fresh R4 P2 repaired with one outcome flag and an early return in the existing signal handler. **48 synthetic controls passed: all 33 R4 controls plus 15 focused first-signal controls.** Source preparation only; parent registrations R1/R2 remain frozen and unlaunched.
++Source preparation only. **94 stdlib synthetic controls passed: 48 carried predecessor controls and 46 focused restore/registration/consumer/worker/supervisor controls.** No real Torch, NumPy, native package, MPS, checkpoint deserialization, model, environment, training, evaluation or actual probe ran. No real lease or marker was installed, no training seed was consumed, and no delegation, commit or push occurred. All writes stay in this directory.
+ 
+-The finalization commit boundary is the `outcome_frozen=True` assignment in `execute()`, after worker cleanup/reap, all 19 required integrity checks, inventory and their failure decisions, immediately before receipt construction. Before that assignment, SIGTERM/SIGHUP/SIGINT still record history and establish failure, even when the worker exited 0 and every check passed. After it, the installed supervisor handler ignores those signals without changing `reason`, history, receipt fields or terminal outcome. This applies to both successful and already-failed outcomes through publication, fsync and each handler's restoration. Each original handler's policy resumes when restored. No OS signal mask is introduced or inherited by the child. Receipt publication is not rewritten or retried.
++The next parent-owned run uses one independent worker process for the existing `paired-lr-confirmed324-20261026-r1` study, replica 1, arm `A_constant_3e-5`. It qualifies replica 1 only, pending parent audit. It does not loop through replicas, retry, produce candidates or authorize a training campaign.
+ 
+-Each new signal control runs a real stdlib synthetic worker and sends one real OS signal to the supervisor: immediately before the freeze assignment; inside receipt publication before serialization; after encoded bytes exist; after receipt fsync; and immediately before restoring that signal's original handler. All three handled signals cover all five points. Controls check status, reason, raw worker exit 0, all 19 passing checks, process absence, supervisor return/failure, restored handlers, unchanged published receipt hash and returned-result equality on success. The repeated-failure control now requires exactly nine pre-boundary observations; its three publication-time signals are intentionally ignored. Child TERM handling and raw KILL exit remain verified.
++## Review surface
+ 
+-Production worker, probe, builder, synthetic API and the original seven tests are byte-identical to R4. Only supervisor finalization and the repeated-signal assertion changed; the focused controls are separate. Review [production-diff.patch](production-diff.patch), complete [exact-diff.patch](exact-diff.patch), authoritative [source-hashes.json](source-hashes.json), [tests.log](tests.log), and [receipt.json](receipt.json). Retained synthetic fixtures and receipts live under `test-tmp/`. The manifest distinguishes tested source bytes from the artifact-packaging helper.
++- [supervisor_cli.py](supervisor_cli.py): reviewed R5 marker/signal/process-group/cleanup/finalization architecture, with typed restore preflight, independent consumer, complete immutable postflight and sampled process-group RSS evidence.
++- [worker_cli.py](worker_cli.py): bounded initialization, one claimed transition, durable events/resources, release/synchronize/cache cleanup, success commit or partial failure evidence.
++- [probe.py](probe.py): strict registration/result/commit schemas, verified private R3 imports, narrow adapter context, state observations, forbidden-call guards and replica-1 consumer.
++- [build_registration.py](build_registration.py), [registration-template.json](registration-template.json), [parent-run-command-template.json](parent-run-command-template.json): inert templates, with pending identity/token and uncreated parent destinations.
++- [production-diff.patch](production-diff.patch), [exact-diff.patch](exact-diff.patch), [source-manifest.json](source-manifest.json), [input-manifest.json](input-manifest.json), [receipt.json](receipt.json).
+ 
+-[registration-template.json](registration-template.json) is inert and non-authorizing, with pending parent identity/token, successor source pins and proposed owned paths. The unchanged `build_registration.py` preserves exact full vectors, accepted324 input pins, external source pins, runtime contract and limits: work 45s, outer 55s, cleanup 10s, startup 12s, poll 0.2s, stale 2s; RSS and MPS separately 6442450944 bytes. Parent alone freezes registration, reviews, installs leases and authorizes a run.
++The exact accepted R3 manifest is `5cb2cdf6bb857473600c7671caa579bb9d49bd3b3bc573ee4c76d635508757ab`. Its adapter/contracts and five R5 members are loaded from hash-checked buffers under private module identities. Local imports route only to those verified members. No historical worker or full training CLI executes. Accepted code objects, method bindings and R5 private callback globals stay intact; no production monkeypatch replaces them.
+ 
+-Preparation and tests used project `python/.venv/bin/python`, Python 3.12.15, `-B`, `PYTHONDONTWRITEBYTECODE=1` and owned precreated empty caches. Only stdlib and inert copied source ran. No Torch/NumPy/native project imports, actual RNG/MPS calls, checkpoint deserialization, model/environment, training, evaluation or campaign ran. Before/after hashes cover the enumerated frozen read set and root README; independently managed orchestration state is recorded separately, never written here.
++The adapter receives only `runtime_root`, `runtime_versions`, `initial_episode_indices`, and `vector`, plus read-only manifest/parent/vector context. These are the fields its actual initialization/bootstrap/source API consumes. This is a new restore-probe registration, not the 60-update registration; R3's training registration validator and 1790/1800-second limits are not invoked or weakened.
+ 
+-Known limits are unchanged: no hard watchdog covers blocking filesystem/hash/fsync/finalization; imports precede the first MPS heartbeat; exclusive final JSON writes may leave partial files and lack atomic visibility or directory-fsync crash durability; package bytes are unpinned and `runtime_root` remains metadata. I/O exceptions can still prevent complete receipt publication. Synthetic controls do not qualify real CPU/MPS references, runtime dependencies or resource/timing behavior.
++## Future operation and evidence
++
++All immutable/runtime-member/reference/accepted-parent gates pass before the exclusive outer marker. R3 authenticates loaded runtime code, deserializes and validates accepted324, then constructs a disposable pinned entity transformer and Adam. Bootstrap applies the existing constructor seed; it does not restore accepted learner state. The unchanged R5 `AttemptClaim` durably consumes the separately registered subclaim before its trusted zero-argument restore.
++
++The probe fingerprints disposable bootstrap, accepted restore before study reseeding, reseeded state before LR assignment, and post-LR state. Each snapshot includes full model/Adam/raw RNG fingerprints, all six raw RNG component digests and LR groups. The accepted restore must match the parent model/Adam/raw RNG fingerprints. Reseeding must match the existing replica-1 CPU/MPS state reference, with Python/NumPy scratch-instance readback. Model and full Adam stay exact. The 3e-5 override is explicitly a no-op; the complete pre/post-LR snapshots must match. No optional shuffle or action draws advance these states.
++
++The profile observes and rejects Python environment/rollout/forward/PPO/optimizer-step/save entrypoints during bootstrap and transition. R5 restore count must be one; all training/environment/candidate counts must be zero. Concrete pinned source and the absent environment provide the construction boundary; the profile is not general native-code instrumentation. No `make_env`, `update`, `candidate`, `save_checkpoint`, rollout, forward or optimizer step is called by the probe.
++
++Loaded class/module/native identities, trusted callback sources, runtime versions and Torch dependency metadata are recorded. RSS evidence distinguishes process-group current RSS from worker process lifetime high-water RSS. MPS driver bytes are sampled separately. Before adapter validation, heartbeat MPS status is explicitly unavailable, never a measured zero. Phase resource samples, durable event ordering, raw worker status, group absence, all immutable inputs, source/registration/interpreter, exact lease, cache, spent marker and subclaim receive postflight checks. Failed checks do not suppress independent observations. The parent retains lease ownership for its audit.
++
++Work 45s; outer decisions 55s; cleanup at most 10s within remaining outer time; startup 12s; poll 0.2s; stale heartbeat 2s; RSS and MPS each 6442450944 bytes. These are proposed caps, not measured qualification. Controlled worker failures attempt every release/synchronize/cache stage. Parent supervision terminates/reaps remaining groups, including uncooperative failures. SIGKILL cannot run worker cleanup. Handled worker signals cancel before its outcome boundary; publication ignores them after that boundary. Supervisor R5 outcome freezing remains unchanged.
++
++## Synthetic evidence and limits
++
++[tests.log](tests.log) and [fake-test-summary.json](fake-test-summary.json): 46 focused controls, including exact-class toy transition, spent claim, wrong reference, mutation, no environment/forward/PPO, strict event/result/native/callback identities, worker failure/SIGTERM cleanup, and new supervisor success/semantic rejection. An import guard rejects real runtime imports. Worker controls instrument only test subprocesses; supervisor controls substitute a stdlib child while retaining production preflight, marker, supervision, cleanup and consumer. Fabricated semantic payloads are test data, not actual runtime evidence.
++
++[lifecycle-tests-pass2.log](lifecycle-tests-pass2.log): all 48 predecessor controls replayed in owned `tmp/lifecycle/`. Only checkout-relative lookup paths changed. They cover the retained lifecycle and initial-reference consumer; that predecessor consumer is not the new restore consumer. Initial failed preparation passes remain in logs. Final source hashes and retained synthetic receipts are indexed separately.
++
++No hard watchdog covers blocking filesystem/hash/fsync/finalization. Imports and checkpoint validation precede actual MPS telemetry. Package bytes are unpinned; versions, origins and observed hashes do not qualify dependencies. Memory is sampled, not a continuous MPS peak measurement. Exclusive JSON publication may leave partial files; it has no atomic visibility or directory-fsync crash guarantee. I/O failures can prevent complete receipts. Preservation equality covers the enumerated read set, not a global filesystem audit.
++
++Parent must separately assign a unique run/output/token/outer marker/subclaim, create a fresh empty cache, freeze full registration/source/input pins, review exact source, resolve runtime/resource calibration, audit fresh state, install the exact probe lease, authorize and execute once, then audit terminal receipts/process absence. This controller and its templates grant none of those authorities. Actual restore behavior, dependency compatibility, timing, memory and replica-1 qualification remain untested.
+--- /dev/null
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/input-manifest.json
+@@ -0,0 +1,163 @@
++{
++  "pins": {
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/README.md": "be478416b33c772a7ff9c28f2c974f767c205f7df77bcf7346ab36133d384652",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-rl-env/src/python.rs": "604db40f4b49f462fe7fd81dd62f4fe845fb0061e742e7cf6b11a49324da25ab",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-rl-env/src/seed.rs": "239cb9d88a61fff7d63c3c13c80e4552caafe814729160f8fb2948d3c1498832",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/__init__.py": "2bf56a8151b512d78a228d604fdac67c529c8ebfd3fa233c71c2dd4f882b44dc",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/_native.cpython-312-darwin.so": "022d41dde9bace0b4f4c4c06b9b4ed007bc2c60013cd98734086e587d7bb997e",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/checkpoints.py": "807141943a742c6e9fdd34274c191b3c318134cc7fb0c1c6256874cadee1cbc3",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/critic_diagnostics.py": "272059f7c12ebe30e36dc6e9e2388c5b088c11bcd002ee95478459a61e452dbe",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/dev_eval.py": "eecf71936f10938169c0283ed1bb0717b87e46da7ee4ac8636a20d366df3753b",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/gradient_alignment.py": "cd7d16aebe9eed247b0a4747956d8106991b3637ab0b45118ea9e7ebc0c1e25f",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/identity.py": "50775b2e7c30e53757dd3134d11613f716733cee8e6a96cc18b62e8ff2a4a053",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/models/__init__.py": "b28b2623443e31d9e9cb81350f89e9fb7d285abe3e2a74c007be8e4cfff432dc",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/models/teacher.py": "e4d7f597a2824c2b0d4ba261dddc9d7d1ee1d5592c2fc966a44c54b5ec417e35",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/ppo.py": "b3cef91b1293056e9d1820a94fd5730accae4c5728d23566857a6c3a0e1eeac5",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/supervision.py": "45a5714d70d956371442cc3b5ebd1d56d5c498658296afa7e9c9d4c13f2a9b70",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/survival_gate.py": "11257111602f26e49fbc71afc6a51acb79434a3717bd8d6d36d1bbf87dfb8841",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/train_teacher.py": "1d134bfb221ff52139e1243c9e4f9c3063432942a3274c567b71db4d7669c0cf",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-lr3em5-parent-terminal-audit-20261026-r2/retained-best-candidate-receipt.json": "ccc73fbc72c83e9dc061ad11be536b2e0d7cb076319e6d7cff27b9f2a0f8838d",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-lr3em5-prepare-luna-20261026-r2/D2-retained276-lr3em5-config.json": "1c24df3eea150160451ada08e9f6844cd67645abf5fb8b712afd14abca930ce8",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained300-continuation-20261026-r1/checkpoint-000324-candidate.pt": "c10d90ec0e67503afef8f4d90c4968581d430ef2065117a75e81c445a04c8ddc",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained300-continuation-20261026-r1/checkpoint-000324-candidate.pt.json": "cedb20704c9a7c0ec9126c6e7da2f75e230d6acdaa1b7b47f25256ed4f1fd939",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained300-continuation-20261026-r1/development-000324.json": "73f9ee722b445ae8e2baf2b16fcb40744338323ec17efe35a56e703947a35e64",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained300-continuation-20261026-r1/development-000324.jsonl": "8777375952d4c656ff805f8c08da30d62e8185cdea5f63e3f0e98f542ff23215",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained300-continuation-freeze-20261026-r5/registration.json": "8a60dc80f1ebe03c43bf18eebf75199e14f207b677570ac2d6d4368ddfcb0f79",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained300-continuation-freeze-20261026-r5/runner.py": "108ba55ad78aa26166acb14f67cc6466da6293ccee3d272e1fe6e775ebf2ac60",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained300-parent-terminal-audit-20261026-r1/audit.json": "bc49fe9dcfed5e050212b248eba701d55d8f014ef7d5add984263498e1ae9bca",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained300-parent-terminal-audit-20261026-r1/completed-iteration-receipt.json": "7c6f250b5c5aa9e4098603cc8772c532a713e65f478cbda6ebfdd3941692fc9b",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained300-parent-terminal-audit-20261026-r1/retained-best-candidate-receipt.json": "76cb15733e87518cb3b473b7f8ebd847ed206351fb9f17d89b8b92e6bf853f08",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmation-proof-binding-parent-repair-20261026-r4/execute_once.py": "4a5d084359ee48fe5351c96e0ec4455fdcd95a428a17bbcf59d0653f6922de98",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-paired-PPO-worker-prepare-luna-20261026-r1/README.md": "7782e76d91118e3988aa0ba851635248b80ad4d7910a0f0f6b8767909145f4c1",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-paired-PPO-worker-prepare-luna-20261026-r1/build_registration.py": "5ef5226cfe65fa70431b27396d02e12af417c9ac75202bb0fb802d98949448f6",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-paired-PPO-worker-prepare-luna-20261026-r1/cpu_entrypoint.py": "3801c475c46ce5ed4df671c6c590f273737ec06a83fac9e0264124ee70a27e0a",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-paired-PPO-worker-prepare-luna-20261026-r1/fake-measured-reference-receipt.json": "f8228bc431f4ff98236ac89f8791bcff5300c9421e38b9868248f838e0541129",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-paired-PPO-worker-prepare-luna-20261026-r1/interpreter.txt": "6c3bfb84ec06478fb7ac3f6de96618f8cff4d46a3a2f26bfdc68d4381e8342f5",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-paired-PPO-worker-prepare-luna-20261026-r1/receipt.json": "3a6722a6ef1c8a24f316cc812ebf9564a05a43fd13a2ff917b5157eee5c8a5b8",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-paired-PPO-worker-prepare-luna-20261026-r1/registration-draft.json": "a267fbcbe188e9a86112334ebf555da17e9edbc11ea854bacbcbcc47fb2b5715",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-paired-PPO-worker-prepare-luna-20261026-r1/source-hashes.json": "9a1c67349ea97d4f9d829dce7274434664d72e3e7531a3780a5d77ff6182c271",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-paired-PPO-worker-prepare-luna-20261026-r1/test_worker.py": "340d650afd8a3e9ac0990f3e5667b44ada1b95fc36c0613b3ba5c7c1870d7729",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-paired-PPO-worker-prepare-luna-20261026-r1/tests.log": "746235af72a8e209e4c942a05b7fb651a58444eb65831be1edf8fd19a124e25b",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-paired-PPO-worker-prepare-luna-20261026-r1/worker.py": "654377ae6ae62e20b779f85a56e4b2319d3d6686084ecfee15a04bb334036fa0",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-private-bindings-r5-parent-validation-20261026-r1/first-inspection.json": "e09fb548b0c01691c8359bf9155b8247f08bd271c8d960ec2320bf694cea6352",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-private-bindings-r5-parent-validation-20261026-r1/parent-source-acceptance.json": "1a9df3bb115e04b99967337b4b8820c86304a9beb5dffdff6fd7f7f43ff94df0",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-private-bindings-r5-parent-validation-20261026-r1/receipt.json": "e4c679018838b48441a60f5e1d84ebe0c1802301d7316b80b6dea16a9af9788a",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-private-bindings-r5-parent-validation-20261026-r1/source-manifest.json": "2b0caf00a5d5e765726d080fd5647211190e472d74ffb33b3466e477cb2906a9",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-private-bindings-r5-parent-validation-20261026-r1/tests.log": "414a5821b8c9c781368fe4b2acd748ca1ba37723236789e73f266a167649242f",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-private-bindings-repair-luna-20261026-r5/README.md": "c68a366683202abfd2acff8648382f078423794d60bfc81fc22d0d0aba1c8d58",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-private-bindings-repair-luna-20261026-r5/attempt_claim.py": "bf993c076c6c3270a3efb89f42d3ca86a070a044da286b42b4803790c3759206",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-private-bindings-repair-luna-20261026-r5/driver_binding.py": "aba05ce927a32fd01c07256d9d798a82bf4a9ff74e4dd0eacbf7de337e055abd",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-private-bindings-repair-luna-20261026-r5/fingerprints.py": "6ef9cf3f08fe800f54230801a921a2f5c82e47e5013ef3087ead6499d2533d61",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-private-bindings-repair-luna-20261026-r5/receipt.json": "8e01f224c8e8463b788f9b1bf18a2cba73a2d6354d247f1ab0bc1ce137de3f78",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-private-bindings-repair-luna-20261026-r5/rng_reference.py": "9abfb7f892fc3a0b62d665a390effcfd7cbf4161ccf1ade3a9240d9392172917",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-private-bindings-repair-luna-20261026-r5/source-hashes.json": "af2d9cff332564eb106fd542ea039840f024c98b905a48e6c2203e2df4df5fde",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-private-bindings-repair-luna-20261026-r5/test_regressions.py": "8192ed51918f8c42c245bbc7913fbe7601e8e4af2eb3860d6bf5e49ca77c761a",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-private-bindings-repair-luna-20261026-r5/test_transition.py": "dee7ac8916df53f4ca06e6050705890d63eda00a5606b444cf27b9439f0d8b7b",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-private-bindings-repair-luna-20261026-r5/tests.log": "6a154c355b5c77039c2a14b6a634a643895c139a7f16bd33b69df2edab15e668",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-private-bindings-repair-luna-20261026-r5/transition.py": "bda044d213db3424a3b578c7c63cb30d942e9c8e5527c1e854abe03abcf83e03",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/README.md": "cea218f4a1ec55a96bb9f6bdb7a59c4d9a03e85a7a02a956bf397cb4e9a087d1",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/build_registration.py": "5435aedb0cec681224851beb6676c9def6311980973835e95ce8f70eebcbdd1a",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/exact-diff.patch": "37409789c5a3fcab72665891c1af3a80ecbba47a8cc3a795ba097e74861cf847",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/fake_runtime.py": "14a8c39b2cfed17b73aa0fb73aa7cde9dcb4b3b325107fd36c67602e64d7a435",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/finalization.log": "87ef2d517a0d31d312e3ee75d12d7beab79ee0cbef89c673d3f62b0739c8e97f",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/finalize_preparation.py": "6ebe3d6aa423c398e82c9357c0de54e908d6273d23129205f3a02184f1d94008",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/preservation-after.json": "d008ae419ff4515eccd704383da0d5ce80fddaaff1429faf0920d855c06e0189",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/preservation-before.json": "693fff062e8275cfa26f3a67de3a4ff6e3b32e85f7c96d91fdb52b71dbe858a2",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/probe.py": "3a8ca22bd4c3c15da41ec4d0919ac5e314edd2d89ff15eca82fc140fb493eca6",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/production-diff.patch": "9317b230902d4a89c1c9b9069628f1ff8b10c38293f9c89b0335c062fb6c513d",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/receipt.json": "1c53a02502b683e1c87d74b9ba70e15e02739b6817226ec0fd601672895adda9",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/registration-template.json": "27a6cf154ec99cdffd5900acee23dd3e5b5531f4233ff2c358981254164094f7",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/source-hashes.json": "9c780feb5e7e6a14d24990d8e2594ad24f2c23d5c0420b0687c853df211aeae7",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/supervisor_cli.py": "2394ea8ff1a8432f7642616ecca3b40aa615d0d44937b146c54dc33906319b00",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/synthetic-receipt-index.json": "f48a9b19a253c124a65b5c5d977ef27d2685f47c499e1a6cd0ffe1a1a71ed252",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/test-results.json": "19f32e5ded9af1bcdaa55a9ed64f3f7e37833ddf347fc4f52c10442599d10d23",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/test_campaign.py": "0eebdb0f1432f96a24e5f19becbeb3389df7e432af7a275ee8636fb680674c30",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/test_failure_controls.py": "fe8dfab79a3a902b8e4421445d1629b2d15714776c34536abde6b36d08f98537",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/test_finalization_controls.py": "f13f7f43af7b252bc7bd27d8a9c7680b3fb4ad887ab4b67ffe665bef8ea06b1c",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/test_probe.py": "6f08cdbbaaa63382e3340277282744a3051af5be184f806e6f59c2edc1fac0d6",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/tested-source-before.json": "f2d0560cf126f4f69bfd81e9cdda00d9662c05f4170880e02bbd8e5e00ecc117",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/tests.log": "9110d2dad0efabf48051c3b2107a460f95bf4a1b79ad0840f141e1859d1f6635",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/worker_cli.py": "9d016e7ba3e9ab416c2f12e3b823c9a8b140523c77874781ad433f77b9f118dc",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-rng-reference-parent-20261026-r3/outputs/replica-1.json": "4c4039c06b6c718017e87ae9b1518687a9db3fc899a11e0a300af0fbc9479891",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-rng-reference-parent-20261026-r3/parent-source-acceptance.json": "9e2bc117a6a830a890ad08a7e904c4b984a3aa9d33d6ecff9715693ba98c628b",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-rng-reference-parent-20261026-r3/parent-terminal-audit.json": "721e212e289540ee3f7f81e8dd1d8436c23cc2ea1c2270da158d22fb5afbb5b0",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-rng-reference-parent-20261026-r3/registration-final.json": "0150cfcdbec53ff4322f72e5fa224cb6a914f3505ea732c0722511b5e031c398",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-seed-vectors-parent-20261026-r1/seed-vectors.json": "33ada951394fd3ce674955d43de1919b1cd3c2192e066722e33d5b49549c070b",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/README.md": "8f9a6ae5c8be2cb785b3532b9fe751e7d5f9f14c659d3f3176a2f69fe21ccf3e",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/artifact-manifest.json": "648e70d018266cdb89252ce1ddbfd89a748a49d102475724fe202ccaad4e97e7",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/attempt_claim.py": "bf993c076c6c3270a3efb89f42d3ca86a070a044da286b42b4803790c3759206",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/build_evidence.py": "66e76f98dfb5a4d4f89759057e0d9f0bdc0a6705c18581160d55f2a7c42484b1",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/build_registration.py": "4e7a2abc569b1c200c0c5cb5d39bd017333571dc5f3ced2e61e418a4933a232b",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/contracts.py": "4b45e20d74df9030f4bf1cd480f9ac95c86408f2f39df376aab4050bbaf3f7d0",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/diff-index.json": "464e56f0ab2b54fdaad0c51ccae61219b5af6c8d890ee3e1b2691c5e22950411",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/driver_binding.py": "aba05ce927a32fd01c07256d9d798a82bf4a9ff74e4dd0eacbf7de337e055abd",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/exact-diff.patch": "4685cbf67e0dc4f0c4fbf059e2104d9e3287e98267a4aab1b8d40500f1d3d966",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/fake-test-summary.json": "41efbb4c3c23b85c30d2b0f40aba740a94c5ade029c54caad786bc19f11762cd",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/fingerprints.py": "6ef9cf3f08fe800f54230801a921a2f5c82e47e5013ef3087ead6499d2533d61",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/input-manifest.json": "07bebeac92308587c7c012d55b75e5222d707a006186ae223d70e843322215b5",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/interpreter.json": "2cbd90c680c4d083fbc21d31f9671419d61a084b8d5f99757bcc710379164918",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/postflight.json": "43d80c0272b68074216f2cc45ee62ced207eec14b68e463eb46caf7fdf439ecc",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/preflight.json": "9237ac14c30608e1a2a6b8f817094ce0713c7fda486f15fa55579f5908c54df9",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/receipt.json": "929d63a33fa3bf4135c35e43abf57543f5921528baf2dc3002197127f5cb5017",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/registration-template-replica-1-A.json": "69a9ce201c0715883c0ae3ee33fea812caa34f6c8c189fa2301f9662460bb6ad",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/registration-template-replica-1-B.json": "bb2e18a7b46eb68de7e52f98bd4df284ecf2adbfcf8fb1441b9b13b1cdbe6ca5",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/registration-template-replica-2-A.json": "6ecd522f4ad3a73c3d70a2a22ce420276e8086abdb8ed67b27483dc227cc2281",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/registration-template-replica-2-B.json": "9c3d9ce6b7853789118bb719b99da1c7a80b920bd944df1914f21adac9a2c2f3",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/registration-template-replica-3-A.json": "95feb5191f68cd6ae0d897301ee80502d06efd6200d23c6cdeb18befe74c475e",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/registration-template-replica-3-B.json": "779c7ce1edb5eaf7de207338de57aabc1ddaf94f9beb25cee03acb9488744e0f",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/rng_reference.py": "9abfb7f892fc3a0b62d665a390effcfd7cbf4161ccf1ade3a9240d9392172917",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/run_fake_tests.py": "77012e5cf6aec57f05c29ae9933f8f622c08791a95020c4ac976c8e47c7e9ed4",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/runtime_adapter.py": "26f6263f55a7e632b6258c9e4cc054e0ff53bda631042d0b6d66ad7db1c320f3",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/source-manifest.json": "5cb2cdf6bb857473600c7671caa579bb9d49bd3b3bc573ee4c76d635508757ab",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/test_events.py": "a7a26991e8f6454f769253859e4c89ae488cd39cc80175d7cdc665ecc26bd3a2",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/test_regressions.py": "8192ed51918f8c42c245bbc7913fbe7601e8e4af2eb3860d6bf5e49ca77c761a",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/test_transition.py": "664a2dacbb1fee58193af1ca831fe10f1124e134a948aa590d4aee9f5ea93838",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/test_worker.py": "920ae87fdbc8473c429e949eb46eedc5e8c26fd963e9003f44d25d6cb5d24c80",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/tests-pass1.log": "bc0484c9d6015d07006b00534e2274cb6adb676d0a81725bb0d87a7105ff5d89",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/tests.log": "bc0484c9d6015d07006b00534e2274cb6adb676d0a81725bb0d87a7105ff5d89",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/transition.py": "bda044d213db3424a3b578c7c63cb30d942e9c8e5527c1e854abe03abcf83e03",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/worker.py": "ea902df3ca6031ea88762e92be288aa5e70e3a091e58c5976e38c2ada7527e31",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/worker_cli.py": "b395e1923e1c7572d36e86d60fbc42b2eb0b61260960b0fb24784091224226e5",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-events-r3-review-sol-20261026-r2/receipt.json": "2083291979f188312558fe8b1d4d71a66c8fd5b47695753204384e2f2e73230c",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-events-r3-review-sol-20261026-r2/review.md": "f46c577e4522e798b5611f1d9fb75412498a92094259fb5b1f06839293b7175e",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/README.md": "8f9a6ae5c8be2cb785b3532b9fe751e7d5f9f14c659d3f3176a2f69fe21ccf3e",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/artifact-manifest.json": "648e70d018266cdb89252ce1ddbfd89a748a49d102475724fe202ccaad4e97e7",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/attempt_claim.py": "bf993c076c6c3270a3efb89f42d3ca86a070a044da286b42b4803790c3759206",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/build_evidence.py": "66e76f98dfb5a4d4f89759057e0d9f0bdc0a6705c18581160d55f2a7c42484b1",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/build_registration.py": "4e7a2abc569b1c200c0c5cb5d39bd017333571dc5f3ced2e61e418a4933a232b",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/contracts.py": "4b45e20d74df9030f4bf1cd480f9ac95c86408f2f39df376aab4050bbaf3f7d0",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/diff-index.json": "464e56f0ab2b54fdaad0c51ccae61219b5af6c8d890ee3e1b2691c5e22950411",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/driver_binding.py": "aba05ce927a32fd01c07256d9d798a82bf4a9ff74e4dd0eacbf7de337e055abd",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/exact-diff.patch": "4685cbf67e0dc4f0c4fbf059e2104d9e3287e98267a4aab1b8d40500f1d3d966",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/fake-test-summary.json": "2f76b674b002d24cd0647423ca8ae957951987493588c69b3b45fc2bb8faef3e",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/fingerprints.py": "6ef9cf3f08fe800f54230801a921a2f5c82e47e5013ef3087ead6499d2533d61",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/input-manifest.json": "07bebeac92308587c7c012d55b75e5222d707a006186ae223d70e843322215b5",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/interpreter.json": "2cbd90c680c4d083fbc21d31f9671419d61a084b8d5f99757bcc710379164918",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/parent-receipt.json": "cfbe36db0598a4dd6c0ce02b75eae48b0d7b0291ce4e8e3511477658f0078968",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/parent-tests.log": "0d16d18a51877ce72bb9e49ea0b0f151360927eb9ffa1fba788a1477ba031827",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/postflight.json": "43d80c0272b68074216f2cc45ee62ced207eec14b68e463eb46caf7fdf439ecc",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/preflight.json": "9237ac14c30608e1a2a6b8f817094ce0713c7fda486f15fa55579f5908c54df9",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/receipt.json": "929d63a33fa3bf4135c35e43abf57543f5921528baf2dc3002197127f5cb5017",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/registration-template-replica-1-A.json": "69a9ce201c0715883c0ae3ee33fea812caa34f6c8c189fa2301f9662460bb6ad",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/registration-template-replica-1-B.json": "bb2e18a7b46eb68de7e52f98bd4df284ecf2adbfcf8fb1441b9b13b1cdbe6ca5",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/registration-template-replica-2-A.json": "6ecd522f4ad3a73c3d70a2a22ce420276e8086abdb8ed67b27483dc227cc2281",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/registration-template-replica-2-B.json": "9c3d9ce6b7853789118bb719b99da1c7a80b920bd944df1914f21adac9a2c2f3",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/registration-template-replica-3-A.json": "95feb5191f68cd6ae0d897301ee80502d06efd6200d23c6cdeb18befe74c475e",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/registration-template-replica-3-B.json": "779c7ce1edb5eaf7de207338de57aabc1ddaf94f9beb25cee03acb9488744e0f",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/rng_reference.py": "9abfb7f892fc3a0b62d665a390effcfd7cbf4161ccf1ade3a9240d9392172917",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/run_fake_tests.py": "77012e5cf6aec57f05c29ae9933f8f622c08791a95020c4ac976c8e47c7e9ed4",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/runtime_adapter.py": "26f6263f55a7e632b6258c9e4cc054e0ff53bda631042d0b6d66ad7db1c320f3",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/source-manifest.json": "5cb2cdf6bb857473600c7671caa579bb9d49bd3b3bc573ee4c76d635508757ab",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/test_events.py": "a7a26991e8f6454f769253859e4c89ae488cd39cc80175d7cdc665ecc26bd3a2",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/test_regressions.py": "8192ed51918f8c42c245bbc7913fbe7601e8e4af2eb3860d6bf5e49ca77c761a",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/test_transition.py": "664a2dacbb1fee58193af1ca831fe10f1124e134a948aa590d4aee9f5ea93838",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/test_worker.py": "920ae87fdbc8473c429e949eb46eedc5e8c26fd963e9003f44d25d6cb5d24c80",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/transition.py": "bda044d213db3424a3b578c7c63cb30d942e9c8e5527c1e854abe03abcf83e03",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/worker.py": "ea902df3ca6031ea88762e92be288aa5e70e3a091e58c5976e38c2ada7527e31",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-r3-parent-validation-20261026-r1/worker_cli.py": "b395e1923e1c7572d36e86d60fbc42b2eb0b61260960b0fb24784091224226e5",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/expanded-confirmation-parent-20261026-r1/parent-acceptance.json": "3e84979c4c8da76d0f98666a23f90eb15c1e813ca5edf1001e19daebaf4d5bbd"
++  },
++  "reference_scope": "replica-1 only; replica-2/3 receipt bytes not read",
++  "root": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79",
++  "schema": "confirmed324_restore_probe_read_only_inputs_v1"
++}
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/registration-template.json
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/registration-template.json
+@@ -1,19 +1,27 @@
+ {
+   "acceptance_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/expanded-confirmation-parent-20261026-r1/parent-acceptance.json",
+   "acceptance_sha256": "3e84979c4c8da76d0f98666a23f90eb15c1e813ca5edf1001e19daebaf4d5bbd",
+-  "authority": "none_until_parent_registration_review_and_lease_installation",
+-  "cancel_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/proposed-parent/CANCEL",
++  "arm": "A_constant_3e-5",
++  "attempt_claim_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/proposed-parent/confirmed324-restore-probe-PENDING_PARENT_UNIQUE_ID.restore.claimed",
++  "authority": "none",
++  "budget_semantics": "45s work within 55s outer decisions; cleanup <=10s remaining; no hard filesystem watchdog",
++  "cancel_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/proposed-parent/CANCEL",
+   "checkpoint_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained300-continuation-20261026-r1/checkpoint-000324-candidate.pt",
+   "checkpoint_sha256": "c10d90ec0e67503afef8f4d90c4968581d430ef2065117a75e81c445a04c8ddc",
+   "expected_lease": {
+-    "MPS_driver_bytes": 6442450944,
+-    "RSS_bytes": 6442450944,
+-    "kind": "confirmed324_initial_RNG_state_reference_probe",
+-    "owner_token": "PENDING_PARENT_OWNER_TOKEN",
+-    "purpose": "one_independent_process_measures3CPU_MPS_generator_references;no_model_environment_training",
+-    "registration_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/proposed-parent/registration-final.json",
+-    "run_id": "PENDING_PARENT_UNIQUE_RUN_ID"
+-  },
++    "kind": "confirmed324_claimed_restore_probe",
++    "owner_token": "PENDING_PARENT_NEW_TOKEN",
++    "parent_checkpoint_sha256": "c10d90ec0e67503afef8f4d90c4968581d430ef2065117a75e81c445a04c8ddc",
++    "run_id": "confirmed324-restore-probe-PENDING_PARENT_UNIQUE_ID",
++    "study_id": "paired-lr-confirmed324-20261026-r1"
++  },
++  "expected_parent_fingerprints": {
++    "Adam": "cf5e2a7ac5d3f7f131a26f7c2b8b778b7692850cff606a0ea9080941b960451c",
++    "RNG": "cb96ee8d2c40114a51abb8031dc7457a6da6d1be7262c6a4859bd34cab5813af",
++    "model": "3b72815fef4d8fa0084044739f5a5eaf9f74971b36dff9d8b26ed3bea5c562bc"
++  },
++  "input_manifest_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/input-manifest.json",
++  "input_manifest_sha256": "816e135466396365466fe08fa84ceaa18976226494aaf6dc4010aad3c1248167",
+   "limits": {
+     "MPS_driver_bytes": 6442450944,
+     "RSS_bytes": 6442450944,
+@@ -24,35 +32,26 @@
+     "startup_grace_seconds": 12,
+     "work_seconds": 45
+   },
+-  "one_shot_marker": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/proposed-parent/one-shot.claimed",
+-  "output_dir": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/proposed-parent/outputs",
++  "one_shot_marker": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/proposed-parent/confirmed324-restore-probe-PENDING_PARENT_UNIQUE_ID.outer.claimed",
++  "output_dir": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/proposed-parent/confirmed324-restore-probe-PENDING_PARENT_UNIQUE_ID",
++  "pair_id": "paired-lr-confirmed324-20261026-r1-replica-1",
+   "parent_receipt_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained300-parent-terminal-audit-20261026-r1/retained-best-candidate-receipt.json",
+   "parent_receipt_sha256": "76cb15733e87518cb3b473b7f8ebd847ed206351fb9f17d89b8b92e6bf853f08",
++  "reference": {
++    "receipt_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-rng-reference-parent-20261026-r3/outputs/replica-1.json",
++    "receipt_sha256": "4c4039c06b6c718017e87ae9b1518687a9db3fc899a11e0a300af0fbc9479891",
++    "vector_sha256": "af7b10776a2ecce320d594e4479ad199714939f0172b6c7fcd7c31a820caed65"
++  },
+   "references": {
+-    "receipt_fields": [
+-      "accepted_checkpoint_sha256",
+-      "backend",
+-      "complete_seed_vector",
+-      "cpu_rng_state_sha256",
+-      "mps_rng_state_sha256",
+-      "parent_receipt_sha256",
+-      "replica",
+-      "schema",
+-      "status",
+-      "study_id",
+-      "torch_version",
+-      "vector_sha256"
+-    ],
++    "kind": "existing_initial_CPU_MPS_state_reference",
+     "required_replicas": [
+-      1,
+-      2,
+-      3
+-    ],
+-    "same_reference_for_both_arms": true
+-  },
+-  "run_id": "PENDING_PARENT_UNIQUE_RUN_ID",
++      1
++    ]
++  },
++  "replica": 1,
++  "run_id": "confirmed324-restore-probe-PENDING_PARENT_UNIQUE_ID",
+   "runtime": {
+-    "empty_cache_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/empty-pycache",
++    "empty_cache_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/proposed-parent/empty-pycache",
+     "expected_venv_prefix": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv",
+     "interpreter_sha256": "8dcafa7835e861e88a8f8ac7e61effbf5a987f32b0ec47bb1f3c9987caf9216d",
+     "numpy_version": "2.5.4",
+@@ -62,21 +61,145 @@
+     "runtime_root": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime",
+     "torch_version": "2.14.1"
+   },
+-  "schema": "d2_layerb_rng_reference_probe_registration_v1",
++  "schema": "confirmed324_claimed_restore_probe_registration_v1",
++  "scope": {
++    "Adam_constructed": true,
++    "automatic_retry": false,
++    "candidate_saves": 0,
++    "checkpoint_deserialized": true,
++    "environment_constructions": 0,
++    "forwards": 0,
++    "model_constructed": true,
++    "optimizer_steps": 0,
++    "qualification": "replica-1 only; parent audit required",
++    "replicas": [
++      1
++    ],
++    "rollouts": 0,
++    "training_updates": 0
++  },
+   "source": {
+     "cleanup_primitives_sha256": "4a5d084359ee48fe5351c96e0ec4455fdcd95a428a17bbcf59d0653f6922de98",
+-    "fingerprint_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-transition-parent-repair-20261026-r3/fingerprints.py",
++    "fingerprint_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/fingerprints.py",
+     "fingerprint_sha256": "6ef9cf3f08fe800f54230801a921a2f5c82e47e5013ef3087ead6499d2533d61",
+-    "probe_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/probe.py",
+-    "probe_sha256": "3a8ca22bd4c3c15da41ec4d0919ac5e314edd2d89ff15eca82fc140fb493eca6",
+-    "supervisor_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/supervisor_cli.py",
+-    "supervisor_sha256": "2394ea8ff1a8432f7642616ecca3b40aa615d0d44937b146c54dc33906319b00",
+-    "worker_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/worker_cli.py",
+-    "worker_sha256": "9d016e7ba3e9ab416c2f12e3b823c9a8b140523c77874781ad433f77b9f118dc"
++    "probe_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/probe.py",
++    "probe_sha256": "b55321ba039c329136fac71ec15498b50fe9118458ec2da3f3e983cc046094b4",
++    "supervisor_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/supervisor_cli.py",
++    "supervisor_sha256": "06bfc30fe04da9d103b8a67034ebc6b67f9ec5ea9abf4a1cbc08649d7b9838f7",
++    "worker_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/worker_cli.py",
++    "worker_sha256": "4cc997572a2146ad84bc76af68bd61792f4226bf0823162061a697a7ae887d59"
+   },
+   "state_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2-orchestration/state.json",
+   "status": "draft_parent_review_required",
+   "study_id": "paired-lr-confirmed324-20261026-r1",
++  "vector": {
++    "derivation_attempts": {
++      "action_sampler_torch_mps_seed": 0,
++      "constructor_init_seed": 0,
++      "env_master_seed": 0,
++      "numpy_global_seed": 0,
++      "python_random_seed": 0,
++      "torch_cpu_global_seed": 0
++    },
++    "env_control": {
++      "all_slots_actual_seed_sha256": "0f877d75c905ce838e276e5bfea1ea40adf5969f23700eed0059870dec5e6a5e",
++      "distinct_actual_seeds": 64,
++      "episode_indices": [
++        268,
++        277,
++        270,
++        278,
++        292,
++        268,
++        293,
++        285,
++        309,
++        285,
++        289,
++        291,
++        272,
++        291,
++        286,
++        289,
++        296,
++        292,
++        285,
++        267,
++        288,
++        280,
++        266,
++        287,
++        270,
++        297,
++        285,
++        285,
++        264,
++        272,
++        279,
++        288,
++        290,
++        291,
++        295,
++        273,
++        273,
++        278,
++        284,
++        277,
++        289,
++        293,
++        280,
++        273,
++        277,
++        281,
++        264,
++        292,
++        293,
++        273,
++        280,
++        297,
++        286,
++        287,
++        281,
++        294,
++        282,
++        284,
++        292,
++        288,
++        261,
++        290,
++        275,
++        311
++      ],
++      "first_slot_actual_seeds": [
++        1081685618,
++        1436538075,
++        3459271684,
++        246421120
++      ],
++      "kind": "splitmix64_slot_stream_first_episode",
++      "reserved_hits": 0,
++      "source": "crates/dodge-rl-env/src/seed.rs training_seed_normalized",
++      "zero_actual_seeds": 0
++    },
++    "python_control": {
++      "first_getrandbits64": 10223235548881408149,
++      "first_random_float_repr": "0.07978288939670664",
++      "kind": "scratch_instance_stdlib",
++      "note": "Computed with random.Random(seed) so the global stream is untouched.",
++      "post_seed_state_sha256": "0cc67c7b31b0eb55a058b9638766a076142c3236b9888b759d519041cecd6728",
++      "stream": "python_random_seed"
++    },
++    "replica": 1,
++    "seeds": {
++      "action_sampler_torch_mps_seed": 1299993108354430958,
++      "constructor_init_seed": 1741695903,
++      "env_master_seed": 16982659348933750436,
++      "numpy_global_seed": 1340688073,
++      "python_random_seed": 2380281236413382108,
++      "torch_cpu_global_seed": 127313322793965738
++    },
++    "vector_sha256": "af7b10776a2ecce320d594e4479ad199714939f0172b6c7fcd7c31a820caed65"
++  },
+   "vectors": {
+     "controls_pending_runtime": [
+       "capture torch CPU/MPS generator state fingerprints after reseed (torch.get_rng_state / torch.mps.get_rng_state)",
+--- /dev/null
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/parent-run-command-template.json
+@@ -0,0 +1,19 @@
++{
++  "argv": [
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
++    "-B",
++    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/supervisor_cli.py",
++    "--registration",
++    "PARENT_FROZEN_ABSOLUTE_REGISTRATION_PATH",
++    "--registration-sha256",
++    "PARENT_FROZEN_REGISTRATION_SHA256"
++  ],
++  "environment": {
++    "PYTHONDONTWRITEBYTECODE": "1",
++    "PYTHONPYCACHEPREFIX": "PARENT_REGISTERED_NEW_EMPTY_CACHE"
++  },
++  "expected_registration_schema": "confirmed324_claimed_restore_probe_registration_v1",
++  "prerequisites": "separate parent freeze/review/calibration/lease/once-only authorization",
++  "required_venv_prefix": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv",
++  "status": "inert_not_launch_authority"
++}

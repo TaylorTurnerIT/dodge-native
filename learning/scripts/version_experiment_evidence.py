@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[2]
 BLOCKED = {
     "target", "cargo-home", ".cargo-home", "registry", "test-tmp",
     "__pycache__", ".venv", ".git", "empty-pycache", "empty-pycache-prefix",
-    "empty-prefix", "node_modules", "attempts", "fixtures", ".cache",
+    "empty-prefix", "node_modules", "attempts", "fixtures", "tmp", "temp", ".cache",
 }
 SOURCE = {".py", ".rs", ".toml", ".lock", ".md", ".diff", ".patch", ".sh", ".p8", ".html"}
 EVIDENCE = {".json", ".jsonl", ".txt", ".log", ".csv", ".sha256"}

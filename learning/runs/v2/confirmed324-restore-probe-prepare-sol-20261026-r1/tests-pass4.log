@@ -1,0 +1,103 @@
+test_boolean_restore_count_rejected (test_restore_probe.ConsumerControls.test_boolean_restore_count_rejected) ... ok
+test_claim_payload_substitution_rejected (test_restore_probe.ConsumerControls.test_claim_payload_substitution_rejected) ... ok
+test_committed_bundle_and_raw_claim_pass (test_restore_probe.ConsumerControls.test_committed_bundle_and_raw_claim_pass) ... ok
+test_event_journal_divergence_rejected (test_restore_probe.ConsumerControls.test_event_journal_divergence_rejected) ... ok
+test_extra_candidate_artifact_rejected (test_restore_probe.ConsumerControls.test_extra_candidate_artifact_rejected) ... ok
+test_native_identity_substitution_rejected (test_restore_probe.ConsumerControls.test_native_identity_substitution_rejected) ... ok
+test_rehashed_result_extra_event_field_rejected (test_restore_probe.ConsumerControls.test_rehashed_result_extra_event_field_rejected) ... ok
+test_rehashed_result_wrong_reference_rejected (test_restore_probe.ConsumerControls.test_rehashed_result_wrong_reference_rejected) ... ERROR
+test_cleanup_attempts_every_stage_after_sync_failure (test_restore_probe.ProbeControls.test_cleanup_attempts_every_stage_after_sync_failure) ... ok
+test_forbidden_environment (test_restore_probe.ProbeControls.test_forbidden_environment) ... ok
+test_forbidden_forward_before_any_forward_body (test_restore_probe.ProbeControls.test_forbidden_forward_before_any_forward_body) ... ok
+test_forbidden_ppo (test_restore_probe.ProbeControls.test_forbidden_ppo) ... ok
+test_mutating_restore_failure_keeps_spent_claim (test_restore_probe.ProbeControls.test_mutating_restore_failure_keeps_spent_claim) ... ok
+test_post_reseed_mutation_fails_and_claim_stays_spent (test_restore_probe.ProbeControls.test_post_reseed_mutation_fails_and_claim_stays_spent) ... ok
+test_private_modules_preserve_code_globals_and_class_identity (test_restore_probe.ProbeControls.test_private_modules_preserve_code_globals_and_class_identity) ... ok
+test_real_input_gates_are_stdlib_only (test_restore_probe.ProbeControls.test_real_input_gates_are_stdlib_only) ... ok
+test_required_subset_excludes_training_contract_and_limits (test_restore_probe.ProbeControls.test_required_subset_excludes_training_contract_and_limits) ... ok
+test_spent_subclaim_blocks_new_call_before_bootstrap (test_restore_probe.ProbeControls.test_spent_subclaim_blocks_new_call_before_bootstrap) ... ok
+test_success_single_claimed_restore_raw_states_and_noop (test_restore_probe.ProbeControls.test_success_single_claimed_restore_raw_states_and_noop) ... ok
+test_wrong_reference_rejected_before_claim_restore (test_restore_probe.ProbeControls.test_wrong_reference_rejected_before_claim_restore) ... ok
+test_all_real_immutable_gates_before_outer_marker (test_restore_probe.RegistrationControls.test_all_real_immutable_gates_before_outer_marker) ... ok
+test_inert_template_rejected_without_marker (test_restore_probe.RegistrationControls.test_inert_template_rejected_without_marker) ... ok
+test_new_curriculum_study_rejected (test_restore_probe.RegistrationControls.test_new_curriculum_study_rejected) ... ok
+test_old_training_schema_rejected (test_restore_probe.RegistrationControls.test_old_training_schema_rejected) ... ok
+test_reference_swap_fails_before_outer_marker (test_restore_probe.RegistrationControls.test_reference_swap_fails_before_outer_marker) ... ok
+test_replica2_rejected (test_restore_probe.RegistrationControls.test_replica2_rejected) ... ok
+test_replica_bool_rejected_before_marker (test_restore_probe.RegistrationControls.test_replica_bool_rejected_before_marker) ... ok
+test_spent_outer_marker_rejected (test_restore_probe.RegistrationControls.test_spent_outer_marker_rejected) ... ok
+test_spent_subclaim_rejected (test_restore_probe.RegistrationControls.test_spent_subclaim_rejected) ... ok
+test_strict_extra_field (test_restore_probe.RegistrationControls.test_strict_extra_field) ... ok
+test_training_limits_rejected (test_restore_probe.RegistrationControls.test_training_limits_rejected) ... ok
+test_result_cleanup_failure_rejected (test_restore_probe.ResultControls.test_result_cleanup_failure_rejected) ... ok
+test_result_env_count_rejected (test_restore_probe.ResultControls.test_result_env_count_rejected) ... ok
+test_result_event_schema_and_order (test_restore_probe.ResultControls.test_result_event_schema_and_order) ... ok
+test_result_lr_override_mutation_rejected (test_restore_probe.ResultControls.test_result_lr_override_mutation_rejected) ... ok
+test_result_strict_schema (test_restore_probe.ResultControls.test_result_strict_schema) ... ok
+test_result_wrong_reference_rehashed_semantics (test_restore_probe.ResultControls.test_result_wrong_reference_rehashed_semantics) ... ok
+test_new_supervisor_lifecycle_and_consumer_success (test_restore_probe.SupervisorControls.test_new_supervisor_lifecycle_and_consumer_success) ... ERROR
+test_new_supervisor_rejects_semantically_bad_zero_exit_worker (test_restore_probe.SupervisorControls.test_new_supervisor_rejects_semantically_bad_zero_exit_worker) ... FAIL
+test_worker_cleanup_failure_has_no_commit (test_restore_probe.WorkerCLIControls.test_worker_cleanup_failure_has_no_commit) ... ok
+test_worker_cli_success_commits_only_after_cleanup (test_restore_probe.WorkerCLIControls.test_worker_cli_success_commits_only_after_cleanup) ... ok
+test_worker_constructor_failure_still_releases (test_restore_probe.WorkerCLIControls.test_worker_constructor_failure_still_releases) ... ok
+test_worker_mutating_restore_keeps_claim_and_partial_fingerprints (test_restore_probe.WorkerCLIControls.test_worker_mutating_restore_keeps_claim_and_partial_fingerprints) ... ok
+test_worker_sigterm_before_claim_releases_and_records_signal (test_restore_probe.WorkerCLIControls.test_worker_sigterm_before_claim_releases_and_records_signal) ... ok
+
+======================================================================
+ERROR: test_rehashed_result_wrong_reference_rejected (test_restore_probe.ConsumerControls.test_rehashed_result_wrong_reference_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/test_restore_probe.py", line 284, in test_rehashed_result_wrong_reference_rejected
+    with self.assertRaisesRegex(ValueError,'reference/scope'): p.committed_check(self.reg,self.rsha)
+                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/probe.py", line 313, in committed_check
+    validate_result(reg,row,rsha)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/probe.py", line 274, in validate_result
+    reference=read(reg['reference']['receipt_path'])
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/probe.py", line 54, in read
+    return json.loads(Path(path).read_bytes(),object_pairs_hook=unique,parse_constant=lambda v:(_ for _ in ()).throw(ValueError(v)))
+                      ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/pathlib.py", line 1019, in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/pathlib.py", line 1013, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'wrong'
+
+======================================================================
+ERROR: test_new_supervisor_lifecycle_and_consumer_success (test_restore_probe.SupervisorControls.test_new_supervisor_lifecycle_and_consumer_success)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/test_restore_probe.py", line 329, in test_new_supervisor_lifecycle_and_consumer_success
+    row=self.run_synthetic(); self.assertEqual(row['raw_worker_exit_code'],0)
+        ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/test_restore_probe.py", line 326, in run_synthetic
+    else: s.execute(rp,rsha,p.HERE/'worker_cli.py')
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/supervisor_cli.py", line 192, in execute
+    if reason: raise RuntimeError('probe failed: '+reason+'; '+('partial receipt preserved' if claimed else 'marker not claimed'))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: probe failed: supervisor_exception:cannot sample actual owned process group RSS; partial receipt preserved
+
+======================================================================
+FAIL: test_new_supervisor_rejects_semantically_bad_zero_exit_worker (test_restore_probe.SupervisorControls.test_new_supervisor_rejects_semantically_bad_zero_exit_worker)
+----------------------------------------------------------------------
+RuntimeError: probe failed: supervisor_exception:cannot sample actual owned process group RSS; partial receipt preserved
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/test_restore_probe.py", line 335, in test_new_supervisor_rejects_semantically_bad_zero_exit_worker
+    row=self.run_synthetic('bad-result'); self.assertEqual(row['raw_worker_exit_code'],0)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-restore-probe-prepare-sol-20261026-r1/test_restore_probe.py", line 325, in run_synthetic
+    with self.assertRaisesRegex(RuntimeError,'postflight_failed'): s.execute(rp,rsha,p.HERE/'worker_cli.py')
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: "postflight_failed" does not match "probe failed: supervisor_exception:cannot sample actual owned process group RSS; partial receipt preserved"
+
+----------------------------------------------------------------------
+Ran 44 tests in 22.129s
+
+FAILED (failures=1, errors=2)
