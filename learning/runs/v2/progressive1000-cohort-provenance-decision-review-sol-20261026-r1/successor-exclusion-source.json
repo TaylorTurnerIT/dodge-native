@@ -1,0 +1,107 @@
+{
+  "runtime_enforcement_qualified_by_this_review": false,
+  "source": {
+    "contracts.py": {
+      "sha256": "40081f989c3d66822c6315ec7973312591f23b6a6ccd74e4be04c12cc6d8b838",
+      "source_lines": [
+        [
+          68,
+          "    need(type(ranges) is list and len(ranges)>=6,'full future exclusion union requires at least six ranges')"
+        ],
+        [
+          76,
+          "    need(all(any(lo<=a and hi>=b for lo,hi in rows) for a,b in transition.EXPECTED_EXCLUSION_RANGES),"
+        ]
+      ]
+    },
+    "runtime_adapter.py": {
+      "sha256": "e8b299b9a46b68454a17d39efc8ae14ff79c059c2e23410a289f959114569eaa",
+      "source_lines": [
+        [
+          146,
+          "    def make_env(self):"
+        ],
+        [
+          148,
+          "        controls = c.episode_controls(self.reg['vector'],self.reg['initial_episode_indices'],self.reg['exclusion_union'])"
+        ],
+        [
+          150,
+          "        self.env = self.game.VecDodgeEnv(batch_size=64, action_repeat=4, difficulty=2,"
+        ],
+        [
+          155,
+          "            excluded_seed_ranges=[tuple(row) for row in self.reg['exclusion_union']])"
+        ]
+      ]
+    },
+    "transition.py": {
+      "sha256": "6b79210768e39e6798927f355ab4ce312dc830e71e86887caad7eaa996cdabe0",
+      "source_lines": [
+        [
+          9,
+          "EXPECTED_EXCLUSION_RANGES=tuple(sorted(((0xD3000000,0xD30003FF),(2952790016,2952791015),(3489660928,3489661055),(3758096384,3758097383),(3506438144,3506439167),(3523215360,3523217407))))"
+        ],
+        [
+          46,
+          "    if len(normalized)<6 or len(set(normalized))!=len(normalized): raise ValueError(\"exclusion union requires at least six unique ranges\")"
+        ],
+        [
+          48,
+          "    if not all(any(lo<=a and hi>=b for lo,hi in normalized) for a,b in EXPECTED_EXCLUSION_RANGES): raise ValueError(\"future environment requires full historical and new cohort union\")"
+        ]
+      ]
+    }
+  },
+  "source_only": true,
+  "templates": [
+    {
+      "arm": "control_constant_3e-5",
+      "path": "learning/runs/v2/progressive1000-shared-runtime-assembly-sol-20261026-r1/registration-template-replica-1-control_constant_3e-5.json",
+      "proposal_vector_matches": true,
+      "replica": 1,
+      "status": "inert_template_NO_LAUNCH",
+      "union_matches": true
+    },
+    {
+      "arm": "progressive1000_curriculum_constant_3e-5",
+      "path": "learning/runs/v2/progressive1000-shared-runtime-assembly-sol-20261026-r1/registration-template-replica-1-progressive1000_curriculum_constant_3e-5.json",
+      "proposal_vector_matches": true,
+      "replica": 1,
+      "status": "inert_template_NO_LAUNCH",
+      "union_matches": true
+    },
+    {
+      "arm": "control_constant_3e-5",
+      "path": "learning/runs/v2/progressive1000-shared-runtime-assembly-sol-20261026-r1/registration-template-replica-2-control_constant_3e-5.json",
+      "proposal_vector_matches": true,
+      "replica": 2,
+      "status": "inert_template_NO_LAUNCH",
+      "union_matches": true
+    },
+    {
+      "arm": "progressive1000_curriculum_constant_3e-5",
+      "path": "learning/runs/v2/progressive1000-shared-runtime-assembly-sol-20261026-r1/registration-template-replica-2-progressive1000_curriculum_constant_3e-5.json",
+      "proposal_vector_matches": true,
+      "replica": 2,
+      "status": "inert_template_NO_LAUNCH",
+      "union_matches": true
+    },
+    {
+      "arm": "control_constant_3e-5",
+      "path": "learning/runs/v2/progressive1000-shared-runtime-assembly-sol-20261026-r1/registration-template-replica-3-control_constant_3e-5.json",
+      "proposal_vector_matches": true,
+      "replica": 3,
+      "status": "inert_template_NO_LAUNCH",
+      "union_matches": true
+    },
+    {
+      "arm": "progressive1000_curriculum_constant_3e-5",
+      "path": "learning/runs/v2/progressive1000-shared-runtime-assembly-sol-20261026-r1/registration-template-replica-3-progressive1000_curriculum_constant_3e-5.json",
+      "proposal_vector_matches": true,
+      "replica": 3,
+      "status": "inert_template_NO_LAUNCH",
+      "union_matches": true
+    }
+  ]
+}

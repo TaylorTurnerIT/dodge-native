@@ -1,0 +1,65 @@
+[
+  {
+    "classification": "native_heuristic_baseline",
+    "decision": "not_a_teacher_freshness_blocker",
+    "file_roles": 28,
+    "group": "gate-baselines-r1",
+    "learned_teacher_exposure": false,
+    "limit": "This closes the named group's role, not global never-simulated seed history.",
+    "reason": "Pinned m0_baseline runs Random, Neutral, AabbDodger; fixed B base plus index. D1/D3 are native difficulty settings. No learned checkpoint, optimizer, or teacher-selection evaluation."
+  },
+  {
+    "classification": "core_renderer_unit_tests_and_fixed_random_profile",
+    "decision": "not_a_teacher_freshness_blocker",
+    "file_roles": 14,
+    "group": "milestone1-r1",
+    "learned_teacher_exposure": false,
+    "limit": "This closes the named group's role, not global never-simulated seed history.",
+    "reason": "Workspace contains core, native runner, viewer; headless_profile uses PicoRng actions and seeds 1000..1063. No learned teacher entrypoint."
+  },
+  {
+    "classification": "core_renderer_unit_tests",
+    "decision": "not_a_teacher_freshness_blocker",
+    "file_roles": 12,
+    "group": "milestone1-r2",
+    "learned_teacher_exposure": false,
+    "limit": "This closes the named group's role, not global never-simulated seed history.",
+    "reason": "Same workspace and profile source identity as r1; command selects native workspace tests. No learned teacher entrypoint."
+  },
+  {
+    "classification": "binding_contract_and_gil_tests",
+    "decision": "not_a_teacher_freshness_blocker",
+    "file_roles": 16,
+    "group": "milestone2-binding-r1",
+    "learned_teacher_exposure": false,
+    "limit": "This closes the named group's role, not global never-simulated seed history.",
+    "reason": "Rust wrapper tests and pytest test_env.py exercise environment schemas, arrays, seed/reset metadata and GIL behavior. Python imports only ctypes/sys/threading/time/numpy/pytest and environment binding. No learned model/checkpoint or optimizer call."
+  },
+  {
+    "classification": "core_observation_tests_random_profile_and_layout",
+    "decision": "not_a_teacher_freshness_blocker",
+    "file_roles": 42,
+    "group": "milestone2-core-r1",
+    "learned_teacher_exposure": false,
+    "limit": "This closes the named group's role, not global never-simulated seed history.",
+    "reason": "Native workspace and observation_tests; profile uses fixed random schedules; layout prints size_of types. No learned teacher entrypoint."
+  },
+  {
+    "classification": "pure_geometry_raster_fixtures",
+    "decision": "not_a_teacher_freshness_blocker",
+    "file_roles": 9,
+    "group": "milestone2-math-r1",
+    "learned_teacher_exposure": false,
+    "limit": "This closes the named group's role, not global never-simulated seed history.",
+    "reason": "rustc --test fixtures.rs includes only geometry/raster primitives. No environment or learner entrypoint."
+  },
+  {
+    "classification": "wrapper_contract_renderer_heuristic_replay_and_arithmetic_actions",
+    "decision": "not_a_teacher_freshness_blocker",
+    "file_roles": 1,
+    "group": "milestone2-wrapper-r1",
+    "learned_teacher_exposure": false,
+    "limit": "This closes the named group's role, not global never-simulated seed history.",
+    "reason": "Rust wrapper tests; explicit ignored replay uses the same three hand-written policies. Supplemental trajectory uses (decision*7+slot*3)%9. Training seed mode is seed generation, not fitting a teacher."
+  }
+]

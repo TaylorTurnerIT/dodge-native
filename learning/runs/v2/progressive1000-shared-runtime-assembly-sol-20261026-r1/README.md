@@ -1,0 +1,21 @@
+# Progressive1000 shared runtime assembly
+
+Source preparation only. No launch authority.
+
+The active integration reuses the accepted R3 worker and R5 restore/claim contracts. It adds the accepted collector's practice cutoffs, exact scheduler, frozen episode assignments, and matched constant-3e-5 control. Both arms share one owned Python/model/PPO/native tree and configuration. No replacement trainer or supervisor is introduced; the existing parent launcher owns registration, supervision, leases, markers, resource enforcement and acceptance.
+
+`worker_cli.py` retains R3's `--registration`, `--registration-sha256`, `--source-acceptance`, `--source-acceptance-sha256`, `--started` and `--validate-only` arguments. All six templates are inert: references, approvals, output paths and resource limits are absent; history is BLOCKED and cohort reservation is PENDING. Validation refuses them before runtime imports, bootstrap, claim or restore. No launch command is supplied.
+
+`runtime_adapter.py` binds unchanged checkpoint/identity/model source bytes at new owned origins. The R5 private callback keeps origin, code, defaults and module checks, zero-argument restore, durable claim, accepted model/Adam/RNG fingerprints, and independent CPU/MPS two-digest reference checks. Parent lineage and successor runtime identity are separate. Actual accepted restore was not executed here. A separate restore-probe package is **not** required by this implementation.
+
+`runtime/dodge_rl/curriculum.py` retains the accepted scheduler and collector boundaries. `PreparedUpdates` accepts explicit CPU/MPS devices, consumes failed updates, journals native costs/completions/reset identities before later failures, and promotes only after successful PPO and validation. Returned but unaudited new episodes remain unassigned. The native seed tuple is predicted for the entire reset batch before construction; collisions stop the run without replacement. Rollout buffers, model inputs, GAE, PPO optimization and target-KL behavior stay unchanged. Actual Adam steps include partial failed-update progress; there is no top-up. Updates are global1–60, cumulative373–432 and phase325–384, with no final drain.
+
+Integrity checkpoints at12/24/36/48/60 preserve model, Adam, RNG, scheduler, episode offsets and exposure. They grant no training eligibility or promotion. Only terminal60 endpoints enter formal comparison; no best-checkpoint or replica selection occurs.
+
+`expanded_eval.py` reuses the frozen expanded evaluator's full-run loop and row validator. `evaluate_full_run` is a hook for the existing trusted parent evaluator, not another launcher or checkpoint loader. The successor explicitly uses sampled Categorical actions as required by this design; its frozen predecessor used argmax. Evaluation starts normally, disables practice cutoffs, and uses all1024 shared new seeds. Summaries include fatal-frame-excluded survival, exact256-row quarters, milestones, conserved outcome buckets and complete three-pair comparisons with one shared parent. Missing endpoints or rows refuse a complete comparison. Evaluation stream/backend/source pins and parent resource guards remain mandatory.
+
+The broader standalone evaluator registration/launch code and earlier worker plumbing remain under `deferred/` for evidence only. They are optional, unqualified, and outside the required execution path. Their presence creates no new probe or launch prerequisite.
+
+The owned release binary was built offline from byte-identical accepted R2 source and Cargo.lock using project-venv PyO3 and scoped macOS dynamic_lookup flags. It was not installed or imported. Debug integration evidence does not validate this release binary. Release parity, real MPS performance and runtime qualification remain unmeasured.
+
+See `receipt.json`, `logs/`, `exact-input-diff.patch`, the manifests and `remaining-gates.json`. Tests use synthetic CPU learners, fake environments and stdlib fixtures only. No accepted checkpoint/model, native environment, study seed stream/cohort, MPS execution, registration, lease, marker, training or evaluation campaign was consumed or changed. No commits, pushes, delegation or parent-file edits were performed.

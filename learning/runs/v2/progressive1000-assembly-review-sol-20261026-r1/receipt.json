@@ -1,0 +1,162 @@
+{
+  "AST_parsed_without_execution": [
+    "worker_cli.py",
+    "worker.py",
+    "runtime_adapter.py",
+    "contracts.py",
+    "driver_binding.py",
+    "transition.py",
+    "attempt_claim.py",
+    "rng_reference.py",
+    "fingerprints.py",
+    "successor_identity.py",
+    "death_telemetry.py",
+    "expanded_eval.py",
+    "run_tests.py",
+    "runtime/dodge_rl/__init__.py",
+    "runtime/dodge_rl/checkpoints.py",
+    "runtime/dodge_rl/identity.py",
+    "runtime/dodge_rl/models/__init__.py",
+    "runtime/dodge_rl/models/teacher.py",
+    "runtime/dodge_rl/ppo.py",
+    "runtime/dodge_rl/curriculum.py",
+    "runtime/dodge_rl/scheduler_reference.py",
+    "runtime/dodge_rl/train_teacher.py",
+    "tests/fakes.py",
+    "tests/successor/__init__.py",
+    "tests/test_assembly.py",
+    "tests/test_collector.py",
+    "tests/test_regressions.py",
+    "tests/test_scheduler_reference.py",
+    "tests/test_transition.py"
+  ],
+  "active_deferred_imports": [],
+  "author_test_evidence": "81 author CPU/fake/stdlib controls reported; not replayed or treated as actual accepted restore/MPS evidence",
+  "candidate_promotion": false,
+  "created_at_utc": "2026-10-27T03:01:05.756066+00:00",
+  "declared_changed_copy_pairs_verified": 11,
+  "evaluator_loop_changes": [
+    "sampled Categorical replaces argmax per accepted design",
+    "optional constructor/step/completion event hooks"
+  ],
+  "exact_input_patch_regenerated_identically": true,
+  "findings": [
+    {
+      "basis": "source and stdlib descriptor semantics; no target execution",
+      "call_site_line": 89,
+      "consequence": "Both arms fail before bootstrap/load/claim/restore; existing output and parent-spent launch marker prevent replay",
+      "id": "R1",
+      "line_end": 56,
+      "line_start": 51,
+      "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-shared-runtime-assembly-sol-20261026-r1/runtime_adapter.py",
+      "predicted_error": "runtime class method differs: OmniscientEntityTeacher._initialize_head",
+      "regression_from": {
+        "after": "function = inspect.getattr_static(loaded,method)",
+        "before": "function = getattr(loaded,method)",
+        "line": 51,
+        "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-shared-runtime-assembly-sol-20261026-r1/originals/runtime_adapter.py"
+      },
+      "related_teacher_lines": [
+        105,
+        106,
+        112,
+        113
+      ],
+      "severity": "P1",
+      "title": "Static descriptor lookup rejects both unchanged teacher static methods",
+      "trigger": "Any approved RuntimeAdapter construction with the exact pinned teacher"
+    }
+  ],
+  "frozen_evaluator_row_validator_AST_identical": true,
+  "launch_authority": false,
+  "limits": [
+    "Source-only review, not launch authority or runtime/source acceptance",
+    "No target imports or executed target definitions/tests",
+    "No Torch/NumPy/native/model/environment/MPS execution or checkpoint deserialization",
+    "No build, repair, subdelegation, commit or push",
+    "B/E expected-result and performance tables not opened; manifest members were byte-hashed only",
+    "Existing parent release parity, actual MPS restore/runtime qualification, resources, references, seed approval, registration and preflight remain pending",
+    "No standalone restore probe or optional deferred-framework prerequisite",
+    "Pin preservation is not a complete workspace snapshot or attribution of concurrent edits"
+  ],
+  "manifest_verification": {
+    "input-manifest.json": {
+      "checked_members": 145,
+      "mismatches": [],
+      "sha256": "3d2e353507e99749eaa0c6463aab2800afbfe5eceae4a889ffb584db1dca7f20"
+    },
+    "runtime-manifest.json": {
+      "checked_members": 12,
+      "mismatches": [],
+      "sha256": "f41c4435e952a560f8aa18f6939c35bfa5573adbaf08cbeb53f5380b9aa09b6e"
+    },
+    "source-manifest.json": {
+      "checked_members": 104,
+      "mismatches": [],
+      "sha256": "4504dc63f2d4b0743c6e41def810309850072db6fdb2713abcf5aac375623f7b"
+    }
+  },
+  "output_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-assembly-review-sol-20261026-r1",
+  "predecessor_edits_performed": false,
+  "result": "blocking_findings",
+  "review_sha256": "0db1d4c8771d3c62111ea1c26be7f9d3f488d12e0d103d29ac166e026674ae6e",
+  "review_tool_python": "3.9.6",
+  "reviewed_file_sha256": {
+    "README.md": "8e045902601e2df44ca42fbf03d40996f7e881064341a44ef5e063a0cac5eb5d",
+    "attempt_claim.py": "bf993c076c6c3270a3efb89f42d3ca86a070a044da286b42b4803790c3759206",
+    "contracts.py": "40081f989c3d66822c6315ec7973312591f23b6a6ccd74e4be04c12cc6d8b838",
+    "death_telemetry.py": "542395b6cbbeb500348c2baa7a0c0bd48a7f6d7e5405c6542d189b51f3f6959a",
+    "dependency-config.json": "d29fcbb01fc6772eeb507603adfa90df739531c989d941c653ca85e887e14608",
+    "driver_binding.py": "716c54515f291d747636f61f09b487b643fc6f006c0b8859ac8e534ab5486b20",
+    "evaluation-contract.json": "a42297c8e77fe3d8a1adc92b9f4d68bd4b842cf9ec632ae16f14e7af3f31bcd9",
+    "exact-input-diff.json": "2249f2bbe155b9876232e7966abb3ecd47b35d43ec58db288e047acbe52f437c",
+    "exact-input-diff.patch": "24f9a7582ff39469b8b24475d675cf36df41025bf96a0e5552bf008fee7c3a4c",
+    "expanded_eval.py": "3fd6c1e25b11c7214eff5d4d83ae7a18e3c2b109ce1750db634196075cfc56a0",
+    "experiment.json": "c20bd35188c4b4dd36687bc10c7998e6410c70d37300be92db9a42b3d01c43c0",
+    "fingerprints.py": "6ef9cf3f08fe800f54230801a921a2f5c82e47e5013ef3087ead6499d2533d61",
+    "receipt.json": "e30c0cea3fead49ce59732831a790647a7ab12729b561ad47247f528a4722c6b",
+    "remaining-gates.json": "4330c2b1beb69a18d01b1c6d23ebf1e0b090759ba82b404949606f7fc84e57d4",
+    "rng_reference.py": "9abfb7f892fc3a0b62d665a390effcfd7cbf4161ccf1ade3a9240d9392172917",
+    "run_tests.py": "a58a38fdafa6ec258bda73a42e5e26b9d51cb617aa95442929f8b25f2db2e856",
+    "runtime/dodge_rl/__init__.py": "2bf56a8151b512d78a228d604fdac67c529c8ebfd3fa233c71c2dd4f882b44dc",
+    "runtime/dodge_rl/checkpoints.py": "807141943a742c6e9fdd34274c191b3c318134cc7fb0c1c6256874cadee1cbc3",
+    "runtime/dodge_rl/curriculum.py": "ee39cee1c25a952794aef33719a0bbb8b1a3059d8f0e044d5b3fc10b169b2423",
+    "runtime/dodge_rl/identity.py": "50775b2e7c30e53757dd3134d11613f716733cee8e6a96cc18b62e8ff2a4a053",
+    "runtime/dodge_rl/models/__init__.py": "b28b2623443e31d9e9cb81350f89e9fb7d285abe3e2a74c007be8e4cfff432dc",
+    "runtime/dodge_rl/models/teacher.py": "e4d7f597a2824c2b0d4ba261dddc9d7d1ee1d5592c2fc966a44c54b5ec417e35",
+    "runtime/dodge_rl/ppo.py": "29105fa9549c1092d030e85ae696cd763a153e0cac74ab59fe95be771f4b9c57",
+    "runtime/dodge_rl/scheduler_reference.py": "a467b7219a9cd801fa3b403a6af112fc693ec3d14c9d311e8845632ef61d844b",
+    "runtime/dodge_rl/train_teacher.py": "1d134bfb221ff52139e1243c9e4f9c3063432942a3274c567b71db4d7669c0cf",
+    "runtime_adapter.py": "e8b299b9a46b68454a17d39efc8ae14ff79c059c2e23410a289f959114569eaa",
+    "shared-config.json": "31e07e9b5f03ffac1f95f92241a29ed5e45442c57a8c61b80776d631040d7adf",
+    "successor_identity.py": "ac81248fae44a17d2719d05f963ebfdf6e86d3f171df61e1f27c2daa03461b21",
+    "tests/fakes.py": "797cffd8c7dc3ad63832aa47d75604cb15824926973701aad8fe55048d0ef6c7",
+    "tests/successor/__init__.py": "a64dc60d05892f381b35cc64d52ebf652728f131ac9d93d7f6c56e1386f76391",
+    "tests/test_assembly.py": "2b4e3d033de1e473aabfe1a7c78ed3434e9c2c8567727ab0da22234eff92561d",
+    "tests/test_collector.py": "5b8d082be5298c5952f62d1a9e768f33714d1cb4e08970534cebf3dc4f6396aa",
+    "tests/test_regressions.py": "742bf33dce6c54cd68bec1ca0c5b672dc6f82b4b4fafd5c1c3363b096e46f089",
+    "tests/test_scheduler_reference.py": "e142bdcd75ce5962f0b32105bea08dde6a410e1052fc19b40dff5cd3642ecff9",
+    "tests/test_transition.py": "432f14ea4babca68f5b00c9e0f6bdfbf9b2f47b6a522ec93750d7978628cae0b",
+    "transition.py": "6b79210768e39e6798927f355ab4ce312dc830e71e86887caad7eaa996cdabe0",
+    "worker.py": "77db3be15c1cd3a23948e5d95db2f3d19bd56ff053614e1fdbfa89166c15504f",
+    "worker_cli.py": "4e0a74b3500fb28c3908d7e0df138f371c2b493381f54eb0bff6e76a8923db58"
+  },
+  "reviewed_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-shared-runtime-assembly-sol-20261026-r1",
+  "reviewer": "Sol review sub-agent",
+  "root_README_ledger_leases_markers_qualification_outcomes_modified": false,
+  "runtime_member_set_exact": true,
+  "schema": "progressive1000_assembly_source_review_v1",
+  "scope": "active minimal progressive1000 assembly only; SOURCEONLY",
+  "supplied_pins": {
+    "runtime-manifest.json": "f41c4435e952a560f8aa18f6939c35bfa5573adbaf08cbeb53f5380b9aa09b6e",
+    "runtime/dodge_rl/_native.cpython-312-darwin.so": "e8e25a2adb02581e9ec671551395cc5d14f8bc8c57c4ca6f2e7ea79b96309eea",
+    "source-manifest.json": "4504dc63f2d4b0743c6e41def810309850072db6fdb2713abcf5aac375623f7b"
+  },
+  "test_methods_in_source": 81,
+  "test_only_deferred_import": "tests/test_assembly.py:17",
+  "tests_executed": 0,
+  "writes": [
+    "review.md",
+    "receipt.json"
+  ]
+}

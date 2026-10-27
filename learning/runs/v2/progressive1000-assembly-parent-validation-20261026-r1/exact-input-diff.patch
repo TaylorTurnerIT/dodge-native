@@ -1,0 +1,1205 @@
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/contracts.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-shared-runtime-assembly-sol-20261026-r1/contracts.py
+@@ -1,171 +1,225 @@
+-"""Strict source-only registration and read-only input validation."""
++"""Fail-closed successor identity and parent-owned launch preflight; stdlib only."""
+ from __future__ import annotations
+ import hashlib
+ import json
++import math
++import os
+ from pathlib import Path
+ import sys
+-
+-import driver_binding as binding
++import time
++
+ import rng_reference as references
+ import transition
+ 
+ HERE = Path(__file__).resolve().parent
+ ROOT = HERE.parents[3]
+-STUDY = 'paired-lr-confirmed324-20261026-r1'
+-VECTOR_PATH = 'learning/runs/v2/confirmed324-seed-vectors-parent-20261026-r1/seed-vectors.json'
+-VECTOR_SHA = '33ada951394fd3ce674955d43de1919b1cd3c2192e066722e33d5b49549c070b'
+-R5_MANIFEST = 'learning/runs/v2/confirmed324-private-bindings-r5-parent-validation-20261026-r1/source-manifest.json'
+-R5_MANIFEST_SHA = '2b0caf00a5d5e765726d080fd5647211190e472d74ffb33b3466e477cb2906a9'
+-REF_ROOT = 'learning/runs/v2/confirmed324-rng-reference-parent-20261026-r3'
+-REF_REG_SHA = '0150cfcdbec53ff4322f72e5fa224cb6a914f3505ea732c0722511b5e031c398'
++STUDY = 'progressive1000-confirmed324-20261026-r1'
++ARMS = ('control_constant_3e-5', 'progressive1000_curriculum_constant_3e-5')
+ PARENT_RECEIPT = 'learning/runs/v2/D2-retained300-parent-terminal-audit-20261026-r1/retained-best-candidate-receipt.json'
+-ARMS = tuple(sorted(transition.ARMS))
+ PPO = dict(gamma=.995, gae_lambda=.95, learning_rate=3e-5, adam_eps=1e-5,
+            clip_coef=.2, vf_coef=.5, ent_coef=.01, max_grad_norm=.5,
+            update_epochs=4, minibatch_size=512, target_kl=.03, reward_scale=.1)
+ SCHEDULE = dict(updates=60, cumulative_origin=372, cumulative_first=373,
+                 cumulative_last=432, phase_start=325, phase_end=384,
+-                candidate_local_updates=[12,24,36,48,60])
+-LIMITS = dict(work_seconds=1790, total_seconds=1800, cleanup_seconds=10,
+-              rss_bytes=6442450944, mps_bytes=6442450944, retries=0)
+-REG_FIELDS = {'schema','status','study_id','run_id','pair_id','arm','replica','backend',
+-              'vector','reference','parent_checkpoint_sha256','parent_receipt_sha256',
+-              'expected_parent_fingerprints','initial_episode_indices','exclusion_union',
+-              'ppo','schedule','limits','input_manifest_sha256','source_manifest_sha256',
+-              'runtime_root','runtime_versions','output','attempt_claim_path','interpreter',
+-              'import_policy','state_path','expected_lease','launch_marker_path'}
+-
+-
+-def need(condition, message):
+-    if not condition:
++                integrity_local_updates=[12,24,36,48,60], formal_evaluation_local_updates=[60],
++                candidate_selection=False, promotion=False, final_drain=False)
++GATES = ('independent_source_review','trusted_restore_qualification','new_vector_CPU_MPS_references',
++         'seed_history_freshness','seed_reservation','disabled_cutoff_release_parity',
++         'release_runtime_qualification','resource_calibration','supervisor_cleanup',
++         'registration','one_shot_launch')
++REG_FIELDS = {'schema','status','study_id','run_id','pair_id','replica','arm','backend','curriculum_enabled',
++              'vector','reference','reference_approval','initial_episode_indices','exclusion_union',
++              'parent_checkpoint_sha256','parent_receipt_sha256','expected_parent_fingerprints',
++              'runtime_root','runtime_versions','source_manifest_sha256','runtime_manifest_sha256',
++              'input_manifest_sha256','shared_config','ppo','schedule','output','attempt_claim_path',
++              'interpreter','import_policy','state_path','expected_lease','launch_marker_path',
++              'limits','cohort_state','history_state','reservation_state'}
++
++
++def need(ok, message):
++    if not ok:
+         raise ValueError(message)
+ 
+ 
++def canonical(value):
++    return json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=True,allow_nan=False).encode()
++
++
+ def sha(path):
+-    digest = hashlib.sha256()
++    digest=hashlib.sha256()
+     with Path(path).open('rb') as stream:
+-        for chunk in iter(lambda: stream.read(1048576), b''):
+-            digest.update(chunk)
++        for block in iter(lambda:stream.read(1048576),b''):
++            digest.update(block)
+     return digest.hexdigest()
+ 
+ 
+ def read(path):
+-    def unique(pairs):
+-        result = {}
+-        for key, value in pairs:
+-            need(key not in result, 'duplicate JSON field: ' + key)
+-            result[key] = value
++    def unique(items):
++        result={}
++        for key,value in items:
++            need(key not in result,'duplicate JSON field: '+key)
++            result[key]=value
+         return result
+-    return json.loads(Path(path).read_bytes(), object_pairs_hook=unique,
++    return json.loads(Path(path).read_bytes(),object_pairs_hook=unique,
+                       parse_constant=lambda value: (_ for _ in ()).throw(ValueError(value)))
+ 
+ 
+-def verify_inputs():
+-    manifest = read(HERE / 'input-manifest.json')
+-    need(manifest['root'] == str(ROOT), 'checkout binding differs')
+-    for name, digest in manifest['pins'].items():
+-        need(sha(ROOT / name) == digest, 'read-only input changed: ' + name)
+-    need(sha(ROOT / R5_MANIFEST) == R5_MANIFEST_SHA, 'authoritative R5 manifest changed')
+-    for name, digest in read(ROOT / R5_MANIFEST)['files'].items():
+-        need(sha(name) == digest, 'authoritative R5 member changed: ' + name)
+-        if Path(name).name in ('attempt_claim.py','driver_binding.py','fingerprints.py','rng_reference.py','transition.py'):
+-            need(sha(HERE / Path(name).name) == digest, 'owned R5 copy differs')
+-    binding.verify_pinned_sources(ROOT)
+-    runtime = Path(manifest['runtime_root'])
+-    actual = {str(p.relative_to(ROOT)) for p in runtime.rglob('*')
+-              if p.is_file() and '__pycache__' not in p.parts}
+-    expected = {p for p in manifest['pins'] if p.startswith(str(runtime.relative_to(ROOT)) + '/')}
+-    need(actual == expected, 'runtime member set differs')
+-    producing_registration = ROOT / 'learning/runs/v2/D2-retained300-continuation-freeze-20261026-r5/registration.json'
+-    need(sha(producing_registration) == '8a60dc80f1ebe03c43bf18eebf75199e14f207b677570ac2d6d4368ddfcb0f79', 'accepted producing registration differs')
+-    accepted_runtime = read(producing_registration)
+-    members = {str((ROOT / path).relative_to(runtime)):manifest['pins'][path] for path in expected}
+-    need(members == accepted_runtime['runtime_continuity']['member_sha256']
+-         and manifest['runtime_versions'] == accepted_runtime['runtime_versions']
+-         and accepted_runtime['runtime_continuity']['source_runtime_root'] == str(runtime)
+-         and accepted_runtime['runtime_sha256'] == '2cf10e9f056f41b39dc17845192e9adf553a5f699546d4f5dcea764a23e36b31',
+-         'accepted runtime member/version/lineage binding differs')
+-    need(sha(ROOT / VECTOR_PATH) == VECTOR_SHA, 'seed-vector source pin differs')
+-    return manifest
+-
+-
+-def verify_source_manifest(expected):
+-    need(sha(HERE / 'source-manifest.json') == expected, 'owned source manifest differs')
+-    manifest = read(HERE / 'source-manifest.json')
+-    for name, digest in manifest['files'].items():
+-        path = HERE / name
+-        need(path.resolve().parent == HERE and sha(path) == digest, 'owned source changed: ' + name)
+-
+-
+-def episode_controls(vector):
+-    """Stdlib transcription of pinned seed.rs wrapping tuple hash; no RNG draw."""
+-    mask = (1 << 64) - 1
++def validate_union(ranges):
++    need(type(ranges) is list and len(ranges)>=6,'full future exclusion union requires at least six ranges')
++    rows=[]
++    for row in ranges:
++        need(type(row) is list and len(row)==2 and all(type(v) is int for v in row)
++             and 0<=row[0]<=row[1]<=2**32-1,'invalid exclusion range')
++        rows.append(tuple(row))
++    need(rows==sorted(rows) and all(a[1]+1<b[0] for a,b in zip(rows,rows[1:])),
++         'exclusion union must be sorted, disjoint and merged')
++    need(all(any(lo<=a and hi>=b for lo,hi in rows) for a,b in transition.EXPECTED_EXCLUSION_RANGES),
++         'historical/new-cohort union missing')
++    need(rows!=[(0,2**32-1)],'exclusion union exhausts u32')
++    return rows
++
++
++def episode_controls(vector,indices,ranges):
++    """Same native SplitMix64 domain; reject the full union before construction."""
++    ranges=validate_union(ranges)
++    transition.validate_seeds(vector['seeds'])
++    need(type(indices) is list and len(indices)==64 and all(type(v)is int and 0<=v<2**64-1 for v in indices),
++         'exact 64 parent next episode indices required')
++    master=vector['seeds']['env_master_seed']
++    result=[dict(slot=slot,episode_index=episode,**seed_metadata(master,slot,episode,ranges))
++            for slot,episode in enumerate(indices)]
++    need(len({r['first_actual_seed'] for r in result})==64,'initial actual seed collision')
++    return result
++
++
++def seed_metadata(master,slot,episode,ranges):
++    """Exact native high32 tuple hash, including counter rejection; no RNG draws."""
++    need(type(master)is int and 0<=master<2**64 and type(slot)is int and 0<=slot<64
++         and type(episode)is int and 0<=episode<2**64,'invalid seed tuple')
++    mask=(1<<64)-1
+     def mix(value):
+         value &= mask
+-        value = ((value ^ (value >> 30)) * 0xBF58476D1CE4E5B9) & mask
+-        value = ((value ^ (value >> 27)) * 0x94D049BB133111EB) & mask
+-        return value ^ (value >> 31)
+-    rows = []
+-    ranges = transition.EXPECTED_EXCLUSION_RANGES
+-    for slot, episode in enumerate(vector['env_control']['episode_indices']):
+-        base = mix(vector['seeds']['env_master_seed'] ^ 0x444F4447455F5632) ^ mix(slot + 0x9E3779B97F4A7C15) ^ mix(episode + 0xD1B54A32D192ED03)
+-        counter = 0
+-        while True:
+-            seed = mix(base ^ mix(counter + 0x94D049BB133111EB)) >> 32
+-            if not any(lo <= seed <= hi for lo, hi in ranges):
+-                break
+-            counter += 1
+-        rows.append(dict(slot=slot, episode_index=episode, first_actual_seed=seed, rejection_counter=counter))
+-    transition.validate_exclusion_controls(ranges, rows)
+-    need([r['first_actual_seed'] for r in rows[:4]] == vector['env_control']['first_slot_actual_seeds'], 'first seed control differs')
+-    actual = [row['first_actual_seed'] for row in rows]
+-    need(hashlib.sha256(b''.join(v.to_bytes(4,'big') for v in actual)).hexdigest() == vector['env_control']['all_slots_actual_seed_sha256'], 'all-slot seed digest differs')
+-    need(len(set(actual)) == vector['env_control']['distinct_actual_seeds'] == 64 and sum(v == 0 for v in actual) == vector['env_control']['zero_actual_seeds'] == 0, 'seed uniqueness/zero controls differ')
+-    return rows
+-
+-
+-def verify_registration(reg):
+-    need(type(reg) is dict and set(reg) == REG_FIELDS, 'registration schema fields differ')
+-    need(reg['schema'] == 'paired_confirmed324_worker_registration_v2' and reg['status'] == 'parent_registered', 'unregistered worker refused')
+-    need(reg['study_id'] == STUDY and reg['backend'] == 'mps', 'study/backend differs')
+-    need(type(reg['replica']) is int and reg['replica'] in (1,2,3) and reg['arm'] in ARMS, 'replica/arm differs')
+-    need(reg['pair_id'] == f'{STUDY}-replica-{reg["replica"]}', 'pair identity differs')
+-    need(reg['run_id'] == reg['pair_id'] + ('-A' if reg['arm'] == ARMS[0] else '-B'), 'run identity differs')
+-    need(reg['parent_checkpoint_sha256'] == references.ACCEPTED_CHECKPOINT_SHA256 and reg['parent_receipt_sha256'] == references.PARENT_RECEIPT_SHA256, 'parent identity differs')
+-    need(reg['expected_parent_fingerprints'] == transition.EXPECTED_PARENT, 'parent fingerprints differ')
+-    need(reg['ppo'] == PPO and reg['schedule'] == SCHEDULE and reg['limits'] == LIMITS, 'learner/schedule/limits differ')
+-    need(reg['exclusion_union'] == [list(row) for row in transition.EXPECTED_EXCLUSION_RANGES], 'exclusion union differs')
+-    need(sha(HERE / 'input-manifest.json') == reg['input_manifest_sha256'], 'input manifest differs')
+-    verify_source_manifest(reg['source_manifest_sha256'])
+-    manifest = verify_inputs()
+-    need(reg['runtime_root'] == manifest['runtime_root'] and reg['runtime_versions'] == manifest['runtime_versions'], 'runtime identity differs')
+-    vectors = read(ROOT / VECTOR_PATH)
+-    vector = next(v for v in vectors['vectors'] if v['replica'] == reg['replica'])
+-    need(reg['vector'] == vector, 'full seed vector/control differs')
+-    transition.validate_seeds(vector['seeds'])
+-    parent = read(ROOT / PARENT_RECEIPT)
+-    acceptance_path = ROOT / 'learning/runs/v2/expanded-confirmation-parent-20261026-r1/parent-acceptance.json'
+-    need(sha(acceptance_path) == '3e84979c4c8da76d0f98666a23f90eb15c1e813ca5edf1001e19daebaf4d5bbd', 'confirmed324 acceptance changed')
+-    acceptance = read(acceptance_path)
+-    need(acceptance['checkpoint_sha256'] == references.ACCEPTED_CHECKPOINT_SHA256 and acceptance['candidate_cumulative_counters'] == parent['candidate_cumulative_counters'], 'confirmed parent acceptance binding differs')
+-    need(reg['initial_episode_indices'] == vector['env_control']['episode_indices'] == parent['next_episode_indices'], 'parent episode indices differ')
+-    need(parent['checkpoint_sha256'] == reg['parent_checkpoint_sha256'] and parent['candidate_phase_update'] == 324 and parent['candidate_cumulative_counters']['updates'] == 372, 'parent counters differ')
+-    need(parent['learner_fingerprints'] == dict(model=transition.EXPECTED_PARENT['model'], optimizer=transition.EXPECTED_PARENT['Adam'], rng=transition.EXPECTED_PARENT['RNG']), 'parent receipt fingerprints differ')
+-    audit = read(ROOT / REF_ROOT / 'parent-terminal-audit.json')
+-    need(audit['status'] == 'accepted_three_initial_CPU_MPS_generator_references' and audit['registration_sha256'] == REF_REG_SHA, 'reference parent acceptance differs')
+-    accepted = next(r for r in audit['references'] if r['replica'] == reg['replica'])
+-    reference = dict(receipt_path=accepted['path'], receipt_sha256=accepted['sha256'], vector_sha256=accepted['vector_sha256'])
+-    need(reg['reference'] == reference, 'accepted reference binding differs')
+-    digests = references.load_bound_reference(receipt_path=reference['receipt_path'], expected_receipt_sha256=reference['receipt_sha256'], expected_study_id=STUDY, expected_replica=reg['replica'], expected_seed_vector=vector['seeds'], expected_vector_sha256=vector['vector_sha256'], expected_torch_version=manifest['runtime_versions']['torch'])
+-    need(set(digests) == {'torch_cpu_global_seed','action_sampler_torch_mps_seed'}, 'exactly two generator digests required')
+-    controls = episode_controls(vector)
+-    need(Path(reg['interpreter']) == ROOT / 'python/.venv/bin/python' and Path(sys.executable).resolve() == Path(reg['interpreter']).resolve(), 'project interpreter differs')
+-    output = Path(reg['output'])
+-    need(output.is_absolute() and output.resolve() == output and output.parent == ROOT / 'learning/runs/v2' and output.name == reg['run_id'] and not output.exists(), 'destination must be a new run directory')
+-    claim = Path(reg['attempt_claim_path'])
+-    need(claim == output.parent / (reg['run_id'] + '.transition.claimed') and not claim.exists(), 'fixed attempt destination missing or spent')
+-    for key in ('state_path','launch_marker_path'):
+-        need(Path(reg[key]).is_absolute() and Path(reg[key]).is_file(), 'parent-owned gate missing: ' + key)
+-    need(type(reg['expected_lease']) is dict and reg['expected_lease'].get('run_id') == reg['run_id'] and reg['expected_lease'].get('study_id') == STUDY and reg['expected_lease'].get('parent_checkpoint_sha256') == reg['parent_checkpoint_sha256'], 'lease identity differs')
+-    need(read(reg['state_path']).get('active_long_campaign') == reg['expected_lease'], 'exact parent lease differs')
+-    return dict(manifest=manifest, vector=vector, parent=parent, controls=controls)
++        value=((value^(value>>30))*0xBF58476D1CE4E5B9)&mask
++        value=((value^(value>>27))*0x94D049BB133111EB)&mask
++        return value^(value>>31)
++    base=mix(master ^ 0x444F4447455F5632) ^ mix(slot+0x9E3779B97F4A7C15) ^ mix(episode+0xD1B54A32D192ED03)
++    for counter in range(100000):
++        seed=mix(base ^ mix(counter+0x94D049BB133111EB))>>32
++        if not any(lo<=seed<=hi for lo,hi in ranges):
++            return dict(first_actual_seed=seed,rejection_counter=counter)
++    raise ValueError('bounded seed rejection exhausted; no alternate tuple or retry')
++
++
++def verify_manifest(path,expected,root,exact=False):
++    need(sha(path)==expected,'manifest SHA differs: '+str(path))
++    value=read(path)
++    files=value['files']
++    for rel,digest in files.items():
++        member=Path(root)/rel
++        need(member.resolve().is_relative_to(Path(root).resolve()) and not member.is_symlink(), 'member escapes root')
++        need(sha(member)==digest,'source/native pin drift: '+rel)
++    if exact:
++        actual={str(p.relative_to(root)) for p in Path(root).rglob('*') if p.is_file()}
++        need(actual==set(files),'runtime member set drift')
++    return value
++
++
++def verify_inputs():
++    manifest=read(HERE/'input-manifest.json')
++    need(manifest['root']==str(ROOT),'checkout identity changed')
++    for path,digest in manifest['pins'].items():
++        need(sha(path)==digest,'frozen input drift: '+path)
++    import driver_binding
++    driver_binding.verify_pinned_sources(ROOT)
++    # Checkpoint and identity bytes are copied unchanged, though origins are new.
++    for rel in ('dodge_rl/checkpoints.py','dodge_rl/identity.py','dodge_rl/models/teacher.py'):
++        need(sha(HERE/'runtime'/rel)==sha(Path(manifest['parent_runtime_root'])/rel),
++             'unchanged accepted definition differs: '+rel)
++    return manifest
++
++
++def validate_static(reg):
++    """All pending/unapproved state fails before imports, bootstrap, claim or restore."""
++    need(type(reg) is dict and set(reg)==REG_FIELDS,'registration fields differ')
++    need(reg['schema']=='progressive1000_worker_registration_v1' and reg['status']=='parent_registered',
++         'inert template is not parent registration')
++    need(reg['study_id']==STUDY and type(reg['replica'])is int and 1<=reg['replica']<=3,'study/replica differs')
++    need(reg['arm'] in ARMS and reg['curriculum_enabled'] is (reg['arm']==ARMS[1]),'arm/enablement differs')
++    need(reg['run_id']==f"{STUDY}-replica-{reg['replica']}-{reg['arm']}"
++         and reg['pair_id']==f"{STUDY}-replica-{reg['replica']}",'declared run/pair identity differs')
++    # Accepted parent RNG contains MPS state. CPU is supported by PreparedUpdates
++    # for controls; restoring this accepted MPS parent on CPU is not qualified.
++    need(reg['backend']=='mps','accepted324 restore requires registered MPS backend')
++    need(reg['cohort_state']=='reserved_parent_approved' and reg['history_state']=='freshness_parent_approved'
++         and reg['reservation_state']=='parent_reserved','pending/unreserved/unapproved cohort/history state')
++    need(reg['parent_checkpoint_sha256']==references.ACCEPTED_CHECKPOINT_SHA256
++         and reg['parent_receipt_sha256']==references.PARENT_RECEIPT_SHA256
++         and reg['expected_parent_fingerprints']==transition.EXPECTED_PARENT,'accepted parent identity differs')
++    manifest=verify_inputs()
++    need(sha(HERE/'input-manifest.json')==reg['input_manifest_sha256'],'input manifest pin drift')
++    verify_manifest(HERE/'source-manifest.json',reg['source_manifest_sha256'],HERE)
++    runtime=verify_manifest(HERE/'runtime-manifest.json',reg['runtime_manifest_sha256'],HERE/'runtime',exact=True)
++    need(reg['runtime_root']==str(HERE/'runtime') and reg['runtime_versions']==manifest['runtime_versions'],
++         'shared runtime/version differs')
++    need(read(HERE/'binary-manifest.json')['profile']=='release'
++         and read(HERE/'binary-manifest.json')['sha256']==runtime['files']['dodge_rl/_native.cpython-312-darwin.so'],
++         'release binary missing or differs')
++    proposal=read(HERE/'seed-vectors.json'); vector=proposal['vectors'][reg['replica']-1]
++    need(reg['vector']==vector and references.canonical_vector_sha256(STUDY,reg['replica'],vector['seeds'])==vector['vector_sha256'],
++         'new full vector differs; LR references forbidden')
++    need(reg['initial_episode_indices']==proposal['parent']['next_episode_indices'],'accepted324 slot offsets differ')
++    need(reg['ppo']==PPO and reg['schedule']==SCHEDULE and reg['shared_config']==read(HERE/'shared-config.json'),
++         'shared optimization/config/budget differs')
++    controls=episode_controls(vector,reg['initial_episode_indices'],reg['exclusion_union'])
++    reference=reg['reference']; need(type(reference)is dict and set(reference)=={'receipt_path','receipt_sha256','vector_sha256'},'independent reference missing')
++    need(reference['vector_sha256']==vector['vector_sha256'],'reference vector differs')
++    references.load_bound_reference(receipt_path=reference['receipt_path'],expected_receipt_sha256=reference['receipt_sha256'],
++        expected_study_id=STUDY,expected_replica=reg['replica'],expected_seed_vector=vector['seeds'],
++        expected_vector_sha256=vector['vector_sha256'],expected_torch_version=reg['runtime_versions']['torch'])
++    approval=reg['reference_approval']
++    need(type(approval)is dict and set(approval)=={'path','sha256'},'independent reference parent approval missing')
++    need(sha(approval['path'])==approval['sha256'],'reference approval pin drift')
++    need(read(approval['path'])==dict(schema='progressive1000_independent_reference_approval_v1',
++         status='parent_approved_independent_measurement',study_id=STUDY,replica=reg['replica'],
++         vector_sha256=vector['vector_sha256'],receipt_sha256=reference['receipt_sha256']), 'unapproved reference')
++    limits=reg['limits']; keys={'work_seconds','total_seconds','cleanup_seconds','rss_bytes','mps_bytes','raw_frames','resets','retries'}
++    need(type(limits)is dict and set(limits)==keys and limits['retries']==0,'resource limits missing')
++    need(all(type(limits[k])is int and limits[k]>0 for k in keys-{'retries'})
++         and limits['work_seconds']+limits['cleanup_seconds']<=limits['total_seconds'],'unmeasured/invalid resource limits')
++    for key in ('output','attempt_claim_path','launch_marker_path','state_path'):
++        need(type(reg[key])is str and Path(reg[key]).is_absolute(),'absolute parent path required: '+key)
++    need(not Path(reg['output']).exists() and not Path(reg['attempt_claim_path']).exists(),'one-shot output/claim spent')
++    need(reg['expected_lease'] is not None and read(reg['state_path']).get('active_long_campaign')==reg['expected_lease'],
++         'parent lease missing/changed')
++    parent=read(ROOT/PARENT_RECEIPT)
++    need(parent['checkpoint_sha256']==references.ACCEPTED_CHECKPOINT_SHA256,'parent receipt checkpoint differs')
++    return dict(manifest=manifest,parent=parent,controls=controls,runtime_manifest=runtime)
++
++
++def cache_check(reg):
++    policy=reg['import_policy']
++    need(type(policy)is dict and set(policy)=={'pycache_prefix','dont_write_bytecode'}
++         and policy['dont_write_bytecode'] is True,'import policy differs')
++    path=Path(policy['pycache_prefix'])
++    need(path.is_absolute() and path.is_dir() and not any(path.iterdir()),'registered cache must exist empty')
++    need(sys.dont_write_bytecode and sys.pycache_prefix==str(path)
++         and os.environ.get('PYTHONPYCACHEPREFIX')==str(path),'process cache policy differs')
++    need(str(Path(sys.executable).absolute())==reg['interpreter'],'registered interpreter differs')
++
++
++def preflight(path,digest,approval_path,approval_sha,started):
++    need(sha(path)==digest and sha(approval_path)==approval_sha,'external parent gate SHA differs')
++    reg=read(path)
++    context=validate_static(reg)
++    approval=read(approval_path)
++    need(approval==dict(schema='progressive1000_parent_launch_approval_v1',status='approved_exactly_one_registered_run',
++         registration_sha256=digest,source_manifest_sha256=reg['source_manifest_sha256'],
++         runtime_manifest_sha256=reg['runtime_manifest_sha256'],run_id=reg['run_id'],gates=dict.fromkeys(GATES,'passed')),
++         'later parent gates missing; NO launch authority')
++    need(type(started) in (int,float) and math.isfinite(started)
++         and 0<=time.monotonic()-started<reg['limits']['work_seconds'],'parent monotonic start differs')
++    need(read(reg['launch_marker_path'])==dict(schema='progressive1000_parent_spent_launch_marker_v1',
++         registration_sha256=digest,run_id=reg['run_id'],started=started),'parent-spent launch marker differs')
++    cache_check(reg)
++    need(sha(path)==digest and sha(approval_path)==approval_sha,'parent gate changed during preflight')
++    return reg,context
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/driver_binding.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-shared-runtime-assembly-sol-20261026-r1/driver_binding.py
+@@ -1,4 +1,8 @@
+-"""Inert source-pinned adapter builder for a future authorized driver."""
++"""R5 successor: unchanged checkpoint bytes, strictly rebound owned origins.
++
++The parent model/Adam/RNG lineage is independent of the successor runtime identity.
++Function, origin, default, module and private-global checks remain mandatory.
++"""
+ from __future__ import annotations
+ 
+ import hashlib
+@@ -8,9 +12,9 @@
+ import sys
+ import types
+ 
+-CHECKPOINTS_RELATIVE = Path("learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/checkpoints.py")
++CHECKPOINTS_RELATIVE = Path("learning/runs/v2/progressive1000-shared-runtime-assembly-sol-20261026-r1/runtime/dodge_rl/checkpoints.py")
+ CHECKPOINTS_SHA256 = "807141943a742c6e9fdd34274c191b3c318134cc7fb0c1c6256874cadee1cbc3"
+-IDENTITY_RELATIVE = Path("learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/identity.py")
++IDENTITY_RELATIVE = Path("learning/runs/v2/progressive1000-shared-runtime-assembly-sol-20261026-r1/runtime/dodge_rl/identity.py")
+ IDENTITY_SHA256 = "50775b2e7c30e53757dd3134d11613f716733cee8e6a96cc18b62e8ff2a4a053"
+ RUNNER_RELATIVE = Path("learning/runs/v2/D2-retained300-continuation-freeze-20261026-r5/runner.py")
+ RUNNER_SHA256 = "108ba55ad78aa26166acb14f67cc6466da6293ccee3d272e1fe6e775ebf2ac60"
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-collector-identity-parent-20261026-r2/successor/curriculum.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-shared-runtime-assembly-sol-20261026-r1/runtime/dodge_rl/curriculum.py
+@@ -93,6 +93,9 @@
+         self.arm = "progressive_curriculum" if enabled else "matched_control"
+         self.exclusions = validate_seed_union(exclusion_ranges)
+         self.env, self.enabled = env, enabled
++        self.event_sink = None
++        self.reset_preflight = self.reset_verifier = None
++        self.consumed_actual_seeds = set()
+         self.scheduler = Scheduler(digest) if enabled else None
+         self.completed_updates = 0
+         self.pending_update = None
+@@ -143,6 +146,9 @@
+                 and info["gameplay_frames"] % 4 == 0, "misaligned live episode")
+ 
+     def _assign(self, slot, info, update, decision):
++        seed=info["seed"]["actual_seed"]
++        require(seed not in self.consumed_actual_seeds,"actual episode seed collision; no replacement")
++        self.consumed_actual_seeds.add(seed)
+         if self.enabled:
+             generation, horizon, ordinal = self.scheduler.assign()
+             assignment = Assignment(generation, horizon, ordinal)
+@@ -183,6 +189,18 @@
+         """
+         self.observed_native_frames += sum(int(value) for value in result["elapsed_raw_frames"])
+         self.observed_native_steps += 1
++        self._emit({"kind": "returned_step_cost", "update": self.pending_update,
++                    "decision": self.last_decision + 1,
++                    "elapsed_raw_frames": [int(v) for v in result["elapsed_raw_frames"]]})
++
++    def _emit(self, event):
++        if self.event_sink is not None:
++            self.event_sink(copy.deepcopy(event))
++
++    def before_reset(self, indices, ended_info):
++        require(indices == self.expected_reset, "reset preflight differs from ended slots")
++        if self.reset_preflight is not None:
++            self.reset_preflight(indices, copy.deepcopy(ended_info))
+ 
+     def observe_returned_reset(self, indices, reset):
+         """Retain startup work even when a later reset guard/audit fails."""
+@@ -190,6 +208,9 @@
+         self.returned_resets.append({"update": self.pending_update,
+             "decision": self.last_decision, "indices": list(indices),
+             "info": copy.deepcopy(reset["info"])})
++        self._emit({"kind": "returned_reset", **self.returned_resets[-1]})
++        if self.reset_verifier is not None:
++            self.reset_verifier(indices, reset["info"])
+ 
+     def reconcile(self, result, previous, decision):
+         """After actual step, before audit/storage/value/reset; replace only cutoffs."""
+@@ -281,6 +302,7 @@
+                 self.completions.append({"update": self.pending_update, "decision": decision,
+                     "slot": slot, **asdict(assignment), "success": success,
+                     "scheduler_generation": generation, "native_info": copy.deepcopy(info)})
++                self._emit({"kind": "completion", **self.completions[-1]})
+                 if self.enabled:
+                     self.rows.append(Completion(decision, slot, assignment.generation,
+                                                 assignment.horizon, success))
+@@ -303,6 +325,7 @@
+             self._assign(slot, info, self.pending_update, decision)
+             self.reset_count += 1
+             self.reset_startup_frames += info["startup_frames"]
++            self._emit({"kind": "reset_assignment", **self.assignment_events[-1]})
+         self.expected_reset = []
+ 
+     def _finish_after_ppo(self):
+@@ -354,6 +377,7 @@
+             "raw_frames_total_including_returned_unaudited_work": (self.observed_native_frames
+                 + self.initial_startup_frames + self.returned_reset_startup_frames),
+             "accepted_raw_frames_total": self.gameplay_frames + self.initial_startup_frames + self.reset_startup_frames,
++            "consumed_actual_seed_union": sorted(self.consumed_actual_seeds),
+             "assignments": copy.deepcopy(self.assignment_events),
+             "completions": copy.deepcopy(self.completions),
+             "boundaries": copy.deepcopy(self.boundaries),
+@@ -368,7 +392,7 @@
+ 
+ 
+ class PreparedUpdates:
+-    """Bounded CPU source prototype, not a registered runner or identity gate.
++    """Single-use update transaction on an explicitly selected CPU or MPS device.
+ 
+     update_once() is the complete call contract. Never call collect_rollout and
+     finish separately in a future runner. Keep this instance for all60 updates.
+@@ -376,11 +400,15 @@
+     No checkpoint restore/save, evaluator, environment construction, or seeds are
+     implemented here. Future integration must bind and qualify all those gates.
+     """
+-    def __init__(self, model, optimizer, adapter, *, config=PINNED_PPO):
++    def __init__(self, model, optimizer, adapter, *, config=PINNED_PPO, device="cpu"):
++        require(type(device) is str and device in {"cpu", "mps"}, "device must be registered cpu or mps")
++        if device == "mps":
++            require(torch.backends.mps.is_available(), "registered MPS device unavailable")
++        self.device = device
+         require(asdict(config) == asdict(PINNED_PPO), "full pinned PPO config required")
+         require(adapter.batch_size == 64, "shared runner contract requires64 slots")
+-        require(all(parameter.device.type == "cpu" for parameter in model.parameters()),
+-                "source prototype supports synthetic CPU only")
++        require(all(parameter.device.type == device for parameter in model.parameters()),
++                "model parameters differ from registered device")
+         self.model, self.optimizer, self.adapter = model, optimizer, adapter
+         self.config, self.observation = config, None
+         self.state = "ready"
+@@ -397,22 +425,35 @@
+     def snapshot(self):
+         return {"state": self.state, "completed_optimizer_steps": self.actual_optimizer_steps,
+                 "last_update_progress": copy.deepcopy(self.progress),
++                "actual_optimizer_steps_including_failed_update": self.actual_optimizer_steps + (
++                    int(self.progress.get("optimizer_steps", 0)) if self.state == "failed" else 0),
+                 "metrics": copy.deepcopy(self.metrics), "environment": self.adapter.snapshot()}
+ 
+-    def update_once(self, *, check_guard=None):
++    def update_once(self, *, check_guard=None, journal_collection_events=None, validate_metrics=None):
+         require(self.state == "ready", "update session consumed or failed")
+         require(self.adapter.completed_updates < 60, "terminal global60; no drain or update61")
+         self.state = "in_update"
++        self.progress = {}
+         try:
++            ppo._guard(check_guard)
+             self._optimizer_contract()
+             self.adapter.begin_update(self.adapter.completed_updates + 1)
+-            collection = ppo.collect_rollout(self.model, self.adapter.env, 256, "cpu",
++            collection = ppo.collect_rollout(self.model, self.adapter.env, 256, self.device,
+                 observation=self.observation, config=self.config, check_guard=check_guard,
+                 boundary_adapter=self.adapter)
+             self.observation = collection.observations
++            if journal_collection_events is not None:
++                journal_collection_events(copy.deepcopy(collection.completed_episodes),
++                                          copy.deepcopy(collection.reset_info))
++            ppo._guard(check_guard)
+             metrics = ppo.ppo_update(self.model, self.optimizer, collection.batch,
+                 self.config, check_guard=check_guard, progress=self.progress)
++            if validate_metrics is not None:
++                validate_metrics(metrics)
+             self._optimizer_contract()
++            require(self.progress.get("complete") is True and self.progress.get("in_update") is False,
++                    "incomplete PPO cannot advance scheduler")
++            ppo._guard(check_guard)
+             boundary = self.adapter._finish_after_ppo()
+             self.actual_optimizer_steps += metrics["optimizer_steps"]
+             self.metrics.append(copy.deepcopy(metrics))
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-collector-identity-parent-20261026-r2/successor/ppo.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-shared-runtime-assembly-sol-20261026-r1/runtime/dodge_rl/ppo.py
+@@ -352,6 +352,8 @@
+                 if ended:
+                     ended_info = {index: copy.deepcopy(episode_info[index]) for index in ended}
+                     _guard(check_guard)
++                    if boundary_adapter is not None:
++                        boundary_adapter.before_reset(ended, ended_info)
+                     reset = env.reset_done(ended)
+                     if boundary_adapter is not None:
+                         boundary_adapter.observe_returned_reset(ended, reset)
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/runtime_adapter.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-shared-runtime-assembly-sol-20261026-r1/runtime_adapter.py
+@@ -35,7 +35,7 @@
+ 
+ def authenticate_module(module, relative, names):
+     path = Path(module.__file__).resolve()
+-    c.need(path == Path(c.read(c.HERE / 'input-manifest.json')['runtime_root']) / relative,
++    c.need(path == c.HERE / 'runtime' / relative,
+            'loaded runtime module origin differs: ' + relative)
+     codes = binding._definitions(path.read_bytes(), path, names)
+     binding._bind_functions(module.__dict__, codes, names, path)
+@@ -48,7 +48,9 @@
+     loaded = getattr(module,name)
+     c.need(inspect.isclass(loaded) and inspect.getsourcefile(loaded) == str(path), 'runtime class origin differs')
+     for method, body in expected.items():
+-        function = getattr(loaded,method)
++        function = inspect.getattr_static(loaded,method)
++        if isinstance(function,property):
++            function = function.fget
+         c.need(inspect.isfunction(function) and function.__globals__ is module.__dict__
+                and binding._code_signature(function.__code__) == binding._code_signature(body),
+                'runtime class method differs: '+name+'.'+method)
+@@ -56,7 +58,7 @@
+ 
+ def seed_constructor(seed,numpy_api,torch_api):
+     # Bind the frozen helper body without importing train_teacher or its runtime.
+-    path = Path(c.read(c.HERE/'input-manifest.json')['runtime_root'])/'dodge_rl/train_teacher.py'
++    path = c.HERE/'runtime'/'dodge_rl/train_teacher.py'
+     body = binding._definitions(path.read_bytes(),path,('seed_initialization',))['seed_initialization']
+     namespace = dict(random=random,np=numpy_api,torch=torch_api)
+     types.FunctionType(body,namespace,'seed_initialization')(seed)
+@@ -76,6 +78,7 @@
+         self.game = importlib.import_module('dodge_rl')
+         self.ckpt = importlib.import_module('dodge_rl.checkpoints')
+         self.ppo_module = importlib.import_module('dodge_rl.ppo')
++        self.curriculum_module = importlib.import_module('dodge_rl.curriculum')
+         self.teacher = importlib.import_module('dodge_rl.models.teacher')
+         self.identity_module = importlib.import_module('dodge_rl.identity')
+         c.need(Path(self.game.__file__).resolve() == Path(runtime) / 'dodge_rl/__init__.py', 'native package origin differs')
+@@ -84,6 +87,16 @@
+         authenticate_module(self.ckpt, 'dodge_rl/checkpoints.py', binding.CHECKPOINT_FUNCTIONS + ('load_checkpoint','save_checkpoint','episode_resume_state','_cpu_copy'))
+         authenticate_module(self.ppo_module, 'dodge_rl/ppo.py', ('collect_rollout','ppo_update'))
+         authenticate_class(self.teacher,'OmniscientEntityTeacher')
++        authenticate_class(self.teacher,'CustomTransformerLayer')
++        authenticate_class(self.curriculum_module,'CurriculumAdapter')
++        authenticate_class(self.curriculum_module,'PreparedUpdates')
++        for name, module in tuple(sys.modules.items()):
++            if name == 'dodge_rl' or name.startswith('dodge_rl.'):
++                path = Path(module.__file__).resolve()
++                c.need(path.is_relative_to(Path(runtime)),'loaded module escaped shared runtime: '+name)
++                relative = str(path.relative_to(runtime))
++                c.need(c.sha(path) == context['runtime_manifest']['files'].get(relative),
++                       'loaded module/native pin differs: '+name)
+         self.runner = runner_namespace()
+         self.torch.set_num_threads(4)
+         self.parent = self.ckpt.load_checkpoint(Path(context['parent']['checkpoint_path']), expected_sha256=c.references.ACCEPTED_CHECKPOINT_SHA256)
+@@ -91,6 +104,7 @@
+         self.validate_parent()
+         self.env = None
+         self.callbacks = None
++        self.boundary = self.prepared = None
+ 
+     def validate_parent(self):
+         parent, receipt = self.parent, self.context['parent']
+@@ -131,7 +145,7 @@
+ 
+     def make_env(self):
+         # Seed/exclusion controls are computed before any environment constructor.
+-        controls = c.episode_controls(self.reg['vector'])
++        controls = c.episode_controls(self.reg['vector'],self.reg['initial_episode_indices'],self.reg['exclusion_union'])
+         c.need(controls == self.context['controls'], 'environment seed controls changed')
+         self.env = self.game.VecDodgeEnv(batch_size=64, action_repeat=4, difficulty=2,
+             patterns_enabled=True, powerups_enabled=True, raw_frame_cap=18000,
+@@ -148,6 +162,35 @@
+         c.need(self.env.batch_info()['next_episode_indices'] == [v+1 for v in self.reg['initial_episode_indices']], 'native next indices differ')
+         self.observation = self.env.observations()
+         self.ppo = self.ppo_module.PPOConfig(**c.PPO)
++        self.boundary = self.curriculum_module.CurriculumAdapter(self.env,
++            enabled=self.reg['curriculum_enabled'],digest=self.reg['vector']['vector_sha256'],
++            replica=self.reg['replica'],exclusion_ranges=self.reg['exclusion_union'])
++        self.pending_reset_seeds = {}
++        self.boundary.reset_preflight = self.preflight_reset
++        self.boundary.reset_verifier = self.verify_reset
++        self.prepared = self.curriculum_module.PreparedUpdates(self.model,self.optimizer,self.boundary,
++            config=self.ppo,device=self.reg['backend'])
++
++    def preflight_reset(self, indices, ended_info):
++        """Predict the whole next seed batch before any reset constructor mutates."""
++        ranges=c.validate_union(self.reg['exclusion_union'])
++        predicted={}
++        seen=set(self.boundary.consumed_actual_seeds)
++        for slot in indices:
++            episode=ended_info[slot]['seed']['episode']+1
++            value=c.seed_metadata(self.reg['vector']['seeds']['env_master_seed'],slot,episode,ranges)
++            seed=value['first_actual_seed']
++            c.need(seed not in seen,'future actual episode seed collision; no replacement')
++            seen.add(seed)
++            predicted[slot]=dict(slot=slot,episode=episode,counter=value['rejection_counter'],
++                                 actual_seed=seed,evaluation=False)
++        self.pending_reset_seeds=predicted
++
++    def verify_reset(self,indices,infos):
++        c.need(len(indices)==len(infos),'returned reset seed metadata missing')
++        for slot,info in zip(indices,infos,strict=True):
++            c.need(info['seed']==self.pending_reset_seeds.get(slot),'returned reset seed differs from preconstruction prediction')
++        self.pending_reset_seeds={}
+ 
+     def update(self, guard, progress, journal_collection_events):
+         """Journal once before PPO; propagate callback failures without retry.
+@@ -156,64 +199,51 @@
+         event lists, so payload mutations cannot alter the collection. Its return
+         value is ignored; an exception aborts before PPO and candidate eligibility.
+         """
+-        collection = self.ppo_module.collect_rollout(self.model, self.env, 256, 'mps',
+-            observation=self.observation, config=self.ppo, check_guard=guard)
+-        journal_collection_events(copy.deepcopy(collection.completed_episodes),
+-                                  copy.deepcopy(collection.reset_info))
+-        self.observation = collection.observations
+-        value = self.ppo_module.ppo_update(self.model, self.optimizer, collection.batch, self.ppo,
+-            check_guard=guard, critic_diagnostics=True, gradient_alignment_diagnostics=True, progress=progress)
+-        self.runner['finite_tree'](value)
+-        self.runner['validate_gradient_alignment'](value['gradient_alignment_diagnostics'])
+-        diag = value['critic_diagnostics']
+-        c.need(diag['version'] == 'same_batch_critic_diagnostics_v1', 'critic diagnostics schema differs')
+-        old, direct = value['explained_variance'], diag['pre_update']['explained_variance']
+-        c.need((old is None and direct is None) or (old is not None and direct is not None and math.isclose(old,direct,rel_tol=1e-6,abs_tol=1e-6)), 'direct/legacy EV differs')
+-        c.need(progress.get('complete') is True and progress.get('in_update') is False, 'incomplete PPO update')
+-        return value, collection
+-
+-    def candidate(self, out, local, counters, progress, registration_sha, started):
+-        c.need(progress['complete'] is True and progress['in_update'] is False, 'cannot save incomplete update')
++        collection, value, boundary = self.prepared.update_once(check_guard=guard,
++            journal_collection_events=journal_collection_events,validate_metrics=self.runner['finite_tree'])
++        progress.clear()
++        progress.update(self.prepared.progress)
++        c.need(progress.get('complete') is True and progress.get('in_update') is False,
++               'incomplete PPO update')
++        return value, collection, boundary
++
++    def snapshot(self):
++        return None if self.prepared is None else self.prepared.snapshot()
++
++    def integrity_checkpoint(self, out, local, counters, registration_sha):
++        from successor_identity import learner_identity
++        c.need(self.prepared.state == 'ready' and self.boundary.completed_updates == local,
++               'integrity checkpoint requires a completed global boundary')
+         before = dict(model=fingerprint(self.model.state_dict()), Adam=fingerprint(self.optimizer.state_dict()),
+-                      RNG=fingerprint(self.callbacks['rng_capture']()), env=fingerprint([self.env.episode_info(), self.env.batch_info()]))
++                      RNG=fingerprint(self.callbacks['rng_capture']()), env=fingerprint([self.env.episode_info(),self.env.batch_info()]))
+         next_indices, abandoned = self.ckpt.episode_resume_state(self.env,64)
+-        parent = self.context['parent']
+-        identity = copy.deepcopy(self.parent['identity'])
+-        identity.update(version='teacher_identity_v3',run_id=self.reg['run_id'],study_id=c.STUDY,
+-                        arm=self.reg['arm'],replica=self.reg['replica'],phase_update_start=324,phase_update_end=384,
+-                        run_seed=self.reg['vector']['seeds']['env_master_seed'],parent_checkpoint_sha256=c.references.ACCEPTED_CHECKPOINT_SHA256,
+-                        parent_terminal_receipt_sha256=c.references.PARENT_RECEIPT_SHA256,registration_sha256=registration_sha)
+-        # PPO controls are unchanged; schedule/seeds/exclusions are explicit study identity.
+-        identity['paired_study'] = dict(seed_vector=self.reg['vector']['seeds'],vector_sha256=self.reg['vector']['vector_sha256'],
+-                                       schedule=c.SCHEDULE,exclusion_union=self.reg['exclusion_union'],controller=c.transition.controller_lr(self.reg['arm'],372+local))
+-        wall = time.monotonic()-started
+-        state = dict(version='teacher_checkpoint_v1',schema='d2_training_v3_checkpoint_v1',resume_mode='fresh_env',tag='candidate',phase='D2',
+-            eligibility_status='provisional_pending_parent_terminal_receipt',training_eligible=False,promoted=False,
+-            identity=identity,identity_sha256=self.identity_module.identity_hash(identity),config_sha256=parent['config_sha256'],policy_sha256=parent['policy_sha256'],
+-            native_sha256=parent['native_sha256'],runtime_sha256=parent['runtime_sha256'],run_seed=self.reg['vector']['seeds']['env_master_seed'],
+-            registration_sha256=registration_sha,model=self.ckpt._cpu_copy(self.model.state_dict()),optimizer=self.ckpt._cpu_copy(self.optimizer.state_dict()),
+-            rng=self.callbacks['rng_capture'](),counters=dict(counters),inherited_counters=dict(parent['candidate_cumulative_counters']),
+-            cumulative_counters=self.runner['continuation_cumulative_counters'](parent['candidate_cumulative_counters'],counters),
+-            phase_update=324+local,local_update=local,update_progress=dict(progress),next_episode_indices=next_indices,
+-            abandoned_current_episodes=abandoned,parent_abandoned_current_episodes=self.parent['abandoned_current_episodes'],
+-            parent_sha256=c.references.ACCEPTED_CHECKPOINT_SHA256,parent_checkpoint_sha256=c.references.ACCEPTED_CHECKPOINT_SHA256,
+-            parent_run_id=parent['run_id'],parent_registration_sha256=parent['registration_sha256'],
+-            selected_parent_checkpoint_trajectory_baseline_seconds=parent['wall_accounting']['future_checkpoint_trajectory_baseline_seconds'],
+-            parent_completed_campaign_cost_baseline_seconds=parent['wall_accounting']['successful_ancestor_and_completed_campaign_cost_seconds'],
+-            current_iteration_observed_outer_seconds=wall,
+-            cumulative_selected_checkpoint_trajectory_wall_seconds=parent['wall_accounting']['future_checkpoint_trajectory_baseline_seconds']+wall,
+-            cumulative_successful_ancestor_and_completed_campaign_cost_seconds=parent['wall_accounting']['successful_ancestor_and_completed_campaign_cost_seconds']+wall)
+-        expected_lr = c.transition.controller_lr(self.reg['arm'],372+local)
+-        c.need(all(group['lr']==expected_lr for group in state['optimizer']['param_groups']), 'saved optimizer LR differs')
+-        path = out / f'checkpoint-{324+local:06d}-candidate.pt'
+-        digest = self.ckpt.save_checkpoint(path,state)
+-        after = dict(model=fingerprint(self.model.state_dict()), Adam=fingerprint(self.optimizer.state_dict()),
+-                     RNG=fingerprint(self.callbacks['rng_capture']()), env=fingerprint([self.env.episode_info(),self.env.batch_info()]))
+-        c.need(before == after, 'candidate save changed live learner/RNG/environment')
+-        return dict(checkpoint=path.name,checkpoint_sha256=digest,phase_update=324+local,local_update=local,
+-                    cumulative_update=372+local,training_eligible=False,promoted=False,automatic_selection=False,
+-                    update_progress=dict(progress),cumulative_counters=state['cumulative_counters'])
++        identity = learner_identity(self.reg,registration_sha)
++        state = dict(version='teacher_checkpoint_v1',schema='progressive1000_integrity_checkpoint_v1',
++            resume_mode='fresh_env',tag='integrity',training_eligible=False,promoted=False,
++            formal_comparison_endpoint=(local==60),identity=identity,
++            identity_sha256=self.identity_module.identity_hash(identity),
++            parent_lineage=dict(checkpoint_sha256=c.references.ACCEPTED_CHECKPOINT_SHA256,
++                receipt_sha256=c.references.PARENT_RECEIPT_SHA256,
++                native_sha256=self.parent['native_sha256'],runtime_sha256=self.parent['runtime_sha256'],
++                model_Adam_RNG_fingerprints=dict(c.transition.EXPECTED_PARENT)),
++            successor_runtime_manifest_sha256=self.reg['runtime_manifest_sha256'],
++            model=self.ckpt._cpu_copy(self.model.state_dict()),optimizer=self.ckpt._cpu_copy(self.optimizer.state_dict()),
++            rng=self.callbacks['rng_capture'](),next_episode_indices=next_indices,
++            abandoned_current_episodes=abandoned,counters=copy.deepcopy(counters),
++            phase_update=324+local,cumulative_update=372+local,global_update=local,
++            update_progress=copy.deepcopy(self.prepared.progress),
++            curriculum_state=self.boundary.snapshot(),automatic_selection=False,
++            parent_checkpoint_sha256=c.references.ACCEPTED_CHECKPOINT_SHA256)
++        c.need(all(g['lr']==3e-5 for g in state['optimizer']['param_groups']), 'saved LR is not constant')
++        path=out/f'checkpoint-global-{local:03d}-integrity.pt'
++        digest=self.ckpt.save_checkpoint(path,state)
++        after=dict(model=fingerprint(self.model.state_dict()),Adam=fingerprint(self.optimizer.state_dict()),
++                   RNG=fingerprint(self.callbacks['rng_capture']()),env=fingerprint([self.env.episode_info(),self.env.batch_info()]))
++        c.need(before==after,'integrity save changed live state')
++        return dict(path=str(path),sha256=digest,global_update=local,phase_update=324+local,
++                    cumulative_update=372+local,formal_comparison_endpoint=(local==60),
++                    training_eligible=False,promoted=False,automatic_selection=False)
+ 
+     def close(self):
+         if self.env is not None:
+-            self.env = None  # VecDodgeEnv has no close().
++            self.prepared = self.boundary = self.env = None  # Native ownership ends here; supervisor verifies cleanup.
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/test_regressions.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-shared-runtime-assembly-sol-20261026-r1/tests/test_regressions.py
+@@ -30,7 +30,7 @@
+ 
+     def record(self, value):
+         return {'run_id': 'synthetic-run-1', 'study_id': fixtures.STUDY, 'replica': fixtures.REPLICA,
+-                'arm': 'A_constant_3e-5', 'vector_sha256': value.vector_hash,
++                'arm': 'control_constant_3e-5', 'vector_sha256': value.vector_hash,
+                 'parent_checkpoint_sha256': fixtures.rr.ACCEPTED_CHECKPOINT_SHA256}
+ 
+     def test_replayed_mapping_and_duck_callback_rejected_before_restore(self):
+@@ -84,7 +84,7 @@
+             claims.verify_claim_receipt(receipt, path, record)
+ 
+     def _binding_fixtures(self):
+-        root = Path(__file__).resolve().parents[4]
++        root = Path(__file__).resolve().parents[5]
+         checkpoint_path = root / binding.CHECKPOINTS_RELATIVE
+         identity_path = root / binding.IDENTITY_RELATIVE
+         runner_path = root / binding.RUNNER_RELATIVE
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-collector-identity-parent-20261026-r2/tests/test_scheduler_reference.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-shared-runtime-assembly-sol-20261026-r1/tests/test_scheduler_reference.py
+@@ -7,7 +7,7 @@
+ import unittest
+ from unittest.mock import patch
+ 
+-from scheduler_reference import (
++from successor.scheduler_reference import (
+     Completion, DOMAIN, Scheduler, assignment_block, canonical, vector_hash,
+ )
+ 
+@@ -90,7 +90,7 @@
+         class SameHash:
+             def digest(self):
+                 return bytes(32)
+-        with patch("scheduler_reference.hashlib.sha256", return_value=SameHash()):
++        with patch("successor.scheduler_reference.hashlib.sha256", return_value=SameHash()):
+             block = assignment_block(DIGEST, 1, 0)
+         self.assertEqual(block, (2000,) * 70 + (1000,) * 30)
+ 
+@@ -106,7 +106,7 @@
+     def test_hash_isolation_no_rng_imports_or_calls(self):
+         import ast
+         from pathlib import Path
+-        tree = ast.parse((Path(__file__).resolve().parents[1] / "successor/scheduler_reference.py").read_text())
++        tree = ast.parse((Path(__file__).resolve().parents[1] / "runtime/dodge_rl/scheduler_reference.py").read_text())
+         imports = set()
+         for node in ast.walk(tree):
+             if isinstance(node, ast.Import):
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/test_transition.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-shared-runtime-assembly-sol-20261026-r1/tests/test_transition.py
+@@ -134,7 +134,7 @@
+                                   "vector_sha256": self.vector_hash}
+         claim_file = self.path / "durable-attempt.claimed"
+         claim_record = {"run_id":"synthetic-run-1", "study_id":STUDY, "replica":REPLICA,
+-                        "arm":"A_constant_3e-5", "vector_sha256":self.vector_hash,
++                        "arm":"control_constant_3e-5", "vector_sha256":self.vector_hash,
+                         "parent_checkpoint_sha256":rr.ACCEPTED_CHECKPOINT_SHA256}
+         args = dict(session=session, attempt_claim=AttemptClaim(claim_file, claim_record), backend="mps", seeds=SEEDS,
+                     pair={"pair_id": "pair-1", "A": SEEDS, "B": SEEDS},
+@@ -143,7 +143,7 @@
+                     optimizer=self.optimizer, rng_capture=self.capture_rngpayload,
+                     pinned_rng_reference=reference, python_api=self.python_api,
+                     numpy_api=self.numpy_api, torch_api=self.fake_torch,
+-                    pair_id="pair-1", arm="A_constant_3e-5", study_id=STUDY,
++                    pair_id="pair-1", arm="control_constant_3e-5", study_id=STUDY,
+                     replica=REPLICA, torch_version=VERSION, run_id="synthetic-run-1")
+         return t.transition(**args)
+ 
+@@ -155,8 +155,8 @@
+             result = self.call()
+         self.assertEqual(self.restores, 1)
+         self.assertEqual(self.events, ["restore", "python", "numpy", "torch_cpu", "torch_mps"])
+-        self.assertEqual(t.controller_lr("B_linear_3e-5_to_1e-5_over_60", 373), 3e-5)
+-        self.assertEqual(t.controller_lr("B_linear_3e-5_to_1e-5_over_60", 432), 1e-5)
++        self.assertEqual(t.controller_lr("progressive1000_curriculum_constant_3e-5", 373), 3e-5)
++        self.assertEqual(t.controller_lr("progressive1000_curriculum_constant_3e-5", 432), 3e-5)
+         self.assertEqual(result["parent_fingerprints"], self.expected)
+         self.assertEqual(result["post_lr_fingerprints"]["Adam"], self.expected["Adam"])
+         self.assertEqual(result["post_lr_fingerprints"]["Adam_content_excluding_lr"],
+@@ -193,12 +193,12 @@
+         self.assertNotEqual(fp.optimizer_content_fingerprint(self.optimizer.state_dict()), content_before)
+ 
+     def test_controller_boundaries_and_arm_metadata(self):
+-        self.assertEqual(t.controller_lr("B_linear_3e-5_to_1e-5_over_60", 373), 3e-5)
+-        self.assertEqual(t.controller_lr("B_linear_3e-5_to_1e-5_over_60", 432), 1e-5)
++        self.assertEqual(t.controller_lr("progressive1000_curriculum_constant_3e-5", 373), 3e-5)
++        self.assertEqual(t.controller_lr("progressive1000_curriculum_constant_3e-5", 432), 3e-5)
+         for update in (372, 433):
+             with self.assertRaisesRegex(ValueError, r"\[373, 432\]"):
+-                t.controller_lr("A_constant_3e-5", update)
+-        self.assertEqual(t.controller_lr("A_constant_3e-5", 432), 3e-5)
++                t.controller_lr("control_constant_3e-5", update)
++        self.assertEqual(t.controller_lr("control_constant_3e-5", 432), 3e-5)
+ 
+     def test_seed_types_reject_bool_and_float_before_claim(self):
+         for bad in (True, 1.0):
+@@ -233,7 +233,7 @@
+             t.validate_exclusion_controls(t.EXPECTED_EXCLUSION_RANGES, bad)
+ 
+     def test_pinned_sources_verify_exact_paths_and_hashes(self):
+-        root = Path(__file__).resolve().parents[4]
++        root = Path(__file__).resolve().parents[5]
+         verified = db.verify_pinned_sources(root)
+         self.assertEqual(verified[str(db.CHECKPOINTS_RELATIVE)]["sha256"], db.CHECKPOINTS_SHA256)
+         source = (root / db.CHECKPOINTS_RELATIVE).read_text()
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/transition.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-shared-runtime-assembly-sol-20261026-r1/transition.py
+@@ -6,9 +6,9 @@
+ SEED_FIELDS=("constructor_init_seed","python_random_seed","numpy_global_seed","torch_cpu_global_seed","action_sampler_torch_mps_seed","env_master_seed")
+ U32_MAX,I63_MAX,U64_MAX=(1<<32)-1,(1<<63)-1,(1<<64)-1
+ REJECTED_MASTERS=frozenset({810631976,3192039780,3791628417,4200000000,4200000001,5562881586070242562})
+-EXPECTED_EXCLUSION_RANGES=tuple(sorted(((2952790016,2952791015),(3489660928,3489661055),(3758096384,3758097383),(3506438144,3506439167),(3523215360,3523217407))))
++EXPECTED_EXCLUSION_RANGES=tuple(sorted(((0xD3000000,0xD30003FF),(2952790016,2952791015),(3489660928,3489661055),(3758096384,3758097383),(3506438144,3506439167),(3523215360,3523217407))))
+ OLD_CONTROLLER_PROVENANCE={"origin":372,"horizon":60,"completed":0,"saved_lr":3e-5,"schedule":"none"}
+-ARMS={"A_constant_3e-5","B_linear_3e-5_to_1e-5_over_60"}
++ARMS={"control_constant_3e-5","progressive1000_curriculum_constant_3e-5"}
+ ACCEPTED_PARENT_RECEIPT_SHA256="76cb15733e87518cb3b473b7f8ebd847ed206351fb9f17d89b8b92e6bf853f08"
+ 
+ class TransitionSession:
+@@ -26,9 +26,7 @@
+ def controller_lr(arm: str,cumulative_update: int)->float:
+     if arm not in ARMS: raise ValueError("unknown arm")
+     if type(cumulative_update)is not int or not 373<=cumulative_update<=432: raise ValueError("controller update must be in [373, 432]")
+-    if arm=="A_constant_3e-5": return 3e-5
+-    u=cumulative_update-372
+-    return 1e-5 if u==60 else 3e-5-2e-5*(u-1)/59
++    return 3e-5
+ 
+ def validate_pair(pair: Mapping[str,object])->None:
+     if set(pair)!={"pair_id","A","B"} or not isinstance(pair["pair_id"],str) or not pair["pair_id"]: raise ValueError("pair requires one pair_id and exactly A/B")
+@@ -45,9 +43,9 @@
+ 
+ def validate_exclusion_controls(ranges,episode_controls)->None:
+     normalized=tuple(sorted(_normalize_range(r) for r in ranges))
+-    if len(normalized)!=5 or len(set(normalized))!=5: raise ValueError("exclusion union requires five unique ranges")
++    if len(normalized)<6 or len(set(normalized))!=len(normalized): raise ValueError("exclusion union requires at least six unique ranges")
+     if any(a[1]>=b[0] for a,b in zip(normalized,normalized[1:])): raise ValueError("exclusion ranges overlap")
+-    if normalized!=EXPECTED_EXCLUSION_RANGES: raise ValueError("future environment requires exact five-range exclusion union")
++    if not all(any(lo<=a and hi>=b for lo,hi in normalized) for a,b in EXPECTED_EXCLUSION_RANGES): raise ValueError("future environment requires full historical and new cohort union")
+     if len(episode_controls)!=64: raise ValueError("environment controls must cover 64 per-slot episode indices")
+     slots=set()
+     for row in episode_controls:
+@@ -189,10 +187,10 @@
+         "required_fingerprint_contract": "full model and Adam exact through reseed; post-LR optimizer content exact excluding only param_groups[].lr",
+         "fingerprint_contract_status": "concrete state_dict fingerprints verified",
+         "old_controller_provenance": dict(OLD_CONTROLLER_PROVENANCE),
+-        "new_controller": {"kind": "constant" if arm == "A_constant_3e-5" else "linear",
++        "new_controller": {"kind": "constant",
+                            "origin": 372, "horizon": 60, "first_update": 373,
+                            "last_update": 432, "start_lr": 3e-5,
+-                           "end_lr": 3e-5 if arm == "A_constant_3e-5" else 1e-5},
++                           "end_lr": 3e-5},
+     }
+ 
+ 
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/worker.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-shared-runtime-assembly-sol-20261026-r1/worker.py
+@@ -1,5 +1,6 @@
+-"""Paired study loop using the exact R5 transition and concrete runtime adapter."""
++"""Concrete single-run worker. Only worker_cli's external parent gates may enter."""
+ from __future__ import annotations
++import copy
+ import json
+ import math
+ import os
+@@ -17,41 +18,44 @@
+ import transition
+ 
+ 
+-def save(path, value):
+-    with Path(path).open('x') as stream:
+-        json.dump(value, stream, sort_keys=True, indent=2, allow_nan=False)
+-        stream.write('\n')
+-        stream.flush()
+-        os.fsync(stream.fileno())
++def emit(stream,value):
++    stream.write(json.dumps(value,sort_keys=True,allow_nan=False)+'\n')
++    stream.flush()
++    os.fsync(stream.fileno())
+ 
+ 
+-def emit(stream, value):
+-    stream.write(json.dumps(value, sort_keys=True, allow_nan=False)+'\n')
+-    stream.flush()
+-
+-
+-def cache_check(reg):
+-    policy = reg['import_policy']
+-    c.need(set(policy) == {'pycache_prefix','dont_write_bytecode'} and policy['dont_write_bytecode'] is True, 'import policy differs')
+-    path = Path(policy['pycache_prefix'])
+-    c.need(path.is_absolute() and path.is_dir() and not any(path.iterdir()), 'registered cache must exist empty')
+-    c.need(sys.dont_write_bytecode and sys.pycache_prefix == str(path) and os.environ.get('PYTHONPYCACHEPREFIX') == str(path), 'process cache policy differs')
++def save(path,value):
++    with Path(path).open('x') as stream:
++        json.dump(value,stream,sort_keys=True,indent=2,allow_nan=False)
++        stream.write('\n');stream.flush();os.fsync(stream.fileno())
++    directory=os.open(Path(path).parent,os.O_RDONLY)
++    try: os.fsync(directory)
++    finally: os.close(directory)
+ 
+ 
+ class Guard:
+-    def __init__(self, reg, adapter, started, resources):
+-        self.reg, self.adapter, self.started, self.resources = reg, adapter, started, resources
+-        self.peak_rss = self.peak_mps = 0
++    def __init__(self,reg,adapter,started,resources):
++        self.reg,self.adapter,self.started,self.resources=reg,adapter,started,resources
++        self.peak_rss=self.peak_mps=0
++        self.last_sample=float('-inf')
+ 
+-    def check(self, finalizing=False):
+-        elapsed = time.monotonic()-self.started
+-        c.need(elapsed <= self.reg['limits']['total_seconds' if finalizing else 'work_seconds'], 'registered wall limit exceeded')
+-        rss = int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+-        mps = int(self.adapter.torch.mps.driver_allocated_memory())
+-        self.peak_rss, self.peak_mps = max(self.peak_rss,rss), max(self.peak_mps,mps)
+-        c.need(rss <= self.reg['limits']['rss_bytes'] and mps <= self.reg['limits']['mps_bytes'], 'registered memory limit exceeded')
+-        c.need(c.read(self.reg['state_path']).get('active_long_campaign') == self.reg['expected_lease'], 'parent lease changed')
+-        emit(self.resources, dict(elapsed_seconds=elapsed,rss_bytes=rss,mps_driver_bytes=mps))
++    def check(self,finalizing=False):
++        elapsed=time.monotonic()-self.started
++        c.need(elapsed<=self.reg['limits']['total_seconds' if finalizing else 'work_seconds'], 'registered wall limit exceeded')
++        rss=int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)*(1 if sys.platform=='darwin' else 1024)
++        mps=int(self.adapter.torch.mps.driver_allocated_memory()) if self.reg['backend']=='mps' else 0
++        self.peak_rss,self.peak_mps=max(self.peak_rss,rss),max(self.peak_mps,mps)
++        c.need(rss<=self.reg['limits']['rss_bytes'] and mps<=self.reg['limits']['mps_bytes'], 'registered memory limit exceeded')
++        c.need(c.read(self.reg['state_path']).get('active_long_campaign')==self.reg['expected_lease'],'parent lease changed')
++        boundary=self.adapter.boundary
++        if boundary is not None:
++            raw=boundary.initial_startup_frames+boundary.observed_native_frames+boundary.returned_reset_startup_frames
++            c.need(raw<=self.reg['limits']['raw_frames'],'registered total raw-frame limit exceeded')
++            resets=sum(len(r['indices']) for r in boundary.returned_resets)
++            c.need(resets<=self.reg['limits']['resets'],'registered reset limit exceeded')
++        if elapsed-self.last_sample>=.5 or finalizing:
++            emit(self.resources,dict(elapsed_seconds=elapsed,rss_bytes=rss,mps_driver_bytes=mps))
++            self.last_sample=elapsed
+ 
+ 
+ def run_transition(reg, adapter):
+@@ -98,86 +102,79 @@
+     return result
+ 
+ 
+-def study_loop(reg, adapter, out, guard, registration_sha, started, result=None):
+-    """Preserve raw metrics, progress, episode events and complete candidates."""
++def study_loop(reg,adapter,out,guard,registration_sha,started,result):
+     adapter.make_env()
+-    counters = dict(updates=0,optimizer_steps=0,environment_decisions=0,raw_frames=0)
+-    progress = dict(complete=True,in_update=False,completed_updates=0)
+-    saved = []
+-    result = {} if result is None else result
+-    result.update(counters=counters,update_progress=progress,candidates=saved)
+-    actor = critic = False
+-    with (out/'training-episodes.jsonl').open('x') as episodes, (out/'training-metrics.jsonl').open('x') as metrics:
+-        for abandoned in adapter.parent['abandoned_current_episodes']:
+-            emit(episodes,dict(kind='abandoned_parent_episode',reason='fresh_environment_at_saved_next_episode_index',parent_checkpoint_sha256=c.references.ACCEPTED_CHECKPOINT_SHA256,info=abandoned))
+-        emit(episodes,dict(kind='initial',info=adapter.env.episode_info(),batch_info=adapter.env.batch_info()))
++    counters=dict(updates=0,optimizer_steps=0,environment_decisions=0,raw_frames=0)
++    result.update(counters=counters,integrity_checkpoints=[],evaluated_updates=[],
++                  training_eligible=False,promoted=False,automatic_selection=False)
++    with (out/'training-events.jsonl').open('x') as events, (out/'training-metrics.jsonl').open('x') as metrics:
++        # The sink journals returned native work and completed/reset identities
++        # before later bootstrap/guard/PPO/diagnostic failures can occur.
++        adapter.boundary.event_sink=lambda event:emit(events,event)
++        emit(events,dict(kind='initial',info=adapter.env.episode_info(),batch_info=adapter.env.batch_info(),
++                         assignments=copy.deepcopy(adapter.boundary.assignment_events),
++                         parent_abandoned_episodes=adapter.parent['abandoned_current_episodes']))
+         for local in range(1,61):
+             guard.check()
+-            lr = transition.controller_lr(reg['arm'],372+local)
+-            for group in adapter.optimizer.param_groups:
+-                group['lr'] = lr
+-            c.need(all(group['lr'] == lr for group in adapter.optimizer.param_groups), 'effective LR differs')
+-            def journal_collection_events(completed, resets):
+-                # Synchronous, worker-owned durable prefix. Never replay a failed
+-                # write or journal again after adapter.update returns.
+-                for event in adapter.runner['ordered_episode_events'](completed,resets,324+local):
+-                    emit(episodes,event)
+-                    os.fsync(episodes.fileno())
+-            value, collection = adapter.update(guard.check,progress,journal_collection_events)
+-            c.need(progress.get('complete') is True and progress.get('in_update') is False, 'incomplete update cannot advance counters')
+-            progress['completed_updates'] = local
+-            counters['updates'] = local
+-            result['updates'] = local
+-            counters['optimizer_steps'] += value['optimizer_steps']
+-            counters['environment_decisions'] += collection.batch.actions.numel()
+-            counters['raw_frames'] += int(collection.batch.elapsed_raw_frames.sum().item())
+-            actor |= value['actor_grad_norm'] > 0
+-            critic |= value['critic_grad_norm'] > 0
+-            cumulative = adapter.runner['continuation_cumulative_counters'](adapter.context['parent']['candidate_cumulative_counters'],counters)
+-            c.need(cumulative['updates'] == 372+local, 'cumulative update differs')
+-            emit(metrics,dict(phase_update=324+local,local_update=local,cumulative_update=372+local,effective_learning_rate=lr,
+-                              metrics=value,counters=dict(counters),cumulative_counters=cumulative,update_progress=dict(progress),elapsed_seconds=time.monotonic()-started))
+-            if local in c.SCHEDULE['candidate_local_updates']:
+-                candidate = adapter.candidate(out,local,counters,progress,registration_sha,started)
+-                save(out/(candidate['checkpoint']+'.json'),candidate)
+-                saved.append(candidate)
++            c.need(all(g['lr']==3e-5 for g in adapter.optimizer.param_groups),'constant LR changed after restore')
++            progress={}
++            result['active_update']=local
++            def before_ppo(completed,resets):
++                emit(events,dict(kind='collection_complete_before_PPO',global_update=local,
++                    completed=completed,resets=resets,snapshot=adapter.snapshot()))
++            value,collection,boundary=adapter.update(guard.check,progress,before_ppo)
++            c.need(progress.get('complete') is True and progress.get('in_update') is False,'incomplete update cannot advance counters')
++            counters['updates']=local
++            counters['optimizer_steps']+=value['optimizer_steps']
++            counters['environment_decisions']+=collection.batch.actions.numel()
++            counters['raw_frames']+=int(collection.batch.elapsed_raw_frames.sum().item())
++            result.update(updates=local,update_progress=copy.deepcopy(progress))
++            emit(metrics,dict(global_update=local,phase_update=324+local,cumulative_update=372+local,
++                effective_learning_rate=3e-5,metrics=value,counters=dict(counters),
++                progress=progress,scheduler_boundary=boundary,elapsed_seconds=time.monotonic()-started))
++            if local in c.SCHEDULE['integrity_local_updates']:
++                checkpoint=adapter.integrity_checkpoint(out,local,counters,registration_sha)
++                save(out/(Path(checkpoint['path']).name+'.json'),checkpoint)
++                result['integrity_checkpoints'].append(checkpoint)
+             guard.check()
+-    c.need(actor and critic, 'nonzero actor/critic gradient evidence missing')
+-    return dict(status='completed',updates=60,counters=counters,update_progress=dict(progress),cumulative_counters=cumulative,
+-                final_resume_next_episode_indices=adapter.env.batch_info()['next_episode_indices'],candidates=saved,
+-                training_eligible=False,promoted=False,automatic_selection=False,evaluated_updates=[],
+-                claim_limit='three exploratory pairs; no confirmatory claim')
++        c.need(counters['updates']==60 and counters['environment_decisions']==983040,'fixed global60 transition budget differs')
++        result.update(status='completed',formal_comparison_endpoint=result['integrity_checkpoints'][-1],
++            final_resume_next_episode_indices=adapter.env.batch_info()['next_episode_indices'],
++            curriculum_snapshot=adapter.snapshot(),cumulative_update=432,phase_update=384,
++            interpretation='descriptive pilot only; parent comparison required; no automatic promotion')
++    return result
+ 
+ 
+-def execute(reg, context, registration_sha, started):
+-    # No injected adapter parameter. CLI can only construct this exact class.
+-    cache_check(reg)
+-    out = Path(reg['output'])
+-    out.mkdir()  # Refuse an existing destination; no retry/repair/replace.
+-    result = dict(status='failed',updates=0,training_eligible=False,promoted=False,automatic_selection=False)
+-    adapter = guard = resources = None
++def execute(reg,context,registration_sha,started):
++    # Same R3 worker ownership: the parent launcher owns supervision and markers.
++    c.cache_check(reg)
++    out=Path(reg['output']);out.mkdir()
++    result=dict(status='failed',updates=0,training_eligible=False,promoted=False,automatic_selection=False)
++    adapter=guard=resources=None
+     try:
+-        adapter = RuntimeAdapter(reg,context)
+-        resources = (out/'resources.jsonl').open('x')
+-        guard = Guard(reg,adapter,started,resources)
+-        guard.check()
+-        evidence = run_transition(reg,adapter)
+-        save(out/'entry-restoration.json',evidence)
+-        result = study_loop(reg,adapter,out,guard,registration_sha,started,result)
++        adapter=RuntimeAdapter(reg,context)
++        resources=(out/'resources.jsonl').open('x')
++        guard=Guard(reg,adapter,started,resources);guard.check()
++        save(out/'entry-restoration.json',run_transition(reg,adapter))
++        study_loop(reg,adapter,out,guard,registration_sha,started,result)
+     except BaseException as error:
+-        result.update(status='failed',first_failure=repr(error))
++        result.update(status='failed',first_failure=repr(error),comparison_complete=False,no_retry=True)
+     finally:
++        if adapter is not None:
++            try:
++                result['final_snapshot']=adapter.snapshot()
++            except BaseException as error:
++                result['snapshot_error']=repr(error)
+         try:
+-            if adapter is not None:
+-                adapter.close()
++            if adapter is not None:adapter.close()
+             if guard is not None:
+                 guard.check(finalizing=True)
+                 result.update(peak_rss_bytes=guard.peak_rss,peak_mps_driver_bytes=guard.peak_mps)
+-            cache_check(reg)
++            c.cache_check(reg)
+         except BaseException as error:
+             result.update(status='failed',finalization_error=repr(error))
+-        if resources is not None:
+-            resources.close()
+-        result.update(run_id=reg['run_id'],registration_sha256=registration_sha,elapsed_seconds=time.monotonic()-started)
++        if resources is not None:resources.close()
++        result.update(run_id=reg['run_id'],registration_sha256=registration_sha,
++                      elapsed_seconds=time.monotonic()-started,cleanup_qualification='existing_parent_supervisor_required')
+         save(out/'worker-result.json',result)
+-    return 0 if result['status'] == 'completed' else 1
++    return 0 if result['status']=='completed' else 1
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-worker-event-repair-sol-20261026-r3/worker_cli.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-shared-runtime-assembly-sol-20261026-r1/worker_cli.py
+@@ -1,43 +1,25 @@
+-"""Future worker CLI. No process launched during source preparation."""
+-from __future__ import annotations
++"""Validate or execute exactly one later parent-registered progressive1000 run."""
+ import argparse
+-import math
+-import time
+-
++from pathlib import Path
++import sys
++sys.path.insert(0,str(Path(__file__).resolve().parent))
+ import contracts as c
+-import worker
+-
+-
+-def validate(path, digest, acceptance_path, acceptance_sha, started):
+-    c.need(c.sha(path) == digest, 'external registration SHA differs')
+-    reg = c.read(path)
+-    context = c.verify_registration(reg)
+-    c.need(c.sha(acceptance_path) == acceptance_sha, 'external source acceptance SHA differs')
+-    acceptance = c.read(acceptance_path)
+-    c.need(acceptance == dict(schema='paired_worker_parent_source_acceptance_v2',status='accepted_for_one_registered_worker',
+-        registration_sha256=digest,source_manifest_sha256=reg['source_manifest_sha256'],run_id=reg['run_id']), 'exact parent source acceptance required')
+-    c.need(math.isfinite(started) and 0 <= time.monotonic()-started < reg['limits']['work_seconds'], 'inherited launcher start differs')
+-    marker = c.read(reg['launch_marker_path'])
+-    c.need(marker == dict(schema='paired_worker_parent_launch_marker_v2',run_id=reg['run_id'],registration_sha256=digest,started=started), 'parent-spent launch marker differs')
+-    worker.cache_check(reg)
+-    c.need(c.sha(path) == digest and c.sha(acceptance_path) == acceptance_sha, 'parent gates changed during validation')
+-    return reg,context
+ 
+ 
+ def main():
+-    parser = argparse.ArgumentParser(description=__doc__)
++    parser=argparse.ArgumentParser(description=__doc__)
+     parser.add_argument('--registration',required=True)
+     parser.add_argument('--registration-sha256',required=True)
+     parser.add_argument('--source-acceptance',required=True)
+     parser.add_argument('--source-acceptance-sha256',required=True)
+-    parser.add_argument('--started',required=True,type=float)
++    parser.add_argument('--started',type=float,required=True)
+     parser.add_argument('--validate-only',action='store_true')
+-    args = parser.parse_args()
+-    reg, context = validate(args.registration,args.registration_sha256,args.source_acceptance,args.source_acceptance_sha256,args.started)
+-    if args.validate_only:
+-        return 0
++    args=parser.parse_args()
++    reg,context=c.preflight(args.registration,args.registration_sha256,args.source_acceptance,args.source_acceptance_sha256,args.started)
++    if args.validate_only:return 0
++    import worker
+     return worker.execute(reg,context,args.registration_sha256,args.started)
+ 
+ 
+-if __name__ == '__main__':
++if __name__=='__main__':
+     raise SystemExit(main())
