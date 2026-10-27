@@ -1,0 +1,139 @@
+{
+  "controller_return_checks": {
+    "test_empty_anchors_term_exiting_leader_stubborn_descendant": {
+      "direct_parent_identity": {
+        "pgid": 8295,
+        "pid": 8295,
+        "ppid": 8276
+      },
+      "empty_anchor_stages": [
+        {
+          "actual_return_elapsed_seconds": 5.113466957933269,
+          "descendant": {
+            "pgid": 8284,
+            "pid": 8285
+          },
+          "descendant_absent_from_process_table": true,
+          "descendant_reap_scope": "orphan reaped by OS; direct leader reaped by Popen.wait",
+          "stage": "receipt"
+        },
+        {
+          "actual_return_elapsed_seconds": 5.109149917028844,
+          "descendant": {
+            "pgid": 8295,
+            "pid": 8296
+          },
+          "descendant_absent_from_process_table": true,
+          "descendant_reap_scope": "orphan reaped by OS; direct leader reaped by Popen.wait",
+          "stage": "snapshot"
+        }
+      ],
+      "no_worker_output_created": true
+    },
+    "test_total_deadline_during_final_result_read_skips_large_accounting": {
+      "accounting_calls": 0,
+      "actual_return_elapsed_seconds": 0.811964749940671,
+      "direct_parent_identity": {
+        "pgid": 8380,
+        "pid": 8380,
+        "ppid": 8276
+      },
+      "journal_bytes": 3400000,
+      "no_worker_output_created": false,
+      "worker_result_read_count": 1
+    },
+    "test_total_deadline_interrupts_postflight_after_direct_reap": {
+      "accounting_calls": 0,
+      "actual_return_elapsed_seconds": 0.8049714169465005,
+      "direct_parent_identity": {
+        "pgid": 8384,
+        "pid": 8384,
+        "ppid": 8276
+      },
+      "journal_bytes": 3400000,
+      "no_worker_output_created": false
+    }
+  },
+  "finalization_receipts": [
+    {
+      "deadline_consumed": false,
+      "elapsed_measurement": "after primary receipts, before this final compact receipt I/O",
+      "elapsed_seconds": 5.066715833032504,
+      "filesystem_limit": "Filesystem calls and fsync may overrun; no exact hard real-time I/O guarantee.",
+      "path": "real-evidence/test_empty_anchors_term_exiting_leader_stubborn_descendant/snapshot/control/observer-finalization.json",
+      "status": "failed"
+    },
+    {
+      "deadline_consumed": false,
+      "elapsed_measurement": "after primary receipts, before this final compact receipt I/O",
+      "elapsed_seconds": 5.073922167066485,
+      "filesystem_limit": "Filesystem calls and fsync may overrun; no exact hard real-time I/O guarantee.",
+      "path": "real-evidence/test_empty_anchors_term_exiting_leader_stubborn_descendant/receipt/control/observer-finalization.json",
+      "status": "failed"
+    },
+    {
+      "deadline_consumed": false,
+      "elapsed_measurement": "after primary receipts, before this final compact receipt I/O",
+      "elapsed_seconds": 5.029501916957088,
+      "filesystem_limit": "Filesystem calls and fsync may overrun; no exact hard real-time I/O guarantee.",
+      "path": "real-evidence/test_failure_before_receipt_or_first_snapshot_keeps_ownership/control/observer-finalization.json",
+      "status": "failed"
+    },
+    {
+      "deadline_consumed": false,
+      "elapsed_measurement": "after primary receipts, before this final compact receipt I/O",
+      "elapsed_seconds": 5.339254291029647,
+      "filesystem_limit": "Filesystem calls and fsync may overrun; no exact hard real-time I/O guarantee.",
+      "path": "real-evidence/test_real_term_kill_deadline_and_raw_reap/control/observer-finalization.json",
+      "status": "failed"
+    },
+    {
+      "deadline_consumed": false,
+      "elapsed_measurement": "after primary receipts, before this final compact receipt I/O",
+      "elapsed_seconds": 0.25045950000640005,
+      "filesystem_limit": "Filesystem calls and fsync may overrun; no exact hard real-time I/O guarantee.",
+      "path": "real-evidence/test_real_group_descendant_is_signalled_and_reaped/control/observer-finalization.json",
+      "status": "failed"
+    },
+    {
+      "deadline_consumed": true,
+      "elapsed_measurement": "after primary receipts, before this final compact receipt I/O",
+      "elapsed_seconds": 0.8035952920326963,
+      "filesystem_limit": "Filesystem calls and fsync may overrun; no exact hard real-time I/O guarantee.",
+      "path": "real-evidence/test_total_deadline_interrupts_postflight_after_direct_reap/control/observer-finalization.json",
+      "status": "failed"
+    },
+    {
+      "deadline_consumed": false,
+      "elapsed_measurement": "after primary receipts, before this final compact receipt I/O",
+      "elapsed_seconds": 5.037085750023834,
+      "filesystem_limit": "Filesystem calls and fsync may overrun; no exact hard real-time I/O guarantee.",
+      "path": "real-evidence/test_malformed_committed_receipt_fails_closed_without_overwrite/control/observer-finalization.json",
+      "status": "failed"
+    },
+    {
+      "deadline_consumed": false,
+      "elapsed_measurement": "after primary receipts, before this final compact receipt I/O",
+      "elapsed_seconds": 5.409772417042404,
+      "filesystem_limit": "Filesystem calls and fsync may overrun; no exact hard real-time I/O guarantee.",
+      "path": "real-evidence/test_watchdog_work_deadline_real_child/control/observer-finalization.json",
+      "status": "failed"
+    },
+    {
+      "deadline_consumed": true,
+      "elapsed_measurement": "after primary receipts, before this final compact receipt I/O",
+      "elapsed_seconds": 0.8099501250544563,
+      "filesystem_limit": "Filesystem calls and fsync may overrun; no exact hard real-time I/O guarantee.",
+      "path": "real-evidence/test_total_deadline_during_final_result_read_skips_large_accounting/control/observer-finalization.json",
+      "status": "failed"
+    },
+    {
+      "deadline_consumed": false,
+      "elapsed_measurement": "after primary receipts, before this final compact receipt I/O",
+      "elapsed_seconds": 0.253932417021133,
+      "filesystem_limit": "Filesystem calls and fsync may overrun; no exact hard real-time I/O guarantee.",
+      "path": "real-evidence/test_direct_owner_cancellation_during_popen_return/control/observer-finalization.json",
+      "status": "failed"
+    }
+  ]
+}

@@ -1,0 +1,137 @@
+test_atomic_partial_publication_real_writer (test_real_processes.RealProcesses.test_atomic_partial_publication_real_writer) ... ok
+test_direct_owner_cancellation_during_popen_return (test_real_processes.RealProcesses.test_direct_owner_cancellation_during_popen_return) ... ok
+test_empty_anchors_term_exiting_leader_stubborn_descendant (test_real_processes.RealProcesses.test_empty_anchors_term_exiting_leader_stubborn_descendant) ... 
+  test_empty_anchors_term_exiting_leader_stubborn_descendant (test_real_processes.RealProcesses.test_empty_anchors_term_exiting_leader_stubborn_descendant) (stage='receipt') ... ERROR
+  test_empty_anchors_term_exiting_leader_stubborn_descendant (test_real_processes.RealProcesses.test_empty_anchors_term_exiting_leader_stubborn_descendant) (stage='snapshot') ... ERROR
+test_failure_before_receipt_or_first_snapshot_keeps_ownership (test_real_processes.RealProcesses.test_failure_before_receipt_or_first_snapshot_keeps_ownership) ... ok
+test_interrupted_partial_publication_never_commits (test_real_processes.RealProcesses.test_interrupted_partial_publication_never_commits) ... ok
+test_malformed_committed_receipt_fails_closed_without_overwrite (test_real_processes.RealProcesses.test_malformed_committed_receipt_fails_closed_without_overwrite) ... ok
+test_real_group_descendant_is_signalled_and_reaped (test_real_processes.RealProcesses.test_real_group_descendant_is_signalled_and_reaped) ... ok
+test_real_term_kill_deadline_and_raw_reap (test_real_processes.RealProcesses.test_real_term_kill_deadline_and_raw_reap) ... ok
+test_source_pins_and_strict_committed_json (test_real_processes.RealProcesses.test_source_pins_and_strict_committed_json) ... ok
+test_total_deadline_during_final_result_read_skips_large_accounting (test_real_processes.RealProcesses.test_total_deadline_during_final_result_read_skips_large_accounting) ... ok
+test_total_deadline_interrupts_postflight_after_direct_reap (test_real_processes.RealProcesses.test_total_deadline_interrupts_postflight_after_direct_reap) ... ok
+test_watchdog_work_deadline_real_child (test_real_processes.RealProcesses.test_watchdog_work_deadline_real_child) ... ok
+
+======================================================================
+ERROR: test_empty_anchors_term_exiting_leader_stubborn_descendant (test_real_processes.RealProcesses.test_empty_anchors_term_exiting_leader_stubborn_descendant) (stage='receipt')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-cleanup-deadline-repair-sol-20261026-r3/observe.py", line 180, in main
+    b.save(control/'worker-launch.json',dict(worker_pid=proc.pid,owned_pgid=proc.pid,
+  File "/Users/taylor/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-cleanup-deadline-repair-sol-20261026-r3/tests/test_real_processes.py", line 81, in save
+    if save_hook: save_hook(Path(path),value)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-cleanup-deadline-repair-sol-20261026-r3/tests/test_real_processes.py", line 117, in fail
+    if path.name=='worker-launch.json': raise RuntimeError('injected combined pre-receipt failure')
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: injected combined pre-receipt failure
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-cleanup-deadline-repair-sol-20261026-r3/observe.py", line 253, in main
+    cleanup = stop_owned(proc,send=lambda sig:signal_owned(proc,anchors,sig,record),
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-cleanup-deadline-repair-sol-20261026-r3/execute_once.py", line 62, in stop_owned
+    while group_exists(process.pid) and time.monotonic()-signal_started < wait_seconds:
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-cleanup-deadline-repair-sol-20261026-r3/execute_once.py", line 20, in group_exists
+    os.killpg(pgid, 0)
+PermissionError: [Errno 1] Operation not permitted
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-cleanup-deadline-repair-sol-20261026-r3/observe.py", line 259, in main
+    absent = None if proc is None else not group_exists(proc.pid)
+                                           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-cleanup-deadline-repair-sol-20261026-r3/execute_once.py", line 20, in group_exists
+    os.killpg(pgid, 0)
+PermissionError: [Errno 1] Operation not permitted
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-cleanup-deadline-repair-sol-20261026-r3/tests/test_real_processes.py", line 126, in test_empty_anchors_term_exiting_leader_stubborn_descendant
+    receipt,_=self.run_controller('orphan-family',save_hook=fail if stage=='receipt' else None,rows=no_snapshot if stage=='receipt' else snapshot_failure)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-cleanup-deadline-repair-sol-20261026-r3/tests/test_real_processes.py", line 88, in run_controller
+    code=observe.main('synthetic-not-an-envelope','synthetic-no-registration',popen=launch)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-cleanup-deadline-repair-sol-20261026-r3/observe.py", line 314, in main
+    owned_group_absent=absent,deadline_consumed=exhausted(),
+                       ^^^^^^
+UnboundLocalError: cannot access local variable 'absent' where it is not associated with a value
+
+======================================================================
+ERROR: test_empty_anchors_term_exiting_leader_stubborn_descendant (test_real_processes.RealProcesses.test_empty_anchors_term_exiting_leader_stubborn_descendant) (stage='snapshot')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-cleanup-deadline-repair-sol-20261026-r3/observe.py", line 184, in main
+    now = clock(); current = process_rows()
+                             ^^^^^^^^^^^^^^
+  File "/Users/taylor/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-cleanup-deadline-repair-sol-20261026-r3/tests/test_real_processes.py", line 119, in snapshot_failure
+    def snapshot_failure(): raise RuntimeError('injected combined pre-snapshot failure')
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: injected combined pre-snapshot failure
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-cleanup-deadline-repair-sol-20261026-r3/observe.py", line 253, in main
+    cleanup = stop_owned(proc,send=lambda sig:signal_owned(proc,anchors,sig,record),
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-cleanup-deadline-repair-sol-20261026-r3/execute_once.py", line 62, in stop_owned
+    while group_exists(process.pid) and time.monotonic()-signal_started < wait_seconds:
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-cleanup-deadline-repair-sol-20261026-r3/execute_once.py", line 20, in group_exists
+    os.killpg(pgid, 0)
+PermissionError: [Errno 1] Operation not permitted
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-cleanup-deadline-repair-sol-20261026-r3/observe.py", line 259, in main
+    absent = None if proc is None else not group_exists(proc.pid)
+                                           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-cleanup-deadline-repair-sol-20261026-r3/execute_once.py", line 20, in group_exists
+    os.killpg(pgid, 0)
+PermissionError: [Errno 1] Operation not permitted
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-cleanup-deadline-repair-sol-20261026-r3/tests/test_real_processes.py", line 126, in test_empty_anchors_term_exiting_leader_stubborn_descendant
+    receipt,_=self.run_controller('orphan-family',save_hook=fail if stage=='receipt' else None,rows=no_snapshot if stage=='receipt' else snapshot_failure)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-cleanup-deadline-repair-sol-20261026-r3/tests/test_real_processes.py", line 88, in run_controller
+    code=observe.main('synthetic-not-an-envelope','synthetic-no-registration',popen=launch)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-cleanup-deadline-repair-sol-20261026-r3/observe.py", line 314, in main
+    owned_group_absent=absent,deadline_consumed=exhausted(),
+                       ^^^^^^
+UnboundLocalError: cannot access local variable 'absent' where it is not associated with a value
+
+----------------------------------------------------------------------
+Ran 12 tests in 33.272s
+
+FAILED (errors=2)

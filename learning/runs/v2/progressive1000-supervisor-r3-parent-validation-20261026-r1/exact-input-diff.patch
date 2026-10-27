@@ -1,0 +1,349 @@
+--- a/execute_once.py
++++ b/execute_once.py
+@@ -21,6 +21,10 @@
+         return True
+     except ProcessLookupError:
+         return False
++    except PermissionError:
++        # A group exists even when the kernel temporarily denies the probe.
++        # Never turn unknown/denied permission into evidence of absence.
++        return True
+ 
+ 
+ def stop_owned(process, *, send=None, deadline=None):
+@@ -43,22 +47,24 @@
+             group_gone = True
+         except BaseException as error:
+             result["errors"].append(repr(error))
++        if sig == signal.SIGTERM:
++            # Keep the direct child unreaped for the entire TERM grace. Even an
++            # exited leader pins the original group while descendants survive.
++            # No wait/poll (and no platform-specific waitid) before escalation.
++            try:
++                if not group_gone:
++                    time.sleep(max(0, wait_seconds-(time.monotonic()-signal_started)))
++            except BaseException as error:
++                result["errors"].append(repr(error))
++            continue
+         try:
+             process.wait(timeout=wait_seconds)
+-        except subprocess.TimeoutExpired:
+-            continue
+         except BaseException as error:
+             result["errors"].append(repr(error))
+-        if sig == signal.SIGTERM and process.poll() is not None:
+-            for _ in range(50):
+-                if group_gone or not group_exists(process.pid):
+-                    group_gone = True
+-                    break
+-                if time.monotonic() - signal_started >= wait_seconds:
+-                    break
+-                time.sleep(.1)
+-            if group_gone:
+-                break
++        # KILL already used the retained ownership pin. Reap the direct child,
++        # then allow owned orphan descendants to disappear within the same grace.
++        while group_exists(process.pid) and time.monotonic()-signal_started < wait_seconds:
++            time.sleep(min(.01,max(0,wait_seconds-(time.monotonic()-signal_started))))
+     result.update(exit_code=process.poll(), reaped=process.poll() is not None)
+     return result
+ 
+--- a/observe.py
++++ b/observe.py
+@@ -133,11 +133,23 @@
+     started = envelope['started']; term_at = started+b.LIMITS['work_seconds']; hard_at = started+b.LIMITS['total_seconds']
+     peak_aggregate = 0; term_sent = None; kill_sent = False
+     launching = False
++    deadline_consumed = False
++    def exhausted():
++        nonlocal deadline_consumed
++        if clock() >= hard_at:
++            deadline_consumed = True
++            latch('external_total_deadline')
++        return deadline_consumed
++    def require_budget():
++        if exhausted():
++            raise b.Cancelled('absolute supervisor deadline consumed')
+     old_alarm = signal.getsignal(signal.SIGALRM)
+     old_timer = signal.getitimer(signal.ITIMER_REAL)
+     timer_started = time.monotonic()
+     def deadline_alarm(_number,_frame):
++        nonlocal deadline_consumed
+         total = clock() >= hard_at
++        if total: deadline_consumed = True
+         latch('external_total_deadline' if total else 'external_work_deadline')
+         if not total:
+             signal.setitimer(signal.ITIMER_REAL,max(.001,hard_at-clock()))
+@@ -165,6 +177,7 @@
+             record.update(launch_count=1,actual_worker_launch_count=1,worker_pid=proc.pid,
+                           owned_pgid=proc.pid,command=command,start_new_session=True,
+                           worker_ownership_state='direct_child')
++            require_budget()
+             b.save(control/'worker-launch.json',dict(worker_pid=proc.pid,owned_pgid=proc.pid,
+                 launcher_pid=os.getpid(),command=command,start_new_session=True,
+                 observed_monotonic=clock(),registration_sha256=envelope['registration_sha256']))
+@@ -232,7 +245,7 @@
+         record['status'] = 'completed_pending_parent_audit'
+     except BaseException as error:
+         latch('observer_failure',error=repr(error))
+-        if use_timer and clock() < hard_at:
++        if use_timer and not exhausted():
+             signal.setitimer(signal.ITIMER_REAL,max(.001,hard_at-clock()))
+         record.update(error=repr(error),traceback=traceback.format_exc())
+         if proc is not None and (proc.returncode is None or group_exists(proc.pid)):
+@@ -242,34 +255,69 @@
+                                  deadline=min(hard_at,(clock() if term_sent is None else term_sent)+b.LIMITS['cleanup_seconds']))
+             record.update(observed_worker_raw_exit=proc.returncode,directly_reaped=proc.returncode is not None)
+     finally:
++        absent = None
+         try:
+             publication = True
+             absent = None if proc is None else not group_exists(proc.pid)
+-            record.update(elapsed_seconds=clock()-started,max_aggregate_rss_bytes=peak_aggregate,
++            record.update(max_aggregate_rss_bytes=peak_aggregate,
+                           owned_group_absent=absent,worker_group_absent=absent,cleanup=cleanup)
+             if proc is not None:
+                 record.update(observed_worker_raw_exit=proc.returncode,directly_reaped=proc.returncode is not None)
+-            if (out/'worker-result.json').is_file():
+-                try: record['worker_result'] = b.read(out/'worker-result.json')
+-                except BaseException as error: record['worker_result_read_error'] = repr(error)
+-            try: record['terminal_accounting'] = terminal.accounting(out,record.get('worker_result',{}))
+-            except BaseException as error: record['accounting_error'] = repr(error)
++            try:
++                require_budget()
++                if 'worker_result' not in record and (out/'worker-result.json').is_file():
++                    try: record['worker_result'] = b.read(out/'worker-result.json')
++                    except BaseException as error: record['worker_result_read_error'] = repr(error)
++                # A read timeout may have been caught above. The consumed total
++                # deadline is sticky: never continue into full journal accounting.
++                require_budget()
++                record['terminal_accounting'] = terminal.accounting(out,record.get('worker_result',{}))
++                require_budget()
++            except BaseException as error:
++                record['accounting_error'] = repr(error)
++                if exhausted(): record['terminal_accounting_deferred'] = 'total_deadline_consumed'
+             worker_failure = record.get('worker_result',{}).get('first_failure')
+             record['raw_worker_first_failure'] = worker_failure
+             record['first_observed_failure'] = record['first_event']
+             record['final_observer_peak_rss_bytes'] = int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)*(1 if sys.platform == 'darwin' else 1024)
+-            if (record['first_event'] is not None or record['elapsed_seconds'] >= b.LIMITS['total_seconds']
++            record['deadline_consumed'] = exhausted()
++            if (record['first_event'] is not None or record['deadline_consumed']
+                     or absent is not True or record.get('directly_reaped') is not True
+                     or record['final_observer_peak_rss_bytes'] > b.LIMITS['rss_bytes']
+                     or 'accounting_error' in record): record['status'] = 'failed'
++            if record['deadline_consumed']:
++                # Preserve compact partial evidence; do not serialize large
++                # worker snapshots or completed accounting after exhaustion.
++                for key in ('worker_result','terminal_accounting','evidence_checks'):
++                    record.pop(key,None)
++            record['elapsed_seconds'] = clock()-started
++            record['elapsed_measurement'] = 'after accounting, before receipt I/O'
+             b.save(control/'execution-result.json',record)
++            # The timer remains active through publication. If it fires in a
++            # save, the compact fallback below does no result/journal rereads.
++            if exhausted():
++                record.update(status='failed',deadline_consumed=True,
++                              terminal_accounting_deferred='total_deadline_consumed')
++                for key in ('worker_result','terminal_accounting','evidence_checks'):
++                    record.pop(key,None)
++            record['elapsed_seconds'] = clock()-started
+             b.save(control/'observation.json',record)
+-            if clock() >= hard_at or record['first_event'] is not None and record['status'] != 'failed':
+-                b.save(control/'observer-publication-failure.json',dict(status='failed',reason='absolute publication deadline or cancellation'))
+-                return 1
+-            return 0 if record['status'] == 'completed_pending_parent_audit' else 1
++            final_elapsed = clock()-started
++            if exhausted(): record['status'] = 'failed'
++            b.save(control/'observer-finalization.json',dict(status=record['status'],
++                elapsed_seconds=final_elapsed,deadline_consumed=exhausted(),
++                elapsed_measurement='after primary receipts, before this final compact receipt I/O',
++                filesystem_limit='Filesystem calls and fsync may overrun; no exact hard real-time I/O guarantee.'))
++            return 0 if record['status'] == 'completed_pending_parent_audit' and not exhausted() else 1
+         except BaseException as error:
+-            b.save(control/'observer-publication-failure.json',dict(status='failed',error=repr(error),first_event=record['first_event']))
++            b.save(control/'observer-publication-failure.json',dict(status='failed',error=repr(error),
++                first_event=record['first_event'],raw_worker_first_failure=record.get('raw_worker_first_failure'),
++                observed_worker_raw_exit=None if proc is None else proc.returncode,
++                directly_reaped=proc is not None and proc.returncode is not None,
++                owned_group_absent=absent,deadline_consumed=exhausted(),
++                elapsed_seconds=clock()-started,
++                elapsed_measurement='before compact failure receipt I/O',
++                filesystem_limit='Filesystem calls and fsync may overrun; no exact hard real-time I/O guarantee.'))
+             return 1
+         finally:
+             if use_timer:
+--- a/tests/run_real_controls.py
++++ b/tests/run_real_controls.py
+@@ -52,8 +52,8 @@
+         signals.append(dict(pid=pid,signal=sig,reason='inject controller cancellation'))
+ sys.addaudithook(audit)
+ resource.setrlimit(resource.RLIMIT_CPU,(15,15))
+-signal.signal(signal.SIGALRM,lambda *_:(_ for _ in ()).throw(TimeoutError('real suite 35-second wall bound')))
+-signal.alarm(35)
++signal.signal(signal.SIGALRM,lambda *_:(_ for _ in ()).throw(TimeoutError('real suite 55-second wall bound')))
++signal.alarm(55)
+ started=time.monotonic()
+ suite=unittest.defaultTestLoader.loadTestsFromModule(tests)
+ log=io.StringIO()
+@@ -63,7 +63,7 @@
+ receipt=dict(schema='progressive1000_supervisor_real_stdlib_controls_v1',tests_run=result.testsRun,
+     failures=len(result.failures),errors=len(result.errors),successful=result.wasSuccessful(),
+     raw_exit=0 if result.wasSuccessful() else 1,elapsed_seconds=time.monotonic()-started,
+-    argv_interpreter=tests.PYTHON,flags=['-I','-B'],cpu_seconds_bound=15,wall_seconds_bound=35,
++    argv_interpreter=tests.PYTHON,flags=['-I','-B'],cpu_seconds_bound=15,wall_seconds_bound=55,
+     subprocesses=spawns,signals=signals,forbidden_runtime_imports=forbidden,evidence=tests.EVIDENCE,
+     remaining_owned_handles=list(tests.OWNED),scope='Real bounded stdlib processes with mocked gates and synthetic control paths only. No model, native, Torch, NumPy, MPS, checkpoint, campaign or acceptance evidence.')
+ (REPORT/'real-test-receipt.json').write_text(json.dumps(receipt,sort_keys=True,indent=2)+'\n')
+--- a/tests/stdlib_child.py
++++ b/tests/stdlib_child.py
+@@ -36,7 +36,11 @@
+     import binding as b
+     b.save(home/'committed.json',dict(payload='replacement'))
+     raise SystemExit(99)
+-if mode == 'ignore-term': signal.signal(signal.SIGTERM,signal.SIG_IGN)
++if mode == 'orphan-family':
++    child=subprocess.Popen([str(OWN.parents[3]/'python/.venv/bin/python'),'-I','-B',__file__,'stubborn-descendant',str(home)])
++    wait_for(home/'descendant-ready')
++    (home/'descendant.json').write_text(json.dumps(dict(pid=child.pid,pgid=os.getpgid(child.pid))))
++if mode in ('ignore-term','stubborn-descendant'): signal.signal(signal.SIGTERM,signal.SIG_IGN)
+ if mode == 'family':
+     child=subprocess.Popen([str(OWN.parents[3]/'python/.venv/bin/python'),'-I','-B',__file__,'descendant',str(home)])
+     def terminate(_number,_frame):
+@@ -46,6 +50,6 @@
+     signal.signal(signal.SIGTERM,terminate)
+     wait_for(home/'descendant-ready')
+     (home/'descendant.json').write_text(json.dumps(dict(pid=child.pid,pgid=os.getpgid(child.pid))))
+-(home/('descendant-ready' if mode=='descendant' else 'ready')).write_text(json.dumps(dict(pid=os.getpid(),ppid=os.getppid(),pgid=os.getpgrp())))
++(home/('descendant-ready' if mode in ('descendant','stubborn-descendant') else 'ready')).write_text(json.dumps(dict(pid=os.getpid(),ppid=os.getppid(),pgid=os.getpgrp())))
+ if mode=='exit-zero': raise SystemExit(0)
+ while True: time.sleep(.05)
+--- a/tests/test_bindings.py
++++ b/tests/test_bindings.py
+@@ -122,15 +122,16 @@
+     def test_original_cleanup_term_kill_with_fake_process(self):
+         class Fake:
+             pid = 987654321
+-            calls = 0
+             code = None
+             def wait(self,timeout=None):
+-                self.calls += 1
+-                if self.calls == 1: raise subprocess.TimeoutExpired('stdlib-fake',timeout)
+                 self.code = -9
++                return self.code
+             def poll(self): return self.code
+-        with patch.object(launcher.os,'killpg') as kill:
+-            result = launcher.stop_owned(Fake())
++        process=Fake()
++        def send(sig):
++            self.assertIsNone(process.code, 'reaped before escalation')
++        with patch.object(launcher.os,'killpg',side_effect=lambda pid,sig:send(sig)) as kill, patch.object(launcher.time,'sleep'), patch.object(launcher,'group_exists',return_value=False):
++            result = launcher.stop_owned(process)
+         self.assertEqual([c.args for c in kill.call_args_list],[(987654321,signal.SIGTERM),(987654321,signal.SIGKILL)])
+         self.assertEqual(result['exit_code'],-9);self.assertTrue(result['reaped'])
+ 
+--- a/tests/test_real_processes.py
++++ b/tests/test_real_processes.py
+@@ -112,6 +112,35 @@
+         # The real one-use control claim rejects a second dispatch before Popen.
+         with patch.object(b,'load_envelope',return_value=(envelope,dict(output=str(self.home/'worker-output')))):
+             with self.assertRaises(FileExistsError): observe.main('unused','unused',popen=lambda *a,**k:self.fail('retry'))
++    def test_empty_anchors_term_exiting_leader_stubborn_descendant(self):
++        def fail(path,value):
++            if path.name=='worker-launch.json': raise RuntimeError('injected combined pre-receipt failure')
++        def no_snapshot(): self.fail('empty anchors must not require a snapshot')
++        def snapshot_failure(): raise RuntimeError('injected combined pre-snapshot failure')
++        base=self.home
++        try:
++            for stage in ('receipt','snapshot'):
++                with self.subTest(stage=stage):
++                    self.home=base/stage;self.home.mkdir()
++                    start=time.monotonic()
++                    receipt,_=self.run_controller('orphan-family',save_hook=fail if stage=='receipt' else None,rows=no_snapshot if stage=='receipt' else snapshot_failure)
++                    child=b.read(self.home/'descendant.json')
++                    self.assertEqual(receipt['observed_worker_raw_exit'],-15)
++                    self.assertEqual(child['pgid'],receipt['worker_pid'])
++                    self.assertEqual([item['signal'] for item in receipt['cleanup_signals']],['SIGTERM','SIGKILL'])
++                    self.assertTrue(all(item['ownership']=='unreaped directly owned Popen with start_new_session=True'
++                                        for item in receipt['cleanup_signals']))
++                    self.assertTrue(receipt['cleanup']['reaped'])
++                    self.assertNotIn(child['pid'],observe.process_rows())
++                    self.assertFalse(observe.group_exists(child['pgid']))
++                    self.assertIn('injected combined pre-'+stage+' failure',receipt['first_event']['error'])
++                    self.assertEqual((self.home/'control/worker-launch.json').exists(),stage=='snapshot')
++                    self.case['checks'].setdefault('empty_anchor_stages',[]).append(dict(stage=stage,descendant=child,descendant_absent_from_process_table=True,
++                        descendant_reap_scope='orphan reaped by OS; direct leader reaped by Popen.wait',
++                        actual_return_elapsed_seconds=time.monotonic()-start))
++                    self.assertLess(time.monotonic()-start,10)
++        finally:
++            self.home=base
+     def test_real_term_kill_deadline_and_raw_reap(self):
+         def cancel(proc,envelope): Path(envelope['cancel_path']).touch()
+         start=time.monotonic()
+@@ -142,14 +171,64 @@
+         def read(path):
+             if Path(path).name=='worker-result.json': return dict(status='synthetic-no-training')
+             return original(path)
++        def prepare(proc,envelope):
++            out=self.home/'worker-output';out.mkdir()
++            (out/'training-metrics.jsonl').write_text('{"metrics":{"optimizer_steps":1}}\n'*100000)
+         def verify(envelope,reg,*,preflight):
+             if not preflight: time.sleep(3)
+-        with patch.object(b,'read',side_effect=read),patch.object(observe.terminal,'validate_outputs',return_value={'synthetic':True}):
+-            receipt,_=self.run_controller('exit-zero',limits=limits,verify_hook=verify)
++        def slow_accounting(*args):
++            time.sleep(3)
++            self.fail('full journal accounting after deadline')
++        start=time.monotonic()
++        with patch.object(b,'read',side_effect=read),patch.object(observe.terminal,'validate_outputs',return_value={'synthetic':True}), patch.object(observe.terminal,'accounting',side_effect=slow_accounting) as accounting:
++            receipt,_=self.run_controller('exit-zero',limits=limits,verify_hook=verify,before_return=prepare)
++        elapsed=time.monotonic()-start
++        accounting.assert_not_called()
++        self.assertLess(elapsed,1.5)
++        self.case['checks'].update(actual_return_elapsed_seconds=elapsed,
++            journal_bytes=(self.home/'worker-output/training-metrics.jsonl').stat().st_size,
++            accounting_calls=accounting.call_count)
++        self.assertTrue(receipt['deadline_consumed'])
++        self.assertEqual(receipt['terminal_accounting_deferred'],'total_deadline_consumed')
+         self.assertEqual(receipt['first_event']['kind'],'external_total_deadline')
+         self.assertEqual(receipt['observed_worker_raw_exit'],0)
+         self.assertLess(receipt['elapsed_seconds'],1.5)
+         self.assertNotIn('postflight_inputs_unchanged',receipt)
++    def test_total_deadline_during_final_result_read_skips_large_accounting(self):
++        limits=dict(b.LIMITS,work_seconds=.4,total_seconds=.8)
++        original_read=b.read
++        reads=[]
++        def prepare(proc,envelope):
++            # Valid large journal; the expired finalizer must never open it.
++            out=self.home/'worker-output';out.mkdir()
++            (out/'worker-result.json').write_text('{}')
++            (out/'training-metrics.jsonl').write_text('{"metrics":{"optimizer_steps":1}}\n'*100000)
++            proc.wait(timeout=2)
++        def read(path):
++            if Path(path).name=='worker-result.json':
++                reads.append(time.monotonic())
++                time.sleep(3)  # Interrupted by the real one-shot total alarm.
++            return original_read(path)
++        def slow_accounting(*args):
++            time.sleep(3)
++            return {'should_never_run':True}
++        # The exited child takes no cleanup time. Resource sampling fails first;
++        # the final result read then consumes the total alarm.
++        start=time.monotonic()
++        with patch.object(b,'read',side_effect=read), patch.object(b,'worker_resources',side_effect=RuntimeError('first failure before final result read')), patch.object(observe.terminal,'accounting',side_effect=slow_accounting) as accounting:
++            receipt,_=self.run_controller('exit-zero',limits=limits,before_return=prepare,
++                verify_hook=lambda *a,**k:None)
++        elapsed=time.monotonic()-start
++        accounting.assert_not_called()
++        self.assertEqual(len(reads),1)
++        self.assertIn('first failure before final result read',receipt['first_event']['error'])
++        self.assertTrue(receipt['deadline_consumed'])
++        self.assertEqual(receipt['terminal_accounting_deferred'],'total_deadline_consumed')
++        self.assertLess(elapsed,1.5)
++        self.assertNotIn('terminal_accounting',receipt)
++        self.case['checks'].update(actual_return_elapsed_seconds=elapsed,worker_result_read_count=len(reads),
++            journal_bytes=(self.home/'worker-output/training-metrics.jsonl').stat().st_size,
++            accounting_calls=accounting.call_count)
+     def test_atomic_partial_publication_real_writer(self):
+         with (self.home/'writer.log').open('x') as log:
+             proc=spawn(command('publish',self.home),stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
