@@ -1,0 +1,45 @@
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-shared-runtime-assembly-sol-20261026-r1/runtime_adapter.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-shared-runtime-staticmethod-repair-sol-20261026-r2/runtime_adapter.py
+@@ -4,6 +4,7 @@
+ marker validation. No runtime call in this preparation has been executed.
+ """
+ from __future__ import annotations
++import ast
+ import copy
+ import importlib
+ import inspect
+@@ -43,13 +44,32 @@
+ 
+ def authenticate_class(module, name):
+     path = Path(module.__file__).resolve()
+-    code = binding._definitions(path.read_bytes(), path, (name,))[name]
++    source = path.read_bytes()
++    code = binding._definitions(source, path, (name,))[name]
+     expected = {item.co_name:item for item in code.co_consts if isinstance(item,types.CodeType)}
++    definition = next(node for node in ast.parse(source, filename=str(path)).body
++                      if isinstance(node,ast.ClassDef) and node.name == name)
++    kinds = {}
++    for node in definition.body:
++        if not isinstance(node,(ast.FunctionDef,ast.AsyncFunctionDef)):
++            continue
++        decorators = node.decorator_list
++        c.need(not decorators or (len(decorators) == 1 and isinstance(decorators[0],ast.Name)
++               and decorators[0].id in {'staticmethod','property'}),
++               'unsupported runtime class descriptor: '+name+'.'+node.name)
++        kinds[node.name] = (types.FunctionType if not decorators else
++                            {'staticmethod':staticmethod,'property':property}[decorators[0].id])
++    c.need(set(kinds) == set(expected),'runtime class definitions differ: '+name)
+     loaded = getattr(module,name)
+     c.need(inspect.isclass(loaded) and inspect.getsourcefile(loaded) == str(path), 'runtime class origin differs')
+     for method, body in expected.items():
+         function = inspect.getattr_static(loaded,method)
+-        if isinstance(function,property):
++        c.need(type(function) is kinds[method], 'runtime class descriptor differs: '+name+'.'+method)
++        if type(function) is staticmethod:
++            function = function.__func__
++        elif type(function) is property:
++            c.need(function.fset is None and function.fdel is None,
++                   'runtime class property differs: '+name+'.'+method)
+             function = function.fget
+         c.need(inspect.isfunction(function) and function.__globals__ is module.__dict__
+                and binding._code_signature(function.__code__) == binding._code_signature(body),
