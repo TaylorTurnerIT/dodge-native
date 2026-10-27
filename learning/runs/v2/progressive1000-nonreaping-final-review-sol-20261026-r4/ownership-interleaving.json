@@ -1,0 +1,17 @@
+{
+  "schema": "source_only_nonreaping_ownership_review_v1",
+  "finding": "SUP-R3-01",
+  "status": "closed_at_source_level",
+  "trace": [
+    "Initial snapshot contains direct leader L only; anchors contain L.",
+    "L forks same-group descendant C, then exits before exit observation.",
+    "Typed waitid(P_PID,L,WEXITED|WNOHANG|WNOWAIT) observes L without reaping; Popen.returncode stays None.",
+    "Fresh snapshot finds C. L cannot fork after its observed exit; C triggers owned_group_survived_worker.",
+    "TERM and required KILL use unreaped directly-owned session leader L. C needs no earlier snapshot anchor.",
+    "Normal wait occurs only after refreshed original group has no member except exited L; raw wait must equal observed exit.",
+    "Any pre-reap exception or cleanup deadline retains L for exceptional TERM/KILL before first wait.",
+    "After reap, fresh identity guards remain mandatory. No broad command matching was introduced."
+  ],
+  "reviewer_execution": false,
+  "limits": "Source reasoning only; reported regression observations remain inherited R4 evidence. No launch authority."
+}
