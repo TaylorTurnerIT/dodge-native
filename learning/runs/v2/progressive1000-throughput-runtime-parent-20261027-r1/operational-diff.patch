@@ -1,0 +1,274 @@
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-shared-runtime-staticmethod-repair-sol-20261026-r2/worker.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-throughput-runtime-parent-20261027-r1/worker.py
+@@ -16,6 +16,7 @@
+ import contracts as c
+ from runtime_adapter import RuntimeAdapter
+ import transition
++from progress_monitor import LeaseReader, parse_lease, ProgressMonitor
+ 
+ 
+ def emit(stream,value):
+@@ -38,15 +39,21 @@
+         self.reg,self.adapter,self.started,self.resources=reg,adapter,started,resources
+         self.peak_rss=self.peak_mps=0
+         self.last_sample=float('-inf')
++        self.lease_reader=LeaseReader(reg['state_path'],parse_lease)
++        self.monitor=ProgressMonitor(started,reg['limits']['work_seconds'],reg['schedule']['updates'])
++        self.last_progress=float('-inf')
++        self.guard_calls=0
++        self.guard_seconds=0.0
+ 
+     def check(self,finalizing=False):
++        check_started=time.monotonic()
+         elapsed=time.monotonic()-self.started
+         c.need(elapsed<=self.reg['limits']['total_seconds' if finalizing else 'work_seconds'], 'registered wall limit exceeded')
+         rss=int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)*(1 if sys.platform=='darwin' else 1024)
+         mps=int(self.adapter.torch.mps.driver_allocated_memory()) if self.reg['backend']=='mps' else 0
+         self.peak_rss,self.peak_mps=max(self.peak_rss,rss),max(self.peak_mps,mps)
+         c.need(rss<=self.reg['limits']['rss_bytes'] and mps<=self.reg['limits']['mps_bytes'], 'registered memory limit exceeded')
+-        c.need(c.read(self.reg['state_path']).get('active_long_campaign')==self.reg['expected_lease'],'parent lease changed')
++        c.need(self.lease_reader.read()==self.reg['expected_lease'],'parent lease changed')
+         boundary=self.adapter.boundary
+         if boundary is not None:
+             raw=boundary.initial_startup_frames+boundary.observed_native_frames+boundary.returned_reset_startup_frames
+@@ -56,6 +63,13 @@
+         if elapsed-self.last_sample>=.5 or finalizing:
+             emit(self.resources,dict(elapsed_seconds=elapsed,rss_bytes=rss,mps_driver_bytes=mps))
+             self.last_sample=elapsed
++        if elapsed-self.last_progress>=5 or finalizing:
++            value=self.monitor.payload()
++            value.update(guard_calls=self.guard_calls,guard_seconds=self.guard_seconds)
++            print(json.dumps(value,sort_keys=True,allow_nan=False),flush=True)
++            self.last_progress=elapsed
++        self.guard_calls+=1
++        self.guard_seconds+=time.monotonic()-check_started
+ 
+ 
+ def run_transition(reg, adapter):
+@@ -107,6 +121,10 @@
+     counters=dict(updates=0,optimizer_steps=0,environment_decisions=0,raw_frames=0)
+     result.update(counters=counters,integrity_checkpoints=[],evaluated_updates=[],
+                   training_eligible=False,promoted=False,automatic_selection=False)
++    monitor=getattr(guard,'monitor',None)
++    if monitor is None:
++        monitor=ProgressMonitor(started,reg['limits']['work_seconds'],reg.get('schedule',c.SCHEDULE)['updates'])
++    schedule=reg.get('schedule',c.SCHEDULE)
+     with (out/'training-events.jsonl').open('x') as events, (out/'training-metrics.jsonl').open('x') as metrics:
+         # The sink journals returned native work and completed/reset identities
+         # before later bootstrap/guard/PPO/diagnostic failures can occur.
+@@ -114,15 +132,19 @@
+         emit(events,dict(kind='initial',info=adapter.env.episode_info(),batch_info=adapter.env.batch_info(),
+                          assignments=copy.deepcopy(adapter.boundary.assignment_events),
+                          parent_abandoned_episodes=adapter.parent['abandoned_current_episodes']))
+-        for local in range(1,61):
++        for local in range(1,schedule['updates']+1):
++            monitor.begin_update(local)
+             guard.check()
+             c.need(all(g['lr']==3e-5 for g in adapter.optimizer.param_groups),'constant LR changed after restore')
+             progress={}
+             result['active_update']=local
+             def before_ppo(completed,resets):
++                monitor.enter('collection_journal')
+                 emit(events,dict(kind='collection_complete_before_PPO',global_update=local,
+-                    completed=completed,resets=resets,snapshot=adapter.snapshot()))
++                    completed=completed,resets=resets))
++                monitor.enter('PPO')
+             value,collection,boundary=adapter.update(guard.check,progress,before_ppo)
++            monitor.enter('metrics_write')
+             c.need(progress.get('complete') is True and progress.get('in_update') is False,'incomplete update cannot advance counters')
+             counters['updates']=local
+             counters['optimizer_steps']+=value['optimizer_steps']
+@@ -132,16 +154,20 @@
+             emit(metrics,dict(global_update=local,phase_update=324+local,cumulative_update=372+local,
+                 effective_learning_rate=3e-5,metrics=value,counters=dict(counters),
+                 progress=progress,scheduler_boundary=boundary,elapsed_seconds=time.monotonic()-started))
+-            if local in c.SCHEDULE['integrity_local_updates']:
++            if local in schedule['integrity_local_updates']:
++                monitor.enter('checkpoint')
+                 checkpoint=adapter.integrity_checkpoint(out,local,counters,registration_sha)
+                 save(out/(Path(checkpoint['path']).name+'.json'),checkpoint)
+                 result['integrity_checkpoints'].append(checkpoint)
+             guard.check()
+-        c.need(counters['updates']==60 and counters['environment_decisions']==983040,'fixed global60 transition budget differs')
+-        result.update(status='completed',formal_comparison_endpoint=result['integrity_checkpoints'][-1],
++            progress_row=monitor.finish_update(local)
++            print(json.dumps(progress_row,sort_keys=True,allow_nan=False),flush=True)
++        c.need(counters['updates']==schedule['updates'] and counters['environment_decisions']==16384*schedule['updates'],'registered transition budget differs')
++        probe=reg.get('purpose')=='timing_probe24'
++        result.update(status='completed_timing_probe' if probe else 'completed',formal_comparison_endpoint=None if probe else result['integrity_checkpoints'][-1],
+             final_resume_next_episode_indices=adapter.env.batch_info()['next_episode_indices'],
+-            curriculum_snapshot=adapter.snapshot(),cumulative_update=432,phase_update=384,
+-            interpretation='descriptive pilot only; parent comparison required; no automatic promotion')
++            curriculum_snapshot=adapter.snapshot(),cumulative_update=372+schedule['updates'],phase_update=324+schedule['updates'],
++            interpretation='timing only; no comparison endpoint' if probe else 'descriptive pilot only; parent comparison required; no automatic promotion')
+     return result
+ 
+ 
+@@ -177,4 +203,4 @@
+         result.update(run_id=reg['run_id'],registration_sha256=registration_sha,
+                       elapsed_seconds=time.monotonic()-started,cleanup_qualification='existing_parent_supervisor_required')
+         save(out/'worker-result.json',result)
+-    return 0 if result['status']=='completed' else 1
++    return 0 if result['status'] in ('completed','completed_timing_probe') else 1
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-shared-runtime-staticmethod-repair-sol-20261026-r2/contracts.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-throughput-runtime-parent-20261027-r1/contracts.py
+@@ -23,6 +23,8 @@
+                 cumulative_last=432, phase_start=325, phase_end=384,
+                 integrity_local_updates=[12,24,36,48,60], formal_evaluation_local_updates=[60],
+                 candidate_selection=False, promotion=False, final_drain=False)
++PROBE_SCHEDULE = dict(SCHEDULE,updates=24,cumulative_last=396,phase_end=348,
++    integrity_local_updates=[12,24],formal_evaluation_local_updates=[])
+ GATES = ('independent_source_review','trusted_restore_qualification','new_vector_CPU_MPS_references',
+          'seed_history_freshness','seed_reservation','disabled_cutoff_release_parity',
+          'release_runtime_qualification','resource_calibration','supervisor_cleanup',
+@@ -33,7 +35,7 @@
+               'runtime_root','runtime_versions','source_manifest_sha256','runtime_manifest_sha256',
+               'input_manifest_sha256','shared_config','ppo','schedule','output','attempt_claim_path',
+               'interpreter','import_policy','state_path','expected_lease','launch_marker_path',
+-              'limits','cohort_state','history_state','reservation_state'}
++              'limits','cohort_state','history_state','reservation_state','purpose'}
+ 
+ 
+ def need(ok, message):
+@@ -143,6 +145,9 @@
+     need(type(reg) is dict and set(reg)==REG_FIELDS,'registration fields differ')
+     need(reg['schema']=='progressive1000_worker_registration_v1' and reg['status']=='parent_registered',
+          'inert template is not parent registration')
++    need(reg['purpose'] in ('matched_comparison','timing_probe24'),'unregistered run purpose')
++    if reg['purpose']=='timing_probe24':
++        need(reg['replica']==1 and reg['arm']==ARMS[0],'timing probe requires fixed replica1 control')
+     need(reg['study_id']==STUDY and type(reg['replica'])is int and 1<=reg['replica']<=3,'study/replica differs')
+     need(reg['arm'] in ARMS and reg['curriculum_enabled'] is (reg['arm']==ARMS[1]),'arm/enablement differs')
+     need(reg['run_id']==f"{STUDY}-replica-{reg['replica']}-{reg['arm']}"
+@@ -168,7 +173,10 @@
+     need(reg['vector']==vector and references.canonical_vector_sha256(STUDY,reg['replica'],vector['seeds'])==vector['vector_sha256'],
+          'new full vector differs; LR references forbidden')
+     need(reg['initial_episode_indices']==proposal['parent']['next_episode_indices'],'accepted324 slot offsets differ')
+-    need(reg['ppo']==PPO and reg['schedule']==SCHEDULE and reg['shared_config']==read(HERE/'shared-config.json'),
++    expected_schedule=PROBE_SCHEDULE if reg['purpose']=='timing_probe24' else SCHEDULE
++    expected_config=read(HERE/'shared-config.json')
++    expected_config.update(schedule=expected_schedule,global_updates=expected_schedule['updates'])
++    need(reg['ppo']==PPO and reg['schedule']==expected_schedule and reg['shared_config']==expected_config,
+          'shared optimization/config/budget differs')
+     controls=episode_controls(vector,reg['initial_episode_indices'],reg['exclusion_union'])
+     reference=reg['reference']; need(type(reference)is dict and set(reference)=={'receipt_path','receipt_sha256','vector_sha256'},'independent reference missing')
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-shared-runtime-staticmethod-repair-sol-20261026-r2/driver_binding.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-throughput-runtime-parent-20261027-r1/driver_binding.py
+@@ -12,9 +12,9 @@
+ import sys
+ import types
+ 
+-CHECKPOINTS_RELATIVE = Path("learning/runs/v2/progressive1000-shared-runtime-staticmethod-repair-sol-20261026-r2/runtime/dodge_rl/checkpoints.py")
++CHECKPOINTS_RELATIVE = Path("learning/runs/v2/progressive1000-throughput-runtime-parent-20261027-r1/runtime/dodge_rl/checkpoints.py")
+ CHECKPOINTS_SHA256 = "807141943a742c6e9fdd34274c191b3c318134cc7fb0c1c6256874cadee1cbc3"
+-IDENTITY_RELATIVE = Path("learning/runs/v2/progressive1000-shared-runtime-staticmethod-repair-sol-20261026-r2/runtime/dodge_rl/identity.py")
++IDENTITY_RELATIVE = Path("learning/runs/v2/progressive1000-throughput-runtime-parent-20261027-r1/runtime/dodge_rl/identity.py")
+ IDENTITY_SHA256 = "50775b2e7c30e53757dd3134d11613f716733cee8e6a96cc18b62e8ff2a4a053"
+ RUNNER_RELATIVE = Path("learning/runs/v2/D2-retained300-continuation-freeze-20261026-r5/runner.py")
+ RUNNER_SHA256 = "108ba55ad78aa26166acb14f67cc6466da6293ccee3d272e1fe6e775ebf2ac60"
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-shared-runtime-staticmethod-repair-sol-20261026-r2/successor_identity.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-throughput-runtime-parent-20261027-r1/successor_identity.py
+@@ -15,7 +15,7 @@
+             source_manifest_sha256=reg['source_manifest_sha256'],runtime_versions=reg['runtime_versions']),
+         registration_sha256=registration_sha,shared_config=reg['shared_config'],
+         seed_vector=reg['vector'],exclusion_union=reg['exclusion_union'],
+-        neural_inputs=list(NEURAL_INPUTS),schedule=c.SCHEDULE)
++        neural_inputs=list(NEURAL_INPUTS),schedule=reg['schedule'])
+ 
+ 
+ def matched_pair(left,right):
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-shared-runtime-staticmethod-repair-sol-20261026-r2/progress_monitor.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-throughput-runtime-parent-20261027-r1/progress_monitor.py
+@@ -0,0 +1,92 @@
++"""Side-effect-free progress estimates and exact-content lease parsing cache."""
++import json
++from pathlib import Path
++import time
++
++
++class LeaseReader:
++    """Read ledger bytes on every guard; reparse only when bytes change.
++
++    Changed or malformed bytes fail immediately. No mtime shortcut, stale lease
++    fallback, write, or relaxed polling interval is used.
++    """
++    def __init__(self, path, parser):
++        self.path, self.parser = Path(path), parser
++        self.raw = self.value = None
++
++    def read(self):
++        raw = self.path.read_bytes()
++        if raw != self.raw:
++            value = self.parser(raw)
++            self.raw, self.value = raw, value
++        return self.value
++
++
++def parse_lease(raw):
++    def unique(items):
++        result = {}
++        for key, value in items:
++            if key in result:
++                raise ValueError('duplicate JSON field: ' + key)
++            result[key] = value
++        return result
++    return json.loads(raw, object_pairs_hook=unique,
++        parse_constant=lambda value: (_ for _ in ()).throw(ValueError(value))).get('active_long_campaign')
++
++
++class ProgressMonitor:
++    def __init__(self, started, work_seconds, total_updates=60, window=5, clock=time.monotonic):
++        self.started, self.work_seconds = started, work_seconds
++        self.total_updates, self.window, self.clock = total_updates, window, clock
++        self.completed = 0
++        self.phase = 'startup'
++        self.phase_started = clock()
++        self.phase_seconds = {}
++        self.durations = []
++        self.update_started = self.phase_started
++        self.last_payload = None
++
++    def enter(self, phase):
++        now = self.clock()
++        self.phase_seconds[self.phase] = self.phase_seconds.get(self.phase, 0.0) + now-self.phase_started
++        self.phase, self.phase_started = phase, now
++
++    def begin_update(self, update):
++        if update != self.completed+1:
++            raise ValueError('progress update sequence differs')
++        self.update_started = self.clock()
++        self.phase_seconds = {}
++        self.phase, self.phase_started = 'collection', self.update_started
++
++    def finish_update(self, update):
++        now = self.clock()
++        if update != self.completed+1:
++            raise ValueError('completed progress sequence differs')
++        self.enter('between_updates')
++        self.durations.append(now-self.update_started)
++        self.completed = update
++        return self.payload(now)
++
++    def payload(self, now=None):
++        now = self.clock() if now is None else now
++        elapsed = now-self.started
++        remaining = self.total_updates-self.completed
++        recent = self.durations[-self.window:]
++        recent_mean = sum(recent)/len(recent) if recent else None
++        all_mean = sum(self.durations)/len(self.durations) if self.durations else None
++        # Use the slower observed mean. Include time already spent in an active
++        # update instead of pretending no progress occurred since last boundary.
++        mean = max(recent_mean, all_mean) if recent else None
++        in_update = self.phase not in ('startup', 'between_updates')
++        active_seconds = now-self.update_started if in_update else 0.0
++        outstanding = max(0, mean*remaining-min(mean, active_seconds)) if mean is not None else None
++        projected = elapsed+outstanding if outstanding is not None else None
++        phases = dict(self.phase_seconds)
++        phases[self.phase] = phases.get(self.phase, 0.0)+now-self.phase_started
++        return dict(schema='progressive1000_progress_v1', completed_updates=self.completed,
++            total_updates=self.total_updates, phase=self.phase, elapsed_seconds=elapsed,
++            recent_seconds_per_update=recent_mean, average_seconds_per_update=all_mean,
++            projected_total_seconds=projected, work_limit_seconds=self.work_seconds,
++            projected_work_deadline_miss=projected is not None and projected > self.work_seconds,
++            phase_seconds=phases,
++            estimate_scope='Observed means; warning only. Does not change learning, limits, or launch authorization.')

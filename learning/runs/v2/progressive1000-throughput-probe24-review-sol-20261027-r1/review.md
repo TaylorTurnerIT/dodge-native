@@ -1,0 +1,26 @@
+# Progressive1000 throughput/probe24 independent review
+
+**Verdict: No blocking findings.** No concrete reachable launch blocker found in the frozen source changes or probe registration. This is source-only review, not execution qualification or a parent launch approval. The two earlier attempts remain spent.
+
+## Reviewed identity
+
+- Runtime: `progressive1000-throughput-runtime-parent-20261027-r1`; source-manifest SHA `2f80ac3f58674e4dc23ff8a68ee68ab2a2915c3b4d24ab0baaa96f552536d60e`.
+- Supervisor: `progressive1000-throughput-supervisor-parent-20261027-r1`; source-manifest SHA `1f5da3ba50b63e465891a9067d01b19e5fe61b2f18fe7f6ec2591c89d0e544b5`.
+- Probe registration SHA `6c463f48385056db388cfea165e6a68696ac2b92934e654603e3bd680ea929b0`.
+
+Below, R means the runtime directory and S means the supervisor directory, both siblings of this review directory.
+
+## Evidence
+
+- **Identity and learner preservation:** All 45 runtime-source members, 13 supervisor-source members, 12 exact runtime members, and 253 input pins match. Runtime manifest and every runtime file match `progressive1000-shared-runtime-staticmethod-repair-sol-20261026-r2`, including model, PPO, native binary, curriculum, checkpoint and identity bytes. Installed dependency inventory: all 13,513 pins and both historical anchors match; resolved interpreter hash matches. Parent324 receipt/checkpoint and independent reference/approval hashes match. Checkpoint reading was hashing only.
+- **Callable/restore path:** `R/worker_cli.py:17`, `R/runtime_adapter.py:89`, `R/driver_binding.py:78`, and `R/worker.py:75` retain external preflight before deferred runtime loading, authenticated module/class methods, private pinned restore/capture callbacks, and one R5 restore after exclusive attempt claim. New driver paths resolve to unchanged checkpoint/identity definitions. Staticmethod descriptors remain explicitly supported (`R/runtime_adapter.py:45`). No new evaluation, reseeding, optimizer, reward, rollout or curriculum operation enters this path.
+- **Lease/marker/resource boundaries:** `R/progress_monitor.py:17` reads full ledger bytes every guard. Only byte-identical content reuses strict parsing; changed malformed/duplicate/nonfinite JSON or a missing file raises without stale fallback. `R/worker.py:48` still compares the exact expected lease and enforces wall, RSS, MPS, raw-frame and reset limits. `R/contracts.py:218` retains parent approval, spent marker and cache checks. `S/binding.py:119` retains conflicting-inference checks; source/dependency/envelope checks remain before dispatch and after exit. No marker or lease clearing/retry was added.
+- **24/60 accounting:** `R/contracts.py:143` binds timing_probe24 to replica1 control and the exact 24-update schedule. `R/worker.py:135` requires complete updates, 393,216 decisions, checkpoints12/24, phase348/cumulative396, empty evaluations, no endpoint or promotion. Matched comparison remains60 updates, 983,040 decisions and checkpoints12/24/36/48/60. `S/terminal.py:62` checks the registered count, complete journals, optimizer/raw/startup/reset conservation, episode identities, scheduler boundaries, sidecar/file hashes and ineligible status for both schedules. The unchanged 60-update constant controller is compatible with the probe's 24-update prefix.
+- **Terminal budget:** Against `progressive1000-ps-timeout-repair-sol-20261027-r6`, `observe.py` and `execute_once.py` are byte-identical. Work1790s/total1800s/cleanup10s, 5s TERM plus5s KILL, direct-child/group ownership, sticky exhausted-deadline handling and compact partial receipts remain intact (`S/observe.py:194`, `:306`, `:342`).
+- **Timing/cost:** `R/progress_monitor.py:70` uses the slower of last-five and overall update means, subtracts at most one mean for active work, and adds elapsed time. Estimates only warn. Monitor work is bounded by 24/60 updates; full ledger reads remain proportional to ledger size. Removing `adapter.snapshot()` from `R/worker.py:141` removes a cumulative deep-copy/serialization cost; snapshot code only reads/copies state. Returned-work events, checkpoints and final/failed snapshots remain.
+
+## Limits
+
+No project module, Torch or native extension was imported; no tests, training, checkpoint deserialization, launch preflight, or ledger/lease/marker mutation ran. AST parsing and byte/hash inspection establish source consistency, not actual loaded-object or MPS behavior. Existing logs report 105 passing CPU tests, including both worker loops and lease-change controls; these were inspected, not rerun.
+
+Five-second output is guard-driven, so blocked calls can delay it. Phase times include guards, journal I/O and boundary work; no GPU synchronization was added. Probe forecasts target24, not60. Estimates omit future terminal auditing and cannot establish longer-run throughput, host contention or completion within measured limits. Retained event fsyncs, full-ledger reads and history scans still cost time. OS frameworks/drivers are outside the dependency inventory. Parent retains launch binding, terminal checkpoint-content audit, measured comparison limits and acceptance. No B/E/D3 qualification exposure or checkpoint selection occurred in this review.
