@@ -1,0 +1,144 @@
+{
+  "artifacts": {
+    "README.md": "86b7b3b5b817dd2a0d5925f6901e2aa233a99c514102063afd690f0598f4c29b",
+    "control-reuse.json": "b81e1934b49eab4c65a4fcc4781c046121d411a82c800ed532e5f6b4a0ab5075",
+    "diff-index.json": "c740feb8e34e53962ef25c506a4b9201af1490a675c2d07fd23b5d3c571a75d7",
+    "exact-input-diff.patch": "1b416fcf65524a66752c85cb633121e7325061dec4c40936c141659a802eda74",
+    "launch-command-template.json": "db147b8880c5d5cfa697c0f9b2206fe8e33744f62dc0afc3879f022a44d13a90",
+    "preservation-after.json": "675b8be6188ff8de7acd4bdb3c7c15284c62848fedd760899cbe01a0989213de",
+    "preservation-before.json": "9aa7e120930d02a4731e875dcbb56ef48d9120a6dc38916ef69a80d23c5bd0c0",
+    "real-test-receipt.json": "e4b90049832f9bf3f93578e9651d1d8b89e54b6d12b02e0101ed3bf5853494f6",
+    "reproduction-check.json": "774a199a9963541a7e946d1e57e8b06e3763347456ee211f64ae2c235564cb60",
+    "source-manifest.json": "df65bb051c9232497d223dc4a73c41e90af9556323d6a16b0aa378724931b12a",
+    "source-pins.json": "fbd95c42c6071bf64a72885925514d4de9acdcc9da9c910feb9ce3d16cec4bf7",
+    "static-checks.json": "f605c66c3cf6f44b44e7c06613e4e58c2f70a4a6468824bb7d2cf66afc007b0b",
+    "test-receipt.json": "fe58bf7c05af89692a602308397144206d073b22da43ec4afd8a0e4cb1e27254"
+  },
+  "bounds": {
+    "cleanup_seconds": 10,
+    "mps_bytes": 6442450944,
+    "raw_frames": 16712512,
+    "resets": 983040,
+    "retries": 0,
+    "rss_bytes": 6442450944,
+    "total_seconds": 1800,
+    "work_seconds": 1790
+  },
+  "controls": {
+    "actual_campaign_launches": 0,
+    "actual_training_or_restore_or_native_probes": 0,
+    "checkpoint_deserializations": 0,
+    "fake": {
+      "actual_subprocesses": 0,
+      "adapted": 4,
+      "elapsed_seconds": 0.6116217919625342,
+      "raw_exit": 0,
+      "tests_run": 11,
+      "unchanged": 7
+    },
+    "real": {
+      "all_direct_children_reaped": true,
+      "cpu_seconds_bound": 15,
+      "direct_stdlib_helpers": 10,
+      "elapsed_seconds": 7.239102874998935,
+      "helper_raw_exits": [
+        0,
+        -15,
+        -15,
+        -9,
+        -15,
+        1,
+        0,
+        -9,
+        0,
+        -15
+      ],
+      "no_leftover_owned_groups": true,
+      "raw_exit": 0,
+      "separately_reaped_family_descendants": 1,
+      "tests_run": 10,
+      "wall_seconds_bound": 35
+    }
+  },
+  "created_at_utc": "2026-10-27T03:59:56.607167+00:00",
+  "development_evidence": {
+    "first_fake_runner": "development-first-failure.json",
+    "first_real_suite": "development-r1-real-test-receipt.json",
+    "first_real_suite_error": "Test retry assertion supplied a registration fixture without output; supervisor cleanup passed.",
+    "first_real_suite_raw_exit": 1,
+    "superseded_successes_retained": [
+      "development-r2-real-test-receipt.json",
+      "development-r3-real-test-receipt.json",
+      "development-r2-test-receipt.json",
+      "development-r3-test-receipt.json"
+    ]
+  },
+  "fixes": {
+    "SUP-R1-01": {
+      "change": "Observer directly owns accepted worker Popen; no intermediate launcher or receipt-based ownership handoff. Unreaped direct child pins PID/group; post-reap group signals require fresh start/command/group anchors. Unknown absence is null.",
+      "evidence": [
+        "real-evidence/test_direct_owner_cancellation_during_popen_return",
+        "real-evidence/test_failure_before_receipt_or_first_snapshot_keeps_ownership",
+        "real-evidence/test_real_term_kill_deadline_and_raw_reap",
+        "real-evidence/test_real_group_descendant_is_signalled_and_reaped"
+      ]
+    },
+    "SUP-R1-02": {
+      "change": "Complete fsynced staging inode committed by atomic non-overwriting hard link and directory fsync. Strict committed JSON reads and first-receipt collision rejection remain fail-closed.",
+      "evidence": [
+        "real-evidence/test_atomic_partial_publication_real_writer",
+        "real-evidence/test_interrupted_partial_publication_never_commits",
+        "real-evidence/test_malformed_committed_receipt_fails_closed_without_overwrite"
+      ]
+    }
+  },
+  "frozen_R1_source_manifest_sha256": "8351fabd8a54685007e74a050200f2e25ac19e2e6ae3a4b11cf98535ef4c3d4f",
+  "launch_authority": false,
+  "limits": [
+    "Real controls use mocked gates and synthetic registrations/control paths; no actual campaign or resource-limit qualification.",
+    "No B/E table decoding, study outcome inspection, history search, model/runtime imports or checkpoint deserialization.",
+    "Failed-run immutable/cache checks and embedded checkpoint acceptance remain parent audit responsibilities.",
+    "Named pin/path preservation only; not a whole-workspace snapshot. Installed dependency inventory is inherited and enforced at launch, not requalified here."
+  ],
+  "only_output": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-supervisor-race-repair-sol-20261026-r2",
+  "ownership": {
+    "commits": 0,
+    "delegations": 0,
+    "implementation": "Owned R2 preparation and stdlib controls only",
+    "parent": "Approvals, leases, markers, state, dispatch, fresh independent review and terminal/checkpoint audit",
+    "pushes": 0
+  },
+  "preservation": {
+    "accepted_worker_and_runtime_unchanged": true,
+    "all_six_final_registrations_unchanged": true,
+    "dispatch_absent": true,
+    "drift": [],
+    "owned_cache_empty": true,
+    "parent_state_unchanged": true,
+    "pins_checked": 176,
+    "registered_caches_empty": true,
+    "registered_outputs_markers_claims_approvals_absent": true
+  },
+  "promotion": false,
+  "schema": "progressive1000_supervisor_race_repair_implementation_v2",
+  "scope": {
+    "automatic_promotion": false,
+    "inherited_evidence": "Supplied independent review supports only its bounded historical restore/resource and actual new-reference/native-parity scope; no new restore probe or retroactive successor success claim.",
+    "learning_rate": 3e-05,
+    "pairs": 3,
+    "parent": "accepted324",
+    "prelaunch_evidence_scope_sha256": "333d3aada22ddf2959b155160e92d97bb162b95247a1cdac16e6bad089885d6c",
+    "terminal": "fixed60",
+    "updates": 60
+  },
+  "source_manifest_sha256": "df65bb051c9232497d223dc4a73c41e90af9556323d6a16b0aa378724931b12a",
+  "status": "prepared_pending_parent_independent_review",
+  "templates": {
+    "count": 6,
+    "inert": true,
+    "registration_index_sha256": "7144e7ab3852eac4307e64fecf884d1dc8b21a769f48267d065cf679b3bedaef",
+    "source_acceptance_separate_from_later_per_run_launch_approval": true,
+    "started": "null until parent binds one finite monotonic value identical to exact four-field spent marker and worker CLI",
+    "worker_output_and_control_paths_separate": true
+  }
+}
