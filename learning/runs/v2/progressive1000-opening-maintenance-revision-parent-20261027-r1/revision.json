@@ -1,0 +1,80 @@
+{
+  "acceptance": "Pre-register milestone1000 success and full normal-start Worst,Q1,Mean,Q4,Best; no automatic promotion. Exact lower-tail improvement and late-performance criteria require successor review before training.",
+  "active_control_unchanged": {
+    "MPS_driver_bytes": 6442450944,
+    "RSS_bytes": 6442450944,
+    "arm": "control_constant_3e-5",
+    "kind": "progressive1000_matched_training",
+    "owner_token": "bdc3294fc35e48e1bf16889b618d1701",
+    "registration_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-monitored-comparison-parent-20261027-r1/progressive1000-confirmed324-20261026-r1-replica-1-control_constant_3e-5/registration-final.json",
+    "replica": 1,
+    "run_id": "progressive1000-confirmed324-20261026-r1-replica-1-control_constant_3e-5",
+    "study_id": "progressive1000-confirmed324-20261026-r1"
+  },
+  "at_utc": "2026-10-27T15:29:38.831188+00:00",
+  "held_old_curriculum_registrations": [
+    {
+      "arm": "progressive1000_curriculum_constant_3e-5",
+      "registration_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-monitored-comparison-parent-20261027-r1/progressive1000-confirmed324-20261026-r1-replica-1-progressive1000_curriculum_constant_3e-5/registration-final.json",
+      "registration_sha256": "c25e4906671a25474cdc2536e6e40f413f2088a1bb73fad2d834f23dd6560acc",
+      "replica": 1,
+      "run_id": "progressive1000-confirmed324-20261026-r1-replica-1-progressive1000_curriculum_constant_3e-5"
+    },
+    {
+      "arm": "progressive1000_curriculum_constant_3e-5",
+      "registration_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-monitored-comparison-parent-20261027-r1/progressive1000-confirmed324-20261026-r1-replica-2-progressive1000_curriculum_constant_3e-5/registration-final.json",
+      "registration_sha256": "9cd59b002dd65ce7514abcfd227798d6d9ce96238f1c330a430d866b725aa738",
+      "replica": 2,
+      "run_id": "progressive1000-confirmed324-20261026-r1-replica-2-progressive1000_curriculum_constant_3e-5"
+    },
+    {
+      "arm": "progressive1000_curriculum_constant_3e-5",
+      "registration_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-monitored-comparison-parent-20261027-r1/progressive1000-confirmed324-20261026-r1-replica-3-progressive1000_curriculum_constant_3e-5/registration-final.json",
+      "registration_sha256": "da9584ceb5123d8aa82669bf8f76d67b03cff534443f19cdf615ef52e1611f70",
+      "replica": 3,
+      "run_id": "progressive1000-confirmed324-20261026-r1-replica-3-progressive1000_curriculum_constant_3e-5"
+    }
+  ],
+  "integration_requirements": [
+    "New owned scheduler/collector source, references and registrations; old source and receipts remain immutable.",
+    "Full-game maintenance must never be silently classified as a shorter practice cutoff or admitted to the wrong mastery window.",
+    "Prove disabled-control path equivalence to running control before using it as the comparator; otherwise explicitly report the incompatibility instead of silently changing the baseline.",
+    "Fresh independent review and exact parent gates required for the revised curriculum; current control lease/source/caps unchanged.",
+    "Do not write orchestration ledger while control is active; reconcile this steering after its terminal parent audit."
+  ],
+  "launch_authority": false,
+  "learning_semantics": {
+    "behavioral_cloning_of_weak_opening": false,
+    "frozen_critic_required": false,
+    "opening_policy_frozen": false,
+    "practice_cutoff": "Truncate alive without death penalty; bootstrap continuing final observation; stop GAE carry at reset.",
+    "reference_KL_added": false
+  },
+  "objective": "Improve weak early survival while retaining strong later performance. Opening trajectories train better actions; no imitation or freezing of the weak opening policy.",
+  "old_plan": "70percent current-stage episodes,30percent earlier-stage episodes after first stage;all opening-only at stage1",
+  "replacement_mix": {
+    "current_stage_episode_assignments_percent": 70,
+    "earlier_stages": "Every normal-start current-stage/full-game episode passes through earlier sections; no additional short-stage rehearsal bucket.",
+    "full_game_cap_raw_frames": 18000,
+    "full_game_episode_assignments_percent": 30,
+    "normal_starts_only": true,
+    "progression": "1000,2000,...,18000 with accepted mastery gates; stage18k becomes ordinary full runs",
+    "ratio_scope": "Episode assignment count, not guaranteed decision/raw-frame proportions. Log realized opening/later exposure separately."
+  },
+  "schema": "parent_opening_maintenance_curriculum_revision_v1",
+  "status": "user_steering_recorded;old_curriculum_arms_held;successor_required_before_launch",
+  "unchanged": {
+    "PPO_loss": true,
+    "action_repeat": 4,
+    "architecture": "entity-transformer",
+    "env_batch_size": 64,
+    "full_run_evaluation": true,
+    "learning_rate": 3e-05,
+    "matched_replica_vectors": true,
+    "parent_checkpoint": 324,
+    "reward": true,
+    "rollout_decisions": 256,
+    "updates_per_arm": 60
+  },
+  "user_clarification": "The goal is not preserving opening practice, it is fixing being really bad at the opening. Do not preserve bad skills."
+}
