@@ -1,0 +1,39 @@
+{
+  "schema": "opus-r2-teacher-diagnosis",
+  "scope": "read-only; dev smoke seeds 2000-2004 only; checkpoints baseline.pt and relative.pt from teacher-representation-ablation-r1; no training, no source edits",
+  "evidence_files": ["opus-r2-closed-loop-probe.json", "opus-r2-onset-vs-continuation.json"],
+  "ranked_findings": [
+    {"rank": 1, "status": "confirmed",
+     "claim": "Closed-loop failure is onset-from-rest failure: teacher never starts moving.",
+     "evidence": "Greedy baseline and relative on seeds 2000-2002 predict neutral on 100% of frames (191/188/191 frames, identical trajectories to the neutral policy). Oracle labels on those visited states are non-neutral for 36/18/43 frames before death, consecutive up_left on 2000 and 2002; mean model p(oracle label) 0.002-0.015 and p(neutral) 0.91-0.97. On oracle-driven seeds 2000-2004 the first non-neutral oracle frame (147-170) has the player at exactly (64,64,0,0); both models give neutral 0.91-0.98. Non-neutral labels with player at rest: 0/48 correct for both arms."},
+    {"rank": 2, "status": "confirmed",
+     "claim": "Supervised competence lives in continuation, not decision onset.",
+     "evidence": "On oracle-visited states, non-neutral onset accuracy (label differs from previous label) is 0.024-0.076 for baseline and 0.047-0.117 for relative. Non-neutral continuation accuracy is 0.32-0.46 for baseline and 0.48-0.54 for relative. The relative/small-kind gain is mostly continuation (+~0.13), not onset (+~0.03). A pure velocity-sign predictor scores 0.19-0.52 on continuation, so player velocity, which encodes prior actions, is a usable shortcut. The models are not pure copycats: overall agreement with velocity copy is only ~0.32."},
+    {"rank": 3, "status": "plausible_strong",
+     "claim": "Data and distribution cause: onset-from-rest examples are rare in the fixed oracle dataset, and closed-loop states are off-distribution.",
+     "evidence": "Every episode opens with ~150 frames at (64,64,0,0) labeled neutral, which at stride 10 gives ~15 identical-player neutral samples per train episode. The onset-from-rest count is ~8-12 per 1000 oracle frames (measured on smoke), so the extrapolated estimate is ~0.5 per 500-frame train episode at stride 10, roughly 50 of 5000 samples. This was not counted on the train set. After the oracle's first deviation, the learned policy enters states (enemy closing on a stationary centred player) that never appear in oracle data. This is standard behaviour-cloning covariate shift."},
+    {"rank": 4, "status": "plausible_contributor",
+     "claim": "Finite-budget underfit.",
+     "evidence": "Train accuracy is 0.746 baseline and 0.785 relative, against a neutral majority of 0.699. The models do not fit their own training set, so capacity or optimisation is not ruled out. It cannot alone explain the onset/continuation asymmetry."},
+    {"rank": 5, "status": "weakened",
+     "claim": "Pooled geometry or attention routing as the primary bottleneck.",
+     "evidence": "Relative geometry raised synthetic TV max to 0.165 but left closed-loop behaviour bit-identical (100% neutral, mean 188.5). At the real onset state, relative is more neutral-confident (0.98) than baseline (0.91-0.97). The finite prior moved nothing. A threat/context separation stream remains untested, so geometry is not ruled out."},
+    {"rank": 6, "status": "against",
+     "claim": "Action/reaction latency or task mismatch.",
+     "evidence": "Oracle labels on learned-policy states persist for 18-43 consecutive frames before death and the model never deviates once. This is not a single-frame timing miss. The oracle is a deterministic function of quantities present in privileged features (player x,y,vx,vy,size; enemy x,y,vx,vy,size; speed, freeze_rate; rectangles; warnings), so missing inputs are unlikely. Near-tie label noise was not measured."}
+  ],
+  "gate_audit": "evaluate_representation picks the first 40 smoke states with any normal enemy: dataset indices 9-48 = seed 2000 frames ~45-240, almost all the rest-at-centre opening. It moves the FIRST normal-enemy record, not the nearest. This is effectively one state type and is not representative of onset or continuation decisions. The accuracy>=0.90 threshold is also dominated by the 66% neutral prior.",
+  "r1_revision": "Revise r1's implied causal chain (representation insensitivity -> no enemy response -> failure) to: the representation was weakly enemy-sensitive, but the binding closed-loop defect is that behaviour cloning on oracle trajectories never learned to INITIATE avoidance from rest. The relevant labels are rare, and learned-policy states drift off-distribution immediately. r1's 75.1%/91.2% enemy-dependence figure is correct but masks that most enemy-dependent labels are continuation labels that velocity partly predicts. r1 representation fixes are not falsified as helpful, but they are demoted from primary cause. The PPO constant-left collapse is consistent with a policy that has no learned reaction; the critic mechanism is still unproved.",
+  "next_experiment": {
+    "name": "dagger1_onset_discriminator",
+    "arms": {
+      "A_control": "relative config; 5000 original oracle-state samples + 2500 extra oracle-state samples from the same train seeds at offset stride",
+      "B_dagger": "relative config; same 5000 + 2500 states visited by greedy relative.pt on train seeds 1000-1099 (500-frame cap, stride matched), oracle labels"
+    },
+    "matched": "init seed, sample count 7500, epochs/updates, optimizer, CPU 1 thread",
+    "step0_free": "Before training, measure existing relative.pt train-set recall on non-neutral-from-rest and onset labels (train seeds, oracle-driven, about 30s)",
+    "metrics": ["train-subset recall on onset/from-rest labels (fit check)", "smoke oracle-state onset recall", "smoke greedy 10 seeds: frame of first non-neutral action vs oracle first onset, frames survived"],
+    "decision": "Only B escapes rest and beats 188.5 -> covariate shift/rare onset is binding; next fix is data/DAgger, no architecture change. Both fit train onset but closed loop fails -> generalisation; test threat stream. Neither fits train onset -> fit/representation; then test threat/context separation or budget.",
+    "excluded": "no PPO, no pool/patch change, no student"
+  }
+}

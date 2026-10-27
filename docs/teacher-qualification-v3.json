@@ -1,0 +1,60 @@
+{
+  "version": "teacher_qualification_v3_survival_only",
+  "authority": "Taylor, 2026-10-25: remove score from the gate; report Q1, Q4 and mean on every return, and identify death causes when measured.",
+  "scope": "Prospective policy. No training, evaluation, retry, resume or checkpoint promotion is authorized by this definition.",
+  "supersedes": {
+    "path": "docs/teacher-qualification-v2.json",
+    "sha256": "e091f8a2fad0a307d289a6d306112606b15df8f8aa0f3a75707ac7cfb2cee803",
+    "scope": "Future score-based pass/fail requirements only. Historical frozen runs, receipts and verdicts remain unchanged."
+  },
+  "development": {
+    "pilot": "Require strict improvement in mean alive frames; score improvement is no longer a pass/fail condition. Retain finite-data, reward-accounting and gradient checks.",
+    "D1": {"mean_alive_frames_min": 1500, "episodes": 64, "raw_gameplay_cap": 2000},
+    "D2": {"mean_alive_frames_min": 3060, "episodes": 64, "raw_gameplay_cap": 18000},
+    "D3_qualification_opening": {
+      "D2_mean_alive_frames_min": 6726.0523,
+      "D3_mean_alive_frames_min": 4433.0418,
+      "exact_final_checkpoint_required": true
+    },
+    "score_required_for_pass": false,
+    "complete_valid_evaluation_required": true
+  },
+  "qualification": {
+    "difficulties": ["D2", "D3"],
+    "metric": "restricted_mean_alive_raw_frames_at_18000_gameplay_frame_cap",
+    "alive_frame_ratio_point_min": 1.1,
+    "alive_frame_ratio_lower_bound_strict_min": 1.0,
+    "all_difficulties_required": true,
+    "score_required_for_pass": false,
+    "paired_episodes_per_difficulty": 1000,
+    "bootstrap": {
+      "inherit_draw_schedule_from_v2": true,
+      "checks": 2,
+      "one_sided_lower_percentile": 0.625,
+      "note": "Keep the existing conservative survival bound; do not loosen it when removing the two score checks."
+    }
+  },
+  "unchanged": [
+    "Environment, architecture, observation allowlist, action repeat and episode accounting.",
+    "Reward: actual score delta + 0.01 per alive raw frame - 5 once on termination; learner scale 0.1.",
+    "Seed reservations, deterministic argmax, paired baseline, cap handling and held-out separation.",
+    "Complete receipts, ownership, resource bounds, exact identities and parent acceptance remain mandatory.",
+    "Failed-run weights remain ineligible under their existing contracts."
+  ],
+  "reporting": {
+    "every_user_return": ["survival_Q1", "survival_Q4", "survival_mean"],
+    "Q1": "Arithmetic mean of the lowest quarter of episode values, not the 25th-percentile cutoff.",
+    "Q4": "Arithmetic mean of the highest quarter of episode values, not the maximum or 75th-percentile cutoff.",
+    "current_64_episode_evaluations": "16 episodes per quartile; rank each metric independently; retain fractional frame means.",
+    "units": "Alive raw frames and seconds at 60 Hz.",
+    "score": "Diagnostic only; retain Q1, Q4 and mean in performance reports.",
+    "provenance": "Name checkpoint/cohort; distinguish best development selection from final and held-out results.",
+    "death_causes": "Report measured counts/fractions and survival by cause, including unknown and truncations separately. Do not infer causes from entity presence or partial observations."
+  },
+  "integration": {
+    "predicate_implementation": "python/dodge_rl/survival_gate.py",
+    "predicate_tests": "python/tests/test_survival_gate_v3.py",
+    "status": "authoritative_prospective_policy;frozen_runner_migration_pending",
+    "requirements": "Future runner registration must bind this policy and enforce survival-only predicates. Existing dev_eval.py and identity.py remain tied to the retained v2 protocol; do not run them as v3 or weaken their identity checks."
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "task": "Final research report synthesis: PPO explained variance diagnosis (Dodge PPO teacher)",
+  "written_utc": "2026-10-25",
+  "inputs_sha256": {
+    "research_notes/PPO explained variance diagnosis/research.md": "4b2ddb1ce94664307330deb1abc48b31b6e321504d81f7663b963686e5d839f2",
+    "research_notes/PPO explained variance diagnosis/recommendation.json": "f9f1a765b7c5bc1ed0753ec929958c552ca3e02b30bef5bdf399799d4e2a4fb1",
+    "research_notes/PPO explained variance diagnosis/sources.json": "fa8dab7dbccd1a0594879231bb5cd95832216f8039d13e9ff72b347a02241c3d",
+    "research_notes/PPO explained variance diagnosis/receipt.json": "9ec1b827288362e3745fd1e73eb622b6a3c7c8201783c4cc6f0d975624d4019b",
+    "learning/runs/v2/postovernight-long-D2-boundary-prepare-r14/capsule-final/python/dodge_rl/ppo.py": "533055b0832b87f3eccd6d005437583c074b525fc5f1d002e0e84e06b4239a58",
+    "learning/runs/v2/postovernight-long-D2-campaign-r2/training-metrics.jsonl": "c81cc153a0f7ef6704350b56266b3bafb7503a15623ce7a1fd009d9d6d1afc23"
+  },
+  "outputs_sha256": {
+    "reports/PPO explained variance diagnosis.md": "b2365082722e016a7fa330d9d3a0deba79b84dcb17d0df09556b08b4cd7221b2"
+  },
+  "sources_scope": {
+    "used": "The four notes files above, plus read-only checks of the frozen ppo.py lines 166-172 and 545-550 and its hash. training-metrics.jsonl was hashed only; its statistics are taken from the notes.",
+    "web_sources": "Cited only from the notes' sources.json: SB3 utils.py and ppo.py, CleanRL ppo.py, GAE (1506.02438), PPG (2009.04416), Ilyas et al. (1811.02553), ICLR blog track implementation details. No new web research.",
+    "not_used": "arXiv 2006.05990 (abstract only, no claim extracted); PPO paper 1707.06347 (not fetched).",
+    "limitations": "Notes' sources were read by the researcher through WebFetch summaries, so excerpts are partly paraphrased, not verified verbatim. Some arXiv sources are abstract-only. The ICLR blog was read to 100000 of 101074 characters. Not a full literature review."
+  },
+  "coordinator_qualifications_applied": [
+    "EV scores rollout-time predictions against frozen GAE targets; residual equals GAE advantage up to rounding (ppo.py:171, 547-549); post-optimization logging does not make it a post-update fit metric; 'rollout-time predictions' used instead of 'previous update's critic'.",
+    "EV is insensitive to constant residual bias at fixed predictions and targets; no claim that minibatch advantage normalization removes critic bias from GAE.",
+    "Rejected 2*value_loss/(1-EV) reconstruction; target-variance collapse vs residual growth reported as unresolved; no 'data favor rising residual' claim.",
+    "Shared-trunk drift and critic under-optimization stated as plausible only; trunk gradient norm mixes actor and critic; KL is an epoch-end stopping threshold; no causal ranking.",
+    "Post-update EV >= 0.55 heuristic rejected as a healthy threshold or justification for long training.",
+    "Naive Monte Carlo EV on completed episodes in a 256-step rollout omitted from the recommendation (selection bias toward short episodes); delta V measured on the same frozen observations.",
+    "GAE lambda*gamma horizon (~18 decisions, ~73 raw frames) described as a weighting, not a planning limit; one narrow instrumentation step recommended with no pass threshold; resource and time cost noted.",
+    "No continuation from failed weights authorized; failed-run eligibility and identity checks unchanged; best/final continuation described as a future separately registered experiment requiring permitted lineage; research authorized and ran no experiment.",
+    "Evidence figures reported as given: EV first20 0.597973 to last20 0.317240; entropy 1.880125 to 1.745426; KL stop 230/384; best 64-seed D2 dev survival Q1=648.25, Q4=4508.8125, mean 2240 frames; score 3.5/46.59375/20.59375; best-of-24 selection on fixed development seeds, not held-out.",
+    "Source-access limits stated in the report (WebFetch summaries, PPO paper not fetched, abstract-only sources, ICLR blog truncation); another domain's KL<0.02 not adopted as a Dodge threshold."
+  ],
+  "actions_not_taken": "No web research, nested agents, edits to source, metadata or ledger files, tests, ML or project imports, checkpoint decoding, gameplay, training or experiments. The four original notes files were not modified."
+}

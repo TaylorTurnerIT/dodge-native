@@ -1,7 +1,9 @@
+use crate::enemy_rows::EnemyRows;
 use crate::{
-    Action, Button, CoreError, EnemyState, FullState, IndexedFramebuffer, InputState,
-    LifecycleState, Mode, NativeConfig, ParticleState, PatternState, PicoFixed, PicoRng,
-    PlayerState, SettingsState, Snapshot, SpawnPoint, pico_mid,
+    Action, ActivePatternView, Button, CoreError, EnemyState, FullState, HeadlessResult,
+    IndexedFramebuffer, InputState, LifecycleState, Mode, NativeConfig, ParticleState,
+    PatternState, PicoFixed, PicoRng, PlayerState, PrivilegedView, SettingsState, Snapshot,
+    SpawnPoint, pico_mid,
 };
 
 const PLAYER_MIN: PicoFixed = PicoFixed::from_int(2);
@@ -77,6 +79,20 @@ pub struct FrameResult {
     pub snapshot: Snapshot,
 }
 
+trait EventSink {
+    fn push(&mut self, event: FrameEvent);
+}
+
+impl EventSink for Vec<FrameEvent> {
+    fn push(&mut self, event: FrameEvent) {
+        Vec::push(self, event);
+    }
+}
+
+impl EventSink for () {
+    fn push(&mut self, _event: FrameEvent) {}
+}
+
 /// Source-visible side effects emitted at one completed frame boundary.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum FrameEvent {
@@ -141,7 +157,7 @@ pub struct NativeGame {
     input: InputState,
     rng: PicoRng,
     player: PlayerState,
-    enemies: Vec<EnemyState>,
+    enemies: EnemyRows,
     particles: Vec<ParticleState>,
     patterns: Vec<PatternState>,
     active_pattern: Option<usize>,
@@ -181,6 +197,7 @@ pub struct NativeGame {
     settings: SettingsState,
     highscores: [PicoFixed; 12],
     frame_audio: Vec<AudioEvent>,
+    death: crate::DeathDiagnostic,
 }
 
 impl NativeGame {
@@ -193,7 +210,7 @@ impl NativeGame {
             lifecycle: LifecycleState::new(),
             input: InputState::new(),
             player: PlayerState::new(),
-            enemies: Vec::new(),
+            enemies: EnemyRows::new(),
             particles: Vec::new(),
             patterns,
             active_pattern: None,
@@ -233,6 +250,7 @@ impl NativeGame {
             settings: SettingsState::new(config),
             highscores: config.highscores,
             frame_audio: Vec::new(),
+            death: crate::DeathDiagnostic::default(),
         }
     }
 
@@ -278,6 +296,7 @@ impl NativeGame {
         self.transition_render_y = -128;
         self.transition_from = Mode::Menu;
         self.frame_audio.clear();
+        self.death = crate::DeathDiagnostic::default();
         self.snapshot()
     }
 
@@ -306,7 +325,7 @@ impl NativeGame {
             input: state.input,
             rng,
             player: state.player,
-            enemies: state.enemies,
+            enemies: EnemyRows::from_rows(state.enemies),
             particles: state.particles,
             patterns: state.patterns,
             active_pattern: state.active_pattern,
@@ -346,6 +365,7 @@ impl NativeGame {
             settings: state.settings,
             highscores: state.highscores,
             frame_audio: Vec::new(),
+            death: crate::DeathDiagnostic::restored(state.lifecycle.dead),
         })
     }
 
@@ -363,13 +383,71 @@ impl NativeGame {
         input_mask: u8,
         post_frame_mask: u8,
     ) -> Result<FrameResult, CoreError> {
+        let mut events = Vec::new();
+        let (mode_before, reward) = self.prepare_frame(input_mask, post_frame_mask, &mut events)?;
+        self.render_current_frame();
+        let draw_snapshot = self.snapshot();
+        self.finish_draw(mode_before, input_mask, post_frame_mask);
+        let result = self.result_with_snapshot(
+            reward,
+            events,
+            self.frame_audio.clone(),
+            Snapshot::with_framebuffer_from_game(
+                self,
+                draw_snapshot.framebuffer().clone(),
+                draw_snapshot.render_state().clone(),
+            ),
+        );
+        self.finish_transition_draw(mode_before);
+        Ok(result)
+    }
+
+    /// Advance without rasterization or snapshot construction. Camera RNG,
+    /// draw-side particles, input finalization, and transition-only trails
+    /// still run. `snapshot()` retains cached pixels; use `render_into` for a
+    /// current image paired with `privileged_view`.
+    pub fn advance_frame_headless(&mut self, input_mask: u8) -> Result<HeadlessResult, CoreError> {
+        self.advance_frame_headless_with_post_mask(input_mask, input_mask)
+    }
+
+    /// Headless counterpart of `advance_frame_with_post_mask`. Both masks are
+    /// validated before mutation, including audio/input changes.
+    pub fn advance_frame_headless_with_post_mask(
+        &mut self,
+        input_mask: u8,
+        post_frame_mask: u8,
+    ) -> Result<HeadlessResult, CoreError> {
+        let score_before = self.score;
+        let (mode_before, reward) = self.prepare_frame(input_mask, post_frame_mask, &mut ())?;
+        self.finish_draw(mode_before, input_mask, post_frame_mask);
+        self.finish_transition_draw(mode_before);
+        Ok(HeadlessResult {
+            frame: self.lifecycle.frame,
+            mode: self.lifecycle.mode,
+            input_mask: self.input.current_mask(),
+            previous_input_mask: self.input.previous_mask(),
+            game_ready: self.lifecycle.game_ready,
+            started: self.lifecycle.started,
+            dead: self.lifecycle.dead,
+            done: self.lifecycle.dead,
+            reward,
+            score_delta: self.score.sub(score_before),
+            score: self.score,
+        })
+    }
+
+    fn prepare_frame(
+        &mut self,
+        input_mask: u8,
+        post_frame_mask: u8,
+        events: &mut impl EventSink,
+    ) -> Result<(Mode, PicoFixed), CoreError> {
         InputState::validate_mask(input_mask)?;
         InputState::validate_mask(post_frame_mask)?;
         self.frame_audio.clear();
         self.input.advance(input_mask)?;
         self.refresh_enemy_stats();
         let mode_before = self.lifecycle.mode;
-        let mut events = Vec::new();
         let start_pressed = mode_before == Mode::Menu && self.input.btnp(Button::X);
         if start_pressed {
             self.has_played = true;
@@ -424,13 +502,13 @@ impl NativeGame {
             _ => {}
         }
         if game_update_from_draw {
-            self.update_game_frame(&mut events);
+            self.update_game_frame(events);
         }
         let game_update_from_transition_draw = self.lifecycle.mode == Mode::TransitionToSettings
             && self.transition_render_y > 0
             && matches!(self.transition_from, Mode::Game | Mode::Terminal);
         if game_update_from_transition_draw {
-            self.update_game_frame(&mut events);
+            self.update_game_frame(events);
         }
         if mode_before == Mode::Settings {
             self.update_settings();
@@ -464,8 +542,10 @@ impl NativeGame {
             PicoFixed::ZERO
         };
         self.update_camera();
-        self.render_current_frame();
-        let draw_snapshot = self.snapshot();
+        Ok((mode_before, reward))
+    }
+
+    fn finish_draw(&mut self, mode_before: Mode, input_mask: u8, post_frame_mask: u8) {
         self.apply_draw_side_effects(mode_before);
         // The cartridge exits from the update loop immediately after death,
         // before it can advance to the next command. Preserve the terminal
@@ -477,16 +557,9 @@ impl NativeGame {
             post_frame_mask
         };
         self.input.finalize_frame(observed_post_mask);
-        let result = self.result_with_snapshot(
-            reward,
-            events,
-            self.frame_audio.clone(),
-            Snapshot::with_framebuffer_from_game(
-                self,
-                draw_snapshot.framebuffer().clone(),
-                draw_snapshot.render_state().clone(),
-            ),
-        );
+    }
+
+    fn finish_transition_draw(&mut self, mode_before: Mode) {
         // Pemsa can schedule a second visible draw on the transition boundary
         // after the canonical capture callback has observed the first draw.
         // Preserve that source-side particle mutation for the next frame while
@@ -497,7 +570,6 @@ impl NativeGame {
         {
             self.add_player_trail();
         }
-        Ok(result)
     }
 
     pub fn step(&mut self, action: Action, frames: u32) -> Result<FrameResult, CoreError> {
@@ -530,8 +602,50 @@ impl NativeGame {
         self.player
     }
 
+    /// Diagnostic-only death cause; never part of snapshots or observations.
+    /// `cause()` is `None` while alive, the first lethal contact once dead, and
+    /// `Unknown` for a game restored dead from a snapshot.
+    pub fn death_diagnostic(&self) -> crate::DeathDiagnostic {
+        self.death
+    }
+
     pub fn enemies(&self) -> &[EnemyState] {
-        self.enemies.as_slice()
+        &self.enemies
+    }
+
+    /// Stable birth identities aligned one-for-one with `enemies()`.
+    ///
+    /// Rows remain strictly increasing while valid. IDs are observation-only:
+    /// never include them in neural tensors or snapshots. Clears, reset, and
+    /// gameplay retry retain the birth counter; restore allocates a fresh
+    /// process-local namespace. Clones preserve IDs. Clear wrapper history on
+    /// every reset/restore and treat newly observed IDs as unknown motion.
+    ///
+    /// `None` means namespace or birth metadata exhausted. This is sticky for
+    /// this instance, including clears/retries; gameplay insertions continue.
+    /// The wrapper must fail closed instead of matching rows by vector index.
+    pub fn enemy_serials(&self) -> Option<&[crate::EnemySerial]> {
+        self.enemies.serials()
+    }
+
+    /// Stored warning lines eligible for the current game scene renderer.
+    ///
+    /// This exposes neither timers nor hidden targets and does not reconstruct
+    /// lines. Stale stored lines are included exactly while renderer-eligible.
+    /// Mode/death are intentionally separate: the actual renderer may display
+    /// a menu or substitute Game Over for the scene. This is not a pixel-level
+    /// visibility, clipping, or occlusion test. The iterator only borrows data.
+    pub fn drawn_warning_lines(&self) -> impl Iterator<Item = &crate::WarningLine> {
+        self.active_pattern
+            .and_then(|index| self.patterns.get(index))
+            .into_iter()
+            .flat_map(|pattern| {
+                pattern
+                    .rects
+                    .iter()
+                    .filter(move |rect| crate::snapshot::rect_warnings_drawn(pattern, rect))
+                    .flat_map(|rect| rect.warnings.iter())
+            })
     }
 
     pub fn particles(&self) -> &[ParticleState] {
@@ -561,7 +675,7 @@ impl NativeGame {
             input: self.input,
             rng: self.rng.checkpoint(),
             player: self.player,
-            enemies: self.enemies.clone(),
+            enemies: self.enemies.to_vec(),
             particles: self.particles.clone(),
             patterns: self.patterns.clone(),
             active_pattern: self.active_pattern,
@@ -603,11 +717,13 @@ impl NativeGame {
         }
     }
 
+    /// Capture live logical state with cached legacy pixels. Headless stepping
+    /// leaves those pixels stale; `render_into` renders current post-method state.
     pub fn snapshot(&self) -> Snapshot {
         Snapshot::from_game(self)
     }
 
-    fn update_game_frame(&mut self, events: &mut Vec<FrameEvent>) {
+    fn update_game_frame(&mut self, events: &mut impl EventSink) {
         if self.friendly_enabled {
             self.update_fyou(events);
         }
@@ -725,6 +841,7 @@ impl NativeGame {
             .map(|pattern| pattern.counter)
             .collect::<Vec<_>>();
         self.lifecycle.dead = false;
+        self.death = crate::DeathDiagnostic::default();
         self.score = PicoFixed::ZERO;
         self.survival_frames = 0;
         self.shake = PicoFixed::ZERO;
@@ -833,13 +950,82 @@ impl NativeGame {
     }
 
     fn render_current_frame(&mut self) {
-        let state = self.full_state();
-        let mut render = crate::RenderState::new(state.transition_render_y);
-        render.camera_x = state.camera_x;
-        render.camera_y = state.camera_y;
-        render.screen_palette[12] = state.settings.theme_background;
-        render.screen_palette[1] = state.settings.theme_shadow;
+        let state = crate::snapshot::RenderView {
+            lifecycle: self.lifecycle,
+            input: self.input,
+            enemies: &self.enemies,
+            particles: &self.particles,
+            active_pattern: self
+                .active_pattern
+                .and_then(|index| self.patterns.get(index)),
+            score: self.score,
+            settings: self.settings,
+            highscores: &self.highscores,
+            new_highscore: self.new_highscore,
+            has_played: self.has_played,
+            transition_render_y: self.transition_render_y,
+            transition_from: self.transition_from,
+            camera_x: self.camera_x,
+            camera_y: self.camera_y,
+        };
+        let render = state.render_state();
         crate::snapshot::render_full_state_into(&state, &render, &mut self.screen);
+    }
+
+    fn render_view(&self) -> crate::snapshot::RenderView<'_> {
+        crate::snapshot::RenderView {
+            lifecycle: self.lifecycle,
+            input: self.input,
+            enemies: &self.enemies,
+            particles: &self.particles,
+            active_pattern: self
+                .active_pattern
+                .and_then(|index| self.patterns.get(index)),
+            score: self.score,
+            settings: self.settings,
+            highscores: &self.highscores,
+            new_highscore: self.new_highscore,
+            has_played: self.has_played,
+            transition_render_y: self.transition_render_y,
+            transition_from: self.transition_from,
+            camera_x: self.camera_x,
+            camera_y: self.camera_y,
+        }
+    }
+
+    /// Render current post-method state into caller-owned palette indices.
+    ///
+    /// This intentionally differs from legacy cached pre-draw-effect pixels.
+    /// Rendering consumes no RNG and changes no logical state or cached pixels.
+    /// It uses a fixed 16 KB physical scratch buffer plus canonical projection.
+    pub fn render_into(&self, out: &mut [u8; crate::FRAMEBUFFER_SIZE]) {
+        let state = self.render_view();
+        let render = state.render_state();
+        let mut physical = IndexedFramebuffer::blank();
+        crate::snapshot::render_full_state_into(&state, &render, &mut physical);
+        physical.project_into(&render, out);
+    }
+
+    /// Borrow current fields at the same post-method boundary as `render_into`.
+    pub fn privileged_view(&self) -> PrivilegedView<'_> {
+        PrivilegedView {
+            player: &self.player,
+            enemies: &self.enemies,
+            freeze_rate: self.freeze_rate,
+            speed: self.speed,
+            enemy_est: self.enemy_est,
+            score: self.score,
+            active_pattern: self
+                .active_pattern
+                .and_then(|index| self.patterns.get(index))
+                .map(|pattern| ActivePatternView {
+                    pattern_type: pattern.pattern_type,
+                    rects: &pattern.rects,
+                }),
+            difficulty: self.settings.difficulty,
+            patterns_enabled: self.patterns_enabled,
+            powerups_enabled: self.powerups_enabled,
+        }
     }
 
     fn update_particles(&mut self) {
@@ -870,7 +1056,7 @@ impl NativeGame {
         }
     }
 
-    fn update_fyou(&mut self, events: &mut Vec<FrameEvent>) {
+    fn update_fyou(&mut self, events: &mut impl EventSink) {
         let in_center = self
             .player
             .x
@@ -906,7 +1092,7 @@ impl NativeGame {
         }
     }
 
-    fn add_corner_enemies(&mut self, events: &mut Vec<FrameEvent>) {
+    fn add_corner_enemies(&mut self, events: &mut impl EventSink) {
         for spawn in self.spawns.clone() {
             self.enemies
                 .push(EnemyState::normal(spawn.x, spawn.y, self.enemy_max_size));
@@ -914,7 +1100,7 @@ impl NativeGame {
         }
     }
 
-    fn collision_check(&mut self, events: &mut Vec<FrameEvent>) {
+    fn collision_check(&mut self, events: &mut impl EventSink) {
         if self.lifecycle.dead || !self.should_collide {
             return;
         }
@@ -980,7 +1166,11 @@ impl NativeGame {
                         .sub(self.player.size)
                         < rect.y.add(rect.height).sub(PicoFixed::ONE)
                 {
-                    self.die();
+                    self.die(if pattern.pattern_type == 1 {
+                        crate::DeathCause::MovingPatternRect
+                    } else {
+                        crate::DeathCause::StaticPatternRect
+                    });
                     events.push(FrameEvent::Death);
                     break;
                 }
@@ -988,13 +1178,13 @@ impl NativeGame {
         }
     }
 
-    fn collide_enemy(&mut self, index: usize, enemy: EnemyState, events: &mut Vec<FrameEvent>) {
+    fn collide_enemy(&mut self, index: usize, enemy: EnemyState, events: &mut impl EventSink) {
         self.shatter(enemy.x, enemy.y);
         self.shake = self.shake.add(PicoFixed::from_f32(0.07));
         match enemy.personality {
             personality if personality < 2 => {
                 self.remove_enemy_at(index);
-                self.die();
+                self.die(crate::DeathCause::for_enemy_personality(enemy.personality));
                 events.push(FrameEvent::Death);
             }
             2 => {
@@ -1058,7 +1248,8 @@ impl NativeGame {
         }
     }
 
-    fn die(&mut self) {
+    fn die(&mut self, cause: crate::DeathCause) {
+        self.death.record(cause);
         self.emit_sfx(62, None);
         self.lifecycle.mark_dead();
         self.shake = self.shake.add(PicoFixed::from_f32(0.07));
@@ -1111,7 +1302,7 @@ impl NativeGame {
         self.player.y = pico_mid(PLAYER_MIN, PLAYER_MAX, self.player.y.add(self.player.vy));
     }
 
-    fn spawn_enemies(&mut self, events: &mut Vec<FrameEvent>) {
+    fn spawn_enemies(&mut self, events: &mut impl EventSink) {
         self.enemy_timer = self.enemy_timer.add(PicoFixed::ONE);
         let spawn_multiplier = self
             .active_pattern
@@ -3068,3 +3259,15 @@ mod tests {
         assert_eq!(pico_cosine(angle), expected_cosine);
     }
 }
+
+#[cfg(test)]
+#[path = "headless_tests.rs"]
+mod headless_tests;
+
+#[cfg(test)]
+#[path = "observation_tests.rs"]
+mod observation_tests;
+
+#[cfg(test)]
+#[path = "death_tests.rs"]
+mod death_tests;

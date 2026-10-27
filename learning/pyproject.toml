@@ -1,0 +1,25 @@
+[build-system]
+requires = ["maturin>=1.9,<2"]
+build-backend = "maturin"
+
+[project]
+name = "dodge-learning"
+version = "0.1.0"
+description = "Optional native Dodge learning environment and vision-policy experiments"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+models = ["torch>=2.5,<3", "numpy>=1.26,<3"]
+
+[project.scripts]
+dodge-evaluate = "dodge_learning.evaluate:main"
+dodge-model-smoke = "dodge_learning.smoke:main"
+dodge-teacher = "dodge_learning.teacher_run:main"
+
+[tool.maturin]
+manifest-path = "native/Cargo.toml"
+python-source = "python"
+module-name = "dodge_learning._native"
+features = ["python"]
+

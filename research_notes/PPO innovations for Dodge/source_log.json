@@ -1,0 +1,98 @@
+{
+  "accessed_date": "2026-10-25",
+  "discovery_method": "WebSearch (standard mode, 1 query, primacy-bias lookup) plus WebFetch of arXiv abstract and HTML pages. No extended-mode search was used.",
+  "discovery_limits": "Only one web search was issued. Most sources were chosen from prior knowledge of the literature and then fetched by URL; the fetch tool returns model-written summaries, not verbatim text. Section-level claims are therefore tool-mediated and should be checked against the PDF before quoting numbers.",
+  "sources": [
+    {
+      "id": "PPG",
+      "title": "Phasic Policy Gradient (Cobbe et al. 2020)",
+      "urls": ["https://arxiv.org/abs/2009.04416", "https://arxiv.org/html/2009.04416v1"],
+      "read_scope": "html-read: Sec. 2, 3, 3.1, 3.3, 3.4, Appendix A.1, A.2, C (via summarizer). abs-only for first fetch.",
+      "fetch_status": "success (abs and html v1)",
+      "sections_cited": ["2", "3.1", "3.3", "3.4", "A.1", "A.2", "C"],
+      "numbers_verified_in_text": false,
+      "note": "Procgen per-environment numbers are in Fig. 2, not in the text returned."
+    },
+    {
+      "id": "PopArt-1602.07714",
+      "title": "Learning values across many orders of magnitude (van Hasselt et al. 2016) as fetched",
+      "urls": ["https://arxiv.org/abs/1602.07714", "https://arxiv.org/html/1602.07714v2"],
+      "read_scope": "abs-only (first fetch). html-read v2 Sec. 2, 2.1, 2.2, 3, 4, Table 1, limitations (via summarizer).",
+      "fetch_status": "success (abs and html v2)",
+      "source_discrepancy": "The abs describes adaptive target normalization without the term PopArt. The html v2 content describes Pop-Art with Atari-57 results, which match Hessel et al. 2018 (arXiv 1809.04474). Citation must be verified before the report uses 1602.07714 as the PopArt source.",
+      "numbers_verified_in_text": false
+    },
+    {
+      "id": "PopArt-1809.04474",
+      "title": "Multi-task Deep RL with PopArt (Hessel et al. 2018)",
+      "urls": ["https://arxiv.org/abs/1809.04474"],
+      "read_scope": "not fetched; cited only as the likely source of the Pop-Art content",
+      "fetch_status": "not attempted",
+      "note": "Needed to resolve the discrepancy above."
+    },
+    {
+      "id": "Andrychowicz2020",
+      "title": "What Matters In On-Policy Reinforcement Learning? (Andrychowicz et al. 2020)",
+      "urls": ["https://arxiv.org/abs/2006.05990", "https://arxiv.org/html/2006.05990v1"],
+      "read_scope": "html-read partial: Sec. 3.2, 3.3, 3.4, 3.7, 3.8 (first ~100k of ~218k characters). abs-only for first fetch.",
+      "fetch_status": "partial (text truncated at 100000 characters; offset 100000 not fetched)",
+      "numbers_verified_in_text": false
+    },
+    {
+      "id": "Engstrom2020",
+      "title": "Implementation Matters in Deep Policy Gradients: A Case Study on PPO and TRPO (Engstrom et al. 2020)",
+      "urls": ["https://arxiv.org/abs/2005.12729", "https://arxiv.org/html/2005.12729v1"],
+      "read_scope": "html-read: Sec. 3 (items 1-3, 9), Sec. 4 (trust regions), Fig. 1 and 2 descriptions (via summarizer). abs-only for first fetch.",
+      "fetch_status": "success (abs and html v1)",
+      "note": "Abstract-level statement about code-level optimizations and their gain over TRPO is from the abs."
+    },
+    {
+      "id": "IlyasABS",
+      "title": "A Closer Look at Deep Policy Gradients (Ilyas et al. 2018/2020)",
+      "urls": ["https://arxiv.org/abs/1811.02553"],
+      "read_scope": "abs-only",
+      "fetch_status": "success (abs). The requested title was wrong; the arXiv title is 'A Closer Look at Deep Policy Gradients'.",
+      "note": "No PPO or ratio-clipping claims read."
+    },
+    {
+      "id": "POPGym",
+      "title": "POPGym: Benchmarking Partially Observable Reinforcement Learning (Morad et al. 2023)",
+      "urls": ["https://arxiv.org/abs/2303.01859", "https://arxiv.org/html/2303.01859v1"],
+      "read_scope": "abs (v1) and html-read v1 Sec. 1.1, 5, 6, 7, Fig. 3, Appendix B pointer (via summarizer).",
+      "fetch_status": "success (abs, html v1). html v2 returned HTTP 404 and was not retried.",
+      "numbers_verified_in_text": false
+    },
+    {
+      "id": "Lyle2022",
+      "title": "Understanding and Preventing Capacity Loss in Reinforcement Learning (Lyle et al. 2022)",
+      "urls": ["https://arxiv.org/abs/2204.09560"],
+      "read_scope": "abs-only",
+      "fetch_status": "success (abs). Requested primacy-bias paper was not at this ID.",
+      "note": "Capacity loss under non-stationary targets; InFeR fix. Off-policy evidence."
+    },
+    {
+      "id": "Primacy2022",
+      "title": "The Primacy Bias in Deep Reinforcement Learning (Nikishin et al. 2022, ICML)",
+      "urls": ["https://arxiv.org/abs/2205.07802v1", "https://proceedings.mlr.press/v162/nikishin22a.html"],
+      "read_scope": "search-only (snippet from WebSearch). Not fetched.",
+      "fetch_status": "not fetched",
+      "note": "Claims in literature.md come only from the search snippet and are marked as pointer-only."
+    },
+    {
+      "id": "Dohare2023",
+      "title": "Loss of plasticity in deep continual learning (Dohare et al., arXiv 2306.13812)",
+      "urls": ["https://arxiv.org/abs/2306.13812"],
+      "read_scope": "abs-only (summarizer also gave listing metadata)",
+      "fetch_status": "success (abs). Nature publication status not confirmed from fetched page.",
+      "note": "Supervised learning only in the read text."
+    }
+  ],
+  "fetch_failures": [
+    {"url": "https://arxiv.org/abs/2204.09560 (requested as primacy-bias)", "issue": "wrong paper for the requested topic; returned Lyle et al. capacity-loss paper"},
+    {"url": "https://arxiv.org/html/2303.01859v2", "issue": "HTTP 404; not retried"},
+    {"url": "https://arxiv.org/html/1602.07714v2 (first request was v2 html; abs gave no PopArt content)", "issue": "abs lacked method content; html gave Pop-Art text, see discrepancy"},
+    {"url": "https://arxiv.org/html/2006.05990v1 (text truncated)", "issue": "218k characters; only the first 100k were summarized; remainder not fetched"},
+    {"url": "https://arxiv.org/abs/2005.12729 and 2009.04416 and 2006.05990 and 1811.02553 abs pages", "issue": "abstract-only; full text required for section results; html used where available"}
+  ],
+  "citation_ids": ["PPG", "PopArt-1602.07714", "PopArt-1809.04474", "Andrychowicz2020", "Engstrom2020", "IlyasABS", "POPGym", "Lyle2022", "Primacy2022", "Dohare2023"]
+}

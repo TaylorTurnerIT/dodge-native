@@ -1,0 +1,22 @@
+[package]
+name = "dodge-learning-native"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+name = "_native"
+crate-type = ["rlib", "cdylib"]
+
+[workspace]
+
+[features]
+default = []
+python = ["dep:pyo3"]
+
+[dependencies]
+dodge-core = { path = "../../crates/dodge-core" }
+pyo3 = { version = "0.27", features = ["extension-module"], optional = true }
+
+[lints.rust]
+unsafe_code = "forbid"

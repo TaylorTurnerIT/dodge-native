@@ -1,0 +1,107 @@
+{
+  "accessed_date": "2026-10-25",
+  "pass": "gap verification, one round, no WebSearch",
+  "discovery_method": "WebFetch on specific arXiv abstract and HTML URLs, plus direct local reads of python/dodge_rl/ppo.py. No PDFs read.",
+  "discovery_limits": "All web content is WebFetch summarizer output, not verbatim text. Quotes are the summarizer's quotes and must be checked against PDFs before a final report quotes them.",
+  "sources": [
+    {
+      "id": "VanHasselt2016-1602.07714",
+      "title": "Learning values across many orders of magnitude",
+      "authors": ["Hado van Hasselt", "Arthur Guez", "Matteo Hessel", "Volodymyr Mnih", "David Silver"],
+      "year": 2016,
+      "arxiv_id": "1602.07714",
+      "primary_url": "https://arxiv.org/abs/1602.07714",
+      "read_scope": "abstract only, via WebFetch summarizer",
+      "relevant_method": "adaptive normalization of learning targets; no 'Pop-Art' or 'PopArt' name on the page",
+      "correction": "Earlier notes attributed Pop-Art content to this ID. This ID is the normalization paper. The PopArt name and Atari-57 results belong to Hessel 2018.",
+      "numbers_verified_in_text": false
+    },
+    {
+      "id": "Hessel2018-1809.04474",
+      "title": "Multi-task Deep Reinforcement Learning with PopArt",
+      "authors": ["Matteo Hessel", "Hubert Soyer", "Lasse Espeholt", "Wojciech Czarnecki", "Simon Schmitt", "Hado van Hasselt"],
+      "year": 2018,
+      "arxiv_id": "1809.04474",
+      "primary_url": "https://arxiv.org/abs/1809.04474",
+      "read_scope": "abstract only, via WebFetch summarizer",
+      "relevant_method": "PopArt, adaptive per-task scale of updates; abstract reports 57-game Atari and 30 DeepMind Lab results",
+      "numbers_verified_in_text": false,
+      "note": "The 32-of-57 Atari result and Table 1 numbers from the earlier note are NOT verified. Full text required before citing them."
+    },
+    {
+      "id": "PPG-2009.04416",
+      "title": "Phasic Policy Gradient",
+      "authors": ["Karl Cobbe", "Jacob Hilton", "Oleg Klimov", "John Schulman"],
+      "year": 2020,
+      "arxiv_id": "2009.04416",
+      "primary_url": "https://arxiv.org/abs/2009.04416",
+      "read_scope": "abstract only, via WebFetch summarizer",
+      "relevant_method": "separate policy and value phases; shared vs separate network trade-off; feature distillation phase",
+      "numbers_verified_in_text": false,
+      "note": "Abstract does not use the word 'auxiliary'. Earlier html-read claims (N_pi=32, E_aux=6, no shared parameters) are not re-verified this round."
+    },
+    {
+      "id": "GAE-1506.02438",
+      "title": "High-Dimensional Continuous Control Using Generalized Advantage Estimation",
+      "authors": ["John Schulman", "Philipp Moritz", "Sergey Levine", "Michael I. Jordan", "Pieter Abbeel"],
+      "year": 2015,
+      "arxiv_id": "1506.02438",
+      "primary_url": "https://arxiv.org/abs/1506.02438",
+      "read_scope": "abstract only, via WebFetch summarizer",
+      "relevant_method": "exponentially weighted advantage estimator, analogous to TD(lambda); bias-variance trade-off",
+      "numbers_verified_in_text": false,
+      "note": "Lambda formula is not in the abstract. Verify against paper body before quoting."
+    },
+    {
+      "id": "Andrychowicz2020-2006.05990",
+      "title": "What Matters In On-Policy Reinforcement Learning?",
+      "authors": ["Marcin Andrychowicz et al."],
+      "year": 2020,
+      "arxiv_id": "2006.05990",
+      "primary_url": "https://arxiv.org/html/2006.05990v1",
+      "read_scope": "HTML v1, characters 0-100,000 of 218,241, via WebFetch summarizer; Sec. 3.2 and 3.4 quotes",
+      "relevant_method": "separate policy/value networks (Sec. 3.2); value-function clipping hurts regardless of threshold (Sec. 3.4, Fig. 43)",
+      "numbers_verified_in_text": false,
+      "fetch_status": "partial (truncated at 100,000 characters); offset 100000 not fetched"
+    },
+    {
+      "id": "Engstrom2020-2005.12729",
+      "title": "Implementation Matters in Deep Policy Gradients: A Case Study on PPO and TRPO",
+      "authors": ["Logan Engstrom et al."],
+      "year": 2020,
+      "arxiv_id": "2005.12729",
+      "primary_url": "https://arxiv.org/html/2005.12729v1",
+      "read_scope": "HTML v1, Sec. 3 item 1 and Figure 1 caption, via WebFetch summarizer",
+      "relevant_method": "standard PPO fits value with PPO-like clipped objective; ablation includes value clipping; Figure 1 names reward normalization, Adam annealing, network initialization as significant",
+      "correction": "Engstrom's finding is about reward normalization, not reward scaling as earlier notes said.",
+      "numbers_verified_in_text": false
+    },
+    {
+      "id": "Dodge-frozen-ppo.py",
+      "title": "Dodge frozen PPO source",
+      "primary_url": "python/dodge_rl/ppo.py",
+      "read_scope": "direct local read via grep and sed; lines 56-72, 93-99, 143-171, 261-276, 496, 553",
+      "verified_facts": [
+        "PPOConfig: gamma 0.995, gae_lambda 0.95, clip_coef 0.2, vf_coef 0.5, ent_coef 0.01, max_grad_norm 0.5, update_epochs 4, minibatch_size 512, target_kl 0.03, reward_scale 0.1",
+        "value_loss = 0.5 * mean((new_value - GAE_return)**2) (docstring line 4)",
+        "metadata value_clipping: False (line 95)",
+        "total loss policy_loss + vf_coef * value_loss - ent_coef * entropy (line 496)",
+        "action_repeat == 4 enforced (line 276)",
+        "compute_gae returns = advantages + values (line 171)",
+        "EV uses rollout-time frozen values and GAE returns (line 553)"
+      ],
+      "not_verified": ["rollout_steps=256 default (parameter only in collect_rollout)", "global gradient clip implementation detail (confirm in training loop)"]
+    }
+  ],
+  "fetch_failures": [
+    {"url": "https://arxiv.org/abs/1602.07714", "issue": "abstract read succeeded; no Pop-Art name present. Not a failure, but a wrong-paper finding."},
+    {"url": "https://arxiv.org/html/2006.05990v1", "issue": "truncated at 100,000 of 218,241 characters"},
+    {"url": "PDF full text of 1602.07714, 1809.04474, 2009.04416, 1506.02438", "issue": "not attempted this round; abstracts only"}
+  ],
+  "coverage_limits": [
+    "One verification round; no WebSearch in this pass.",
+    "Abstract-only for four primary papers.",
+    "Summarizer output, not verbatim.",
+    "No recurrent-PO benchmark (POPGym) re-read this round."
+  ]
+}

@@ -1,0 +1,117 @@
+{
+  "status": "proposed, not run. No experiment executed in this pass. All candidates are one-variable ablations from the frozen D2 setup.",
+  "baseline_reference": {
+    "source": "docs/v2-critic-diagnostic-2026-10-25.md (per earlier notes)",
+    "update_48_eval": {"Q1": 521.0625, "Q4": 2401.1875, "mean_alive_frames": 1101.9375},
+    "training_seeds": 1,
+    "dev_seeds": 64,
+    "caveat": "Single training seed. Dev seeds were used for selection only. Any improvement claim needs fresh eval seeds and at least 2 training seeds."
+  },
+  "budget_reference": {
+    "local_cap": "Mac, 30 min, 6 GiB per candidate",
+    "observed": "48 D2 updates took 796.987 s (about 13.3 min) with one launcher and one worker (per reference doc)",
+    "single_arm_fit": "One 48-update arm fits the cap.",
+    "two_seed_paired_fit": "Candidate + baseline at 2 training seeds = 4 arms, about 53 min. Does NOT fit one 30-min window. Proposal for approval, not automatic capex expansion. Baseline seed 2 does not yet exist."
+  },
+  "keep_reject_rule_common": "Survival (mean alive frames) is primary. Keep only if, at matched updates and matched fresh eval seeds, the gain exceeds seed spread across at least 2 training seeds AND Q1 does not fall. Reject if gain is within spread or Q1 falls. EV, target variance, and residual variance are diagnostics only; no EV threshold. Rewards unchanged.",
+  "candidates": [
+    {
+      "rank": 1,
+      "name": "Critic stop-gradient into shared trunk",
+      "label": "Dodge adaptation of separate-critic idea",
+      "variable": "Detach trunk features for the value head only. Policy trains the trunk; value head trains on detached features. Single variable. No change to lr, epochs, or loss weights.",
+      "literature": "PPG (2009.04416, abstract: separate networks avoid interference; shared allows features to be shared). Andrychowicz 2020 Sec. 3.2 (separate networks better in 4/5 envs). Neither tests this exact one-way stop-gradient. Abstract/summary level only.",
+      "hypotheses": {
+        "H1_interference": "Critic gradients hurt policy trunk. Predicts survival gain.",
+        "H2_lost_value_shaping": "Trunk loses value information. Predicts EV worse, survival unchanged or worse.",
+        "H3_capacity": "Critic head limited to frozen features. Predicts EV change, survival unchanged."
+      },
+      "cheapest_discriminating_measurement": "Same 48-update harness. Log per-update: actor and critic gradient norms SEPARATELY on the trunk (not the mixed trunk norm), target variance, residual variance, EV, survival. Compare late-window (9-16 vs 41-48) slopes. Survival decides; the gradient split discriminates H1 from H2/H3.",
+      "cost": "About 13.3 min per arm, 1 seed. Fits local cap for one arm.",
+      "risks": ["Trunk learns from policy only, may slow critic fit", "Trunk effective learning rate changes", "Single seed noise"],
+      "failure_cases": ["Survival unchanged or worse with EV worse (H2/H3)", "EV unchanged, survival unchanged (no effect)", "EV rises while survival falls (H3-like or noise)"],
+      "criterion_keep": "Survival gain beyond spread across 2 seeds, Q1 not falling.",
+      "criterion_reject": "Gain within spread, or Q1 falls.",
+      "needs_longer_run": false,
+      "needs_more_compute": false
+    },
+    {
+      "rank": 2,
+      "name": "Running target-std normalization of critic targets",
+      "label": "Dodge adaptation of published method (PopArt idea)",
+      "variable": "Normalize GAE return targets by running mean/std before the value loss. No output-preserving weight rescaling. Reward scale 0.1 fixed. Single variable: normalization on vs off.",
+      "literature": "Van Hasselt 2016 (1602.07714): adaptive target normalization, abstract. Hessel 2018 (1809.04474): PopArt name and multi-task Atari, abstract. Both value-based; no PPO test read. Engstrom 2020 Fig. 1 caption: reward normalization significant (summary level).",
+      "cheapest_discriminating_measurement": "Log target variance and critic gradient norm per update. Target-variance drift is the first expected signal. Survival decides.",
+      "cost": "About 13.3 min per arm, 1 seed. Low implementation cost.",
+      "risks": ["Changes critic loss scale relative to policy under shared trunk (vf_coef 0.5)", "Global grad clip 0.5 may bind more often", "Target variance drift in baseline is small (0.067 to 0.063), so the gain ceiling is low"],
+      "failure_cases": ["Target variance unchanged (normalization not the bottleneck)", "Survival unchanged", "Survival worse because policy step shrinks under joint grad clip"],
+      "criterion_keep": "Survival gain beyond spread across 2 seeds AND target-variance drift reduced AND Q1 not falling.",
+      "criterion_reject": "Survival within spread, or Q1 falls.",
+      "needs_longer_run": false,
+      "needs_more_compute": false
+    },
+    {
+      "rank": 3,
+      "name": "GAE lambda change (0.90 or 0.99), gamma fixed at 0.995",
+      "label": "Published method family (GAE lambda tuning), speculative as survival lever",
+      "variable": "gae_lambda 0.95 -> 0.90 (window 0.64 s) or 0.99 (window 4.5 s). Single variable.",
+      "literature": "Schulman 2015 GAE (1506.02438): bias-variance trade-off, abstract only. No source here ties lambda to rare lethal events.",
+      "cheapest_discriminating_measurement": "Log advantage variance and value-target error by lag to a death event. Survival decides.",
+      "cost": "About 13.3 min per arm, 1 seed.",
+      "risks": ["Lambda 0.90 is myopic for death 1-3 s away (weights 0.43 and 0.08 at lag 15 and 45 with 0.95)", "Lambda 0.99 raises advantage variance (window 4.5 s)"],
+      "failure_cases": ["Survival falls with lambda 0.90 (credit too short)", "Survival falls with lambda 0.99 (variance)", "No change"],
+      "criterion_keep": "Survival gain beyond spread across 2 seeds, Q1 not falling.",
+      "criterion_reject": "Within spread, or Q1 falls.",
+      "needs_longer_run": false,
+      "needs_more_compute": false
+    },
+    {
+      "rank": 4,
+      "name": "PPG-style infrequent auxiliary value phase",
+      "label": "Published method (PPG), Dodge adaptation",
+      "variable": "Replace per-update critic fit with periodic auxiliary phases (N_pi, E_aux). Single variable: schedule.",
+      "literature": "PPG (2009.04416), abstract: phased value optimization and feature distillation. Earlier Sec. 3.3-3.4 numbers (N_pi=32, E_aux=6) not re-verified.",
+      "cheapest_discriminating_measurement": "Count gradient steps and KL per rollout; compare EV and survival per update and per wall-clock.",
+      "cost": "More gradient steps per rollout. Likely exceeds the 30-min local cap for 48 updates. Estimate not measured.",
+      "risks": ["KL early stop (target_kl 0.03, 4 epochs) interacts with phased updates", "Extra steps change policy drift"],
+      "failure_cases": ["Policy KL violations", "Survival falls", "Wall-clock cost not justified"],
+      "criterion_keep": "Survival gain beyond spread at matched wall-clock and update count.",
+      "criterion_reject": "Within spread, or wall-clock cost not justified.",
+      "needs_longer_run": true,
+      "needs_more_compute": true,
+      "depends_on": "Rank 1 result (if stop-gradient shows H1, phasing is the next test)"
+    },
+    {
+      "rank": 5,
+      "name": "Plasticity intervention in the critic",
+      "label": "Published methods, speculative for PPO",
+      "variable": "Feature regularization or unit reset in critic only.",
+      "literature": "Dohare 2023 (supervised, abstract only), Lyle 2022 (off-policy, abstract only), Nikishin 2022 (search snippet only). Earlier notes; not re-verified.",
+      "cheapest_discriminating_measurement": "Dormant or low-rank critic units over at least 100 updates. Measurement-only first.",
+      "cost": "Needs 100-320 updates. Exceeds 48-update window and likely the local cap.",
+      "risks": ["No PPO transformer evidence", "Long-run duration confound with earlier 2240-mean checkpoint"],
+      "failure_cases": ["Dormant-unit metrics do not move", "Regularizer slows learning"],
+      "criterion_keep": "Survival gain on a longer run on fresh seeds.",
+      "criterion_reject": "No dormant-unit change or no survival gain.",
+      "needs_longer_run": true,
+      "needs_more_compute": true
+    }
+  ],
+  "deprioritized": [
+    {
+      "name": "Value-function clipping on (vs current off)",
+      "reason": "Current critic is unclipped (verified, ppo.py). Andrychowicz Sec. 3.4 says clipping hurts regardless of threshold. Engstrom did not name value clipping as significant. Predicted harm or no change; use only as a negative control if budget remains."
+    }
+  ],
+  "not_ranked_gaps": [
+    "Memory architecture (GRU or frame stack in the policy): distinct from observation allowlist changes. POPGym GRU result unverified this pass. No Dodge-state reason to expect a gain, since the observation is visible.",
+    "Gamma change (per decision): changes value target scale and far-future weighting. No source read on Dodge-like horizon.",
+    "Exploration and curriculum for rare lethal events: no source read this pass."
+  ],
+  "horizon_reference": {
+    "decision": "K=4 raw frames at 60 Hz = 66.67 ms",
+    "gamma_0.995": {"discount_horizon": "200 decisions = 800 frames = 13.3 s", "half_life": "138.3 decisions = 553 frames = 9.2 s", "weight_at_256": 0.277},
+    "gae_gamma_lambda_0.94525": {"window": "18.3 decisions = 73 frames = 1.22 s", "half_life": "12.3 decisions = 49 frames = 0.82 s", "weight_at_256": "5.5e-7"},
+    "rollout_256": "256 decisions = 1024 frames = 17.1 s (256 from user request; default not confirmed in code)"
+  }
+}

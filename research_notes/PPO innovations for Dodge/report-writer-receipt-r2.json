@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-25",
+  "task": "Editorial and source-evidence correction of PPO innovations report (revision r2; no new research round, no agents, no experiments)",
+  "writer_model": "claude-haiku-5-5",
+  "output": {
+    "path": "reports/PPO innovations for Dodge.md",
+    "before_sha256": "7f63d6791df5eaf9a63c3b47ce22847942aa57175395585758d5111973a60946",
+    "after_sha256": "75f9e8213c2acec0a311a903b95368d933bf02f5d7e2432a2d0f73e104e74035",
+    "word_count_approx": 935
+  },
+  "preserved": {
+    "path": "research_notes/PPO innovations for Dodge/report-draft-r1.md",
+    "sha256": "7f63d6791df5eaf9a63c3b47ce22847942aa57175395585758d5111973a60946"
+  },
+  "original_writer_receipt": {
+    "path": "research_notes/PPO innovations for Dodge/report-writer-receipt.json",
+    "sha256": "0bd4899610f4b2021069047a81eade7536085936d532e94aebfe9123f302d4d7",
+    "status": "unchanged"
+  },
+  "inputs": [
+    {"path": "research_notes/PPO innovations for Dodge/literature.md", "sha256": "c38c973a1e9c04bb9387670da5568b3fc434a850e1bdf719b6aad5f150f2fae7"},
+    {"path": "research_notes/PPO innovations for Dodge/source_log.json", "sha256": "1a9eb90a1125f895731355e9f4cb8d9e31a63f0a783cb113f64ce8e7407dbc59"},
+    {"path": "research_notes/PPO innovations for Dodge/gap_source_log.json", "sha256": "4df1f751e5a5e0c62618ee932047afc73db7a58dcd1a4afdb06f8abb701b7cea"},
+    {"path": "docs/v2-critic-diagnostic-2026-10-25.md", "sha256": "81b68105eaa825e2a92f58a08a328221698b88caac966c739103658a7da31dde"}
+  ],
+  "corrections": [
+    "1. Removed 'both are value-based'. Hessel 2018 no longer claimed to introduce PopArt. Both papers described as adaptive value-target normalization family, with verified titles and arXiv IDs (1602.07714, 1809.04474); no novelty or originality claim. Notes that abstract-level reads do not establish lineage.",
+    "2. Removed 'memory is not ranked because observation is visible-state'. Visible features do not establish full observability (hidden RNG, scheduling, anti-camp state; past context may matter). Recurrent memory treated as plausible alternative needing aliased-state/history diagnostic; not ranked for source-coverage reasons.",
+    "3. Gradient norm/cosine reframed as conditional diagnostic; cannot alone separate interference from capacity loss or prove causal actor interference. Stop-gradient noted as changing critic feature learning and global clipping. 'No training change' replaced with measurement intended to preserve optimizer trajectory, requiring RNG/mode/gradient/parity validation.",
+    "4. 8% qualified as geometric GAE weight (gamma*lambda)^45 on TD residual 45 decisions ahead, before terminal masks; not fraction of all training returns. Removed unsupported claim that critic 'carries the rest'. Timescales labeled weighting timescales, not planning horizons.",
+    "5. Target-std normalization row: kept as rank 4 with explicit risk (changes objective scale and effective critic coefficient; not PopArt; raw value units kept for GAE); not ranked as proven cheap gain. Added statement that lower target variance is an optimization diagnostic, not a survival guarantee.",
+    "6. Critic diagnostic link fixed to ../docs/v2-critic-diagnostic-2026-10-25.md.",
+    "7. Removed 'Bottom line' and repeated conclusion. Shortened to ~935 prose words (table syntax excluded); performance table kept as simple Markdown table with current D2 row (Q1 521.0625, Q4 2401.1875, mean 1101.9375).",
+    "8. Multi-seed cost restated as aggregate across separately bounded runs, not permission to exceed the 30-minute cap. Arithmetic check added: 4 x 796.987 s = ~53 min corresponds to one seed per arm; two seeds per arm would be ~106 min. Stated without an approval question."
+  ],
+  "limits": [
+    "Web sources read via WebFetch summaries only; no PDFs; no fresh primary-source fetch in this revision.",
+    "Titles for 1602.07714 and 1809.04474 taken from existing local source logs, not re-fetched.",
+    "No experiments executed; no source, model, training, state, or checkpoint edits."
+  ]
+}

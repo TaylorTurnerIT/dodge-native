@@ -1,0 +1,25 @@
+{
+  "question": "Is more training of the unchanged config likely beneficial or harmful given declining EV?",
+  "answer": "Undetermined, not shown harmful. EV decline is ambiguous: logs favor a rising critic residual under KL-capped policy steps through a shared trunk, but no measurement separates benign target/staleness shift from critic underfitting, and development performance improved while EV fell.",
+  "confidence": "low-moderate",
+  "measured_context": {
+    "best_dev_survival_frames": {"Q1": 648.25, "Q4": 4508.8125, "mean": 2240},
+    "gate_survival_mean": 3060,
+    "best_dev_score": {"Q1": 3.5, "Q4": 46.59375, "mean": 20.59375},
+    "final_checkpoint_mean_alive": 1654.546875,
+    "ev_first20_last20": [0.597973, 0.31724],
+    "proxy_var_returns_first20_last20": [0.0677, 0.0584],
+    "note": "best checkpoint selected among 24 development evals; not held-out"
+  },
+  "recommended_next_step": {
+    "type": "future experiment, not authorized",
+    "description": "Short unchanged-hyperparameter continuation (~48 updates) with read-only critic diagnostics.",
+    "measurements": ["Var(returns)", "Var(advantage)", "mean(advantage)", "post-update EV on same batch", "EV vs Monte-Carlo discounted returns on completed episodes", "EV split terminal vs alive-only windows", "fraction of minibatches clipped by max_grad_norm", "critic share of pre-clip gradient norm", "mean |V_new - V_old| on rollout states"],
+    "decision_criteria": {
+      "A_benign_shift": "Var(returns) falls or post-update EV stays ~>=0.55 -> unchanged longer training justified, judged on D2 survival mean, not EV",
+      "B_critic_underfit": "post-update EV and MC-return EV both low/declining with flat Var(returns) -> test critic correction (separate critic, extra value epochs/PPG phase, or higher vf_coef)",
+      "C_staleness": "post-update EV high but pre-update EV low with large |dV| -> test lower LR or target_kl before long run"
+    },
+    "do_not": ["require rising EV as success gate", "treat one run's trend as proof of a time effect"]
+  }
+}
