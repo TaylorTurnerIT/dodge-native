@@ -1,0 +1,19 @@
+# Review result: two blocking findings
+
+**P1 SUP-R1-01 — worker ownership gap.** `progressive1000-existing-supervisor-binding-sol-20261026-r1/observe.py:129–131` records worker anchors only while the worker remains a launcher descendant. If the launcher dies after `Popen` but before that snapshot, the worker is reparented. With a launch receipt, `signal_group` refuses both TERM and KILL because no anchor exists; its fallback covers only the outer process. Before receipt publication, the worker can remain undiscovered and `worker_group_absent` becomes true merely because `worker_pid` is unknown. The observer can terminate while leaving the worker alive, defeating independent cancellation and bounded cleanup. Close the ownership handoff before training; preserve exact identity checks and distinguish unknown from absent.
+
+**P2 SUP-R1-02 — non-atomic launch receipt.** `observe.py:124` immediately parses the path created by `binding.py:51–53`, called at `execute_once.py:102`. The observer can read the file between exclusive creation and completed JSON flush. That valid interleaving raises `JSONDecodeError`, invokes cleanup, and consumes the one-shot run. Use a durable, atomic, non-overwriting publication or equivalent completed handoff. Keep malformed committed receipts fail-closed and retain zero worker retries.
+
+Both findings are static source conclusions. No race or cleanup failure was executed. Resolve both before parent launch approval.
+
+## Supported bindings and evidence limits
+
+The requested supervisor manifest, accepted worker manifest, prelaunch scope digest, and all six indexed final registration hashes match. All 13,513 installed dependency pins match. The five claimed reused function bodies match their named originals exactly. The accepted checkpoint/model/identity definitions remain byte-identical to the bound parent definitions. Six registrations form three matched vector/reference pairs with the requested parent, constant LR, schedule, limits, and separate worker/control paths.
+
+Parent scope decisions have the stated bounded support: actual same-parent model/Adam/RNG restore before environment/gradients; historical resource audit `1066.4701513750479`; accepted three measured CPU/MPS references; recorded cohort acceptance; 101 reported CPU controls; finite release/native integration evidence. These do not prove an already-executed successor campaign or real cleanup by the 11 fake controls. No separate restore probe or universal equivalence requirement is imposed.
+
+Late-bound envelopes are safe in principle: the parent binds the indexed final registration path/hash, exact later per-run approval, separate shared-source acceptance, reviewed source/dependency pins, and one finite monotonic `started`. `contracts.preflight` requires the same `started` in the exact four-field marker and checks elapsed work time. Templates remain inert and still reference drafts; final path/hash replacement is required. This needs no new timestamp review loop.
+
+Terminal source checks reconcile 60 updates, 983040 decisions, actual optimizer steps, returned native/startup/reset work, scheduler replay, episode/vector identity, phase384/cumulative432, and five integrity files. `64*13 + 983040*(4+13) = 16712512`; resets cap `983040`. Embedded checkpoint auditing and formal evaluation remain parent tasks. Failed paths retain available receipts/accounting; immutable/cache postflight is implemented on successful paths, with failed-path checks still requiring parent audit.
+
+No target imports, execution, tests, runtime/model/environment work, checkpoint deserialization, process probes, history search, delegation, launch, promotion, or external edits occurred. Expected-table members were opaque byte hashes only; no contents or evaluation outcomes were inspected. All writes remain in this review directory. See `receipt.json`, `static-checks.json`, and preservation files for exact pins and limits.
