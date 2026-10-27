@@ -1,0 +1,67 @@
+{
+  "action_repeat": 4,
+  "architecture": "omniscient_entity_teacher_full_attention_v1",
+  "auxiliary_targets": false,
+  "batch_size": 64,
+  "chunk_size": 8,
+  "curriculum_assignment_policy": "70_current_stage_30_full_game_episode_assignments_v3",
+  "difficulty": 2,
+  "evaluator_action_mode": "sampled_categorical",
+  "formal_evaluation": "terminal60_only_plus_shared_parent",
+  "global_updates": 60,
+  "learning_rate": 3e-05,
+  "learning_rate_schedule": "none",
+  "model_layers": 2,
+  "model_tokens": 81,
+  "model_width": 128,
+  "normalization": "unchanged_no_running_normalization",
+  "num_threads": 4,
+  "observation_keys": [
+    "global_feats",
+    "entity_feats",
+    "entity_types",
+    "entity_mask"
+  ],
+  "patterns_enabled": true,
+  "powerups_enabled": true,
+  "ppo": {
+    "adam_eps": 1e-05,
+    "clip_coef": 0.2,
+    "ent_coef": 0.01,
+    "gae_lambda": 0.95,
+    "gamma": 0.995,
+    "learning_rate": 3e-05,
+    "max_grad_norm": 0.5,
+    "minibatch_size": 512,
+    "reward_scale": 0.1,
+    "target_kl": 0.03,
+    "update_epochs": 4,
+    "vf_coef": 0.5
+  },
+  "raw_frame_cap": 18000,
+  "render_pixels": false,
+  "reward": "score + alive_frames/100 - 5 on true death",
+  "rollout_steps": 256,
+  "schedule": {
+    "candidate_selection": false,
+    "cumulative_first": 373,
+    "cumulative_last": 432,
+    "cumulative_origin": 372,
+    "final_drain": false,
+    "formal_evaluation_local_updates": [
+      60
+    ],
+    "integrity_local_updates": [
+      12,
+      24,
+      36,
+      48,
+      60
+    ],
+    "phase_end": 384,
+    "phase_start": 325,
+    "promotion": false,
+    "updates": 60
+  },
+  "schema": "progressive1000_shared_config_v1"
+}

@@ -1,0 +1,3 @@
+Opening repair with full-game maintenance. Every100episode assignments contain70current-stage horizons and30ordinary18000-frame horizons, including the1000-frame stage. All starts are normal. Full-game maintenance is excluded from shorter-stage mastery. The existing native boundary, collector, PPO, model, reward, bootstrap and resource supervision are unchanged. The mix counts episodes, not frames or decisions.
+
+This is isolated source preparation. Fresh review, pins, baseline-control equivalence and parent registration remain required before launch. Old curriculum registrations stay held. Checkpoint324 remains the parent; no model selection or promotion is performed.

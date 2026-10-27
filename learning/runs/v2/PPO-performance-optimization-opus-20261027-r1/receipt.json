@@ -1,0 +1,85 @@
+{
+  "actions_not_taken": [
+    "no training/evaluation/native env",
+    "no MPS use",
+    "no checkpoint deserialization",
+    "no edits outside own directory",
+    "no agents spawned",
+    "no jobs stopped",
+    "opening-curriculum successor preparation not inspected",
+    "no B/E/D3 qualification content inspected"
+  ],
+  "agent": "claude-opus-5-5 research subagent",
+  "combined_A1_A4_estimate": "2.5-8 s/update of 28.15 (estimated, unverified)",
+  "date": "2026-10-27",
+  "evidence_limit": "GPU/MPS shared with le-caissa encoder training; all MPS-side speedups are estimates, not causal attributions",
+  "inputs_sha256": {
+    "learning/runs/v2/progressive1000-monitored-comparison-parent-20261027-r1/progressive1000-confirmed324-20261026-r1-replica-1-control_constant_3e-5/progress-reports.jsonl": "5208e24e0d8d42f39447eec615ce3dc6d0ae995c4a6bd8f63930a35878635c03",
+    "learning/runs/v2/progressive1000-monitored-comparison-parent-20261027-r1/progressive1000-confirmed324-20261026-r1-replica-1-control_constant_3e-5/timing-result.json": "a38d632c46ecbc4ac203fd37be97b8232137131dc389e4945764175c3d77dac4",
+    "learning/runs/v2/progressive1000-monitored-comparison-parent-20261027-r1/progressive1000-confirmed324-20261026-r1-replica-1-control_constant_3e-5/worker-output/resources.jsonl": "c7c6000ffeaa2aaa9602da6f9be6573483f5b2478652f8fad47eaa49c84c1939",
+    "learning/runs/v2/progressive1000-monitored-comparison-parent-20261027-r1/progressive1000-confirmed324-20261026-r1-replica-1-control_constant_3e-5/worker-output/training-events.jsonl": "ec48f5f59a09fabda9398d63f12961e6c252cdc6ed7a1fbfe373510163510d14",
+    "learning/runs/v2/progressive1000-monitored-comparison-parent-20261027-r1/progressive1000-confirmed324-20261026-r1-replica-1-control_constant_3e-5/worker-output/training-metrics.jsonl": "ed9259c10b7e6dd9578f4dd5a6fcc000a95a0c3a93c49efbbc51f9f4f32f8e5a",
+    "learning/runs/v2/progressive1000-throughput-runtime-parent-20261027-r2/progress_monitor.py": "1475f54b05b25295252fdfeb648c747fa6e139f3825307c7d0fe3b78c1a9aa29",
+    "learning/runs/v2/progressive1000-throughput-runtime-parent-20261027-r2/runtime/dodge_rl/curriculum.py": "ee39cee1c25a952794aef33719a0bbb8b1a3059d8f0e044d5b3fc10b169b2423",
+    "learning/runs/v2/progressive1000-throughput-runtime-parent-20261027-r2/runtime/dodge_rl/models/teacher.py": "e4d7f597a2824c2b0d4ba261dddc9d7d1ee1d5592c2fc966a44c54b5ec417e35",
+    "learning/runs/v2/progressive1000-throughput-runtime-parent-20261027-r2/runtime/dodge_rl/ppo.py": "29105fa9549c1092d030e85ae696cd763a153e0cac74ab59fe95be771f4b9c57",
+    "learning/runs/v2/progressive1000-throughput-runtime-parent-20261027-r2/runtime_adapter.py": "4d8d9971d204e9738a041ba844f8ecb9db6e93bff6b6903cd2c2a40c2265e31d",
+    "learning/runs/v2/progressive1000-throughput-runtime-parent-20261027-r2/worker.py": "c5b6128c295213a0120119526ba027bdff3256fa0ff8a3c68e7f2e7a88e72f8c"
+  },
+  "measured": {
+    "emit_fsync_ms_per_event": 0.027,
+    "epochs_every_update": 4,
+    "guard_seconds_per_update": 0.49,
+    "host_gather_ms_per_update": 37,
+    "kl_early_stops": 0,
+    "steps_with_reset_fraction": 0.115,
+    "syncs_per_update_counted_from_source": 10600,
+    "truncations": 0
+  },
+  "mode": "read-only source and saved-telemetry analysis; CPU-only host microbenchmark",
+  "outputs_sha256": {
+    "host_microbench-result.json": "73314aba932d310620af99b866670aac5e14dc11b1ebf44f46f55d69755885b9",
+    "host_microbench.py": "eca0e9327bafa0701c3cecb8e12ec3965fabe59198786a45f09548c96cc6f0ce",
+    "report.md": "c615e6b24227d4a8d7a7d5d95b117fd4d9ebaa6c8901ab9a83592ba0095cf17f"
+  },
+  "recommendations": [
+    {
+      "estimate_s_per_update": "1-4 (estimated)",
+      "id": "A1",
+      "kind": "operational_exact",
+      "where": "ppo.py:526-528"
+    },
+    {
+      "estimate_s_per_update": "0.5-2 (estimated)",
+      "id": "A2",
+      "kind": "operational_exact",
+      "where": "ppo.py:312,411-415,513-556,572"
+    },
+    {
+      "estimate_s_per_update": "0.6-1.5 (estimated)",
+      "id": "A3",
+      "kind": "operational_exact_if_MPS_deterministic",
+      "where": "ppo.py:343-347,377"
+    },
+    {
+      "estimate_s_per_update": "0.2-0.8 (estimated)",
+      "id": "A4",
+      "kind": "operational_exact",
+      "where": "ppo.py:566-578"
+    },
+    {
+      "estimate_s_per_update": "unknown; up to ~7 observed between probe and control",
+      "id": "A5",
+      "kind": "operational_unattributed",
+      "where": "scheduling vs le-caissa"
+    },
+    {
+      "estimate_s_per_update": "unknown",
+      "id": "C",
+      "kind": "experiment_numerics_or_hyperparameter",
+      "where": "teacher.py:57-64 need_weights; autocast; compile; epochs; minibatch"
+    }
+  ],
+  "schema": "ppo_performance_investigation_receipt_v1",
+  "status": "complete"
+}
