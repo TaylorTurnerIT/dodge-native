@@ -1,0 +1,164 @@
+{
+  "availability": "Missing ABI/constants/library/symbol fails before Popen; syscall or output validation failure after Popen enters existing unreaped-pin cleanup.",
+  "constants": {
+    "P_PID": 1,
+    "WEXITED": 4,
+    "WNOHANG": 1,
+    "WNOWAIT": 32
+  },
+  "ctypes_extension_origin": "built-in",
+  "headers": [
+    {
+      "excerpts": [
+        {
+          "first_line": 79,
+          "last_line": 83,
+          "text": "typedef enum {\n\tP_ALL,\n\tP_PID,\n\tP_PGID\n} idtype_t;"
+        },
+        {
+          "first_line": 121,
+          "last_line": 122,
+          "text": "#define WNOHANG         0x00000001  /* [XSI] no hang in wait/no child to reap */\n#define WUNTRACED       0x00000002  /* [XSI] notify on stop, untraced child */"
+        },
+        {
+          "first_line": 168,
+          "last_line": 174,
+          "text": "#define WEXITED         0x00000004  /* [XSI] Processes which have exitted */\n#if __DARWIN_UNIX03\n/* waitid() parameter */\n#define WSTOPPED        0x00000008  /* [XSI] Any child stopped by signal */\n#endif\n#define WCONTINUED      0x00000010  /* [XSI] Any child stopped then continued */\n#define WNOWAIT         0x00000020  /* [XSI] Leave process returned waitable */"
+        },
+        {
+          "first_line": 245,
+          "last_line": 250,
+          "text": "__BEGIN_DECLS\npid_t   wait(int *) __DARWIN_ALIAS_C(wait);\npid_t   waitpid(pid_t, int *, int) __DARWIN_ALIAS_C(waitpid);\n#ifndef _ANSI_SOURCE\nint     waitid(idtype_t, id_t, siginfo_t *, int) __DARWIN_ALIAS_C(waitid);\n#endif /* !_ANSI_SOURCE */"
+        }
+      ],
+      "path": "/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk/usr/include/sys/wait.h",
+      "sha256": "59742f1ebee76c58ce7c36a44f4ee7cbf4faa6edfaad7a32208190e193d76bf6"
+    },
+    {
+      "excerpts": [
+        {
+          "first_line": 108,
+          "last_line": 108,
+          "text": "#define SIGCHLD 20      /* to parent on child stop or exit */"
+        },
+        {
+          "first_line": 160,
+          "last_line": 164,
+          "text": "\tint     sival_int;\n\tvoid    *sival_ptr;\n};\n\n#define SIGEV_NONE      0       /* No async notification */"
+        },
+        {
+          "first_line": 180,
+          "last_line": 201,
+          "text": "\tint     si_errno;               /* errno association */\n\tint     si_code;                /* signal code */\n\tpid_t   si_pid;                 /* sending process */\n\tuid_t   si_uid;                 /* sender's ruid */\n\tint     si_status;              /* exit value */\n\tvoid    *si_addr;               /* faulting instruction */\n\tunion sigval si_value;          /* signal value */\n\tlong    si_band;                /* band event for SIGPOLL */\n\tunsigned long   __pad[7];       /* Reserved for Future Use */\n} siginfo_t;\n\n\n/*\n * When the signal is SIGILL or SIGFPE, si_addr contains the address of\n * the faulting instruction.\n * When the signal is SIGSEGV or SIGBUS, si_addr contains the address of\n * the faulting memory reference. Although for x86 there are cases of SIGSEGV\n * for which si_addr cannot be determined and is NULL.\n * If the signal is SIGCHLD, the si_pid field will contain the child process ID,\n *  si_status contains the exit value or signal and\n *  si_uid contains the real user ID of the process that sent the signal.\n */"
+        },
+        {
+          "first_line": 254,
+          "last_line": 256,
+          "text": "#define CLD_EXITED      1       /* [XSI] child has exited */\n#define CLD_KILLED      2       /* [XSI] terminated abnormally, no core file */\n#define CLD_DUMPED      3       /* [XSI] terminated abnormally, core file */"
+        }
+      ],
+      "path": "/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk/usr/include/sys/signal.h",
+      "sha256": "46001a703a66591b9adc873dcdfe4a545bb26cd5fc52b31ede9e0cda9ddbac7a"
+    },
+    {
+      "excerpts": [
+        {
+          "first_line": 72,
+          "last_line": 74,
+          "text": "typedef __uint32_t      __darwin_gid_t;         /* [???] process and group IDs */\ntypedef __uint32_t      __darwin_id_t;          /* [XSI] pid_t, uid_t, or gid_t*/\ntypedef __uint64_t      __darwin_ino64_t;       /* [???] Used for 64 bit inodes */"
+        },
+        {
+          "first_line": 84,
+          "last_line": 87,
+          "text": "typedef __int32_t       __darwin_pid_t;         /* [???] process and group IDs */\ntypedef __uint32_t      __darwin_sigset_t;      /* [???] signal set */\ntypedef __int32_t       __darwin_suseconds_t;   /* [???] microseconds */\ntypedef __uint32_t      __darwin_uid_t;         /* [???] user IDs */"
+        }
+      ],
+      "path": "/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk/usr/include/sys/_types.h",
+      "sha256": "863c4f07045775002b63b7e616742d9f746e4a02da4441442d8fe1138bbd0ff9"
+    },
+    {
+      "excerpts": [
+        {
+          "first_line": 30,
+          "last_line": 31,
+          "text": "#include <sys/_types.h> /* __darwin_id_t */\ntypedef __darwin_id_t   id_t;           /* can hold pid_t, gid_t, or uid_t */"
+        }
+      ],
+      "path": "/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk/usr/include/sys/_types/_id_t.h",
+      "sha256": "fb7255c9872e2a805c206796326e21d47146e22c93c09752126d7166bdaba5e5"
+    },
+    {
+      "excerpts": [
+        {
+          "first_line": 648,
+          "last_line": 674,
+          "text": "/* These settings are particular to each product. */\n/* Platform: MacOSX */\n#if defined(__i386__)\n#define __DARWIN_ONLY_64_BIT_INO_T      0\n#define __DARWIN_ONLY_UNIX_CONFORMANCE  0\n#define __DARWIN_ONLY_VERS_1050         0\n#elif defined(__x86_64__)\n#define __DARWIN_ONLY_64_BIT_INO_T      0\n#define __DARWIN_ONLY_UNIX_CONFORMANCE  1\n#define __DARWIN_ONLY_VERS_1050         0\n#else\n#define __DARWIN_ONLY_64_BIT_INO_T      1\n#define __DARWIN_ONLY_UNIX_CONFORMANCE  1\n#define __DARWIN_ONLY_VERS_1050         1\n#endif\n\n/*\n * The __DARWIN_ALIAS macros are used to do symbol renaming; they allow\n * legacy code to use the old symbol, thus maintaining binary compatibility\n * while new code can use a standards compliant version of the same function.\n *\n * __DARWIN_ALIAS is used by itself if the function signature has not\n * changed, it is used along with a #ifdef check for __DARWIN_UNIX03\n * if the signature has changed.  Because the __LP64__ environment\n * only supports UNIX03 semantics it causes __DARWIN_UNIX03 to be\n * defined, but causes __DARWIN_ALIAS to do no symbol mangling.\n *"
+        },
+        {
+          "first_line": 682,
+          "last_line": 687,
+          "text": "#if !defined(__DARWIN_UNIX03)\n#  if   __DARWIN_ONLY_UNIX_CONFORMANCE\n#    if defined(_NONSTD_SOURCE)\n#      error \"Can't define _NONSTD_SOURCE when only UNIX conformance is available.\"\n#    endif /* _NONSTD_SOURCE */\n#    define __DARWIN_UNIX03     1"
+        },
+        {
+          "first_line": 737,
+          "last_line": 750,
+          "text": "\n#if !defined(__DARWIN_NON_CANCELABLE)\n#    define __DARWIN_NON_CANCELABLE 0\n#endif /* !__DARWIN_NON_CANCELABLE */\n\n/*\n * symbol suffixes used for symbol versioning\n */\n#if __DARWIN_UNIX03\n#  if __DARWIN_ONLY_UNIX_CONFORMANCE\n#    define __DARWIN_SUF_UNIX03         /* nothing */\n#  else /* !__DARWIN_ONLY_UNIX_CONFORMANCE */\n#    define __DARWIN_SUF_UNIX03         \"$UNIX2003\"\n#  endif /* __DARWIN_ONLY_UNIX_CONFORMANCE */"
+        },
+        {
+          "first_line": 772,
+          "last_line": 791,
+          "text": "#  if __DARWIN_NON_CANCELABLE\n#    define __DARWIN_SUF_NON_CANCELABLE \"$NOCANCEL\"\n#  else /* !__DARWIN_NON_CANCELABLE */\n#    define __DARWIN_SUF_NON_CANCELABLE /* nothing */\n#  endif /* __DARWIN_NON_CANCELABLE */\n\n#else /* !__DARWIN_UNIX03 */\n#  define __DARWIN_SUF_UNIX03           /* nothing */\n#  define __DARWIN_SUF_64_BIT_INO_T     /* nothing */\n#  define __DARWIN_SUF_NON_CANCELABLE   /* nothing */\n#  define __DARWIN_SUF_1050             /* nothing */\n#endif /* __DARWIN_UNIX03 */\n\n#define __DARWIN_SUF_EXTSN              \"$DARWIN_EXTSN\"\n\n/*\n * symbol versioning macros\n */\n#define __DARWIN_ALIAS(sym)             __asm(\"_\" __STRING(sym) __DARWIN_SUF_UNIX03)\n#define __DARWIN_ALIAS_C(sym)           __asm(\"_\" __STRING(sym) __DARWIN_SUF_NON_CANCELABLE __DARWIN_SUF_UNIX03)"
+        }
+      ],
+      "path": "/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk/usr/include/sys/cdefs.h",
+      "sha256": "ac1a889ee7e6f3025e01be9981d26751489b9e63e926035201cae07ab9e6576f"
+    }
+  ],
+  "host_uname": [
+    "Darwin",
+    "Taylors-MacBook-Pro-2.local",
+    "27.0.0",
+    "Darwin Kernel Version 27.0.0: Tue Aug 11 21:05:48 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6041",
+    "arm64"
+  ],
+  "interpreter_resolved": "/Users/taylor/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/bin/python3.12",
+  "interpreter_sha256": "8dcafa7835e861e88a8f8ac7e61effbf5a987f32b0ec47bb1f3c9987caf9216d",
+  "layout": {
+    "alignment": 8,
+    "offsets": {
+      "__pad": 48,
+      "si_addr": 24,
+      "si_band": 40,
+      "si_code": 8,
+      "si_errno": 4,
+      "si_pid": 12,
+      "si_signo": 0,
+      "si_status": 20,
+      "si_uid": 16,
+      "si_value": 32
+    },
+    "size": 104
+  },
+  "lexical_interpreter": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+  "library": "/usr/lib/libSystem.B.dylib",
+  "native_builds": 0,
+  "os_waitid_present": false,
+  "python_version": "3.12.15 (main, Oct  1 2026, 20:49:34) [Clang 22.1.3 ]",
+  "raw_probe": {
+    "path": "abi-probe-receipt.json",
+    "sha256": "5e4cddd8996bc7c829e2041ba014d45eb1e5ac04b9e5890fa979ec2597cac548"
+  },
+  "schema": "darwin_arm64_waitid_abi_provenance_v1",
+  "scope": "Header inspection, stdlib ctypes and owned stdlib process controls only. No C build, training/native runtime, MPS, Torch, NumPy or checkpoint import.",
+  "sdk_path": "/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk",
+  "sdk_settings_sha256": "7b93ad7e534cc4b31c6a4e39d19b5e0288acf2168c2649479a796d1cb51939fb",
+  "sdk_version": "27.0",
+  "signature": "int waitid(idtype_t enum, id_t uint32_t, siginfo_t *, int)",
+  "stdlib_loader_pins": {
+    "/Users/taylor/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/ctypes/__init__.py": "e048845f8f5c14a5fc873526a27da4a19d4eed25ab2f2a01fa6e0b79faca78d0"
+  },
+  "symbol": "waitid",
+  "symbol_provenance": "sys/cdefs.h arm64 UNIX03 and default cancelable API yield unsuffixed waitid.",
+  "uid_limit": "On this target real waitid reports si_uid=0 for the owned non-root child. si_uid is not used as ownership proof. Kernel P_PID child relation and exact returned PID are required.",
+  "validation": "Runtime checks platform/arm64/little-endian, widths/layout/constants; typed libc call; zero WNOHANG result; exact child PID, SIGCHLD, errno and CLD/status validation. No reaping fallback."
+}

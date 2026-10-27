@@ -1,0 +1,333 @@
+--- a/observe.py
++++ b/observe.py
+@@ -4,6 +4,7 @@
+ approval, worker output, lease, checkpoint or source is created or changed here.
+ """
+ import argparse
++import ctypes
+ import json
+ import os
+ from pathlib import Path
+@@ -16,6 +17,65 @@
+ import binding as b
+ from execute_once import group_exists, stop_owned
+ import terminal
++
++class DarwinSigval(ctypes.Union):
++    _fields_ = [('sival_int', ctypes.c_int), ('sival_ptr', ctypes.c_void_p)]
++
++
++class DarwinSiginfo(ctypes.Structure):
++    # macOS 27.0 SDK sys/signal.h: siginfo_t, arm64 LP64. No Linux layout.
++    _fields_ = [('si_signo', ctypes.c_int), ('si_errno', ctypes.c_int),
++                ('si_code', ctypes.c_int), ('si_pid', ctypes.c_int32),
++                ('si_uid', ctypes.c_uint32), ('si_status', ctypes.c_int),
++                ('si_addr', ctypes.c_void_p), ('si_value', DarwinSigval),
++                ('si_band', ctypes.c_long), ('__pad', ctypes.c_ulong * 7)]
++
++
++def nonreaping_waitid():
++    """Fail closed before Popen unless the narrowly verified Darwin ABI exists."""
++    b.need(sys.platform == 'darwin' and os.uname().machine == 'arm64'
++           and sys.byteorder == 'little', 'non-reaping waitid requires verified Darwin arm64 ABI')
++    b.need([ctypes.sizeof(t) for t in (ctypes.c_int, ctypes.c_uint32,
++           ctypes.c_void_p, ctypes.c_long)] == [4, 4, 8, 8]
++           and ctypes.sizeof(DarwinSiginfo) == 104 and ctypes.alignment(DarwinSiginfo) == 8
++           and [getattr(DarwinSiginfo, n).offset for n, _ in DarwinSiginfo._fields_]
++               == [0, 4, 8, 12, 16, 20, 24, 32, 40, 48], 'Darwin siginfo_t ABI differs')
++    b.need([getattr(os, n, None) for n in ('P_PID', 'WEXITED', 'WNOHANG', 'WNOWAIT')]
++           == [1, 4, 1, 32] and signal.SIGCHLD == 20, 'Darwin waitid constants differ')
++    waitid = ctypes.CDLL('/usr/lib/libSystem.B.dylib', use_errno=True).waitid
++    # sys/wait.h: int waitid(idtype_t [enum], id_t [uint32], siginfo_t *, int).
++    waitid.argtypes = [ctypes.c_int, ctypes.c_uint32, ctypes.POINTER(DarwinSiginfo), ctypes.c_int]
++    waitid.restype = ctypes.c_int
++    return waitid
++
++
++def observe_exit(process, waitid):
++    """Observe only this child, leaving its PID/group pinned until explicit wait."""
++    if process.returncode is not None:
++        return process.returncode
++    b.need(type(process.pid) is int and 1 < process.pid <= 0x7fffffff,
++           'invalid direct child PID for waitid')
++    info = DarwinSiginfo()  # Zero before every WNOHANG call; never reuse status.
++    ctypes.set_errno(0)
++    result = waitid(os.P_PID, process.pid, ctypes.byref(info), os.WEXITED | os.WNOHANG | os.WNOWAIT)
++    if result == -1:
++        number = ctypes.get_errno()
++        raise OSError(number, os.strerror(number))
++    b.need(result == 0, 'unexpected waitid return')
++    if info.si_pid == 0:
++        b.need(bytes(info) == bytes(ctypes.sizeof(info)), 'invalid empty waitid status')
++        return None
++    # Darwin leaves si_uid zero here; it is not an ownership check. P_PID and
++    # the kernel's waitable-child relation supply the identity, not a UID guess.
++    b.need(info.si_pid == process.pid and info.si_signo == signal.SIGCHLD
++           and info.si_errno == 0, 'waitid child identity differs')
++    if info.si_code == 1:  # CLD_EXITED, sys/signal.h
++        b.need(0 <= info.si_status <= 255, 'invalid waitid exit status')
++        return info.si_status
++    b.need(info.si_code in (2, 3) and 0 < info.si_status < signal.NSIG,
++           'unexpected waitid child event')  # CLD_KILLED / CLD_DUMPED
++    return -info.si_status
++
+ 
+ def process_rows():
+     result = subprocess.run(['/bin/ps', '-axo', 'pid=,ppid=,pgid=,rss=,lstart=,command='],
+@@ -163,6 +223,7 @@
+         b.verify_bound(envelope,reg,preflight=True)
+         b.need(0 <= clock()-started < b.LIMITS['work_seconds'] and record['first_event'] is None,
+                'dispatch cancelled or expired')
++        waitid = nonreaping_waitid()
+         command = b.worker_command(envelope,reg)
+         env = os.environ.copy()
+         env.update(PYTHONDONTWRITEBYTECODE='1',PYTHONPYCACHEPREFIX=reg['import_policy']['pycache_prefix'],PYTHONPATH=reg['runtime_root'])
+@@ -183,7 +244,8 @@
+                 observed_monotonic=clock(),registration_sha256=envelope['registration_sha256']))
+             while True:
+                 now = clock(); current = process_rows()
+-                # Capture exact anchors before poll can reap the direct child.
++                # Exit observation never reaps: retain the kernel pin through
++                # any surviving original group and required TERM/KILL escalation.
+                 # Membership derives from the already-owned session, not ancestry.
+                 members = [row for row in current.values() if row['pgid'] == proc.pid]
+                 proven = proc.returncode is None or any(
+@@ -191,10 +253,13 @@
+                     and row['command'] == anchors[row['pid']]['command'] for row in members)
+                 if proven:
+                     for row in members: anchors[row['pid']] = row
+-                code = proc.poll()
++                code = observe_exit(proc, waitid)
+                 if code is not None: current = process_rows()
+                 owned = descendants(current,proc.pid)
+-                group_rows = [r for r in current.values() if r['pgid'] == proc.pid]
++                # An exited unreaped leader is still in ps; it cannot fork.
++                # Only other original group members require cleanup before wait.
++                group_rows = [r for r in current.values() if r['pgid'] == proc.pid
++                              and not (code is not None and r['pid'] == proc.pid)]
+                 own_row = current.get(os.getpid())
+                 all_owned = {row['pid']:row for row in owned+group_rows}
+                 aggregate = sum(r['rss_bytes'] for r in all_owned.values())+(own_row['rss_bytes'] if own_row else 0)
+@@ -219,12 +284,14 @@
+                 if code is not None and not group_rows:
+                     record.update(observed_worker_raw_exit=proc.wait(timeout=0),directly_reaped=True,
+                                   direct_wait_observed_monotonic=clock())
++                    b.need(record['observed_worker_raw_exit'] == code, 'waitid/reap exit differs')
+                     break
+                 cleanup_at = hard_at if term_sent is None else min(hard_at,term_sent+b.LIMITS['cleanup_seconds'])
+                 if now >= cleanup_at:
+                     latch('external_total_deadline' if now >= hard_at else 'cleanup_deadline')
+-                    try: record['observed_worker_raw_exit'] = proc.wait(timeout=0)
+-                    except subprocess.TimeoutExpired: record['observed_worker_raw_exit'] = None
++                    # Leave the pin for exceptional stop_owned; it delivers KILL
++                    # before its first wait, even at an exhausted deadline.
++                    record['observed_worker_raw_exit'] = None
+                     break
+                 sleep(min(.1,max(.001,hard_at-now)))
+         if use_timer: signal.setitimer(signal.ITIMER_REAL,max(.001,hard_at-clock()))
+--- a/tests/run_real_controls.py
++++ b/tests/run_real_controls.py
+@@ -56,10 +56,10 @@
+ signal.alarm(55)
+ started=time.monotonic()
+ suite=unittest.defaultTestLoader.loadTestsFromModule(tests)
+-log=io.StringIO()
++log=(REPORT/'real-controls.log').open('x',buffering=1)
+ result=unittest.TextTestRunner(stream=log,verbosity=2).run(suite)
+-text=log.getvalue()
+-(REPORT/'real-controls.log').write_text(text)
++log.close()
++text=(REPORT/'real-controls.log').read_text()
+ receipt=dict(schema='progressive1000_supervisor_real_stdlib_controls_v1',tests_run=result.testsRun,
+     failures=len(result.failures),errors=len(result.errors),successful=result.wasSuccessful(),
+     raw_exit=0 if result.wasSuccessful() else 1,elapsed_seconds=time.monotonic()-started,
+--- a/tests/stdlib_child.py
++++ b/tests/stdlib_child.py
+@@ -51,5 +51,19 @@
+     wait_for(home/'descendant-ready')
+     (home/'descendant.json').write_text(json.dumps(dict(pid=child.pid,pgid=os.getpgid(child.pid))))
+ (home/('descendant-ready' if mode in ('descendant','stubborn-descendant') else 'ready')).write_text(json.dumps(dict(pid=os.getpid(),ppid=os.getppid(),pgid=os.getpgrp())))
++if mode == 'fork-after-snapshot':
++    wait_for(home/'fork-now')
++    child = os.fork()
++    if child == 0:
++        signal.signal(signal.SIGTERM, signal.SIG_IGN)
++        signal.alarm(18)
++        (home/'descendant-ready').write_text(json.dumps(dict(pid=os.getpid(),pgid=os.getpgrp())))
++        while True: time.sleep(.05)
++    wait_for(home/'descendant-ready')
++    (home/'descendant.json').write_text(json.dumps(dict(pid=child,pgid=os.getpgid(child))))
++    os._exit(23)
++if mode == 'exit-on-release':
++    wait_for(home/'release')
++    raise SystemExit(37)
+ if mode=='exit-zero': raise SystemExit(0)
+ while True: time.sleep(.05)
+--- a/tests/test_bindings.py
++++ b/tests/test_bindings.py
+@@ -113,7 +113,7 @@
+         process = Fake(); called = []
+         def stop(p,**kwargs): called.append(p.pid);p.returncode=-15;return dict(reaped=True,exit_code=-15)
+         Path(self.envelope['cancel_path']).touch()
+-        with patch.object(b,'load_envelope',return_value=(self.envelope,self.reg)), patch.object(b,'verify_bound'), patch.object(observe,'group_exists',return_value=False), patch.object(observe,'process_rows',return_value={}), patch.object(observe,'signal_owned',side_effect=lambda proc,anchors,sig,record:stop(proc)):
++        with patch.object(b,'load_envelope',return_value=(self.envelope,self.reg)), patch.object(b,'verify_bound'), patch.object(observe,'group_exists',return_value=False), patch.object(observe,'process_rows',return_value={}), patch.object(observe,'signal_owned',side_effect=lambda proc,anchors,sig,record:stop(proc)), patch.object(observe,'observe_exit',side_effect=lambda proc,waitid:proc.returncode):
+             self.assertEqual(launcher.execute('unused','synthetic',popen=lambda *a,**k:process),1)
+         receipt = b.read(control/'execution-result.json')
+         self.assertEqual(called,[process.pid]);self.assertEqual(receipt['observed_worker_raw_exit'],-15)
+@@ -166,7 +166,7 @@
+             signals.append((pgid,sig))
+             record['cleanup_signals'].append(dict(owned_pgid=pgid,signal=signal.Signals(sig).name))
+             if sig==signal.SIGKILL:process.returncode=-9
+-        with patch.object(b,'load_envelope',return_value=(self.envelope,self.reg)), patch.object(b,'verify_bound'), patch.object(b,'check_lease'), patch.object(observe.subprocess,'Popen',return_value=process), patch.object(observe,'process_rows',side_effect=table), patch.object(observe,'signal_owned',side_effect=lambda proc,anchors,sig,record:group(proc.pid,anchors,sig,record)), patch.object(observe,'group_exists',return_value=False), patch.object(observe.time,'monotonic',side_effect=clock.monotonic), patch.object(observe.time,'sleep',side_effect=clock.sleep):
++        with patch.object(b,'load_envelope',return_value=(self.envelope,self.reg)), patch.object(b,'verify_bound'), patch.object(b,'check_lease'), patch.object(observe.subprocess,'Popen',return_value=process), patch.object(observe,'process_rows',side_effect=table), patch.object(observe,'signal_owned',side_effect=lambda proc,anchors,sig,record:group(proc.pid,anchors,sig,record)), patch.object(observe,'group_exists',return_value=False), patch.object(observe.time,'monotonic',side_effect=clock.monotonic), patch.object(observe.time,'sleep',side_effect=clock.sleep), patch.object(observe,'observe_exit',side_effect=lambda proc,waitid:proc.returncode):
+             self.assertEqual(observe.main('unused','synthetic',clock=clock.monotonic,sleep=clock.sleep),1)
+         receipt=b.read(Path(self.envelope['control'])/'observation.json')
+         self.assertEqual(receipt['first_event']['kind'],'external_work_deadline')
+--- a/tests/test_real_processes.py
++++ b/tests/test_real_processes.py
+@@ -1,5 +1,6 @@
+ """Real owned stdlib processes, synthetic gates only; no campaign authority."""
+ import json
++import errno
+ import os
+ from pathlib import Path
+ import signal
+@@ -9,6 +10,7 @@
+ import time
+ import unittest
+ from unittest.mock import patch
++from types import SimpleNamespace
+ 
+ OWN=Path(__file__).resolve().parents[1]
+ sys.path.insert(0,str(OWN))
+@@ -47,7 +49,11 @@
+         for pid,proc in list(OWNED.items()):
+             if proc.returncode is None:
+                 # The audit guard permits only unreaped direct child handles.
+-                os.killpg(pid,signal.SIGKILL)
++                try: os.killpg(pid,signal.SIGKILL)
++                except (ProcessLookupError, PermissionError) as error:
++                    # Darwin may deny signaling a zombie-only pinned group.
++                    # Still wait and check actual group absence below.
++                    self.case['checks'].setdefault('teardown_signal_errors',[]).append(repr(error))
+                 proc.wait(timeout=2)
+             self.case['processes'].append(dict(pid=pid,raw_exit=proc.returncode,
+                 directly_reaped=proc.returncode is not None,group_absent=not observe.group_exists(pid)))
+@@ -149,6 +155,117 @@
+         self.assertEqual(receipt['observed_worker_raw_exit'],-9)
+         self.assertEqual([v['signal'] for v in receipt['cleanup_signals']],['SIGTERM','SIGKILL'])
+         self.assertLess(time.monotonic()-start,10)
++    def test_fork_after_first_snapshot_retains_pin_through_kill(self):
++        original_rows = observe.process_rows
++        original_exit = observe.observe_exit
++        original_signal = observe.signal_owned
++        trace = []; first = True; handle = []; raw_wait = []
++        def prepare(proc, envelope):
++            handle.append(proc)
++            original_wait = proc.wait
++            raw_wait.append(original_wait)
++            def wait(timeout=None):
++                # The observer must kill the surviving group before its first reap.
++                self.assertIn('SIGKILL', trace)
++                child = b.read(self.home/'descendant.json')
++                self.assertNotIn(child['pid'], original_rows())
++                self.assertIsNone(proc.returncode)
++                self.assertEqual(original_exit(proc, observe.nonreaping_waitid()), 23)
++                code = original_wait(timeout=timeout)
++                trace.append('reaped')
++                return code
++            proc.wait = wait
++        def rows():
++            nonlocal first
++            snapshot = original_rows()
++            if first:
++                first = False
++                self.assertEqual([r['pid'] for r in snapshot.values() if r['pgid']==handle[0].pid], [handle[0].pid])
++                self.assertFalse((self.home/'descendant-ready').exists())
++                trace.append('snapshot_leader_only')
++                (self.home/'fork-now').touch()
++                wait_for(self.home/'descendant.json')
++                trace.append('fork_completed')
++            return snapshot
++        def exited(proc, waitid):
++            end = time.monotonic()+4
++            code = original_exit(proc, waitid)
++            while code is None and len(trace)==2:
++                if time.monotonic()>=end: self.fail('leader exit timeout')
++                time.sleep(.005)
++                code = original_exit(proc, waitid)
++            self.assertEqual(code, 23)
++            self.assertIsNone(proc.returncode)
++            if len(trace)==2: trace.append('nonreaping_exit_23')
++            return code
++        def send(proc, anchors, sig, record):
++            if sig == signal.SIGTERM:
++                child = b.read(self.home/'descendant.json')
++                self.assertNotIn(child['pid'], anchors, 'descendant must have no earlier anchor')
++            self.assertIsNone(proc.returncode)
++            self.assertEqual(original_exit(proc, observe.nonreaping_waitid()), 23)
++            original_signal(proc, anchors, sig, record)
++            trace.append(signal.Signals(sig).name)
++        start = time.monotonic()
++        try:
++            with patch.object(observe,'observe_exit',side_effect=exited), patch.object(observe,'signal_owned',side_effect=send):
++                receipt, envelope = self.run_controller('fork-after-snapshot',before_return=prepare,rows=rows)
++        finally:
++            if handle: handle[0].wait = raw_wait[0]
++        child = b.read(self.home/'descendant.json')
++        self.assertEqual(receipt['first_event']['kind'],'owned_group_survived_worker')
++        self.assertEqual(receipt['observed_worker_raw_exit'],23)
++        self.assertEqual(trace,['snapshot_leader_only','fork_completed','nonreaping_exit_23','SIGTERM','SIGKILL','reaped'])
++        self.assertTrue(all(v['ownership']=='unreaped directly owned Popen with start_new_session=True'
++                            for v in receipt['cleanup_signals']))
++        self.assertNotIn(child['pid'],original_rows())
++        self.assertNotIn(handle[0].pid,original_rows())
++        self.assertFalse(observe.group_exists(child['pgid']))
++        with self.assertRaises(ChildProcessError): os.waitpid(handle[0].pid,os.WNOHANG)
++        with patch.object(b,'load_envelope',return_value=(envelope,dict(output=str(self.home/'worker-output')))):
++            with self.assertRaises(FileExistsError): observe.main('unused','unused',popen=lambda *a,**k:self.fail('retry'))
++        elapsed = time.monotonic()-start
++        self.assertLess(elapsed,10)
++        self.case['checks'].update(trace=trace,descendant=child,leader_raw_exit=23,
++            no_earlier_descendant_anchor=True,leader_and_descendant_absent=True,group_absent=True,
++            direct_reap_confirmed_by_ECHILD=True,retry_rejected_before_Popen=True,
++            actual_return_elapsed_seconds=elapsed,descendant_reap_scope='orphan reaped by OS')
++    def test_real_nonreaping_waitid_running_exited_and_wrong_pid(self):
++        waitid = observe.nonreaping_waitid()
++        with (self.home/'api.log').open('x') as log:
++            proc = spawn(command('exit-on-release',self.home),stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
++            wait_for(self.home/'ready')
++            self.assertIsNone(observe.observe_exit(proc,waitid))
++            self.assertIsNone(proc.returncode)
++            # Claiming our own non-child PID must produce ECHILD, never an exit.
++            with self.assertRaises(OSError) as wrong:
++                observe.observe_exit(SimpleNamespace(pid=os.getpid(),returncode=None),waitid)
++            self.assertEqual(wrong.exception.errno,errno.ECHILD)
++            (self.home/'release').touch()
++            end = time.monotonic()+4
++            while observe.observe_exit(proc,waitid) is None:
++                if time.monotonic()>=end: self.fail('waitid exit timeout')
++                time.sleep(.005)
++            self.assertEqual(observe.observe_exit(proc,waitid),37)
++            self.assertEqual(observe.observe_exit(proc,waitid),37)
++            self.assertIsNone(proc.returncode)
++            self.assertIn(proc.pid,observe.process_rows())
++            self.assertEqual(proc.wait(timeout=0),37)
++            with self.assertRaises(OSError) as reaped:
++                observe.observe_exit(SimpleNamespace(pid=proc.pid,returncode=None),waitid)
++            self.assertEqual(reaped.exception.errno,errno.ECHILD)
++            self.assertNotIn(proc.pid,observe.process_rows())
++        # Unsupported API/ABI must fail before any Popen, preserving a receipt.
++        with patch.object(observe,'nonreaping_waitid',side_effect=OSError('injected waitid unavailable')):
++            envelope,reg = self.fixture()
++            with patch.object(b,'load_envelope',return_value=(envelope,reg)), patch.object(b,'verify_bound'):
++                self.assertEqual(observe.main('unused','unused',popen=lambda *a,**k:self.fail('unavailable API launch')),1)
++        receipt = b.read(self.home/'control/observation.json')
++        self.assertEqual(receipt['actual_worker_launch_count'],0)
++        self.assertIn('injected waitid unavailable',receipt['first_event']['error'])
++        self.case['checks'].update(running_returns_none=True,repeated_exited_status=37,true_reap_exit=37,
++            wrong_pid_errno=wrong.exception.errno,reaped_pid_errno=reaped.exception.errno,
++            unreaped_exited_child_present=True,after_reap_absent=True,unavailable_API_launches=0)
+     def test_real_group_descendant_is_signalled_and_reaped(self):
+         def cancel(proc,envelope):
+             wait_for(self.home/'descendant.json')
