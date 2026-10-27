@@ -1,0 +1,276 @@
+{
+  "accepted_runtime_files_opaque_hashed": 12,
+  "accepted_source_files_hashed": 105,
+  "additional_boundary_controls": 4,
+  "ast_parsed": [
+    "binding.py",
+    "execute_once.py",
+    "observe.py",
+    "prepare_artifacts.py",
+    "terminal.py",
+    "tests/delayed_ps.py",
+    "tests/run_controls.py",
+    "tests/run_ps_controls.py",
+    "tests/run_real_controls.py",
+    "tests/stdlib_child.py",
+    "tests/test_bindings.py",
+    "tests/test_ps_deadlines.py",
+    "tests/test_real_processes.py"
+  ],
+  "exact_observer_delta": "Remove timeout=1; add budget-owner comment only.",
+  "inherited_suite_receipts": {
+    "fake": {
+      "path": "validation/fake/test-receipt.json",
+      "reported_success": true,
+      "reviewer_replayed": false,
+      "sha256": "7073c4e5799d069fa42b8fc94e68bdc042f8aef76481dcdca8a5ddd028e300f4",
+      "tests": 11
+    },
+    "original_real": {
+      "path": "validation/real/real-test-receipt.json",
+      "reported_success": true,
+      "reviewer_replayed": false,
+      "sha256": "8d3b68588af781c450ed3e9eefdbc44e7ce11477879cef649cb2629f6d4e2ad6",
+      "tests": 14
+    },
+    "ps_boundary": {
+      "path": "validation/ps/ps-test-receipt.json",
+      "reported_success": true,
+      "reviewer_replayed": false,
+      "sha256": "04ea91a2368007bb1dff5eee466e636502ce712ba938bcd7a10aa90b16e69f60",
+      "tests": 4
+    }
+  },
+  "named_immutable_pins_checked": 26,
+  "original_controls_unchanged": 25,
+  "ps_boundary_metadata": [
+    {
+      "checks": {
+        "direct_parent_identity": {
+          "pgid": 68685,
+          "pid": 68685,
+          "ppid": 68682
+        },
+        "elapsed_seconds": 5.121589457965456,
+        "no_stale_resource_sample": true,
+        "no_worker_output_created": true,
+        "ps_helpers": [
+          {
+            "ECHILD_confirmed": true,
+            "directly_reaped_before_test_teardown": true,
+            "group_absent": true,
+            "helper_plan": {
+              "delay_seconds": 0,
+              "exit_code": 23
+            },
+            "pid": 68686,
+            "raw_exit": 23
+          }
+        ],
+        "synthetic_limits": {
+          "cleanup_seconds": 10,
+          "mps_bytes": 6442450944,
+          "raw_frames": 16712512,
+          "resets": 983040,
+          "retries": 0,
+          "rss_bytes": 6442450944,
+          "total_seconds": 7,
+          "work_seconds": 4
+        },
+        "worker_ECHILD_and_group_absent_before_teardown": true
+      },
+      "cleanup": {
+        "SIGTERM": true,
+        "errors": [
+          "PermissionError(1, 'Operation not permitted')"
+        ],
+        "exit_code": -15,
+        "owned_pgid": 68685,
+        "owned_pid": 68685,
+        "reaped": true
+      },
+      "deadline_consumed": false,
+      "first_event": {
+        "error": "CalledProcessError(23, ['/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python', '-I', '-B', '/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-ps-timeout-repair-sol-20261027-r6/tests/delayed_ps.py', '/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-ps-timeout-repair-sol-20261027-r6/tests/real-2g9_5r_j/ps-1'])",
+        "kind": "observer_failure",
+        "monotonic": 663188.65072175
+      },
+      "test": "test_ps_deadlines.PsDeadlines.test_failed_ps_command_still_fails_closed_and_reaps"
+    },
+    {
+      "checks": {
+        "accounting_calls": 0,
+        "direct_parent_identity": {
+          "pgid": 68771,
+          "pid": 68771,
+          "ppid": 68682
+        },
+        "elapsed_seconds": 1.0088598750298843,
+        "first_work_then_total_ps_interruptions": true,
+        "no_stale_resource_sample": true,
+        "no_worker_output_created": true,
+        "ps_helpers": [
+          {
+            "ECHILD_confirmed": true,
+            "directly_reaped_before_test_teardown": true,
+            "group_absent": true,
+            "helper_plan": {
+              "delay_seconds": 3,
+              "exit_code": 0
+            },
+            "pid": 68772,
+            "raw_exit": -9
+          },
+          {
+            "ECHILD_confirmed": true,
+            "directly_reaped_before_test_teardown": true,
+            "group_absent": true,
+            "helper_plan": {
+              "delay_seconds": 3,
+              "exit_code": 0
+            },
+            "pid": 68776,
+            "raw_exit": -9
+          }
+        ],
+        "synthetic_limits": {
+          "cleanup_seconds": 10,
+          "mps_bytes": 6442450944,
+          "raw_frames": 16712512,
+          "resets": 983040,
+          "retries": 0,
+          "rss_bytes": 6442450944,
+          "total_seconds": 0.9,
+          "work_seconds": 0.35
+        },
+        "worker_ECHILD_and_group_absent_before_teardown": true
+      },
+      "cleanup": {
+        "errors": [
+          "Cancelled('absolute supervisor deadline')",
+          "PermissionError(1, 'Operation not permitted')"
+        ],
+        "exit_code": -15,
+        "owned_pgid": 68771,
+        "owned_pid": 68771,
+        "reaped": true
+      },
+      "deadline_consumed": true,
+      "first_event": {
+        "kind": "external_work_deadline",
+        "monotonic": 663194.080224416
+      },
+      "test": "test_ps_deadlines.PsDeadlines.test_ps_crossing_total_alarm_during_cleanup_is_sticky"
+    },
+    {
+      "checks": {
+        "direct_parent_identity": {
+          "pgid": 68782,
+          "pid": 68782,
+          "ppid": 68682
+        },
+        "elapsed_seconds": 5.433240041020326,
+        "no_stale_resource_sample": true,
+        "no_worker_output_created": true,
+        "ps_helpers": [
+          {
+            "ECHILD_confirmed": true,
+            "directly_reaped_before_test_teardown": true,
+            "group_absent": true,
+            "helper_plan": {
+              "delay_seconds": 3,
+              "exit_code": 0
+            },
+            "pid": 68783,
+            "raw_exit": -9
+          }
+        ],
+        "synthetic_limits": {
+          "cleanup_seconds": 10,
+          "mps_bytes": 6442450944,
+          "raw_frames": 16712512,
+          "resets": 983040,
+          "retries": 0,
+          "rss_bytes": 6442450944,
+          "total_seconds": 6.5,
+          "work_seconds": 0.35
+        },
+        "worker_ECHILD_and_group_absent_before_teardown": true
+      },
+      "cleanup": {
+        "SIGTERM": true,
+        "errors": [
+          "PermissionError(1, 'Operation not permitted')"
+        ],
+        "exit_code": -15,
+        "owned_pgid": 68782,
+        "owned_pid": 68782,
+        "reaped": true
+      },
+      "deadline_consumed": false,
+      "first_event": {
+        "kind": "external_work_deadline",
+        "monotonic": 663195.091536125
+      },
+      "test": "test_ps_deadlines.PsDeadlines.test_ps_crossing_work_alarm_interrupts_and_reaps"
+    },
+    {
+      "checks": {
+        "direct_parent_identity": {
+          "pgid": 68795,
+          "pid": 68795,
+          "ppid": 68682
+        },
+        "elapsed_seconds": 1.5885660839267075,
+        "no_worker_output_created": true,
+        "ps_helpers": [
+          {
+            "ECHILD_confirmed": true,
+            "directly_reaped_before_test_teardown": true,
+            "group_absent": true,
+            "helper_plan": {
+              "delay_seconds": 1.25,
+              "exit_code": 0
+            },
+            "pid": 68796,
+            "raw_exit": 0
+          }
+        ],
+        "slow_valid_observations": [
+          {
+            "current_observer_row": true,
+            "elapsed_seconds": 1.306150707998313,
+            "valid_worker_row": true
+          }
+        ],
+        "synthetic_limits": {
+          "cleanup_seconds": 10,
+          "mps_bytes": 6442450944,
+          "raw_frames": 16712512,
+          "resets": 983040,
+          "retries": 0,
+          "rss_bytes": 6442450944,
+          "total_seconds": 6,
+          "work_seconds": 4
+        },
+        "termination": "deliberate cancellation only after slow valid ps observation",
+        "worker_ECHILD_and_group_absent_before_teardown": true
+      },
+      "cleanup": null,
+      "deadline_consumed": false,
+      "first_event": {
+        "kind": "cancel_marker",
+        "monotonic": 663201.501447
+      },
+      "test": "test_ps_deadlines.PsDeadlines.test_ps_slower_than_one_second_within_work_budget"
+    }
+  ],
+  "source_files": 14,
+  "source_manifest_sha256": "5d5ed45a982cde59f18a16f92cab4b7fd55a906640d5428eef63a07607bc9053",
+  "unchanged_operational_files": [
+    "binding.py",
+    "terminal.py",
+    "execute_once.py",
+    "dependency-binding.json"
+  ]
+}
