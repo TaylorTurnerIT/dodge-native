@@ -1,0 +1,37 @@
+{
+  "findings": [
+    {
+      "evidence": "python.rs:119-125 always sets death_cause (None alive); dev_eval.death_fields else-branch requires truncated; FakeEnv always truncates on first step",
+      "file": "learning/runs/v2/latest-best-paired-eval-prepare-luna-20261026-r1/worker.py",
+      "fix": "Build row/death_fields only when terminated or truncated; add live-step fake env tests; regenerate hashes and re-review",
+      "id": "F1",
+      "impact": "First live step of first arm raises ValueError; one-shot campaign burned with zero rows",
+      "lines": [
+        245,
+        302
+      ],
+      "severity": "blocking",
+      "summary": "death_fields called on every live step; frozen death_fields raises for non-terminated, non-truncated info with death_cause present"
+    },
+    {
+      "file": "learning/runs/v2/latest-best-paired-eval-prepare-luna-20261026-r1/input-manifest.json",
+      "fix": "Add minimal pin closure from D2-continuation180-parent-freeze-20261025-r4/registration-proposed.json, verify in verify_inputs",
+      "id": "F2",
+      "severity": "medium",
+      "summary": "No Torch/NumPy/stdlib dependency bytes pinned"
+    },
+    {
+      "file": "learning/runs/v2/latest-best-paired-eval-prepare-luna-20261026-r1/tests/test_paired_eval.py",
+      "fix": "Fake popen/clock/sleep tests for 590s cancel and postflight/publication failure",
+      "id": "F3",
+      "severity": "low",
+      "summary": "run_once lifecycle (deadline/cancel/postflight/publication) untested; only terminal_status helper tested"
+    }
+  ],
+  "no_games_training_or_freeze_script_run": true,
+  "reviewer": "claude-sonnet-5-5 (fallback for unavailable Haiku)",
+  "schema": "latest_best_paired_eval_frozen_review_v1",
+  "target_protocol_sha256": "8e30d4a72418c6e0f77c306f08ac6741b3dff0a6ce3a2c3f25a17ade75e6f7e2",
+  "target_receipt_sha256": "0743556ac3e649afe4a40c842b8701b7ebb8ee7d419b31236a8029431c1b1f26",
+  "verdict": "do_not_launch_blocking_defect"
+}

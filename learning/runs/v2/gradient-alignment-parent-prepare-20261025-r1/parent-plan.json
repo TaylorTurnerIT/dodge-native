@@ -1,0 +1,41 @@
+{
+  "schema": "gradient_alignment_measurement_parent_plan_v1",
+  "created_at_utc": "2026-10-25T22:20:53.698443+00:00",
+  "authority": "Latest user: We can check for orthogonality to detect gradient interference among other methods. Existing user requests Luna implementation and Haiku review; keep going after fixed blockers.",
+  "purpose": "Measure shared actor/critic gradient alignment before any algorithm or architectural ablation.",
+  "baseline": "Accepted D2 phase132 checkpoint bf858ed9975e6f994acbca011895b140be6943cf1852c88b54549a9c8db0c1a8; same-seed evalmean1518.75, Q1bottom16mean565.8125,Q4top16mean2786.25.",
+  "primary_objectives": {
+    "actor": "policy_loss - ent_coef*entropy",
+    "critic": "vf_coef*value_loss",
+    "parameters": "Only shared trainable trunk parameters, excluding actor_head and critic_head; named layer summaries additionally."
+  },
+  "measurements": [
+    "dot product and cosine similarity",
+    "actor and weighted critic L2 norms and critic/actor norm ratio",
+    "per-layer alignment, including both transformer blocks",
+    "actual total global preclip gradient norm and clipping coefficient",
+    "zero-norm validity/reason without inventing defined cosine",
+    "sampling location and parameter/minibatch counts"
+  ],
+  "interpretation": "Negative cosine means opposing first-order raw gradient components. Near zero means orthogonality, positive alignment. Neither alone proves harmful interference or value failure; Adam preconditioning and global clipping affect actual updates.",
+  "sampling": "First minibatch of first epoch per PPO update, using existing shuffled minibatch; no extra random draws or changed shuffle order. No additional environment steps/optimizer steps. This samples minibatch gradients, not full-rollout alignment.",
+  "trajectory_preservation": "Optional flag false by default; measurement only via autograd.grad on same graph, retain_graph as necessary, no .grad/parameter/Adam/RNG/mode/batch mutation. Original combined loss.backward(), global clip and optimizer.step() remain unchanged. Require enabled/disabled CPU and MPS parity fixtures before any real campaign.",
+  "scope": "Clone frozen runtime inside owned preparation directory; never edit shared original PPO/model/native/checkpoints. Synthetic fixture gradients/optimizer steps allowed for parity tests only; no real environment/training/evaluation campaign.",
+  "preparation_budget_seconds": 900,
+  "resource_caps_bytes": {
+    "RSS": 6442450944,
+    "MPS": 6442450944
+  },
+  "next_experiment": "After parity/overhead measurements and Haiku frozen review, register one bounded next D2 continuation from accepted132 with diagnostics; determine update count from measured overhead, <=1800s and6GiB. No launch under this preparation task.",
+  "no_changes": [
+    "PPO hyperparameters",
+    "reward",
+    "architecture",
+    "gradient projection/surgery",
+    "critic detachment",
+    "separate critic",
+    "GAE lambda",
+    "value normalization",
+    "D3/student/B/E"
+  ]
+}

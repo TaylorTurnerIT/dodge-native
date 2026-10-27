@@ -1,0 +1,43 @@
+{
+  "schema": "parent_confirmed324_transition_repair_v1",
+  "status": "CPUcontrols_pass_independent_review_pending",
+  "source_parent": "confirmed324-transition-completion-luna-20261026-r2",
+  "parent_findings": [
+    "Reusable mapping receipts and arbitrary claim callbacks bypassed O_EXCL on fresh transition sessions.",
+    "driver_binding requested nonexistent _worker; frozen runner exports worker."
+  ],
+  "changes": [
+    "Require concrete AttemptClaim, matching payload before exclusive creation, and persisted receipt bytes.",
+    "Reject receipt reuse and duck callbacks; require absolute claim path and existing parent directory.",
+    "Bind exact frozen worker symbol."
+  ],
+  "command": [
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+    "-B",
+    "-m",
+    "unittest",
+    "-v",
+    "test_transition",
+    "test_regressions"
+  ],
+  "interpreter": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+  "python": "3.12.15 (main, Oct  1 2026, 20:49:34) [Clang 22.1.3 ]",
+  "exit_code": 0,
+  "cache_empty": true,
+  "source_hashes": {
+    "README.md": "776e8e7f6f53c8a538564c2e2a0fc23adfe15ff5beef9f6c7b95dca96602259f",
+    "attempt_claim.py": "bf993c076c6c3270a3efb89f42d3ca86a070a044da286b42b4803790c3759206",
+    "driver_binding.py": "082e2c9439395a4ed478124ca39d778902a09a36e78623aef0c59b3b99f86e64",
+    "fingerprints.py": "6ef9cf3f08fe800f54230801a921a2f5c82e47e5013ef3087ead6499d2533d61",
+    "rng_reference.py": "9abfb7f892fc3a0b62d665a390effcfd7cbf4161ccf1ade3a9240d9392172917",
+    "test_regressions.py": "2d4ef71f35fdd602c056ca3ad13abd25118411bed49ecbd28c650d59e11204fb",
+    "test_transition.py": "dee7ac8916df53f4ca06e6050705890d63eda00a5606b444cf27b9439f0d8b7b",
+    "transition.py": "bda044d213db3424a3b578c7c63cb30d942e9c8e5527c1e854abe03abcf83e03"
+  },
+  "limits": [
+    "CPU toy fixtures and AST function definitions only; no callback execution against actual model/runtime.",
+    "Real MPS reference pending_notrun; no production checkpoint deserialization or training.",
+    "Future driver still must pin exact claim path and run identity from final registration."
+  ],
+  "test_count": 19
+}

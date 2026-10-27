@@ -1,0 +1,9 @@
+# Current-pair resource calibration R3 preparation
+
+CPU-only source and plan repair. R1 remains failed; R2 remains frozen; R6 source, receipts, checkpoints, and selected identities remain unchanged. No reservation, live-state write, MPS call, training, game episode, optimizer step, or probe launch occurred here. Actual best204 training retains priority.
+
+R3 fixes the five reviewed blockers and four narrow findings from the R6 Haiku review. It pins an explicit lexical `python/.venv/bin/python` plus resolved binary SHA-256; completes source, CPU, reservation, interpreter, and live-authority checks before the fixed `launch-once.marker` in this calibration directory; and checks the exact parent-owned live authority before spawn, immediately before MPS load, and at every guard boundary. State hashes are provenance only because orchestration state changes legitimately. CPU fixtures can test these checks; production must read the unmocked authority file.
+
+The proposed future probe uses unchanged R6 `worker.evaluate`, 64 synthetic environments, no game episodes, repeated eight-decision evaluation passes, at least 30 seconds active representative work, at least 240 forwards, at least 20 complete resource samples, nonempty freshness ages and interarrival gaps, and exact guard count `64 + 72 * completed_evaluate_passes`. Existing 1.0-second freshness, 10-second first-sample, separate 6 GiB RSS and MPS caps, 90-second work maximum, 120-second outer bound, and 10-second cleanup maximum remain explicit. Timeout cleanup must retain evidence and prove only the exact owned process group absent.
+
+The parent must install a new matching one-shot reservation only after fresh review and when actual training permits. No reservation or launch authorization is created by preparation. This CPU run does not measure MPS freshness, RSS, MPS allocation, or I/O and cannot qualify hardware behavior.

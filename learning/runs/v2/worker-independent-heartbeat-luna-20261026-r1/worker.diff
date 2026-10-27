@@ -1,0 +1,117 @@
+--- learning/runs/v2/expanded-runner-integrated-parent-20261026-r5/worker.py	2026-10-26 17:39:19
++++ learning/runs/v2/worker-independent-heartbeat-luna-20261026-r1/worker.py	2026-10-26 17:48:15
+@@ -1,6 +1,6 @@
+ """Inert expanded-evaluation worker. Imports evaluator only after all static checks."""
+ from __future__ import annotations
+-import argparse, hashlib, importlib.util, json, os, sys, time, uuid
++import argparse, hashlib, importlib.util, json, os, sys, time, uuid, threading
+ from pathlib import Path
+ 
+ LIMIT_RSS=6*1024**3
+@@ -70,13 +70,13 @@
+   import psutil
+   rss=psutil.Process().memory_info().rss
+  except ImportError: rss=process_rss(os.getpid())
+- mps=driver_memory(os.getpid(),reg.get('runtime',{}).get('backend'))
++ mps,phase,initialized=driver_memory_status(reg.get('runtime',{}).get('backend'))
+  if rss is None: raise RuntimeError('worker RSS unavailable')
+  if mps is None: raise RuntimeError('worker MPS driver memory unavailable')
+  if rss>LIMIT_RSS: raise RuntimeError('worker RSS limit exceeded')
+  if mps>LIMIT_MPS: raise RuntimeError('worker MPS driver limit exceeded')
+  sequence+=1
+- update_json(heartbeat,{'schema':'expanded_eval_worker_heartbeat_v1','run_id':reg['run_id'],'registration_sha256':registration_sha,'pid':os.getpid(),'sequence':sequence,'timestamp_ns':time.time_ns(),'rss_bytes':rss,'mps_driver_bytes':mps})
++ update_json(heartbeat,{'schema':'expanded_eval_worker_heartbeat_v1','run_id':reg['run_id'],'registration_sha256':registration_sha,'pid':os.getpid(),'sequence':sequence,'timestamp_ns':time.time_ns(),'rss_bytes':rss,'mps_driver_bytes':mps,'phase':phase,'driver_initialized':initialized})
+  return sequence
+ def process_rss(pid):
+  try:
+@@ -86,17 +86,47 @@
+   x=subprocess.run(['ps','-o','rss=','-p',str(pid)],capture_output=True,text=True,timeout=0.2,check=True)
+   return int(x.stdout.strip())*1024
+  except Exception: return None
+-def driver_memory(pid,backend=None):
+- # MPS is not initialized in CPU fake workers; production requires an actual driver reading.
+- if 'torch' not in sys.modules: return 0
++def driver_memory_status(backend=None):
++ # Inspect sys.modules only. Sampler must never import torch during evaluator imports.
++ if backend!='mps': return 0,'runtime',False
++ torch=sys.modules.get('torch')
++ if torch is None: return 0,'startup',False
+  try:
+-  import torch
+-  if not hasattr(torch,'mps') or not torch.backends.mps.is_available(): return None if backend=='mps' else 0
+-  fn=getattr(torch.mps,'driver_allocated_memory',None)
+-  if not callable(fn): return None
+-  return int(fn())
+- except Exception: return None
++  available=torch.backends.mps.is_available()
++  if not available: return None,'runtime',False
++  return int(torch.mps.driver_allocated_memory()),'runtime',True
++ except Exception:
++  return None,'runtime',True
+ 
++def driver_memory(pid,backend=None): return driver_memory_status(backend)[0]
++
++class HeartbeatSampler:
++ def __init__(self,reg,rp,registration_sha,deadline,heartbeat):
++  self.reg=reg; self.rp=rp; self.registration_sha=registration_sha; self.deadline=deadline; self.heartbeat=heartbeat
++  self.stop_event=threading.Event(); self.error=None; self.sequence=0; self.started=time.monotonic()
++  self.lock=threading.Lock(); self.thread=threading.Thread(target=self._run,name='worker-heartbeat-sampler',daemon=True)
++ def start(self): self.thread.start()
++ def _run(self):
++  try:
++   while not self.stop_event.is_set():
++    now=time.monotonic()
++    if now>=self.deadline: raise RuntimeError('worker wall deadline reached')
++    mps,phase,initialized=driver_memory_status(self.reg.get('runtime',{}).get('backend'))
++    if phase=='startup' and now-self.started>12: raise RuntimeError('MPS startup readiness deadline reached')
++    if phase=='runtime' and self.reg.get('runtime',{}).get('backend')=='mps' and mps is None: raise RuntimeError('worker MPS driver memory unavailable')
++    with self.lock:
++     self.sequence=worker_guard(self.reg,self.rp,self.registration_sha,self.deadline,self.heartbeat,self.sequence)
++    self.stop_event.wait(min(0.2,float(self.reg.get('limits',{}).get('guard_poll_seconds',0.2))))
++  except BaseException as e:
++   self.error=e; self.stop_event.set()
++ def check(self):
++  if self.error: raise RuntimeError('heartbeat sampler failed: '+str(self.error)) from self.error
++  if not self.thread.is_alive() and not self.stop_event.is_set(): raise RuntimeError('heartbeat sampler stopped unexpectedly')
++ def stop(self):
++  self.stop_event.set(); self.thread.join(timeout=2)
++  if self.thread.is_alive(): raise RuntimeError('heartbeat sampler did not stop within 2 seconds')
++  self.check()
++
+ def validate_mode(reg,stage,update,cohort,output):
+  if reg.get('schema')!='expanded_D2_evaluation_registration_v1' or reg.get('mode')!=stage: raise RuntimeError('registration schema/mode mismatch')
+  expected={'benchmark':(348,'benchmark_dev64'),'ranking':(None,'ranking'),'confirmation':(None,'confirmation')}[stage]
+@@ -153,16 +183,14 @@
+  if Path(source['worker_path']).resolve()!=Path(__file__).resolve():raise RuntimeError('worker path differs from registration')
+  sys.pycache_prefix=reg['runtime']['pycache_prefix'];sys.dont_write_bytecode=True
+  if Path(source['evaluator_path']).resolve()!=ep.resolve(): raise RuntimeError('evaluator path differs from registration')
+- # No torch import before first worker heartbeat and guard.
+- sequence=0;last_guard=0.0;guard_interval=min(0.2,float(reg['limits'].get('guard_poll_seconds',0.2)))
++ # First sample precedes evaluator import; sampler then runs independently.
++ sequence=worker_guard(reg,rp,registration_sha256,deadline,heartbeat,0)
++ sampler=HeartbeatSampler(reg,rp,registration_sha256,deadline,heartbeat); sampler.start()
++ guard_interval=min(0.2,float(reg['limits'].get('guard_poll_seconds',0.2)))
+  def check_guard(force=False):
+-  nonlocal sequence,last_guard
+-  now=time.monotonic()
+-  if not force and now-last_guard<guard_interval:
+-   if now>=deadline:raise RuntimeError('worker wall deadline reached')
+-   return True
+-  sequence=worker_guard(reg,rp,registration_sha256,deadline,heartbeat,sequence);last_guard=time.monotonic();return True
+- check_guard(force=True)
++  sampler.check()
++  if time.monotonic()>=deadline: raise RuntimeError('worker wall deadline reached')
++  return True
+  spec=importlib.util.spec_from_file_location('_pinned_expanded_evaluator',ep)
+  if not spec or not spec.loader: raise RuntimeError('cannot load pinned evaluator')
+  module=importlib.util.module_from_spec(spec); sys.modules[spec.name]=module; spec.loader.exec_module(module)
+@@ -202,6 +230,9 @@
+   if len(results)!=6 or {r.get('candidate_update') for r in results}!={180,204,276,300,324,348}: raise RuntimeError('ranking incomplete candidate set')
+   results={'schema':'expanded_D2_ranking_selection_v1','selection_only':True,'winner_update':sorted(results,key=lambda r:(-r['performance']['mean'],r['candidate_update']))[0]['candidate_update'],'candidate_results':results}
+  else: results={'schema':'expanded_D2_stage_bundle_v1','stage':stage,'results':results}
++ sampler.check()
++ if reg.get('runtime',{}).get('backend')=='mps' and not driver_memory_status('mps')[2]: raise RuntimeError('MPS runtime not initialized before result publication')
++ sampler.stop()
+  exclusive_json(out,results)
+  return results
+ if __name__=='__main__':

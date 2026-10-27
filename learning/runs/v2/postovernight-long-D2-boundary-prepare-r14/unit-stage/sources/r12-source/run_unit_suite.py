@@ -1,0 +1,124 @@
+"""One fail-fast suite: unchanged 112 methods plus actual r12 scheduling tests.
+
+Four inherited static methods assert the *absence* of the now-authorized r12
+delta and hard-code protocol r8. Their exact assertions run against the exact
+r11-source snapshot with only three historical registration constants bound.
+All other inherited methods run against r12. test_r12 independently checks the
+entire r12 delta byte-for-byte, including every protected block and consumer.
+No implementation behavior or consumer is patched for the historical methods.
+"""
+from pathlib import Path
+from contextlib import ExitStack, contextmanager
+from unittest.mock import patch
+import json
+import os
+import sys
+import time
+import unittest
+import long_d2 as c
+import test_r12
+import test_r11
+import test_r10
+import test_r7
+import test_repairs
+import test_boundary
+
+H = Path(__file__).resolve().parent
+MODULES = (test_r12, test_r11, test_r10, test_r7, test_repairs, test_boundary)
+HISTORICAL_STATIC = {
+    'test_r11.R11.test_C01_exact_success_consumers_transport_inner_fixtures_and_old91',
+    'test_r11.R11.test_C02_protocol_only_candidate_paths_and_qualified_semantics',
+    'test_r10.R10.test_exact_r9_transport_success_consumers_protected_blocks',
+    'test_r7.R7.test_success_consumers_and_protected_failure_helpers_byte_equal',
+}
+
+
+def flatten(suite):
+    for item in suite:
+        if isinstance(item, unittest.TestSuite):
+            yield from flatten(item)
+        else:
+            yield item
+
+
+@contextmanager
+def source_binding(test):
+    with ExitStack() as stack:
+        if test.id() in HISTORICAL_STATIC:
+            module = sys.modules[test.__class__.__module__]
+            stack.enter_context(patch.object(module, 'H', H / 'r11-source'))
+            stack.enter_context(patch.object(c, 'PREPARE_REL',
+                'learning/runs/v2/postovernight-long-D2-boundary-prepare-r11'))
+            stack.enter_context(patch.object(c, 'PROTOCOL_REL',
+                'learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r8.json'))
+            stack.enter_context(patch.object(c, 'PROTOCOL_SHA256',
+                'fe11c08159bdb9ca1f03cb0fb96ffd133ad144d107b2a854d19fc49159aa2db2'))
+        yield
+
+
+class BoundSuite(unittest.TestSuite):
+    def run(self, result, debug=False):
+        for test in self:
+            if result.shouldStop:
+                break
+            with source_binding(test):
+                test(result)
+        return result
+
+
+class RecordedResult(unittest.TextTestResult):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.rows = []
+        self.started = None
+
+    def startTest(self, test):
+        self.started = time.perf_counter()
+        super().startTest(test)
+
+    def row(self, test, status, detail=None):
+        self.rows.append(dict(test=test.id(), status=status, detail=detail,
+            elapsed_seconds=time.perf_counter() - self.started,
+            source_binding='exact_r11_historical_static' if test.id() in HISTORICAL_STATIC else 'r12_candidate'))
+
+    def addSuccess(self, test):
+        self.row(test, 'passed')
+        super().addSuccess(test)
+
+    def addFailure(self, test, error):
+        self.row(test, 'failed', self._exc_info_to_string(error, test))
+        super().addFailure(test, error)
+
+    def addError(self, test, error):
+        self.row(test, 'error', self._exc_info_to_string(error, test))
+        super().addError(test, error)
+
+    def addSkip(self, test, reason):
+        self.row(test, 'skipped', reason)
+        super().addSkip(test, reason)
+
+
+def main():
+    tests = [test for module in MODULES for test in flatten(unittest.defaultTestLoader.loadTestsFromModule(module))]
+    planned = [test.id() for test in tests]
+    result = unittest.TextTestRunner(verbosity=2, failfast=True, resultclass=RecordedResult).run(BoundSuite(tests))
+    forbidden = [name for name in sys.modules if name.split('.')[0] in ('torch', 'numpy', 'dodge_rl')]
+    report = dict(tests_run=result.testsRun, failures=len(result.failures), errors=len(result.errors),
+        skipped=len(result.skipped), unexpected_successes=len(result.unexpectedSuccesses),
+        planned_tests=planned, per_test_results=result.rows,
+        failed_tests=[test.id() for test, _ in result.failures], error_tests=[test.id() for test, _ in result.errors],
+        unrun_tests=planned[result.testsRun:], successful=result.wasSuccessful() and not forbidden,
+        forbidden_imports=forbidden, existing_method_count=sum(not name.startswith('test_r12.') for name in planned),
+        new_method_count=sum(name.startswith('test_r12.') for name in planned),
+        historical_static_methods=sorted(HISTORICAL_STATIC),
+        historical_static_boundary='These four exact old assertions check the exact r11 source snapshot; r12 test_19/test_20 replace their candidate static coverage without normalizing protected bytes.',
+        modeled_signals=True, actual_OS_signals=False, actual_interval_operations=True,
+        actual_reader_thread=True, no_lifecycle_stress_startup_or_ML_campaign=True,
+        executable_observed=sys.executable, argv=sys.argv, validation_dir=os.environ['VALIDATION_DIR'])
+    with (Path(os.environ['VALIDATION_DIR']).parent / 'suite-result.json').open('x') as stream:
+        json.dump(report, stream, indent=2, sort_keys=True, allow_nan=False)
+        stream.write('\n')
+    raise SystemExit(0 if report['successful'] else 1)
+
+if __name__ == '__main__':
+    main()

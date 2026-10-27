@@ -1,0 +1,43 @@
+{
+  "schema": "expanded_runner_r2_frozen_source_review_v1",
+  "reviewer": "haiku-review-subagent",
+  "verdict": "blocked_no_launch_clearance",
+  "scope": "source-only read review; no execution, imports, native/MPS/checkpoint/game/training, leases, markers, or children",
+  "sources_sha256": {
+    "build_registration.py": "3133af2663c065687dd8f610245e889e492e3c1b140f8235bee9263e9297ee87",
+    "execute_once.py": "1426486b16928f4cb716b3a8891fbc77c79a24d7e2b12d12cf3fb24c7bea4bcc",
+    "test_runner.py": "36303687a39237c612855a23dd284a5d56455de46dd83721b60889d553349fdc",
+    "worker.py": "8af27fe3bf768cfff7716fe5b823ad1910d479f5d4810a73521f0e5099606e18",
+    "manifest.json": "58ddc93667fbfb25fa3b19ec3df62c7650f5b6ed72da4863f60b2f41bdd6e17b",
+    "README.md": "46ba255488677228c1a8ffb140dd12e1d62ba9fed7c4f5be66efdbd74a09fd69",
+    "evaluator_pinned_not_reviewed": "a3439c33152b082471cd9f9a36ef4bb03783b9544ae7c1e3fe1878e607b128aa"
+  },
+  "findings": [
+    {"id": "B1", "severity": "blocker", "file": "learning/runs/v2/expanded-eval-runner-prepare-luna-20261026-r2/build_registration.py", "lines": "69-70", "summary": "ranking/confirmation draft raises NameError: limits undefined in make_draft", "trigger": "make_draft(mode=ranking|confirmation) with valid receipt", "consequence": "no ranking/confirmation draft; benchmark-only tests miss it (test_runner.py:159-166)"},
+    {"id": "B2", "severity": "blocker", "file": "learning/runs/v2/expanded-eval-runner-prepare-luna-20261026-r2/worker.py", "lines": "196-197", "summary": "benchmark writes expanded_D2_stage_bundle_v1; builder and preflight require expanded_eval_dev64_benchmark_receipt_v1 with repeats/raw_frames/elapsed_seconds; no producer exists", "trigger": "real benchmark run then ranking/confirmation preflight", "consequence": "ranking/confirmation blocked after valid benchmark; only sha-pinned hand-written receipt possible; tests fabricate receipts (test_runner.py:43-72) and assert bundle (:81)", "readers": ["build_registration.py:21-37", "execute_once.py:79-104"]},
+    {"id": "B3", "severity": "blocker", "file": "learning/runs/v2/expanded-eval-runner-prepare-luna-20261026-r2/execute_once.py", "lines": "121-122,223,256", "summary": "lease guard reads active_long and active_inference; ledger keys are active_long_campaign and active_inference_diagnostic; active_long always None so check is vacuous", "also": ["worker.py:65-67", "test_runner.py:25,107 fixture invents same keys"], "trigger": "long training campaign active while evaluation runs", "consequence": "silent single-lease breach and resource contention"},
+    {"id": "B4", "severity": "blocker", "file": "learning/runs/v2/expanded-eval-runner-prepare-luna-20261026-r2/execute_once.py", "lines": "196-237", "summary": "SIGTERM/SIGHUP to supervisor bypasses except BaseException cleanup; child in own session (line 201) survives", "trigger": "session teardown or kill of launcher", "consequence": "unbounded worker RSS/MPS, no outer receipt, claimed marker blocks retry"},
+    {"id": "H1", "severity": "high", "file": "learning/runs/v2/expanded-eval-runner-prepare-luna-20261026-r2/test_runner.py", "lines": "15-17", "summary": "fixture disables VERIFY_FROZEN_RUNTIME and VERIFY_PROPOSAL_CANDIDATES (line 16) and rewrites native SHA, golden, CAP; production checks untested"},
+    {"id": "H2", "severity": "high", "file": "learning/runs/v2/expanded-eval-runner-prepare-luna-20261026-r2/execute_once.py", "lines": "36-42,240,232-236", "summary": "active_procs ps timeout 0.2 raises; line 240 outside try; cleanup in except may raise before receipt write", "trigger": "ps slow under load at stop or post-exit", "consequence": "no outer receipt; possibly unreaped child"},
+    {"id": "H3", "severity": "high", "file": "learning/runs/v2/expanded-eval-runner-prepare-luna-20261026-r2/worker.py", "lines": "56-79,157-163", "summary": "heartbeat refreshed only via check_guard; stale threshold 2.0 s; evaluator spans >2 s without guard get killed", "trigger": "checkpoint load or long native batch with no guard call", "consequence": "false heartbeat_invalid stop; needs evaluator guard cadence verified"},
+    {"id": "H4", "severity": "high", "file": "learning/runs/v2/expanded-eval-runner-prepare-luna-20261026-r2/worker.py", "lines": "88-97", "summary": "driver_memory fails open: returns 0 when torch not loaded (90) or MPS unavailable (93)", "trigger": "mps backend, torch loaded, mps not available", "consequence": "MPS cap silently passes"},
+    {"id": "M1", "severity": "medium", "file": "learning/runs/v2/expanded-eval-runner-prepare-luna-20261026-r2/execute_once.py", "lines": "120,223,253", "summary": "whole active_inference_diagnostic dict compared to expected_lease; live lease has mutable fields (cancel_requested, campaign_launch_authorized, harness_sha256)", "consequence": "false lease_invalid stops"},
+    {"id": "M2", "severity": "medium", "file": "learning/runs/v2/expanded-eval-runner-prepare-luna-20261026-r2/worker.py", "lines": "110-130,193-196", "summary": "winner by performance.mean with lower-update tie; proposal ranking_metric is mean_alive_frames_all_1024_including_caps; validate_selection does not recompute argmax or check cohort size"},
+    {"id": "M3", "severity": "medium", "file": "learning/runs/v2/expanded-eval-runner-prepare-luna-20261026-r2/worker.py", "lines": "123-130", "summary": "referenced ranking results not bound to registration SHA, run_id, evaluator SHA, or cohort SHA"},
+    {"id": "M4", "severity": "medium", "file": "learning/runs/v2/expanded-eval-runner-prepare-luna-20261026-r2/execute_once.py", "lines": "66-72,27-31,236", "summary": "outer receipt path not in output ownership checks; os.link FileExistsError masks original stop reason"},
+    {"id": "M5", "severity": "medium", "file": "learning/runs/v2/expanded-eval-runner-prepare-luna-20261026-r2/execute_once.py", "lines": "275-297", "summary": "stop detected after deadline+10 gives zero SIGTERM grace; SIGKILL immediately"},
+    {"id": "M6", "severity": "medium", "file": "learning/runs/v2/expanded-eval-runner-prepare-luna-20261026-r2/build_registration.py", "lines": "74-109", "summary": "validate_final does not check cohort manifest SHAs, candidate pins vs proposal, runtime vs training registration; preflight covers these"}
+  ],
+  "policy_clarification": {
+    "proposal_concurrency": "current_legacy_lease; serialized against training; concurrent launch needs separately reviewed registry successor; standalone serialized evaluation does not require it",
+    "recommended_runner_policy": "serialized single-lease: active_long_campaign None/False; active_inference_diagnostic == expected_lease exact identity; no other inference lease; drop or define active_inference; no concurrency relaxation in this runner"
+  },
+  "limits": [
+    "source-only; nothing executed; parent reproductions confirmed by reading only",
+    "evaluator source pinned, not reviewed here",
+    "one state file observed for ledger key names: user-best-checkpoint-policy-20261026-r1/state-after.json",
+    "read-only one-line json.load used for ledger/proposal lookups; no runner code run or imported",
+    "16-test result taken from README, not re-run",
+    "SIGKILL cannot be handled"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "candidate": "learning/runs/v2/postovernight-long-D2-prepare-r3/long_d2.py",
+  "finding": "worker_failure updates learner emergency deadline only after executor ACK; a notify_failure exception enters finally and permits checkpoint/index persistence before acknowledgment.",
+  "impact_limit": "No claim of outer accepted failure; this is worker persistence ordering and stale deadline, shown by stdlib source-extracted synthetic branch without ML.",
+  "observed_at_utc": "2026-10-24T18:44:20.828249+00:00",
+  "probe": "learning/runs/v2/postovernight-long-D2-r3-evidence-api-audit-r1/worker-missing-ACK-probe.json",
+  "probe_sha256": "0d8bd65f9a509800e11fc4c80643bce71c8c8187122c3057ae243531b3f1e4fa",
+  "required_resolution": "Gate every failure checkpoint/index write on explicit acknowledged first-failure/shared-deadline state; missing ACK must not start persistence. Add actual worker control-flow regression.",
+  "status": "confirmed_worker_control_flow_blocker;full_frozen_reviews_still_running"
+}

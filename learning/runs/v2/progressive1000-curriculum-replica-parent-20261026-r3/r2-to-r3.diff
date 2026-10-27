@@ -1,0 +1,78 @@
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-curriculum-design-revision-sol-20261026-r2/experiment.json
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-curriculum-replica-parent-20261026-r3/experiment.json
+@@ -66,7 +66,7 @@
+     "scope": "One stream per replica and stage-generation; starts ordinal a=0 at entry, advances once per newly constructed normal episode in stable (update,decision,slot) reset order. Initial construction uses ascending slots before update1. No assignment consumed for episodes already in flight at entry.",
+     "canonical_json": "UTF-8 bytes of json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=True,allow_nan=False), no newline; integer fields must be integers, never booleans/floats.",
+     "complete_seed_vector": ["constructor_init_seed","python_random_seed","numpy_global_seed","torch_cpu_global_seed","action_sampler_torch_mps_seed","env_master_seed"],
+-    "vector_hash": "Lowercase SHA256 hex of canonical_json({'study_id': parent_owned_string, 'replica': zero_based_integer_0_to_2, 'seeds': complete_six_field_vector}); this is the acceptedR5 canonical vector rule. Arm is excluded.",
++    "vector_hash": "Lowercase SHA256 hex of canonical_json({'study_id': parent_owned_string, 'replica': positive_integer_1_to_3, 'seeds': complete_six_field_vector}); this is the acceptedR5 canonical vector rule. Arm is excluded.",
+     "domain": "dodge.progressive1000.assignment.v2",
+     "block_and_position": "For assignment ordinal a, b=a//100 and p=a%100. Generation0 yields1000 for every assignment. For generation g>0, n=g earlier horizons, H=1000*(g+1).",
+     "quota_and_rotation": "Set q=30//n, r=30%n. Earlier horizon i (0-based, value1000*(i+1)) gets q plus1 iff i is among {(b*r+j)%n for j in0..r-1}. Empty remainder set when r=0. Thus each block has exactly70 current and30 earlier assignments, and extras rotate without a per-block restart.",
+@@ -103,7 +103,7 @@
+     "proposed_training_run_peak_rss_bytes": 6442450944,
+     "proposed_training_run_mps_allocation_bytes": 6442450944,
+     "memory_scope": "RSS and MPS are separate6GiB ceilings, not a combined budget; parent must bind exact measurement/enforcement and supervisor/child accounting.",
+-    "initial_execution_order": "Sequential: replica0 control, replica0 curriculum, replica1 control, replica1 curriculum, replica2 control, replica2 curriculum. Any concurrency needs an explicit reviewed resource plan.",
++    "initial_execution_order": "Sequential: replica1 control, replica1 curriculum, replica2 control, replica2 curriculum, replica3 control, replica3 curriculum. Any concurrency needs an explicit reviewed resource plan.",
+     "registration_required": "Calibrate and pin training/evaluation/aggregate wall, raw-frame, RSS, MPS, reset and cleanup ceilings; evaluation/baseline/checkpoint overhead and one-shot per-run launch/cleanup must be reviewed. No invented measured values or automatic cap increase.",
+     "separate_counters": ["learner_transitions","actual_epochs_and_adam_steps","raw_gameplay_frames_by_arm_generation_interval","resets","13_startup_frames_per_reset","initial_construction_frames_and_cost","discarded_work_frames_and_cost","evaluation_gameplay_startup_and_construction","wall_time_and_peak_rss_and_mps"],
+     "stop": "Resource/cleanup stop preserves partial receipts and marks affected run/pair and whole comparison incomplete. Never top up, retry, replace seeds/runs, select another endpoint, extend caps or hide unequal completed budgets. Stop campaign on failure pending parent reconciliation; no automatic continuation."
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-curriculum-design-revision-sol-20261026-r2/scheduler_reference.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-curriculum-replica-parent-20261026-r3/scheduler_reference.py
+@@ -23,8 +23,8 @@
+ def vector_hash(study_id, replica, seeds):
+     if not isinstance(study_id, str) or not study_id:
+         raise ValueError("study_id must be nonempty")
+-    if type(replica) is not int or not 0 <= replica < 3:
+-        raise ValueError("replica must be integer0..2")
++    if type(replica) is not int or not 1 <= replica <= 3:
++        raise ValueError("replica must be integer1..3")
+     if not isinstance(seeds, dict) or set(seeds) != set(SEED_BOUNDS):
+         raise ValueError("exactly six seed fields required")
+     for name, (low, high) in SEED_BOUNDS.items():
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-curriculum-design-revision-sol-20261026-r2/test_scheduler_reference.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-curriculum-replica-parent-20261026-r3/test_scheduler_reference.py
+@@ -14,7 +14,7 @@
+ SEEDS = dict(constructor_init_seed=1, python_random_seed=2, numpy_global_seed=3,
+              torch_cpu_global_seed=4, action_sampler_torch_mps_seed=5,
+              env_master_seed=6)
+-DIGEST = vector_hash("SYNTHETIC-NOT-RESERVED", 0, SEEDS)
++DIGEST = vector_hash("SYNTHETIC-NOT-RESERVED", 1, SEEDS)
+ 
+ 
+ def rows(flags, generation=0, horizon=None):
+@@ -35,21 +35,28 @@
+ 
+ class AssignmentTests(unittest.TestCase):
+     def test_canonical_r5_vector_encoding(self):
+-        payload = {"study_id": "SYNTHETIC-NOT-RESERVED", "replica": 0,
++        payload = {"study_id": "SYNTHETIC-NOT-RESERVED", "replica": 1,
+                    "seeds": SEEDS}
+         exact = json.dumps(payload, sort_keys=True, separators=(",", ":"),
+                            ensure_ascii=True, allow_nan=False).encode("utf-8")
+         self.assertEqual(DIGEST, hashlib.sha256(exact).hexdigest())
+-        self.assertNotEqual(DIGEST, vector_hash("SYNTHETIC-NOT-RESERVED", 1, SEEDS))
++        self.assertNotEqual(DIGEST, vector_hash("SYNTHETIC-NOT-RESERVED", 2, SEEDS))
+         self.assertEqual(canonical("\u00e9"), b'"\\u00e9"')
+ 
+     def test_invalid_vectors_rejected(self):
+         for change in ({"constructor_init_seed": 2**32},
+                        {"numpy_global_seed": -1}, {"env_master_seed": True}):
+             with self.subTest(change=change), self.assertRaises(ValueError):
+-                vector_hash("SYNTHETIC", 0, {**SEEDS, **change})
+-        with self.assertRaises(ValueError):
+-            vector_hash("SYNTHETIC", 0, {**SEEDS, "extra": 7})
++                vector_hash("SYNTHETIC", 1, {**SEEDS, **change})
++        with self.assertRaises(ValueError):
++            vector_hash("SYNTHETIC", 1, {**SEEDS, "extra": 7})
++
++    def test_replica_ids_match_accepted_transition_contract(self):
++        for replica in (1, 2, 3):
++            self.assertEqual(len(vector_hash("SYNTHETIC", replica, SEEDS)), 64)
++        for replica in (0, 4, -1, True, 1.0):
++            with self.subTest(replica=replica), self.assertRaises(ValueError):
++                vector_hash("SYNTHETIC", replica, SEEDS)
+ 
+     def test_all_stage_quotas_and_remainder_fairness(self):
+         self.assertEqual(assignment_block(DIGEST, 0, 5), (1000,) * 100)

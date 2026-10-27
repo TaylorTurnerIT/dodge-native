@@ -1,0 +1,388 @@
+Sat Oct 24 23:02:49 UTC 2026
+{
+  "argv": [
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+    "-B",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-guard-prepare-r1/unit_suite.py"
+  ],
+  "cwd": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-guard-prepare-r1",
+  "timeout_seconds": 120,
+  "start_monotonic": 502323.81107175,
+  "raw_exit": 0,
+  "elapsed_seconds": 2.4279972499934956
+}
+{
+  "ML_imports": false,
+  "errors": 0,
+  "failures": 0,
+  "methods_run": 87,
+  "sources": {
+    "freeze.py": "9fda184fef431699f03ca22abadc0adbbde8efd6f7aa1e7923895fa819e7748f",
+    "harden_timing.py": "c70b193a9635eeccd16fe1ff007cae3ca8c3fd98e86094d312ae6c3cf0f51e10",
+    "implement.py": "6454020888cd5a7a5db0e59f678139ed93e07608af756f7d3951ac83a966b420",
+    "latch_probe.py": "6e64fc082951a16c4f5e799fbd558788880d425b833c02d0d043ee7de9f66e93",
+    "legacy_controls.py": "47434223bd5f4da6f5ea1393126167be424ec6193ef6551a3955569142a046a5",
+    "lifecycle.py": "9be52fbf75b24fa0d8f7cee132f61cd747f8b20d04986f91344d302f979b30e1",
+    "long_d2.py": "2f4480096926de8b8237b43a36f8bb4e97053c5adf831cf96a564d04480ac19c",
+    "long_d2_executor.py": "236431d2986fdfc4a10ef336ef125eadecf9211c46054e7e683377fafbf27adb",
+    "processes.py": "4a80831dd6fbc4cf045b7ce5acd06b62d95088db6a19a307602c5709bf42cdef",
+    "refine.py": "36ca83b139faba3a8f2f2648ea6173a8771acabca236982727f6105de08ac850",
+    "repair_fixtures.py": "6a9d50deab0033b05fa5c2f6e7ee2515ec5558856638adfeaaabe5b479c8e4f8",
+    "repair_precedence.py": "96823a8b17deb19a64c05a84d09e5fa38b7866eb6c19f5f19e6edacfb41c3e48",
+    "run_checks.py": "20164e052790f0b7d33a5b70d3c0853a31fd8832d0fbe20cc0086f36cd4f06c7",
+    "run_focused_checks.py": "96a913d1f05f36196848d720fae2b6b62d1defb8e87eb44eaba3d41b14747679",
+    "synthetic.py": "46e9f3d0c267a4b2fbc458c6887985f81a96dcc098f2e23f21fa5af0470c9498",
+    "test_guard_repair.py": "8ec2dc6384497c00a9841ce38dcbbfa5fef452f54eceba6d9ff7ef633fb30a58",
+    "test_lifecycle.py": "e718d8bb58bf7be425a6c065769c7e11052c66ddfb3716a4f1ab53614b866a2b",
+    "test_worker_ack_contract.py": "d5ef62e17ca28fb0f5acea603c9932c0a166871a347690ef909a2a5145c0e996",
+    "unit_suite.py": "5f51efd46c0028e8f8ea3222d4dfbb311b8a2336e533263de3cae4836a5da882",
+    "validate.py": "adef6f66a273169a8a5ff2ba69e017e228b7342d1bc5833733c0502c0c113e0c"
+  },
+  "successful": true
+}
+test_scheduling_delay_and_lock_wait_are_distinct (test_guard_repair.TriggerTests.test_scheduling_delay_and_lock_wait_are_distinct) ... ok
+test_two_second_trigger_and_strict_completion (test_guard_repair.TriggerTests.test_two_second_trigger_and_strict_completion) ... ok
+
+----------------------------------------------------------------------
+Ran 87 tests in 2.343s
+
+OK
+{
+  "argv": [
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+    "-B",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-guard-prepare-r1/run_focused_checks.py",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-guard-prepare-r1/attempts/matrix-01-cases"
+  ],
+  "cwd": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-guard-prepare-r1",
+  "timeout_seconds": 420,
+  "start_monotonic": 502458.67687675,
+  "raw_exit": 0,
+  "elapsed_seconds": 197.25640366598964
+}
+"""ONE bounded stdlib contention stress; stop at first Guard failure, no retry.
+
+Executes the actual frozen worker verify closure and current full pins/capsule.
+Legacy identity bodies are AST-extracted unchanged except removal of build_identity's
+relative PPO import. Explicit static stand-ins replace cached architecture, PPO
+metadata/config validation, native-extension lookup, and ML/runtime metadata.
+No ML/native import, checkpoint decoding or execution is possible in this harness.
+A continuous arithmetic Python thread intentionally contends for the GIL. This
+is a strong synthetic scheduling scenario, not a measured ML workload replica.
+"""
+import ast,copy,hashlib,io,json,os,platform,sys,threading,time,types
+from pathlib import Path
+import long_d2 as c
+import lifecycle as life
+H=Path(__file__).resolve().parent;E=Path(os.environ['LONG_D2_TEST_EVIDENCE'])
+MAX_SECONDS=120
+
+def legacy_api(p,base,identity):
+    source=(c.ORIGINAL_ROOT/'python/dodge_rl/identity.py').read_text();tree=ast.parse(source)
+    keep={'require','canonical_bytes','identity_hash','file_hash','read_protocol','source_inventory','foundation_identity','build_identity','check_same_run','check_frozen'}
+    body=[]
+    for node in tree.body:
+        if isinstance(node,ast.FunctionDef) and node.name in keep:
+            node=copy.deepcopy(node)
+            if node.name=='build_identity':
+                node.body=[ast.Pass() if isinstance(x,ast.ImportFrom) else x for x in node.body]
+            body.append(node)
+    foundation=identity['base_registered_identity']['foundation'];runtime=identity['base_registered_identity']['runtime']
+    extension=types.SimpleNamespace(__file__=foundation['extension_path'])
+    class PPO:
+        def __init__(self,**kw):assert kw==base['ppo']
+        def description(self):return copy.deepcopy(identity['base_registered_identity']['ppo'])
+    def validate(config):assert config==base;return config
+    ns=dict(Path=Path,json=json,hashlib=hashlib,copy=copy,ROOT=c.ORIGINAL_ROOT,
+        PROTOCOL_PATH=Path('docs/v2-m3-run-protocol.json'),PROTOCOL_SHA256='9e0d82028011f83e0cf6ddaef5f5e118591158d8a557f6698c82c150d5a69bab',
+        GATE_SHA256='e091f8a2fad0a307d289a6d306112606b15df8f8aa0f3a75707ac7cfb2cee803',CONTRACT_SHA256='a1051d82527a9aec1f7967ff8ab217c30263240e032991aeff7b993fd975ba47',
+        FOUNDATION_PATH=Path('learning/runs/v2-orchestration/milestone2-acceptance-r2.json'),FOUNDATION_IDENTITY=Path('learning/runs/v2/milestone2-campaign-freeze-r4/frozen-identity.json'),
+        EXTENSION_SHA256=foundation['extension_sha256'],importlib=types.SimpleNamespace(import_module=lambda name:extension),PPOConfig=PPO,validate_config=validate,
+        _architecture_description=lambda:copy.deepcopy(identity['base_registered_identity']['architecture']),
+        sys=types.SimpleNamespace(version=runtime['python'],executable=runtime['interpreter']),
+        torch=types.SimpleNamespace(__version__=runtime['torch'],backends=types.SimpleNamespace(mps=types.SimpleNamespace(is_available=lambda:runtime['mps_available']))),
+        np=types.SimpleNamespace(__version__=runtime['numpy']),platform=types.SimpleNamespace(platform=lambda:runtime['platform'],machine=lambda:runtime['machine']))
+    module=ast.fix_missing_locations(ast.Module(body=body,type_ignores=[]));exec(compile(module,'stdlib_legacy_identity_bodies','exec'),ns)
+    (E/'legacy-executed.ast.txt').write_text(ast.dump(module,indent=2)+'\n')
+    c.save(E/'legacy-substitutions.json',dict(source_sha256=c.sha(c.ORIGINAL_ROOT/'python/dodge_rl/identity.py'),
+        bodies=sorted(keep),removed_import='build_identity relative .ppo only',standins=['cached architecture','PPO description','validate_config exact base equality','native extension lookup no import','fixed ML/runtime metadata'],
+        no_native_ML_import_or_execution=True,legacy_internal_hashes_not_counted_in_Guard_controller_sha_totals=True))
+    return types.SimpleNamespace(check_frozen=ns['check_frozen'])
+
+def main():
+    root=H/'capsule-final';p,config,base,identity,pins,lease=c.capsule_context(root)
+    modules={'dodge_rl.synthetic'+str(i):types.SimpleNamespace(__file__=path) for i,path in enumerate(identity['legacy_module_origins'])}
+    worker=next(n for n in ast.parse((H/'long_d2.py').read_text()).body if isinstance(n,ast.FunctionDef) and n.name=='worker')
+    node=copy.deepcopy(next(n for n in worker.body if isinstance(n,ast.FunctionDef) and n.name=='verify'))
+    ns=dict(vars(c));ns.update(ROOT=root,p=p,base=base,identity=identity,pins=pins,imported={'identity':legacy_api(p,base,identity)},
+        check_module_origins=lambda i,r:c.check_module_origins(i,r,modules))
+    module=ast.fix_missing_locations(ast.Module(body=[node],type_ignores=[]));exec(compile(module,'actual_frozen_worker_verify','exec'),ns)
+    (E/'worker-verify.ast.txt').write_text(ast.dump(module,indent=2)+'\n')
+    c.save(E/'stress-registration.json',dict(max_seconds=MAX_SECONDS,full_pin_count=len(pins),full_pin_bytes=sum(Path(k).stat().st_size for k in pins),
+        identity_sha256=c.sha(H/'long-identity.json'),capsule_manifest_sha256=c.sha(root/'capsule-manifest.json'),controller_sha256=c.sha(H/'long_d2.py'),
+        contention='one continuous Python arithmetic thread; default GIL switch interval unchanged',switch_interval_seconds=sys.getswitchinterval(),
+        origin_standins=len(modules),resource_probes='zero-valued stubs; real independent monitor/lease callback; no active campaign lease',
+        same_trigger2_limit5=True,one_attempt_only=True,ML_workload_equivalence_claimed=False))
+    stop=threading.Event();counter=[0]
+    def burn():
+        value=1
+        while not stop.is_set():
+            for _ in range(10000):value=(value*1664525+1013904223)&0xffffffff
+            counter[0]+=10000
+    # Full startup before contention, matching worker's pre-import Guard startup.
+    start=time.monotonic();g=c.Guard(start+MAX_SECONDS+5,lambda:None,ns['verify'],None,rss=lambda:0,peak=lambda:0)
+    cpu=None;first_failure=None;close_error=None
+    try:
+        g.start()
+        cpu=threading.Thread(target=burn,name='synthetic-Python-CPU',daemon=True);cpu.start()
+        deadline=start+MAX_SECONDS
+        while time.monotonic()<deadline:
+            if g.failure is not None:
+                first_failure=repr(g.failure);break
+            time.sleep(.01)
+    except BaseException as error:first_failure=repr(error)
+    finally:
+        stop.set()
+        if cpu is not None:cpu.join(.5)
+        g.event.set()
+        try:g.close()
+        except BaseException as error:close_error=repr(error)
+        # No retry, caps, trigger, pin-set or workload changes after a failure.
+        try:g.persist_timing(E/'verification-timing.jsonl',time.monotonic()+3)
+        except BaseException as error:close_error=close_error or repr(error)
+        c.save(E/'stress-result.json',dict(status='failed_blocker_requires_new_design' if first_failure or close_error else 'bounded_synthetic_pass',
+            first_failure=first_failure,close_error=close_error,elapsed_seconds=time.monotonic()-start,
+            guard_failure_at=g.failure_at,samples=len(g.timings),successful_samples=sum(r['status']=='passed' for r in g.timings),
+            background_samples=sum(r['background'] for r in g.timings),rows=g.timings,resource_receipt=g.receipt(),
+            maximum_duration_seconds=max((r.get('duration_seconds',0) for r in g.timings),default=0),
+            maximum_full_gap_seconds=max((r.get('full_gap_seconds',0) for r in g.timings),default=0),
+            CPU_iterations=counter[0],owned_threads_absent=all(t is None or not t.is_alive() for t in (cpu,g.thread,g.verify_thread)),
+            no_retry=True,ML_imports=any(n in ('torch','numpy','dodge_rl') for n in sys.modules),
+            limitations=['finite synthetic sample; no population/p99.9 guarantee','continuous Python CPU is not measured production ML load','static metadata/native lookup substitutes disclosed','Guard hash counts exclude unchanged legacy file_hash internal reads']))
+    if first_failure or close_error:raise SystemExit(1)
+
+if __name__=='__main__':main()
+"""Stdlib process lifetime ownership. No ML imports and no production restoration.
+
+Every timeout is an absolute deadline. The executor is the only group signal
+owner. Direct signals after the finite pending scan may remain unobserved; the
+parent must additionally observe executor raw exit and elapsed wall time.
+"""
+import array
+import json
+import math
+import os
+import signal
+import socket
+import stat
+import threading
+import time
+
+OWNED = {signal.SIGINT, signal.SIGTERM, signal.SIGALRM}
+ACTIVE = None
+CHANNEL = None
+POOL = None
+
+
+class Stop(RuntimeError):
+    def __init__(self, message, outcome='identity_or_lease_failure'):
+        self.outcome = outcome
+        super().__init__(message)
+
+
+def remaining(deadline, maximum=None):
+    value = deadline - time.monotonic()
+    if not math.isfinite(value) or value <= 0:
+        raise Stop('Absolute deadline expired', 'wall_guard')
+    return value if maximum is None else min(value, maximum)
+
+
+class FailurePool:
+    def __init__(self, t0, outer_seconds=7200, cleanup_seconds=10):
+        self.t0, self.cap = t0, t0 + outer_seconds + cleanup_seconds
+        self.allowance = cleanup_seconds
+        self.first = self.until = None
+        self.reason = None
+        self.lock = threading.RLock()
+
+    def fail(self, reason, at=None):
+        now = time.monotonic()
+        at = now if at is None else at
+        if type(at) not in (float, int) or not math.isfinite(at) or not self.t0 <= at <= now:
+            raise Stop('Invalid owned failure timestamp')
+        with self.lock:
+            self.first = min(now, at, self.first if self.first is not None else now)
+            candidate = min(self.first + self.allowance, self.cap)
+            self.until = min(candidate, self.until if self.until is not None else candidate)
+            self.reason = self.reason or str(reason)
+            return self.until
+
+    def deadline(self, normal):
+        return normal if self.until is None else self.until
+
+
+class ProcessLatch:
+    def __init__(self):
+        self.phase = 'NORMAL'
+        self.cancellation_requests = 0
+        self.requested_signal = None
+        self.alarm_seen = self.raised = False
+        self.first_at = None
+        self.installed = False
+        self.deadline = None
+
+    def install(self, deadline):
+        global ACTIVE
+        if self.installed or ACTIVE is not None or threading.current_thread() is not threading.main_thread():
+            raise Stop('One lifetime alarm owner required')
+        if signal.getitimer(signal.ITIMER_REAL)[0] != 0:
+            raise Stop('Existing process timer owner')
+        ACTIVE = self
+        self.installed, self.deadline = True, deadline
+        for number in OWNED:
+            signal.signal(number, self.handle)
+        delay = deadline - time.monotonic()
+        if delay <= 0 or not math.isfinite(delay):
+            self.alarm_seen = True
+            self.first_at = time.monotonic()
+            self.phase = 'FAILURE'
+            raise Stop('Expired before alarm installation', 'wall_guard')
+        signal.setitimer(signal.ITIMER_REAL, delay)  # Only nonzero arm.
+
+    def record(self, number):
+        self.first_at = self.first_at or time.monotonic()
+        if number == signal.SIGALRM:
+            self.alarm_seen = True
+        else:
+            self.cancellation_requests += 1
+            self.requested_signal = self.requested_signal or number
+
+    def handle(self, number, frame):
+        self.record(number)
+        if self.phase == 'NORMAL' and not self.raised:
+            self.raised = True
+            self.phase = 'FAILURE'
+            raise Stop('Lifetime wall alarm' if number == signal.SIGALRM else 'Cancellation latched',
+                       'wall_guard' if number == signal.SIGALRM else 'cancelled')
+
+    def __call__(self):
+        self.phase = 'DEFER' if self.phase != 'FAILURE' else 'FAILURE'
+
+    def check(self):
+        if self.cancellation_requests:
+            raise Stop('Cancellation latched', 'cancelled')
+        if self.alarm_seen or time.monotonic() >= self.deadline:
+            raise Stop('Lifetime wall deadline reached', 'wall_guard')
+
+    def pending_once(self):
+        pending = signal.sigpending() & OWNED
+        for number in sorted(pending):
+            signal.sigwait({number})
+            self.record(number)
+
+
+def start_thread(thread):
+    mask = signal.pthread_sigmask(signal.SIG_BLOCK, OWNED)
+    try:
+        thread.start()
+    finally:
+        signal.pthread_sigmask(signal.SIG_SETMASK, mask)
+
+
+def final_exit(code, latch, deadline, failed=lambda: False):
+    """Finite leaf. No caller finally, IO, unmask, restore or flush follows D."""
+    signal.pthread_sigmask(signal.SIG_BLOCK, OWNED)
+    signal.setitimer(signal.ITIMER_REAL, 0)
+    latch.pending_once()
+    bad = bool(latch.cancellation_requests or latch.alarm_seen or failed())
+    bad |= time.monotonic() >= deadline
+    os._exit(1 if bad else code)
+
+
+def pair():
+    return socket.socketpair(socket.AF_UNIX, socket.SOCK_DGRAM)
+
+
+class Channel:
+    def __init__(self, sock, t0=None):
+        if not stat.S_ISSOCK(os.fstat(sock.fileno()).st_mode):
+            raise Stop('Private inherited socket required')
+        if sock.family != socket.AF_UNIX or sock.type & socket.SOCK_DGRAM != socket.SOCK_DGRAM:
+            raise Stop('Private datagram endpoint required')
+        self.sock, self.t0 = sock, t0
+        self.lock = threading.RLock()
+        self.sent = self.received = 0
+
+    @classmethod
+    def inherited(cls, fd):
+        if fd is None or fd <= 2:
+            raise Stop('Missing private inherited FD')
+        return cls(socket.socket(fileno=fd))
+
+    def send(self, value, deadline, fd=None):
+        with self.lock:
+            self.sock.settimeout(remaining(deadline, .2))
+            self.sent += 1
+            packet = dict(schema='long_d2_owned_ipc_v1', sender=os.getpid(), seq=self.sent, **value)
+            raw = json.dumps(packet, sort_keys=True, allow_nan=False).encode()
+            if len(raw) > 60000:
+                raise Stop('Owned IPC packet too large')
+            ancillary = [] if fd is None else [(socket.SOL_SOCKET, socket.SCM_RIGHTS, array.array('i', [fd]))]
+            if self.sock.sendmsg([raw], ancillary) != len(raw):
+                raise Stop('Partial owned IPC write')
+            remaining(deadline)
+
+    def receive(self, deadline, sender=None):
+        self.sock.settimeout(remaining(deadline, .2))
+        raw, ancillary, flags, _ = self.sock.recvmsg(60001, socket.CMSG_SPACE(4))
+        remaining(deadline)
+        if not raw or len(raw) > 60000 or flags & (socket.MSG_TRUNC | socket.MSG_CTRUNC):
+            raise Stop('Truncated owned IPC packet')
+        def unique(items):
+            result = {}
+            for key, value in items:
+                if key in result:
+                    raise Stop('Duplicate owned IPC key')
+                result[key] = value
+            return result
+        value = json.loads(raw, object_pairs_hook=unique,
+                           parse_constant=lambda _: (_ for _ in ()).throw(Stop('Nonfinite owned IPC')))
+        if value.get('schema') != 'long_d2_owned_ipc_v1' or value.get('seq') != self.received + 1:
+            raise Stop('Owned IPC sequence/schema mismatch')
+        if sender is not None and value.get('sender') != sender:
+            raise Stop('Owned IPC sender mismatch')
+        self.received += 1
+        fds = array.array('i')
+        for level, kind, data in ancillary:
+            if level == socket.SOL_SOCKET and kind == socket.SCM_RIGHTS:
+                fds.frombytes(data[:len(data) - len(data) % fds.itemsize])
+        if len(fds) > 1:
+            for fd in fds:
+                os.close(fd)
+            raise Stop('Unexpected inherited endpoint inventory')
+        return value, list(fds)
+
+
+def notify_failure(error, at=None):
+    """ACK before failure persistence. Never creates a second cleanup pool."""
+    if POOL is None:
+        raise Stop('Failure without owned cleanup pool')
+    now = time.monotonic()
+    candidates = [now] if at is None else [now, at]
+    if ACTIVE is not None:
+        if ACTIVE.first_at is not None:candidates.append(ACTIVE.first_at)
+        if now >= ACTIVE.deadline:candidates.append(ACTIVE.deadline)
+    until = POOL.fail(error, min(candidates))
+    if ACTIVE is not None:
+        ACTIVE.phase = 'FAILURE'
+    if CHANNEL is not None:
+        CHANNEL.send(dict(kind='failure', first_monotonic_hex=POOL.first.hex(),
+                          t0_monotonic_hex=POOL.t0.hex(), reason=str(error)), until)
+        value, fds = CHANNEL.receive(until)
+        if fds or value.get('kind') != 'failure_ack' or value.get('t0_monotonic_hex') != POOL.t0.hex():
+            raise Stop('Missing owned failure acknowledgment')
+        first = float.fromhex(value['first_monotonic_hex'])
+        POOL.fail(error, first)
+        if value.get('cleanup_until_monotonic_hex') != POOL.until.hex():
+            raise Stop('Shared cleanup deadline differs')
+    return POOL.until

@@ -1,0 +1,150 @@
+{
+  "D1_competence_passed": true,
+  "D2_D3_qualified": false,
+  "caveats": [
+    "D1 evaluation cap is 2000 frames; 57 of 64 final episodes are censored. No uncapped survival or D2/D3 qualification follows.",
+    "Entry model, Adam and saved RNG tensors equal the accepted pilot checkpoint exactly; no gameplay or initializer replay was performed.",
+    "RSS and MPS driver peaks are separate sampled/cooperative measurements, not unsampled hard OS limits."
+  ],
+  "checkpoint_tensor_summary": [
+    {
+      "Adam_steps": [
+        2048.0
+      ],
+      "file": "checkpoint-000005-candidate.pt",
+      "phase_updates": 0,
+      "tag": "candidate",
+      "total_updates": 16
+    },
+    {
+      "Adam_steps": [
+        3072.0
+      ],
+      "file": "checkpoint-000006-periodic.pt",
+      "phase_updates": 8,
+      "tag": "periodic",
+      "total_updates": 24
+    },
+    {
+      "Adam_steps": [
+        4096.0
+      ],
+      "file": "checkpoint-000007-candidate.pt",
+      "phase_updates": 16,
+      "tag": "candidate",
+      "total_updates": 32
+    },
+    {
+      "Adam_steps": [
+        5120.0
+      ],
+      "file": "checkpoint-000008-periodic.pt",
+      "phase_updates": 24,
+      "tag": "periodic",
+      "total_updates": 40
+    },
+    {
+      "Adam_steps": [
+        6144.0
+      ],
+      "file": "checkpoint-000009-candidate.pt",
+      "phase_updates": 32,
+      "tag": "candidate",
+      "total_updates": 48
+    }
+  ],
+  "development_evaluations": [
+    {
+      "caps": 3,
+      "checkpoint": "checkpoint-000005-candidate.pt",
+      "checkpoint_sha256": "d3d32a1251387424ef95dd0fca4424b3f060763b661c091728f94b6593b7cb7b",
+      "deaths": 61,
+      "mean_alive_frames": 990.296875,
+      "mean_score": 3.921875,
+      "passed": false,
+      "phase_updates": 0
+    },
+    {
+      "caps": 20,
+      "checkpoint": "checkpoint-000007-candidate.pt",
+      "checkpoint_sha256": "5f3e76be9fbd5fb233c11626df4e809db99d679ff7d7d57f85dadf7981473ccb",
+      "deaths": 44,
+      "mean_alive_frames": 1347.421875,
+      "mean_score": 7.90625,
+      "passed": false,
+      "phase_updates": 16
+    },
+    {
+      "caps": 57,
+      "checkpoint": "checkpoint-000009-candidate.pt",
+      "checkpoint_sha256": "ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f",
+      "deaths": 7,
+      "mean_alive_frames": 1917.53125,
+      "mean_score": 12.109375,
+      "passed": true,
+      "phase_updates": 32
+    }
+  ],
+  "elapsed_seconds": 0.1405569160124287,
+  "findings": [],
+  "finished_at_utc": "2026-10-24T11:59:32.890288+00:00",
+  "parent_checkpoint": "learning/runs/v2/milestone3-D1-curriculum-r1/checkpoint-000009-candidate.pt",
+  "parent_checkpoint_sha256": "ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f",
+  "parent_terminal_receipt": {
+    "checkpoint_sha256": "ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f",
+    "config_sha256": "624c491ce59881e232ff25750a5a13e312b08bfdea39cc4c86bd17149a19f789",
+    "evaluation_sha256": "17b253b9d32e70b875bca8b496348e313568a82b3e8f431fa4a905bf720ccad7",
+    "identity_sha256": "7df70937ae7ced6f993277dae2d02f22c6ffee4a0ddfa0fcb26ef8388e6f1e63",
+    "phase": "D1",
+    "run_id": "v2-m3-D1-20261024-r1",
+    "run_result_sha256": "3475d2b86c935e219c4729a13f448330b2bb2c395617ed07381cb79c00a7aa18",
+    "supervisor_exit_code": 0
+  },
+  "resource_maxima": {
+    "supervisor-resources.jsonl": {
+      "maximum_mps_driver_bytes": 0,
+      "maximum_rss_bytes": 227917824,
+      "maximum_self_peak_rss_bytes": 227917824,
+      "maximum_worker_rss_bytes": 950599680,
+      "samples": 2025
+    },
+    "worker-resources.jsonl": {
+      "maximum_mps_driver_bytes": 2451243008,
+      "maximum_rss_bytes": 950599680,
+      "maximum_self_peak_rss_bytes": 950599680,
+      "maximum_worker_rss_bytes": 0,
+      "samples": 1092
+    }
+  },
+  "scope": "retained_receipts_raw_rows_CPU_checkpoint_deserialization_and_read_only_terminal_validator;no_model_execution_update_gameplay_or_tests",
+  "started_at_utc": "2026-10-24T11:59:32.749616+00:00",
+  "status": "passed",
+  "verified": {
+    "abandoned_parent_episodes_logged": 64,
+    "all_inspected_inputs_unchanged": 239,
+    "command_invocations": 1,
+    "completed_training_episodes": 982,
+    "current_source_pins": 75,
+    "entry_model_Adam_RNG_equal_parent": true,
+    "execution_artifacts": 135,
+    "inherited_Adam_steps": 2048,
+    "inherited_updates": 16,
+    "maximum_reward_error": 0.0,
+    "new_Adam_steps": 4096,
+    "new_updates": 32,
+    "no_owned_processes": [
+      20117,
+      20119,
+      20125
+    ],
+    "postflight_checks": 66,
+    "runner_artifacts": 23,
+    "source_phase_wall_seconds": 554.3451906670234,
+    "supervisor_exit_code": 0,
+    "terminal_validator": "passed",
+    "total_Adam_steps": 6144,
+    "total_updates": 48,
+    "training_seed_starts_and_resets_checked": 1046,
+    "worker_exit_code": 0
+  }
+}

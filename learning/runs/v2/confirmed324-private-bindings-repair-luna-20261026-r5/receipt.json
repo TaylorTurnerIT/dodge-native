@@ -1,0 +1,77 @@
+{
+  "schema": "confirmed324_private_bindings_repair_v1",
+  "status": "CPU_controls_pass_independent_review_pending",
+  "source_parent": "confirmed324-transition-parent-repair-20261026-r3",
+  "review_blocker": "Pinned require code could inherit caller-supplied globals and builtins; callbacks could resolve checkpoint functions through mutable caller namespace.",
+  "repair": [
+    "Compile authenticated pinned definitions only; instantiate require and four checkpoint helpers with types.FunctionType and fresh private globals.",
+    "Private globals contain authenticated driver modules and real builtins including canonical ValueError.",
+    "Restore and capture closures call private pinned functions; caller namespace mutation after binding cannot substitute them.",
+    "Retain code/source validation of loaded function inputs and runner worker compatibility checks."
+  ],
+  "negative_controls": [
+    "Exact pinned require code with malicious __builtins__.ValueError=RuntimeError still yields canonical ValueError on interrupted state.",
+    "Caller substitutions of require and all four checkpoint functions after build do not alter private callbacks.",
+    "Interrupted/incomplete parent state rejects before model, optimizer, torch, or RNG activity."
+  ],
+  "source_pins": {
+    "checkpoints.py": "807141943a742c6e9fdd34274c191b3c318134cc7fb0c1c6256874cadee1cbc3",
+    "identity.py": "50775b2e7c30e53757dd3134d11613f716733cee8e6a96cc18b62e8ff2a4a053",
+    "runner.py": "108ba55ad78aa26166acb14f67cc6466da6293ccee3d272e1fe6e775ebf2ac60"
+  },
+  "validation": {
+    "command": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python -B -m unittest -v test_transition test_regressions",
+    "working_directory": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-private-bindings-repair-luna-20261026-r5",
+    "interpreter": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+    "python": "3.12.15",
+    "exit_code": 0,
+    "tests_passed": 24,
+    "log": "tests.log",
+    "log_sha256": "6a154c355b5c77039c2a14b6a634a643895c139a7f16bd33b69df2edab15e668",
+    "bytecode_mode": "-B",
+    "own_output_pycache_or_pyc": false,
+    "runtime": "Project Python venv; CPU toy Torch/NumPy; selected pinned AST definitions compiled only."
+  },
+  "preserved_parent_evidence": {
+    "accepted_fingerprints": "accepted324",
+    "cumulative_updates": 372,
+    "saved_learning_rate": "3e-5",
+    "controllers": "373..432",
+    "real_rng_reference": "pending_notrun",
+    "constructor_and_environment_application": "deferred"
+  },
+  "limits": [
+    "No MPS/game/environment imports, production checkpoint deserialization, real RNG reads, training, evaluation, probe, launch, or parent acceptance.",
+    "sys.modules provenance for copy/random/numpy/torch remains a driver-owned boundary; this is not an adversarial Python sandbox.",
+    "No readiness, qualification, or launch claim; independent review and parent-owned gates remain pending."
+  ],
+  "source_and_test_sha256": {
+    "attempt_claim.py": "bf993c076c6c3270a3efb89f42d3ca86a070a044da286b42b4803790c3759206",
+    "driver_binding.py": "aba05ce927a32fd01c07256d9d798a82bf4a9ff74e4dd0eacbf7de337e055abd",
+    "fingerprints.py": "6ef9cf3f08fe800f54230801a921a2f5c82e47e5013ef3087ead6499d2533d61",
+    "rng_reference.py": "9abfb7f892fc3a0b62d665a390effcfd7cbf4161ccf1ade3a9240d9392172917",
+    "test_regressions.py": "8192ed51918f8c42c245bbc7913fbe7601e8e4af2eb3860d6bf5e49ca77c761a",
+    "test_transition.py": "dee7ac8916df53f4ca06e6050705890d63eda00a5606b444cf27b9439f0d8b7b",
+    "transition.py": "bda044d213db3424a3b578c7c63cb30d942e9c8e5527c1e854abe03abcf83e03",
+    "README.md": "c68a366683202abfd2acff8648382f078423794d60bfc81fc22d0d0aba1c8d58",
+    "source-hashes.json": "af2d9cff332564eb106fd542ea039840f024c98b905a48e6c2203e2df4df5fde",
+    "tests.log": "6a154c355b5c77039c2a14b6a634a643895c139a7f16bd33b69df2edab15e668"
+  },
+  "diff_from_r4": {
+    "files": [
+      "driver_binding.py",
+      "test_regressions.py",
+      "receipt.json",
+      "tests.log"
+    ],
+    "unchanged": [
+      "attempt_claim.py",
+      "fingerprints.py",
+      "rng_reference.py",
+      "README.md",
+      "source-hashes.json",
+      "test_transition.py",
+      "transition.py"
+    ]
+  }
+}

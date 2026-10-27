@@ -1,0 +1,486 @@
+@contextmanager
+def cancellation_signals():
+    require(life.ACTIVE is not None, 'Subprocess lifetime latch required')
+    yield life.ACTIVE  # Borrow only. Never restore handlers, masks or timer.
+
+
+@contextmanager
+def absolute_alarm(deadline):
+    require(life.ACTIVE is not None and deadline <= life.ACTIVE.deadline,
+            'Nested/new timer ownership forbidden')
+    life.ACTIVE.check()
+    yield
+    life.ACTIVE.check()
+
+
+class Guard:
+    """Independent resource/lease and full-byte monitors, with latched failures.
+
+    Full verification never holds the resource lock. Slow byte IO therefore
+    cannot suppress <=0.5s observations. Full checks retain the <=5s bound,
+    including verification duration. Supervisor observations use memory only;
+    its one disk snapshot is closed before any artifact hashing starts.
+    """
+    def __init__(self, deadline, lease_check, verify, stream, *, clock=time.monotonic,
+                 rss=lambda: sampled_rss(os.getpid()), peak=self_peak, mps=lambda: 0):
+        self.deadline, self.lease_check, self.verify, self.stream = deadline, lease_check, verify, stream
+        self.clock, self.rss, self.peak, self.mps = clock, rss, peak, mps
+        self.timings = []
+        self.active_timing = None
+        self.failure = None
+        self.failure_at = None
+        self.maximum_rss = self.maximum_peak = self.maximum_mps = 0
+        self.last_sample = self.last_full = None
+        self.maximum_sample_gap = self.maximum_full_gap = 0.0
+        self.lock = threading.RLock()
+        self.verify_lock = threading.RLock()
+        self.event = threading.Event()
+        self.thread = self.verify_thread = None
+
+    def check(self, force=False):
+        if self.failure is not None:
+            raise self.failure
+        require(self.clock() < self.deadline, 'Absolute wall guard reached', 'wall_guard')
+        if force:
+            self.sample(force=True)
+
+    def full_check(self, force=False):
+        trigger = self.clock()
+        with self.verify_lock:
+            self.check()
+            at = self.clock()
+            if not force and self.last_full is not None and at - self.last_full < 2:
+                return
+            previous = self.last_full
+            due = trigger if previous is None or force else previous + 2
+            row = dict(schema='long_d2_verification_timing_v1', sequence=len(self.timings),
+                       trigger_monotonic=trigger, start_monotonic=at, end_monotonic=None,
+                       forced=bool(force), thread=threading.current_thread().name,
+                       background=threading.current_thread() is self.verify_thread,
+                       previous_successful_start_monotonic=previous,
+                       trigger_delay_seconds=max(0.0, trigger-due),
+                       verify_lock_wait_seconds=at-trigger, components={}, files=0, bytes=0,
+                       status='interrupted',
+                       hash_count_scope='completed controller sha calls; legacy internal file_hash excluded')
+            require(len(self.timings) < 50000, 'Verification telemetry capacity exceeded')
+            self.timings.append(row)
+            self.active_timing = row
+            cpu = time.thread_time()
+            VERIFY_LOCAL.stats = row
+            try:
+                gap = 0 if previous is None else at - previous
+                require(gap <= 5, 'Full input verification gap exceeded 5s')
+                self.verify()
+                end = self.clock()
+                # Use consecutive verification starts and include this check's IO.
+                # This conservatively bounds every pinned byte's revisit interval.
+                gap = max(gap, end-at if previous is None else end-previous)
+                self.maximum_full_gap = max(self.maximum_full_gap, gap)
+                require(gap <= 5, 'Full input verification gap exceeded 5s')
+                self.last_full = at
+                self.check()
+                row['status'] = 'passed'
+            except BaseException as error:
+                row.update(status='failed', error=repr(error))
+                raise
+            finally:
+                end = self.clock()
+                row.update(end_monotonic=end, duration_seconds=end-at,
+                           thread_cpu_seconds=time.thread_time()-cpu,
+                           full_gap_seconds=end-at if previous is None else end-previous)
+                VERIFY_LOCAL.stats = None
+                self.active_timing = None
+
+    def persist_timing(self, path, deadline, permission=lambda: None):
+        """Main-thread IO only, after owned verifier teardown. No telemetry thread.
+
+        Rows stay in bounded memory during verification; IO never takes either
+        resource lock or runs on the independent resource monitor. A killed
+        process can lose unflushed rows; partial/failure receipts retain what is
+        safely available. The process lifetime deadline still owns every write.
+        """
+        require(all(t is None or not t.is_alive() for t in (self.thread,self.verify_thread)),
+                'Timing persistence requires owned Guard thread absence')
+        permission(); life.remaining(deadline)
+        path = Path(path)
+        path.parent.mkdir(parents=False, exist_ok=True)
+        permission(); life.remaining(deadline)
+        with path.open('x') as stream:
+            for row in self.timings:
+                permission(); life.remaining(deadline)
+                emit(stream, row)
+                life.remaining(deadline); permission()
+        life.remaining(deadline); permission()
+        manifest = dict(schema='long_d2_verification_output_v1', path=str(path),
+                        sha256=sha(path), rows=len(self.timings), owned_threads_absent=True,
+                        complete=all(r.get('end_monotonic') is not None for r in self.timings))
+        permission(); life.remaining(deadline)
+        save(path.with_suffix('.manifest.json'), manifest)
+        life.remaining(deadline); permission()
+        return manifest
+
+    def sample(self, force=False, *, full=True):
+        with self.lock:
+            self.check()
+            at = self.clock()
+            self.lease_check()
+            gap = 0 if self.last_sample is None else at - self.last_sample
+            self.maximum_sample_gap = max(self.maximum_sample_gap, gap)
+            require(gap <= 0.5, 'Resource/lease sampling gap exceeded 0.5s', 'resource_stop')
+            rss, peak, mps = self.rss(), self.peak(), self.mps()
+            require(all(type(x) is int and x >= 0 for x in (rss,peak,mps)), 'Invalid resource probe', 'resource_stop')
+            self.maximum_rss = max(self.maximum_rss, rss)
+            self.maximum_peak = max(self.maximum_peak, peak)
+            self.maximum_mps = max(self.maximum_mps, mps)
+            self.last_sample = at
+            if self.stream is not None:
+                emit(self.stream, dict(monotonic=at, rss_bytes=rss, self_peak_rss_bytes=peak,
+                                       mps_driver_bytes=mps, sample_gap_seconds=gap, pid=os.getpid()))
+            require(max(rss,peak) <= LIMIT and mps <= LIMIT, 'RSS or MPS resource limit exceeded', 'resource_stop')
+            require(self.clock()-at <= 0.5, 'Resource probe exceeded 0.5s', 'resource_stop')
+        if full:
+            self.full_check(force)
+        self.check()
+
+    def start(self):
+        # Start resource sampling before full hashes; byte IO never blocks it.
+        self.sample(full=False)
+        def monitor():
+            while not self.event.wait(0.05):
+                try:
+                    if self.clock() - self.last_sample >= 0.15:
+                        self.sample(full=False)
+                    if self.last_full is not None:
+                        require(self.clock()-self.last_full <= 5, 'Full input verification gap exceeded 5s')
+                except BaseException as error:
+                    self.failure_at = self.failure_at or self.clock()
+                    self.failure = self.failure or (error if isinstance(error, Stop) else Stop(repr(error)))
+                    return
+        self.thread = threading.Thread(target=monitor, daemon=True, name='long-D2-guard')
+        life.start_thread(self.thread)
+        self.full_check(force=True)
+        def verify_monitor():
+            while not self.event.wait(0.05):
+                try:
+                    self.full_check()
+                except BaseException as error:
+                    self.failure_at = self.failure_at or self.clock()
+                    self.failure = self.failure or (error if isinstance(error, Stop) else Stop(repr(error)))
+                    return
+        self.verify_thread = threading.Thread(target=verify_monitor, daemon=True, name='long-D2-inputs')
+        life.start_thread(self.verify_thread)
+
+    def close(self):
+        self.event.set()
+        for thread in (self.verify_thread, self.thread):
+            if thread is not None:
+                thread.join(timeout=life.remaining(life.POOL.deadline(self.deadline) if life.POOL else self.deadline, 0.5))
+                require(not thread.is_alive(), 'Guard sampler did not stop')
+        self.check()
+
+    def receipt(self):
+        return dict(maximum_rss_bytes=self.maximum_rss, maximum_self_peak_rss_bytes=self.maximum_peak,
+                    maximum_mps_driver_bytes=self.maximum_mps,
+                    maximum_sample_gap_seconds=self.maximum_sample_gap,
+                    maximum_full_input_gap_seconds=self.maximum_full_gap,
+                    last_sample_monotonic=self.last_sample, last_full_verification_monotonic=self.last_full,
+                    latched_failure=None if self.failure is None else repr(self.failure),
+                    verification_pass_count=len(self.timings),
+                    interrupted_verification=self.active_timing)
+
+
+
+
+def counter_report(counters, inherited, progress):
+    partial = progress.get('optimizer_steps',0) if progress.get('in_update',False) else 0
+    return dict(cumulative=copy.deepcopy(counters), inherited=copy.deepcopy(inherited),
+                phase={k:counters[k]-inherited[k] for k in
+                       ('updates','optimizer_steps','environment_decisions','raw_frames')},
+                phase_updates=counters['phase_updates'], partial_optimizer_steps=partial,
+                actual_optimizer_steps_including_partial=counters['optimizer_steps']+partial)
+
+
+
+def primary_error(error, guard):
+    # A monitor failure can precede delivery to the main thread. Preserve it
+    # only when it predates the first recorded signal; user cancellation first
+    # remains cancellation. This is ordering evidence, not inferred user intent.
+    first_signal = None if life.ACTIVE is None else life.ACTIVE.first_at
+    if (guard is not None and guard.failure is not None and guard.failure_at is not None
+            and (first_signal is None or guard.failure_at <= first_signal)):
+        return guard.failure
+    return error
+
+
+def record_primary_failure(result, error):
+    """First failure owns outcome/error. Later cleanup signals are evidence only."""
+    if 'primary_failure' not in result:
+        primary = dict(outcome=failure_outcome(error), error=repr(error))
+        result.update(outcome_fields(primary['outcome']), error=primary['error'], primary_failure=primary)
+    else:
+        result.setdefault('secondary_failures', []).append(
+            dict(outcome=failure_outcome(error), error=repr(error)))
+
+
+def worker_failure(error, args, guard, learner, result, permission):
+    """Memory-first failure latch; a failed ACK permanently forbids new writes."""
+    record_primary_failure(result, primary_error(error, guard))
+    permission['failed'] = True
+    permission['acknowledged_until'] = None
+    now = time.monotonic()
+    candidates = [now]
+    if guard is not None and guard.failure_at is not None:
+        candidates.append(guard.failure_at)
+    if life.ACTIVE is not None:
+        if life.ACTIVE.first_at is not None:
+            candidates.append(life.ACTIVE.first_at)
+        if now >= life.ACTIVE.deadline:
+            candidates.append(life.ACTIVE.deadline)
+        life.ACTIVE.phase = 'FAILURE'
+    local_until = life.POOL.fail(error, min(candidates))
+    if learner is not None:
+        learner.api.absolute_deadline = local_until
+    if permission.get('ack_failed'):
+        return False  # No recursive ACK retry or new cleanup allowance.
+    try:
+        require(life.CHANNEL is not None, 'Worker failure requires executor ACK')
+        deadline = life.notify_failure(error, life.POOL.first)
+        require(type(deadline) in (float, int) and math.isfinite(deadline)
+                and deadline == life.POOL.until and deadline <= local_until,
+                'Worker failure ACK deadline differs')
+        life.remaining(deadline)
+        if learner is not None:
+            learner.api.absolute_deadline = deadline
+        permission['acknowledged_until'] = deadline
+        return True
+    except BaseException as ack_error:
+        permission['ack_failed'] = True
+        if learner is not None:
+            learner.api.absolute_deadline = life.POOL.until
+        result['failure_ack_unavailable'] = repr(ack_error)
+        return False
+
+
+def worker_write_permission(args, result, permission, learner=None):
+    """Check immediately before AND after each checkpoint/index/result write."""
+    if result_code(result) == 1 or permission['failed']:
+        require(permission['failed'] and not permission.get('ack_failed')
+                and permission['acknowledged_until'] is not None
+                and permission['acknowledged_until'] == life.POOL.until,
+                'Unacknowledged failed-worker persistence forbidden')
+        deadline = permission['acknowledged_until']
+        if learner is not None:
+            learner.api.absolute_deadline = deadline
+    else:
+        require(life.POOL.until is None, 'Failure cannot persist complete worker state')
+        deadline = args.started + WORKER_SECONDS
+    life.remaining(deadline)
+    return deadline
+
+
+def worker(args, context):
+    from types import SimpleNamespace
+    p,config,base,identity,pins,lease=context
+    result=outcome_fields('identity_or_lease_failure')
+    guard=learner=None
+    permission=dict(failed=False, acknowledged_until=None, ack_failed=False)
+    streams=ExitStack()
+    imported={}
+    def lease_check():
+        require(os.getppid()==args.supervisor_pid,'Supervisor disappeared')
+        assert_lease(args.state_path,lease)
+    def verify():
+        with verification_component('full_pins'):
+            verify_files(pins)
+        with verification_component('capsule_walks'):
+            assert_readonly_capsule(ROOT,read_json(ROOT/'capsule-manifest.json'))
+        with verification_component('legacy_frozen_rebuild'):
+            if imported:
+                imported['identity'].check_frozen(ORIGINAL_ROOT/p['base_identity_path'],
+                     p['base_identity_sha256'],base,ORIGINAL_ROOT)
+        with verification_component('origins'):
+            if imported:
+                check_module_origins(identity,ROOT)
+    with cancellation_signals() as cancel:
+        try:
+            resources=streams.enter_context((args.output/'worker-resources.jsonl').open('x'))
+            guard=Guard(args.started+WORKER_SECONDS,lease_check,verify,resources)
+            guard.start()
+            # No project import is permitted before worker ownership, capsule,
+            # authority and input checks. Preserve original extension origin.
+            require(not any(n=='dodge_rl' or n.startswith('dodge_rl.') for n in sys.modules),
+                    'Project package imported before explicit original-root policy')
+            sys.path.insert(0,str(ORIGINAL_ROOT/'python'))
+            import torch
+            import numpy as np
+            import dodge_rl
+            from dodge_rl import checkpoints as ckpt, identity as old_identity, dev_eval
+            from dodge_rl.models.teacher import OmniscientEntityTeacher
+            from dodge_rl.ppo import PPOConfig, collect_rollout, ppo_update
+            from dodge_rl.train_teacher import (seed_initialization, make_optimizer, TrainingEnvLog,
+                                                require_raw_diagnostics)
+            imported.update(identity=old_identity)
+            require(not os.environ.get('PYTORCH_ENABLE_MPS_FALLBACK'),'MPS fallback forbidden')
+            require(torch.backends.mps.is_available(),'MPS is unavailable')
+            torch.set_num_threads(4)
+            require(torch.get_num_threads()==4,'Torch thread count differs')
+            guard.mps=lambda:int(torch.mps.driver_allocated_memory())
+            guard.check(force=True)
+            historical=old_identity.check_frozen(ORIGINAL_ROOT/p['base_identity_path'],
+                                      p['base_identity_sha256'],base,ORIGINAL_ROOT)
+            require(historical==p['base_identity'],'Historical D2 identity differs')
+            # Genuine unchanged historical terminal and transition validators.
+            # They authorize neither the long seed nor 7200 seconds.
+            ckpt.validate_terminal_receipt((ORIGINAL_ROOT/p['parent_checkpoint']).parent,p['parent_terminal_receipt'])
+            parent,certificate=ckpt.validate_transition(ORIGINAL_ROOT/p['parent_checkpoint'],historical,
+                                                       terminal_anchor=p['parent_terminal_receipt'])
+            require(parent['identity']['config']['phase']=='D1' and parent['tag']=='candidate',
+                    'Only exact successful D1 candidate can initialize this run')
+            require(parent['counters']==PARENT_COUNTERS,'Parent counters differ')
+            origins=check_module_origins(identity,ROOT)
+            save(args.output/'actual-import-origins.json',origins)
+            api=SimpleNamespace(torch=torch,ckpt=ckpt,teacher=OmniscientEntityTeacher,
+                seed_initialization=seed_initialization,make_optimizer=make_optimizer,
+                PPOConfig=PPOConfig,TrainingEnvLog=TrainingEnvLog,env_factory=dodge_rl.VecDodgeEnv,
+                base=base,training_env_config=old_identity.training_env_config,
+                verify_training_env=old_identity.verify_training_env,collect_rollout=collect_rollout,
+                ppo_update=ppo_update,require_raw_diagnostics=require_raw_diagnostics,
+                evaluate=dev_eval.evaluate,validate_summary=dev_eval.validate_summary,
+                progress_passed=dev_eval.progress_passed,absolute_deadline=args.started+WORKER_SECONDS)
+            save(args.output/'long-config.json',config)
+            save(args.output/'long-identity.json',identity)
+            learner=Learner(api,config,identity,parent,guard,args.output,p)
+            learner.initialize()
+            schedule=streams.enter_context((args.output/'schedule.jsonl').open('x'))
+            result=run_schedule(learner,guard,schedule)
+            guard.check(force=True)
+        except BaseException as error:
+            worker_failure(error, args, guard, learner, result, permission)
+            result['traceback'] = traceback.format_exc()
+        finally:
+            cancel()  # Every later signal is still latched.
+            if learner is not None and learner.model is not None and result_code(result)==1:
+                try:
+                    tag=('interrupted_mid_update' if learner.progress.get('in_update',False)
+                         else 'timeout' if result['outcome']=='wall_guard' else 'failure')
+                    worker_write_permission(args,result,permission,learner)
+                    result['failure_checkpoint']=learner.checkpoint(tag,emergency=True)
+                    worker_write_permission(args,result,permission,learner)
+                except BaseException as error:
+                    result['failure_checkpoint_unavailable']=repr(error)
+            try:
+                if learner is not None:
+                    learner.close()
+                    result['counters']=learner.report()
+                if guard is not None:
+                    guard.close()
+                if result_code(result) != 1:
+                    verify()
+                require(time.monotonic()<life.POOL.deadline(args.started+WORKER_SECONDS),'Worker finalization crossed absolute deadline','wall_guard')
+            except BaseException as error:
+                worker_failure(error, args, guard, learner, result, permission)
+                result['final_verification_error'] = repr(error)
+            try:
+                streams.close()
+            except BaseException as error:
+                worker_failure(error, args, guard, learner, result, permission)
+                result['stream_close_error'] = repr(error)
+            if guard:
+                result['worker_resources']=guard.receipt()
+    if cancel.cancellation_requests:
+        worker_failure(Stop('Cancellation latched','cancelled'),args,guard,learner,result,permission)
+        result.update(cancellation_requests=cancel.cancellation_requests,
+                      cancellation_signal=signal.Signals(cancel.requested_signal).name,
+                      cancellation_secondary=result['outcome'] != 'cancelled')
+    result.update(run_id=p['run_id'],protocol_sha256=PROTOCOL_SHA256,
+                  config_document_sha256=CONFIG_SHA256,identity_document_sha256=lease['identity_sha256'],
+                  checkpoint_identity_semantic_sha256=semantic_hash(identity),
+                  actual_import_origins=(check_module_origins(identity,ROOT) if result_code(result)!=1 else {}),
+                  inherited_consumed_wall_scope='D1 historical context only; long budget uses supervisor T0',
+                  worker_wall_seconds_lower_bound=time.monotonic()-args.started,
+                  worker_result_write_and_process_exit_not_timed=True)
+    if time.monotonic()>=life.POOL.deadline(args.started+WORKER_SECONDS):
+        record_primary_failure(result, Stop('Worker deadline expired','wall_guard'))
+        result['deadline_expired'] = True
+    if result_code(result)==1 and not permission['failed']:
+        worker_failure(Stop(result['outcome']),args,guard,learner,result,permission)
+    if permission.get('ack_failed'):
+        return 1
+    try:
+        if guard is not None:
+            guard.persist_timing(args.output/'worker-verification.jsonl',
+                life.POOL.deadline(args.started+WORKER_SECONDS),
+                lambda: worker_write_permission(args,result,permission,learner))
+        if learner is not None:
+            worker_write_permission(args,result,permission,learner)
+            save(args.output/'checkpoint-index.json',learner.checkpoints)
+            worker_write_permission(args,result,permission,learner)
+        worker_write_permission(args,result,permission,learner)
+        save(args.output/'long-worker-result.json',result)
+        worker_write_permission(args,result,permission,learner)
+    except BaseException as error:
+        worker_failure(error,args,guard,learner,result,permission)
+        return 1  # Never recursively retry persistence or ACK after a write error.
+    return result_code(result)
+
+
+def provisional(result):
+    return dict(authoritative=False, acceptance_authority='outer-executor-receipt',
+                internal_decision=('complete_pending_outer_acceptance' if result_code(result) in (0,2) else 'failed'))
+
+
+def publish_terminal(output, result, started, deadline, stable, *, authority):
+    require(stable,'Owned worker group absence unproven','publication_failure')
+    result.update(provisional(result), terminal_status_authority='outer-executor-receipt',
+                  completion_requires_terminal_receipt=True,
+                  wall_timing_scope='provisional lower bound; parent observes outer raw exit and wall')
+    authority(True)
+    replace_json(output/'long-run-result.json', result)
+    authority(True)
+    artifacts={}
+    for path in sorted(output.rglob('*')):
+        require(not path.is_symlink() and path.resolve().is_relative_to(output), 'Escaped/symlink output')
+        if path.is_file():
+            require(path.name not in ('artifact-manifest.json','finalization-result.json')
+                    and not path.name.startswith('.'), 'Existing or pending publication')
+            authority(False)
+            artifacts[str(path.relative_to(output))]=sha(path)
+{
+  "bootstrap_recorded_monotonic": 0.012937916,
+  "guard_stress_pass_clocks_affected": false,
+  "guard_stress_reason": "All Guard tests and stress use one registered interpreter and monotonic epoch",
+  "observed_at_utc": "2026-10-24T22:58:04.141425+00:00",
+  "parent_task_registered_at_utc": "2026-10-24T22:42:26.634932+00:00",
+  "planned_budget_seconds": 1800,
+  "preparation_elapsed_seconds_upper_bound": 937.506493,
+  "prior_receipts_sources_identity_registration_capsule_unchanged": true,
+  "reason": "Bootstrap system Python monotonic used a different epoch from registered Python; cross-interpreter subtraction is invalid",
+  "schema": "preparation_clock_correction_v1",
+  "superseded_result_sha256": "0a49270fa54e72f296cafa26b5c8e3de7e52527a7267b4d2d9efcb8a3579d60a",
+  "timing_scope": "UTC from parent task registration to this append-only correction; upper bound on this implementation work",
+  "wrong_field": "preparation_elapsed_seconds_lower_bound",
+  "wrong_value": 502789.919415917
+}
+{
+  "reason": "Static pre-freeze audit found permission/deadline checks followed timing file creation; require checks before mkdir/open/manifest write",
+  "scope": "Telemetry only; hash bytes count now actual read bytes, component hash count scope explicit",
+  "prior_tested_source": "attempts/units-04/sources",
+  "next_attempt": "attempts/units-05",
+  "stress_executed": false,
+  "limits_trigger_pins_learner_unchanged": true
+}
+{
+  "actual_outcome": "safety_stop",
+  "finding": "Deferred direct cancellation recorded first can lose primary status to a later Guard error; rejection still holds",
+  "first_direct_cancellation_at": 1.0,
+  "later_guard_failure_at": 2.0,
+  "rejected": true,
+  "required_outcome": "cancelled",
+  "scope": "pure helper diagnostic, no actual signal or campaign",
+  "source_sha256": "2f4480096926de8b8237b43a36f8bb4e97053c5adf831cf96a564d04480ac19c"
+}
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-guard-prepare-r1/attempts/deferred_cancel_probe.py", line 14, in <module>
+    assert selected.outcome=='cancelled',value
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'scope': 'pure helper diagnostic, no actual signal or campaign', 'first_direct_cancellation_at': 1.0, 'later_guard_failure_at': 2.0, 'actual_outcome': 'safety_stop', 'required_outcome': 'cancelled', 'rejected': True, 'source_sha256': '2f4480096926de8b8237b43a36f8bb4e97053c5adf831cf96a564d04480ac19c', 'finding': 'Deferred direct cancellation recorded first can lose primary status to a later Guard error; rejection still holds'}

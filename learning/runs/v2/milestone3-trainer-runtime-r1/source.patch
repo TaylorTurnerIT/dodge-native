@@ -1,0 +1,1943 @@
+--- /dev/null
++++ python/dodge_rl/identity.py
+@@ -0,0 +1,232 @@
++"""Frozen semantic identities and the registered M3 execution protocol."""
++from __future__ import annotations
++
++from dataclasses import asdict
++import copy
++from functools import lru_cache
++import hashlib
++import importlib
++import json
++from pathlib import Path
++import platform
++import sys
++
++import numpy as np
++import torch
++
++ROOT = Path(__file__).resolve().parents[2]
++PROTOCOL_PATH = Path("docs/v2-m3-run-protocol.json")
++PROTOCOL_SHA256 = "9e0d82028011f83e0cf6ddaef5f5e118591158d8a557f6698c82c150d5a69bab"
++GATE_SHA256 = "e091f8a2fad0a307d289a6d306112606b15df8f8aa0f3a75707ac7cfb2cee803"
++CONTRACT_SHA256 = "a1051d82527a9aec1f7967ff8ab217c30263240e032991aeff7b993fd975ba47"
++FOUNDATION_PATH = Path("learning/runs/v2-orchestration/milestone2-acceptance-r2.json")
++FOUNDATION_IDENTITY = Path("learning/runs/v2/milestone2-campaign-freeze-r4/frozen-identity.json")
++EXTENSION_SHA256 = "967c7249acd52339d1818dcbe94e63ee734aea914c3497eb59a7e945a6e95583"
++OBSERVATION_KEYS = ("global_feats", "entity_feats", "entity_types", "entity_mask")
++
++
++def require(condition: bool, message: str) -> None:
++    if not condition:
++        raise ValueError(message)
++
++
++def canonical_bytes(value) -> bytes:
++    return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
++
++
++def identity_hash(value) -> str:
++    return hashlib.sha256(canonical_bytes(value)).hexdigest()
++
++
++def file_hash(path: Path) -> str:
++    digest = hashlib.sha256()
++    with Path(path).open("rb") as stream:
++        for block in iter(lambda: stream.read(1024 * 1024), b""):
++            digest.update(block)
++    return digest.hexdigest()
++
++
++def read_protocol(root: Path = ROOT) -> dict:
++    path = root / PROTOCOL_PATH
++    require(file_hash(path) == PROTOCOL_SHA256, "Registered execution protocol changed")
++    value = json.loads(path.read_text())
++    require(value["qualification_sha256"] == GATE_SHA256, "Qualification definition changed")
++    return value
++
++
++def default_config(phase: str, device: str = "cpu", parent_sha256: str | None = None) -> dict:
++    from .ppo import PPOConfig
++    protocol = read_protocol()
++    require(phase in protocol["seed_namespace_table"], "Unknown registered phase")
++    require(device in {"cpu", "mps"}, "Device must be cpu or mps")
++    if phase == "probe":
++        require(device == "cpu", "Probe collects its frozen buffer on CPU before comparing devices")
++    row = protocol["seed_namespace_table"][phase]
++    if phase in {"D1", "D2", "D3"}:
++        require(isinstance(parent_sha256, str) and len(parent_sha256) == 64,
++                "Curriculum stages require a registered parent checkpoint hash")
++    else:
++        require(parent_sha256 is None, "Fresh probe/pilot cannot inherit checkpoint weights")
++    return {
++        "version": "teacher_registered_config_v1", "phase": phase, "device": device,
++        "phase_settings": row, "protocol_sha256": PROTOCOL_SHA256,
++        "qualification_sha256": GATE_SHA256, "contract_sha256": CONTRACT_SHA256,
++        "parent_checkpoint_sha256": parent_sha256,
++        "batch_size": protocol["training_batch_size"],
++        "rollout_steps": protocol["rollout_decisions"],
++        "num_threads": protocol["training_threads"], "chunk_size": protocol["training_chunk_size"],
++        "training_raw_frame_cap": 18000, "action_repeat": 4,
++        "powerups_enabled": True, "render_pixels": False, "auxiliary_targets": False,
++        "excluded_seed_ranges": protocol["training_excluded_ranges"],
++        "ppo": asdict(PPOConfig()), "dtype": "float32", "running_normalization": False,
++        "probe_devices": ["cpu", "mps"] if phase == "probe" else [],
++        "development_layout": protocol["development"]["environment_layout"],
++        "sampling_backend": "torch_global_cpu" if phase == "probe" else f"torch_global_{device}",
++    }
++
++
++def validate_config(config: dict) -> dict:
++    expected = default_config(config.get("phase"), config.get("device"),
++                              config.get("parent_checkpoint_sha256"))
++    require(config == expected, "Configuration differs from registered phase/defaults")
++    return config
++
++
++def source_inventory(root: Path = ROOT) -> dict[str, str]:
++    paths = set()
++    for base in (root / "python/dodge_rl", root / "python/tests", root / "crates"):
++        for path in base.rglob("*"):
++            relative = path.relative_to(base)
++            if path.is_file() and not {"__pycache__", ".pytest_cache", "target", "build"}.intersection(relative.parts):
++                if base.name == "dodge_rl" or path.suffix in {".py", ".rs", ".toml", ".lock"}:
++                    paths.add(path)
++    for name in ("Cargo.toml", "Cargo.lock", "rust-toolchain.toml", ".cargo/config.toml",
++                 "assets/dodge.p8", "python/pyproject.toml", "python/requirements-local-mac.txt",
++                 "docs/SPEC_PRIVILEGED_VIT_RL.md", "docs/implementation-plan-v2.md",
++                 "docs/v2-environment-contract.md", "docs/v2-teacher-training-plan.md",
++                 "docs/v2-m3-component-contract.md", "docs/teacher-qualification-v2.json",
++                 str(PROTOCOL_PATH)):
++        path = root / name
++        require(path.is_file(), f"Identity input missing: {name}")
++        paths.add(path)
++    return {str(path.relative_to(root)): file_hash(path) for path in sorted(paths)}
++
++
++def foundation_identity(root: Path = ROOT) -> dict:
++    acceptance = json.loads((root / FOUNDATION_PATH).read_text())
++    require(acceptance["status"] == "M2_accepted_for_M3_implementation", "M2 is not accepted")
++    old = json.loads((root / FOUNDATION_IDENTITY).read_text())
++    require(file_hash(root / FOUNDATION_IDENTITY) == acceptance["frozen_identity_sha256"],
++            "Accepted M2 identity document changed")
++    native_inputs = {name: value for name, value in old["source_sha256"].items()
++                     if name.startswith("crates/") or name in {
++                         "Cargo.toml", "Cargo.lock", "rust-toolchain.toml", ".cargo/config.toml",
++                         "assets/dodge.p8", "python/pyproject.toml", "python/requirements-local-mac.txt",
++                         "python/dodge_rl/__init__.py"}}
++    for name, value in native_inputs.items():
++        require(file_hash(root / name) == value, f"Accepted native/build input changed: {name}")
++    for name, value in old["binary_and_receipt_sha256"].items():
++        require(file_hash(Path(name)) == value, f"Accepted binary/build receipt changed: {name}")
++    extension = importlib.import_module("dodge_rl._native")
++    path = Path(extension.__file__).resolve()
++    require(file_hash(path) == EXTENSION_SHA256 == old["runtime"]["extension_sha256"],
++            "Installed extension differs from accepted M2 binary")
++    return {"acceptance_sha256": file_hash(root / FOUNDATION_PATH),
++            "identity_sha256": acceptance["frozen_identity_sha256"],
++            "native_inputs": native_inputs, "extension_path": str(path),
++            "extension_sha256": EXTENSION_SHA256,
++            "binary_and_receipt_sha256": old["binary_and_receipt_sha256"]}
++
++
++@lru_cache(maxsize=1)
++def _architecture_description() -> dict:
++    from .models.teacher import OmniscientEntityTeacher
++    rng = torch.get_rng_state()
++    try:
++        return OmniscientEntityTeacher().architecture_description()
++    finally:
++        torch.set_rng_state(rng)
++
++
++def build_identity(config: dict, root: Path = ROOT) -> dict:
++    from .ppo import PPOConfig
++    validate_config(config)
++    protocol = read_protocol(root)
++    require(file_hash(root / "docs/teacher-qualification-v2.json") == GATE_SHA256,
++            "Registered qualification JSON changed")
++    require(file_hash(root / "docs/v2-m3-component-contract.md") == CONTRACT_SHA256,
++            "Component contract changed")
++    return {
++        "version": "teacher_semantic_identity_v1", "config": config,
++        "config_sha256": identity_hash(config), "sources": source_inventory(root),
++        "foundation": foundation_identity(root), "architecture": copy.deepcopy(_architecture_description()),
++        "ppo": PPOConfig(**config["ppo"]).description(),
++        "reward_version": "score_plus_0.01_alive_minus_5_termination_v1",
++        "observation_schema_version": "dodge_global14_entity80x16_v2_r2",
++        "seed_stream_version": protocol["seed_stream_version"],
++        "seed_exclusion_version": protocol["seed_exclusion_version"],
++        "effective_excluded_seed_ranges": protocol["training_excluded_ranges"],
++        "runtime": {"python": sys.version, "interpreter": str(Path(sys.executable).resolve()),
++                    "interpreter_sha256": file_hash(Path(sys.executable).resolve()),
++                    "torch": str(torch.__version__), "numpy": np.__version__,
++                    "platform": platform.platform(), "machine": platform.machine(),
++                    "mps_available": bool(torch.backends.mps.is_available())},
++    }
++
++
++def check_same_run(saved: dict, current: dict) -> None:
++    require(saved == current, "Same-run identity mismatch")
++
++
++def check_frozen(identity_path: Path, expected_document_hash: str, config: dict,
++                 root: Path = ROOT) -> dict:
++    raw = identity_path.read_bytes()
++    require(hashlib.sha256(raw).hexdigest() == expected_document_hash, "Frozen identity document changed")
++    frozen = json.loads(raw)
++    check_same_run(frozen, build_identity(config, root))
++    require(file_hash(identity_path) == expected_document_hash, "Identity changed during verification")
++    return frozen
++
++
++def training_env_config(config: dict, initial_episode_indices=None) -> dict:
++    validate_config(config)
++    row = config["phase_settings"]
++    value = {"batch_size": config["batch_size"], "action_repeat": 4,
++             "difficulty": row["difficulty"], "patterns_enabled": row["patterns_enabled"],
++             "powerups_enabled": True, "raw_frame_cap": 18000,
++             "num_threads": config["num_threads"], "chunk_size": config["chunk_size"],
++             "render_pixels": False, "auxiliary_targets": False, "run_seed": row["run_seed"],
++             "excluded_seed_ranges": [tuple(pair) for pair in config["excluded_seed_ranges"]]}
++    if initial_episode_indices is not None:
++        require(len(initial_episode_indices) == config["batch_size"]
++                and all(type(i) is int and 0 <= i < 2**64 for i in initial_episode_indices),
++                "Invalid fresh-environment episode indices")
++        value["initial_episode_indices"] = list(initial_episode_indices)
++    return value
++
++
++def verify_training_env(env, config: dict, initial_episode_indices=None) -> dict:
++    protocol = read_protocol()
++    metadata = env.batch_info()
++    require(metadata["effective_excluded_seed_ranges"] == [tuple(x) for x in protocol["training_excluded_ranges"]]
++            or metadata["effective_excluded_seed_ranges"] == protocol["training_excluded_ranges"],
++            "Effective training exclusions differ from B/D/E")
++    for key in ("seed_stream_version", "seed_exclusion_version"):
++        require(metadata[key] == protocol[key], f"Environment {key} differs")
++    require(metadata["seed_mode"] == {"mode": "training", "run_seed": config["phase_settings"]["run_seed"]},
++            "Training seed namespace differs")
++    expected = [0] * config["batch_size"] if initial_episode_indices is None else list(initial_episode_indices)
++    require(metadata["initial_episode_indices"] == expected, "Initial episode indices were not echoed")
++    require(metadata["batch_size"] == config["batch_size"] and metadata["action_repeat"] == 4,
++            "Environment batch/action repeat differs")
++    infos = env.episode_info()
++    require(len(infos) == len(expected), "Episode metadata count differs")
++    for slot, (info, episode) in enumerate(zip(infos, expected, strict=True)):
++        seed = info["seed"]
++        require(seed["slot"] == slot and seed["episode"] == episode and not seed["evaluation"],
++                "Fresh training slot identity differs")
++        require(all(not low <= seed["actual_seed"] <= high for low, high in protocol["training_excluded_ranges"]),
++                "Reserved seed constructed")
++        require(info["startup_frames"] == 13 and info["gameplay_frames"] == 0,
++                "Fresh training environment did not start correctly")
++    return metadata
+--- /dev/null
++++ python/dodge_rl/checkpoints.py
+@@ -0,0 +1,174 @@
++"""Atomic immutable checkpoints with strict fresh-environment lineage."""
++from __future__ import annotations
++
++import copy
++import hashlib
++import io
++import json
++import os
++from pathlib import Path
++import random
++import tempfile
++
++import numpy as np
++import torch
++
++from .identity import check_same_run, file_hash, identity_hash, read_protocol, require
++
++REJECTED_PARENT_TAGS = {"interrupted_mid_update", "failure", "timeout", "probe_diagnostic"}
++
++
++def capture_rng(device: str | torch.device = "cpu", numpy_generator=None) -> dict:
++    device = torch.device(device)
++    return {"python": random.getstate(), "numpy_global": np.random.get_state(),
++            "numpy_generator": None if numpy_generator is None else copy.deepcopy(numpy_generator.bit_generator.state),
++            "torch_cpu": torch.get_rng_state().clone(),
++            "torch_mps": torch.mps.get_rng_state().clone() if device.type == "mps" else None,
++            "sampling_backend": f"torch_global_{device.type}"}
++
++
++def restore_rng(state: dict, device: str | torch.device = "cpu", numpy_generator=None) -> None:
++    device = torch.device(device)
++    require(state["sampling_backend"] == f"torch_global_{device.type}", "Sampling RNG backend changed")
++    random.setstate(state["python"])
++    np.random.set_state(state["numpy_global"])
++    torch.set_rng_state(state["torch_cpu"].cpu())
++    if state["numpy_generator"] is not None:
++        require(numpy_generator is not None, "Owned NumPy generator was not supplied for restore")
++        numpy_generator.bit_generator.state = copy.deepcopy(state["numpy_generator"])
++    if device.type == "mps":
++        require(state["torch_mps"] is not None, "MPS RNG state missing")
++        torch.mps.set_rng_state(state["torch_mps"].cpu())
++
++
++def _cpu_copy(value):
++    if isinstance(value, torch.Tensor):
++        return value.detach().cpu().clone()
++    if isinstance(value, dict):
++        return {k: _cpu_copy(v) for k, v in value.items()}
++    if isinstance(value, list):
++        return [_cpu_copy(v) for v in value]
++    if isinstance(value, tuple):
++        return tuple(_cpu_copy(v) for v in value)
++    return copy.deepcopy(value)
++
++
++def episode_resume_state(env, batch_size: int) -> tuple[list[int], list[dict]]:
++    infos = copy.deepcopy(env.episode_info())
++    next_indices = env.batch_info()["next_episode_indices"]
++    require(len(infos) == len(next_indices) == batch_size, "Resume slot count changed")
++    abandoned = []
++    for index, (info, next_index) in enumerate(zip(infos, next_indices, strict=True)):
++        require(type(next_index) is int and next_index == info["seed"]["episode"] + 1 and next_index < 2**64,
++                "Next episode index is missing, exhausted, or not current+1")
++        if not info["terminated"] and not info["truncated"]:
++            abandoned.append({"kind": "abandoned_on_fresh_env_resume", "slot": index,
++                              "seed": info["seed"], "gameplay_frames": info["gameplay_frames"],
++                              "score_raw_fixed": info["score_raw_fixed"]})
++    return list(next_indices), abandoned
++
++
++def make_state(model, optimizer, identity: dict, counters: dict, *, env=None,
++               tag: str = "periodic", progress=None, device="cpu", parent_sha256=None) -> dict:
++    batch_size = identity["config"]["batch_size"]
++    next_indices, abandoned = ([0] * batch_size, []) if env is None else episode_resume_state(env, batch_size)
++    return {"version": "teacher_checkpoint_v1", "identity": identity,
++            "identity_sha256": identity_hash(identity), "model": _cpu_copy(model.state_dict()),
++            "optimizer": _cpu_copy(optimizer.state_dict()), "rng": capture_rng(device),
++            "counters": copy.deepcopy(counters), "next_episode_indices": next_indices,
++            "abandoned_episodes": abandoned, "resume_mode": "fresh_env", "tag": tag,
++            "update_progress": copy.deepcopy(progress or {}), "parent_checkpoint_sha256": parent_sha256}
++
++
++def save_checkpoint(path: Path, state: dict) -> str:
++    path = Path(path)
++    path.parent.mkdir(parents=True, exist_ok=True)
++    require(not path.exists(), f"Checkpoint already exists: {path}")
++    fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".partial", dir=path.parent)
++    published = False
++    try:
++        with os.fdopen(fd, "wb") as stream:
++            torch.save(state, stream)
++            stream.flush()
++            os.fsync(stream.fileno())
++        # Publishing a hard link is atomic and refuses an existing destination,
++        # unlike a check followed by a replacing rename.
++        os.link(temporary, path)
++        directory = os.open(path.parent, os.O_RDONLY)
++        try:
++            os.fsync(directory)
++        finally:
++            os.close(directory)
++        published = True
++    finally:
++        # A failed write remains as an owned .partial artifact for diagnosis.
++        # Successful publication retains identical bytes at the final name.
++        if published and os.path.exists(temporary):
++            os.unlink(temporary)
++    return file_hash(path)
++
++
++def load_checkpoint(path: Path, expected_identity: dict | None = None,
++                    expected_sha256: str | None = None) -> dict:
++    path = Path(path)
++    raw = path.read_bytes()
++    anchored_hash = hashlib.sha256(raw).hexdigest()
++    if expected_sha256 is not None:
++        require(anchored_hash == expected_sha256, "Checkpoint file hash mismatch")
++    state = torch.load(io.BytesIO(raw), map_location="cpu", weights_only=False)
++    require(state["version"] == "teacher_checkpoint_v1" and state["resume_mode"] == "fresh_env",
++            "Unknown checkpoint or resume format")
++    require(identity_hash(state["identity"]) == state["identity_sha256"], "Checkpoint identity hash mismatch")
++    if expected_identity is not None:
++        check_same_run(state["identity"], expected_identity)
++    require(file_hash(path) == anchored_hash, "Checkpoint changed during loading")
++    return state
++
++
++def restore_learner(state: dict, model, optimizer, device="cpu") -> None:
++    model.load_state_dict(state["model"], strict=True)
++    optimizer.load_state_dict(state["optimizer"])
++    restore_rng(state["rng"], device)
++
++
++def evaluation_path(checkpoint_path: Path) -> Path:
++    return Path(str(checkpoint_path) + ".evaluation.json")
++
++
++def validate_transition(parent_path: Path, target_identity: dict) -> tuple[dict, dict]:
++    parent_hash = file_hash(parent_path)
++    parent = load_checkpoint(parent_path, expected_sha256=parent_hash)
++    require(parent["tag"] not in REJECTED_PARENT_TAGS, "Interrupted/failure/probe checkpoint cannot advance")
++    old_identity = copy.deepcopy(parent["identity"])
++    new_identity = copy.deepcopy(target_identity)
++    old_cfg, new_cfg = old_identity.pop("config"), new_identity.pop("config")
++    old_identity.pop("config_sha256")
++    new_identity.pop("config_sha256")
++    require(old_identity == new_identity, "Transition changed source/runtime/architecture/reward/gate identity")
++    protocol = read_protocol()
++    require([old_cfg["phase"], new_cfg["phase"]] in protocol["transitions"], "Unregistered curriculum transition")
++    require(new_cfg["parent_checkpoint_sha256"] == parent_hash, "Transition parent hash differs")
++    allowed = {"phase", "phase_settings", "parent_checkpoint_sha256"}
++    require({k: v for k, v in old_cfg.items() if k not in allowed}
++            == {k: v for k, v in new_cfg.items() if k not in allowed},
++            "Transition changed learner/device/environment settings")
++    # Config validation checks the entire target phase row, including fixed budget.
++    from .identity import validate_config
++    validate_config(new_cfg)
++    validate_config(old_cfg)
++    certificate = json.loads(evaluation_path(parent_path).read_text())
++    require(certificate["checkpoint_sha256"] == parent_hash
++            and certificate["phase"] == old_cfg["phase"]
++            and certificate["complete"] is True and certificate["passed"] is True,
++            "Transition parent has no completed passing hash-bound evaluation")
++    from .dev_eval import pilot_improved, progress_passed
++    if old_cfg["phase"] == "pilot":
++        require(pilot_improved(certificate["before"], certificate["evaluations"]["D1"])
++                and certificate["actor_gradient_seen"] and certificate["critic_gradient_seen"]
++                and certificate["completed_training_updates"] > 0,
++                "Pilot transition proof does not satisfy registered improvement/gradient conditions")
++    else:
++        require(progress_passed(old_cfg["phase"], certificate["evaluations"]),
++                "Curriculum transition proof does not meet progress gates")
++    require(not parent["update_progress"].get("in_update", False), "Parent update was interrupted")
++    return parent, certificate
+--- /dev/null
++++ python/dodge_rl/supervision.py
+@@ -0,0 +1,131 @@
++"""Read-only parent leases and cooperative wall/RSS/MPS guards."""
++from __future__ import annotations
++
++from datetime import datetime, timedelta, timezone
++import json
++import os
++from pathlib import Path
++import resource
++import signal
++import subprocess
++import sys
++import time
++
++from .identity import ROOT, require
++
++STATE_PATH = ROOT / "learning/runs/v2-orchestration/state.json"
++CUTOFF = datetime(2026, 10, 24, 13, tzinfo=timezone.utc)
++RSS_LIMIT = 6 * 1024**3
++
++
++class GuardStop(RuntimeError):
++    pass
++
++
++def utc_now() -> datetime:
++    return datetime.now(timezone.utc)
++
++
++def check_budget(now: datetime, seconds: int) -> None:
++    require(type(seconds) is int and 0 < seconds <= 1800, "Invalid experiment budget")
++    require(now + timedelta(seconds=seconds + 600) <= CUTOFF,
++            "Full experiment budget plus receipt reserve does not fit cutoff")
++
++
++def current_rss_bytes(pid: int) -> int:
++    result = subprocess.run(["ps", "-o", "rss=", "-p", str(pid)], text=True,
++                            capture_output=True, timeout=5)
++    require(result.returncode == 0 and result.stdout.strip().isdigit(), "Cannot observe owned-process RSS")
++    return int(result.stdout.strip()) * 1024
++
++
++def peak_rss_bytes() -> int:
++    value = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
++    return int(value if sys.platform == "darwin" else value * 1024)
++
++
++def assert_lease(run_id: str, identity_sha256: str, config_sha256: str,
++                 state_path: Path = STATE_PATH) -> dict:
++    lease = json.loads(state_path.read_text()).get("active_long_campaign")
++    require(isinstance(lease, dict) and lease.get("run_id") == run_id,
++            "Parent-owned teacher lease missing or changed")
++    require(lease.get("kind") == "M3_teacher" and lease.get("authorization") == "frozen_reviewed_M3_teacher",
++            "Teacher work was not authorized after frozen review")
++    require(lease.get("identity_sha256") == identity_sha256 and lease.get("config_sha256") == config_sha256,
++            "Parent lease identity/config mismatch")
++    return lease
++
++
++def emit(stream, record: dict) -> None:
++    stream.write(json.dumps(record, sort_keys=True, allow_nan=False) + "\n")
++    stream.flush()
++
++
++class Guard:
++    def __init__(self, *, deadline: float, run_id: str, identity_sha256: str,
++                 config_sha256: str, stream, identity_check=None, mps=False,
++                 state_path: Path = STATE_PATH, sample_seconds=0.5):
++        self.deadline, self.run_id = deadline, run_id
++        self.identity_sha256, self.config_sha256 = identity_sha256, config_sha256
++        self.stream, self.identity_check, self.mps = stream, identity_check, mps
++        self.state_path, self.sample_seconds = state_path, sample_seconds
++        self.last_sample = float("-inf")
++        self.maximum_rss = self.maximum_mps = 0
++
++    def check(self, force=False) -> None:
++        now = time.monotonic()
++        if now >= self.deadline:
++            raise GuardStop("Experiment wall guard expired")
++        if utc_now() >= CUTOFF:
++            raise GuardStop("Overnight cutoff reached")
++        if force or now - self.last_sample >= self.sample_seconds:
++            assert_lease(self.run_id, self.identity_sha256, self.config_sha256, self.state_path)
++            if self.identity_check is not None:
++                self.identity_check()
++            rss = current_rss_bytes(os.getpid())
++            peak = peak_rss_bytes()
++            mps_bytes = 0
++            if self.mps:
++                import torch
++                mps_bytes = int(torch.mps.driver_allocated_memory())
++            self.maximum_rss = max(self.maximum_rss, rss, peak)
++            self.maximum_mps = max(self.maximum_mps, mps_bytes)
++            emit(self.stream, {"at_utc": utc_now().isoformat(), "monotonic": now,
++                               "pid": os.getpid(), "rss_bytes": rss,
++                               "self_peak_rss_bytes": peak, "mps_driver_bytes": mps_bytes})
++            self.last_sample = now
++            if max(rss, peak) > RSS_LIMIT:
++                raise GuardStop("Observed RSS guard exceeded")
++            if mps_bytes > RSS_LIMIT:
++                raise GuardStop("MPS driver allocation guard exceeded")
++            if time.monotonic() >= self.deadline or utc_now() >= CUTOFF:
++                raise GuardStop("Guard verification finished after deadline/cutoff")
++
++
++def stop_owned(process: subprocess.Popen) -> dict:
++    result = {"owned_pid": process.pid, "owned_pgid": process.pid, "errors": []}
++    def poll():
++        try:
++            return process.poll()
++        except Exception as error:
++            result["errors"].append({"operation": "poll", "error": repr(error)})
++            return None
++    for sig, wait_seconds in ((signal.SIGTERM, 2), (signal.SIGKILL, 5)):
++        if poll() is not None:
++            break
++        try:
++            os.killpg(process.pid, sig)
++            result[signal.Signals(sig).name] = True
++        except ProcessLookupError:
++            result["exit_signal_race"] = True
++        except OSError as error:
++            result["errors"].append(repr(error))
++        try:
++            process.wait(timeout=wait_seconds)
++        except subprocess.TimeoutExpired:
++            continue
++        except Exception as error:
++            result["errors"].append({"operation": "wait", "error": repr(error)})
++    code = poll()
++    result.update(exit_code=code, reaped=code is not None)
++    return result
+--- /dev/null
++++ python/dodge_rl/dev_eval.py
+@@ -0,0 +1,155 @@
++"""Development-only deterministic evaluation; B and E are not entry points."""
++from __future__ import annotations
++
++import math
++import time
++
++import numpy as np
++import torch
++
++from .identity import OBSERVATION_KEYS, read_protocol, require
++
++
++def development_seeds() -> list[int]:
++    protocol = read_protocol()
++    return list(range(protocol["development"]["seed_start"],
++                      protocol["development"]["seed_start"] + 64))
++
++
++def require_development_seed(seed: int) -> None:
++    require(type(seed) is int and seed in development_seeds(), "Only registered development D seeds are permitted")
++
++
++def development_environment_config(seed: int, stage: str) -> dict:
++    require_development_seed(seed)
++    require(stage in {"D1", "D2", "D3"}, "Unknown development difficulty")
++    difficulty = int(stage[-1])
++    return {"batch_size": 1, "action_repeat": 4, "difficulty": difficulty,
++            "patterns_enabled": difficulty != 1, "powerups_enabled": True,
++            "raw_frame_cap": 2000 if difficulty == 1 else 18000,
++            "num_threads": 1, "chunk_size": 1, "render_pixels": False,
++            "auxiliary_targets": False, "seeds_by_slot": [[seed]],
++            "excluded_seed_ranges": [tuple(pair) for pair in read_protocol()["training_excluded_ranges"]]}
++
++
++def _guard(callback):
++    if callback is not None:
++        callback()
++
++
++def summarize(rows: list[dict], stage: str, elapsed: float) -> dict:
++    require(len(rows) == 64 and [row["seed"] for row in rows] == development_seeds(),
++            "Development evaluation incomplete or seed order changed")
++    cap = 2000 if stage == "D1" else 18000
++    for row in rows:
++        require(type(row["alive_frames"]) is int and type(row["gameplay_frames"]) is int
++                and 0 <= row["alive_frames"] <= row["gameplay_frames"] <= cap,
++                "Development row frame bounds differ")
++        require(bool(row["terminated"]) != bool(row["truncated"]), "Development row is not a completed episode")
++        require(row["score"] == row["score_raw_fixed"] / 65536
++                and math.isfinite(row["score"]) and row["score_raw_fixed"] >= 0,
++                "Development row score differs")
++    return {"complete": True, "stage": stage, "episodes": 64,
++            "mean_score": sum(row["score"] for row in rows) / 64,
++            "mean_alive_frames": sum(row["alive_frames"] for row in rows) / 64,
++            "raw_frames": sum(row["gameplay_frames"] for row in rows),
++            "deaths": sum(row["terminated"] for row in rows),
++            "caps": sum(row["truncated"] for row in rows),
++            "elapsed_seconds": elapsed, "rows": rows,
++            "action_mode": "deterministic_argmax", "gradients": False,
++            "environment_layout": "64_independent_B1_envs;batched_policy_over_alive;no_reset"}
++
++
++@torch.no_grad()
++def evaluate(model, stage: str, device="cpu", *, check_guard=None, env_factory=None,
++             episode_stream=None) -> dict:
++    if env_factory is None:
++        from . import VecDodgeEnv
++        env_factory = VecDodgeEnv
++    started = time.monotonic()
++    device = torch.device(device)
++    environments, observations = {}, {}
++    rows = {}
++    was_training = model.training
++    model.eval()
++    try:
++        for index, seed in enumerate(development_seeds()):
++            _guard(check_guard)
++            env = env_factory(**development_environment_config(seed, stage))
++            info = env.episode_info()[0]
++            require(info["seed"]["evaluation"] and info["seed"]["actual_seed"] == seed
++                    and info["startup_frames"] == 13, "Development constructor changed seed/startup")
++            environments[index], observations[index] = env, env.observations()
++        while environments:
++            _guard(check_guard)
++            active = sorted(environments)
++            tensors = {name: torch.from_numpy(np.concatenate([observations[index][name]
++                       for index in active], axis=0)).to(device) for name in OBSERVATION_KEYS}
++            output = model(*(tensors[name] for name in OBSERVATION_KEYS))
++            require(output.logits.shape == (len(active), 9)
++                    and bool(torch.isfinite(output.logits).all()), "Nonfinite development policy")
++            actions = output.logits.argmax(dim=-1).cpu().numpy()
++            del output, tensors
++            for position, index in enumerate(active):
++                _guard(check_guard)
++                result = environments[index].step(np.array([actions[position]], dtype=np.int64))
++                info = result["info"][0]
++                require(info["seed"]["actual_seed"] == development_seeds()[index], "Development seed changed")
++                terminated, truncated = bool(result["terminated"][0]), bool(result["truncated"][0])
++                require(not (terminated and truncated) and info["bootstrap"] == (not terminated),
++                        "Development boundary flags differ")
++                require(info["score_raw_fixed"] == info["score_delta_sum_raw_fixed"], "Development score identity failed")
++                objective = info["score_raw_fixed"] / 65536 + info["alive_frames"] / 100 - 5 * terminated
++                require(math.isclose(info["objective_return"], objective, rel_tol=0, abs_tol=1e-9),
++                        "Development objective identity failed")
++                if terminated or truncated:
++                    row = {"episode_index": index, "seed": info["seed"]["actual_seed"],
++                           "score_raw_fixed": info["score_raw_fixed"], "score": info["score_raw_fixed"] / 65536,
++                           "alive_frames": info["alive_frames"], "gameplay_frames": info["gameplay_frames"],
++                           "terminated": terminated, "truncated": truncated,
++                           "objective_return": info["objective_return"]}
++                    rows[index] = row
++                    if episode_stream is not None:
++                        from .supervision import emit
++                        emit(episode_stream, row)
++                    del environments[index], observations[index]
++                else:
++                    observations[index] = result["observations"]
++            _guard(check_guard)
++    finally:
++        model.train(was_training)
++    _guard(check_guard)
++    return summarize([rows[i] for i in range(64)], stage, time.monotonic() - started)
++
++
++def pilot_improved(before: dict, after: dict) -> bool:
++    require(before.get("complete") is True and after.get("complete") is True
++            and before["stage"] == after["stage"] == "D1", "Pilot development evaluations incomplete")
++    require([r["seed"] for r in before["rows"]] == [r["seed"] for r in after["rows"]] == development_seeds(),
++            "Pilot evaluations are not paired on registered D seeds")
++    validate_summary(before)
++    validate_summary(after)
++    return after["mean_score"] > before["mean_score"] and after["mean_alive_frames"] > before["mean_alive_frames"]
++
++
++def progress_passed(phase: str, evaluations: dict[str, dict]) -> bool:
++    for result in evaluations.values():
++        validate_summary(result)
++    if phase == "D1":
++        result = evaluations["D1"]
++        return result["complete"] and result["mean_score"] >= 10 and result["mean_alive_frames"] >= 1500
++    if phase == "D2":
++        result = evaluations["D2"]
++        return result["complete"] and result["mean_score"] >= 50 and result["mean_alive_frames"] >= 3060
++    require(phase == "D3", "Unknown curriculum phase")
++    d2, d3 = evaluations["D2"], evaluations["D3"]
++    return (d2["complete"] and d3["complete"]
++            and d2["mean_score"] >= 200.215 and d2["mean_alive_frames"] >= 6726.0523
++            and d3["mean_score"] >= 177.266 and d3["mean_alive_frames"] >= 4433.0418)
++
++
++def validate_summary(result: dict) -> None:
++    expected = summarize(result["rows"], result["stage"], result["elapsed_seconds"])
++    for key in ("complete", "stage", "episodes", "mean_score", "mean_alive_frames",
++                "raw_frames", "deaths", "caps"):
++        require(result[key] == expected[key], f"Development summary {key} differs from rows")
+--- /dev/null
++++ python/dodge_rl/train_teacher.py
+@@ -0,0 +1,628 @@
++"""Explicit, parent-leased M3 teacher experiments. No B/E evaluation or retries.
++
++Prepare with ``config`` then ``freeze``. Actual ``probe``, ``pilot`` and ``stage``
++commands require the root's matching frozen-review lease in the existing ledger.
++"""
++from __future__ import annotations
++
++import argparse
++import copy
++from dataclasses import asdict
++from datetime import datetime, timezone
++import hashlib
++import json
++import math
++import os
++from pathlib import Path
++import random
++import subprocess
++import sys
++import time
++import traceback
++
++import numpy as np
++import torch
++
++from . import checkpoints as ckpt
++from .dev_eval import evaluate, pilot_improved, progress_passed
++from .identity import (ROOT, OBSERVATION_KEYS, build_identity, canonical_bytes, check_frozen,
++                       default_config, file_hash, identity_hash, read_protocol, require,
++                       training_env_config, validate_config, verify_training_env)
++from .models.teacher import OmniscientEntityTeacher
++from .ppo import PPOConfig, collect_rollout, ppo_update
++from .supervision import (CUTOFF, RSS_LIMIT, Guard, GuardStop, assert_lease, check_budget,
++                          current_rss_bytes, emit, stop_owned, utc_now)
++
++
++def save_json(path: Path, value) -> None:
++    with Path(path).open("x") as stream:
++        json.dump(value, stream, indent=2, sort_keys=True, allow_nan=False)
++        stream.write("\n")
++
++
++def read_config(path: Path, expected_hash: str | None = None) -> dict:
++    raw = path.read_bytes()
++    if expected_hash is not None:
++        require(hashlib.sha256(raw).hexdigest() == expected_hash, "Registered config document changed")
++    return validate_config(json.loads(raw))
++
++
++def verify_inputs(args, config: dict) -> dict:
++    require(file_hash(args.config) == args.config_sha256, "Registered config document changed")
++    frozen = check_frozen(args.identity, args.identity_sha256, config)
++    require(file_hash(args.config) == args.config_sha256, "Config changed during identity verification")
++    if args.resume_checkpoint is not None:
++        require(file_hash(args.resume_checkpoint) == args.resume_checkpoint_sha256,
++                "Resume checkpoint changed after authorization")
++    if args.parent_checkpoint is not None:
++        require(file_hash(args.parent_checkpoint) == config["parent_checkpoint_sha256"],
++                "Transition parent changed after authorization")
++    return frozen
++
++
++def synchronize(device) -> None:
++    if torch.device(device).type == "mps":
++        torch.mps.synchronize()
++
++
++def seed_initialization(seed: int) -> None:
++    random.seed(seed)
++    np.random.seed(seed)
++    torch.manual_seed(seed)
++
++
++def make_optimizer(model, config: dict):
++    ppo = PPOConfig(**config["ppo"])
++    return torch.optim.Adam(model.parameters(), lr=ppo.learning_rate, eps=ppo.adam_eps)
++
++
++def require_raw_diagnostics(batch) -> None:
++    for name in ("raw_rewards", "score_delta_raw_fixed", "alive_raw_frames", "elapsed_raw_frames"):
++        require(getattr(batch, name, None) is not None, f"Collected batch omitted mandatory {name}")
++
++
++def remaining_phase_budget(config: dict, resume_state: dict | None) -> tuple[float, float]:
++    used = 0.0 if resume_state is None else resume_state.get("run_context", {}).get("consumed_wall_seconds")
++    require(isinstance(used, (int, float)) and not isinstance(used, bool)
++            and math.isfinite(used) and used >= 0, "Resume checkpoint has no valid consumed phase wall time")
++    remaining = config["phase_settings"]["budget_seconds"] - used
++    require(remaining > 0, "Registered phase wall budget already consumed; resume cannot restart it")
++    return float(used), float(remaining)
++
++
++def choose_probe_device(measurements: list[dict]) -> tuple[str, list[str]]:
++    completed = [row for row in measurements if row["status"] == "completed"]
++    require(bool(completed), "No complete device measurement")
++    reference = next((row for row in completed if row["device"] == "cpu"), completed[0])
++    work = (reference["optimizer_steps"], reference["metrics"]["epochs_completed"])
++    comparable = [row for row in completed
++                  if (row["optimizer_steps"], row["metrics"]["epochs_completed"]) == work]
++    excluded = [row["device"] for row in completed if row not in comparable]
++    return min(comparable, key=lambda row: row["measured_inference_plus_update_seconds"])["device"], excluded
++
++
++class TrainingEnvLog:
++    """Stream returned native boundaries even if collection later stops early."""
++
++    def __init__(self, inner, counters, stream):
++        self.inner, self.counters, self.stream = inner, counters, stream
++
++    def __getattr__(self, name):
++        return getattr(self.inner, name)
++
++    def step(self, actions):
++        result = self.inner.step(actions)
++        self.counters["environment_decisions"] += len(actions)
++        self.counters["raw_frames"] += int(result["elapsed_raw_frames"].sum())
++        for info in result["info"]:
++            if info["terminated"] or info["truncated"]:
++                emit(self.stream, {"kind": "native_completed_episode", "info": info,
++                                   "observed_before_collection_acceptance": True})
++        return result
++
++    def reset_done(self, indices):
++        result = self.inner.reset_done(indices)
++        emit(self.stream, {"kind": "native_reset", "indices": list(indices), "info": result["info"]})
++        return result
++
++
++class Experiment:
++    def __init__(self, args, config: dict, identity: dict, guard: Guard):
++        self.args, self.config, self.identity, self.guard = args, config, identity, guard
++        self.directory = args.run_dir
++        self.device = torch.device(config["device"])
++        require(self.device.type == "cpu" or torch.backends.mps.is_available(), "MPS is unavailable")
++        self.model = OmniscientEntityTeacher().to(self.device)
++        self.optimizer = make_optimizer(self.model, config)
++        self.ppo = PPOConfig(**config["ppo"])
++        self.env = None
++        self.observation = None
++        self.progress = {}
++        self.counters = {"updates": 0, "phase_updates": 0, "optimizer_steps": 0,
++                         "environment_decisions": 0, "raw_frames": 0, "checkpoint_index": 0}
++        self.last_metrics = None
++        self.actor_gradient_seen = self.critic_gradient_seen = False
++        self.large_kl_iterations = 0
++        self.context = {"D1_competence_demonstrated": False}
++        self.episodes = (self.directory / "training-episodes.jsonl").open("x")
++        self.metrics = (self.directory / "training-metrics.jsonl").open("x")
++        self.guard.check(force=True)
++        if args.resume_checkpoint is not None:
++            require(config["phase"] != "probe", "Probe checkpoints cannot resume training")
++            state = ckpt.load_checkpoint(args.resume_checkpoint, identity, args.resume_checkpoint_sha256)
++            used, _ = remaining_phase_budget(config, state)
++            require(used == args.consumed_wall_seconds, "Resume consumed wall-time anchor differs")
++            ckpt.restore_learner(state, self.model, self.optimizer, self.device)
++            self.counters = copy.deepcopy(state["counters"])
++            self.context = copy.deepcopy(state.get("run_context", self.context))
++            self.actor_gradient_seen = self.context.get("actor_gradient_seen", False)
++            self.critic_gradient_seen = self.context.get("critic_gradient_seen", False)
++            self.large_kl_iterations = self.context.get("large_kl_iterations", 0)
++            self.last_metrics = self.context.get("last_metrics")
++            self.counters["optimizer_steps"] += int(state["update_progress"].get("optimizer_steps", 0)) \
++                if state["update_progress"].get("in_update", False) else 0
++            for abandoned in state["abandoned_episodes"]:
++                emit(self.episodes, abandoned)
++            save_json(self.directory / "resume-lineage.json", {"checkpoint": str(args.resume_checkpoint),
++                      "checkpoint_sha256": file_hash(args.resume_checkpoint), "mode": "fresh_env"})
++            self.make_environment(state["next_episode_indices"])
++        elif args.parent_checkpoint is not None:
++            state, certificate = ckpt.validate_transition(args.parent_checkpoint, identity)
++            ckpt.restore_learner(state, self.model, self.optimizer, self.device)
++            self.counters = copy.deepcopy(state["counters"])
++            self.counters["phase_updates"] = 0
++            self.context = copy.deepcopy(state.get("run_context", self.context))
++            self.large_kl_iterations = self.context.get("large_kl_iterations", 0)
++            self.last_metrics = self.context.get("last_metrics")
++            self.context.pop("pilot_before", None)
++            self.context.pop("pilot_initial_checkpoint", None)
++            self.context.pop("pilot_initial_checkpoint_sha256", None)
++            if state["identity"]["config"]["phase"] in {"D1", "D2"}:
++                self.context["D1_competence_demonstrated"] = True
++            for abandoned in state["abandoned_episodes"]:
++                emit(self.episodes, {**abandoned, "reason": "curriculum_namespace_transition"})
++            save_json(self.directory / "parent-lineage.json", {
++                "parent_checkpoint": str(args.parent_checkpoint),
++                "parent_sha256": file_hash(args.parent_checkpoint),
++                "parent_evaluation": certificate, "transition_to": config["phase"]})
++            self.make_environment([0] * config["batch_size"])
++        else:
++            require(config["phase"] in {"probe", "pilot"}, "Long stage requires an explicit eligible parent")
++
++    def close(self):
++        self.episodes.close()
++        self.metrics.close()
++
++    def make_environment(self, initial_episode_indices=None):
++        from . import VecDodgeEnv
++        self.guard.check()
++        self.env = TrainingEnvLog(VecDodgeEnv(**training_env_config(self.config, initial_episode_indices)),
++                                  self.counters, self.episodes)
++        metadata = verify_training_env(self.env, self.config, initial_episode_indices)
++        emit(self.episodes, {"kind": "initial", "info": self.env.episode_info(), "batch_info": metadata})
++        self.observation = self.env.observations()
++        self.guard.check()
++
++    def checkpoint(self, tag: str) -> tuple[Path, str]:
++        self.counters["checkpoint_index"] += 1
++        path = self.directory / f"checkpoint-{self.counters['checkpoint_index']:06d}-{tag}.pt"
++        state = ckpt.make_state(self.model, self.optimizer, self.identity, self.counters,
++                               env=self.env, tag=tag, progress=self.progress, device=self.device,
++                               parent_sha256=self.config["parent_checkpoint_sha256"])
++        self.context.update(actor_gradient_seen=self.actor_gradient_seen,
++                            critic_gradient_seen=self.critic_gradient_seen,
++                            large_kl_iterations=self.large_kl_iterations,
++                            last_metrics=copy.deepcopy(self.last_metrics),
++                            consumed_wall_seconds=self.args.consumed_wall_seconds
++                            + time.monotonic() - self.args.execution_started_monotonic)
++        state["run_context"] = copy.deepcopy(self.context)
++        state["counter_semantics"] = "Successful public step returns; native partial exceptions require retained per-slot diagnostics."
++        digest = ckpt.save_checkpoint(path, state)
++        # The checkpoint already contains these records; this stream makes their
++        # fresh-environment semantics inspectable without loading Torch data.
++        emit(self.episodes, {"kind": "checkpoint_resume_boundary", "checkpoint_sha256": digest,
++                            "next_episode_indices": state["next_episode_indices"],
++                            "abandoned_on_resume": state["abandoned_episodes"]})
++        return path, digest
++
++    def evaluate_checkpoint(self, path: Path, digest: str, *, pilot_before=None) -> dict:
++        phase = self.config["phase"]
++        stages = ["D2", "D3"] if phase == "D3" else ["D1" if phase == "pilot" else phase]
++        evaluations = {}
++        for stage in stages:
++            self.guard.check(force=True)
++            log = self.directory / f"{path.stem}-{stage}-development.jsonl"
++            with log.open("x") as stream:
++                evaluations[stage] = evaluate(self.model, stage, self.device,
++                                               check_guard=self.guard.check, episode_stream=stream)
++            self.guard.check(force=True)
++        require(file_hash(path) == digest, "Evaluated checkpoint changed")
++        if phase == "pilot":
++            after = evaluations["D1"]
++            require(pilot_before is not None, "Pilot baseline missing")
++            passed = (pilot_improved(pilot_before, after) and self.actor_gradient_seen
++                      and self.critic_gradient_seen and self.counters["phase_updates"] > 0)
++            if self.last_metrics is not None and self.last_metrics["entropy"] < 0.3 \
++                    and not progress_passed("D1", {"D1": after}):
++                passed = False
++            certificate = {"phase": phase, "checkpoint_sha256": digest, "complete": True,
++                           "passed": passed, "before": pilot_before, "evaluations": evaluations,
++                           "actor_gradient_seen": self.actor_gradient_seen,
++                           "critic_gradient_seen": self.critic_gradient_seen,
++                           "completed_training_updates": self.counters["phase_updates"]}
++        else:
++            certificate = {"phase": phase, "checkpoint_sha256": digest, "complete": True,
++                           "passed": bool(progress_passed(phase, evaluations)),
++                           "evaluations": evaluations}
++        save_json(ckpt.evaluation_path(path), certificate)
++        self.guard.check(force=True)
++        return certificate
++
++    def update_once(self):
++        self.guard.check()
++        require(self.env is not None, "Training environment missing")
++        collection = collect_rollout(self.model, self.env, self.config["rollout_steps"],
++                                     self.device, observation=self.observation,
++                                     config=self.ppo, check_guard=self.guard.check)
++        require_raw_diagnostics(collection.batch)
++        self.observation = collection.observations
++        emit(self.episodes, {"kind": "collection_accepted", "update": self.counters["updates"],
++                            "completed_episodes": len(collection.completed_episodes),
++                            "reset_events": len(collection.reset_info),
++                            "transitions": collection.batch.transitions,
++                            "returned_raw_frames": int(collection.batch.elapsed_raw_frames.sum().item())})
++        self.progress = {}
++        self.last_metrics = ppo_update(self.model, self.optimizer, collection.batch, self.ppo,
++                                       check_guard=self.guard.check, progress=self.progress)
++        self.counters["updates"] += 1
++        self.counters["phase_updates"] += 1
++        self.counters["optimizer_steps"] += self.last_metrics["optimizer_steps"]
++        self.actor_gradient_seen |= self.last_metrics["actor_grad_norm"] > 0
++        self.critic_gradient_seen |= self.last_metrics["critic_grad_norm"] > 0
++        self.large_kl_iterations = self.large_kl_iterations + 1 if self.last_metrics["approx_kl"] > 0.1 else 0
++        emit(self.metrics, {"at_utc": utc_now().isoformat(), "counters": self.counters,
++                            "metrics": self.last_metrics})
++        if self.large_kl_iterations >= 3:
++            raise GuardStop("Approximate KL exceeded 0.1 on three consecutive iterations")
++        self.guard.check()
++
++    def pilot(self) -> dict:
++        if "pilot_before" in self.context:
++            before = self.context["pilot_before"]
++            initial_path = Path(self.context["pilot_initial_checkpoint"])
++            initial_hash = self.context["pilot_initial_checkpoint_sha256"]
++        else:
++            initial_path, initial_hash = self.checkpoint("pilot_initial")
++            with (self.directory / "pilot-before-development.jsonl").open("x") as stream:
++                before = evaluate(self.model, "D1", self.device, check_guard=self.guard.check, episode_stream=stream)
++            self.context.update(pilot_before=before, pilot_initial_checkpoint=str(initial_path.resolve()),
++                                pilot_initial_checkpoint_sha256=initial_hash)
++        save_json(self.directory / "pilot-before.json", {"checkpoint_sha256": initial_hash, **before})
++        self.context["D1_competence_demonstrated"] |= bool(progress_passed("D1", {"D1": before}))
++        if self.env is None:
++            self.make_environment()
++        reserve = max(30.0, 2 * before["elapsed_seconds"]) + 10.0
++        while self.guard.deadline - time.monotonic() > reserve:
++            self.update_once()
++            if self.counters["phase_updates"] % 8 == 0:
++                self.checkpoint("periodic")
++        require(self.counters["phase_updates"] > 0, "Pilot completed no learner update")
++        self.guard.check(force=True)
++        end_path, end_hash = self.checkpoint("candidate")
++        certificate = self.evaluate_checkpoint(end_path, end_hash, pilot_before=before)
++        return {"status": "passed" if certificate["passed"] else "pilot_failed",
++                "phase": "pilot", "initial_checkpoint": initial_path.name,
++                "initial_checkpoint_sha256": initial_hash, "checkpoint": end_path.name,
++                "checkpoint_sha256": end_hash, "evaluation": certificate,
++                "counters": self.counters, "B_opened": False}
++
++    def stage(self) -> dict:
++        require(self.env is not None, "Stage was not initialized from an eligible checkpoint")
++        while True:
++            if self.counters["phase_updates"] % 16 == 0:
++                path, digest = self.checkpoint("candidate")
++                certificate = self.evaluate_checkpoint(path, digest)
++                if certificate["passed"]:
++                    return {"status": "passed", "phase": self.config["phase"],
++                            "checkpoint": path.name, "checkpoint_sha256": digest,
++                            "evaluation": certificate, "counters": self.counters, "B_opened": False}
++                results = certificate["evaluations"]
++                competence = self.context["D1_competence_demonstrated"] or (
++                    "D1" in results and progress_passed("D1", {"D1": results["D1"]}))
++                if self.last_metrics is not None and self.last_metrics["entropy"] < 0.3 and not competence:
++                    raise GuardStop("Entropy below 0.3 before demonstrated D1 competence")
++            self.update_once()
++            if self.counters["phase_updates"] % 8 == 0 and self.counters["phase_updates"] % 16:
++                self.checkpoint("periodic")
++
++    def probe(self) -> dict:
++        self.make_environment()
++        path, initial_hash = self.checkpoint("probe_diagnostic")
++        starting_weights = copy.deepcopy(self.model.cpu().state_dict())
++        self.device = torch.device("cpu")
++        collected_at = time.monotonic()
++        collection = collect_rollout(self.model, self.env, self.config["rollout_steps"], "cpu",
++                                     config=self.ppo, check_guard=self.guard.check)
++        require_raw_diagnostics(collection.batch)
++        collection_wall = time.monotonic() - collected_at
++        for info in collection.completed_episodes:
++            emit(self.episodes, {"kind": "probe_completed", "info": info})
++        for reset in collection.reset_info:
++            emit(self.episodes, {"kind": "probe_reset", **reset})
++        # Keep the actual on-policy buffer and its RNG state as diagnostic evidence.
++        buffer_path = self.directory / "probe-rollout.pt"
++        buffer_hash = ckpt.save_checkpoint(buffer_path, {"batch": collection.batch,
++            "sampling_rng": ckpt.capture_rng("cpu"), "initial_checkpoint_sha256": initial_hash,
++            "tag": "probe_diagnostic"})
++        starting_rng = ckpt.capture_rng("cpu")
++        measurements = []
++        for device_name in self.config["probe_devices"]:
++            self.guard.check(force=True)
++            if device_name == "mps" and not torch.backends.mps.is_available():
++                measurements.append({"device": device_name, "status": "unavailable"})
++                continue
++            try:
++                device = torch.device(device_name)
++                candidate = copy.deepcopy(self.model).to(device)
++                candidate.load_state_dict(starting_weights)
++                optimizer = make_optimizer(candidate, self.config)
++                ckpt.restore_rng(starting_rng, "cpu")
++                candidate.eval()
++                synchronize(device)
++                inference_at = time.monotonic()
++                with torch.no_grad():
++                    for step in range(self.config["rollout_steps"]):
++                        self.guard.check()
++                        output = candidate(*(getattr(collection.batch, name)[step].to(device)
++                                              for name in OBSERVATION_KEYS))
++                        require(bool(torch.isfinite(output.logits).all())
++                                and bool(torch.isfinite(output.values).all()), "Nonfinite device probe")
++                        del output
++                synchronize(device)
++                inference_wall = time.monotonic() - inference_at
++                synchronize(device)
++                update_at = time.monotonic()
++                progress = {}
++                metrics = ppo_update(candidate, optimizer, collection.batch, self.ppo,
++                                     check_guard=self.guard.check, progress=progress)
++                synchronize(device)
++                update_wall = time.monotonic() - update_at
++                diagnostic_identity = copy.deepcopy(self.identity)
++                state = ckpt.make_state(candidate, optimizer, diagnostic_identity, self.counters,
++                                        env=self.env, tag="probe_diagnostic", progress=progress,
++                                        device=device)
++                state["actual_measured_device"] = device_name
++                final = self.directory / f"probe-{device_name}-updated.pt"
++                digest = ckpt.save_checkpoint(final, state)
++                measurements.append({"device": device_name, "status": "completed",
++                    "inference_wall_seconds": inference_wall, "update_wall_seconds": update_wall,
++                    "measured_inference_plus_update_seconds": inference_wall + update_wall,
++                    "optimizer_steps": metrics["optimizer_steps"], "metrics": metrics,
++                    "checkpoint": final.name, "checkpoint_sha256": digest})
++                del candidate, optimizer
++            except GuardStop:
++                raise
++            except Exception as error:
++                failure = {"device": device_name, "status": "failed", "error": repr(error),
++                           "traceback": traceback.format_exc(), "automatic_retry": False}
++                save_json(self.directory / f"probe-{device_name}-failure.json", failure)
++                measurements.append(failure)
++        selected, incomparable = choose_probe_device(measurements)
++        self.guard.check(force=True)
++        return {"status": "passed", "phase": "probe", "selected_device": selected,
++                "measurements": measurements, "frozen_rollout_collection_wall_seconds": collection_wall,
++                "frozen_rollout": buffer_path.name, "frozen_rollout_sha256": buffer_hash,
++                "initial_checkpoint": path.name, "initial_checkpoint_sha256": initial_hash,
++                "weights_discarded_from_training": True, "B_opened": False,
++                "devices_excluded_from_speed_selection_for_unequal_update_work": incomparable,
++                "timing_scope": "Same starting weights and real frozen rollout; completed inference and PPO update, collection wall reported separately. Not a closed-loop training SPS estimate."}
++
++
++def worker(args) -> int:
++    started = time.monotonic()
++    config = read_config(args.config, args.config_sha256)
++    require(config["phase"] == args.phase, "Command and registered phase differ")
++    require(0 <= args.consumed_wall_seconds < config["phase_settings"]["budget_seconds"]
++            and args.execution_started_monotonic <= time.monotonic()
++            and abs(args.deadline_monotonic - args.execution_started_monotonic
++                    - (config["phase_settings"]["budget_seconds"] - args.consumed_wall_seconds)) < 1e-6,
++            "Worker deadline does not preserve the registered consumed phase budget")
++    remaining = args.deadline_monotonic - time.monotonic()
++    require(0 < remaining <= config["phase_settings"]["budget_seconds"], "Worker deadline exceeds registered budget")
++    require(utc_now().timestamp() + remaining + 600 <= CUTOFF.timestamp(),
++            "Worker deadline and receipt reserve exceed cutoff")
++    identity = verify_inputs(args, config)
++    torch.set_num_threads(config["num_threads"])
++    seed_initialization(config["phase_settings"].get("initialization_seed", 0))
++    experiment = None
++    with (args.run_dir / "worker-resources.jsonl").open("x") as resources:
++        guard = Guard(deadline=args.deadline_monotonic, run_id=args.run_id,
++                      identity_sha256=args.identity_sha256, config_sha256=args.config_sha256,
++                      stream=resources, identity_check=lambda: verify_inputs(args, config),
++                      mps=config["device"] == "mps" or (args.phase == "probe" and torch.backends.mps.is_available()))
++        try:
++            guard.check(force=True)
++            experiment = Experiment(args, config, identity, guard)
++            if args.phase == "probe":
++                result = experiment.probe()
++            elif args.phase == "pilot":
++                result = experiment.pilot()
++            else:
++                result = experiment.stage()
++            guard.check(force=True)
++            result.update(identity_sha256=args.identity_sha256, config_sha256=args.config_sha256,
++                          elapsed_seconds=time.monotonic() - started,
++                          maximum_observed_RSS_bytes=guard.maximum_rss,
++                          maximum_MPS_driver_bytes=guard.maximum_mps)
++            save_json(args.run_dir / "worker-result.json", result)
++            return 0 if result["status"] == "passed" else 1
++        except Exception as error:
++            result = {"status": "failed", "phase": args.phase, "error": repr(error),
++                      "traceback": traceback.format_exc(), "identity_sha256": args.identity_sha256,
++                      "config_sha256": args.config_sha256, "elapsed_seconds": time.monotonic() - started,
++                      "maximum_observed_RSS_bytes": guard.maximum_rss,
++                      "maximum_MPS_driver_bytes": guard.maximum_mps, "B_opened": False}
++            if experiment is not None:
++                tag = "interrupted_mid_update" if experiment.progress.get("in_update", False) else (
++                    "timeout" if isinstance(error, GuardStop) and "wall" in str(error) else "failure")
++                try:
++                    path, digest = experiment.checkpoint(tag)
++                    result.update(checkpoint=path.name, checkpoint_sha256=digest, checkpoint_tag=tag,
++                                  update_progress=experiment.progress)
++                except Exception as checkpoint_error:
++                    result["checkpoint_error"] = repr(checkpoint_error)
++            save_json(args.run_dir / "worker-result.json", result)
++            return 1
++        finally:
++            if experiment is not None:
++                experiment.close()
++
++
++def run_supervised(args) -> int:
++    started = time.monotonic()
++    config = read_config(args.config)
++    phase = config["phase"]
++    require((args.command == phase) or (args.command == "stage" and phase == args.stage),
++            "Command and registered phase differ")
++    resume_state = None
++    args.resume_checkpoint_sha256 = None
++    if args.resume_checkpoint is not None:
++        args.resume_checkpoint_sha256 = file_hash(args.resume_checkpoint)
++        resume_state = ckpt.load_checkpoint(args.resume_checkpoint, expected_sha256=args.resume_checkpoint_sha256)
++    consumed, remaining = remaining_phase_budget(config, resume_state)
++    check_budget(utc_now(), math.ceil(remaining))
++    identity_digest, config_digest = file_hash(args.identity), file_hash(args.config)
++    args.identity_sha256, args.config_sha256 = identity_digest, config_digest
++    assert_lease(args.run_id, identity_digest, config_digest)
++    verify_inputs(args, config)
++    require(not (args.resume_checkpoint is not None and args.parent_checkpoint is not None),
++            "Choose resume or transition parent")
++    if phase in {"probe", "pilot"}:
++        require(args.parent_checkpoint is None, "Fresh probe/pilot cannot inherit weights")
++    if phase == "probe":
++        require(args.resume_checkpoint is None, "Probe cannot resume")
++    args.run_dir.mkdir(parents=True, exist_ok=False)
++    deadline = started + remaining
++    command = [sys.executable, "-B", "-m", "dodge_rl.train_teacher", "_worker",
++               "--phase", phase, "--config", str(args.config.resolve()),
++               "--identity", str(args.identity.resolve()), "--run-id", args.run_id,
++               "--run-dir", str(args.run_dir.resolve()), "--identity-sha256", identity_digest,
++               "--config-sha256", config_digest, "--deadline-monotonic", str(deadline),
++               "--consumed-wall-seconds", str(consumed), "--execution-started-monotonic", str(started)]
++    for field in ("resume_checkpoint", "parent_checkpoint"):
++        value = getattr(args, field)
++        if value is not None:
++            command += ["--" + field.replace("_", "-"), str(value.resolve())]
++    if args.resume_checkpoint_sha256 is not None:
++        command += ["--resume-checkpoint-sha256", args.resume_checkpoint_sha256]
++    save_json(args.run_dir / "registered-config.json", config)
++    save_json(args.run_dir / "identity.json", json.loads(args.identity.read_bytes()))
++    save_json(args.run_dir / "launch-command.json", {"argv": command, "cwd": str(ROOT),
++        "started_at_utc": utc_now().isoformat(), "identity_sha256": identity_digest,
++        "config_sha256": config_digest, "deadline_monotonic": deadline})
++    result = {"status": "failed", "run_id": args.run_id, "phase": phase,
++              "identity_sha256": identity_digest, "config_sha256": config_digest,
++              "automatic_retries": 0, "limits_relaxed": False, "B_opened": False,
++              "guard_semantics": "Cooperative worker RSS/MPS and external sampled RSS/wall; no unsampled hard-OS memory claim."}
++    active = None
++    with (args.run_dir / "supervisor-resources.jsonl").open("x") as resources, \
++            (args.run_dir / "worker-stdout.log").open("xb") as stdout:
++        guard = Guard(deadline=deadline, run_id=args.run_id, identity_sha256=identity_digest,
++                      config_sha256=config_digest, stream=resources,
++                      identity_check=lambda: verify_inputs(args, config), mps=False)
++        try:
++            guard.check(force=True)
++            active = subprocess.Popen(command, cwd=ROOT, stdout=stdout, stderr=subprocess.STDOUT,
++                                      start_new_session=True, env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"))
++            save_json(args.run_dir / "owned-process.json", {"owned_pid": active.pid, "owned_pgid": active.pid})
++            while active.poll() is None:
++                guard.check(force=True)
++                try:
++                    rss = current_rss_bytes(active.pid)
++                except ValueError:
++                    if active.poll() is not None:
++                        break
++                    raise
++                emit(resources, {"at_utc": utc_now().isoformat(), "owned_worker_pid": active.pid,
++                                 "worker_rss_bytes": rss})
++                if rss > RSS_LIMIT:
++                    raise GuardStop("External observed worker RSS guard exceeded")
++                time.sleep(0.5)
++            result["worker_exit_code"] = active.wait(timeout=5)
++            guard.check(force=True)
++            worker_result = json.loads((args.run_dir / "worker-result.json").read_text())
++            require(worker_result["identity_sha256"] == identity_digest
++                    and worker_result["config_sha256"] == config_digest, "Worker result identity differs")
++            require(result["worker_exit_code"] == 0 and worker_result["status"] == "passed",
++                    f"Worker failed: {worker_result.get('error', worker_result['status'])}")
++            hashes = {str(p.relative_to(args.run_dir)): file_hash(p) for p in sorted(args.run_dir.rglob("*")) if p.is_file()}
++            guard.check(force=True)
++            result.update(status="passed", worker_result=worker_result)
++        except Exception as error:
++            result.update(error=repr(error), traceback=traceback.format_exc())
++            if active is not None:
++                if active.poll() is None:
++                    try:
++                        active.wait(timeout=5)  # Bounded grace for the cooperative failure checkpoint.
++                    except subprocess.TimeoutExpired:
++                        pass
++                result["owned_process_stop"] = stop_owned(active)
++        finally:
++            elapsed = time.monotonic() - started
++            result.update(finished_at_utc=utc_now().isoformat(), elapsed_seconds=elapsed,
++                          consumed_phase_wall_seconds=consumed + elapsed,
++                          prior_consumed_wall_seconds=consumed)
++            save_json(args.run_dir / "run-result.json", result)
++            hashes = {str(p.relative_to(args.run_dir)): file_hash(p) for p in sorted(args.run_dir.rglob("*")) if p.is_file()}
++            save_json(args.run_dir / "artifact-sha256.json", hashes)
++    return 0 if result["status"] == "passed" else 1
++
++
++def main() -> int:
++    parser = argparse.ArgumentParser(description=__doc__)
++    sub = parser.add_subparsers(dest="command", required=True)
++    config = sub.add_parser("config", help="Write a new registered configuration; no training")
++    config.add_argument("--phase", choices=("probe", "pilot", "D1", "D2", "D3"), required=True)
++    config.add_argument("--device", choices=("cpu", "mps"), default="cpu")
++    config.add_argument("--parent-checkpoint", type=Path)
++    config.add_argument("--output", type=Path, required=True)
++    freeze = sub.add_parser("freeze", help="Pin current source/runtime/config; no training")
++    freeze.add_argument("--config", type=Path, required=True)
++    freeze.add_argument("--output", type=Path, required=True)
++    for name in ("probe", "pilot", "stage", "_worker"):
++        run = sub.add_parser(name)
++        run.add_argument("--config", type=Path, required=True)
++        run.add_argument("--identity", type=Path, required=True)
++        run.add_argument("--run-dir", type=Path, required=True)
++        run.add_argument("--run-id", required=True)
++        run.add_argument("--resume-checkpoint", type=Path)
++        run.add_argument("--parent-checkpoint", type=Path)
++        if name == "stage":
++            run.add_argument("--stage", choices=("D1", "D2", "D3"), required=True)
++        if name == "_worker":
++            run.add_argument("--phase", choices=("probe", "pilot", "D1", "D2", "D3"), required=True)
++            run.add_argument("--identity-sha256", required=True)
++            run.add_argument("--config-sha256", required=True)
++            run.add_argument("--deadline-monotonic", type=float, required=True)
++            run.add_argument("--consumed-wall-seconds", type=float, required=True)
++            run.add_argument("--execution-started-monotonic", type=float, required=True)
++            run.add_argument("--resume-checkpoint-sha256")
++    args = parser.parse_args()
++    if args.command == "config":
++        parent = None if args.parent_checkpoint is None else file_hash(args.parent_checkpoint)
++        value = default_config(args.phase, args.device, parent)
++        save_json(args.output, value)
++        print(json.dumps({"config": str(args.output), "config_sha256": file_hash(args.output)}))
++        return 0
++    if args.command == "freeze":
++        value = build_identity(read_config(args.config))
++        save_json(args.output, value)
++        print(json.dumps({"identity": str(args.output), "identity_sha256": file_hash(args.output),
++                          "config_sha256": file_hash(args.config),
++                          "semantic_config_sha256": value["config_sha256"]}))
++        return 0
++    return worker(args) if args.command == "_worker" else run_supervised(args)
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+--- /dev/null
++++ python/tests/test_checkpoints.py
+@@ -0,0 +1,216 @@
++"""Risk-directed immutable checkpoint and curriculum lineage tests."""
++from __future__ import annotations
++
++import copy
++import json
++from pathlib import Path
++import random
++from types import SimpleNamespace
++
++import numpy as np
++import pytest
++import torch
++
++from dodge_rl import checkpoints as c
++from dodge_rl.dev_eval import development_seeds, summarize
++from dodge_rl.identity import default_config, identity_hash
++
++torch.set_num_threads(4)
++
++
++def simple_identity(config=None):
++    config = default_config("pilot") if config is None else config
++    return {"config": config, "config_sha256": identity_hash(config),
++            "sources": {"source.py": "unchanged"}, "runtime": {"device": config["device"]},
++            "architecture": {"tokens": 81, "width": 128}, "gate": "fixed"}
++
++
++def eval_result(score, alive, stage="D1"):
++    cap = 2000 if stage == "D1" else 18000
++    rows = []
++    for i, seed in enumerate(development_seeds()):
++        terminated = alive < cap
++        rows.append({"episode_index": i, "seed": seed, "score_raw_fixed": int(score * 65536),
++                     "score": score, "alive_frames": alive, "gameplay_frames": alive + int(terminated),
++                     "terminated": terminated, "truncated": not terminated,
++                     "objective_return": score + alive / 100 - 5 * terminated})
++    return summarize(rows, stage, .1)
++
++
++def learner():
++    model = torch.nn.Linear(2, 1)
++    return model, torch.optim.Adam(model.parameters(), lr=.003)
++
++
++def checkpoint(path, *, tag="candidate", identity=None):
++    model, optimizer = learner()
++    state = c.make_state(model, optimizer, simple_identity() if identity is None else identity,
++                         {"updates": 1}, tag=tag)
++    digest = c.save_checkpoint(path, state)
++    return state, digest
++
++
++def certificate(path, digest, *, passed=True, after_score=2):
++    proof = {"checkpoint_sha256": digest, "phase": "pilot", "complete": True, "passed": passed,
++             "before": eval_result(.5, 500), "evaluations": {"D1": eval_result(after_score, 700)},
++             "actor_gradient_seen": True, "critic_gradient_seen": True, "completed_training_updates": 1}
++    c.evaluation_path(path).write_text(json.dumps(proof))
++    return proof
++
++
++def test_atomic_publish_never_overwrites(tmp_path):
++    path = tmp_path / "state.pt"
++    checkpoint(path)
++    original = path.read_bytes()
++    with pytest.raises(ValueError, match="already exists"):
++        checkpoint(path)
++    assert path.read_bytes() == original
++
++
++def test_failed_temporary_write_does_not_publish_or_damage_existing(tmp_path, monkeypatch):
++    old = tmp_path / "old.pt"
++    checkpoint(old)
++    original = old.read_bytes()
++    def interrupted(_state, stream):
++        stream.write(b"incomplete")
++        raise OSError("synthetic interrupted save")
++    monkeypatch.setattr(c.torch, "save", interrupted)
++    with pytest.raises(OSError, match="synthetic"):
++        c.save_checkpoint(tmp_path / "new.pt", {})
++    assert old.read_bytes() == original
++    assert not (tmp_path / "new.pt").exists()
++    partials=list(tmp_path.glob("*.partial"))
++    assert len(partials)==1 and partials[0].read_bytes()==b"incomplete"
++
++
++def test_atomic_publish_collision_after_precheck_refuses_overwrite(tmp_path, monkeypatch):
++    real_link = c.os.link
++    path = tmp_path / "state.pt"
++    def race(source, target):
++        Path(target).write_bytes(b"another owner")
++        return real_link(source, target)
++    monkeypatch.setattr(c.os, "link", race)
++    with pytest.raises(FileExistsError):
++        checkpoint(path)
++    assert path.read_bytes() == b"another owner"
++
++
++@pytest.mark.parametrize("change", ["source", "untracked", "binary", "device", "config"])
++def test_same_run_identity_changes_rejected(tmp_path, change):
++    path = tmp_path / "state.pt"
++    original = simple_identity()
++    checkpoint(path, identity=original)
++    other = copy.deepcopy(original)
++    if change == "source": other["sources"]["source.py"] = "one-byte-change"
++    if change == "untracked": other["sources"]["new.py"] = "new"
++    if change == "binary": other["sources"]["_native.so"] = "changed"
++    if change == "device": other["runtime"]["device"] = "mps"
++    if change == "config": other["config"]["ppo"]["gamma"] = .9
++    with pytest.raises(ValueError, match="identity mismatch"):
++        c.load_checkpoint(path, other)
++
++
++def test_checkpoint_file_and_embedded_identity_hashes_checked(tmp_path):
++    path = tmp_path / "state.pt"
++    state, digest = checkpoint(path)
++    assert c.load_checkpoint(path, expected_sha256=digest)["tag"] == "candidate"
++    with pytest.raises(ValueError, match="file hash"):
++        c.load_checkpoint(path, expected_sha256="0" * 64)
++    state["identity"]["sources"]["source.py"] = "tampered"
++    c.save_checkpoint(tmp_path / "bad.pt", state)
++    with pytest.raises(ValueError, match="identity hash"):
++        c.load_checkpoint(tmp_path / "bad.pt")
++
++
++def test_actual_rng_optimizer_roundtrip_gives_identical_next_update(tmp_path):
++    torch.manual_seed(112)
++    np.random.seed(113)
++    random.seed(114)
++    model, optimizer = learner()
++    data = torch.tensor([[1., 2.], [3., 4.]])
++    optimizer.zero_grad(); model(data).square().mean().backward(); optimizer.step()
++    state = c.make_state(model, optimizer, simple_identity(), {"updates": 1})
++    path = tmp_path / "state.pt"; c.save_checkpoint(path, state)
++    expected_draws = (torch.randn(2, 2), np.random.rand(), random.random())
++    optimizer.zero_grad(); model(expected_draws[0]).square().mean().backward(); optimizer.step()
++    expected_weights = copy.deepcopy(model.state_dict())
++    expected_optimizer = copy.deepcopy(optimizer.state_dict())
++    restored, restored_optimizer = learner()
++    c.restore_learner(c.load_checkpoint(path, simple_identity()), restored, restored_optimizer)
++    actual_draws = (torch.randn(2, 2), np.random.rand(), random.random())
++    assert torch.equal(expected_draws[0], actual_draws[0])
++    assert expected_draws[1:] == actual_draws[1:]
++    restored_optimizer.zero_grad(); restored(actual_draws[0]).square().mean().backward(); restored_optimizer.step()
++    for name, value in expected_weights.items(): assert torch.equal(value, restored.state_dict()[name])
++    for key, value in expected_optimizer["state"].items():
++        for field, tensor in value.items(): assert torch.equal(tensor, restored_optimizer.state_dict()["state"][key][field])
++
++
++def test_resume_skips_current_episode_and_records_abandonment():
++    infos = [{"seed": {"slot": i, "episode": k, "actual_seed": 100+i},
++              "gameplay_frames": 9, "score_raw_fixed": 0, "terminated": False, "truncated": False}
++             for i, k in enumerate([7, 12])]
++    env = SimpleNamespace(episode_info=lambda: infos,
++                          batch_info=lambda: {"next_episode_indices": [8, 13]})
++    indices, abandoned = c.episode_resume_state(env, 2)
++    assert indices == [8, 13]
++    assert [row["seed"]["episode"] for row in abandoned] == [7, 12]
++    assert all(row["kind"] == "abandoned_on_fresh_env_resume" for row in abandoned)
++
++
++@pytest.mark.parametrize("indices,batch", [([7,13],2),([None,13],2),([8],2),([8,13],3)])
++def test_bad_resume_counters_or_batch_rejected(indices, batch):
++    env = SimpleNamespace(episode_info=lambda: [{"seed":{"episode":7}}, {"seed":{"episode":12}}],
++                          batch_info=lambda: {"next_episode_indices": indices})
++    with pytest.raises(ValueError): c.episode_resume_state(env, batch)
++
++
++def test_registered_transition_preserves_parent_bytes_and_rng_state(tmp_path):
++    path = tmp_path / "pilot.pt"
++    parent, digest = checkpoint(path)
++    certificate(path, digest)
++    original = path.read_bytes()
++    target = simple_identity(default_config("D1", parent_sha256=digest))
++    loaded, proof = c.validate_transition(path, target)
++    assert proof["passed"] and loaded["identity"]["config"]["phase"] == "pilot"
++    assert path.read_bytes() == original
++    assert torch.equal(loaded["rng"]["torch_cpu"], parent["rng"]["torch_cpu"])
++
++
++@pytest.mark.parametrize("field", ["lr", "K", "reward", "source", "device", "budget"])
++def test_transition_does_not_permit_unregistered_changes(tmp_path, field):
++    path = tmp_path / "pilot.pt"; _, digest = checkpoint(path); certificate(path, digest)
++    target = simple_identity(default_config("D1", parent_sha256=digest))
++    if field == "lr": target["config"]["ppo"]["learning_rate"] = .01
++    if field == "K": target["config"]["action_repeat"] = 2
++    if field == "reward": target["config"]["ppo"]["reward_scale"] = 1
++    if field == "source": target["sources"]["source.py"] = "modified"
++    if field == "device": target["runtime"]["device"] = "mps"
++    if field == "budget": target["config"]["phase_settings"]["budget_seconds"] = 1801
++    with pytest.raises(ValueError): c.validate_transition(path, target)
++
++
++@pytest.mark.parametrize("tag", sorted(c.REJECTED_PARENT_TAGS))
++def test_interrupted_failed_timeout_probe_parent_refused(tmp_path, tag):
++    path = tmp_path / "parent.pt"; _, digest = checkpoint(path, tag=tag); certificate(path, digest)
++    with pytest.raises(ValueError, match="cannot advance"):
++        c.validate_transition(path, simple_identity(default_config("D1", parent_sha256=digest)))
++
++
++def test_claimed_pilot_pass_without_score_improvement_is_rejected(tmp_path):
++    path = tmp_path / "pilot.pt"; _, digest = checkpoint(path); certificate(path, digest, after_score=.5)
++    with pytest.raises(ValueError, match="improvement"):
++        c.validate_transition(path, simple_identity(default_config("D1", parent_sha256=digest)))
++
++
++def test_mid_update_progress_is_retained_and_cannot_advance(tmp_path):
++    path = tmp_path / "partial.pt"
++    model, optimizer = learner()
++    progress = {"in_update": True, "complete": False, "epoch": 1, "minibatch": 2, "optimizer_steps": 7}
++    state = c.make_state(model, optimizer, simple_identity(), {"updates": 1},
++                         tag="interrupted_mid_update", progress=progress)
++    digest = c.save_checkpoint(path, state)
++    assert c.load_checkpoint(path)["update_progress"] == progress
++    certificate(path, digest)
++    with pytest.raises(ValueError):
++        c.validate_transition(path, simple_identity(default_config("D1", parent_sha256=digest)))
+--- /dev/null
++++ python/tests/test_teacher_runner.py
+@@ -0,0 +1,386 @@
++"""Synthetic protocol, source identity, evaluation, and resource guard tests."""
++from __future__ import annotations
++
++import copy
++from datetime import datetime, timedelta, timezone
++import io
++import json
++import subprocess
++from pathlib import Path
++from types import SimpleNamespace
++
++import numpy as np
++import pytest
++import torch
++
++from dodge_rl import dev_eval as d
++from dodge_rl import identity as i
++from dodge_rl import supervision as s
++from dodge_rl import train_teacher as t
++
++torch.set_num_threads(4)
++
++
++def test_registered_namespaces_are_distinct_and_fully_fixed():
++    configs = [i.default_config(phase, parent_sha256="a"*64 if phase in {"D1","D2","D3"} else None)
++               for phase in ("probe","pilot","D1","D2","D3")]
++    assert len({cfg["phase_settings"]["run_seed"] for cfg in configs}) == 5
++    assert [cfg["phase_settings"]["budget_seconds"] for cfg in configs] == [180,300,1800,1800,1800]
++    for cfg in configs: assert i.validate_config(cfg) == cfg
++    bad = copy.deepcopy(configs[1]);bad["ppo"]["reward_scale"] = 1
++    with pytest.raises(ValueError, match="registered"): i.validate_config(bad)
++
++
++def test_constructors_explicitly_supply_all_reservations_and_resume_indices():
++    cfg = i.default_config("pilot")
++    value = i.training_env_config(cfg, [8]*64)
++    assert value["excluded_seed_ranges"] == [(0xB0000000,0xB00003E7),(0xD0000000,0xD000007F),(0xE0000000,0xE00003E7)]
++    assert value["initial_episode_indices"] == [8]*64
++    for invalid in ([0], [None]*64, [-1]*64, [2**64]*64):
++        with pytest.raises(ValueError): i.training_env_config(cfg, invalid)
++
++
++def fake_training_env(cfg, *, omit_D=False, version="dodge_slot_splitmix64_high32_reject_v1", indices=None):
++    indices = [0]*64 if indices is None else indices
++    metadata = {"effective_excluded_seed_ranges": cfg["excluded_seed_ranges"][:1] if omit_D else cfg["excluded_seed_ranges"],
++                "seed_stream_version": version, "seed_exclusion_version": "mandatory_b_plus_inclusive_union_rehash_v1",
++                "seed_mode": {"mode":"training","run_seed":cfg["phase_settings"]["run_seed"]},
++                "initial_episode_indices":indices,"batch_size":64,"action_repeat":4}
++    infos = [{"seed":{"slot":slot,"episode":episode,"evaluation":False,"actual_seed":slot+100},
++              "startup_frames":13,"gameplay_frames":0} for slot,episode in enumerate(indices)]
++    return SimpleNamespace(batch_info=lambda:metadata,episode_info=lambda:infos)
++
++
++def test_training_preflight_checks_effective_union_versions_and_echo():
++    cfg=i.default_config("pilot")
++    assert i.verify_training_env(fake_training_env(cfg),cfg)["batch_size"]==64
++    with pytest.raises(ValueError,match="exclusions"): i.verify_training_env(fake_training_env(cfg,omit_D=True),cfg)
++    with pytest.raises(ValueError,match="version"): i.verify_training_env(fake_training_env(cfg,version="other"),cfg)
++    with pytest.raises(ValueError,match="echoed"): i.verify_training_env(fake_training_env(cfg,indices=[1]*64),cfg)
++
++
++def fixture_root(path):
++    names = ["Cargo.toml","Cargo.lock","rust-toolchain.toml",".cargo/config.toml","assets/dodge.p8",
++             "python/pyproject.toml","python/requirements-local-mac.txt","docs/SPEC_PRIVILEGED_VIT_RL.md",
++             "docs/implementation-plan-v2.md","docs/v2-environment-contract.md","docs/v2-teacher-training-plan.md",
++             "docs/v2-m3-component-contract.md","docs/teacher-qualification-v2.json",str(i.PROTOCOL_PATH),
++             "python/dodge_rl/model.py","python/dodge_rl/_native.so"]
++    for name in names:
++        p=path/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(b"original")
++    return path
++
++
++@pytest.mark.parametrize("change",["byte","untracked","binary"])
++def test_inventory_catches_actual_bytes_untracked_files_and_so(tmp_path,change):
++    root=fixture_root(tmp_path);before=i.source_inventory(root)
++    if change=="byte": (root/"python/dodge_rl/model.py").write_bytes(b"originaL")
++    if change=="untracked": (root/"python/dodge_rl/new.py").write_bytes(b"new")
++    if change=="binary": (root/"python/dodge_rl/_native.so").write_bytes(b"different")
++    assert i.source_inventory(root)!=before
++
++
++def test_inventory_excludes_only_cache_artifacts(tmp_path):
++    root=fixture_root(tmp_path);before=i.source_inventory(root)
++    cache=root/"python/dodge_rl/__pycache__/generated.pyc";cache.parent.mkdir();cache.write_bytes(b"cache")
++    assert i.source_inventory(root)==before
++
++
++def test_real_identity_is_read_only_and_preserves_torch_rng():
++    cfg=i.default_config("probe");rng=torch.get_rng_state().clone()
++    identity=i.build_identity(cfg)
++    assert torch.equal(rng,torch.get_rng_state())
++    assert identity["architecture"]["token_count"]==81
++    assert identity["foundation"]["extension_sha256"]==i.EXTENSION_SHA256
++    assert any(name.endswith(".so") for name in identity["sources"])
++    assert identity["config_sha256"]==i.identity_hash(cfg)
++
++
++def test_raw_config_anchor_rejects_even_whitespace_replacement(tmp_path):
++    path=tmp_path/"cfg.json";path.write_text(json.dumps(i.default_config("pilot")))
++    expected=i.file_hash(path);assert t.read_config(path,expected)["phase"]=="pilot"
++    path.write_text(path.read_text()+"\n")
++    with pytest.raises(ValueError,match="document changed"):t.read_config(path,expected)
++
++
++class FakePolicy(torch.nn.Module):
++    def forward(self,g,e,types,mask):
++        assert not torch.is_grad_enabled()
++        return SimpleNamespace(logits=torch.zeros((len(g),9)),values=torch.zeros(len(g)))
++
++
++class FakeEvalEnv:
++    instances=[]
++    def __init__(self,**cfg):
++        self.cfg=cfg;self.seed=cfg["seeds_by_slot"][0][0];self.calls=0;self.done=False
++        self.duration=(self.seed-0xD0000000)%3+1
++        self.instances.append(self)
++    def episode_info(self):
++        return [{"seed":{"evaluation":True,"actual_seed":self.seed},"startup_frames":13}]
++    def observations(self):
++        return {"global_feats":np.zeros((1,1,14),np.float32),"entity_feats":np.zeros((1,80,16),np.float32),
++                "entity_types":np.zeros((1,80),np.int64),"entity_mask":np.zeros((1,80),bool)}
++    def step(self,actions):
++        assert not self.done,"ended environment was stepped"
++        self.calls+=1;self.done=self.calls==self.duration
++        alive=self.calls-int(self.done)
++        info={"seed":{"actual_seed":self.seed},"bootstrap":not self.done,"score_raw_fixed":0,
++              "score_delta_sum_raw_fixed":0,"alive_frames":alive,"gameplay_frames":self.calls,
++              "objective_return":alive/100-5*self.done}
++        return {"info":[info],"terminated":np.array([self.done]),"truncated":np.array([False]),
++                "observations":self.observations()}
++    def reset_done(self,*args):raise AssertionError("Development evaluation must never reset")
++
++
++def test_development_batches_alive_policies_and_never_steps_ended_slot():
++    FakeEvalEnv.instances=[];model=FakePolicy();model.train()
++    result=d.evaluate(model,"D1",env_factory=FakeEvalEnv)
++    assert result["episodes"]==64 and result["deaths"]==64 and model.training
++    assert [env.calls for env in FakeEvalEnv.instances]==[env.duration for env in FakeEvalEnv.instances]
++    assert all(env.cfg["raw_frame_cap"]==2000 and env.cfg["patterns_enabled"] is False for env in FakeEvalEnv.instances)
++    assert [row["seed"] for row in result["rows"]]==d.development_seeds()
++
++
++@pytest.mark.parametrize("seed",[0xB0000000,0xE0000000,0xD0000040,-1])
++def test_arbitrary_or_nonfirst64D_seed_rejected_before_construction(seed):
++    with pytest.raises(ValueError,match="development D"):
++        d.development_environment_config(seed,"D1")
++
++
++def test_development_difficulty_flags_and_caps():
++    for stage in ("D1","D2","D3"):
++        cfg=d.development_environment_config(0xD0000000,stage)
++        assert cfg["difficulty"]==int(stage[-1]) and cfg["powerups_enabled"]
++        assert cfg["raw_frame_cap"]==(2000 if stage=="D1" else 18000)
++        assert cfg["patterns_enabled"]==(stage!="D1")
++
++
++def test_pilot_requires_strict_both_metric_improvement():
++    from test_checkpoints import eval_result
++    before=eval_result(1,500)
++    assert d.pilot_improved(before,eval_result(2,600))
++    assert not d.pilot_improved(before,eval_result(1,600))
++    assert not d.pilot_improved(before,eval_result(2,500))
++    assert not d.pilot_improved(before,eval_result(.5,700))
++
++
++def test_summary_gate_rejects_posthoc_mean_tampering():
++    from test_checkpoints import eval_result
++    result=eval_result(9,1600);assert not d.progress_passed("D1",{"D1":result})
++    result["mean_score"]=10
++    with pytest.raises(ValueError,match="summary"):d.progress_passed("D1",{"D1":result})
++
++
++def test_cutoff_arithmetic_full_budget_and_reserve():
++    s.check_budget(datetime(2026,10,24,12,20,tzinfo=timezone.utc),1800)
++    with pytest.raises(ValueError,match="reserve"):
++        s.check_budget(datetime(2026,10,24,12,20,0,1,tzinfo=timezone.utc),1800)
++
++
++def guard_fixture(tmp_path,monkeypatch,*,rss=100,mps=False):
++    state=tmp_path/"state.json";state.write_text(json.dumps({"active_long_campaign":{
++        "run_id":"run","identity_sha256":"id","config_sha256":"cfg",
++        "kind":"M3_teacher","authorization":"frozen_reviewed_M3_teacher"}}))
++    monkeypatch.setattr(s.time,"monotonic",lambda:0.)
++    monkeypatch.setattr(s,"utc_now",lambda:datetime(2026,10,24,10,tzinfo=timezone.utc))
++    monkeypatch.setattr(s,"current_rss_bytes",lambda pid:rss)
++    monkeypatch.setattr(s,"peak_rss_bytes",lambda:100)
++    stream=io.StringIO()
++    guard=s.Guard(deadline=10,run_id="run",identity_sha256="id",config_sha256="cfg",stream=stream,
++                  state_path=state,mps=mps)
++    return guard,state,stream
++
++
++def test_guard_checks_actual_lease_and_keeps_resource_series(tmp_path,monkeypatch):
++    guard,state,stream=guard_fixture(tmp_path,monkeypatch);guard.check(force=True)
++    assert json.loads(stream.getvalue())["rss_bytes"]==100
++    data=json.loads(state.read_text());data["active_long_campaign"]["identity_sha256"]="other";state.write_text(json.dumps(data))
++    with pytest.raises(ValueError,match="identity/config"):guard.check(force=True)
++
++
++def test_guard_RSS_failure_retains_sample_before_exception(tmp_path,monkeypatch):
++    guard,_,stream=guard_fixture(tmp_path,monkeypatch,rss=s.RSS_LIMIT+1)
++    with pytest.raises(s.GuardStop,match="RSS"):guard.check(force=True)
++    assert json.loads(stream.getvalue())["rss_bytes"]==s.RSS_LIMIT+1
++
++
++def test_guard_MPS_limit_is_separate_from_RSS(tmp_path,monkeypatch):
++    guard,_,stream=guard_fixture(tmp_path,monkeypatch,mps=True)
++    monkeypatch.setattr(torch.mps,"driver_allocated_memory",lambda:s.RSS_LIMIT+1)
++    with pytest.raises(s.GuardStop,match="MPS"):guard.check(force=True)
++    sample=json.loads(stream.getvalue());assert sample["rss_bytes"]==100 and sample["mps_driver_bytes"]==s.RSS_LIMIT+1
++
++
++def test_wall_and_cutoff_reject_before_new_work(tmp_path,monkeypatch):
++    guard,_,_=guard_fixture(tmp_path,monkeypatch)
++    monkeypatch.setattr(s.time,"monotonic",lambda:10.)
++    with pytest.raises(s.GuardStop,match="wall"):guard.check()
++    monkeypatch.setattr(s.time,"monotonic",lambda:0.)
++    monkeypatch.setattr(s,"utc_now",lambda:s.CUTOFF)
++    with pytest.raises(s.GuardStop,match="cutoff"):guard.check()
++
++
++def test_streaming_proxy_retains_completed_native_work_before_collection_acceptance():
++    stream=io.StringIO();counters={"environment_decisions":0,"raw_frames":0}
++    info={"terminated":True,"truncated":False,"seed":{"actual_seed":100}}
++    inner=SimpleNamespace(step=lambda a:{"info":[info],"elapsed_raw_frames":np.array([3])},
++                          reset_done=lambda indices:{"info":[{"seed":{"actual_seed":101}}]})
++    env=t.TrainingEnvLog(inner,counters,stream);env.step(np.array([0]));env.reset_done([0])
++    records=[json.loads(line) for line in stream.getvalue().splitlines()]
++    assert counters=={"environment_decisions":1,"raw_frames":3}
++    assert [r["kind"] for r in records]==["native_completed_episode","native_reset"]
++
++
++def test_training_batch_raw_diagnostics_cannot_be_omitted():
++    with pytest.raises(ValueError,match="mandatory"):
++        t.require_raw_diagnostics(SimpleNamespace(raw_rewards=None))
++
++
++def test_same_phase_resume_cannot_restart_consumed_pilot_budget():
++    cfg=i.default_config("pilot")
++    used,left=t.remaining_phase_budget(cfg,{"run_context":{"consumed_wall_seconds":299.5}})
++    assert used==299.5 and left==.5
++    for value in (300,301,None,-1,float("nan")):
++        with pytest.raises(ValueError):
++            t.remaining_phase_budget(cfg,{"run_context":{"consumed_wall_seconds":value}})
++
++
++def test_probe_selection_requires_equal_optimizer_work():
++    rows=[{"device":"cpu","status":"completed","optimizer_steps":128,
++           "metrics":{"epochs_completed":4},"measured_inference_plus_update_seconds":3},
++          {"device":"mps","status":"completed","optimizer_steps":32,
++           "metrics":{"epochs_completed":1},"measured_inference_plus_update_seconds":1}]
++    assert t.choose_probe_device(rows)==("cpu",["mps"])
++    rows[1]["optimizer_steps"]=128;rows[1]["metrics"]["epochs_completed"]=4
++    assert t.choose_probe_device(rows)==("mps",[])
++
++
++def test_frozen_identity_document_is_anchored_before_revalidation(tmp_path,monkeypatch):
++    path=tmp_path/"identity.json";path.write_text(json.dumps({"x":1}));anchor=i.file_hash(path)
++    monkeypatch.setattr(i,"build_identity",lambda cfg,root:{"x":1})
++    assert i.check_frozen(path,anchor,{})=={"x":1}
++    path.write_text(json.dumps({"x":2}))
++    monkeypatch.setattr(i,"build_identity",lambda cfg,root:{"x":2})
++    with pytest.raises(ValueError,match="document changed"):i.check_frozen(path,anchor,{})
++
++
++def test_frozen_identity_rejects_current_source_change(tmp_path,monkeypatch):
++    path=tmp_path/"identity.json";path.write_text(json.dumps({"sources":{"a":"old"}}));anchor=i.file_hash(path)
++    monkeypatch.setattr(i,"build_identity",lambda cfg,root:{"sources":{"a":"new"}})
++    with pytest.raises(ValueError,match="identity mismatch"):i.check_frozen(path,anchor,{})
++
++
++def test_worker_rejects_extended_deadline_before_identity_or_execution(tmp_path,monkeypatch):
++    path=tmp_path/"cfg.json";path.write_text(json.dumps(i.default_config("pilot")))
++    args=SimpleNamespace(config=path,config_sha256=i.file_hash(path),phase="pilot",
++                         consumed_wall_seconds=0,execution_started_monotonic=0,deadline_monotonic=1000)
++    monkeypatch.setattr(t.time,"monotonic",lambda:1.)
++    with pytest.raises(ValueError,match="registered consumed phase budget"):t.worker(args)
++
++
++def test_cleanup_signal_exit_race_retains_receipt_without_broad_kill(monkeypatch):
++    process=SimpleNamespace(pid=740001,returncode=None)
++    process.poll=lambda:process.returncode
++    def signal(pid,sig):
++        assert pid==740001
++        process.returncode=0
++        raise ProcessLookupError("already exited")
++    process.wait=lambda timeout:0
++    monkeypatch.setattr(s.os,"killpg",signal)
++    result=s.stop_owned(process)
++    assert result["reaped"] and result["exit_signal_race"] and result["errors"]==[]
++
++
++def test_cleanup_wait_failure_is_recorded_not_lost(monkeypatch):
++    process=SimpleNamespace(pid=740002,poll=lambda:None)
++    def wait(timeout):raise OSError("synthetic wait failure")
++    process.wait=wait
++    calls=[];monkeypatch.setattr(s.os,"killpg",lambda pid,sig:calls.append((pid,sig)))
++    result=s.stop_owned(process)
++    assert not result["reaped"] and len(result["errors"])==2
++    assert all(pid==740002 for pid,_ in calls)
++
++
++@pytest.mark.parametrize("late",[False,True])
++def test_supervisor_checks_completed_worker_boundary_without_real_process(tmp_path,monkeypatch,late):
++    cfg=tmp_path/"cfg.json";cfg.write_text(json.dumps(i.default_config("pilot")))
++    identity=tmp_path/"id.json";identity.write_text('{}')
++    args=SimpleNamespace(config=cfg,identity=identity,run_dir=tmp_path/"run",command="pilot",
++                         run_id="test",resume_checkpoint=None,parent_checkpoint=None)
++    clock=SimpleNamespace(now=0.)
++    monkeypatch.setattr(t.time,"monotonic",lambda:clock.now)
++    monkeypatch.setattr(s,"utc_now",lambda:datetime(2026,10,24,10,tzinfo=timezone.utc))
++    monkeypatch.setattr(t,"utc_now",s.utc_now)
++    monkeypatch.setattr(t,"verify_inputs",lambda *a:{})
++    monkeypatch.setattr(t,"assert_lease",lambda *a:{})
++    monkeypatch.setattr(s,"assert_lease",lambda *a:{})
++    monkeypatch.setattr(s,"current_rss_bytes",lambda pid:100)
++    monkeypatch.setattr(s,"peak_rss_bytes",lambda:100)
++    class Process:
++        pid=740003
++        def __init__(self,*a,**kw):
++            (args.run_dir/'worker-result.json').write_text(json.dumps({"status":"passed",
++                 "identity_sha256":i.file_hash(identity),"config_sha256":i.file_hash(cfg)}))
++        def poll(self):return 0
++        def wait(self,timeout):
++            if late:clock.now=301.
++            return 0
++    monkeypatch.setattr(t.subprocess,"Popen",Process)
++    status=t.run_supervised(args)
++    result=json.loads((args.run_dir/'run-result.json').read_text())
++    assert status==(1 if late else 0)
++    assert result['status']==('failed' if late else 'passed')
++    assert result['automatic_retries']==0
++    if late:assert 'wall guard' in result['error'] and result['owned_process_stop']['reaped']
++
++
++def test_checkpoint_persists_pilot_baseline_wall_and_diagnostic_progress(tmp_path,monkeypatch):
++    from test_checkpoints import simple_identity,eval_result
++    experiment=t.Experiment.__new__(t.Experiment)
++    experiment.args=SimpleNamespace(consumed_wall_seconds=20.,execution_started_monotonic=10.)
++    experiment.directory=tmp_path;experiment.config=i.default_config('pilot')
++    experiment.identity=simple_identity();experiment.model=torch.nn.Linear(2,1)
++    experiment.optimizer=torch.optim.Adam(experiment.model.parameters())
++    experiment.counters={'checkpoint_index':0};experiment.env=None;experiment.progress={}
++    experiment.device=torch.device('cpu');experiment.context={'pilot_before':eval_result(1,500)}
++    experiment.actor_gradient_seen=True;experiment.critic_gradient_seen=True
++    experiment.large_kl_iterations=2;experiment.last_metrics={'entropy':1.}
++    experiment.episodes=io.StringIO();monkeypatch.setattr(t.time,'monotonic',lambda:15.)
++    path,_=experiment.checkpoint('periodic');state=t.ckpt.load_checkpoint(path)
++    assert state['run_context']['consumed_wall_seconds']==25.
++    assert state['run_context']['pilot_before']==experiment.context['pilot_before']
++    assert state['run_context']['large_kl_iterations']==2
++
++
++@pytest.mark.parametrize('resuming',[False,True])
++def test_pilot_preserves_original_baseline_and_reserved_after_eval_time(tmp_path,monkeypatch,resuming):
++    from test_checkpoints import eval_result
++    before=eval_result(1,500);clock=SimpleNamespace(now=0.)
++    model=t.Experiment.__new__(t.Experiment);model.directory=tmp_path
++    model.context={} if not resuming else {'pilot_before':before,
++            'pilot_initial_checkpoint':str(tmp_path/'original.pt'),'pilot_initial_checkpoint_sha256':'original'}
++    model.context['D1_competence_demonstrated']=False
++    model.model=FakePolicy();model.device=torch.device('cpu')
++    model.guard=SimpleNamespace(deadline=100.,check=lambda **kw:None)
++    model.counters={'phase_updates':0};model.env=object() if resuming else None
++    model.config=i.default_config('pilot')
++    created=[];checkpoints=[]
++    def checkpoint(tag):
++        checkpoints.append(tag);return tmp_path/(tag+'.pt'),tag
++    model.checkpoint=checkpoint
++    def make_env():created.append(True);model.env=object()
++    model.make_environment=make_env
++    def update():model.counters['phase_updates']+=1;clock.now+=30
++    model.update_once=update
++    def after(path,digest,pilot_before):
++        assert pilot_before==before
++        return {'passed':True}
++    model.evaluate_checkpoint=after
++    def baseline(*args,**kwargs):
++        assert not resuming,'resume must not substitute a trained-policy baseline'
++        return before
++    monkeypatch.setattr(t,'evaluate',baseline)
++    monkeypatch.setattr(t.time,'monotonic',lambda:clock.now)
++    result=model.pilot()
++    assert result['status']=='passed' and model.counters['phase_updates']==2
++    assert len(created)==(0 if resuming else 1)
++    assert checkpoints==(['candidate'] if resuming else ['pilot_initial','candidate'])

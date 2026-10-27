@@ -1,0 +1,48 @@
+{
+  "schema": "d2_same_phase_continuation_preparation_result_v1",
+  "source_hashes_sha256": {
+    "README.md": "3cbcd81fc371d32a60e88cbd2c0c5dd22ddc64ea032b32740a4c606d4a88fdbf",
+    "execute_once.py": "8c928f447cbade82bf5864baab9da4899aee027f9eaf114245054b55f4f13808",
+    "plan.json": "43dcd5705841c0e62246426d2bd25c714cc59c772fd75fab9388f4e9ab1ed3f9",
+    "runner.py": "2d93336a42d0b53db67ce16b644948e9e10bd8c6f07b39ffac311a542261e67a",
+    "test_continuation_contract.py": "6a16ae5b821c34b2c8609db068601ba31fd4c02aeb7c05507c03727b3bca76c7",
+    "test_torch_restore.py": "6b36e67f09c6ea54b0fcaf8cd2875d45d85452137c359f3f530e0357a6017dfb"
+  },
+  "status": "partial_stopped_on_first_unexpected_validation_failure",
+  "test_commands_and_results": [
+    {
+      "command": "python3 -m py_compile learning/runs/v2/d2-continuation-prepare-luna-20261025-r1/runner.py learning/runs/v2/d2-continuation-prepare-luna-20261025-r1/execute_once.py",
+      "result": "passed; tool reported Script completed."
+    },
+    {
+      "command": "env PYTHONPATH=. PYTHONPYCACHEPREFIX=\"$PWD/test-pycache\" PYTHONDONTWRITEBYTECODE=1 /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python3.12 -B -m unittest -v test_continuation_contract",
+      "result": "failed as detailed above; no rerun."
+    }
+  ],
+  "unresolved": [
+    "Do not freeze or launch: current runner/contract test suite has a reported missing continuation_cumulative_counters function.",
+    "Fix episode test assertion text, then rerun from a clean validation invocation and stop on first failure.",
+    "Run test_torch_restore.py against actual parent model/Adam/MPS RNG; not run.",
+    "Validate remaining launcher output contracts, resource observer through final CPU decode, and exact registration pin set; not verified.",
+    "Haiku source review remains pending; no sub-agent was started under the explicit no-agents instruction.",
+    "No training, environment rollout, or evaluation was launched."
+  ],
+  "validation_command": "env PYTHONPATH=. PYTHONPYCACHEPREFIX=\"$PWD/test-pycache\" PYTHONDONTWRITEBYTECODE=1 /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python3.12 -B -m unittest -v test_continuation_contract",
+  "validation_result": {
+    "additional_failure_reported_before process stop": {
+      "cause": "AttributeError: module runner has no attribute continuation_cumulative_counters",
+      "test": "test_parent_cost_and_local_counters_compose_without_recharging_or_erasing"
+    },
+    "errors": 1,
+    "failures": 1,
+    "first_failure": {
+      "cause": "assertRaisesRegex expected \"initial current/future\" but implementation raised ValueError: Initial current/future continuation episode index contract differs",
+      "interpretation": "Expected contract rejection occurred; test assertion failed on capitalization.",
+      "test": "test_episode_seed_continuation_uses_saved_nonzero_indices_and_current_plus_one"
+    },
+    "passed_before_suite_end": 7,
+    "raw_visible_output": "test_aggregate_rss_tree_includes_launcher_descendants_only ... ok\ntest_checkpoint_file_and_registration_hash_are_distinct_authorities ... ok\ntest_episode_seed_continuation_uses_saved_nonzero_indices_and_current_plus_one ... FAIL\ntest_exact_successful_normal_parent_receipt_fixture_accepted ... ok\ntest_failed_interrupted_cancelled_incomplete_or_mismatched_parent_rejected ... ok\ntest_fingerprint_canonicalizes_mapping_order_but_checks_tensor_contract ... ok\ntest_parent_cost_and_local_counters_compose_without_recharging_or_erasing ... ERROR\ntest_real_parent_receipt_binds_exact_candidate_and_registration ... ok\ntest_registration_rejects_failed_lineage_and_scope_changes ... ok\nRan 9 tests; FAILED (failures=1, errors=1).",
+    "status": "failed",
+    "tests_reported": 9
+  }
+}

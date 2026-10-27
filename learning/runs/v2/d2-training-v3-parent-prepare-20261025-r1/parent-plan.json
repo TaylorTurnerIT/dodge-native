@@ -1,0 +1,69 @@
+{
+  "schema": "d2_training_v3_parent_plan_v1",
+  "created_at_utc": "2026-10-25T19:58:16.288010+00:00",
+  "authority": "Latest user: Stop pausing. Use Luna and Claude Haiku implementation/review. Fix blockers and keep going. Parent treats this as authorization for supported bounded preparation and execution; child design-only scope restricts child actions, not existing user authority.",
+  "run_id": "D2-training-v3-20261025-r1",
+  "max_updates": 80,
+  "evaluation_updates": [
+    0,
+    16,
+    32,
+    48,
+    64,
+    80
+  ],
+  "work_seconds": 1600,
+  "total_seconds": 1800,
+  "rss_limit_bytes": 6442450944,
+  "mps_limit_bytes": 6442450944,
+  "budget_basis": {
+    "measured48update_full_wall_seconds": 796.987217667,
+    "linear80update_estimate_seconds": 1328.312029445,
+    "sensitivity_15_percent_slowdown_seconds": 1527.55883386175,
+    "extra_evaluation_budget_seconds": 30,
+    "planned_work_bound_seconds": 1600,
+    "finalization_reserve_seconds": 200,
+    "note": "Estimates are planning bounds, not runtime guarantees. Keep hard deadline; no cap relaxation."
+  },
+  "fresh_u32_training_seed": 810631976,
+  "seed_draws": 1,
+  "seed_excluded_ranges": [
+    [
+      2952790016,
+      2952791015
+    ],
+    [
+      3489660928,
+      3489661055
+    ],
+    [
+      3758096384,
+      3758097383
+    ]
+  ],
+  "parent_checkpoint": "learning/runs/v2/milestone3-D1-curriculum-r1/checkpoint-000009-candidate.pt",
+  "parent_checkpoint_sha256": "ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f",
+  "policy": "docs/teacher-qualification-v3.json",
+  "score_in_gate": false,
+  "reward_and_learner_settings": "unchanged",
+  "source_policy": "New isolated prospective adapter from audited r3; no historical validators/configs/metadata edits. All failed and diagnostic checkpoints remain ineligible.",
+  "normal_checkpoint_contract": "New schema only. Save exact model/Adam/RNG, actual counters, current/next episode seed indices, run_seed, abandoned episodes and registration hashes at complete update boundaries. Do not flip old diagnostic eligibility. Training continuation is provisional until exact parent terminal acceptance; stage progression is a separate v3 survival predicate. Any future resume requires separately frozen/validated registration, cumulative consumed wall anchor and exact lineage; no resume implementation required in first campaign.",
+  "campaign_success": "Completed registered80 updates, finite valid metrics, full final evaluation, raw0 exits, resource/deadline/postflight/ownership checks. A below3060 competence score is reported separately from normal completion; no automatic D3 or B/E opening.",
+  "actual_failure": "Retain partial artifacts; failure/cancel/timeout/incomplete/interrupted checkpoints cannot parent future training. No unchanged broken rerun.",
+  "telemetry": "Add authoritative phase_update to completed/reset episode records. Preserve direct critic pre/post measurements, death counts and Q1/Q4/mean.",
+  "parent_adjustments_to_luna_plan": [
+    "Reject request for another user go: latest user explicitly authorized continuation, child design does not revoke it.",
+    "Increase48 to80updates to advance measured learning, with conservative measured budget.",
+    "Use narrow new prospective adapter rather than large old-runner migration.",
+    "Separate normal iteration completion from competence advancement without changing any historical verdict or eligibility."
+  ],
+  "input_drift": [
+    {
+      "path": "docs/v2-critic-diagnostic-2026-10-25.md",
+      "reviewed_sha256": "583416bb515a55f670adcaeea06a6eb1f96f8f3a3544fa1e072c719cb7093716",
+      "current_sha256": "9d10e7f558e2605166833d01c588c40ad40c6174f5d20a4ce2fcdafb296cb13b",
+      "reason": "Parent updated live project report with independently audited completed results while design read it. No immutable source/run input drift."
+    }
+  ],
+  "execution_status": "not_launched;requires_tests_freeze_Haiku_review_parent_reconciliation"
+}

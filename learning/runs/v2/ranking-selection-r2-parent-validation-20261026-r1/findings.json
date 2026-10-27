@@ -1,0 +1,25 @@
+{
+  "schema": "parent_selection_r2_validation_v1",
+  "status": "7synthetictests_pass;valid_cap_rejected",
+  "source_hashes": {
+    "selection.py": "850916152765538f35b4808ec8ab2132fad973ab0127c9fe1d28f76ffeff9d00",
+    "test_selection.py": "7e6bcebca47e884fc4eb25596408769eebcf110bca8340d15de86a0c788be4b0",
+    "README.md": "ccd22c30708387d5e4b40dd1e4f856508bda5b2dad8174561438a3ef7478621a",
+    "integration-patch-proposal.md": "13ccc49a7527d3f1f1f97769037351903216b5fca071bb65b6c70f3f4af1bf6c",
+    "tests.log": "21df4995c6bb7e6b5e0af742188013587a8f27708b24fa429678543a11e2c55a"
+  },
+  "test_exit": 0,
+  "findings": [
+    {
+      "severity": "high",
+      "path": "selection.py:_row_alive",
+      "trigger": "valid cap row alive18000/gameplay18000 terminatedfalse truncatedtrue",
+      "error": "alive/gameplay frame accounting invalid",
+      "cause": "unconditional gameplay==alive+1 rejects valid cap rows",
+      "consequence": "ranking selection fails whenever any episode reaches cap"
+    }
+  ],
+  "limits": [
+    "No real ranking or confirmation outputs read; standard-library synthetic rows only."
+  ]
+}

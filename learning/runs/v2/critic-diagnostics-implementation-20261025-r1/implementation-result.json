@@ -1,0 +1,133 @@
+{
+  "api": {
+    "call": "ppo_update(..., critic_diagnostics=True)",
+    "change_metrics": [
+      "mean_value_change",
+      "mean_absolute_value_change",
+      "rms_value_change"
+    ],
+    "default": false,
+    "delta_sign": "V_post_update - V_rollout on identical frozen observations",
+    "fit_scope": "in-sample on frozen self-bootstrapped GAE targets; no pass threshold or causal interpretation",
+    "metrics_key": "critic_diagnostics",
+    "moments_for_both_pre_update_and_post_update": [
+      "count",
+      "target_mean",
+      "target_variance",
+      "prediction_mean",
+      "prediction_variance",
+      "target_prediction_covariance",
+      "residual_mean",
+      "residual_variance",
+      "residual_mse",
+      "explained_variance"
+    ],
+    "statistics": "Population variance/covariance (ddof0), detached CPU float64 after transfer from accelerator. EV null at target variance <=1e-12. Existing legacy EV calculation stays float32/original dtype unchanged.",
+    "units": "learner_scaled_returns; reward scale remains in PPOConfig (0.1 default)",
+    "version": "same_batch_critic_diagnostics_v1"
+  },
+  "behavior_preservation": [
+    "Learner loss, GAE, optimizer steps, hyperparameters and existing metrics untouched.",
+    "Feature/target/rollout tensors not mutated; gradients disabled during post-update forward.",
+    "Post predictions use bounded chunks of config.minibatch_size. Guard called before and after every chunk.",
+    "Per-module mode flags, registered buffers, CPU/MPS/CUDA Torch RNG restored even on prediction/guard failure.",
+    "Progress remains in_update/incomplete if diagnostics fail after actual optimizer steps; no false completed-update publication."
+  ],
+  "current_best_reference_survival": {
+    "Q1": 648.25,
+    "Q4": 4508.8125,
+    "mean": 2240
+  },
+  "files": {
+    "python/dodge_rl/critic_diagnostics.py": "272059f7c12ebe30e36dc6e9e2388c5b088c11bcd002ee95478459a61e452dbe",
+    "python/dodge_rl/ppo.py": "abf25f327f9ff749a8a32de4edb07705f12ebcdc5cd0eba8775ad4f693eff1d5",
+    "python/tests/test_critic_diagnostics.py": "9cd059ecc7c46b1882b06bee6eee035fe3cebcddec2c0b68253c94a8e89ec811"
+  },
+  "finished_utc": "2026-10-25T18:31:34.766405+00:00",
+  "limitations": [
+    "No real native environment, full teacher training, checkpoint decoding or rollout experiment executed.",
+    "MPS test covers diagnostic inference and RNG restoration, not exact end-to-end MPS Adam parity.",
+    "Extra no-grad forward and CPU moment passes consume runtime and are subject to parent campaign limits.",
+    "No statement about held-out critic accuracy or whether longer training improves survival."
+  ],
+  "other_writes": "Only owned evidence directory; no state/docs/installed binary edits.",
+  "pre_edit_ppo_sha256": "533055b0832b87f3eccd6d005437583c074b525fc5f1d002e0e84e06b4239a58",
+  "schema": "critic_diagnostics_implementation_v1",
+  "scope": "Optional direct same-batch critic instrumentation; no gameplay, checkpoint decoding or training campaign.",
+  "started_utc": "2026-10-25T18:25:31+00:00",
+  "status": "source_and_synthetic_tests_complete;campaign_pending_parent",
+  "tests": {
+    "CPU_parity": "Two consecutive updates with fresh frozen synthetic buffers, checking exact model weights, Adam including nonempty second-step state, Torch RNG, all legacy metrics and immutable batch data.",
+    "MPS_test_executed_not_skipped": true,
+    "existing_PPO_cases": 44,
+    "failures": [],
+    "final_command": [
+      "python/.venv/bin/python",
+      "-B",
+      "-m",
+      "pytest",
+      "python/tests/test_critic_diagnostics.py",
+      "python/tests/test_ppo.py",
+      "-q"
+    ],
+    "final_passed": 63,
+    "final_raw_exit": 0,
+    "new_cases": 19,
+    "oracles": [
+      "Independent scalar target/prediction/error moments and covariance.",
+      "Constant residual bias: EV1 while residual mean/MSE detect error.",
+      "Degenerate targets -> nullEV and finite JSON; malformed/nonfinite/overflow values rejected.",
+      "Chunk order and no-grad forwards; model modes/buffers/gradients/RNG restoration on success and guard/nonfinite failure.",
+      "MPS inference transfers predictions to CPU before double conversion and restores accelerator RNG."
+    ],
+    "runs": [
+      {
+        "command": [
+          "python/.venv/bin/python",
+          "-B",
+          "-m",
+          "pytest",
+          "python/tests/test_critic_diagnostics.py",
+          "python/tests/test_ppo.py",
+          "-q"
+        ],
+        "raw_exit": 0,
+        "wall_seconds": 1.7772029169999999
+      },
+      {
+        "command": [
+          "python/.venv/bin/python",
+          "-B",
+          "-m",
+          "pytest",
+          "python/tests/test_critic_diagnostics.py",
+          "python/tests/test_ppo.py",
+          "-q"
+        ],
+        "raw_exit": 0,
+        "reason_for_second_run": "Parent requested two-consecutive-update Adam/RNG parity and optional covariance/RMS delta V; code/tests extended after first successful run.",
+        "wall_seconds": 1.172367708
+      },
+      {
+        "command": [
+          "python/.venv/bin/python",
+          "-B",
+          "-m",
+          "pytest",
+          "python/tests/test_critic_diagnostics.py",
+          "python/tests/test_ppo.py",
+          "-q"
+        ],
+        "raw_exit": 0,
+        "reason_for_run": "Made CPU-transfer-before-float64 explicit and added MPS RNG-preservation coverage before parent runtime use.",
+        "wall_seconds": 1.4414827080000001
+      }
+    ]
+  },
+  "unchanged_authority_and_old_test_inputs": {
+    "docs/SPEC_PRIVILEGED_VIT_RL.md": "02230eea7a3b36c786d3deeb31471baf8270efb09c3c1e77b7a77c7cfae240f3",
+    "docs/implementation-plan-v2.md": "a034a45408ebea580882bf931c156288100c120ef78806bb7c87dce0597445aa",
+    "python/tests/test_ppo.py": "948c0a89388a10aaebb55e11950a0a97f323fb23ea2d0c7bf63556f3234da642",
+    "reports/PPO explained variance diagnosis.md": "b2365082722e016a7fa330d9d3a0deba79b84dcb17d0df09556b08b4cd7221b2"
+  }
+}

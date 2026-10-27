@@ -1,0 +1,135 @@
+{
+  "review": "D2-retained300-registration-builder-luna-20261026-r6",
+  "reviewer": "haiku-5.5 static read/hash review",
+  "scope": "static read and sha256 only; no imports, tests, runtime, MPS, training, environment, ledger, lease, or source writes; no launch qualification",
+  "verdict": "no_builder_blocker_for_synthetic_artifact; parent-level launch blockers remain open; not launch-qualified",
+  "verified_closures": [
+    "prepare_registration.py ROOT parents[4] and execute_synthetic.py ROOT parents[3] resolve to repo root from file/dir depth",
+    "no undefined names found by manual scan; ast.parse passes for both scripts (pyflakes unavailable)",
+    "selected receipt counters: phase 300, local 24, cumulative updates 348; registration_sha256 full 64 hex 8e17e118...; checkpoint e2c8fbe4...",
+    "receipt, completed-cost, config, and evidence-map pins verified against contract and evidence map; 19 evidence-map inputs present with no conflict with base pins (0 overlaps)",
+    "base retries 0 checked and output retries 0; expected_lease, metadata_path (sidecar), resource_cost_anchor, parent.* authority repointed to selected receipt",
+    "expected_outputs for output = 32 names: 8 retained non-update outputs + entry-restoration dedupe + 24 candidate/development names for 300,312,324,336,348,360; lr-transition.json excluded and forbidden",
+    "config_sha256 1c24df3e... matches contract; config learning_rate 3e-05; config_path unchanged",
+    "resource arithmetic: 1502.5562572500203*1.15 = 1727.9396958375232; 1750-1727.94 = 22.06; work 1790, outer 1800, cleanup 10",
+    "pins: base 13801 - 4 dropped + 23 added = 13820 (23 = 19 evidence + 4 final sources), consistent with synthetic output",
+    "producing registration R2 registration.json (8e17e118...) pinned via evidence map and parent.registration_sha256; R2 config pin retained",
+    "output publication: all checks precede mkdir and open('x'); no writes to inputs; actual run directory absent",
+    "hash-manifest.json: 12 entries, all match; synthetic output 6dce6b23... matches execution.log",
+    "freeze-r5 empty-pycache exists and is empty; builder does not create it"
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "medium",
+      "category": "pin-authority",
+      "file": "learning/runs/v2/D2-retained300-registration-builder-luna-20261026-r6/prepare_registration.py",
+      "line": 141,
+      "summary": "Builder drops four historical predecessor source pins while its comment says preserve historical pins.",
+      "trigger": "Base R2 registration pins contain execute_once.py, lr_transition.py, registration_schema.py, runner.py under the R2 prepare directory; line 144-145 pops them.",
+      "consequence": "Output pins are 13820 not 13824. R2 producing run still pinned via evidence map and parent.registration_sha256, and no new authority field reads the dropped R2 sources. Impact is a loss of archival pin coverage, not a runtime path change. Parent's freeze-r5 registration.json (13827 pins) restores all four, so the parent has already chosen restoration. Origin: new in R6 behavior, not inherited.",
+      "launch_relevance": "parent integration policy; blocker only if the 13820 artifact is launched without reconciliation"
+    },
+    {
+      "id": "F2",
+      "severity": "medium",
+      "category": "output-authority",
+      "file": "learning/runs/v2/D2-retained300-registration-builder-luna-20261026-r6/prepare_registration.py",
+      "line": 136,
+      "summary": "Builder permits output inside the frozen final source directory, and that directory already holds two competing registration artifacts.",
+      "trigger": "Line 136 accepts out parent under final_source_dir. Exclusive create guards only the exact output path.",
+      "consequence": "freeze-r5 contains registration.json (sha256 8a60dc80..., 13827 pins, historical restored) and registration-builder-output.json (sha256 febec589..., 13820 pins, historical dropped; shape matches this builder, provenance inferred not proven). The frozen source dir is no longer source-only, and the authoritative registration is ambiguous. Launch could select the wrong one.",
+      "launch_relevance": "parent must designate a single authoritative registration before launch"
+    },
+    {
+      "id": "F3",
+      "severity": "medium",
+      "category": "source-integrity",
+      "file": "learning/runs/v2/D2-retained300-registration-builder-luna-20261026-r6/prepare_registration.py",
+      "line": 127,
+      "summary": "Final source files are existence-checked only; their pins are computed from whatever bytes exist at build time.",
+      "trigger": "Lines 127-129 require_file(path) with no expected hash; lines 157-162 and 147 self-pin sha(path).",
+      "consequence": "Builder accepts any content at the four source names. Integrity depends entirely on the external parent preflight. Only two of four sources were hashed by this review (see limits): registration_schema.py eae76ec9... and parent_adapter.py a969f2a5... match parent-assembly.json. runner.py and execute_once.py were not read or hashed by design."
+    },
+    {
+      "id": "F4",
+      "severity": "low",
+      "category": "inherited-unverified-fields",
+      "file": "learning/runs/v2/D2-retained300-registration-builder-luna-20261026-r6/prepare_registration.py",
+      "line": 141,
+      "summary": "Builder copies retained base fields without validating them: state_path, native, runtime_continuity, runtime_root, runtime_sha256, interpreter, archival_labels, archival_parent_checkpoint_sha256 (ce9c03...).",
+      "trigger": "Only the 19 evidence-map inputs and about 13801 base pins are present in evidence; builder does not check these fields.",
+      "consequence": "Inherited, not new. Parent full preflight must validate them; builder alone cannot qualify them."
+    },
+    {
+      "id": "F5",
+      "severity": "low",
+      "category": "hardcoded-constants",
+      "file": "learning/runs/v2/D2-retained300-registration-builder-luna-20261026-r6/prepare_registration.py",
+      "line": 214,
+      "summary": "Resource estimates are hardcoded, including observed_control_optimizer_steps=7680, which replaces base 9216 without derivation from contract or evidence map.",
+      "trigger": "Lines 214-215 literal values; execute_synthetic.py line 57 asserts the same literal.",
+      "consequence": "Recorded control metric could be mislabeled. The 7680 value also equals base maximum_arm_optimizer_steps_at_4_epochs and appears as a counter in the completed-iteration receipt; provenance not confirmed. Value drifts silently if contract changes."
+    },
+    {
+      "id": "F6",
+      "severity": "low",
+      "category": "publication-atomicity",
+      "file": "learning/runs/v2/D2-retained300-registration-builder-luna-20261026-r6/prepare_registration.py",
+      "line": 226,
+      "summary": "Output is written in place with open('x'); a serialization or I/O error after open leaves a truncated registration.json.",
+      "trigger": "Exception inside json.dump or disk-full during write after exclusive create.",
+      "consequence": "Re-run fails with FileExistsError at line 135; truncated file may be consumed. Temp-file plus os.link or replace would avoid this."
+    },
+    {
+      "id": "F7",
+      "severity": "low",
+      "category": "cli-root-consistency",
+      "file": "learning/runs/v2/D2-retained300-registration-builder-luna-20261026-r6/prepare_registration.py",
+      "line": 241,
+      "summary": "main() derives root from --contract, while build_registration checks against module-level ROOT.",
+      "trigger": "Passing --contract from another tree.",
+      "consequence": "Path checks in build_registration and audit_dir/receipt paths in main refer to different trees. Default invocation is consistent."
+    },
+    {
+      "id": "F8",
+      "severity": "low",
+      "category": "test-coverage",
+      "file": "learning/runs/v2/D2-retained300-registration-builder-luna-20261026-r6/execute_synthetic.py",
+      "line": 46,
+      "summary": "Positive assertions are mostly self-referential and negative cases cover only three failures.",
+      "trigger": "Lines 46-49 compare output to values read from the same receipt; no tests for dropped pins, nonzero base retries, config hash drift, or counter mismatch.",
+      "consequence": "Regression in those paths would not be caught by this synthetic run."
+    },
+    {
+      "id": "F9",
+      "severity": "low",
+      "category": "stale-doc",
+      "file": "learning/runs/v2/D2-retained300-registration-builder-luna-20261026-r6/interface-addendum.md",
+      "line": 5,
+      "summary": "Addendum says final runner and adapter are not present yet; freeze-r5 now contains runner.py, execute_once.py, registration_schema.py, parent_adapter.py.",
+      "trigger": "Addendum mtime 12:09; freeze-r5 source files mtime 12:11.",
+      "consequence": "Stale status statement; parent should not rely on it for source readiness."
+    },
+    {
+      "id": "F10",
+      "severity": "medium",
+      "category": "parent-reconciliation-open",
+      "file": "learning/runs/v2/D2-retained300-continuation-freeze-20261026-r5/registration.json",
+      "line": 1,
+      "summary": "Parent-restored registration has 13827 pins vs builder 13820; 7 delta, 4 explained by restored historical pins, 3 unexplained.",
+      "trigger": "Parent-assembly.json records historical_source_pins_restored: 4, pins 13827.",
+      "consequence": "Parent key and pin reconciliation remains open (task-stated). Not a builder defect; blocks launch until parent explains the 3-pin delta and selects one artifact."
+    }
+  ],
+  "limits": [
+    "No launch qualification; this review is not launch approval. Parent full preflight (about 13801 base pins plus new sources) is still required.",
+    "Static read and sha256 only. No imports, no tests, no execution of prepare_registration.py or execute_synthetic.py.",
+    "Did not read or hash freeze-r5 runner.py or execute_once.py (launcher/worker files excluded by instruction). Did not read R5 worker or any mutable launcher file.",
+    "Did not verify parent-assembly.json source hashes for runner.py (108ba55...) or execute_once.py (7215ae...).",
+    "Did not reproduce seed-collision check (evidence map reports 0 collisions over 43 registrations); not re-run.",
+    "pyflakes unavailable; undefined-name check is manual plus ast.parse only.",
+    "Provenance of freeze-r5 registration-builder-output.json is inferred from shape and pin count, not from a log.",
+    "Parent actual source key reconciliation not performed (task-stated open)."
+  ]
+}

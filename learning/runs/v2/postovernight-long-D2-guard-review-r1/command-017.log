@@ -1,0 +1,384 @@
+
+
+class Learner:
+    """Only necessary orchestration; never instantiates or fabricates Experiment."""
+    def __init__(self, api, config, identity, parent, guard, output, protocol, *, clock=time.monotonic):
+        self.api, self.config, self.identity, self.guard = api,config,identity,guard
+        self.output,self.protocol,self.clock = output,protocol,clock
+        self.env = self.observation = self.model = self.optimizer = None
+        self.progress = {}
+        self.checkpoints = []
+        self.counters = copy.deepcopy(parent['counters'])
+        require(self.counters == PARENT_COUNTERS, 'Exact D1 counters differ')
+        self.inherited = copy.deepcopy(self.counters)
+        self.counters['phase_updates'] = 0
+        self.origin = copy.deepcopy(self.counters)
+        self.context = copy.deepcopy(parent.get('run_context',{}))
+        self.context['D1_competence_demonstrated'] = True
+        for key in ('pilot_before','pilot_initial_checkpoint','pilot_initial_checkpoint_sha256'):
+            self.context.pop(key,None)
+        self.last_metrics = self.context.get('last_metrics')
+        self.kl_count = self.context.get('large_kl_iterations',0)
+        self.actor_gradient_seen = self.context.get('actor_gradient_seen',False)
+        self.critic_gradient_seen = self.context.get('critic_gradient_seen',False)
+        self.episodes = self.metrics = None
+        self.parent = parent
+
+    def initialize(self):
+        a = self.api
+        a.seed_initialization(0)
+        self.model = a.teacher().to(device='mps',dtype=a.torch.float32)
+        require(self.model.architecture_description() == self.protocol['base_identity']['architecture'],
+                'Full teacher architecture differs')
+        require(sum(p.numel() for p in self.model.parameters()) == 321290, 'Parameter count differs')
+        self.optimizer = a.make_optimizer(self.model,self.config)
+        self.ppo = a.PPOConfig(**self.config['ppo'])
+        a.ckpt.restore_learner(self.parent,self.model,self.optimizer,'mps')
+        receipt = dict(model=assert_equal_tree(self.model.state_dict(),self.parent['model'],'D1 model'),
+                       Adam=assert_equal_tree(self.optimizer.state_dict(),self.parent['optimizer'],'D1 Adam'),
+                       RNG=assert_equal_tree(a.ckpt.capture_rng('mps'),self.parent['rng'],'D1 RNG'))
+        # No environment may precede all three equality checks.
+        save(self.output/'entry-restoration.json',dict(matched=True,bitwise_sha256=receipt,
+                                                     before_any_environment_or_gradient=True))
+        self.episodes = (self.output/'training-episodes.jsonl').open('x')
+        self.metrics = (self.output/'training-metrics.jsonl').open('x')
+        require(len(self.parent['abandoned_episodes']) == 64, 'D1 abandoned episode count differs')
+        for item in self.parent['abandoned_episodes']:
+            emit(self.episodes,{**item,'reason':'long_D2_namespace_transition'})
+        kwargs = environment_kwargs(a.training_env_config(a.base,[0]*64),self.config)
+        self.guard.check(force=True)
+        self.env = a.TrainingEnvLog(a.env_factory(**kwargs),self.counters,self.episodes)
+        metadata = a.verify_training_env(self.env,self.config,[0]*64)
+        emit(self.episodes,dict(kind='initial',info=self.env.episode_info(),batch_info=metadata,kwargs=kwargs))
+        self.observation = self.env.observations()
+        save(self.output/'parent-lineage.json',dict(parent_checkpoint=self.protocol['parent_checkpoint'],
+             parent_checkpoint_sha256=self.protocol['parent_checkpoint_sha256'],
+             parent_terminal_receipt=self.protocol['parent_terminal_receipt'],
+             inherited_counters=self.inherited,phase_origin_counters=self.origin,
+             failed_D2_experience_inherited=False,abandoned_parent_episodes=64,
+             historical_old_D1_to_D2_proof=True,new_authority_is_separate=True))
+        self.guard.check(force=True)
+
+    def report(self):
+        return counter_report(self.counters,self.inherited,self.progress)
+
+    def checkpoint(self,tag,*,emergency=False):
+        if not emergency:
+            self.guard.check(force=True)
+        require(self.clock() < self.api.absolute_deadline, 'No checkpoint after absolute deadline', 'wall_guard')
+        self.counters['checkpoint_index'] += 1
+        path = self.output/f"checkpoint-{self.counters['checkpoint_index']:06d}-{tag}.pt"
+        state = self.api.ckpt.make_state(self.model,self.optimizer,self.identity,self.counters,
+                env=self.env,tag=tag,progress=self.progress,device='mps',
+                parent_sha256=self.config['parent_checkpoint_sha256'])
+        self.context.update(large_kl_iterations=self.kl_count,last_metrics=copy.deepcopy(self.last_metrics),
+                            actor_gradient_seen=self.actor_gradient_seen,critic_gradient_seen=self.critic_gradient_seen)
+        state.update(run_context=copy.deepcopy(self.context),phase_origin_counters=self.origin,
+                     long_counter_report=self.report(),training_parent_eligible=False,
+                     teacher_qualified=False,same_phase_resume=False)
+        adam_steps=[]
+        for item in state.get('optimizer',{}).get('state',{}).values():
+            if 'step' in item:
+                step=item['step']
+                adam_steps.append(float(step.item() if hasattr(step,'item') else step))
+        state['actual_Adam_parameter_step_values']=sorted(set(adam_steps))
+        digest = self.api.ckpt.save_checkpoint(path,state)
+        record = dict(checkpoint=path.name,sha256=digest,tag=tag,counters=self.report(),
+                      update_progress=copy.deepcopy(self.progress),complete_update=not self.progress.get('in_update',False),
+                      evaluated=False,progression_gate_passed=False,training_parent_eligible=False)
+        record['actual_Adam_parameter_step_values']=state['actual_Adam_parameter_step_values']
+        self.checkpoints.append(record)
+        if self.episodes:
+            emit(self.episodes,dict(kind='checkpoint_resume_boundary',checkpoint_sha256=digest,
+                 next_episode_indices=state['next_episode_indices'],abandoned_on_resume=state['abandoned_episodes'],
+                 live_environment_reset=False))
+        require(self.clock() < self.api.absolute_deadline, 'Checkpoint crossed absolute deadline', 'wall_guard')
+        if not emergency:
+            self.guard.check(force=True)
+        return record
+
+    def evaluate_checkpoint(self,*,entry=False):
+        a = self.api
+        self.guard.check(force=True)
+        # Snapshot before BOTH checkpoint and evaluation, preserving training RNG/live state.
+        before_rng = a.ckpt.capture_rng('mps')
+        before_model = tree_fingerprint(self.model.state_dict())
+        before_adam = tree_fingerprint(self.optimizer.state_dict())
+        before_env = copy.deepcopy((self.env.episode_info(),self.env.batch_info()))
+        record = self.checkpoint('long_evaluated')
+        started = self.clock()
+        with (self.output/(record['checkpoint']+'.D2-development.jsonl')).open('x') as stream:
+            evaluation = a.evaluate(self.model,'D2','mps',check_guard=self.guard.check,episode_stream=stream)
+        elapsed = self.clock()-started
+        self.guard.check(force=True)
+        a.validate_summary(evaluation)
+        assert_equal_tree(a.ckpt.capture_rng('mps'),before_rng,'Evaluation training RNG')
+        require(tree_fingerprint(self.model.state_dict()) == before_model
+                and tree_fingerprint(self.optimizer.state_dict()) == before_adam,
+                'Checkpoint/evaluation changed model or Adam','entry_control_mismatch')
+        require((self.env.episode_info(),self.env.batch_info()) == before_env,
+                'Checkpoint/evaluation changed live training environments')
+        if entry:
+            control = read_json(ORIGINAL_ROOT/self.protocol['entry_control'])['evaluations']['D2']
+            receipt = compare_control(evaluation['rows'],control['rows'])
+            save(self.output/'entry-control.json',{**receipt,'control_document_sha256':self.protocol['entry_control_sha256'],
+                 'RNG_unchanged':True,'model_Adam_unchanged':True,'zero_gradients_before_control':True})
+        passed = bool(a.progress_passed('D2',{'D2':evaluation}))
+        require(sha(self.output/record['checkpoint']) == record['sha256'], 'Evaluated checkpoint changed')
+        certificate = dict(phase='long_D2',evaluation_stage='D2',checkpoint_sha256=record['sha256'],
+                           complete=True,evaluations={'D2':evaluation},progression_gate_passed=passed,
+                           training_parent_eligible=False,teacher_qualified=False,
+                           D3_parent_candidate_pending_separate_parent_audit=passed)
+        save(self.output/(record['checkpoint']+'.long-evaluation.json'),certificate)
+        record.update(evaluated=True,progression_gate_passed=passed,
+                      evaluation_sha256=sha(self.output/(record['checkpoint']+'.long-evaluation.json')))
+        self.guard.check(force=True)
+        return record,passed,elapsed
+
+    def update_once(self):
+        self.guard.check(force=True)
+        # Discard stale complete-update progress before collecting the next rollout.
+        self.progress = {}
+        a = self.api
+        collection = a.collect_rollout(self.model,self.env,self.config['rollout_steps'],'mps',
+                   observation=self.observation,config=self.ppo,check_guard=self.guard.check)
+        a.require_raw_diagnostics(collection.batch)
+        self.observation = collection.observations
+        emit(self.episodes,dict(kind='collection_accepted',counters=self.report(),
+             completed_episodes=len(collection.completed_episodes),reset_events=len(collection.reset_info),
+             transitions=collection.batch.transitions,
+             returned_raw_frames=int(collection.batch.elapsed_raw_frames.sum().item())))
+        metrics = a.ppo_update(self.model,self.optimizer,collection.batch,self.ppo,
+                              check_guard=self.guard.check,progress=self.progress)
+        # Complete counters move only after ppo_update returns successfully.
+        require(self.progress.get('complete') is True and not self.progress.get('in_update',True),
+                'PPO returned incomplete progress','safety_stop')
+        self.counters['updates'] += 1
+        self.counters['phase_updates'] += 1
+        self.counters['optimizer_steps'] += metrics['optimizer_steps']
+        self.last_metrics = metrics
+        require_finite(metrics)
+        require(metrics['optimizer_steps'] == self.progress['optimizer_steps'], 'Adam step accounting differs','safety_stop')
+        self.actor_gradient_seen |= metrics['actor_grad_norm'] > 0
+        self.critic_gradient_seen |= metrics['critic_grad_norm'] > 0
+        self.kl_count = self.kl_count+1 if metrics['approx_kl'] > 0.1 else 0
+        emit(self.metrics,dict(monotonic=self.clock(),counters=self.report(),metrics=metrics,
+                               update_progress=self.progress))
+        require(self.kl_count < 3,'Approximate KL exceeded 0.1 on three consecutive iterations','safety_stop')
+        self.guard.check(force=True)
+
+    def close(self):
+        for stream in (self.episodes,self.metrics):
+            if stream:
+                stream.close()
+
+
+def run_schedule(learner, guard, stream, *, clock=time.monotonic):
+    schedule = Schedule()
+    final = None
+    def remaining():
+        return guard.deadline-clock()
+    def record(event, **extra):
+        emit(stream,dict(event=event,phase_updates=learner.counters['phase_updates'],
+                         remaining_worker_seconds=remaining(),reserves=schedule.receipt(),**extra))
+    def closure(unevaluated=False):
+        nonlocal final
+        if unevaluated:
+            final=learner.checkpoint('long_closure_unevaluated')
+        require(final is not None,'No complete closure checkpoint','wall_guard')
+        record('budget_closure',final_checkpoint=final)
+        return {**outcome_fields('budget_closed_below_gate',True),
+                'final_checkpoint':final,'final_checkpoint_evaluated':final['evaluated'],
+                'counters':learner.report(),'schedule':schedule.receipt()}
+    require(remaining() >= schedule.evaluation_cost(),'Entry evaluation reserve unavailable','wall_guard')
+    final,passed,wall = learner.evaluate_checkpoint(entry=True)
+    schedule.evaluation_wall(wall)
+    record('cadence_evaluation',gate_passed=passed)
+    while True:
+        guard.check(force=True)
+        if passed:
+            record('gate_pass')
+            return {**outcome_fields('D2_progress_gate_passed',True),'final_checkpoint':final,
+                    'final_checkpoint_evaluated':True,'counters':learner.report(),'schedule':schedule.receipt()}
+        if remaining() < schedule.block_cost():
+            return closure()
+        record('block_admitted',required_seconds=schedule.block_cost())
+        for _ in range(16):
+            guard.check(force=True)
+            required = schedule.remaining_cost(learner.counters['phase_updates'])
+            if remaining() < required:
+                return closure(True)
+            record('update_admitted',required_seconds=required)
+            started = clock()
+            learner.update_once()
+            phase = learner.counters['phase_updates']
+            if phase % 8 == 0 and phase % 16:
+                learner.checkpoint('long_periodic')
+            schedule.update_wall(clock()-started)  # Includes periodic checkpoint.
+            record('update_complete')
+        if remaining() < schedule.evaluation_cost():
+            return closure(True)
+        final,passed,wall=learner.evaluate_checkpoint()
+        schedule.evaluation_wall(wall)
+        record('cadence_evaluation',gate_passed=passed)
+
+
+@contextmanager
+
+
+def tree_fingerprint(value):
+    """Bitwise CPU representation, including dtype/shape/container/scalar types.
+
+    Duck typing permits synthetic objects without importing Torch on pure paths.
+    NumPy global RNG arrays and CPU/MPS tensors are hashed as raw bytes.
+    """
+    if hasattr(value, 'detach'):
+        tensor = value.detach().cpu().contiguous()
+        return dict(kind='tensor', dtype=str(tensor.dtype), shape=list(tensor.shape),
+                    bytes_sha256=hashlib.sha256(tensor.numpy().tobytes()).hexdigest())
+    if hasattr(value, 'tobytes') and hasattr(value, 'dtype'):
+        return dict(kind='array', dtype=str(value.dtype), shape=list(value.shape),
+                    bytes_sha256=hashlib.sha256(value.tobytes()).hexdigest())
+    if isinstance(value, dict):
+        return ['dict', sorted(([tree_fingerprint(k), tree_fingerprint(v)] for k,v in value.items()),
+                               key=lambda pair: canonical(pair[0]))]
+    if isinstance(value, (list, tuple)):
+        return [type(value).__name__, [tree_fingerprint(v) for v in value]]
+    if isinstance(value, bytes):
+        return ['bytes', value.hex()]
+    require(value is None or type(value) in (bool, int, float, str), 'Unsupported equality object')
+    return [type(value).__name__, value]
+
+
+def assert_equal_tree(actual, expected, label):
+    a, b = semantic_hash(tree_fingerprint(actual)), semantic_hash(tree_fingerprint(expected))
+    require(a == b, label + ' bitwise state mismatch', 'entry_control_mismatch')
+    return a
+
+
+def environment_kwargs(base_kwargs, config):
+    expected = dict(batch_size=64, action_repeat=4, difficulty=2, patterns_enabled=True,
+                    powerups_enabled=True, raw_frame_cap=18000, num_threads=4, chunk_size=8,
+                    render_pixels=False, auxiliary_targets=False,
+                    excluded_seed_ranges=[tuple(x) for x in config['excluded_seed_ranges']],
+                    initial_episode_indices=[0]*64)
+    require(set(base_kwargs) == set(expected) | {'run_seed'}
+            and {k:v for k,v in base_kwargs.items() if k != 'run_seed'} == expected,
+            'Legacy environment kwargs differ')
+    require(base_kwargs['run_seed'] == 5562881586070242562, 'Wrong historical training namespace')
+    result = copy.deepcopy(base_kwargs)
+    result['run_seed'] = config['phase_settings']['run_seed']
+    require([k for k in result if result[k] != base_kwargs[k]] == ['run_seed'], 'Environment must change only run_seed')
+    return result
+
+
+def sampled_rss(pid):
+    r = subprocess.run(['ps', '-o', 'rss=', '-p', str(pid)], capture_output=True,
+                       text=True, timeout=0.2)
+    require(r.returncode == 0 and r.stdout.strip().isdigit(), 'RSS probe failed')
+    return int(r.stdout.strip()) * 1024
+
+
+def self_peak():
+    n = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    return int(n if sys.platform == 'darwin' else n * 1024)
+
+
+@contextmanager
+"""Focused R4 outer OS matrix; fail-fast, exact current source snapshots.
+
+Actual Guard/outer/inner/private IPC/real separate fake worker sessions execute.
+Fixtures and outputs exist only below this preparation's unique attempts.
+"""
+from pathlib import Path
+import json
+import shutil
+import sys
+import long_d2 as c
+import run_checks
+HERE=Path(__file__).resolve().parent
+
+def main():
+    directory=Path(sys.argv[1]).resolve();directory.mkdir()
+    (directory/'sources').mkdir()
+    sources={p.name:c.sha(p) for p in HERE.glob('*.py')}
+    c.save(directory/'tested-sources.json',sources)
+    for p in HERE.glob('*.py'):shutil.copyfile(p,directory/'sources'/p.name)
+    results=[]
+    def run(name,options,expected):
+        value=run_checks.case(directory,name,options,expected)
+        results.append(value)
+    for mode,code in (('closure',2),('pass',0)):
+        # Same final post-watchdog verifier seam must accept when unblocked.
+        base=dict(mode=mode,worker_seconds=2.5,inner_seconds=3,outer_seconds=4)
+        run(mode+'-final-IO-control',dict(base,phase='outer:final-IO',mutation='none'),code)
+        for mutation,delay in (('read',0),('none',4.5)):
+            run(mode+'-final-IO-'+('read' if mutation=='read' else 'sleep'),dict(base,phase='outer:final-IO',mutation=mutation,delay=delay),1)
+        for phase in ('receipt-before','receipt-close-before','receipt-close-after','final-lease','final-sample','watchdog-join-before','watchdog-join-after'):
+            run(mode+'-late-'+phase,dict(base,phase='outer:'+phase,mutation='none',delay=4.5),1)
+        for phase in ('guard-close-before','guard-close-after','watchdog-join-before','watchdog-join-after','final-IO'):
+            for mutation in ('SIGINT','SIGTERM'):
+                run(mode+'-'+phase+'-'+mutation,dict(mode=mode,phase='outer:'+phase,mutation=mutation),1)
+        run(mode+'-join-failure-persistence-bound',dict(mode=mode,phase='outer:watchdog-join-before',mutation='SIGINT',failure_persistence_delay=11),1)
+        for phase in ('blocked-before-disarm','pending-before'):
+            run(mode+'-'+phase+'-SIGALRM',dict(mode=mode,phase='outer:'+phase,mutation='SIGALRM'),1)
+        for phase,mutation in (('final-lease','cancel'),('final-IO','input'),('final-sample','cancel')):
+            run(mode+'-'+phase+'-'+mutation,dict(mode=mode,phase='outer:'+phase,mutation=mutation),1)
+        # Retain affected prior critical controls without repeating full 165 cases.
+        for phase,mutation in (('inner:hash-after','cancel'),('inner:terminal-after','input'),('inner:before-D','binding')):
+            run(mode+'-'+phase.replace(':','-')+'-'+mutation,dict(mode=mode,phase=phase,mutation=mutation),1)
+    for mode in ('blocked','wedged'):
+        run('owned-'+mode,dict(mode=mode,worker_seconds=.6,inner_seconds=1,outer_seconds=1.5),1)
+    run('registration-race',dict(mode='blocked',phase='inner:spawn-before-registration',mutation='crash',worker_seconds=1,inner_seconds=1.5,outer_seconds=2),1)
+    run('inner-dies-worker-lives',dict(mode='blocked',phase='inner:during-worker',mutation='crash',worker_seconds=1,inner_seconds=1.5,outer_seconds=2),1)
+    c.save(directory/'summary.json',dict(OS_subprocesses=len(results),results=results,old_R3_negative_reruns=0,scope='focused_r4_only'))
+
+if __name__=='__main__':main()
+"""Fresh inherited controls and affected regressions. No ML imports."""
+from pathlib import Path
+import json,os,sys,unittest
+import long_d2 as c
+H=Path(__file__).resolve().parent;out=Path(os.environ['LONG_D2_TEST_EVIDENCE'])
+(out/'tmp').mkdir();import tempfile;tempfile.tempdir=str(out/'tmp')
+import legacy_controls as legacy
+import test_lifecycle as current
+import test_worker_ack_contract as ack
+import test_guard_repair as repair
+suite=unittest.TestSuite()
+for name in ('ConfigTests','LeaseTests','LegacyTests','ScheduleTests','StateTests','GuardTests'):
+    suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(getattr(legacy,name)))
+for name in ('test_raw_and_semantic_distinct','test_each_legacy_byte_pin','test_module_origins_and_mirrors','test_namespace_without_origin_rejected','test_readonly_inventory_permissions_and_escape','test_freeze_and_preflight_import_purity'):
+    suite.addTest(legacy.IdentityTests(name))
+for module in (current,ack,repair):suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(module))
+r=unittest.TextTestRunner(verbosity=2,failfast=True).run(suite)
+c.save(out/'unit-result.json',dict(methods_run=r.testsRun,failures=len(r.failures),errors=len(r.errors),successful=r.wasSuccessful(),ML_imports=any(n in ('torch','numpy','dodge_rl') for n in sys.modules),sources={p.name:c.sha(p) for p in H.glob('*.py')}))
+raise SystemExit(0 if r.wasSuccessful() else 1)
+{
+  "commands": [
+    {
+      "argv": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+        "-B",
+        "-m",
+        "json.tool",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-guard-prepare-r1/clock-correction.json"
+      ],
+      "elapsed_seconds": 0.020191082963719964,
+      "raw_exit": 0,
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+        "-B",
+        "-m",
+        "json.tool",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-guard-prepare-r1/implementation-result-final.json"
+      ],
+      "elapsed_seconds": 0.01825554098468274,
+      "raw_exit": 0,
+      "stderr": ""
+    }
+  ],
+  "success": true
+}

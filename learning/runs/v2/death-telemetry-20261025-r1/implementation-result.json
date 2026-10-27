@@ -1,0 +1,67 @@
+{
+ "date": "2026-10-25",
+ "definition": {
+  "causes": {
+   "kamikaze_enemy": "enemy personality 1 body contact",
+   "kamikaze_explosion": "explosion enemy personality -1 contact",
+   "moving_pattern_rect": "active pattern with pattern_type == 1, rect overlap (lethal throughout)",
+   "normal_enemy": "enemy personality 0 contact (standard box)",
+   "static_pattern_rect": "active pattern with pattern_type != 1, rect fully expanded (sh == 2), overlap",
+   "unknown": "dead state restored from a snapshot, or enemy personality outside {0,1,-1} that was lethal (<2, unreachable in normal play)"
+  },
+  "first_cause": "Cause of the first die() call in a frame, in legacy source order: enemy list order (index order after removals), then the active pattern's rectangles. collision_check returns early if already dead, so the first die() in a frame is the exact alive->dead transition.",
+  "lifecycle": "None while alive; reset() and restart_gameplay() clear it; restore(): dead -> Unknown, alive -> None; wrapper slot keeps first cause + fatal 1-based gameplay frame through K=4 early termination; cap-only truncation and live episodes -> None.",
+  "simultaneous_contacts": "The legacy loop does not stop after the first lethal enemy: later enemies and the pattern are still checked and die() repeats (FrameEvent::Death, SFX, music, highscore). observed_lethal_contacts counts each such die() per kind (first included); sum equals the number of legacy FrameEvent::Death events. Extra entries are observed contacts, not alternate proven causes. Headless dead stays boolean: one termination, one -5 penalty, survival bonus excluded from the fatal frame (unchanged).",
+  "state_scope": "Field death in NativeGame with constant PartialEq; absent from FullState, snapshot bytes, RNG, reward, framebuffer, PrivilegedView and 14/16 tensors."
+ },
+ "dev_eval_rows": "rows add death_cause, fatal_gameplay_frame, death_observed_lethal_contacts; summary adds death_causes counts. Binary without telemetry -> death_cause 'unavailable' for terminated rows (never guessed). Pass/fail logic unchanged (gate/learner/reward untouched).",
+ "files_modified": {
+  "crates/dodge-core/src/game.rs": "ecf923288d0dfb92931535f8c8f307de3c5127f9de1cf626465a758140edeab6",
+  "crates/dodge-core/src/headless_tests.rs": "585bdeb7d6828d3d19dc01369c7a70d72bcca22fff54ca45cbb080097562de66",
+  "crates/dodge-core/src/lib.rs": "6b0915442813d91d4018d834d1c1e7be689fd22620cff83ff7c4e3638fb58758",
+  "crates/dodge-rl-env/src/env.rs": "39f7ea0720e349ab7930a748da9df9df9ce411d334baf6b035503ee86543b942",
+  "crates/dodge-rl-env/src/lib.rs": "fad458cc36ab386e47b71a337fa78fb123d6aba23ca040de4c2cdccb8a166c00",
+  "crates/dodge-rl-env/src/python.rs": "604db40f4b49f462fe7fd81dd62f4fe845fb0061e742e7cf6b11a49324da25ab",
+  "crates/dodge-rl-env/src/tests.rs": "3a6b8caa021a87240d2fb02cae60b70c763febcaae2062aefc6d5e1d725fbf8b",
+  "python/dodge_rl/dev_eval.py": "72e2f7385d6fbe8f5dc1157922df522947379602aee8976fa562520d87d29d60"
+ },
+ "files_new": {
+  "crates/dodge-core/src/death.rs": "853ffcb6a0b9b31ffaa365291df2f3135b6105577be911994347116b5adf47c6",
+  "crates/dodge-core/src/death_tests.rs": "55d929f0b5594381cc5bdd885b1ec86d3609e6d2bc4ec6e3b895cde50cfbaeb2",
+  "crates/dodge-rl-env/src/death_tests.rs": "fd5c90a261fc0685a732fabfed78790e0c297616240a10be561b7af1477703ff",
+  "python/tests/test_death_telemetry.py": "991d75d6c2d1eb930569a533cd342be82ff489ba6c3e3d9290ac67913dd0e0bc"
+ },
+ "not_done": [
+  "no extension/wheel build or install",
+  "no training/eval/replay",
+  "state.json/docs/user gate untouched",
+  "no commit/PR"
+ ],
+ "parent_followups": [
+  "isolated extension build + repin build inputs; then verify info keys through Python and run replay with telemetry",
+  "decide whether to re-run pytest after repin"
+ ],
+ "python_info_keys": [
+  "death_cause",
+  "fatal_gameplay_frame",
+  "death_observed_lethal_contacts"
+ ],
+ "schema": "death_telemetry_implementation_result_v1",
+ "status": "source_complete_not_built_not_installed",
+ "tests_installed_binary": {
+  "accepted_extension_sha256_before_after": [
+   "967c7249acd52339d1818dcbe94e63ee734aea914c3497eb59a7e945a6e95583"
+  ],
+  "failure": "tests/test_teacher_runner.py::test_real_identity_is_read_only_and_preserves_torch_rng: 'Accepted native/build input changed: crates/dodge-core/src/game.rs'. Source identity pin trips because build input changed as required; not weakened. Parent must repin/rebuild under its own isolated process. Whether it also failed before this edit was not separately verified (worktree already carried uncommitted core edits).",
+  "installed_extension_behavior": "unchanged: info lacks death_* keys; dev_eval marks terminated rows 'unavailable'.",
+  "pytest_python_tests": "326 passed, 1 skipped, 1 failed"
+ },
+ "tests_source": {
+  "cargo_fmt_check": "exit 0",
+  "cargo_test_workspace": "exit 0; dodge-core 82 passed (8 new death_tests incl. headless/full/legacy parity, 100-seed x 2000-frame equivalence, legacy fingerprints), dodge-rl-env 46 passed 2 ignored (5 new death_tests), others ok",
+  "clippy_python_feature": "exit 0 (separate CARGO_TARGET_DIR=/tmp/death-telemetry-py-target; check only, no extension built)",
+  "clippy_workspace_all_targets_D_warnings": "exit 0",
+  "python_new_tests": "9 passed 1 skipped (fake env + dev_eval); skip = importable binary predates source"
+ },
+ "unchanged_by_this_task_note": "game.rs/lib.rs/snapshot.rs etc. were already uncommitted-modified before this task; hashes are post-task."
+}

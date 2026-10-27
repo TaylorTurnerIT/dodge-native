@@ -1,0 +1,304 @@
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained324-all-candidate-auditor-luna-20261026-r2/audit_candidates.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained324-linear-auditor-prepare-luna-20261026-r1/audit_candidates.py
+@@ -1,10 +1,10 @@
+-"""Independent read-only auditor for the frozen retained324 same-LR continuation (324 -> 384, local 0..60).
++"""Independent read-only auditor for the frozen retained324 linear-LR run (324 -> 384, local 0..60).
+ 
+ Loads the frozen runner through its own registration preflight, so the frozen launcher's
+ validate_outputs() sees the same runner module. Prefix mode audits published candidates only.
+ Full mode needs all six certificates, terminal outputs, and a parent-owned observer record.
+-The continuation restores selected324 model, Adam, and RNG exactly at unchanged LR 3e-5. Nothing grants selection,
+-continuation, or terminal acceptance.
++The run restores selected324 model, Adam, and RNG exactly at entry LR 3e-5, then verifies every scheduled LR.
++Nothing grants selection, continuation, or terminal acceptance.
+ """
+ from __future__ import annotations
+ 
+@@ -18,23 +18,26 @@
+ from collections import Counter
+ from pathlib import Path
+ 
++import schedule_contract
++
+ ROOT = Path(__file__).resolve().parents[4]
+ OUT = Path(__file__).resolve().parent
+-PREP = ROOT / "learning/runs/v2/D2-retained324-continuation-prepare-luna-20261026-r2"
+-RUN = ROOT / "learning/runs/v2/D2-retained324-continuation-20261026-r1"
++PREP = ROOT / "learning/runs/v2/D2-retained324-linear-integrated-luna-20261026-r4"
++RUN = ROOT / "learning/runs/v2/D2-retained324-linear-lr-20261026-r1"
+ PARENT_RUN = ROOT / "learning/runs/v2/D2-retained300-continuation-20261026-r1"
+ PARENT_AUDIT = ROOT / "learning/runs/v2/D2-retained300-parent-terminal-audit-20261026-r1"
+-OBSERVER_DIR = ROOT / "learning/runs/v2/D2-retained324-execution-observer-parent-20261026-r1"
+-OBSERVER_SOURCE = OBSERVER_DIR / "observe.py"
+-OBSERVER_SHA = "1f991a9a984b18eb8861248ef45b285bdd6288b9e80f5a209af61e15a371f71b"
++OBSERVER_DIR = None
++OBSERVER_SOURCE = None
++OBSERVER_SHA = None
+ VENV_SITE = ROOT / "python/.venv/lib/python3.12/site-packages"
+ 
+ REG_PATH = PREP / "registration.json"
+-REG_SHA = "44ac8185b24de2d98cc1c870191f18be47734b5cc11c7c6ff91b9feacb34cd5a"
+-RUNNER_SHA = "43e93f7469c8dc3b0719f8f218ccb7f58f6860fcd5e0625e0fa580320d7e0c10"
+-REGISTRATION_SCHEMA_SHA = "87497edebf9f94f705b73fb899b1f290d96d8de2a0e66e28c30c75983ca2f57f"
+-PARENT_ADAPTER_SHA = "355880c2cddc455219c4714b8fd57b7a59075ef0581086b153d7b89b05a26a26"
+-LAUNCHER_SHA = "7215ae6628c364fe74bafba68e66cb1c688000a3b7d648dba9248fc2d812310e"
++REG_SHA = None
++RUNNER_SHA = None
++REGISTRATION_SCHEMA_SHA = None
++PARENT_ADAPTER_SHA = None
++LAUNCHER_SHA = None
++LAUNCHER_PATH = None
+ CONFIG_SHA = "1c24df3eea150160451ada08e9f6844cd67645abf5fb8b712afd14abca930ce8"
+ POLICY_SHA = "bfcbee1609cec0180495c957cf4b5e0b31356f395e2a706217cc9225647d23ae"
+ NEW_NATIVE_SHA = "022d41dde9bace0b4f4c4c06b9b4ed007bc2c60013cd98734086e587d7bb997e"
+@@ -45,7 +48,7 @@
+ PARENT_RUN_ID = "D2-retained300-continuation-20261026-r1"
+ PARENT_EVAL_JSON_SHA = "73f9ee722b445ae8e2baf2b16fcb40744338323ec17efe35a56e703947a35e64"
+ PARENT_EVAL_JSONL_SHA = "8777375952d4c656ff805f8c08da30d62e8185cdea5f63e3f0e98f542ff23215"
+-RUN_ID = "D2-retained324-continuation-20261026-r1"
++RUN_ID = "D2-retained324-linear-lr-20261026-r1"
+ RUN_SEED = 4200000001
+ PHASE_START, PHASE_END = 324, 384
+ UPDATES = tuple(range(PHASE_START, PHASE_END + 1, 12))
+@@ -53,10 +56,11 @@
+ PARENT_TOTAL_UPDATES = 372
+ MAX_OPTIMIZER_STEPS = 7680
+ MAX_ENVIRONMENT_DECISIONS = 983040
+-LR_PARENT, LR_ARM = 0.00003, 0.00003
+ DECISIONS_PER_UPDATE = 16384
+ SELECTED_TRAJECTORY_BASELINE = 5678.9823631240915
+-CAMPAIGN_COST_BASELINE = 9758.365427209174
++ORIGINAL_PRODUCING_CAMPAIGN_COST = 9758.365427209174
++CAMPAIGN_COST_BASELINE = 10824.835578584221
++CAMPAIGN_COST_BASELINE_SHA = "d3ddc427f18c8a88c45439452c9efcd966daefe423222e0fa03e97ff4f4fc7d3"
+ BASELINE_MEAN_ALIVE = 2939.40625
+ BASELINE_PERFORMANCE = {'alive_frames': {'Q1': 767.5, 'Q4': 5468.6875, 'mean': 2939.40625}, 'score': {'Q1': 4.09375, 'Q4': 61.53125, 'mean': 29.53125}}
+ BASELINE_DEATH_CAUSES = {'kamikaze_enemy': 9, 'kamikaze_explosion': 3, 'moving_pattern_rect': 3, 'normal_enemy': 35, 'static_pattern_rect': 14}
+@@ -130,15 +134,59 @@
+         check(name not in sys.modules, f"Module cache already contains {name}")
+ 
+ 
+-def load_frozen(*, enforce_lease=True):
++def load_frozen():
+     """Frozen runner by exact bytes, then the live registration through its own preflight.
+-
+-    enforce_lease=False exists only for CPU unit tests before the parent installs the lease.
+-    The audit and wrapper always call with the default, so the live lease is checked.
+     """
++    global REG_SHA, RUNNER_SHA, REGISTRATION_SCHEMA_SHA, PARENT_ADAPTER_SHA, LAUNCHER_SHA, LAUNCHER_PATH
++    global CONFIG_SHA, PARENT_SHA, PARENT_RECEIPT_SHA, NEW_NATIVE_SHA
++    global OBSERVER_SHA, OBSERVER_SOURCE, OBSERVER_DIR
+     bind_environment()
+-    check(sha_file(REG_PATH) == REG_SHA, "Registration digest differs")
+-    schema_path = PREP / "registration_schema.py"
++    binding_path = OUT / "audit-binding.json"
++    check(binding_path.is_file(), "Parent-generated exact audit binding is required")
++    binding, binding_sha = stable_json(binding_path)
++    check(binding.get("schema") == "d2_retained324_linear_auditor_binding_v1"
++          and binding.get("run_id") == RUN_ID, "Audit binding identity differs")
++    required_sources = {str((OUT / name).resolve()) for name in
++                        ("audit_candidates.py", "wrapper.py", "binding_builder.py",
++                         "schedule_contract.py", "lr_schedule.py")}
++    check(set(binding.get("auditor_sources", {})) == required_sources,
++          "OWN auditor source binding inventory differs")
++    for path_text, digest in binding["auditor_sources"].items():
++        check(Path(path_text).is_absolute() and sha_file(path_text) == digest,
++              "OWN auditor source binding differs")
++    check(sha_file(binding["reviewed_manifest"]["path"]) == binding["reviewed_manifest"]["sha256"],
++          "Reviewed manifest digest differs")
++    OBSERVER_SOURCE = Path(binding["observer_source"]["path"])
++    OBSERVER_SHA = binding["observer_source"]["sha256"]
++    OBSERVER_DIR = OBSERVER_SOURCE.parent
++    reg_raw = read_stable(REG_PATH)
++    REG_SHA = sha_bytes(reg_raw)
++    check(REG_SHA == binding["registration"]["sha256"]
++          and Path(binding["registration"]["path"]).resolve() == REG_PATH.resolve(),
++          "Final registration binding differs")
++    reg_preview = json.loads(reg_raw)
++    check(reg_preview.get("run_id") == RUN_ID
++          and Path(reg_preview.get("runner_path", "")).resolve() == (PREP / "runner.py").resolve(),
++          "Final registration runner path or run identity differs")
++    pins = reg_preview.get("pins", {})
++    def registered_sha(path):
++        resolved = str(Path(path).resolve())
++        digest = pins.get(resolved)
++        check(isinstance(digest, str) and len(digest) == 64, f"Final registration omits source pin: {Path(path).name}")
++        return digest
++    schema_path = Path(reg_preview["registration_schema_path"]).resolve()
++    check(schema_path == (PREP / "registration_schema.py").resolve(), "Registration schema path differs")
++    REGISTRATION_SCHEMA_SHA = reg_preview["registration_schema_sha256"]
++    RUNNER_SHA = registered_sha(PREP / "runner.py")
++    check(Path(reg_preview["parent_adapter_path"]).resolve() == (PREP / "parent_adapter.py").resolve(),
++          "Registered parent adapter path differs")
++    PARENT_ADAPTER_SHA = registered_sha(reg_preview["parent_adapter_path"])
++    LAUNCHER_PATH = Path(reg_preview["launcher_path"]).resolve()
++    LAUNCHER_SHA = registered_sha(LAUNCHER_PATH)
++    CONFIG_SHA = reg_preview["config_sha256"]
++    PARENT_SHA = reg_preview["parent"]["sha256"]
++    PARENT_RECEIPT_SHA = registered_sha(reg_preview["parent"]["terminal_receipt_path"])
++    NEW_NATIVE_SHA = reg_preview["native"]["sha256"]
+     schema = load_pinned_module("registration_schema", schema_path, REGISTRATION_SCHEMA_SHA)
+     check(Path(schema.__file__).resolve() == schema_path.resolve(), "Registration schema origin differs")
+     check(schema.RUN_ID == RUN_ID, "Registration schema run identity differs")
+@@ -152,12 +200,10 @@
+         and sys.dont_write_bytecode and (OUT / "empty-pycache").is_dir()
+         and not any((OUT / "empty-pycache").iterdir()),
+         "Auditor-owned bytecode prefix differs or is not empty")
+-    if not enforce_lease:
+-        runner.check_lease = lambda reg: None
+     reg, config = runner.load_registration(str(REG_PATH), REG_SHA)
+     check(reg["run_id"] == runner.RUN_ID == RUN_ID == RUN.name, "Run identity differs")
+     check(Path(reg["runner_path"]).resolve() == (PREP / "runner.py").resolve(), "Frozen runner origin differs")
+-    check(sha_file(PREP / "execute_once.py") == LAUNCHER_SHA and reg["config_sha256"] == CONFIG_SHA
++    check(sha_file(LAUNCHER_PATH) == LAUNCHER_SHA and reg["config_sha256"] == CONFIG_SHA
+           and reg["parent"]["sha256"] == PARENT_SHA and reg["native"]["sha256"] == NEW_NATIVE_SHA
+           and sha_file(reg["parent"]["terminal_receipt_path"]) == PARENT_RECEIPT_SHA, "Critical pin differs")
+     return runner, reg, config
+@@ -231,14 +277,19 @@
+     return done
+ 
+ 
+-def check_saved_lr(state, expected=LR_ARM):
+-    """Real saved optimizer groups carry exactly the arm LR as floats."""
+-    groups = state["optimizer"]["param_groups"]
+-    check(groups and all(type(g.get("lr")) is float and g["lr"] == expected for g in groups),
+-          "Saved optimizer LR differs from arm LR 3e-5")
+-
+-
+-def validate_metric_rows(runner, metrics, max_local):
++def check_saved_lr(state, local_update):
++    """Bind every candidate optimizer LR to exact inherited + local schedule progress."""
++    inherited = state.get("inherited_counters", {}).get("updates")
++    cumulative = state.get("cumulative_counters", {}).get("updates")
++    try:
++        schedule_contract.validate_checkpoint_schedule(
++            state, inherited_updates=inherited, local_updates=local_update,
++            cumulative_updates=cumulative)
++    except (KeyError, TypeError, ValueError) as exc:
++        raise AuditError(str(exc)) from exc
++
++
++def validate_metric_rows(runner, metrics, max_local, group_count):
+     check(len(metrics) >= max_local, "Metric/gradient coverage shorter than candidate prefix")
+     """Per-update rows in the consumed prefix: contiguous phases, exact counter chain, finite values."""
+     check([row.get("phase_update") for row in metrics] == list(range(PHASE_START + 1, PHASE_START + 1 + len(metrics))),
+@@ -258,6 +309,19 @@
+               and progress["completed_updates"] == local and progress["complete"] is True
+               and progress["in_update"] is False, f"Metric counter chain differs at local {local}")
+         runner.validate_gradient_alignment(value.get("gradient_alignment_diagnostics"))
++        try:
++            schedule_contract.validate_metric_schedule(
++                row, inherited_updates=PARENT_TOTAL_UPDATES, local_update=local,
++                group_count=group_count)
++        except (KeyError, TypeError, ValueError) as exc:
++            raise AuditError(str(exc)) from exc
++    if max_local == schedule_contract.HORIZON:
++        check(len(metrics) == schedule_contract.HORIZON,
++              "Full schedule audit requires exactly 60 metric rows")
++        try:
++            schedule_contract.validate_progression(metrics, group_count=group_count)
++        except (KeyError, TypeError, ValueError) as exc:
++            raise AuditError(str(exc)) from exc
+     return steps
+ 
+ 
+@@ -292,6 +356,8 @@
+           and ident.get("parent_terminal_receipt_sha256") == PARENT_RECEIPT_SHA
+           and ident.get("parent_config_sha256") == PARENT_CONFIG_SHA
+           and ident.get("policy_sha256") == POLICY_SHA
++          and ident.get("lr_schedule") == schedule_contract.lr_schedule.SCHEDULE_SPEC
++          and ident.get("lr_schedule_spec_sha256") == schedule_contract.lr_schedule.SCHEDULE_SPEC_SHA256
+           and ident.get("config") == ctx["config"] and ident.get("architecture") == parent["identity"]["architecture"],
+           "Embedded identity, config, or architecture differs")
+     progress = state.get("update_progress")
+@@ -367,9 +433,10 @@
+ 
+ 
+ def validate_observer_instantiation(record):
+-    check(record.get("schema") == "retained324_same_lr_observer_instantiation_v1"
++    check(record.get("schema") == "retained324_linear_lr_observer_instantiation_v1"
+           and record.get("observer_sha256") == OBSERVER_SHA
+           and record.get("registration_sha256") == REG_SHA
++          and record.get("run_id") == RUN_ID
+           and record.get("actual_launches") == 0 and record.get("one_shot_marker_absent") is True,
+           "Observer instantiation identity or no-launch declaration differs")
+     return True
+@@ -451,7 +518,7 @@
+           "Entry candidate is not selected324")
+     check(runner.fingerprint(state["optimizer"]) == runner.fingerprint(parent["optimizer"]),
+           "Entry Adam state differs from selected324 parent")
+-    check_saved_lr(state)
++    check_saved_lr(state, 0)
+ 
+ 
+ def audit_entry_restoration(ctx, entry_restoration):
+@@ -514,9 +581,9 @@
+         observer = load_pinned_module("retained324_observer_source", OBSERVER_SOURCE, OBSERVER_SHA)
+         check(observer.REG_SHA == REG_SHA, "Pinned observer source registration binding differs")
+         instantiation_path = OBSERVER_DIR / "instantiation.json"
+-        check(sha_file(instantiation_path) == "4ce6cb2058db22f2aa6ee6f5ec8c745deb5a1a535030ccb591c638a8e75931fd", "Observer instantiation digest differs")
+-        instantiation, _ = stable_json(instantiation_path)
++        instantiation, instantiation_sha = stable_json(instantiation_path)
+         validate_observer_instantiation(instantiation)
++        tracked[str(instantiation_path)] = instantiation_sha
+         targets = UPDATES
+ 
+     ctx = build_context(runner, reg, config, ckpt, survival_gate, identity_hash, journal, metrics)
+@@ -524,7 +591,8 @@
+     entry_restoration, entry_sha = stable_json(entry_path)
+     audit_entry_restoration(ctx, entry_restoration)
+     tracked[str(entry_path)] = entry_sha
+-    validate_metric_rows(runner, metrics, max(targets) - PHASE_START)
++    parent_group_count = len(ctx["parent"]["optimizer"]["param_groups"])
++    validate_metric_rows(runner, metrics, max(targets) - PHASE_START, parent_group_count)
+ 
+     results, means = {}, {}
+     for update in targets:
+@@ -546,7 +614,7 @@
+                                   "Adam": runner.fingerprint(state["optimizer"]),
+                                   "RNG": runner.fingerprint(state["rng"])}
+         summary = validate_certificate(ctx, update, cert, side, rows_list, cp.name, cp_hash)
+-        check_saved_lr(state)
++        check_saved_lr(state, update - PHASE_START)
+         if update == PHASE_START:
+             validate_entry_against_parent(cert, rows_list)
+             validate_entry_state(ctx, state)
+@@ -561,11 +629,18 @@
+     proposed = choose_best(means)
+     retained = retained_best(sorted(means.items()))
+     check(retained == proposed, "Chronological retained best differs from strict-max selection")
+-    result = {"schema": "retained324_same_lr_all_candidate_audit_v1",
++    result = {"schema": "retained324_linear_lr_all_candidate_audit_v1",
+               "status": "readonly_published_prefix_provisional" if provisional else "all_candidates_audited_pending_parent_terminal_acceptance",
+               "run_id": RUN_ID, "registration_sha256": REG_SHA, "updates_audited": list(targets),
+               "baseline_mean_alive_frames": BASELINE_MEAN_ALIVE, "proposed_best_update": proposed, "selection_basis": "mean_alive_frames_including_entry324_no_score_gate",
+-              "candidates": results, "effective_lr": LR_ARM,
++              "candidates": results, "schedule_spec": schedule_contract.lr_schedule.SCHEDULE_SPEC,
++              "schedule_spec_sha256": schedule_contract.lr_schedule.SCHEDULE_SPEC_SHA256,
++              "schedule_origin_cumulative_update": schedule_contract.ORIGIN,
++              "schedule_horizon_updates": schedule_contract.HORIZON,
++              "wall_anchors": {"selected_trajectory_seconds": SELECTED_TRAJECTORY_BASELINE,
++                               "original_producing_campaign_cost_seconds": ORIGINAL_PRODUCING_CAMPAIGN_COST,
++                               "latest_completed_campaign_cost_seconds": CAMPAIGN_COST_BASELINE,
++                               "latest_completed_campaign_cost_receipt_sha256": CAMPAIGN_COST_BASELINE_SHA},
+               "journal_prefix_policy": "initial+parent_abandoned+phase<=update",
+               "journal_consumed_sha256": sha_bytes(journal_consumed), "metrics_consumed_sha256": sha_bytes(metrics_consumed),
+               "authority": dict(AUTHORITY)}
+@@ -579,7 +654,7 @@
+         execution, _ = stable_json(RUN / "execution-result.json")
+         worker, _ = stable_json(RUN / "worker-result.json")
+         check(execution.get("status") == "passed" and worker.get("status") == "completed", "Terminal status not successful")
+-        launcher = load_pinned_module("execute_once_frozen", PREP / "execute_once.py", LAUNCHER_SHA)
++        launcher = load_pinned_module("execute_once_frozen", LAUNCHER_PATH, LAUNCHER_SHA)
+         check(launcher.r is runner, "Frozen launcher did not bind the audited runner")
+         result["frozen_launcher_terminal_checks"] = launcher.validate_outputs(reg, worker, REG_SHA)
+         observation, _ = stable_json(Path(observer_dir) / "observation.json")
+@@ -616,7 +691,7 @@
+     result["pins_checked_before_and_after"] = len(reg["pins"])
+     result["parent_gated_checks"] = ["final publication absence", "lease release"]
+     result["auditor_checked_terminal"] = ["frozen launcher outputs", "all candidate checkpoints and identity",
+-        "model/Adam/RNG entry restore", "candidate counters and episode resume", "metric gradient coverage",
++        "model/Adam/RNG entry restore", "candidate counters and episode resume", "schedule metadata and exact saved/metric per-group LR progression", "metric gradient coverage",
+         "evaluation cohort rows/death causes/survival statistics", "observer exits/resources/cleanup/process absence",
+         "source pins and cache"]
+     result["tracked_file_sha256"] = dict(sorted(tracked.items()))

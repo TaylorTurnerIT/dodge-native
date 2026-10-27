@@ -1,0 +1,115 @@
+"""Read-only authority verification and owned source-only preparation."""
+from pathlib import Path
+import datetime
+import hashlib
+import json
+import shutil
+import time
+
+H = Path(__file__).resolve().parent
+ROOT = H.parents[3]
+BASE = H.with_name('postovernight-long-D2-boundary-prepare-r11')
+START_UTC = '2026-10-25T03:54:00+00:00'
+
+def sha(path):
+    digest = hashlib.sha256()
+    with Path(path).open('rb') as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b''):
+            digest.update(block)
+    return digest.hexdigest()
+
+def save(name, value):
+    with (H / name).open('x') as stream:
+        json.dump(value, stream, indent=2, sort_keys=True, allow_nan=False)
+        stream.write('\n')
+
+def main():
+    inputs = {}
+    def record(path, expected=None):
+        path = Path(path)
+        actual = sha(path)
+        inputs[str(path)] = dict(sha256=actual, bytes=path.stat().st_size)
+        if expected is not None and actual != expected:
+            raise RuntimeError('Input binding mismatch: ' + str(path))
+        return actual
+    try:
+        record(BASE / 'parent-frozen-pins.json')
+        pins = json.loads((BASE / 'parent-frozen-pins.json').read_text())
+        if len(pins) != 8:
+            raise RuntimeError('Expected eight r11 bindings')
+        for name, digest in pins.items():
+            record(ROOT / name, digest)
+        authority = ROOT / 'learning/runs/v2-orchestration'
+        record(authority / 'postovernight-long-D2-boundary-policy-parent-reconciliation-r1.json', '95977b36b45ad1ea670a601b51bb70198d0c0f37bb76c237b6ac032e535ebe9d')
+        record(authority / 'postovernight-long-D2-r2-protocol-r8.json', 'fe11c08159bdb9ca1f03cb0fb96ffd133ad144d107b2a854d19fc49159aa2db2')
+        for name in ('postovernight-long-D2-boundary-repair-r12-task.md', 'postovernight-long-D2-boundary-review-r11-parent-reconciliation.json', 'postovernight-long-D2-contention-design-sonnet-r1-parent-reconciliation.json'):
+            record(authority / name)
+        for name in ('implementation-plan-v2.md', 'SPEC_PRIVILEGED_VIT_RL.md'):
+            record(ROOT / 'docs' / name)
+        record(BASE.with_name('postovernight-long-D2-boundary-review-r11') / 'audit.md')
+        sonnet = BASE.with_name('postovernight-long-D2-contention-design-sonnet-r1')
+        record(sonnet / 'receipt.json')
+        receipt = json.loads((sonnet / 'receipt.json').read_text())
+        for name, digest in receipt['outputs'].items():
+            record(sonnet / name, digest)
+        probe = BASE.with_name('postovernight-long-D2-switchinterval-probe-r1')
+        record(probe / 'parent-evidence-manifest.json')
+        manifest = json.loads((probe / 'parent-evidence-manifest.json').read_text())
+        for name, value in manifest['files'].items():
+            record(probe / name, value['sha256'])
+            if (probe / name).stat().st_size != value['bytes']:
+                raise RuntimeError('Probe size mismatch: ' + name)
+        plan = json.loads((probe / 'plan.json').read_text())
+        for name, digest in plan['scripts_sha256'].items():
+            record(probe / name, digest)
+        for name, digest in plan['frozen_candidate_pins'].items():
+            record(ROOT / name, digest)
+        protocol = json.loads((authority / 'postovernight-long-D2-r2-protocol-r8.json').read_text())
+        record(ROOT / protocol['config_path'], protocol['config_sha256'])
+        record(ROOT / protocol['parent_checkpoint'], protocol['parent_checkpoint_sha256'])
+        for name, digest in protocol['base_identity']['sources'].items():
+            record(ROOT / name, digest)
+        # Preserve mutable context bytes once; never compare the live ledger later.
+        state = (authority / 'state.json').read_bytes()
+        (H / 'state.context.snapshot.json').write_bytes(state)
+        parsed_state = json.loads(state)
+        save('state-context.json', dict(snapshot_sha256=sha(H / 'state.context.snapshot.json'),
+            context_only=True, keys=sorted(parsed_state),
+            active_long_campaign=parsed_state.get('active_long_campaign'),
+            note='Routine live ledger updates are not immutable-input drift.'))
+        names = ['long_d2.py', 'long_d2_executor.py', 'lifecycle.py', 'processes.py',
+            'boundary_integrity.py', 'freeze.py', 'source_equality.py', 'fixture_guards.py',
+            'fixture_preconditions.py', 'os_checks.py', 'synthetic.py', 'stress.py',
+            'rehearsal.py', 'parent_command.py', 'model_r11.py', 'test_r11.py',
+            'test_r10.py', 'test_r7.py', 'test_repairs.py', 'test_boundary.py',
+            'protocol-r8-proposal.json', 'retained-r9-injection.json', 'preparation-copy.json']
+        snapshot = H / 'r11-source'
+        snapshot.mkdir()
+        copies = {}
+        for name in names + ['PARENT-NEXT.md', 'run_unit_suite.py', 'unit_stage.py']:
+            record(BASE / name)
+            shutil.copyfile(BASE / name, snapshot / name)
+            copies[name] = sha(snapshot / name)
+            if name in names:
+                shutil.copyfile(BASE / name, H / name)
+        for name in ('original-source', 'r6-source', 'r9-source', 'r10-source'):
+            for path in sorted((BASE / name).rglob('*')):
+                if path.is_file():
+                    record(path)
+            shutil.copytree(BASE / name, H / name)
+            shutil.copytree(BASE / name, snapshot / name)
+        save('base-source-manifest.json', dict(base=str(BASE), exact_snapshot=str(snapshot), files=copies,
+            fixture_directories=['original-source','r6-source','r9-source','r10-source']))
+        save('input-manifest.json', dict(schema='r12_inputs_v1', files=inputs,
+            frozen_r11_bindings=8, original_semantic_sources=75, probe_evidence_bindings=len(manifest['files']),
+            mutable_context_excluded=True, read_without_execution=True))
+        save('preparation-result.json', dict(status='prepared', started_at_utc=START_UTC,
+            completed_at_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            no_old_current_envelopes=True, no_campaign=True, no_scope_deviations=True))
+        print(json.dumps(dict(status='prepared', immutable_inputs=len(inputs), r11_pins=8)))
+    except BaseException as error:
+        save('setup-failure.json', dict(error=repr(error), inputs=inputs, no_retry=True))
+        raise
+
+if __name__ == '__main__':
+    main()

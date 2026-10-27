@@ -1,0 +1,49 @@
+{
+  "actual_campaign_launches_before_continuation": 0,
+  "candidate_source_unchanged": true,
+  "changes": [
+    {
+      "after": "OUT=ROOT/'learning/runs/v2/postovernight-long-D2-execution-observer-r2b'",
+      "before": "OUT=ROOT/'learning/runs/v2/postovernight-long-D2-execution-observer-r2'"
+    },
+    {
+      "after": "TASK='postovernight_long_D2_execution_r2b'",
+      "before": "TASK='postovernight_long_D2_execution_r2'"
+    },
+    {
+      "after": "candidate.with_name(candidate.name+'.evaluation.json')",
+      "before": "candidate.with_name(candidate.stem+'-D1-development.jsonl')"
+    },
+    {
+      "after": "if pool_until is not None and now>=pool_until and not kill_attempted:",
+      "before": "if pool_until is not None and now>=pool_until-.5 and cancel_at is not None and not kill_attempted:"
+    },
+    {
+      "after": "if pool_until is not None and now>=pool_until:result['deadline_exceeded']=True",
+      "before": "if pool_until is not None and now>=pool_until and cancel_at is not None:result['deadline_exceeded']=True"
+    },
+    {
+      "after": "stable=set(absence)=={'outer','supervisor','worker'} and all(x['group_absent'] for x in absence.values())",
+      "before": "stable=bool(absence) and all(x['group_absent'] for x in absence.values())"
+    }
+  ],
+  "corrections": [
+    "Bind evaluation anchor to actual certificate, not per-episode row log.",
+    "Distinct observer/task paths preserve original failed observer.",
+    "External emergency kill eligibility is the proven shared deadline, never an earlier new-.5 cutpoint; proven internal deadline applies even without an observer cancel. No added grace.",
+    "Stable campaign inventory requires positive absence for all three expected groups; otherwise inventory remains partial."
+  ],
+  "execution_plan": "learning/runs/v2-orchestration/postovernight-long-D2-execution-r2-plan.json",
+  "execution_plan_sha256": "42b069b10f0cb71b7a6b2ae5e18b0c4a3bc4af26391431aa1a300c1b52621517",
+  "first_actual_command_only": true,
+  "lease_unchanged": true,
+  "no_training_retry_resume_or_limit_change": true,
+  "observer_output": "learning/runs/v2/postovernight-long-D2-execution-observer-r2b",
+  "observer_source_sha256": "46c1add704746d78ede5e0696e07371a047f59efe83e528dbc2267f965b5e904",
+  "prelaunch_reconciliation": "learning/runs/v2-orchestration/postovernight-long-D2-execution-r2-prelaunch-parent-reconciliation.json",
+  "prelaunch_reconciliation_sha256": "e4753989af1776e964523828f2c22d6a6014486c3d1f395602a4ce3742eded1a",
+  "production_invocation_unchanged": true,
+  "registered_at_utc": "2026-10-25T05:11:51.874922+00:00",
+  "retained_original_observer_sha256": "c40bca3877595b0cc38edee9aa2502dc35e5821e275aca8cc65cd0111ba41018",
+  "schema": "parent_r2b_observer_continuation_v1"
+}

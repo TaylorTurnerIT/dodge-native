@@ -1,0 +1,36 @@
+{
+  "schema": "reporting_preflight_review_receipt_v1",
+  "reviewer": "haiku-5.5 review sub-agent",
+  "date": "2026-10-25",
+  "scope": "read-only review of reusable-reporting-preflight-luna-20261026-r2; no tests, no Torch, no environments, no gradients, no training, no child runs, no edits to inspected files",
+  "method": "stdlib file reads, sha256 hashes, JSON inspection, in-memory probes (no files written by probes)",
+  "verdict": "no findings change current reported numbers; hardening findings 1-4 recommended before regular use",
+  "inspected_inputs_sha256": {
+    "luna/reporting_preflight.py": "50845262aa3d74396b07afb89b7d7ddc4f6360cdb71f852d03b45a2890fc1a3c",
+    "luna/test_reporting_preflight.py": "1ccce9ccb85aada59027916a322cbe576f9a02573d399842048cd2b2e81ab16e",
+    "luna/usage.md": "e312169ce212584e23fe26fca26cc64410115a3410bda9b49c9d5e01f3cae950",
+    "luna/receipt.json": "286f28e3ee152fd0e9100ccdbdcfec9fe65530c7d2efc36acf415201efec47b0",
+    "luna/preflight-manifest.json": "a92d2586ccb0a6960ec3dfbfad8df89b7a9cdd098c54434619168719f95a4198",
+    "luna/inspect.log": "ed79bb0a9a293f855816b8a5b68191f573ecb738e3f4137c448abed99bd958e1",
+    "luna/report.log": "43603c65f3e253b244c02d699376e6ed7e737956d0970a5a2c0ef4efa7cfb59f",
+    "luna/validation.log": "ad1eabac79f536e5f7711b605e797e67c33f027a48a0497bd61655a3b80d7c52",
+    "luna/import.log": "277cd953e26eafa013746d69c70f31747b7899cc5aac10e4e17ca2ac64447f24",
+    "learning/runs/v2/D2-gradient-alignment-20261025-r2/development-000180.json": "2456bef85e7203d60496a6600631613a7dbc2987467d63d467dfec048f3d5680",
+    "learning/runs/v2/D2-continuation-20261025-r2/development-000252.json": "f6f5dd73f1f3e4537f6646ea2c6726932569d88f26ca85d5b0eeb82384274614",
+    "learning/runs/v2/d2-gradient-parent-terminal-audit-20261025-r2/parent-terminal-receipt.json": "7968a62b6e601fab971e4145dbaebfa1995c8f696e6df442ab70fc0435b74903",
+    "learning/runs/v2/D2-continuation180-parent-freeze-20261025-r4/registration-proposed.json": "0059ce1a3f2dae18a34b085b57b251c115ac53e7bc82835a6eff2164ac70e949"
+  },
+  "output_sha256": {
+    "reporting-preflight-review-haiku-20261026-r2/findings.md": "ffe3a90fe2d9bd1987ad29bd21f5f82149989f8f6110e2947a5d4d0399ccfbab"
+  },
+  "probe_results": {
+    "missing_runtime_sha256_both_sides": "KeyError (fail-closed, not an explicit reject)",
+    "missing_checkpoint_sha256_both_sides": "KeyError (fail-closed, not an explicit reject)",
+    "64_identical_rows_to_summarize_performance": "accepted; Q1 2940.0"
+  },
+  "current_values_verified_from_source_json": {
+    "best_180": {"Q1": 585.625, "Q4": 3502.5625, "mean": 1854.46875, "deaths_normal_kamikaze_explosion_moving_static": [32, 11, 0, 11, 10]},
+    "latest_252": {"Q1": 532.8125, "Q4": 3192.3125, "mean": 1604.078125, "deaths_normal_kamikaze_explosion_moving_static": [24, 9, 3, 13, 15]}
+  },
+  "parent_reconciliation": "Parent to reconcile before regular use; findings 1-4 open"
+}

@@ -1,0 +1,50 @@
+--- learning/runs/v2/postovernight-action-mode-prepare-r2/runner.py
++++ learning/runs/v2/postovernight-action-mode-prepare-r3/runner.py
+@@ -29,8 +29,8 @@
+ 
+ ORIGINAL_ROOT = Path('/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79')
+ ROOT = Path(__file__).resolve().parents[4]
+-PROTOCOL_REL = 'learning/runs/v2-orchestration/postovernight-action-mode-r2-protocol.json'
+-PROTOCOL_SHA256 = '910f2b9fc4c36d1f9565618b0ac8d79b182f1faafec2224b61d65fda926e5de5'
++PROTOCOL_REL = 'learning/runs/v2-orchestration/postovernight-action-mode-r3-protocol.json'
++PROTOCOL_SHA256 = '90e3ae1cc8ba253e2e64a708f9b66ed59762e85668a15197d04d9265180ea741'
+ STATE_PATH = ORIGINAL_ROOT / 'learning/runs/v2-orchestration/state.json'
+ SEEDS = tuple(range(3489660928, 3489660992))
+ CONTROLLER_SEEDS = (64001, 64002, 64003)
+@@ -233,7 +233,14 @@
+ @contextmanager
+ def cancellation_signals():
+     previous, cancelling = {}, [False]
++    def defer():
++        cancelling[0] = True
++    defer.requested_signal = None
++    defer.cancellation_requests = 0
+     def handle(number, frame):
++        defer.cancellation_requests += 1
++        if defer.requested_signal is None:
++            defer.requested_signal = number
+         if not cancelling[0]:
+             cancelling[0] = True
+             raise KeyboardInterrupt(f'Cancellation signal {signal.Signals(number).name}')
+@@ -241,7 +248,7 @@
+         for sig in (signal.SIGINT, signal.SIGTERM):
+             previous[sig] = signal.getsignal(sig)
+             signal.signal(sig, handle)
+-        yield lambda: cancelling.__setitem__(0, True)
++        yield defer
+     finally:
+         for sig, handler in previous.items():
+             signal.signal(sig, handler)
+@@ -895,6 +902,12 @@
+                         'episodes_completed', 'evaluations_completed', 'control_matches'):
+                 if 'worker_result' in result and key in result['worker_result']:
+                     result[key] = result['worker_result'][key]
++    # Deferred signals protect cleanup but must still invalidate completion.
++    # Read the latch after the context exits, including its final stream close.
++    if defer.cancellation_requests:
++        result.update(status='failed', partial=True, cancellation_requested=True,
++                      cancellation_signal=signal.Signals(defer.requested_signal).name,
++                      cancellation_requests=defer.cancellation_requests)
+     # Streams are closed before hashing. Only a positively empty, reaped owned
+     # group can supply stable artifacts, including when its leader exited early.
+     return publish_terminal(args.output, result, started, deadline, stable)

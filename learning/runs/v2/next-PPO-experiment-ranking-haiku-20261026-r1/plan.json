@@ -1,0 +1,123 @@
+{
+  "schema": "next_ppo_experiment_ranking_v1",
+  "status": "design_only_no_launch",
+  "scope": "Ranking of next controlled PPO experiments from frozen evidence. No training, no evaluation, no checkpoint or source mutation, no D3/student/B/E/qualification.",
+  "parent": {
+    "retained_best_phase_update": 180,
+    "checkpoint": "learning/runs/v2/D2-gradient-alignment-20261025-r2/checkpoint-000180-candidate.pt",
+    "sha256": "105e0f7a83e154116bd9f0d5eaaf573a896886468c9038f548f5ce7e6377c7ea",
+    "accepted_parent_receipt": "learning/runs/v2/d2-gradient-parent-terminal-audit-20261025-r2/parent-terminal-receipt.json",
+    "policy": "learning/runs/v2/user-best-checkpoint-policy-20261026-r1/policy.json",
+    "dev_mean_alive_frames": 1854.47,
+    "dev_q1_alive_frames": 585.63,
+    "dev_q4_alive_frames": 3502.56
+  },
+  "selection_rule": {
+    "metric": "mean alive raw frames on the 64 registered development seeds, deterministic argmax",
+    "replacement": "only a comparable completed audited evaluation with strictly higher dev mean replaces retained best 180",
+    "no_regression_continuation": "never continue from a worse latest checkpoint; restore retained best model and optimizer with unchanged identity validation",
+    "no_qualification_claim": true
+  },
+  "control": {
+    "id": "C0_unchanged_best180_continuation",
+    "description": "Unchanged registered PPO config from best180, 72 updates. Existing run D2-continuation-20261025-r2 is one training-seed sample: dev mean alive 1604.08 at update 252.",
+    "budget": {"updates": 72, "environment_decisions": 1179648, "raw_frames": 4712948, "optimizer_steps": 8096, "observed_wall_seconds": 1165.0, "observed_peak_rss_bytes": 1921892352, "observed_peak_mps_driver_bytes": 2447998976},
+    "required_second_training_seed": "Run once more with an unchanged config and a different registered run_seed to estimate training-seed noise. Required before any arm is read as positive."
+  },
+  "measurement_basis": {
+    "primary": "paired mean alive raw frames on the 64 registered D dev seeds, argmax, same seed order",
+    "secondary_reported_not_gated": ["mean score", "Q1/Q4 alive frames", "approx_kl at epoch end", "clip_fraction", "epochs_completed", "early_stop_kl", "entropy", "explained variance (diagnostic only)"],
+    "score_role": "reported only; not a pass/fail criterion"
+  },
+  "statistical_scope": {
+    "dev_seed_count": 64,
+    "paired_bootstrap_se_frames_approx": 221,
+    "minimal_detectable_paired_difference_80pct_frames_approx": 620,
+    "note": "SE derived from the published 95% CI [-691.5, +176.4] for 252-180 (CI half-width/1.96). Bootstrap resamples dev seeds conditional on one checkpoint pair. It is not training-seed uncertainty. Effects smaller than about 600 frames cannot be resolved on 64 seeds with one training seed per arm.",
+    "retained_best_selection_bias": "Selecting the best dev mean repeatedly on the same 64 seeds is optimistic. Dev curves are selection records, not generalization evidence."
+  },
+  "ranking": [
+    {
+      "rank": 1,
+      "id": "A_lr_trust_region_1e4",
+      "title": "Lower Adam learning rate 3e-4 to 1e-4 (trust-region control)",
+      "single_variable_change": "ppo.learning_rate 0.0003 -> 0.0001. Everything else identical, including target_kl 0.03, clip_coef 0.2, ent_coef 0.01, max_grad_norm 0.5, adam_eps 1e-5, reward_scale 0.1, gamma 0.995, lambda 0.95, epochs 4, minibatch 512, rollout_steps 256, 64 envs.",
+      "source_hook": [
+        "python/dodge_rl/train_teacher.py:76 make_optimizer reads ppo.learning_rate for a fresh Adam.",
+        "python/dodge_rl/train_teacher.py:169 restore_learner then calls optimizer.load_state_dict, which restores the saved param_groups lr (3e-4). A config-only change is silently overridden on continuation. Verified with torch 2.14.1 on a 2-parameter linear model: fresh lr 1e-4 became 3e-4 after load_state_dict.",
+        "Required fix: after restore, set every param_group['lr'] to config ppo.learning_rate, keep restored Adam moments, and assert the effective lr in the receipt. Add a CPU unit test that the resumed lr equals config while exp_avg and exp_avg_sq equal the parent's."
+      ],
+      "expected_mechanism": "Measured per-update policy movement is near or above the trust-region limit: epoch-end approx_kl about 0.028-0.032 against target_kl 0.03, clip_fraction 0.20-0.23 in every 8-update bin, early-stop flag true in 25-100% of updates per 8-update bin (median about 60%). A smaller step should cut clip fraction and KL-limited epochs and reduce overshoot between dev-evaluated checkpoints. Under Adam, step size is mostly set by lr, so this is the main lever. KL scales roughly with lr squared for small steps, so 1e-4 should cut epoch KL several-fold. The receipt must show the actual contraction.",
+      "falsifying_measurement": [
+        "Integrity gate fails if effective lr != 1e-4 at resume, or if epoch-end KL and clip fraction do not drop. Then the arm is invalid, not negative.",
+        "Arm is not positive if paired dev mean alive minus C0 has bootstrap CI crossing zero, or if the difference is inside the training-seed noise floor measured by the second C0 seed.",
+        "Hypothesis falsified if clip fraction and KL fall as intended and dev mean alive does not exceed C0 beyond the noise floor. Then trust-region overshoot is not the limit.",
+        "Slower-learning signal: dev mean alive falls below C0 band. Trust region may be too tight at this budget."
+      ],
+      "budget": "72 updates, 1,179,648 decisions, about 4.71M raw frames, matched to C0. Expected wall about 1165 s training plus evaluation, under the 1800 s total cap and the 1600 s work cap in the D2 registration limits. Peak RSS and MPS driver must stay below 6 GiB (6442450944 bytes). C0 observed 1.92 GB RSS and 2.45 GB MPS.",
+      "seed_scheme": "Dev seeds fixed: the 64 registered D seeds, one per independent B1 env, argmax, unchanged order. Training run_seed from the registered continuation config, the same for A and C0 seed 1. Second arm pair uses one new registered run_seed for both A and C0 seed 2. Excluded seed ranges unchanged: [2952790016, 2952791015], [3489660928, 3489661055], [3758096384, 3758097383]. Trajectories diverge once lr differs, so pairing is at the seed-stream level, not per step.",
+      "safety_integrity_gates": [
+        "Parent best180 checkpoint and optimizer state hashed before and after; not written to.",
+        "Identity hash, config hash and protocol hash validated as in D2 continuation.",
+        "No eval-seed or reserved seed entered training (existing _audit_episode checks).",
+        "Effective lr asserted at restore and logged.",
+        "Only audited, complete, comparable dev evaluations may be compared."
+      ],
+      "retained_best_survival": "Candidate checkpoint written only under a new run directory. It replaces retained best 180 only if its completed audited dev mean alive is strictly above 1854.47. Otherwise 180 and its optimizer remain the parent. A worse arm is never the training parent.",
+      "campaign_mps_minutes_estimate": 20,
+      "prepare_now": ["Implement lr override plus unit test in a registered source snapshot, not in the live checkout.", "Register config with lr 1e-4 and the same run_seed as C0.", "Pre-register decision rule above."],
+      "status": "ranked_first; prepare now; no launch"
+    },
+    {
+      "rank": 2,
+      "id": "B_critic_stopgrad_trunk",
+      "title": "Critic reads detached trunk latent (one-way stop-gradient)",
+      "single_variable_change": "Critic head input becomes latent.detach(). Value loss no longer updates trunk. Actor path, lr, and all PPO hyperparameters unchanged.",
+      "source_hook": "python/dodge_rl/models/teacher.py:175 values=self.critic_head(latent). Change to critic_head(latent.detach()) behind a registered flag. Add a unit test that value-loss gradients into trunk parameters are exactly zero and actor gradients are unchanged on one minibatch. Global clip scale changes, so log per-group norms.",
+      "expected_mechanism": "Tests whether critic gradients into the shared trunk degrade policy features (separate-network literature suggests this in some settings). This is a Dodge-specific ablation. It is not PPG and was not directly tested by the cited sources.",
+      "justification_strength": "Weak. Measured gradient cosine averages about 0.02 with sign changes (bins between -0.10 and +0.05). Critic/actor norm ratio about 2%. Critic pre-update EV rose in the 252 window (first 8 to last 8: 0.435 to 0.460). Nothing measured shows interference. This arm tests a hypothesis and is not a fix.",
+      "falsifying_measurement": [
+        "Positive only if dev mean alive beats C0 beyond the noise floor. Then interference is supported in this setting, with the global-clip confound logged.",
+        "Null result does not show absence of interference. Within-noise null means the test has no power at this budget.",
+        "If dev survival improves but critic EV or value loss collapses, the result is capacity loss plus a different policy. Do not read it as interference removed."
+      ],
+      "budget": "Same 72 updates and seed scheme as A. Same MPS and memory envelope.",
+      "seed_scheme": "Same as A.",
+      "safety_integrity_gates": ["Gradient-isolation unit test passes.", "Same identity, dev, and seed gates as A.", "Per-group gradient norms logged, including the clip coefficient."],
+      "retained_best_survival": "Same as A. Candidate cannot replace 180 unless dev mean is strictly higher and audited.",
+      "campaign_mps_minutes_estimate": 20,
+      "prepare_now": ["Implement flag and isolation test in a snapshot. No live edit now."],
+      "status": "ranked_second_conditional; run only after A's result is in, and only if the parent still wants to test interference"
+    }
+  ],
+  "control_row": {
+    "id": "C0",
+    "role": "Required reference, not a candidate. Second training seed needed for the noise floor. Runs in the same sequential MPS slot."
+  },
+  "not_ranked": [
+    {"id": "entropy_ent_coef", "reason": "Policy entropy is 1.72-1.77 against ln(9) = 2.197 (about 80% of max) and falls only 0.01-0.04 over 48-72 updates. No collapse is measured, so no exploration case."},
+    {"id": "gae_lambda_or_gamma", "reason": "No measured critic-bias evidence that a fixed interpretation supports. Changes confound credit horizon with other effects."},
+    {"id": "running_target_std_normalization", "reason": "Changes objective scale and critic coefficient. Motivation depends on EV decline, which is not established. Larger source change."},
+    {"id": "max_grad_norm_change", "reason": "Pre-clip grad norm is about 0.77-0.89 against cap 0.5, so clipping is active. Under Adam, global clipping mostly rescales gradients, so the expected effect is small. Low information per MPS minute."},
+    {"id": "PPG_aux_value_phase_or_recurrent_memory", "reason": "Later or unranked. Needs separate design, and aliased-state diagnostics for memory."}
+  ],
+  "prepare_now": [
+    "Write the A config and lr-restore fix as a registered snapshot, with unit test. No live training.",
+    "Register C0 seed 2 (same config, new run_seed).",
+    "Verify the 64 dev seeds and excluded ranges unchanged against the protocol.",
+    "Pre-register decision rule and noise-floor criterion before launch."
+  ],
+  "evidence_that_would_change_ranking": [
+    "C0 seed 2 differs from C0 seed 1 by more than the A-C0 gap: training-seed noise dominates. Then A and B need two seeds each, or are not identifiable in this budget.",
+    "A's KL and clip fraction do not fall after the lr fix: the integrity gate fails, so the arm is invalid and the mechanism untested.",
+    "Parent's H1 fresh-seed evaluation shows the 252 drop is checkpoint-specific: reduces urgency for all PPO changes. Prefer C0 replicate only.",
+    "Per-death telemetry or reward-split evidence (H2/H3 in the survival-loss decomposition) points to difficulty state or reward value rather than optimizer behavior: changes priority toward non-optimizer interventions.",
+    "A dev-eval repeatability check shows nondeterminism above the noise floor: changes power calculations and the decision rule."
+  ],
+  "limits": [
+    "No new web or literature research. Sources are the existing reports only.",
+    "Survival-loss decomposition is descriptive and not a causal correction. Its CIs crossing zero do not show noise-only explanation.",
+    "Gradient cosine and norm ratio are raw single-probe CPU shadows, not causal measures.",
+    "Explained variance is diagnostic only. This plan does not rely on an EV decline."
+  ]
+}

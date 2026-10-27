@@ -1,0 +1,10 @@
+--- before/learning/scripts/v2_validate_environment.py
++++ after/learning/scripts/v2_validate_environment.py
+@@ -470,6 +470,7 @@
+                     note_seeds(reset["info"], "timed_reset", call_index + 1)
+                     resets += len(ended)
+             elapsed = time.monotonic() - start
++            require(elapsed <= stage["per_config_wall_seconds"], "Throughput config wall guard exceeded")
+             observations = env.observations()
+             validate_observation(np, observations, batch, pixels, False)
+             seed_log = directory / f"throughput-seeds-pixels{int(pixels)}-threads{threads}-chunk{chunk}.jsonl"

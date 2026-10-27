@@ -1,0 +1,7 @@
+R7 CPU suite attempt 1 failed before the integration contracts were corrected.
+Command: PYTHONDONTWRITEBYTECODE=1 PYTHONPYCACHEPREFIX=<R7-owned-cache> <venv>/bin/python -B -m unittest -v test_calibration_cpu
+Origin: test_calibration_cpu.py:79, actual launcher fixture; test_calibration_cpu.py:176, actual reader integration.
+Failures:
+- test_actual_launcher_end_to_end_terminal_publication_success_and_child_failure: fixture CPU preflight subprocess exited 1 for success and failure cases. R7 fixture directory changed cpu_preflight.py's ROOT derivation.
+- test_actual_reader_wrapper_contract_positive_and_negative: frozen R6 worker.py:448 raised ValueError("Resource sample is stale"). The malformed attempt used a separate max-age check against elapsed wall time.
+This attempt used 17 tests. No global state, reservation, lease, marker, hardware, MPS, game/env, training, or checkpoint writes occurred.

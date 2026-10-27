@@ -1,0 +1,159 @@
+{
+  "commands": [
+    "env -u PYTHONPATH PYTHONDONTWRITEBYTECODE=1 python/.venv/bin/python -B learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r4/test_calibration_cpu.py",
+    "env -u PYTHONPATH PYTHONDONTWRITEBYTECODE=1 PYTHONPYCACHEPREFIX=\"$PWD/learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r4/bytecode-cache-empty\" python/.venv/bin/python -B learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r4/cpu_preflight.py --output learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r4/cpu-preflight-validation",
+    "env -u PYTHONPATH PYTHONDONTWRITEBYTECODE=1 python/.venv/bin/python -B learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r4/verify_freeze.py",
+    "python3 -m json.tool learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r4/calibration-plan.json",
+    "python3 -m json.tool learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r4/source-pins.json",
+    "python3 -m json.tool learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r4/cpu-preflight-validation/cpu-preflight.json",
+    "env -u PYTHONPATH PYTHONDONTWRITEBYTECODE=1 python/.venv/bin/python -B learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r4/verify_freeze.py > learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r4/freeze-verification.log"
+  ],
+  "cpu_evidence": {
+    "bytecode_prefix_empty": true,
+    "cpu_preflight": {
+      "checkpoint_writes": 0,
+      "mps_operations": 0,
+      "real_game_episodes": 0,
+      "status": "passed",
+      "strict_checkpoint_loads": 2,
+      "training": false
+    },
+    "guard_formula": "136 * evaluate_passes",
+    "incorrect_208_guard_count_rejected": true,
+    "lexical_venv_cpu_child_tested": true,
+    "mps_negative_controls": [
+      "missing",
+      "wrong count",
+      "nonnumeric",
+      "NaN",
+      "negative",
+      "zero-only"
+    ],
+    "one_pass_claims_two_pass_repeated_work": false,
+    "r6_cpu_forwards": 16,
+    "r6_cpu_two_passes": 2,
+    "r6_guards_observed": 272,
+    "r6_synthetic_rows": 128,
+    "resolved_base_isolated_negative_control_tested": true,
+    "source_pin_verification": "58 files passed; zero directory pins",
+    "test_count": 7,
+    "test_log": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r4/cpu-tests-final.log",
+    "test_log_sha256": "4427dbb4f3b30ebb8dae59a22828b6e9bf4c2a4ef8c4012d4da2c0dda750d5a1"
+  },
+  "hashes": {
+    "freeze_manifest_sha256": "8ef0b450767334bb45c56b273974e232cca8a9f9e695a2c42d840685fd08f4d5",
+    "preparation_receipt_sha256": "self hash intentionally omitted"
+  },
+  "historical_cache_correction": {
+    "R3_claim_corrected": "R3 preparation-receipt.json incorrectly stated writes_outside_new_r3_directory=false.",
+    "distinct_from_resolved_training_empty_prefix_incident": true,
+    "historical_files_preserved": [
+      {
+        "mtime_utc": "2026-10-25T22:16:57Z",
+        "path": "learning/runs/v2/latest-best-paired-eval-prepare-luna-20261026-r6/__pycache__/worker.cpython-312.pyc",
+        "sha256": "c970319ef71c7737601b87f7bb105fc67ba01b1cdfcdbb2f7e675c9b9effb138"
+      },
+      {
+        "mtime_utc": "2026-10-25T22:16:57Z",
+        "path": "learning/runs/v2/latest-best-paired-eval-prepare-luna-20261026-r6/__pycache__/paired_eval.cpython-312.pyc",
+        "sha256": "472a3bbbabc15eaa4eb79485c64e2888bc392f95822a0a1a27c6e80e5c6c9d83"
+      }
+    ],
+    "ownership_decision": "parent owns any archive or cleanup decision"
+  },
+  "identity": {
+    "client_request_id": "calibration-r4-5f83a08a-f23d-4ced-8f08-762ca19ee8f2",
+    "freeze_manifest_sha256": "8ef0b450767334bb45c56b273974e232cca8a9f9e695a2c42d840685fd08f4d5",
+    "pinned_file_count": 58,
+    "plan_path": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r4/calibration-plan.json",
+    "plan_sha256": "b2216ad4ac619db865354018946716902d5af5d644a9be8878cf2f341f658b58",
+    "review_source_manifest_sha256": "f7f81a31868ca99deee279b40ced5187281798a9da2ef399f546ffd4759f4d1c",
+    "run_id": "current-pair-resource-calibration-luna-20261026-r4",
+    "source_pins_path": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r4/source-pins.json",
+    "source_pins_sha256": "2e5499c8d00234aa57bb296d409990194ca750fcc689c2d72ff585f45f464d75"
+  },
+  "input_identity": {
+    "R6_input_manifest_sha256": "4cafb2cf6ccbb6de77d7d3d05ad9c59674a2d621bc8e88235eeb905fdbba3f00",
+    "R6_protocol_sha256": "547d33a4716b7be7e03c663f06a9c784d2497d212e2155e07ac872e4d1612655",
+    "parent_two_pass_reproduction_sha256": "377d8ae4d23ff62a349d2c826bbda4ea2edfc9672f00fa4b153e99d04928f1cd",
+    "r3_parent_validation_sha256": "78302df948bec17148ca562e2e8513cce4768cdfa06df349ac04d4347fef52e4",
+    "r3_plan_sha256": "b65924df4979a05526205d7765e6611b90f49c7e14c07f8bbf341dbe549fde54",
+    "r3_review_json_sha256": "b50c56ec7c13992c8e4f6611d934483d61787d427f46305e0e6efdf041c9b3c8",
+    "r3_source_pins_sha256": "ceb8f5ec33a953c39711363fbaaf29dce976da956ca8f4745673c5b7dfc8c5c2"
+  },
+  "interpreter": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONPATH": "unset",
+    "PYTHONPYCACHEPREFIX": "R4-owned empty bytecode-cache-empty",
+    "launch_flags": [
+      "-B"
+    ],
+    "lexical_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+    "resolved_sha256": "8dcafa7835e861e88a8f8ac7e61effbf5a987f32b0ec47bb1f3c9987caf9216d",
+    "resolved_target": "/Users/taylor/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/bin/python3.12"
+  },
+  "pending_gates": [
+    "Independent review of exact frozen R4 plan, pins, source, tests, and evidence",
+    "Parent verifies exact plan SHA and review/source-manifest hashes before reservation",
+    "Parent writes distinct one-shot calibration reservation and matching active calibration lease only when training permits",
+    "Parent-authorized one-shot probe; no retry"
+  ],
+  "resource_workload": {
+    "512_episode_comparison": false,
+    "active_seconds": "30 to 45; stop/fail at 45",
+    "aggregate_rss_and_mps_driver_caps_bytes": 6442450944,
+    "caps_are_separate": true,
+    "cleanup_seconds_maximum": 10,
+    "complete_resource_samples_minimum": 20,
+    "current_276_comparison": false,
+    "current_accepted_best": "phase update 276",
+    "label": "historical R6 resource reuse for best204/latest252 pair",
+    "maximum_after_read_age_seconds": 1.0,
+    "maximum_sample_gap_seconds": 1.0,
+    "mps_forwards_minimum": 240,
+    "outer_seconds_maximum": 120,
+    "work_seconds_maximum": 90
+  },
+  "retained_failures": [
+    {
+      "error": "ValueError: Selected candidate and completed-iteration authority differ",
+      "id": "R1 original one-shot failure",
+      "observed_outer_seconds": 1.6739395409822464,
+      "path": "learning/runs/v2/current-pair-resource-calibration-luna-20261026-r1/calibration-receipt.json",
+      "receipt_sha256": "e923b1a96bb81b8e211007b04a3c73a73debca52ecee78eb3696fb5ebd238443",
+      "retry": false
+    },
+    {
+      "id": "R3 source review blocker",
+      "path": "learning/runs/v2/current-pair-resource-calibration-review-haiku-20261026-r3/review.json",
+      "sha256": "b50c56ec7c13992c8e4f6611d934483d61787d427f46305e0e6efdf041c9b3c8",
+      "verdict": "BLOCK"
+    },
+    {
+      "id": "R3 parent guard reproduction",
+      "path": "learning/runs/v2/current-pair-calibration-r3-parent-reconciliation-20261026-r1/guard-reproduction.json",
+      "result": "272 actual guards and 16 CPU forwards; frozen R3 validator rejected 272 and accepted fabricated 208",
+      "sha256": "377d8ae4d23ff62a349d2c826bbda4ea2edfc9672f00fa4b153e99d04928f1cd"
+    },
+    {
+      "id": "R4 draft empty-prefix checker failure",
+      "path": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r4/empty-prefix-check-draft-failure.log",
+      "result": "Checker ran before creating the owned prefix directory; preflight itself passed. Corrected and verified empty prefix."
+    }
+  ],
+  "schema": "current_pair_resource_calibration_r4_preparation_receipt_v1",
+  "scope": "Fresh R4 proposal only; CPU controls and strict CPU preflight. No probe or calibration launch.",
+  "scope_limits": {
+    "actual_probe_launched": false,
+    "checkpoint_writes": 0,
+    "hardware_acceptance": false,
+    "launch_marker_claimed": false,
+    "mps_operations": 0,
+    "real_game_episodes": 0,
+    "reservation_written": false,
+    "resource_observations": null,
+    "state_or_lease_written": false,
+    "training": false
+  },
+  "status": "frozen_cpu_preparation_pending_independent_review_and_parent_authority"
+}

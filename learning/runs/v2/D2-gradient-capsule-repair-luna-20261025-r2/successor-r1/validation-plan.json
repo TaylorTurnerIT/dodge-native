@@ -1,0 +1,35 @@
+{
+  "budget_seconds": 600,
+  "fixed_constraints": {
+    "cumulative_updates": [
+      180,
+      228
+    ],
+    "development_seeds": 64,
+    "inclusive_seconds": 1800,
+    "launch": false,
+    "mps_bytes": 6442450944,
+    "new_updates": 48,
+    "phase_updates": [
+      132,
+      180
+    ],
+    "rss_bytes": 6442450944,
+    "run_id": "D2-gradient-alignment-20261025-r2",
+    "run_seed": 810631976,
+    "same_master_seed": true,
+    "work_seconds": 1600
+  },
+  "schema": "d2_gradient_capsule_repair_validation_plan_v1",
+  "scope": "Preparation only; no launch or external/state/docs edits.",
+  "status": "written_before_successor_validation",
+  "steps": [
+    "Validate frozen evidence hashes and exact runtime/support pins.",
+    "Run source/lifecycle/contract tests plus missing/mutated support negative controls.",
+    "Run original and successor no-environment smoke in separate processes for protocol, 64 seeds, and all D2 configs; compare exact bytes.",
+    "Restore accepted phase-132 model/Adam/MPS RNG; verify checkpoint and sidecar unchanged.",
+    "Close logs; parse JSON; hash final artifacts."
+  ],
+  "stop_policy": "Stop on first failed registered check; preserve this successor without retry or patch.",
+  "supersedes": "failed-candidate-r1; first new-capsule smoke failed before gameplay because ROOT resolved to own/"
+}

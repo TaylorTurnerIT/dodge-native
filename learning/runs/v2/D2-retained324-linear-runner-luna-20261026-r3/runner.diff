@@ -1,0 +1,386 @@
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained324-continuation-prepare-luna-20261026-r2/runner.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained324-linear-runner-luna-20261026-r3/runner.py
+@@ -9,6 +9,7 @@
+ import argparse
+ from collections.abc import Mapping
+ import hashlib
++import importlib.util
+ import json
+ import math
+ import os
+@@ -21,19 +22,42 @@
+ import parent_adapter
+ import registration_schema
+ 
++LR_SCHEDULE_PATH = Path(__file__).resolve().with_name("lr_schedule.py")
++LR_SCHEDULE_SHA256 = "ef81e87580c39e6f733098a5c228e4660af03e7fccddcc06044e9d3612bce079"
++
++
++def _load_pinned_lr_schedule():
++    digest = hashlib.sha256(LR_SCHEDULE_PATH.read_bytes()).hexdigest()
++    if digest != LR_SCHEDULE_SHA256:
++        raise ValueError("Pinned local lr_schedule.py digest differs")
++    spec = importlib.util.spec_from_file_location("_d2_retained324_lr_schedule", LR_SCHEDULE_PATH)
++    if spec is None or spec.loader is None:
++        raise ValueError("Pinned local lr_schedule.py cannot be loaded")
++    module = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(module)
++    if Path(module.__file__).resolve() != LR_SCHEDULE_PATH:
++        raise ValueError("lr_schedule module origin differs from runner directory")
++    return module
++
++
++lr_schedule = _load_pinned_lr_schedule()
++
+ PARENT_SHA = parent_adapter.CHECKPOINT_SHA
+ PARENT_RECEIPT_SHA = parent_adapter.RECEIPT_SHA
+ PARENT_REGISTRATION_SHA = "8a60dc80f1ebe03c43bf18eebf75199e14f207b677570ac2d6d4368ddfcb0f79"
+ PARENT_SOURCE_REGISTRATION_SHA = "6f4adf808789655a663800a1e4a0613192d02b0c8287d121455ea748fe043916"
+-PARENT_ADAPTER_SHA = "355880c2cddc455219c4714b8fd57b7a59075ef0581086b153d7b89b05a26a26"
++HISTORICAL_SELECTED_PARENT_ADAPTER_SHA = "355880c2cddc455219c4714b8fd57b7a59075ef0581086b153d7b89b05a26a26"
+ LAUNCHER_SHA = "7215ae6628c364fe74bafba68e66cb1c688000a3b7d648dba9248fc2d812310e"
+-FINAL_SOURCE_DIR = "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained324-continuation-prepare-luna-20261026-r2"
++FINAL_SOURCE_DIR = "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained324-linear-runner-luna-20261026-r3"
++FROZEN_LAUNCHER_PATH = "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained324-continuation-prepare-luna-20261026-r2/execute_once.py"
+ PARENT_SELECTED_TRAJECTORY_REPORTED_SECONDS = 5678.9823631240915
+ PARENT_SELECTED_ITERATION_REPORTED_SECONDS = 488.7727023329353
+ PARENT_WORKER_TRAJECTORY_REPORTED_SECONDS = 6323.834494166139
+ PARENT_WORKER_CAMPAIGN_REPORTED_SECONDS = 9754.963179250124
+ SELECTED_TRAJECTORY_BASELINE_SECONDS = 5678.9823631240915
+-COMPLETED_CAMPAIGN_COST_BASELINE_SECONDS = 9758.365427209174
++PARENT_PRODUCING_CAMPAIGN_COST_SECONDS = 9758.365427209174
++LATEST_COMPLETED_CAMPAIGN_COST_SECONDS = 10824.835578584221
++LATEST_COMPLETED_CAMPAIGN_COST_SHA256 = "d3ddc427f18c8a88c45439452c9efcd966daefe423222e0fa03e97ff4f4fc7d3"
+ PARENT_RECEIPT_SCHEMA = parent_adapter.SCHEMA
+ PARENT_RUNTIME_SHA = "2cf10e9f056f41b39dc17845192e9adf553a5f699546d4f5dcea764a23e36b31"
+ CONFIG_SHA = "1c24df3eea150160451ada08e9f6844cd67645abf5fb8b712afd14abca930ce8"
+@@ -58,7 +82,7 @@
+ PPO = {"gamma": .995, "gae_lambda": .95, "learning_rate": LEARNING_RATE, "adam_eps": .00001,
+        "clip_coef": .2, "vf_coef": .5, "ent_coef": .01, "max_grad_norm": .5,
+        "update_epochs": 4, "minibatch_size": 512, "target_kl": .03, "reward_scale": .1}
+-RUN_ID = registration_schema.RUN_ID
++RUN_ID = "D2-retained324-linear-lr-20261026-r1"
+ POLICY_SHA = "bfcbee1609cec0180495c957cf4b5e0b31356f395e2a706217cc9225647d23ae"
+ GATE_SHA = "11257111602f26e49fbc71afc6a51acb79434a3717bd8d6d36d1bbf87dfb8841"
+ INVENTORY_SHA = "2957832457c39751998012f4aeb4440f5d7570250ae9ab072ee10d86dd970ed6"
+@@ -66,6 +90,10 @@
+ NEW_PPO_SHA = "b3cef91b1293056e9d1820a94fd5730accae4c5728d23566857a6c3a0e1eeac5"
+ NEW_ALIGNMENT_SHA = "cd7d16aebe9eed247b0a4747956d8106991b3637ab0b45118ea9e7ebc0c1e25f"
+ ALIGNMENT_MEANING = "measurement_only_CPU_shadow; one first existing minibatch per update; not native MPS gradients or a competence gate"
++SCHEDULE_ORIGIN_CUMULATIVE_UPDATE = 372
++SCHEDULE_HORIZON_UPDATES = 60
++SCHEDULE_START_LR = 3e-5
++SCHEDULE_END_LR = 1e-5
+ _PARENT_METADATA_PATH = None
+ _PARENT_COST_RECEIPT_PATH = None
+ _PARENT_CLOCKS = None
+@@ -100,6 +128,102 @@
+ def emit(stream, value):
+     stream.write(json.dumps(value, sort_keys=True, allow_nan=False) + "\n")
+     stream.flush()
++
++
++def initialize_or_restore_schedule(optimizer, actual_cumulative_updates,
++                                   saved_schedule=None, scheduled_resume=False):
++    """Initialize only at the original parent, or validate an explicit scheduled resume."""
++    if saved_schedule is None:
++        need(not scheduled_resume, "Scheduled resume requires saved schedule metadata")
++        need(type(actual_cumulative_updates) is int
++             and actual_cumulative_updates == SCHEDULE_ORIGIN_CUMULATIVE_UPDATE,
++             "Fresh schedule requires inherited cumulative update 372")
++        return lr_schedule.new_schedule_state(optimizer, actual_cumulative_updates)
++    need(scheduled_resume, "Saved schedule metadata requires scheduled-resume mode")
++    return validate_future_scheduled_resume(saved_schedule, actual_cumulative_updates, optimizer)
++
++
++def validate_future_scheduled_resume(saved_schedule, actual_cumulative_updates, optimizer):
++    """Pure future-resume gate; never infer schedule state from a counter."""
++    need(saved_schedule is not None, "Scheduled resume requires saved schedule metadata")
++    need(type(actual_cumulative_updates) is int
++         and actual_cumulative_updates >= SCHEDULE_ORIGIN_CUMULATIVE_UPDATE,
++         "Scheduled resume cumulative update is invalid")
++    state = lr_schedule.validate_schedule_state(saved_schedule, optimizer)
++    need(state["completed_schedule_updates"]
++         == actual_cumulative_updates - SCHEDULE_ORIGIN_CUMULATIVE_UPDATE,
++         "Saved schedule counter disagrees with actual cumulative update")
++    validate_saved_schedule_lr({"optimizer": optimizer.state_dict(), "lr_schedule": state},
++                               actual_cumulative_updates)
++    return state
++
++
++def stage_schedule_update(optimizer, schedule_state, inherited_cumulative_updates,
++                          local_cumulative_updates, actual_cumulative_updates):
++    """Set next optimizer LR and stage metadata from inherited plus local counters."""
++    need(type(inherited_cumulative_updates) is int
++         and inherited_cumulative_updates == SCHEDULE_ORIGIN_CUMULATIVE_UPDATE,
++         "Inherited cumulative updates must equal 372")
++    need(type(local_cumulative_updates) is int and local_cumulative_updates >= 0,
++         "Local cumulative updates must be a nonnegative integer")
++    need(type(actual_cumulative_updates) is int
++         and actual_cumulative_updates == inherited_cumulative_updates + local_cumulative_updates,
++         "Actual cumulative update differs from inherited plus local")
++    lr, staged = lr_schedule.apply_next_update_lr(
++        optimizer, schedule_state, actual_cumulative_updates)
++    return lr, staged
++
++
++def validate_saved_schedule_lr(state, actual_cumulative_updates):
++    """Bind saved optimizer group LRs to schedule progress at the saved counter."""
++    need(type(actual_cumulative_updates) is int
++         and actual_cumulative_updates >= SCHEDULE_ORIGIN_CUMULATIVE_UPDATE,
++         "Saved cumulative update is invalid")
++    schedule = lr_schedule.validate_schedule_state(state["lr_schedule"],
++                                                   _OptimizerView(state["optimizer"]["param_groups"]))
++    need(schedule["completed_schedule_updates"]
++         == actual_cumulative_updates - SCHEDULE_ORIGIN_CUMULATIVE_UPDATE,
++         "Saved schedule counter disagrees with actual cumulative update")
++    expected = (SCHEDULE_START_LR if actual_cumulative_updates == SCHEDULE_ORIGIN_CUMULATIVE_UPDATE
++                else lr_schedule.learning_rate_for_cumulative_update(actual_cumulative_updates))
++    assert_saved_optimizer_lr(state, expected)
++    return expected
++
++
++def commit_schedule_after_success(schedule_state, staged_schedule, actual_cumulative_updates,
++                                  inherited_cumulative_updates, local_cumulative_updates,
++                                  checks_passed):
++    """Commit only after PPO output and all diagnostics pass validation."""
++    need(checks_passed is True, "Cannot commit schedule before all PPO checks pass")
++    need(type(inherited_cumulative_updates) is int
++         and inherited_cumulative_updates == SCHEDULE_ORIGIN_CUMULATIVE_UPDATE
++         and type(local_cumulative_updates) is int and local_cumulative_updates >= 0,
++         "Schedule commit requires inherited 372 and nonnegative local progress")
++    need(type(actual_cumulative_updates) is int
++         and actual_cumulative_updates == inherited_cumulative_updates + local_cumulative_updates,
++         "Schedule commit counters disagree")
++    current = lr_schedule.validate_schedule_state(schedule_state, _OptimizerView([{"lr": 0.0}] * schedule_state["optimizer_param_group_count"]))
++    staged = lr_schedule.validate_schedule_state(staged_schedule, _OptimizerView([{"lr": 0.0}] * staged_schedule["optimizer_param_group_count"]))
++    need(current["completed_schedule_updates"] == local_cumulative_updates
++         and staged["completed_schedule_updates"] == local_cumulative_updates + 1,
++         "Staged schedule progress differs from successful update")
++    return dict(staged)
++
++
++def schedule_metric_fields(optimizer, schedule_state, actual_cumulative_updates):
++    normalized = lr_schedule.validate_schedule_state(schedule_state, optimizer)
++    need(normalized["completed_schedule_updates"]
++         == actual_cumulative_updates - SCHEDULE_ORIGIN_CUMULATIVE_UPDATE,
++         "Metric schedule progress differs from actual cumulative update")
++    return {"lr_schedule": dict(normalized),
++            "cumulative_updates": actual_cumulative_updates,
++            "optimizer_group_lrs": [float(group["lr"]) for group in optimizer.param_groups]}
++
++
++class _OptimizerView:
++    """Minimal optimizer shape for pure schedule metadata validation."""
++    def __init__(self, param_groups):
++        self.param_groups = param_groups
+ 
+ 
+ def verify_pins(pins):
+@@ -127,11 +251,13 @@
+ 
+ 
+ def validate_registration(reg):
++    need(registration_schema.RUN_ID == RUN_ID,
++         "Registration schema run ID differs from runner")
+     registration_schema.validate_identity(reg)
+     need(PARENT_TOTAL_UPDATES + NEW_UPDATES == EXPECTED_TOTAL
+          and PARENT_LOCAL_UPDATES == 24 and NEW_UPDATES == 60
+          and EVALUATION_UPDATES == (324, 336, 348, 360, 372, 384),
+-         "Selected300 continuation counters or evaluation schedule differ")
++         "Selected324 continuation counters or evaluation schedule differ")
+     need(reg.get("normal_training_iteration") is True and reg.get("training_eligible") is False, "Eligibility flags differ")
+     need(reg["limits"] == LIMITS, "Registered limits differ")
+     expected=["entry-restoration.json","launch-marker.json","worker-launch.json","worker-result.json","worker.log","resources.jsonl","training-episodes.jsonl","training-metrics.jsonl"]
+@@ -153,21 +279,28 @@
+     for key in ("root","output","runtime_root","interpreter","runner_path","launcher_path","state_path","config_path","parent_config_path","parent_adapter_path"):
+         need(Path(reg[key]).is_absolute(),"Registration path not absolute: "+key)
+     need(Path(reg["runner_path"]).resolve() == Path(FINAL_SOURCE_DIR) / "runner.py"
+-         and Path(reg["launcher_path"]).resolve() == Path(FINAL_SOURCE_DIR) / "execute_once.py"
+-         and Path(reg["parent_adapter_path"]).resolve() == Path(FINAL_SOURCE_DIR) / "parent_adapter.py",
++         and Path(reg["launcher_path"]).resolve() == Path(FROZEN_LAUNCHER_PATH)
++         and Path(reg["parent_adapter_path"]).resolve() == Path(FINAL_SOURCE_DIR) / "parent_adapter.py"
++         and Path(reg["registration_schema_path"]).resolve() == Path(FINAL_SOURCE_DIR) / "registration_schema.py",
+          "Registered code paths must use contract final_source_dir")
++    need(Path(reg["lr_schedule_path"]).resolve() == LR_SCHEDULE_PATH
++         and reg["lr_schedule_sha256"] == LR_SCHEDULE_SHA256,
++         "Registered local schedule source differs")
+     root=Path(reg["root"])
+     need(Path(reg["output"]).resolve()==(root/"learning/runs/v2"/RUN_ID).resolve(),"Output path differs")
+     parent=reg["parent"]
+     need(parent.get("sha256")==PARENT_SHA and parent.get("phase")=="D2" and parent.get("phase_update")==324
+-         and parent.get("local_update")==24 and parent.get("registration_sha256")==PARENT_REGISTRATION_SHA,"Exact selected300 parent differs")
++         and parent.get("local_update")==24 and parent.get("registration_sha256")==PARENT_REGISTRATION_SHA,"Exact selected324 parent differs")
+     need(Path(parent["path"]).resolve()==(root/"learning/runs/v2/D2-retained300-continuation-20261026-r1/checkpoint-000324-candidate.pt").resolve(),"Parent path substitution")
+     need(parent.get("terminal_receipt_sha256")==PARENT_RECEIPT_SHA,"Selected receipt authority differs")
+     need(reg["config_sha256"]==CONFIG_SHA and reg["parent_config_sha256"]==PARENT_CONFIG_SHA
+          and reg["native"]["sha256"]==NEW_NATIVE_SHA and reg["native"]["old_sha256"]==OLD_NATIVE_SHA
+          and reg["runtime_sha256"]==PARENT_RUNTIME_SHA,"Config/runtime identity differs")
+-    need(reg.get("parent_adapter_sha256") == PARENT_ADAPTER_SHA,
+-         "Pinned selected-parent adapter digest differs")
++    need(reg.get("parent_adapter_sha256") == reg["pins"].get(reg["parent_adapter_path"])
++         and type(reg.get("parent_adapter_sha256")) is str
++         and len(reg["parent_adapter_sha256"]) == 64
++         and reg.get("registration_schema_sha256") == reg["pins"].get(reg["registration_schema_path"]),
++         "Companion adapter/schema source pins differ")
+     need(reg["expected_lease"].get("run_id")==RUN_ID and reg["expected_lease"].get("kind")=="D2_gradient_alignment"
+          and reg["expected_lease"].get("authorization")=="user_continue_D2_training_v3"
+          and reg["expected_lease"].get("parent_checkpoint_sha256")==PARENT_SHA,"Lease authority differs")
+@@ -223,11 +356,11 @@
+       "parent_worker_trajectory_end":worker["cumulative_selected_checkpoint_trajectory_wall_seconds"],
+       "parent_worker_campaign_cost":worker["cumulative_successful_ancestor_and_completed_campaign_cost_seconds"],
+       "new_selected_trajectory_baseline":wall["future_checkpoint_trajectory_baseline_seconds"],
+-      "new_campaign_cost_baseline":cost["wall_accounting"]["completed_campaign_resource_cost_after_seconds"]}
++      "new_campaign_cost_baseline":LATEST_COMPLETED_CAMPAIGN_COST_SECONDS}
+     need(_PARENT_CLOCKS=={"parent_selected_trajectory":PARENT_SELECTED_TRAJECTORY_REPORTED_SECONDS,
+       "parent_selected_iteration":PARENT_SELECTED_ITERATION_REPORTED_SECONDS,"parent_worker_trajectory_end":PARENT_WORKER_TRAJECTORY_REPORTED_SECONDS,
+       "parent_worker_campaign_cost":PARENT_WORKER_CAMPAIGN_REPORTED_SECONDS,"new_selected_trajectory_baseline":SELECTED_TRAJECTORY_BASELINE_SECONDS,
+-      "new_campaign_cost_baseline":COMPLETED_CAMPAIGN_COST_BASELINE_SECONDS}, "Selected receipt or producing worker clocks differ")
++      "new_campaign_cost_baseline":LATEST_COMPLETED_CAMPAIGN_COST_SECONDS}, "Selected receipt or producing worker clocks differ")
+     for pk,dk in (("decision_path","decision_sha256"),("registration_path","registration_sha256"),
+                   ("source_evaluation_path","source_evaluation_sha256"),("source_evaluation_jsonl_path","source_evaluation_jsonl_sha256")):
+         need(sha(parent[pk])==parent[dk],"Parent evidence changed: "+pk)
+@@ -312,18 +445,26 @@
+     reg=validate_registration(read(path)); verify_pins(reg["pins"])
+     parent=reg["parent"]
+     schema_path = str((Path(reg["runner_path"]).parent / "registration_schema.py").resolve())
++    schedule_path = str(LR_SCHEDULE_PATH)
++    need(reg.get("registration_schema_path") == schema_path
++         and reg.get("lr_schedule_path") == schedule_path,
++         "Runner companion source paths differ")
+     need(Path(reg["parent_adapter_path"]).resolve()
+          == Path(reg["runner_path"]).parent / "parent_adapter.py",
+          "Exported adapter must share final source directory with worker")
+-    critical={reg["runner_path"],reg["launcher_path"],reg["interpreter"],reg["config_path"],reg["parent_adapter_path"],schema_path,parent["path"],
++    critical={reg["runner_path"],reg["launcher_path"],reg["interpreter"],reg["config_path"],reg["parent_adapter_path"],schema_path,schedule_path,parent["path"],
+               parent["terminal_receipt_path"],parent["completed_cost_receipt_path"],parent["metadata_path"],parent["decision_path"],reg["native"]["path"],reg["native"]["old_path"],
+               parent["audit_path"],parent["full_audit_path"],parent["metadata_path"],parent["registration_path"],parent["source_evaluation_path"],parent["source_evaluation_jsonl_path"],parent["producing_worker_result_path"],reg["resource_cost_anchor"]["path"]}
+     need(critical<=reg["pins"].keys(),"Critical input pins missing")
+     need(reg["pins"][parent["path"]]==PARENT_SHA and reg["pins"][parent["terminal_receipt_path"]]==PARENT_RECEIPT_SHA,
+          "Parent checkpoint/receipt pin differs")
+-    need(reg["pins"].get(reg["parent_adapter_path"]) == PARENT_ADAPTER_SHA
+-         and sha(reg["parent_adapter_path"]) == PARENT_ADAPTER_SHA
++    need(reg["pins"].get(reg["parent_adapter_path"]) == reg.get("parent_adapter_sha256")
++         and sha(reg["parent_adapter_path"]) == reg.get("parent_adapter_sha256")
+          and reg["pins"].get(schema_path) == sha(schema_path)
++         and reg["pins"].get(schema_path) == reg.get("registration_schema_sha256")
++         and reg["pins"].get(schedule_path) == LR_SCHEDULE_SHA256
++         and sha(schedule_path) == LR_SCHEDULE_SHA256
++         and Path(lr_schedule.__file__).resolve() == LR_SCHEDULE_PATH
+          and Path(registration_schema.__file__).resolve() == Path(schema_path)
+          and Path(parent_adapter.__file__).resolve() == Path(reg["parent_adapter_path"]).resolve(),
+          "Source module origins or adapter/schema pins differ")
+@@ -372,9 +513,17 @@
+ 
+ 
+ def validate_resource_cost_anchor(anchor, digest):
+-    need(type(digest) is str and len(digest) == 64, "Completed resource-cost anchor digest malformed")
+-    retained_policy=anchor.get("retained_parent_policy",{})
+-    return parent_adapter.validate_cost_anchor(anchor, digest)
++    need(type(digest) is str and digest == LATEST_COMPLETED_CAMPAIGN_COST_SHA256,
++         "Latest completed campaign-cost receipt digest differs")
++    need(anchor.get("schema") == "d2_completed_iteration_parent_audit_receipt_v1"
++         and anchor.get("status") == "accepted_completed_training_iteration_no_best_replacement"
++         and anchor.get("run_id") == "D2-retained324-continuation-20261026-r1"
++         and anchor.get("wall_accounting", {}).get("completed_campaign_resource_cost_after_seconds")
++         == LATEST_COMPLETED_CAMPAIGN_COST_SECONDS
++         and anchor.get("wall_accounting", {}).get("completed_campaign_resource_cost_before_seconds")
++         == PARENT_PRODUCING_CAMPAIGN_COST_SECONDS,
++         "Latest completed campaign-cost provenance differs")
++    return True
+ 
+ def continuation_cumulative_counters(parent_cumulative, local):
+     """Compose local continuation work over accepted parent cumulative counters."""
+@@ -680,6 +829,14 @@
+             assert_effective_lr(optimizer, LEARNING_RATE)
+ 
+             inherited = dict(parent["cumulative_counters"])
++            need(set(inherited) == {"updates", "optimizer_steps", "environment_decisions", "raw_frames"}
++                 and all(type(value) is int and value >= 0 for value in inherited.values())
++                 and inherited["updates"] == SCHEDULE_ORIGIN_CUMULATIVE_UPDATE,
++                 "Complete inherited counters must include updates=372")
++            need("lr_schedule" not in parent,
++                 "Original parent must not contain schedule metadata")
++            schedule_state = initialize_or_restore_schedule(
++                optimizer, inherited["updates"], saved_schedule=None, scheduled_resume=False)
+             initial_indices = list(parent["next_episode_indices"])
+             need(len(initial_indices) == 64 and all(type(index) is int and index >= 0 for index in initial_indices),
+                  "Parent next episode indices invalid")
+@@ -689,7 +846,9 @@
+                         "parent_terminal_receipt_sha256": PARENT_RECEIPT_SHA,
+                         "parent_config_sha256": PARENT_CONFIG_SHA,
+                         "policy_sha256": POLICY_SHA, "registration_sha256": registration_sha,
+-                        "architecture": model.architecture_description()}
++                        "architecture": model.architecture_description(),
++                        "lr_schedule": dict(lr_schedule.SCHEDULE_SPEC),
++                        "lr_schedule_spec_sha256": lr_schedule.SCHEDULE_SPEC_SHA256}
+             env = dodge_rl.VecDodgeEnv(batch_size=64, action_repeat=4, difficulty=2,
+                     patterns_enabled=True, powerups_enabled=True, raw_frame_cap=18000,
+                     num_threads=4, chunk_size=8, render_pixels=False, auxiliary_targets=False,
+@@ -726,6 +885,7 @@
+                              "registration_sha256": registration_sha, "model": ckpt._cpu_copy(model.state_dict()),
+                              "optimizer": ckpt._cpu_copy(optimizer.state_dict()), "rng": ckpt.capture_rng("mps"),
+                              "counters": dict(counters), "inherited_counters": inherited,
++                             "lr_schedule": dict(schedule_state),
+                              "cumulative_counters": cumulative, "phase_update": phase_update,
+                              "local_update": local_update,
+                              "selected_parent_checkpoint_trajectory_baseline_seconds": _PARENT_CLOCKS["new_selected_trajectory_baseline"],
+@@ -738,7 +898,7 @@
+                              "parent_run_id": "D2-retained300-continuation-20261026-r1",
+                              "parent_registration_sha256": PARENT_REGISTRATION_SHA,
+                              "parent_checkpoint_sha256": PARENT_SHA}
+-                    assert_saved_optimizer_lr(state, LEARNING_RATE)
++                    validate_saved_schedule_lr(state, cumulative["updates"])
+                     checkpoint_sha = ckpt.save_checkpoint(path, state)
+                     with (out / f"development-{phase_update:06d}.jsonl").open("x") as stream:
+                         evaluation = evaluate(model, "D2", "mps", check_guard=guard.check, episode_stream=stream)
+@@ -769,18 +929,37 @@
+                     phase_update = PHASE_START + update
+                     for event in ordered_episode_events(collection.completed_episodes, collection.reset_info, phase_update):
+                         emit(episodes, event)
+-                    assert_effective_lr(optimizer, LEARNING_RATE)
++                    actual_cumulative = inherited["updates"] + counters["updates"]
++                    cumulative = continuation_cumulative_counters(inherited, counters)["updates"]
++                    need(actual_cumulative == cumulative,
++                         "Schedule cumulative count differs from runner counters")
++                    scheduled_lr, staged_schedule = stage_schedule_update(
++                        optimizer, schedule_state, inherited["updates"], counters["updates"],
++                        actual_cumulative)
++                    progress_candidate = dict(progress)
+                     value = ppo_update(model, optimizer, collection.batch, ppo,
+                                        check_guard=guard.check, critic_diagnostics=True,
+-                                       gradient_alignment_diagnostics=True, progress=progress)
++                                       gradient_alignment_diagnostics=True, progress=progress_candidate)
+                     finite_tree(value)
++                    need(counters["updates"] + 1 == update,
++                         "Update progress did not advance exactly once")
++                    need(progress_candidate.get("complete") is True
++                         and progress_candidate.get("in_update") is False
++                         and progress_candidate.get("state") == "complete"
++                         and progress_candidate.get("optimizer_steps") == value["optimizer_steps"],
++                         "PPO progress did not complete exactly once")
+                     diag = value["critic_diagnostics"]
+                     need(diag["version"] == "same_batch_critic_diagnostics_v1", "Unknown diagnostic version")
+                     validate_gradient_alignment(value["gradient_alignment_diagnostics"])
+                     old_ev, direct_ev = value["explained_variance"], diag["pre_update"]["explained_variance"]
+                     need((old_ev is None and direct_ev is None) or (old_ev is not None and direct_ev is not None
+                          and math.isclose(old_ev, direct_ev, rel_tol=1e-6, abs_tol=1e-6)), "Direct/legacy EV mismatch")
+-                    progress["completed_updates"] = update
++                    assert_effective_lr(optimizer, scheduled_lr)
++                    schedule_state = commit_schedule_after_success(
++                        schedule_state, staged_schedule, actual_cumulative,
++                        inherited["updates"], counters["updates"], checks_passed=True)
++                    progress_candidate["completed_updates"] = update
++                    progress = progress_candidate
+                     actor_gradient_seen |= value["actor_grad_norm"] > 0
+                     critic_gradient_seen |= value["critic_grad_norm"] > 0
+                     counters["updates"] = update
+@@ -789,6 +968,8 @@
+                     counters["raw_frames"] += int(collection.batch.elapsed_raw_frames.sum().item())
+                     result["updates"] = update
+                     emit(metrics, {"phase_update": phase_update, "local_update": update, "metrics": value, "counters": dict(counters),
++                                   **schedule_metric_fields(optimizer, schedule_state,
++                                                            inherited["updates"] + counters["updates"]),
+                                    "update_progress": dict(progress), "elapsed_seconds": time.monotonic() - started})
+                     if PHASE_START + update in EVALUATION_UPDATES[1:]:
+                         evaluate_at(PHASE_START + update)

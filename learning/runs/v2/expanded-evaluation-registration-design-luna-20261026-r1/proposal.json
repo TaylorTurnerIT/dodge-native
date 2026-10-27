@@ -1,0 +1,212 @@
+{
+  "schema": "expanded_evaluation_registration_proposal_v1",
+  "proposal_id": "expanded-evaluation-registration-design-luna-20261026-r1",
+  "status": "proposal_only_no_launch_authority",
+  "workspace": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79",
+  "output_ownership": "absolute_own_output_only",
+  "authority": {
+    "launch": false,
+    "gate_change": false,
+    "lease_change": false,
+    "registration_change": false,
+    "incumbent_change": false,
+    "current_incumbent_update": 324,
+    "finalizer_source_review_update_348": "pending",
+    "current_64_seed_results": "unchanged"
+  },
+  "candidates": [
+    {
+      "update": 180,
+      "checkpoint_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-best180-branch-luna-20261026-r1/checkpoint-000180-candidate.pt",
+      "checkpoint_sha256": "7c22c1b67139a90d21661389c3e3b3c1058e48fa903eac97166234b68100c50d",
+      "evidence_status": "provisional audit only; accepted terminal parent pin still required"
+    },
+    {
+      "update": 204,
+      "checkpoint_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained204-lr1e4-20261026-r1/checkpoint-000204-candidate.pt",
+      "checkpoint_sha256": null,
+      "evidence_status": "exact accepted parent pin pending"
+    },
+    {
+      "update": 276,
+      "checkpoint_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-20261026-r2/checkpoint-000276-candidate.pt",
+      "checkpoint_sha256": "642da0f58300784c7da30b541ba697e9b1a7893f884870856dfa41421767b796",
+      "evidence_status": "auditor tracked-file hash; accepted-parent pin reconciliation pending"
+    },
+    {
+      "update": 300,
+      "checkpoint_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained300-continuation-20261026-r1/checkpoint-000300-candidate.pt",
+      "checkpoint_sha256": "4c3bd2fe3be07c4d50a79626e3a6c1fcf50093ffc0b94fd82158fb50544c6feb",
+      "evidence_status": "auditor tracked-file hash; accepted-parent pin reconciliation pending"
+    },
+    {
+      "update": 324,
+      "checkpoint_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained300-continuation-20261026-r1/checkpoint-000324-candidate.pt",
+      "checkpoint_sha256": "c10d90ec0e67503afef8f4d90c4968581d430ef2065117a75e81c445a04c8ddc",
+      "evidence_status": "accepted_parent_audit_retained_incumbent",
+      "receipt_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained324-parent-terminal-audit-20261026-r1/retained-best-decision.json"
+    },
+    {
+      "update": 348,
+      "checkpoint_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained324-linear-lr-20261026-r1/checkpoint-000348-candidate.pt",
+      "checkpoint_sha256": "b95228e5e2934c915597595f7eb3c8618ee5f7c2182dde1481a060d01c270369",
+      "evidence_status": "high-mean audit pin; finalizer source review pending"
+    }
+  ],
+  "reported_context": {
+    "audited_best348_mean": 3098.125,
+    "incumbent324_mean": 2939.40625,
+    "means_source": "user-provided advisory context; verify against accepted receipts before registration",
+    "fixed_linear_324_to_384": {
+      "master_seed": 4200000001,
+      "matched_pairs": 1,
+      "seed_freshness_claim_applies": false,
+      "causal_lr_benefit_proven": false,
+      "endpoint_linear384": "worse"
+    }
+  },
+  "ranking": {
+    "cohort_name": "expanded-ranking-1024",
+    "seed_count": 1024,
+    "seed_ids": null,
+    "manifest_path": null,
+    "manifest_sha256": null,
+    "state": "pending_prospective_reservation_and_audit",
+    "candidates": [
+      180,
+      204,
+      276,
+      300,
+      324,
+      348
+    ],
+    "deterministic_action_mode": true,
+    "raw_frame_cap_per_episode": 18000,
+    "environment": "D2",
+    "death_accounting": "required",
+    "conservation_checks": "required",
+    "metrics": [
+      "mean",
+      "paired_standard_error",
+      "confidence_interval",
+      "per_seed_id_and_outcome",
+      "Q1_group_mean",
+      "Q4_group_mean"
+    ],
+    "q1_q4_definition": "means for lowest and highest quarter groups of the fixed 1024-seed cohort; not quantiles"
+  },
+  "confirmation": {
+    "cohort_name": "expanded-confirmation-1024-one-use",
+    "seed_count": 1024,
+    "seed_ids": null,
+    "manifest_path": null,
+    "manifest_sha256": null,
+    "state": "pending_separate_one_use_authorization",
+    "checkpoint_hash_freeze_before_open": true,
+    "checkpoint_selection_record_hash_before_open": true,
+    "comparison_checkpoint_update": 324,
+    "paired_seed_assignments": true,
+    "one_exposure_per_checkpoint": true,
+    "retry_after_failure": false,
+    "next_best_substitution": false,
+    "future_reuse": false,
+    "sequential_future_confirm_type_i_policy": "required_before_any_future_confirm"
+  },
+  "seed_governance": {
+    "prospective_reserved_disjoint_ranges_required": true,
+    "exclude_B_E_D128": true,
+    "exclude_past_training_exposure": true,
+    "known_exclusion_scope": "old training exclusion covers only D128; fresh D addresses are not automatically training-clean",
+    "retrospective_training_seed_log_audit": "required_full_log_ancestry_and_inflight_runs",
+    "fail_closed_on_missing_proof_collision_overlap_or_unknown_ancestry": true,
+    "B_E_outcome_files_read": false
+  },
+  "cost": {
+    "ranking_episodes": 6144,
+    "confirmation_candidate_episodes": 1024,
+    "confirmation_incumbent_comparator_episodes": 1024,
+    "total_episodes": 8192,
+    "max_raw_frames_per_episode": 18000,
+    "strict_raw_frame_upper_bound": 147456000,
+    "upper_bound_basis": "8192 * 18000; arithmetic only, not measured runtime",
+    "throughput_benchmark": "required_permitted_benchmark_before_launch",
+    "full_cap_projection": "required_conservative_projection_before_launch",
+    "budget": "separate_evaluation_resource_and_wall_budget; no training-budget accounting",
+    "launch_condition": "reject if conservative projection exceeds separately allocated budget"
+  },
+  "future_training_design": {
+    "independent_training_seeds_per_arm_minimum": 2,
+    "preferred_training_seeds_per_arm": 3,
+    "same_accepted_parent": true,
+    "same_seed_assignments_across_arms": true,
+    "equal_update_counts": true,
+    "fixed_endpoint_and_operational_best_reported_separately": true,
+    "lr_causal_benefit_established": false
+  },
+  "parallel_preparation_review": {
+    "allowed_as_proposal": true,
+    "separate_owned_outputs": true,
+    "artifacts": [
+      "seed_manifests",
+      "immutable_candidate_receipts",
+      "evaluator_contract",
+      "seed_audit",
+      "cost_projection",
+      "independent_review"
+    ],
+    "reconcile_before_separate_confirmation_authorization": true
+  },
+  "concurrent_campaign_design_proposal": {
+    "authority": "proposal_only",
+    "registry": "parent_owned_lock_or_CAS",
+    "per_run_fields": [
+      "unique_owner",
+      "lease",
+      "cancellation_marker",
+      "output_namespace"
+    ],
+    "per_campaign_rss_cap_gib": 6,
+    "per_campaign_mps_cap": "retain_existing_cap",
+    "host_aggregate_headroom_and_pressure_cap": "required",
+    "bypass_frozen_guards": false,
+    "retroactive_lease_clear": false
+  },
+  "preservation": {
+    "predecessor_sources": "preserve",
+    "root_readme": "preserve",
+    "shared_state": "preserve",
+    "checkpoints": "preserve",
+    "ledgers": "preserve",
+    "checkpoint_binary_opened_or_loaded": false,
+    "runtime_or_training_run_performed": false
+  },
+  "evidence_sources": [
+    {
+      "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained324-parent-terminal-audit-20261026-r1/retained-best-decision.json",
+      "fields_used": [
+        "checkpoint_path",
+        "checkpoint_sha256",
+        "selection"
+      ]
+    },
+    {
+      "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained324-parent-terminal-audit-20261026-r1/audit.json",
+      "fields_used": [
+        "accepted parent audit context"
+      ]
+    },
+    {
+      "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained348-finalizer-parent-validation-20261026-r1/receipt.json",
+      "fields_used": [
+        "finalizer review remains blocked/pending"
+      ]
+    }
+  ],
+  "registration_blockers": [
+    "reconcile each candidate path and byte SHA-256 against accepted parent receipt/audit; 180/204/276/300/348 pins remain provisional or pending",
+    "prospectively reserve disjoint 1024-seed ranking and confirmation manifests",
+    "complete retrospective training-seed ancestry/inflight audit",
+    "freeze evaluator implementation/source pins and obtain independent review",
+    "separately authorize one-use confirmation before opening confirmation outcomes"
+  ]
+}

@@ -1,0 +1,313 @@
+{
+  "OS": {
+    "failed_case": "normal-deadline-wedged",
+    "failed_predicate": "owned direct reap missing for worker",
+    "later_cases_unrun": 1,
+    "observed_command": {
+      "ML_imports": false,
+      "acceptance_scope": "explicit lifecycle fixture only; production consumer tested separately",
+      "argv": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+        "-B",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/synthetic.py",
+        "executor",
+        "--root",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/attempts/attempt-03-focused-OS/cases/normal-deadline-wedged"
+      ],
+      "elapsed_seconds": 5.701132874994073,
+      "expected": 1,
+      "harness_kill_required": false,
+      "injection_reached": false,
+      "maximum_wall_seconds": 12.0,
+      "observed_acceptance": false,
+      "positive_group_absence": {
+        "supervisor": true,
+        "worker": true
+      },
+      "raw_wait": {
+        "direct_child_reaped": true,
+        "observed_monotonic": 516544.945459125,
+        "pid": 41017,
+        "raw_wait_status": 256,
+        "reaped_by": 38458,
+        "returncode": 1
+      },
+      "receipt_available": true,
+      "writer_checks": []
+    },
+    "passed_before_failure": 13,
+    "prior_passed_cases": [
+      {
+        "exit": 2,
+        "groups": {
+          "supervisor": true,
+          "worker": true
+        },
+        "injection_reached": false,
+        "name": "normal-closure",
+        "seconds": 3.284794499981217
+      },
+      {
+        "exit": 0,
+        "groups": {
+          "supervisor": true,
+          "worker": true
+        },
+        "injection_reached": false,
+        "name": "normal-fake-gate",
+        "seconds": 3.3110088749672286
+      },
+      {
+        "exit": 2,
+        "groups": {
+          "supervisor": true,
+          "worker": true
+        },
+        "injection_reached": false,
+        "name": "inner-optional-timing-error",
+        "seconds": 2.939392666972708
+      },
+      {
+        "exit": 0,
+        "groups": {
+          "supervisor": true,
+          "worker": true
+        },
+        "injection_reached": false,
+        "name": "outer-optional-timing-error",
+        "seconds": 2.9482584999641404
+      },
+      {
+        "exit": 1,
+        "groups": {
+          "supervisor": true,
+          "worker": true
+        },
+        "injection_reached": true,
+        "name": "inner-failure-with-timing-error",
+        "seconds": 1.231451041996479
+      },
+      {
+        "exit": 1,
+        "groups": {
+          "supervisor": true,
+          "worker": true
+        },
+        "injection_reached": true,
+        "name": "outer-failure-with-timing-error",
+        "seconds": 3.091766000026837
+      },
+      {
+        "exit": 1,
+        "groups": {
+          "supervisor": true,
+          "worker": true
+        },
+        "injection_reached": true,
+        "name": "post-gate-persistent-mutation",
+        "seconds": 3.196431084012147
+      },
+      {
+        "exit": 1,
+        "groups": {
+          "supervisor": true,
+          "worker": true
+        },
+        "injection_reached": true,
+        "name": "inner-final-alarm",
+        "seconds": 1.719385374977719
+      },
+      {
+        "exit": 1,
+        "groups": {
+          "supervisor": true,
+          "worker": true
+        },
+        "injection_reached": true,
+        "name": "direct-cancel-startup",
+        "seconds": 0.46866770897759125
+      },
+      {
+        "exit": 1,
+        "groups": {
+          "supervisor": true,
+          "worker": true
+        },
+        "injection_reached": true,
+        "name": "direct-cancel-wait",
+        "seconds": 0.5321832500048913
+      },
+      {
+        "exit": 1,
+        "groups": {
+          "supervisor": true,
+          "worker": true
+        },
+        "injection_reached": false,
+        "name": "missing-worker-ACK",
+        "seconds": 0.5290958330151625
+      },
+      {
+        "exit": 1,
+        "groups": {
+          "supervisor": true,
+          "worker": true
+        },
+        "injection_reached": true,
+        "name": "parent-death",
+        "seconds": 0.7945862499764189
+      },
+      {
+        "exit": 1,
+        "groups": {
+          "supervisor": true,
+          "worker": true
+        },
+        "injection_reached": false,
+        "name": "surviving-descendant",
+        "seconds": 0.7142844159970991
+      }
+    ],
+    "raw_result": {
+      "completed_at_utc": "2026-10-25T02:45:52.654954+00:00",
+      "elapsed_seconds": 30.62021600001026,
+      "raw_exit": 1
+    },
+    "receipt_sha256": "71c36edd20a30050ff7360932e96e13178dd97416f7b5d974ba8c1ac6e0841c1",
+    "receipt_summary": {
+      "accepted": false,
+      "cleanup_complete": true,
+      "cleanup_until_monotonic": 516549.86029925,
+      "events": [
+        {
+          "kind": "bounded_registration_census",
+          "matches": 1,
+          "monotonic": 516539.935441208,
+          "worker_reaping_claimed": false
+        },
+        {
+          "duty": "IPC",
+          "error": "Stop('Unexpected private IPC loss: {\"ancillary_capacity\": 16, \"buffer_bytes\": 60001, \"errno\": 54, \"expected_sender\": null, \"fd\": 5, \"flags\": null, \"next_sequence\": 2, \"operation\": \"recvmsg\", \"raw_length\": null, \"received_sequence\": 1}')",
+          "kind": "monitor_error"
+        }
+      ],
+      "first_global_failure": {
+        "kind": "peer_or_source_failure",
+        "outcome": "wall_guard",
+        "role": "outer",
+        "signal": null,
+        "timestamp": 516539.86029925,
+        "timing_basis": "explicit_source_timestamp"
+      },
+      "inner_wait": {
+        "direct_child_reaped": true,
+        "observed_monotonic": 516544.894805166,
+        "pid": 41020,
+        "raw_wait_status": 9,
+        "reaped_by": 41017,
+        "returncode": -9
+      },
+      "ownership": {
+        "supervisor": {
+          "argv": [
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+            "-B",
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/synthetic.py",
+            "run",
+            "--output",
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/attempts/attempt-03-focused-OS/cases/normal-deadline-wedged/campaign",
+            "--state-path",
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/attempts/attempt-03-focused-OS/cases/normal-deadline-wedged/state.json",
+            "--executor-fd",
+            "4",
+            "--executor-pid",
+            "41017"
+          ],
+          "group_absent": true,
+          "kill_sent": true,
+          "new_session_verified": true,
+          "ownership": "exact_command_parent_T0_capsule_output",
+          "parent_at_registration": 41017,
+          "pgid": 41020,
+          "pid": 41020,
+          "term_sent": true
+        },
+        "worker": {
+          "argv": [
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+            "-B",
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/synthetic.py",
+            "worker",
+            "--output",
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/attempts/attempt-03-focused-OS/cases/normal-deadline-wedged/campaign",
+            "--state-path",
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/attempts/attempt-03-focused-OS/cases/normal-deadline-wedged/state.json",
+            "--started",
+            "516539.26029925",
+            "--supervisor-pid",
+            "41020",
+            "--executor-fd",
+            "3",
+            "--executor-pid",
+            "41017"
+          ],
+          "gate_ack_attempted": true,
+          "gate_ack_failed": false,
+          "gate_acked": true,
+          "group_absent": true,
+          "kill_sent": true,
+          "new_session_verified": true,
+          "ownership": "exact_command_parent_T0_capsule_output",
+          "parent_at_registration": 41020,
+          "pgid": 41029,
+          "pid": 41029,
+          "term_sent": true
+        }
+      },
+      "reaping": {
+        "supervisor": {
+          "basis": "validated_direct_parent_waitpid_report",
+          "status": "direct_reaped"
+        },
+        "worker": {
+          "basis": "supervisor_dead_before_report",
+          "status": "unproven"
+        }
+      },
+      "worker_wait": null
+    }
+  },
+  "at_utc": "2026-10-25T02:47:21.328355+00:00",
+  "confirmed_observations": [
+    "Positive wedged_entry after worker handshake; this scenario now reached intended loop.",
+    "First global failure is registered worker cutoff; executor receipt has both groups absent and cleanup_complete=true.",
+    "Executor sent SIGKILL to both worker and supervisor at the same first+5 escalation window; supervisor direct wait is raw9/rc-9.",
+    "Supervisor failure receipt survived and had acknowledged shared deadline; it was killed before it could report the wedged worker wait.",
+    "Group absence proves no surviving group at receipt/probe; it is not the missing original-parent worker wait."
+  ],
+  "freeze": {
+    "completed_at_utc": "2026-10-25T02:43:35.790815+00:00",
+    "elapsed_seconds": 2.4192547089769505,
+    "raw_exit": 0
+  },
+  "limits": [
+    "No source failure overrode the registered wall cutoff here; source observation ordering remains distinct from physical exit time.",
+    "Thirteen synthetic lifecycle case passes do not establish production ML identity, unknown transport reliability, performance or teacher qualification.",
+    "Staged worker-then-supervisor escalation is only a proposed supported next direction, not yet implemented/tested."
+  ],
+  "next": "Focused read-only escalation/reaping design and pending frozen review; no OS retry or later stage.",
+  "no_external_harness_kill": true,
+  "preflight": {
+    "completed_at_utc": "2026-10-25T02:44:38.430222+00:00",
+    "elapsed_seconds": 1.7622464169980958,
+    "raw_exit": 0
+  },
+  "schema": "boundary_r10_parent_validation_result_v1",
+  "source_unchanged": true,
+  "startup_rehearsal_launched": false,
+  "status": "stopped_on_first_unexpected_OS_failure;candidate_not_accepted",
+  "stress_launched": false,
+  "training_authorization_consumed": false,
+  "training_launched": false,
+  "unit_methods_passed": 91
+}

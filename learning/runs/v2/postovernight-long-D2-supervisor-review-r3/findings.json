@@ -1,0 +1,188 @@
+{
+  "accepted": false,
+  "actual_ML_Torch_project_native_import_deserialization_inference_training_gameplay": false,
+  "aggregate_stdout_loss_disclosed": true,
+  "all_registered_groups_and_direct_executors_positively_absent": true,
+  "blocking_findings": 1,
+  "candidate": {
+    "capsule_manifest_sha256": "617dcc46c9f6f0b14ac4d925192636d527e7ed202b915b9179f2070a9d4fba64",
+    "config_sha256": "2ac814d3842228017d09669364a8391344722da56ad19f41ad9030dbb930c2db",
+    "controller_sha256": "d26dd14d844c0e1c7b4414d44a753f913eb1f66560ec9a7cdd0860dec821f73a",
+    "executor_sha256": "a373e898eddf21547a7ff5bcc7d44928edc6e4ab562e1944b9f70f9efe6ea965",
+    "identity_document_sha256": "0282c37d1b7d8751f858841913d5b6039a6c5b04ad82f4e3c668deef0b76df9c",
+    "protocol_sha256": "6a7ffe59551fd12f4a6fd316c6ab626d03e92a7ec25f77dc34fce30837fa592d",
+    "registration_sha256": "aa338aefa5a70d20ab6478089967ba67bc15119ccd32449792b790f7c9287581"
+  },
+  "children": false,
+  "earlier_stdout_recovered": false,
+  "findings": [
+    {
+      "blocking": true,
+      "consequence": "The executor can remain alive past T0+7200 and the entire T0+7210 failure cap; no watchdog remains and the deferred alarm only latches.",
+      "evidence": [
+        "probe_final_io.py",
+        "run_final_io.py",
+        "final-io-summary.json",
+        "final-io.log",
+        "final-io-blocked-diagnostic/final-read-event.json",
+        "final-io-blocked-diagnostic/observed-command.json"
+      ],
+      "expected": "An effective independent deadline owner must cover every potentially blocking normal operation; no normal verification/probe/lease IO may begin after it stops.",
+      "id": "SUP-001-R3",
+      "impact_boundary": "A compliant parent rejects the absent/late raw exit and the retained harness-induced -9. No invalid-campaign acceptance is demonstrated.",
+      "line_refs": [
+        {
+          "end": 417,
+          "path": "learning/runs/v2/postovernight-long-D2-prepare-r3/long_d2_executor.py",
+          "start": 406
+        },
+        {
+          "end": 210,
+          "path": "learning/runs/v2/postovernight-long-D2-prepare-r3/long_d2_executor.py",
+          "start": 198
+        },
+        {
+          "end": 105,
+          "path": "learning/runs/v2/postovernight-long-D2-prepare-r3/lifecycle.py",
+          "start": 96
+        }
+      ],
+      "observations": {
+        "ML_imports": [],
+        "argv": [
+          "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+          "-B",
+          "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-supervisor-review-r3/probe_final_io.py",
+          "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-supervisor-review-r3/final-io-blocked-diagnostic",
+          "block"
+        ],
+        "blocked": true,
+        "elapsed_seconds": 14.526113416999578,
+        "event": {
+          "ML_imports": [],
+          "actual_verifier_invoked": true,
+          "block": true,
+          "boundary": "final authority(True), after watchdog join and endpoint close",
+          "groups": {
+            "supervisor": {
+              "argv": [
+                "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+                "-B",
+                "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-prepare-r3/synthetic.py",
+                "run",
+                "--output",
+                "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-supervisor-review-r3/final-io-blocked-diagnostic/campaign",
+                "--state-path",
+                "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-supervisor-review-r3/final-io-blocked-diagnostic/state.json",
+                "--executor-fd",
+                "4",
+                "--executor-pid",
+                "70680"
+              ],
+              "group_absent": true,
+              "kill_sent": false,
+              "new_session_verified": true,
+              "ownership": "exact_command_parent_T0_capsule_output",
+              "parent_at_registration": 70680,
+              "pgid": 70682,
+              "pid": 70682,
+              "term_sent": false
+            },
+            "worker": {
+              "argv": [
+                "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+                "-B",
+                "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-prepare-r3/synthetic.py",
+                "worker",
+                "--output",
+                "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-supervisor-review-r3/final-io-blocked-diagnostic/campaign",
+                "--state-path",
+                "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-supervisor-review-r3/final-io-blocked-diagnostic/state.json",
+                "--started",
+                "487846.219195",
+                "--supervisor-pid",
+                "70682",
+                "--executor-fd",
+                "3",
+                "--executor-pid",
+                "70680"
+              ],
+              "done": true,
+              "gate_acked": true,
+              "group_absent": true,
+              "kill_sent": false,
+              "new_session_verified": true,
+              "ownership": "exact_command_parent_T0_capsule_output",
+              "parent_at_registration": 70682,
+              "pgid": 70685,
+              "pid": 70685,
+              "term_sent": false
+            }
+          },
+          "guard_threads_alive": [
+            false,
+            false
+          ],
+          "latch_phase": "DEFER",
+          "latest_shared_cap": 487860.219195,
+          "live_owned_threads": [],
+          "monotonic": 487847.948514333,
+          "normal_deadline": 487850.219195,
+          "pid": 70680,
+          "t0": 487846.219195,
+          "timer": [
+            2.270847,
+            0.0
+          ],
+          "watchdog_alive": false
+        },
+        "exceeded_latest_shared_cap": 0.505748457973823,
+        "harness_kill_required": true,
+        "injection_reached": true,
+        "observed_acceptance": false,
+        "positive_group_absence": {
+          "supervisor": true,
+          "worker": true
+        },
+        "process_reaped": true,
+        "raw_exit": -9,
+        "receipt_accepted": true
+      },
+      "probe_limit": "Injected os.read at verify_files entry in the owned synthetic fixture; not a claim that a real frozen file blocked.",
+      "retried": false,
+      "severity": "P1",
+      "source_unchanged": true,
+      "title": "Final forced authority IO begins after all independent outer monitors have stopped",
+      "trigger": "An ordinary interruptible IO operation blocks inside the final forced verification after watchdog join, before finite D."
+    }
+  ],
+  "fresh_outer_OS_executions": 33,
+  "fresh_positive_acceptances": 3,
+  "input_SHA_manifest": {
+    "files": 9702,
+    "final_verification": "input-sha256-verification-after.json",
+    "path": "input-sha256-manifest-expanded.json",
+    "sha256": "5e1e9854bd438781a18b0886117385283757e208b2ac605277da88822e283425"
+  },
+  "limitations": [
+    "No actual ML/API/native/MPS runtime or qualification proof.",
+    "Only 29 targeted rejection scenarios were freshly run before the blocker; the retained 165-case matrix is inspected evidence.",
+    "No claim of atomic post-scan signal or transient-filesystem observation.",
+    "No D3/B/E/student authority or launch recommendation."
+  ],
+  "nonblocking_findings": 0,
+  "old_unexplained_R2_raw_minus14_cause": "unproven; not identically retried",
+  "owned_direct_executors": 33,
+  "owned_registered_groups": 65,
+  "production_edits_or_lease_creation": false,
+  "provider_retries": false,
+  "qualification_checks_stopped_at_first_unexpected_failure": true,
+  "retained_matrix_inspected_not_executed": 165,
+  "retained_unit_methods_not_executed": 63,
+  "review": "review.md",
+  "subsequent_actions": "Read-only retained-evidence/input/source audit and review receipt closure only.",
+  "targeted_expected_rejections": 29,
+  "unexpected_retained_failure": 1,
+  "verdict": "changes_required",
+  "version": "frozen_long_D2_supervisor_review_r3"
+}

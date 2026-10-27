@@ -1,0 +1,37 @@
+{
+  "schema": "frozen_boundary_r10_source_review_v1",
+  "verdict": "changes_required",
+  "findings": [
+    {
+      "id": "BOUNDARY-R10-IPC-ENDPOINT-STARVATION",
+      "severity": "P2",
+      "path": "learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/long_d2_executor.py",
+      "line": 327,
+      "end_line": 330,
+      "title": "A failing supervisor endpoint prevents reading an already-readable worker failure",
+      "trigger": "Both private endpoints are readable. The supervisor endpoint, visited first, repeatedly raises an unexpected ConnectionResetError or the actual Channel.receive zero-byte-packet error; the valid worker endpoint already holds an earlier failure packet.",
+      "mechanism": "pump iterates supervisor before worker. An unexpected reset fails require at line330; other receive errors propagate at line327. The single IPC monitor_duty catches outside the entire pump. The failing channel stays eligible on later calls, so every pump and the unchanged final drain can abort before the second ready endpoint.",
+      "consequence": "Independent cleanup duties now run, but valid peer failure evidence and its failure_ack can still be starved. Exact source-extracted monitor/pump proofs keep the inner direct-wait source99.75 and pool109.75 after ten passes while a readable worker source99.5 remains unread. The same exact path with only the valid endpoint ready consumes it, ACKs once and tightens the existing pool to109.5. No raw1 acceptance bypass, survivor, actual kernel schedule or measured OS overrun is claimed.",
+      "fix_direction": "Keep unexpected endpoint loss fatal, but isolate per-endpoint receive/handling failures so another already-readable valid endpoint can still be processed under the same absolute deadline. Preserve one-shot sends, exact ownership checks, no blanket close relaxation and earliest-source pool tightening; no transport redesign or new allowance is supported.",
+      "proofs": [
+        {
+          "script": "proof_endpoint_starvation.py",
+          "command": "endpoint-starvation-command.json",
+          "results": "endpoint-starvation-results.json",
+          "stdout": "endpoint-starvation.stdout.log",
+          "stderr": "endpoint-starvation.stderr.log",
+          "raw_exit": 0
+        },
+        {
+          "script": "proof_zero_packet_starvation.py",
+          "command": "zero-packet-starvation-command.json",
+          "results": "zero-packet-starvation-results.json",
+          "stdout": "zero-packet-starvation.stdout.log",
+          "stderr": "zero-packet-starvation.stderr.log",
+          "raw_exit": 0
+        }
+      ],
+      "proof_limits": "Exact AST-extracted production Execution.monitor/pump/fail, FailurePool, observed_failure and (second proof) Channel.receive. Fake readiness, sockets, clocks, direct reports, process groups, signals and absence. Persistent endpoint failure is an explicit fixture condition; no claim it caused the retained production transport failure. This is deterministic control-flow starvation of an endpoint already reported readable, not a queued-delivery guarantee."
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "active_long_campaign_at_finish": null,
+  "active_long_campaign_at_start": null,
+  "actual_campaign_executed": false,
+  "before_manifest_sha256": "273182f8cf64e484d85d47e52bfb45f624bfd2973980e2ec55d2592908eac1de",
+  "created_at_utc": "2026-10-24T08:01:07.341120+00:00",
+  "findings": [
+    {
+      "id": "identity_document_recheck_pin",
+      "response": "Every check hashes the exact parsed document bytes against the original lease anchor, then rechecks the document after verification. Workers receive the same anchor explicitly and verify it before and after their workload; the parent never reanchors.",
+      "severity": "P1"
+    },
+    {
+      "id": "launch_exit_finalization_time_lease_guards",
+      "response": "A shared guard checks the exact lease, monotonic deadline, UTC cutoff and phase wall at launch, exit, identity, parse, phase-save and final-success boundaries. Late observed exits fail even if the polling body never runs. Large final artifact hashes precede the final guarded identity check.",
+      "severity": "P1"
+    },
+    {
+      "id": "kill_exit_race_receipts",
+      "response": "Owned-group TERM/KILL races and bounded wait/poll failures return diagnostics. Campaign failure handling preserves the original error, cleanup diagnostics, failed-stage receipt and overall receipt separately.",
+      "severity": "P2"
+    }
+  ],
+  "limitations": [
+    "Pure mocked supervisor tests establish supervisor behavior, not native/game/extension or campaign qualification.",
+    "Guards remain cooperative; late observed completion is rejected without claiming an exact OS exit time or a hard synchronous kill guarantee.",
+    "The 600-second receipt reserve remains separate from the unchanged 1800-second experiment deadline.",
+    "No new combined identity, build receipt or review was created. Parent must reconcile unchanged compiled inputs, freeze a new identity and obtain independent r2 review before campaign launch.",
+    "No commits, PRs, deployments, provider operations, external messages or nested agents."
+  ],
+  "native_or_extension_operation_executed": false,
+  "original_runner_sha256": "b5554b544afc304240a728cb7b81c98e08732cc0a87e783147b3a1b220391db6",
+  "owned_live_source": "learning/scripts/v2_validate_environment.py",
+  "patch": "source.patch",
+  "patch_sha256": "b064527cee9d7694be370573c1d9c445ceb75dec7fff0a9519a129a02d57e03b",
+  "preservation": {
+    "automatic_campaign_retries": 0,
+    "baseline_assertions_and_seed_reservations_unchanged": true,
+    "campaign_wall_seconds": 1800,
+    "compiled_inputs_and_binaries_unchanged": true,
+    "extension_sha256": "967c7249acd52339d1818dcbe94e63ee734aea914c3497eb59a7e945a6e95583",
+    "memory_workload_and_plateau_thresholds_unchanged": true,
+    "module_constants_unchanged": true,
+    "native_test_binary": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m2-integration-build-r2/release/deps/dodge_rl_env-af3e363fd4e3a01d",
+    "old_review_capsule_manifest_sha256": "701d153e7281ec1a97c1b648a9abe031757659e8c1d9e78a38a915c8c1b16539",
+    "original_harness_artifacts_unchanged": true,
+    "phase_wall_seconds": {
+      "memory": 600,
+      "native_parity": 900,
+      "throughput": 120,
+      "trajectory": 120
+    },
+    "protected_files_unchanged": 166,
+    "receipt_reserve_seconds": 600,
+    "state_or_docs_edited": false,
+    "worker_rss_limit_bytes": 6442450944,
+    "workload_functions_unchanged": [
+      "worker_trajectory",
+      "worker_memory",
+      "worker_throughput"
+    ]
+  },
+  "pure_tests": {
+    "bytecode_writes_disabled": true,
+    "existing_readonly_tests_passed": 9,
+    "existing_test_source_edited": false,
+    "existing_test_temporaries_redirected_to_owned_directory": true,
+    "interpreter": "python/.venv/bin/python",
+    "logs": {
+      "existing-nine-r1": "checks/existing-nine-r1.log",
+      "original-discrimination-r1": "checks/original-discrimination-r1.log",
+      "repaired-pure-r1": "checks/repaired-pure-r1.log"
+    },
+    "new_regressions_passed": 37,
+    "original_discriminating_tests": {
+      "expected_errors": 2,
+      "expected_failures": 10,
+      "run": 12
+    },
+    "receipts": {
+      "existing-nine-r1": "checks/existing-nine-r1.json",
+      "original-discrimination-r1": "checks/original-discrimination-r1.json",
+      "repaired-pure-r1": "checks/repaired-pure-r1.json"
+    },
+    "total_passed": 46,
+    "warnings": "-W error"
+  },
+  "runner_sha256": "980a9a08b5561350346a3984cf8b9fae3ec47591a8a907d9b915fdcbb428fa44",
+  "source_archive": "source.tar.gz",
+  "source_archive_sha256": "15e7d3a3c8949caa599f7304b30aee655e311c258ab0e64403edc8aee670f9ab",
+  "source_manifest": "source-manifest.json",
+  "source_manifest_sha256": "b2e49e5157c34438c355618c7afe52c20679e29f6dda84370c0ee2f9e151efbe",
+  "status": "implemented_pure_tests_passed_pending_parent_identity_and_independent_review"
+}

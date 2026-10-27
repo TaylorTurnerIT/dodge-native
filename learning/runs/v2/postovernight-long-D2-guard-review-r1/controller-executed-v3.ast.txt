@@ -1,0 +1,715 @@
+Module(
+  body=[
+    FunctionDef(
+      name='sha',
+      args=arguments(
+        posonlyargs=[],
+        args=[
+          arg(arg='path')],
+        kwonlyargs=[],
+        kw_defaults=[],
+        defaults=[]),
+      body=[
+        Assign(
+          targets=[
+            Name(id='digest', ctx=Store())],
+          value=Call(
+            func=Attribute(
+              value=Name(id='hashlib', ctx=Load()),
+              attr='sha256',
+              ctx=Load()),
+            args=[],
+            keywords=[])),
+        Assign(
+          targets=[
+            Name(id='bytes_hashed', ctx=Store())],
+          value=Constant(value=0)),
+        If(
+          test=Compare(
+            left=Name(id='HASH_OBSERVER', ctx=Load()),
+            ops=[
+              IsNot()],
+            comparators=[
+              Constant(value=None)]),
+          body=[
+            Expr(
+              value=Call(
+                func=Name(id='HASH_OBSERVER', ctx=Load()),
+                args=[],
+                keywords=[]))],
+          orelse=[]),
+        With(
+          items=[
+            withitem(
+              context_expr=Call(
+                func=Attribute(
+                  value=Call(
+                    func=Name(id='Path', ctx=Load()),
+                    args=[
+                      Name(id='path', ctx=Load())],
+                    keywords=[]),
+                  attr='open',
+                  ctx=Load()),
+                args=[
+                  Constant(value='rb')],
+                keywords=[]),
+              optional_vars=Name(id='stream', ctx=Store()))],
+          body=[
+            For(
+              target=Name(id='block', ctx=Store()),
+              iter=Call(
+                func=Name(id='iter', ctx=Load()),
+                args=[
+                  Lambda(
+                    args=arguments(
+                      posonlyargs=[],
+                      args=[],
+                      kwonlyargs=[],
+                      kw_defaults=[],
+                      defaults=[]),
+                    body=Call(
+                      func=Attribute(
+                        value=Name(id='stream', ctx=Load()),
+                        attr='read',
+                        ctx=Load()),
+                      args=[
+                        BinOp(
+                          left=Constant(value=1024),
+                          op=Mult(),
+                          right=Constant(value=1024))],
+                      keywords=[])),
+                  Constant(value=b'')],
+                keywords=[]),
+              body=[
+                If(
+                  test=Compare(
+                    left=Name(id='HASH_OBSERVER', ctx=Load()),
+                    ops=[
+                      IsNot()],
+                    comparators=[
+                      Constant(value=None)]),
+                  body=[
+                    Expr(
+                      value=Call(
+                        func=Name(id='HASH_OBSERVER', ctx=Load()),
+                        args=[],
+                        keywords=[]))],
+                  orelse=[]),
+                Expr(
+                  value=Call(
+                    func=Attribute(
+                      value=Name(id='digest', ctx=Load()),
+                      attr='update',
+                      ctx=Load()),
+                    args=[
+                      Name(id='block', ctx=Load())],
+                    keywords=[])),
+                AugAssign(
+                  target=Name(id='bytes_hashed', ctx=Store()),
+                  op=Add(),
+                  value=Call(
+                    func=Name(id='len', ctx=Load()),
+                    args=[
+                      Name(id='block', ctx=Load())],
+                    keywords=[]))],
+              orelse=[])]),
+        If(
+          test=Compare(
+            left=Name(id='HASH_OBSERVER', ctx=Load()),
+            ops=[
+              IsNot()],
+            comparators=[
+              Constant(value=None)]),
+          body=[
+            Expr(
+              value=Call(
+                func=Name(id='HASH_OBSERVER', ctx=Load()),
+                args=[],
+                keywords=[]))],
+          orelse=[]),
+        Assign(
+          targets=[
+            Name(id='stats', ctx=Store())],
+          value=Call(
+            func=Name(id='getattr', ctx=Load()),
+            args=[
+              Name(id='VERIFY_LOCAL', ctx=Load()),
+              Constant(value='stats'),
+              Constant(value=None)],
+            keywords=[])),
+        If(
+          test=Compare(
+            left=Name(id='stats', ctx=Load()),
+            ops=[
+              IsNot()],
+            comparators=[
+              Constant(value=None)]),
+          body=[
+            AugAssign(
+              target=Subscript(
+                value=Name(id='stats', ctx=Load()),
+                slice=Constant(value='files'),
+                ctx=Store()),
+              op=Add(),
+              value=Constant(value=1)),
+            AugAssign(
+              target=Subscript(
+                value=Name(id='stats', ctx=Load()),
+                slice=Constant(value='bytes'),
+                ctx=Store()),
+              op=Add(),
+              value=Name(id='bytes_hashed', ctx=Load()))],
+          orelse=[]),
+        Return(
+          value=Call(
+            func=Attribute(
+              value=Name(id='digest', ctx=Load()),
+              attr='hexdigest',
+              ctx=Load()),
+            args=[],
+            keywords=[]))],
+      decorator_list=[]),
+    FunctionDef(
+      name='save',
+      args=arguments(
+        posonlyargs=[],
+        args=[
+          arg(arg='path'),
+          arg(arg='value')],
+        kwonlyargs=[],
+        kw_defaults=[],
+        defaults=[]),
+      body=[
+        With(
+          items=[
+            withitem(
+              context_expr=Call(
+                func=Attribute(
+                  value=Call(
+                    func=Name(id='Path', ctx=Load()),
+                    args=[
+                      Name(id='path', ctx=Load())],
+                    keywords=[]),
+                  attr='open',
+                  ctx=Load()),
+                args=[
+                  Constant(value='x')],
+                keywords=[]),
+              optional_vars=Name(id='stream', ctx=Store()))],
+          body=[
+            Expr(
+              value=Call(
+                func=Attribute(
+                  value=Name(id='json', ctx=Load()),
+                  attr='dump',
+                  ctx=Load()),
+                args=[
+                  Name(id='value', ctx=Load()),
+                  Name(id='stream', ctx=Load())],
+                keywords=[
+                  keyword(
+                    arg='sort_keys',
+                    value=Constant(value=True)),
+                  keyword(
+                    arg='indent',
+                    value=Constant(value=2)),
+                  keyword(
+                    arg='allow_nan',
+                    value=Constant(value=False))])),
+            Expr(
+              value=Call(
+                func=Attribute(
+                  value=Name(id='stream', ctx=Load()),
+                  attr='write',
+                  ctx=Load()),
+                args=[
+                  Constant(value='\n')],
+                keywords=[])),
+            Expr(
+              value=Call(
+                func=Attribute(
+                  value=Name(id='stream', ctx=Load()),
+                  attr='flush',
+                  ctx=Load()),
+                args=[],
+                keywords=[])),
+            Expr(
+              value=Call(
+                func=Attribute(
+                  value=Name(id='os', ctx=Load()),
+                  attr='fsync',
+                  ctx=Load()),
+                args=[
+                  Call(
+                    func=Attribute(
+                      value=Name(id='stream', ctx=Load()),
+                      attr='fileno',
+                      ctx=Load()),
+                    args=[],
+                    keywords=[])],
+                keywords=[]))])],
+      decorator_list=[]),
+    FunctionDef(
+      name='replace_json',
+      args=arguments(
+        posonlyargs=[],
+        args=[
+          arg(arg='path'),
+          arg(arg='value')],
+        kwonlyargs=[],
+        kw_defaults=[],
+        defaults=[]),
+      body=[
+        Assign(
+          targets=[
+            Name(id='pending', ctx=Store())],
+          value=Call(
+            func=Attribute(
+              value=Name(id='path', ctx=Load()),
+              attr='with_name',
+              ctx=Load()),
+            args=[
+              BinOp(
+                left=BinOp(
+                  left=Constant(value='.'),
+                  op=Add(),
+                  right=Attribute(
+                    value=Name(id='path', ctx=Load()),
+                    attr='name',
+                    ctx=Load())),
+                op=Add(),
+                right=Constant(value='.pending'))],
+            keywords=[])),
+        Expr(
+          value=Call(
+            func=Name(id='save', ctx=Load()),
+            args=[
+              Name(id='pending', ctx=Load()),
+              Name(id='value', ctx=Load())],
+            keywords=[])),
+        Expr(
+          value=Call(
+            func=Attribute(
+              value=Name(id='os', ctx=Load()),
+              attr='replace',
+              ctx=Load()),
+            args=[
+              Name(id='pending', ctx=Load()),
+              Name(id='path', ctx=Load())],
+            keywords=[]))],
+      decorator_list=[]),
+    FunctionDef(
+      name='emit',
+      args=arguments(
+        posonlyargs=[],
+        args=[
+          arg(arg='stream'),
+          arg(arg='value')],
+        kwonlyargs=[],
+        kw_defaults=[],
+        defaults=[]),
+      body=[
+        Expr(
+          value=Call(
+            func=Attribute(
+              value=Name(id='stream', ctx=Load()),
+              attr='write',
+              ctx=Load()),
+            args=[
+              BinOp(
+                left=Call(
+                  func=Attribute(
+                    value=Name(id='json', ctx=Load()),
+                    attr='dumps',
+                    ctx=Load()),
+                  args=[
+                    Name(id='value', ctx=Load())],
+                  keywords=[
+                    keyword(
+                      arg='sort_keys',
+                      value=Constant(value=True)),
+                    keyword(
+                      arg='allow_nan',
+                      value=Constant(value=False))]),
+                op=Add(),
+                right=Constant(value='\n'))],
+            keywords=[])),
+        Expr(
+          value=Call(
+            func=Attribute(
+              value=Name(id='stream', ctx=Load()),
+              attr='flush',
+              ctx=Load()),
+            args=[],
+            keywords=[]))],
+      decorator_list=[]),
+    FunctionDef(
+      name='persist_timing',
+      args=arguments(
+        posonlyargs=[],
+        args=[
+          arg(arg='self'),
+          arg(arg='path'),
+          arg(arg='deadline'),
+          arg(arg='permission')],
+        kwonlyargs=[],
+        kw_defaults=[],
+        defaults=[
+          Lambda(
+            args=arguments(
+              posonlyargs=[],
+              args=[],
+              kwonlyargs=[],
+              kw_defaults=[],
+              defaults=[]),
+            body=Constant(value=None))]),
+      body=[
+        Expr(
+          value=Constant(value='Main-thread IO only, after owned verifier teardown. No telemetry thread.\n\n        Rows stay in bounded memory during verification; IO never takes either\n        resource lock or runs on the independent resource monitor. A killed\n        process can lose unflushed rows; partial/failure receipts retain what is\n        safely available. The process lifetime deadline still owns every write.\n        ')),
+        Expr(
+          value=Call(
+            func=Name(id='require', ctx=Load()),
+            args=[
+              Call(
+                func=Name(id='all', ctx=Load()),
+                args=[
+                  GeneratorExp(
+                    elt=BoolOp(
+                      op=Or(),
+                      values=[
+                        Compare(
+                          left=Name(id='t', ctx=Load()),
+                          ops=[
+                            Is()],
+                          comparators=[
+                            Constant(value=None)]),
+                        UnaryOp(
+                          op=Not(),
+                          operand=Call(
+                            func=Attribute(
+                              value=Name(id='t', ctx=Load()),
+                              attr='is_alive',
+                              ctx=Load()),
+                            args=[],
+                            keywords=[]))]),
+                    generators=[
+                      comprehension(
+                        target=Name(id='t', ctx=Store()),
+                        iter=Tuple(
+                          elts=[
+                            Attribute(
+                              value=Name(id='self', ctx=Load()),
+                              attr='thread',
+                              ctx=Load()),
+                            Attribute(
+                              value=Name(id='self', ctx=Load()),
+                              attr='verify_thread',
+                              ctx=Load())],
+                          ctx=Load()),
+                        ifs=[],
+                        is_async=0)])],
+                keywords=[]),
+              Constant(value='Timing persistence requires owned Guard thread absence')],
+            keywords=[])),
+        Expr(
+          value=Call(
+            func=Name(id='permission', ctx=Load()),
+            args=[],
+            keywords=[])),
+        Expr(
+          value=Call(
+            func=Attribute(
+              value=Name(id='life', ctx=Load()),
+              attr='remaining',
+              ctx=Load()),
+            args=[
+              Name(id='deadline', ctx=Load())],
+            keywords=[])),
+        Assign(
+          targets=[
+            Name(id='path', ctx=Store())],
+          value=Call(
+            func=Name(id='Path', ctx=Load()),
+            args=[
+              Name(id='path', ctx=Load())],
+            keywords=[])),
+        Expr(
+          value=Call(
+            func=Attribute(
+              value=Attribute(
+                value=Name(id='path', ctx=Load()),
+                attr='parent',
+                ctx=Load()),
+              attr='mkdir',
+              ctx=Load()),
+            args=[],
+            keywords=[
+              keyword(
+                arg='parents',
+                value=Constant(value=False)),
+              keyword(
+                arg='exist_ok',
+                value=Constant(value=True))])),
+        Expr(
+          value=Call(
+            func=Name(id='permission', ctx=Load()),
+            args=[],
+            keywords=[])),
+        Expr(
+          value=Call(
+            func=Attribute(
+              value=Name(id='life', ctx=Load()),
+              attr='remaining',
+              ctx=Load()),
+            args=[
+              Name(id='deadline', ctx=Load())],
+            keywords=[])),
+        With(
+          items=[
+            withitem(
+              context_expr=Call(
+                func=Attribute(
+                  value=Name(id='path', ctx=Load()),
+                  attr='open',
+                  ctx=Load()),
+                args=[
+                  Constant(value='x')],
+                keywords=[]),
+              optional_vars=Name(id='stream', ctx=Store()))],
+          body=[
+            For(
+              target=Name(id='row', ctx=Store()),
+              iter=Attribute(
+                value=Name(id='self', ctx=Load()),
+                attr='timings',
+                ctx=Load()),
+              body=[
+                Expr(
+                  value=Call(
+                    func=Name(id='permission', ctx=Load()),
+                    args=[],
+                    keywords=[])),
+                Expr(
+                  value=Call(
+                    func=Attribute(
+                      value=Name(id='life', ctx=Load()),
+                      attr='remaining',
+                      ctx=Load()),
+                    args=[
+                      Name(id='deadline', ctx=Load())],
+                    keywords=[])),
+                Expr(
+                  value=Call(
+                    func=Name(id='emit', ctx=Load()),
+                    args=[
+                      Name(id='stream', ctx=Load()),
+                      Name(id='row', ctx=Load())],
+                    keywords=[])),
+                Expr(
+                  value=Call(
+                    func=Attribute(
+                      value=Name(id='life', ctx=Load()),
+                      attr='remaining',
+                      ctx=Load()),
+                    args=[
+                      Name(id='deadline', ctx=Load())],
+                    keywords=[])),
+                Expr(
+                  value=Call(
+                    func=Name(id='permission', ctx=Load()),
+                    args=[],
+                    keywords=[]))],
+              orelse=[])]),
+        Expr(
+          value=Call(
+            func=Attribute(
+              value=Name(id='life', ctx=Load()),
+              attr='remaining',
+              ctx=Load()),
+            args=[
+              Name(id='deadline', ctx=Load())],
+            keywords=[])),
+        Expr(
+          value=Call(
+            func=Name(id='permission', ctx=Load()),
+            args=[],
+            keywords=[])),
+        Assign(
+          targets=[
+            Name(id='manifest', ctx=Store())],
+          value=Call(
+            func=Name(id='dict', ctx=Load()),
+            args=[],
+            keywords=[
+              keyword(
+                arg='schema',
+                value=Constant(value='long_d2_verification_output_v1')),
+              keyword(
+                arg='path',
+                value=Call(
+                  func=Name(id='str', ctx=Load()),
+                  args=[
+                    Name(id='path', ctx=Load())],
+                  keywords=[])),
+              keyword(
+                arg='sha256',
+                value=Call(
+                  func=Name(id='sha', ctx=Load()),
+                  args=[
+                    Name(id='path', ctx=Load())],
+                  keywords=[])),
+              keyword(
+                arg='rows',
+                value=Call(
+                  func=Name(id='len', ctx=Load()),
+                  args=[
+                    Attribute(
+                      value=Name(id='self', ctx=Load()),
+                      attr='timings',
+                      ctx=Load())],
+                  keywords=[])),
+              keyword(
+                arg='owned_threads_absent',
+                value=Constant(value=True)),
+              keyword(
+                arg='complete',
+                value=Call(
+                  func=Name(id='all', ctx=Load()),
+                  args=[
+                    GeneratorExp(
+                      elt=Compare(
+                        left=Call(
+                          func=Attribute(
+                            value=Name(id='r', ctx=Load()),
+                            attr='get',
+                            ctx=Load()),
+                          args=[
+                            Constant(value='end_monotonic')],
+                          keywords=[]),
+                        ops=[
+                          IsNot()],
+                        comparators=[
+                          Constant(value=None)]),
+                      generators=[
+                        comprehension(
+                          target=Name(id='r', ctx=Store()),
+                          iter=Attribute(
+                            value=Name(id='self', ctx=Load()),
+                            attr='timings',
+                            ctx=Load()),
+                          ifs=[],
+                          is_async=0)])],
+                  keywords=[]))])),
+        Expr(
+          value=Call(
+            func=Name(id='permission', ctx=Load()),
+            args=[],
+            keywords=[])),
+        Expr(
+          value=Call(
+            func=Attribute(
+              value=Name(id='life', ctx=Load()),
+              attr='remaining',
+              ctx=Load()),
+            args=[
+              Name(id='deadline', ctx=Load())],
+            keywords=[])),
+        Expr(
+          value=Call(
+            func=Name(id='save', ctx=Load()),
+            args=[
+              Call(
+                func=Attribute(
+                  value=Name(id='path', ctx=Load()),
+                  attr='with_suffix',
+                  ctx=Load()),
+                args=[
+                  Constant(value='.manifest.json')],
+                keywords=[]),
+              Name(id='manifest', ctx=Load())],
+            keywords=[])),
+        Expr(
+          value=Call(
+            func=Attribute(
+              value=Name(id='life', ctx=Load()),
+              attr='remaining',
+              ctx=Load()),
+            args=[
+              Name(id='deadline', ctx=Load())],
+            keywords=[])),
+        Expr(
+          value=Call(
+            func=Name(id='permission', ctx=Load()),
+            args=[],
+            keywords=[])),
+        Return(
+          value=Name(id='manifest', ctx=Load()))],
+      decorator_list=[]),
+    FunctionDef(
+      name='check',
+      args=arguments(
+        posonlyargs=[],
+        args=[
+          arg(arg='self'),
+          arg(arg='force')],
+        kwonlyargs=[],
+        kw_defaults=[],
+        defaults=[
+          Constant(value=False)]),
+      body=[
+        If(
+          test=Compare(
+            left=Attribute(
+              value=Name(id='self', ctx=Load()),
+              attr='failure',
+              ctx=Load()),
+            ops=[
+              IsNot()],
+            comparators=[
+              Constant(value=None)]),
+          body=[
+            Raise(
+              exc=Attribute(
+                value=Name(id='self', ctx=Load()),
+                attr='failure',
+                ctx=Load()))],
+          orelse=[]),
+        Expr(
+          value=Call(
+            func=Name(id='require', ctx=Load()),
+            args=[
+              Compare(
+                left=Call(
+                  func=Attribute(
+                    value=Name(id='self', ctx=Load()),
+                    attr='clock',
+                    ctx=Load()),
+                  args=[],
+                  keywords=[]),
+                ops=[
+                  Lt()],
+                comparators=[
+                  Attribute(
+                    value=Name(id='self', ctx=Load()),
+                    attr='deadline',
+                    ctx=Load())]),
+              Constant(value='Absolute wall guard reached'),
+              Constant(value='wall_guard')],
+            keywords=[])),
+        If(
+          test=Name(id='force', ctx=Load()),
+          body=[
+            Expr(
+              value=Call(
+                func=Attribute(
+                  value=Name(id='self', ctx=Load()),
+                  attr='sample',
+                  ctx=Load()),
+                args=[],
+                keywords=[
+                  keyword(
+                    arg='force',
+                    value=Constant(value=True))]))],
+          orelse=[])],
+      decorator_list=[])],
+  type_ignores=[])

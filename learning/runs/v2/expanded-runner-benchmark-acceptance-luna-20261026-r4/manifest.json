@@ -1,0 +1,28 @@
+{
+  "schema": "expanded_runner_benchmark_acceptance_repair_v1",
+  "status": "source_preparation_complete_pending_parent_review",
+  "scope": "OWN OUTPUT ONLY; copied R3 sources; no actual evaluator, native, torch, MPS, checkpoint, game, training, campaign, lease, one-shot, or final registration operation",
+  "acceptance": {
+    "adapter": "accept_benchmark.py",
+    "worker_receipt": "expanded_eval_dev64_benchmark_receipt_v1",
+    "outer_receipt": "expanded_eval_outer_receipt_v1",
+    "wrapper": "expanded_eval_accepted_benchmark_evidence_v1",
+    "checks": ["external worker and outer SHA-256 pins", "exit code 0", "stop_reason null", "process_group_absent true", "benchmark/update 348/benchmark_dev64 identity", "matching run_id and registration_sha256", "exact worker output artifact path and SHA-256", "exclusive accepted wrapper"],
+    "raw_frame_accounting": "sum(gameplay_frames); gameplay_frames equals alive_frames plus one terminal frame"
+  },
+  "tests": {
+    "command": "python3 -m unittest discover -s learning/runs/v2/expanded-runner-benchmark-acceptance-luna-20261026-r4 -p 'test_runner.py'",
+    "result": "20 passed",
+    "log": "tests.log",
+    "negative_cases": ["failed outer receipt rejected", "altered artifact binding rejected"],
+    "pipeline": "fake benchmark worker and supervisor output accepted, then actual make_draft called for benchmark, ranking, and confirmation"
+  },
+  "source_sha256": {
+    "accept_benchmark.py": "5f51cf1a3644702b72a22c5a42d717bbfdc9e6320b1108c2891702cb88ff7647",
+    "build_registration.py": "280650effba15ca1763707bbf054d081f6d4fb662da83f6a70a299243b07e8eb",
+    "execute_once.py": "6ec8ab00d01daf15f9ff7d77be24ddac9ebb67af85abc844bd34e56da72f1570",
+    "worker.py": "2b5d25d07c671671e6f9a4fb2c976b02af2cb8372ace30ad2d05544bb18a83e4",
+    "test_runner.py": "6b1c1ec9f289587c3520c962dfee65b82cebc7017bb075ecdb351cf1d922ec73"
+  },
+  "limits": ["Synthetic CPU fake evidence only; not launch or qualification evidence", "No real acceptance wrapper or registration created", "Supervisor signal/cleanup repair assigned separately; no overlapping edits", "Independent source review and remaining review findings await parent reconciliation"]
+}

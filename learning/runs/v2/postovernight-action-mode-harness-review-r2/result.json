@@ -1,0 +1,253 @@
+{
+  "continued_diagnostic_semantics_static_review": [
+    {
+      "area": "checkpoint scope",
+      "assessment": "Only three protocol-pinned entry/phase96/phase104 paths/hashes are accepted. Complete tag/progress/counters and semantic identity checks precede strict model state loading. weights_only=True and narrow NumPy safe globals are used. No optimizer/RNG/episode restoration, eligibility transition or checkpoint writer is called. Real checkpoint contents were not deserialized in this review.",
+      "evidence": "runner.py:309-354,636-648"
+    },
+    {
+      "area": "historical controls",
+      "assessment": "Both controls compare all nine fields after validating and indexing all 64 unique seeds and episode-index mapping. Completion order is immaterial. Exact entry and phase96 matches gate every sampled evaluation. No extra control evaluation is added.",
+      "evidence": "runner.py:357-385,520-537,631-650"
+    },
+    {
+      "area": "layout and sampling",
+      "assessment": "64 fresh independent B1 D2 environments, sorted shrinking active batches, MPS float32 model inference, K4 and 18000 cap are preserved. No reset/filler path exists. Each sample evaluation seeds Torch and MPS once after model loading, then uses a batched Categorical draw with controller seeds 64001/64002/64003. No CPU inference fallback exists.",
+      "evidence": "runner.py:408-517,628-650"
+    },
+    {
+      "area": "episode budget and no training",
+      "assessment": "Fixed order is 12 evaluations of 64 episodes, totaling 768. Inference uses model.eval and torch.no_grad; gradients are checked. No optimizer construction, update, student, B/E evaluation or checkpoint-write path is present in the helper. This is source evidence, not measured counters from a campaign.",
+      "evidence": "runner.py:97-111,584-594,649-654"
+    },
+    {
+      "area": "statistics",
+      "assessment": "Three sampled replicates are averaged within each of 64 game seeds before paired differences. 10000 shared-index bootstrap resamples use seed 764002 and percentile 95% intervals. Both 100-alive-frame/1-score margins must support similarity or an advantage; otherwise mixed/inconclusive. phase104 remains primary; no checkpoint selection or automatic training follows.",
+      "evidence": "runner.py:540-581"
+    },
+    {
+      "area": "context and visibility",
+      "assessment": "Decision probabilities/actions/entropy/margins are streamed. Observation presence and first observed K4 decision-boundary visibility are context only. Death cause stays UNKNOWN; no killer or collision attribution is inferred.",
+      "evidence": "runner.py:388-405,472-509"
+    },
+    {
+      "area": "owned cleanup and resources",
+      "assessment": "One start_new_session worker is owned by the supervisor. Cleanup targets only its recorded new-session group, reaps the leader and separately records cleanup duration. EPERM absence proof uses the process table; absence/probe uncertainty prevents stable hashing. Guard failures remain latched and copied into failed status. Real process-group cleanup and RSS/MPS behavior were not executed by this review.",
+      "evidence": "runner.py:163-230,250-306,793-866"
+    }
+  ],
+  "execution_authorized_by_this_review": false,
+  "findings": [
+    {
+      "consequence": "A canceled diagnostic can exit 0 with run-result.json and authoritative finalization-result.json both complete and a valid artifact manifest. The original brief requires cancellation to fail the entire run. This finding concerns terminal status; the probe does not establish any inference after cancellation.",
+      "finding": "defer() sets the cancellation handler flag before all cleanup and normal finalization. The handler ignores signals once that flag is true and does not record a new cancellation request. After cleanup, the same deferred handler remains installed through guard.close(), verify(), receipt/counter collection and stream closure. A signal in that interval leaves result.status complete. publish_terminal then installs a fresh handler, without learning that cancellation was already requested, and publishes successful terminal evidence.",
+      "id": "R2-F1",
+      "line_end": 817,
+      "line_start": 817,
+      "provenance": "The defer pattern predates r2. This is a newly identified remaining issue in the reviewed r2 supervisor, not a claim that the repair introduced it.",
+      "related_lines": [
+        237,
+        238,
+        239,
+        244,
+        818,
+        821,
+        840,
+        842,
+        898,
+        900
+      ],
+      "required_resolution": "Keep owned-group cleanup protected from interruption, but separately latch every cancellation request. Before publishing success, fail the result when cancellation arrived during cleanup or final verification. Add a regression that invokes the installed SIGINT/SIGTERM handler during successful supervisor cleanup/guard closure/final verification and requires exit 1, partial status, and no success terminal receipt.",
+      "retained_test_gap": "test_finalization.py:54-63 mocks guard.close as a clock advance only. Its cancellation-free fixtures do not cover a signal while supervise has called defer(). The new publish_terminal cancellation handler itself fails closed in the independent probes.",
+      "severity": "P2",
+      "source": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-action-mode-prepare-r2/source-snapshot/learning/runs/v2/postovernight-action-mode-prepare-r2/runner.py",
+      "synthetic_evidence": {
+        "case": "SIGTERM_during_guard_close",
+        "method": "Actual frozen supervise and publish_terminal; fake completed worker/clock/guard and an in-memory filesystem. Guard.close invokes signal.getsignal(SIGTERM)(SIGTERM, None). No OS signal was sent, no worker subprocess was created, and no filesystem fixture was written.",
+        "observed_exit_code": 0,
+        "observed_manifest_consistent": true,
+        "observed_run_status": "complete",
+        "observed_stable_manifest": true,
+        "observed_terminal_status": "complete",
+        "observed_wall_seconds": 10.0
+      },
+      "title": "Deferred cancellation during final cleanup/verification can still produce complete",
+      "trigger": "The worker has completed successfully before the deadline, then SIGINT or SIGTERM arrives after supervise enters its finally block and before the outer cancellation_signals context exits. Guard shutdown and final input verification are concrete points in this window."
+    }
+  ],
+  "finished_at_utc": "2026-10-24T15:33:11.193438+00:00",
+  "independent_synthetic_review": {
+    "additional_publication_cases_asserted": 15,
+    "probe_adapter_correction": "The first in-memory filesystem adapter lacked Path passthrough and raised TypeError before completing a probe. It wrote no fixture files and is not evidence of a product defect. The corrected adapter completed all six supervisor cases and 15 asserted publication cases.",
+    "publication_matrix": {
+      "expected_and_observed": "All 15 returned 1 with failed run and terminal status, no stable manifest, and original payload retained. All five late cases recorded deadline_expired.",
+      "kinds": [
+        "deadline_crossing",
+        "one_shot_OSError",
+        "SIGTERM_handler_invocation"
+      ],
+      "stages": [
+        "run-result pending serialization",
+        "artifact payload hashing",
+        "manifest pending serialization",
+        "manifest hashing",
+        "terminal pending serialization"
+      ]
+    },
+    "scope": "Standard-library-only in-memory probes of actual frozen supervise/publish_terminal. Fake clock, process, resource guard and filesystem; no Torch/native import, model load, subprocess, real signal or fixture-file writes.",
+    "supervisor_probe_count": 6,
+    "supervisor_probes": [
+      {
+        "case": "bounded_success",
+        "clock_seconds": 10.0,
+        "exit_code": 0,
+        "manifest_consistent": true,
+        "stable_manifest": true,
+        "status": "complete",
+        "terminal_status": "complete"
+      },
+      {
+        "case": "late_artifact_hash",
+        "clock_seconds": 601.0,
+        "deadline_expired": true,
+        "exit_code": 1,
+        "stable_manifest": false,
+        "status": "failed",
+        "terminal_status": "failed"
+      },
+      {
+        "case": "artifact_hash_exception",
+        "error": "OSError('in-memory hash failure')",
+        "exit_code": 1,
+        "stable_manifest": false,
+        "status": "failed",
+        "terminal_status": "failed"
+      },
+      {
+        "case": "reaped_leader_nonempty_group",
+        "exit_code": 1,
+        "stable_manifest": false,
+        "status": "failed",
+        "terminal_status": "failed"
+      },
+      {
+        "case": "SIGTERM_during_output_hash",
+        "exit_code": 1,
+        "stable_manifest": false,
+        "status": "failed",
+        "terminal_status": "failed"
+      },
+      {
+        "cancellation_handler_invoked": true,
+        "case": "SIGTERM_during_guard_close",
+        "clock_seconds": 10.0,
+        "exit_code": 0,
+        "manifest_consistent": true,
+        "stable_manifest": true,
+        "status": "complete",
+        "terminal_status": "complete"
+      }
+    ]
+  },
+  "prior_finding_closure": [
+    {
+      "evidence": [
+        "runner.py:830-845 checks current time after guard close and final verification against the original absolute deadline.",
+        "runner.py:851-852 and publish_terminal:687-728 reject late normal finalization, including serialization, artifact hashing, manifest publication/hash and final terminal receipt publication.",
+        "Late publication removes candidate manifest/terminal, persists failed partial evidence and returns 1. Independent late-hash and five late-publication-stage probes confirmed this.",
+        "Finalization timing is explicitly a lower bound through receipt preparation, excluding its own final write/process exit. Post-write deadline checking rejects late receipt publication. Parent must still observe actual process exit/wall."
+      ],
+      "id": "R1-F1",
+      "qualification": "This closure addresses stale timestamp/false-success behavior. Synchronous hash/serialization calls are checked at stage boundaries rather than preempted mid-call; no hard wall-time enforcement or feasibility was measured.",
+      "status": "closed_for_reported_late_success_defect"
+    },
+    {
+      "evidence": [
+        "runner.py:863-868 requires a reaped leader, positively true group_empty, and no cleanup errors/error.",
+        "publish_terminal:704 gates all stable hashing on that predicate. Unproven groups receive failed partial receipts and artifact-manifest-unavailable.json.",
+        "Independent actual-supervisor probe with a reaped leader and group_empty false returned 1, failed terminal status and no stable manifest."
+      ],
+      "id": "R1-F2",
+      "status": "closed"
+    },
+    {
+      "evidence": "The original worker counter-copy loop remains at runner.py:894-897. No counter repair was needed. Retained positive and partial-worker tests cover promotion; independent bounded success also preserves the completion status.",
+      "id": "withdrawn_parent_counter_finding",
+      "status": "remains_withdrawn"
+    }
+  ],
+  "retained_test_evidence": {
+    "assessment": "Negative controls discriminate the reported late-finalization and unstable-group defects using actual supervisor calls. They are not merely import/API failures. Positive fixtures verify terminal/manifest consistency and one-shot publication errors. Their fake guard/worker/clock do not prove real cleanup, resource cadence, inference semantics or 600-second feasibility. The 44-case suite imports Torch, so it was inspected rather than rerun under this review prohibition.",
+    "negative_control_semantic_assertion_failures": 12,
+    "negative_control_setup_or_API_errors": 0,
+    "negative_control_target": "Exact unmodified frozen r1 runner",
+    "negative_control_target_and_test_source_and_log_hashes_verified": true,
+    "negative_control_target_sha256": "6159ba14637274a56b5324bb195b6f02ef35de5a6e760ee78d628aa95b991e2d",
+    "positive_log_hash_verified": true,
+    "positive_receipt_source_hashes_verified": true,
+    "positive_tests_rerun_by_reviewer": false,
+    "retained_finalization_cases": 20,
+    "retained_original_cases": 44,
+    "retained_test_count": 64
+  },
+  "review_round": 2,
+  "reviewed_identity": {
+    "campaign_output_exists_at_review": false,
+    "capsule": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-action-mode-prepare-r2/source-snapshot",
+    "capsule_manifest_sha256": "c3d9f80fb51e503919cc99d1d26f11d0037e9477af126af2bf66d01cef9ea0c3",
+    "capsule_payload_files_verified": 87,
+    "capsule_payload_hash_mismatches": [],
+    "capsule_payload_or_ancestor_writable_members": [],
+    "checkpoint_byte_hashes_verified": {
+      "entry": "33262cada7a089e962a5bf816b9a0c8e14ca1d2cf78adb654046d67580e2c64f",
+      "phase104": "22fa59764aa0c97ce4488d1bb07f51dde6527ed402db8fe09b98c9a123ecb3bf",
+      "phase96": "2d598e1973ded1748ec18d59ed11abe524b2f2a9d68c8796d105266a31d4e8b6"
+    },
+    "existing_function_ast_changes_vs_exact_r1": [
+      "supervise"
+    ],
+    "foundation_input_files_verified_in_original_and_capsule": 75,
+    "new_functions": [
+      "publish_terminal"
+    ],
+    "original_r1_artifact_manifest_entries_verified": 101,
+    "protected_r1_files_verified_byte_identical": 112,
+    "protocol": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2-orchestration/postovernight-action-mode-r2-protocol.json",
+    "protocol_changed_fields_only": [
+      "runner",
+      "version",
+      "protocol_revision",
+      "supersedes_protocol"
+    ],
+    "protocol_sha256": "910f2b9fc4c36d1f9565618b0ac8d79b182f1faafec2224b61d65fda926e5de5",
+    "runner": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-action-mode-prepare-r2/source-snapshot/learning/runs/v2/postovernight-action-mode-prepare-r2/runner.py",
+    "runner_sha256": "6c190542e142d34f12466d9ad17cfa8867b72111defc58517a37c068561d9dd4",
+    "worker_evaluator_statistics_guard_cleanup_ast_unchanged": true
+  },
+  "scope_and_limits": {
+    "MPS_inference_calls": 0,
+    "campaign_launched": false,
+    "decision": "Parent must reconcile R2-F1 before treating this capsule as ready. This review grants no campaign launch, training, qualification or eligibility authority.",
+    "delegated_children": 0,
+    "external_messages": 0,
+    "mode": "Read-only adversarial review of exact r2 capsule; only this new result.json is written.",
+    "native_environments": 0,
+    "persistent_IO_failure_limit": "One-shot serialization/hash/publication faults were probed. If failure-receipt persistence itself repeatedly fails, an authoritative failure receipt cannot be guaranteed; this review does not claim otherwise.",
+    "provider_retries": 0,
+    "real_checkpoint_loads": 0,
+    "source_config_ledger_docs_metadata_edits": 0,
+    "subprocess_children_created": 0,
+    "teacher_forwards": 0,
+    "torch_imports": 0,
+    "training_updates": 0,
+    "unverified": [
+      "Native/MPS runtime and model loading",
+      "Exact historical control replay",
+      "Real process-group cleanup/cancellation delivery",
+      "Real resource guard cadence and limits",
+      "768-episode completion and 600-second feasibility",
+      "Actual process exit wall time"
+    ]
+  },
+  "status": "changes_requested"
+}

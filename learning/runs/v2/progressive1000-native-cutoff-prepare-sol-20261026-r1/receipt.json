@@ -1,0 +1,119 @@
+{
+  "accepted_parent": {
+    "checkpoint_sha256_supplied_not_read": "c10d90ec0e67503afef8f4d90c4968581d430ef2065117a75e81c445a04c8ddc",
+    "cumulative_updates": 372,
+    "phase_updates": 324
+  },
+  "binding_build_failure": {
+    "diagnosis": "Direct Cargo extension-module link has neither CPython linkage nor dynamic-lookup arguments; normal project packaging uses maturin.",
+    "example_symbol": "_PyBaseObject_Type",
+    "exit_code": 101,
+    "extension_installed_or_imported": false,
+    "fix_attempted": false,
+    "phase": "macOS cdylib link",
+    "raw_error": "error: linking with `cc` failed: exit status: 1",
+    "raw_summary": "ld: symbol(s) not found for architecture arm64",
+    "retry": false
+  },
+  "build_python": {
+    "accepted_runtime_identity_proven": false,
+    "executable": "/Users/taylor/.local/bin/python3.11",
+    "package_requires": ">=3.12"
+  },
+  "checks": {
+    "commands": [
+      {
+        "argv": [
+          "/Users/taylor/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/rustfmt",
+          "--edition",
+          "2024",
+          "--config",
+          "skip_children=true",
+          "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-native-cutoff-prepare-sol-20261026-r1/source/crates/dodge-rl-env/src/lib.rs",
+          "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-native-cutoff-prepare-sol-20261026-r1/source/crates/dodge-rl-env/src/env.rs",
+          "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-native-cutoff-prepare-sol-20261026-r1/source/crates/dodge-rl-env/src/python.rs",
+          "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-native-cutoff-prepare-sol-20261026-r1/source/crates/dodge-rl-env/src/practice_tests.rs",
+          "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-native-cutoff-prepare-sol-20261026-r1/source/crates/dodge-rl-env/tests/support/wire_fixture.rs"
+        ],
+        "exit_code": 0,
+        "log": "logs/format.log",
+        "name": "format",
+        "timed_out": false,
+        "wall_seconds": 0.133
+      },
+      {
+        "argv": [
+          "/Users/taylor/.rustup/toolchains/1.97.1-aarch64-apple-darwin/bin/cargo",
+          "build",
+          "--offline",
+          "-p",
+          "dodge-rl-env",
+          "--lib",
+          "--features",
+          "extension-module"
+        ],
+        "exit_code": 101,
+        "log": "logs/binding-build.log",
+        "name": "binding-build",
+        "timed_out": false,
+        "wall_seconds": 9.177
+      }
+    ],
+    "status": "failed"
+  },
+  "design_experiment_sha256": "c20bd35188c4b4dd36687bc10c7998e6410c70d37300be92db9a42b3d01c43c0",
+  "design_scheduler_sha256": "a467b7219a9cd801fa3b403a6af112fc693ec3d14c9d311e8845632ef61d844b",
+  "exact_diff": {
+    "path": "exact.diff",
+    "reconstruction_checked": true,
+    "sha256": "183a7920a54626cdcca6f22965bc485ac97f3387bb7b5c6e9b93b8b34d5fa49e"
+  },
+  "freeze": "Files/directories made read-only after freeze-manifest creation; any repair requires a new successor. No passing qualification claim.",
+  "initial_setup_failure": "Python3.9 lacks tomllib; failed before writes. Existing Python3.11 used for scripts; no installation.",
+  "isolation": {
+    "blanket_retries": false,
+    "checkpoint_reads_or_deserialization": false,
+    "launch": false,
+    "listed_input_hashes_unchanged": true,
+    "mps": false,
+    "offline": true,
+    "own_cargo_home_target_tmp": true,
+    "per_command_wall_limit_seconds": 300,
+    "root_readme_unchanged": true,
+    "study_seeds_or_B_E_opened": false,
+    "subdelegation": false,
+    "training_or_evaluation_campaign": false,
+    "writes": "owned successor only"
+  },
+  "mutation": "Only selected truncated flags become true after whole-request validation; terminated is already false. No other slot field changes.",
+  "native_api": "VecDodgeEnv::truncate_practice(&mut self, indices: &[usize], horizons: &[u32]) -> Result<Vec<EpisodeInfo>, EnvError>",
+  "native_tests": {
+    "authored": 10,
+    "compiled": false,
+    "passed": 0,
+    "reason": "Ordered driver stopped immediately after binding build failure; no further cargo commands.",
+    "run": 0,
+    "simulation_executed": false
+  },
+  "overflow": "Selected episode u64::MAX rejects entire cutoff; next-seed availability remains normal reset prevalidation. No counter increments during cutoff.",
+  "owned_directory": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-native-cutoff-prepare-sol-20261026-r1",
+  "prepared_at_utc": "2026-10-27T01:35:46.165867+00:00",
+  "python_api": "VecDodgeEnv.truncate_practice(indices, horizons) -> list of owned EpisodeInfo dictionaries",
+  "python_binding_tests": {
+    "ast_parsed": true,
+    "authored": true,
+    "imported": false,
+    "run": 0
+  },
+  "remaining_gates": [
+    "Working pinned successor build/link with intended Python/dependencies; execute native CPU tests and binding input/ownership tests.",
+    "Collector synchronization before audit/storage/bootstrap, owned final observation before one subset reset, decision256/cross-rollout and unchanged GAE validation.",
+    "Disabled-cutoff accepted-binary parity and full history/reward/death/diagnostic parity; current Rust hashes do not prove accepted-binary correspondence.",
+    "One new binary/runtime/config/evaluator for both arms; only curriculum enablement differs; pin successor identity/member/evaluator validation without weakening frozen validators.",
+    "Accepted324 authenticated restore/reseed measured references, complete seed ancestry/exclusions/reservations, resource/cleanup/one-shot ceilings, independent review and registration before launch."
+  ],
+  "schema": "progressive1000-native-cutoff-preparation-receipt-v1",
+  "source_manifest": "source-manifest.json",
+  "static_checks": "static-checks.json",
+  "status": "frozen_source_preparation_binding_link_failed_native_unit_tests_unrun"
+}

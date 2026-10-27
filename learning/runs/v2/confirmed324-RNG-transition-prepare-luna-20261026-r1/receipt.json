@@ -1,0 +1,36 @@
+{
+  "schema": "confirmed324_rng_transition_preparation_v1",
+  "status": "preparation_only_not_launch_ready",
+  "study_id": "paired-lr-confirmed324-20261026-r1",
+  "parent": {
+    "acceptance": "learning/runs/v2/expanded-confirmation-parent-20261026-r1/parent-acceptance.json",
+    "acceptance_sha256": "3e84979c4c8da76d0f98666a23f90eb15c1e813ca5edf1001e19daebaf4d5bbd",
+    "checkpoint_sha256": "c10d90ec0e67503afef8f4d90c4968581d430ef2065117a75e81c445a04c8ddc",
+    "integrity_receipt_sha256": "76cb15733e87518cb3b473b7f8ebd847ed206351fb9f17d89b8b92e6bf853f08",
+    "phase_update": 324,
+    "cumulative_update": 372,
+    "saved_lr": 3e-05,
+    "schedule": "none"
+  },
+  "proposal": {
+    "pairs": 3,
+    "arm_A": "constant 3e-5",
+    "arm_B": "linear 3e-5 to 1e-5 over 60 updates",
+    "controller_origin": 372,
+    "first_update": 373,
+    "last_update": 432,
+    "real_reference": "pending_notrun"
+  },
+  "verification": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest -v",
+    "exit": 0,
+    "scope": "CPU toy objects and synthetic temporary files only"
+  },
+  "limits": [
+    "No real MPS/game/env imports, RNG reads, checkpoint deserialization, training, evaluation, or launch.",
+    "Durable claim callback is only a contract; future registered parent-owned path and process-restart behavior remain unverified.",
+    "Trusted restore and RNG capture callback source pinning remain driver gates.",
+    "Constructor and environment seed application remain driver-deferred.",
+    "No measured RNG references or launch authorization."
+  ]
+}

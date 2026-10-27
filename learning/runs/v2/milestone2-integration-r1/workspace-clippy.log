@@ -1,0 +1,129 @@
+   Compiling autocfg v1.5.1
+   Compiling target-lexicon v0.13.5
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.24
+   Compiling libc v0.2.189
+   Compiling dodge-core v0.1.0 (/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-core)
+    Checking simd-adler32 v0.3.10
+   Compiling serde_core v1.0.229
+   Compiling crc32fast v1.5.1
+    Checking adler2 v2.0.1
+   Compiling libm v0.2.16
+   Compiling num-traits v0.2.19
+   Compiling zmij v1.0.23
+    Checking cfg-if v1.0.4
+   Compiling pyo3-build-config v0.27.2
+    Checking miniz_oxide v0.9.1
+   Compiling syn v3.0.4
+   Compiling serde_json v1.0.151
+   Compiling serde v1.0.229
+    Checking flate2 v1.1.10
+    Checking core_maths v0.1.1
+   Compiling syn v2.0.119
+    Checking malloc_buf v0.0.6
+    Checking crossbeam-utils v0.8.23
+    Checking miniz_oxide v0.8.9
+   Compiling matrixmultiply v0.3.11
+   Compiling memoffset v0.9.1
+    Checking fdeflate v0.3.7
+    Checking equivalent v1.0.2
+    Checking itoa v1.0.18
+   Compiling miniquad v0.4.11
+    Checking bitflags v1.3.2
+   Compiling heck v0.5.0
+    Checking foldhash v0.1.5
+    Checking memchr v2.8.3
+    Checking allocator-api2 v0.2.21
+    Checking png v0.17.16
+    Checking hashbrown v0.15.5
+   Compiling pyo3-macros-backend v0.27.2
+   Compiling pyo3-ffi v0.27.2
+   Compiling pyo3 v0.27.2
+    Checking crossbeam-epoch v0.9.21
+    Checking objc-rs v0.2.8
+    Checking ttf-parser v0.25.1
+    Checking byteorder v1.5.0
+    Checking rawpointer v0.2.1
+    Checking bytemuck v1.25.2
+    Checking color_quant v1.1.0
+    Checking image v0.24.9
+   Compiling serde_derive v1.0.229
+    Checking crossbeam-deque v0.8.8
+   Compiling numpy v0.27.1
+    Checking num-integer v0.1.47
+    Checking num-complex v0.4.6
+    Checking unindent v0.2.4
+   Compiling macroquad_macro v0.1.8
+    Checking quad-rand v0.2.3
+    Checking once_cell v1.21.4
+   Compiling indoc v2.0.8
+    Checking glam v0.27.0
+    Checking fontdue v0.9.4
+    Checking ndarray v0.17.2
+    Checking rayon-core v1.13.0
+    Checking either v1.19.0
+    Checking rustc-hash v2.1.3
+    Checking rayon v1.12.0
+    Checking macroquad v0.4.16
+    Checking dodge-native-runner v0.1.0 (/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-native-runner)
+   Compiling pyo3-macros v0.27.2
+    Checking dodge-viewer v0.1.0 (/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-viewer)
+    Checking dodge-rl-env v0.1.0 (/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-rl-env)
+error: file is loaded as a module multiple times: `crates/dodge-rl-env/src/../tests/support/m0_policy.rs`
+ --> crates/dodge-rl-env/src/tests.rs:8:1
+  |
+8 | / #[path = "../tests/support/m0_policy.rs"]
+9 | | mod m0_policy;
+  | |______________^ first loaded here
+  |
+ ::: crates/dodge-rl-env/src/qualification_replay_tests.rs:6:1
+  |
+6 | / #[path = "../tests/support/m0_policy.rs"]
+7 | | mod m0_policy;
+  | |______________^ loaded again here
+  |
+  = help: replace all but one `mod` item with `use` items
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#duplicate_mod
+  = note: `-D clippy::duplicate-mod` implied by `-D warnings`
+  = help: to override `-D warnings` add `#[allow(clippy::duplicate_mod)]`
+
+error: large array defined as const
+    --> crates/dodge-rl-env/src/../tests/support/qualification_expected.rs:2:1
+     |
+   2 |   const EXPECTED_D2: [Expected; 1000] = [
+     |   ^----
+     |   |
+     |  _help: make this a static item: `static`
+     | |
+   3 | |     Expected { seed: 2952790016, score: 2064384, frames: 2966, alive: 2965, dead: true, cap: false, full_state_hash: 75020407384...
+   4 | |     Expected { seed: 2952790017, score: 22478848, frames: 15390, alive: 15389, dead: true, cap: false, full_state_hash: 13735961...
+   5 | |     Expected { seed: 2952790018, score: 1540096, frames: 1782, alive: 1781, dead: true, cap: false, full_state_hash: 30111514223...
+...    |
+1002 | |     Expected { seed: 2952791015, score: 1015808, frames: 688, alive: 687, dead: true, cap: false, full_state_hash: 5564911521651...
+1003 | | ];
+     | |__^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#large_const_arrays
+     = note: `-D clippy::large-const-arrays` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::large_const_arrays)]`
+
+error: large array defined as const
+    --> crates/dodge-rl-env/src/../tests/support/qualification_expected.rs:1004:1
+     |
+1004 |   const EXPECTED_D3: [Expected; 1000] = [
+     |   ^----
+     |   |
+     |  _help: make this a static item: `static`
+     | |
+1005 | |     Expected { seed: 2952790016, score: 6914048, frames: 4815, alive: 4814, dead: true, cap: false, full_state_hash: 18074019721...
+1006 | |     Expected { seed: 2952790017, score: 1671168, frames: 1823, alive: 1822, dead: true, cap: false, full_state_hash: 24880758662...
+1007 | |     Expected { seed: 2952790018, score: 21954560, frames: 10721, alive: 10720, dead: true, cap: false, full_state_hash: 65410040...
+...    |
+2004 | |     Expected { seed: 2952791015, score: 5210112, frames: 4249, alive: 4248, dead: true, cap: false, full_state_hash: 34134032177...
+2005 | | ];
+     | |__^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#large_const_arrays
+
+error: could not compile `dodge-rl-env` (lib test) due to 3 previous errors

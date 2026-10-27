@@ -1,0 +1,203 @@
+{
+  "schema": "boundary_startup_reap_plan_v1",
+  "status": "proposal_only_unapplied_untested",
+  "frozen_candidate": "learning/runs/v2/postovernight-long-D2-boundary-prepare-r6",
+  "frozen_pins_verified": {
+    "controller_long_d2.py": "791038b59c9d9a13f769dc67ab5afca8b0c8e6425ce1bc70a2a792738bd6e156",
+    "executor_long_d2_executor.py": "3a14d4c294f20d6a85259570f0bfd92142a29a76fab2417f0fabe9fc107d75f4",
+    "lifecycle.py": "aab36d678526b6fbd4eecbe1493ad3511365f00064a91d459b85834eaf3e752b",
+    "protocol_r5_sha256": "2296154b2d06ae7c43eff0dd34c0c8908d90b5e5611a9e336a65dc2e37c48379"
+  },
+  "classification": {
+    "case": "attempts/attempt-03-focused-OS/cases/direct-cancel-startup",
+    "primary": "production_defect_failure_path_evidence_strength",
+    "not_a_safety_or_acceptance_defect": true,
+    "fixture_guard_correct_for_class": "failed_supervisor_alive",
+    "fixture_guard_wrong_for_class": "failed_supervisor_killed_by_design",
+    "mechanism": [
+      "supervise_owned failure branch never polls or waits its spawned child",
+      "supervisor exits after publication, joins and optional IO",
+      "worker (signals blocked by inherited mask, long Python start-up) reaches worker_gate after supervisor exit",
+      "worker_gate require(args.supervisor_pid==os.getppid()) fails; worker exits 1 before sending worker_ready",
+      "worker direct parent already dead, so no waitpid proof can exist; executor only proves absence"
+    ],
+    "evidence_strength": "source-derived plus executor-verified pid/pgid/sid plus received_sequence 0 on worker channel; not live-traced"
+  },
+  "changes": [
+    {
+      "id": "P1-own-child-fallback",
+      "file": "long_d2.py",
+      "site": "supervise_owned except BaseException branch (near :1326)",
+      "change": "if child is None and process is not None: child = owned.Child(process)",
+      "boundary": "process assigned by Popen at :1273-1275, child=owned.Child(process) is next statement inside signal-blocked region; Child.__init__ cannot raise",
+      "risk": "none new"
+    },
+    {
+      "id": "P2-supervisor-reap-wait",
+      "file": "long_d2.py",
+      "site": "supervise_owned failure branch: after mandatory_failure(inner-failure.json) and non-blocking closes (guard.event.set, stream=None, stream.close, gate.close); before guard thread joins and optional_timing",
+      "preconditions": [
+        "child exists and child.report is None",
+        "notify_failure succeeded (no result['failure_ack_unavailable']), so until is the executor-acknowledged shared deadline",
+        "life.ACTIVE.phase == 'FAILURE' (handler records only, never raises again)"
+      ],
+      "behavior": [
+        "poll child.poll() every <=0.02 s until reap_by = until - INNER_REAP_RESERVE (proposed 1.0 s); wrap remaining() expiry in try",
+        "never signal worker or its group (executor stays sole group-signal owner)",
+        "if child.report and not worker_wait_sent: life.CHANNEL.send(worker_wait, until) once, same schema as success path",
+        "best-effort: any exception is swallowed, no new failure, no new pool.fail, no second allowance"
+      ],
+      "flag": "worker_wait_sent local bool; set True immediately before the existing success-path send at :1292 to prevent duplicate in surviving-descendant flow",
+      "skip_when": "failure_ack_unavailable (executor unaware; long wait would delay executor first-failure and break earliest-failure+10)",
+      "unchanged_on_exhaustion": "inner exits with child unreaped; receipt states unproven"
+    },
+    {
+      "id": "P3-inner-failure-json-hint",
+      "file": "long_d2.py",
+      "optional": true,
+      "change": "add worker_reap_phase='pending_after_publication' to inner-failure.json result when a live unreaped child exists at publication time",
+      "note": "inner-failure.json stays first immutable publication; no second write"
+    },
+    {
+      "id": "E1-final-drain",
+      "file": "long_d2_executor.py",
+      "site": "Execution.publish_failed, after the cleanup_complete loop and before result=dict(...)",
+      "change": "for _ in range(4): with self.ipc_lock: self.pump()  (bounded by existing until-.25, errors appended to cleanup_errors capped at 8)",
+      "reason": "monitor may observe inner exit between a pump and the queued worker_wait datagram",
+      "evidence": "dgram_close_probe.out.json: queued datagrams are delivered before one-shot ConnectionResetError (errno 54) on this macOS"
+    },
+    {
+      "id": "E2-failure-reset-not-error",
+      "file": "long_d2_executor.py",
+      "site": "Execution.pump ConnectionResetError handler",
+      "change": "when self.pool.until is not None: mark channel.peer_closed, append events row kind='peer_closed_after_failure' with ipc_receive_diagnostic; do not raise Stop",
+      "note": "cosmetic; reset is never reaping or absence evidence; normal-state behavior unchanged (still Stop unless expected_close)",
+      "optional": true
+    },
+    {
+      "id": "E3-reaping-block",
+      "file": "long_d2_executor.py",
+      "site": "Execution.publish_failed result dict",
+      "change": "add reaping={supervisor:{status,basis}, worker:{status,basis}} derived only from child.report and validated self.worker_wait",
+      "statuses": {
+        "supervisor": ["direct_reaped", "unproven"],
+        "worker": ["direct_reaped", "not_registered", "unproven"]
+      },
+      "worker_unproven_bases": ["group_absent_only", "supervisor_dead_before_report", "window_exhausted"],
+      "forbidden": "any path that writes direct_reaped without validated pump report; any inference from group_absent"
+    }
+  ],
+  "must_not_change": [
+    "accept_observed and success-path direct-parent wait requirements (both waits, exact pids, raw status, deadlines)",
+    "FailurePool: no reset, no second pool, no extra allowance",
+    "notify_failure ACK rules and shared cleanup deadline equality",
+    "mandatory failed receipt (outer and inner) before optional IO, guard joins, stream/gate closure",
+    "final 0.25 s publication reserve in publish_failed",
+    "executor as sole group signal owner; kill_at = min(first+5, until-.5)",
+    "no new thread/process/import hook/perpetual hash; no OS subreaper; no performance claim"
+  ],
+  "fixture_expectations": {
+    "declare_by": "fixture options (injection), never inferred from receipt content",
+    "classes": {
+      "accepted": {
+        "selector": "expected in (0,2)",
+        "supervisor": "inner_wait direct reap, unchanged",
+        "worker": "worker_wait direct reap, reaped_by == supervisor pid, unchanged",
+        "change": "none"
+      },
+      "failed_supervisor_alive": {
+        "selector": "expected == 1 and not (mutation in {crash,SIGKILL} and phase startswith 'inner:') and not resource_cap",
+        "supervisor": "inner_wait direct reap (executor)",
+        "worker": "if worker owned_spawn witness: worker_wait with pid==spawn pid, direct_child_reaped True, reaped_by==ownership.supervisor.pid, waitstatus_to_exitcode(raw)==returncode, observed>=spawn monotonic; returncode value not asserted",
+        "cases": ["direct-cancel-startup", "direct-cancel-wait", "missing-worker-ACK", "surviving-descendant", "normal-deadline-wedged", "inner-failure-with-timing-error", "inner-final-alarm", "outer-failure-with-timing-error", "post-gate-persistent-mutation"]
+      },
+      "failed_supervisor_killed": {
+        "selector": "mutation in {crash,SIGKILL} and phase startswith 'inner:'",
+        "supervisor": "inner_wait direct reap and returncode == injected code (crash -> 7)",
+        "worker": "worker_wait is None, reaping.worker.status=='unproven' with supervisor-dead basis, ownership.worker.group_absent True, independent harness killpg probe True",
+        "must_fail_if": "worker_wait present",
+        "cases": ["parent-death"]
+      },
+      "failed_no_child": {
+        "selector": "resource_cap",
+        "change": "none (existing pre-child assertions)"
+      }
+    },
+    "common_mandatory": [
+      "receipt_available and non-empty (never inferred from missing file)",
+      "accepted is False for every failure class",
+      "ownership roles == roles with owned_spawn witness == roles with positive harness absence",
+      "spawn pid == ownership pid",
+      "injection reached when requested",
+      "never all({}); empty absence fails"
+    ]
+  },
+  "unit_tests_to_add": [
+    {
+      "id": "U1-supervise-owned-reap-order",
+      "pure": true,
+      "check": "fake Popen/waitpid, patched CHANNEL: events order is notify -> mandatory publication -> reap poll -> worker_wait send -> optional_timing; no os.kill/killpg from inner; single notify_failure"
+    },
+    {
+      "id": "U2-reap-expires-honestly",
+      "pure": true,
+      "check": "child never reaped: wait ends at until-reserve, no worker_wait sent, result stays unproven, no extra pool.fail/allowance"
+    },
+    {
+      "id": "U3-no-wait-without-ack",
+      "pure": true,
+      "check": "failure_ack_unavailable set: no wait, immediate exit"
+    },
+    {
+      "id": "U4-no-duplicate-worker-wait",
+      "pure": true,
+      "check": "report already sent before require(owned.absent) raises: failure branch does not resend"
+    },
+    {
+      "id": "U5-child-none-process-set",
+      "pure": true,
+      "check": "process assigned, child None: fallback wrapper created and used"
+    },
+    {
+      "id": "U6-publish-failed-drain",
+      "pure": true,
+      "check": "fake super channel yields valid worker_wait then ConnectionResetError after child.report set: receipt worker_wait equals report, reaping.worker.status direct_reaped; invalid report (wrong reaped_by/pid) rejected and status unproven"
+    },
+    {
+      "id": "U7-fixture-guard-classes",
+      "pure": true,
+      "check": "negative controls: alive class missing worker_wait fails; killed class with worker_wait fails; empty absence fails; accepted class unchanged; group_absent never substitutes for reap"
+    },
+    {
+      "id": "U8-accept-observed-unchanged",
+      "pure": true,
+      "check": "existing consumer tests unchanged; add negative: accepted receipt lacking worker_wait still rejected; failed receipt with worker_wait still rejected"
+    }
+  ],
+  "static_predictions_not_runtime": {
+    "direct-cancel-wait": {"r6": "same defect, expected guard failure", "after": "worker_wait present"},
+    "missing-worker-ACK": {"r6": "same defect, expected guard failure", "after": "worker_wait present"},
+    "parent-death": {"r6": "guard failure by design", "after": "passes in killed class (worker_wait None, absence True)"},
+    "surviving-descendant": {"r6": "likely passes guard (worker_wait sent at :1292)", "after": "unchanged; needs worker_wait_sent flag"},
+    "normal-deadline-wedged": {"r6": "same defect", "after": "inner waits for executor KILL at first+5, ~5.7 s total, within 12 s fixture bound"},
+    "RSS-resource-cap": {"r6": "unaffected", "after": "unaffected"}
+  },
+  "rejected_alternatives": [
+    {"option": "relax guard to allow worker_wait None for all failures", "why": "hides the production defect class; fixture then cannot detect inner exiting before its child"},
+    {"option": "inner signals/kills worker itself", "why": "executor is documented sole group-signal owner; double-signal records; not needed because executor already TERM/KILLs on acknowledged failure"},
+    {"option": "executor claims reaping from group_absent or census", "why": "absence is not reaping; no subreaper on macOS"},
+    {"option": "rewrite inner-failure.json after reap", "why": "extra IO in cap; first publication must stay immutable; IPC into outer receipt suffices"},
+    {"option": "wait without ACK", "why": "delays executor first-failure observation and can break earliest-failure+10"}
+  ],
+  "open_parameters_for_parent": {
+    "INNER_REAP_RESERVE_seconds": {"proposed": 1.0, "note": "covers guard joins (<=0.5 each, ms after event.set) plus final_exit; parent may choose larger"},
+    "cap_truncation": "failure inside last ~10 s of outer lifetime can place KILL after reap_by; receipt reports unproven; document"
+  },
+  "limits": [
+    "No source edited, no patched copy tested, no OS case run.",
+    "Timeline mapping wall->monotonic is millisecond-approximate.",
+    "dgram probe used system Python 3.9.6 and a raw socketpair, not lifecycle.Channel.",
+    "macOS zombie visibility to killpg(…,0) not tested; design does not rely on it.",
+    "Static predictions for unrun cases are not runtime claims."
+  ]
+}

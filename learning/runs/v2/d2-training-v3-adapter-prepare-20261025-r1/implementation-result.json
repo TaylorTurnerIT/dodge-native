@@ -1,0 +1,138 @@
+{
+  "adapter_spec": {
+    "checkpoint_schema": "d2_training_v3_checkpoint_v1",
+    "competence_threshold_mean_alive_frames": 3060,
+    "completion_separate_from_competence": true,
+    "parent_sha256": "ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f",
+    "registration_schema": "d2_training_v3_registration_v1",
+    "registration_spec": "registration-spec.json"
+  },
+  "cohort_context": {
+    "fresh_development_cohort": {
+      "name": "fresh D2 diagnostic cohort",
+      "survival_mean_frames": 1101.9375,
+      "survival_q1_frames": 521.0625,
+      "survival_q4_frames": 2401.1875
+    },
+    "historical_best_development_cohort": {
+      "name": "historical best development cohort",
+      "survival_mean_frames": 2240,
+      "survival_q1_frames": 648.25,
+      "survival_q4_frames": 4508.8125
+    },
+    "qualification_claim": false
+  },
+  "failed_attempts": [
+    {
+      "command": "python -m unittest -v test_adapter.py ../critic-diagnostic-runner-prepare-20261025-r3/test_contract.py ../critic-diagnostic-runner-prepare-20261025-r3/test_torch_restore.py",
+      "exit": 1,
+      "failure": "unittest interpreted relative path as empty module name; reran each suite as separate explicit path"
+    },
+    {
+      "command": "python -m unittest -v test_adapter.py",
+      "exit": 1,
+      "failure": "checkpoint fixture omitted update_progress.in_update=false; fixture corrected and rerun passed"
+    }
+  ],
+  "files_sha256": {
+    "README-base.md": "284238b63d21c2eb98320cd978204ae1b5363a419bd5c758738c56f6a7073803",
+    "README.md": "424a11c8278caa8708bfeb225be4d5fed5a1ee62706b1ff10a562cf00f774307",
+    "adapter.py": "a7a674ceec0c3fd969914ba625327eed56a322388347dcd7133206c50185d7cd",
+    "execute_once.py": "6d935fd6081e84bca1b4b22f16573494dd520f7109c65eb46b4e3a5df917f903",
+    "launcher.py": "32edec67ef9e448a0580b10f8c859a461ed7798fb9ae43b2dfcc010b6e54372b",
+    "registration-spec.json": "e32452a0586d4e7a552932e6d497cb4b511f725fc2435bd7f07718057f767683",
+    "runner.py": "48bde41f4cc71b2ffa973b9cc61da5ea1cee175ca36b4344d520d5765d0699f1",
+    "startup-rehearsal-result.json": "61d49691ccaae17a94a3d2d51233efff7fcdd804c9ab27c25b40e051ee33ff95",
+    "startup_rehearsal.py": "a60d484843531cbae1e1f0cf35bed14bfb5ef543fb749acf57c417cd5571c711",
+    "test_adapter.py": "e62dbf09103e8a1818baa7f1f13763efd884eff3f5094037b46a2c1ec1b5f375",
+    "test_contract.py": "d8d98676b428d91d53ad11fd857f6737e8d320ffaf48da83ff25e2224768218d",
+    "test_torch_restore.py": "faf0c55671fb304deb5f5b0d7720ec502826fa1da675c5032395279c0049b9a9",
+    "validation-log.json": "65fea2a632c00bf7c8e15cab44d8dc4f1f709c87f167039ba83bb762a68a8769"
+  },
+  "owned_directory": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/d2-training-v3-adapter-prepare-20261025-r1",
+  "parent_required_registration_fields": [
+    "expected_lease",
+    "state_path",
+    "terminal_receipt_path",
+    "absolute_deadline_monotonic",
+    "started_monotonic",
+    "cancel_path",
+    "one_use_marker_path",
+    "runtime_versions",
+    "native",
+    "interpreter",
+    "runner_path",
+    "launcher_path",
+    "config_path",
+    "pins",
+    "runtime_sha256",
+    "source_manifest_sha256"
+  ],
+  "plan": {
+    "evaluations": [
+      0,
+      16,
+      32,
+      48,
+      64,
+      80
+    ],
+    "mps_bytes": 6442450944,
+    "rss_bytes": 6442450944,
+    "run_id": "D2-training-v3-20261025-r1",
+    "seed": 810631976,
+    "total_seconds": 1800,
+    "updates": 80,
+    "work_seconds": 1600
+  },
+  "review": {
+    "provider": "Claude Haiku 5.5",
+    "status": "running",
+    "task_id": "node:delegated-task:command%3Amcp%3Ad47c42bb-12ff-4de0-95c8-3457cd336ca1%3Adelegate-task%3Ad2-v3-haiku-review-r1-20261025"
+  },
+  "schema": "d2_training_v3_adapter_implementation_result_v1",
+  "scope": {
+    "environment_created": false,
+    "evaluation_run": false,
+    "gradients_or_updates": false,
+    "runtime_source_modified": false,
+    "seed_drawn": false,
+    "state_or_lease_written": false,
+    "training_launched": false
+  },
+  "status": "blocked_incomplete_not_ready_for_campaign",
+  "unresolved_concrete_issues": [
+    "Worker loop is not integrated with v3 registration, cache-prefix identity checks, 80-update checkpoints, six evaluations, or new normal checkpoint schema.",
+    "Launcher lacks cancellation handling, independent absolute total deadline, lease checks, full source/runtime postflight, exact process-group absence proof, terminal receipt validation, and artifact/exit evidence publication.",
+    "No parent registration pins/source manifest for this new adapter have been frozen; no exact final checkpoint/receipt validators are wired.",
+    "phase_update episode telemetry and independently sorted Q1/Q4/death-first-fatal-contact diagnostic requirements are not implemented in this new adapter.",
+    "Required registration substitution, seed/counter carry, cache-prefix finalization, and launcher lifecycle tests are absent.",
+    "An initial rehearsal mistakenly ran the r3-owned startup script and overwrote its ignored startup-rehearsal-result.json. That receipt was reconstructed from the original r3 implementation-result.json values; this new preparation now has an independent rehearsal run and receipt. Original receipt bytes could not be recovered exactly, so retained r3 receipt integrity is uncertain."
+  ],
+  "validation": [
+    {
+      "command": "PYTHONPYCACHEPREFIX= /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python -B -m unittest -v test_adapter.py",
+      "exit_code": 0,
+      "output": "test_cache_policy_requires_explicit_empty_value (test_adapter.AdapterContractTests.test_cache_policy_requires_explicit_empty_value) ... ok\ntest_checkpoint_is_provisional_at_complete_boundary (test_adapter.AdapterContractTests.test_checkpoint_is_provisional_at_complete_boundary) ... ok\ntest_eighty_updates_and_six_evaluations (test_adapter.AdapterContractTests.test_eighty_updates_and_six_evaluations) ... ok\ntest_failure_and_truncation_rejected (test_adapter.AdapterContractTests.test_failure_and_truncation_rejected) ... ok\ntest_score_never_enters_progress_predicate (test_adapter.AdapterContractTests.test_score_never_enters_progress_predicate) ... ok\n\n----------------------------------------------------------------------\nRan 5 tests in 0.000s\n\nOK\n",
+      "wall_seconds": 0.031705041
+    },
+    {
+      "command": "PYTHONPYCACHEPREFIX= /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python -B ../critic-diagnostic-runner-prepare-20261025-r3/test_contract.py",
+      "exit_code": 0,
+      "output": "................\n----------------------------------------------------------------------\nRan 16 tests in 0.019s\n\nOK\n",
+      "wall_seconds": 0.059479166
+    },
+    {
+      "command": "PYTHONPYCACHEPREFIX= /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python -B ../critic-diagnostic-runner-prepare-20261025-r3/test_torch_restore.py",
+      "exit_code": 0,
+      "output": "actual Torch model and Adam restoration fixtures passed\n",
+      "wall_seconds": 0.899651042
+    },
+    {
+      "command": "PYTHONPYCACHEPREFIX= /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python -B startup_rehearsal.py",
+      "exit_code": 0,
+      "output": "{\"comparisons\": {\"Adam\": {\"expected_sha256\": \"05ebd5a56a5766a816e7d0b8d1cb3307a5ee4ec00ed846f139917469facc3d2d\", \"matched\": true, \"mismatch_paths\": [], \"restored_sha256\": \"05ebd5a56a5766a816e7d0b8d1cb3307a5ee4ec00ed846f139917469facc3d2d\"}, \"RNG\": {\"expected_sha256\": \"90fdf06c54a072a1de7d2669cb5b418b780730f6e2cf34bca2d001d9253a52c2\", \"matched\": true, \"mismatch_paths\": [], \"restored_sha256\": \"90fdf06c54a072a1de7d2669cb5b418b780730f6e2cf34bca2d001d9253a52c2\"}, \"model\": {\"expected_sha256\": \"415355ea78de1c5d7106a41b772f1e7ba129f31ce8563b45e69cf6be69b75d2f\", \"matched\": true, \"mismatch_paths\": [], \"restored_sha256\": \"415355ea78de1c5d7106a41b772f1e7ba129f31ce8563b45e69cf6be69b75d2f\"}}, \"elapsed_seconds\": 0.7966785409953445, \"status\": \"passed\"}\n",
+      "wall_seconds": 0.9955863749999998
+    }
+  ]
+}

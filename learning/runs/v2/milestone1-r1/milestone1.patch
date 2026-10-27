@@ -1,0 +1,1470 @@
+diff --git a/crates/dodge-core/src/game.rs b/crates/dodge-core/src/game.rs
+index ec5725a..c533220 100644
+--- a/crates/dodge-core/src/game.rs
++++ b/crates/dodge-core/src/game.rs
+@@ -1,7 +1,8 @@
+ use crate::{
+-    Action, Button, CoreError, EnemyState, FullState, IndexedFramebuffer, InputState,
+-    LifecycleState, Mode, NativeConfig, ParticleState, PatternState, PicoFixed, PicoRng,
+-    PlayerState, SettingsState, Snapshot, SpawnPoint, pico_mid,
++    Action, ActivePatternView, Button, CoreError, EnemyState, FullState, HeadlessResult,
++    IndexedFramebuffer, InputState, LifecycleState, Mode, NativeConfig, ParticleState,
++    PatternState, PicoFixed, PicoRng, PlayerState, PrivilegedView, SettingsState, Snapshot,
++    SpawnPoint, pico_mid,
+ };
+ 
+ const PLAYER_MIN: PicoFixed = PicoFixed::from_int(2);
+@@ -77,6 +78,20 @@ pub struct FrameResult {
+     pub snapshot: Snapshot,
+ }
+ 
++trait EventSink {
++    fn push(&mut self, event: FrameEvent);
++}
++
++impl EventSink for Vec<FrameEvent> {
++    fn push(&mut self, event: FrameEvent) {
++        Vec::push(self, event);
++    }
++}
++
++impl EventSink for () {
++    fn push(&mut self, _event: FrameEvent) {}
++}
++
+ /// Source-visible side effects emitted at one completed frame boundary.
+ #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+ pub enum FrameEvent {
+@@ -363,13 +378,71 @@ impl NativeGame {
+         input_mask: u8,
+         post_frame_mask: u8,
+     ) -> Result<FrameResult, CoreError> {
++        let mut events = Vec::new();
++        let (mode_before, reward) = self.prepare_frame(input_mask, post_frame_mask, &mut events)?;
++        self.render_current_frame();
++        let draw_snapshot = self.snapshot();
++        self.finish_draw(mode_before, input_mask, post_frame_mask);
++        let result = self.result_with_snapshot(
++            reward,
++            events,
++            self.frame_audio.clone(),
++            Snapshot::with_framebuffer_from_game(
++                self,
++                draw_snapshot.framebuffer().clone(),
++                draw_snapshot.render_state().clone(),
++            ),
++        );
++        self.finish_transition_draw(mode_before);
++        Ok(result)
++    }
++
++    /// Advance without rasterization or snapshot construction. Camera RNG,
++    /// draw-side particles, input finalization, and transition-only trails
++    /// still run. `snapshot()` retains cached pixels; use `render_into` for a
++    /// current image paired with `privileged_view`.
++    pub fn advance_frame_headless(&mut self, input_mask: u8) -> Result<HeadlessResult, CoreError> {
++        self.advance_frame_headless_with_post_mask(input_mask, input_mask)
++    }
++
++    /// Headless counterpart of `advance_frame_with_post_mask`. Both masks are
++    /// validated before mutation, including audio/input changes.
++    pub fn advance_frame_headless_with_post_mask(
++        &mut self,
++        input_mask: u8,
++        post_frame_mask: u8,
++    ) -> Result<HeadlessResult, CoreError> {
++        let score_before = self.score;
++        let (mode_before, reward) = self.prepare_frame(input_mask, post_frame_mask, &mut ())?;
++        self.finish_draw(mode_before, input_mask, post_frame_mask);
++        self.finish_transition_draw(mode_before);
++        Ok(HeadlessResult {
++            frame: self.lifecycle.frame,
++            mode: self.lifecycle.mode,
++            input_mask: self.input.current_mask(),
++            previous_input_mask: self.input.previous_mask(),
++            game_ready: self.lifecycle.game_ready,
++            started: self.lifecycle.started,
++            dead: self.lifecycle.dead,
++            done: self.lifecycle.dead,
++            reward,
++            score_delta: self.score.sub(score_before),
++            score: self.score,
++        })
++    }
++
++    fn prepare_frame(
++        &mut self,
++        input_mask: u8,
++        post_frame_mask: u8,
++        events: &mut impl EventSink,
++    ) -> Result<(Mode, PicoFixed), CoreError> {
+         InputState::validate_mask(input_mask)?;
+         InputState::validate_mask(post_frame_mask)?;
+         self.frame_audio.clear();
+         self.input.advance(input_mask)?;
+         self.refresh_enemy_stats();
+         let mode_before = self.lifecycle.mode;
+-        let mut events = Vec::new();
+         let start_pressed = mode_before == Mode::Menu && self.input.btnp(Button::X);
+         if start_pressed {
+             self.has_played = true;
+@@ -424,13 +497,13 @@ impl NativeGame {
+             _ => {}
+         }
+         if game_update_from_draw {
+-            self.update_game_frame(&mut events);
++            self.update_game_frame(events);
+         }
+         let game_update_from_transition_draw = self.lifecycle.mode == Mode::TransitionToSettings
+             && self.transition_render_y > 0
+             && matches!(self.transition_from, Mode::Game | Mode::Terminal);
+         if game_update_from_transition_draw {
+-            self.update_game_frame(&mut events);
++            self.update_game_frame(events);
+         }
+         if mode_before == Mode::Settings {
+             self.update_settings();
+@@ -464,8 +537,10 @@ impl NativeGame {
+             PicoFixed::ZERO
+         };
+         self.update_camera();
+-        self.render_current_frame();
+-        let draw_snapshot = self.snapshot();
++        Ok((mode_before, reward))
++    }
++
++    fn finish_draw(&mut self, mode_before: Mode, input_mask: u8, post_frame_mask: u8) {
+         self.apply_draw_side_effects(mode_before);
+         // The cartridge exits from the update loop immediately after death,
+         // before it can advance to the next command. Preserve the terminal
+@@ -477,16 +552,9 @@ impl NativeGame {
+             post_frame_mask
+         };
+         self.input.finalize_frame(observed_post_mask);
+-        let result = self.result_with_snapshot(
+-            reward,
+-            events,
+-            self.frame_audio.clone(),
+-            Snapshot::with_framebuffer_from_game(
+-                self,
+-                draw_snapshot.framebuffer().clone(),
+-                draw_snapshot.render_state().clone(),
+-            ),
+-        );
++    }
++
++    fn finish_transition_draw(&mut self, mode_before: Mode) {
+         // Pemsa can schedule a second visible draw on the transition boundary
+         // after the canonical capture callback has observed the first draw.
+         // Preserve that source-side particle mutation for the next frame while
+@@ -497,7 +565,6 @@ impl NativeGame {
+         {
+             self.add_player_trail();
+         }
+-        Ok(result)
+     }
+ 
+     pub fn step(&mut self, action: Action, frames: u32) -> Result<FrameResult, CoreError> {
+@@ -603,11 +670,13 @@ impl NativeGame {
+         }
+     }
+ 
++    /// Capture live logical state with cached legacy pixels. Headless stepping
++    /// leaves those pixels stale; `render_into` renders current post-method state.
+     pub fn snapshot(&self) -> Snapshot {
+         Snapshot::from_game(self)
+     }
+ 
+-    fn update_game_frame(&mut self, events: &mut Vec<FrameEvent>) {
++    fn update_game_frame(&mut self, events: &mut impl EventSink) {
+         if self.friendly_enabled {
+             self.update_fyou(events);
+         }
+@@ -833,15 +902,84 @@ impl NativeGame {
+     }
+ 
+     fn render_current_frame(&mut self) {
+-        let state = self.full_state();
+-        let mut render = crate::RenderState::new(state.transition_render_y);
+-        render.camera_x = state.camera_x;
+-        render.camera_y = state.camera_y;
+-        render.screen_palette[12] = state.settings.theme_background;
+-        render.screen_palette[1] = state.settings.theme_shadow;
++        let state = crate::snapshot::RenderView {
++            lifecycle: self.lifecycle,
++            input: self.input,
++            enemies: &self.enemies,
++            particles: &self.particles,
++            active_pattern: self
++                .active_pattern
++                .and_then(|index| self.patterns.get(index)),
++            score: self.score,
++            settings: self.settings,
++            highscores: &self.highscores,
++            new_highscore: self.new_highscore,
++            has_played: self.has_played,
++            transition_render_y: self.transition_render_y,
++            transition_from: self.transition_from,
++            camera_x: self.camera_x,
++            camera_y: self.camera_y,
++        };
++        let render = state.render_state();
+         crate::snapshot::render_full_state_into(&state, &render, &mut self.screen);
+     }
+ 
++    fn render_view(&self) -> crate::snapshot::RenderView<'_> {
++        crate::snapshot::RenderView {
++            lifecycle: self.lifecycle,
++            input: self.input,
++            enemies: &self.enemies,
++            particles: &self.particles,
++            active_pattern: self
++                .active_pattern
++                .and_then(|index| self.patterns.get(index)),
++            score: self.score,
++            settings: self.settings,
++            highscores: &self.highscores,
++            new_highscore: self.new_highscore,
++            has_played: self.has_played,
++            transition_render_y: self.transition_render_y,
++            transition_from: self.transition_from,
++            camera_x: self.camera_x,
++            camera_y: self.camera_y,
++        }
++    }
++
++    /// Render current post-method state into caller-owned palette indices.
++    ///
++    /// This intentionally differs from legacy cached pre-draw-effect pixels.
++    /// Rendering consumes no RNG and changes no logical state or cached pixels.
++    /// It uses a fixed 16 KB physical scratch buffer plus canonical projection.
++    pub fn render_into(&self, out: &mut [u8; crate::FRAMEBUFFER_SIZE]) {
++        let state = self.render_view();
++        let render = state.render_state();
++        let mut physical = IndexedFramebuffer::blank();
++        crate::snapshot::render_full_state_into(&state, &render, &mut physical);
++        physical.project_into(&render, out);
++    }
++
++    /// Borrow current fields at the same post-method boundary as `render_into`.
++    pub fn privileged_view(&self) -> PrivilegedView<'_> {
++        PrivilegedView {
++            player: &self.player,
++            enemies: &self.enemies,
++            freeze_rate: self.freeze_rate,
++            speed: self.speed,
++            enemy_est: self.enemy_est,
++            score: self.score,
++            active_pattern: self
++                .active_pattern
++                .and_then(|index| self.patterns.get(index))
++                .map(|pattern| ActivePatternView {
++                    pattern_type: pattern.pattern_type,
++                    rects: &pattern.rects,
++                }),
++            difficulty: self.settings.difficulty,
++            patterns_enabled: self.patterns_enabled,
++            powerups_enabled: self.powerups_enabled,
++        }
++    }
++
+     fn update_particles(&mut self) {
+         let mut index = 0;
+         while index < self.particles.len() {
+@@ -870,7 +1008,7 @@ impl NativeGame {
+         }
+     }
+ 
+-    fn update_fyou(&mut self, events: &mut Vec<FrameEvent>) {
++    fn update_fyou(&mut self, events: &mut impl EventSink) {
+         let in_center = self
+             .player
+             .x
+@@ -906,7 +1044,7 @@ impl NativeGame {
+         }
+     }
+ 
+-    fn add_corner_enemies(&mut self, events: &mut Vec<FrameEvent>) {
++    fn add_corner_enemies(&mut self, events: &mut impl EventSink) {
+         for spawn in self.spawns.clone() {
+             self.enemies
+                 .push(EnemyState::normal(spawn.x, spawn.y, self.enemy_max_size));
+@@ -914,7 +1052,7 @@ impl NativeGame {
+         }
+     }
+ 
+-    fn collision_check(&mut self, events: &mut Vec<FrameEvent>) {
++    fn collision_check(&mut self, events: &mut impl EventSink) {
+         if self.lifecycle.dead || !self.should_collide {
+             return;
+         }
+@@ -988,7 +1126,7 @@ impl NativeGame {
+         }
+     }
+ 
+-    fn collide_enemy(&mut self, index: usize, enemy: EnemyState, events: &mut Vec<FrameEvent>) {
++    fn collide_enemy(&mut self, index: usize, enemy: EnemyState, events: &mut impl EventSink) {
+         self.shatter(enemy.x, enemy.y);
+         self.shake = self.shake.add(PicoFixed::from_f32(0.07));
+         match enemy.personality {
+@@ -1111,7 +1249,7 @@ impl NativeGame {
+         self.player.y = pico_mid(PLAYER_MIN, PLAYER_MAX, self.player.y.add(self.player.vy));
+     }
+ 
+-    fn spawn_enemies(&mut self, events: &mut Vec<FrameEvent>) {
++    fn spawn_enemies(&mut self, events: &mut impl EventSink) {
+         self.enemy_timer = self.enemy_timer.add(PicoFixed::ONE);
+         let spawn_multiplier = self
+             .active_pattern
+@@ -3068,3 +3206,7 @@ mod tests {
+         assert_eq!(pico_cosine(angle), expected_cosine);
+     }
+ }
++
++#[cfg(test)]
++#[path = "headless_tests.rs"]
++mod headless_tests;
+diff --git a/crates/dodge-core/src/lib.rs b/crates/dodge-core/src/lib.rs
+index 3fb24d5..20d0e3e 100644
+--- a/crates/dodge-core/src/lib.rs
++++ b/crates/dodge-core/src/lib.rs
+@@ -5,6 +5,7 @@ mod config;
+ mod error;
+ mod fixed;
+ mod game;
++mod headless;
+ mod input;
+ mod lifecycle;
+ mod patterns;
+@@ -17,6 +18,7 @@ pub use config::NativeConfig;
+ pub use error::CoreError;
+ pub use fixed::{PicoFixed, pico_ceil, pico_floor, pico_mid, pico_mod};
+ pub use game::{AudioEvent, FrameEvent, FrameResult, NativeGame};
++pub use headless::{ActivePatternView, HeadlessResult, PrivilegedView};
+ pub use input::{BUTTON_MASK_LIMIT, Button, InputState};
+ pub use lifecycle::{LifecycleState, Mode};
+ pub use patterns::{PatternRect, PatternState, PatternTarget, SpawnPoint, WarningLine};
+diff --git a/crates/dodge-core/src/snapshot.rs b/crates/dodge-core/src/snapshot.rs
+index 8902874..75c864e 100644
+--- a/crates/dodge-core/src/snapshot.rs
++++ b/crates/dodge-core/src/snapshot.rs
+@@ -314,9 +314,15 @@ impl IndexedFramebuffer {
+     }
+ 
+     fn project(&self, state: &RenderState) -> Self {
++        let mut projected = Self::blank();
++        self.project_into(state, &mut projected.pixels);
++        projected
++    }
++
++    pub(crate) fn project_into(&self, state: &RenderState, out: &mut [u8; FRAMEBUFFER_SIZE]) {
+         let camera_x = camera_offset(state.camera_x);
+         let camera_y = camera_offset(state.camera_y);
+-        let mut projected = Self::blank();
++        out.fill(0);
+         for world_y in 0..FRAMEBUFFER_HEIGHT as i32 {
+             for world_x in 0..FRAMEBUFFER_WIDTH as i32 {
+                 let screen_x = world_x - camera_x;
+@@ -326,16 +332,14 @@ impl IndexedFramebuffer {
+                 {
+                     let source_index = screen_y as usize * FRAMEBUFFER_WIDTH + screen_x as usize;
+                     let target_index = world_y as usize * FRAMEBUFFER_WIDTH + world_x as usize;
+-                    if let (Some(target), Some(source)) = (
+-                        projected.pixels.get_mut(target_index),
+-                        self.pixels.get(source_index),
+-                    ) {
++                    if let (Some(target), Some(source)) =
++                        (out.get_mut(target_index), self.pixels.get(source_index))
++                    {
+                         *target = *source;
+                     }
+                 }
+             }
+         }
+-        projected
+     }
+ 
+     fn sprite(
+@@ -387,11 +391,7 @@ pub struct Snapshot {
+ impl Snapshot {
+     pub(crate) fn from_game(game: &NativeGame) -> Self {
+         let logical_state = game.full_state();
+-        let mut render_state = RenderState::new(logical_state.transition_render_y);
+-        render_state.camera_x = logical_state.camera_x;
+-        render_state.camera_y = logical_state.camera_y;
+-        render_state.screen_palette[12] = logical_state.settings.theme_background;
+-        render_state.screen_palette[1] = logical_state.settings.theme_shadow;
++        let render_state = RenderView::from(&logical_state).render_state();
+         let framebuffer = logical_state.physical_screen.project(&render_state);
+         Self::with_parts(logical_state, render_state, framebuffer)
+     }
+@@ -506,8 +506,60 @@ impl Snapshot {
+     }
+ }
+ 
++/// Private raster-only inputs. No owned vectors or framebuffer clones.
++pub(crate) struct RenderView<'a> {
++    pub lifecycle: LifecycleState,
++    pub input: InputState,
++    pub enemies: &'a [EnemyState],
++    pub particles: &'a [ParticleState],
++    pub active_pattern: Option<&'a PatternState>,
++    pub score: PicoFixed,
++    pub settings: SettingsState,
++    pub highscores: &'a [PicoFixed; 12],
++    pub new_highscore: bool,
++    pub has_played: bool,
++    pub transition_render_y: i16,
++    pub transition_from: Mode,
++    pub camera_x: PicoFixed,
++    pub camera_y: PicoFixed,
++}
++
++impl<'a> From<&'a FullState> for RenderView<'a> {
++    fn from(state: &'a FullState) -> Self {
++        Self {
++            lifecycle: state.lifecycle,
++            input: state.input,
++            enemies: &state.enemies,
++            particles: &state.particles,
++            active_pattern: state
++                .active_pattern
++                .and_then(|index| state.patterns.get(index)),
++            score: state.score,
++            settings: state.settings,
++            highscores: &state.highscores,
++            new_highscore: state.new_highscore,
++            has_played: state.has_played,
++            transition_render_y: state.transition_render_y,
++            transition_from: state.transition_from,
++            camera_x: state.camera_x,
++            camera_y: state.camera_y,
++        }
++    }
++}
++
++impl RenderView<'_> {
++    pub(crate) fn render_state(&self) -> RenderState {
++        let mut render = RenderState::new(self.transition_render_y);
++        render.camera_x = self.camera_x;
++        render.camera_y = self.camera_y;
++        render.screen_palette[12] = self.settings.theme_background;
++        render.screen_palette[1] = self.settings.theme_shadow;
++        render
++    }
++}
++
+ pub(crate) fn render_full_state_into(
+-    state: &FullState,
++    state: &RenderView<'_>,
+     render: &RenderState,
+     framebuffer: &mut IndexedFramebuffer,
+ ) {
+@@ -542,7 +594,7 @@ pub(crate) fn render_full_state_into(
+ }
+ 
+ fn render_transition_base(
+-    state: &FullState,
++    state: &RenderView<'_>,
+     render: &RenderState,
+     framebuffer: &mut IndexedFramebuffer,
+ ) {
+@@ -583,7 +635,7 @@ fn render_transition_base(
+     }
+ }
+ 
+-fn render_menu(state: &FullState, render: &RenderState, framebuffer: &mut IndexedFramebuffer) {
++fn render_menu(state: &RenderView<'_>, render: &RenderState, framebuffer: &mut IndexedFramebuffer) {
+     framebuffer.sprite(17, 6, 18, 14, 7, render);
+     let prompt = if state.input.current_mask() != 0 {
+         "press ❎"
+@@ -598,7 +650,11 @@ fn render_menu(state: &FullState, render: &RenderState, framebuffer: &mut Indexe
+     print2(framebuffer, "oskar zanota", 40, 103, render);
+ }
+ 
+-fn render_settings(state: &FullState, render: &RenderState, framebuffer: &mut IndexedFramebuffer) {
++fn render_settings(
++    state: &RenderView<'_>,
++    render: &RenderState,
++    framebuffer: &mut IndexedFramebuffer,
++) {
+     framebuffer.sprite(160, 38, 8, 8, 2, render);
+     let categories = [("", 1_u8), ("gameplay", 3_u8)];
+     let names = ["theme", "difficulty", "patterns", "powerups"];
+@@ -718,7 +774,7 @@ fn difficulty_name(index: u8) -> &'static str {
+     }
+ }
+ 
+-fn current_highscore(state: &FullState) -> PicoFixed {
++fn current_highscore(state: &RenderView<'_>) -> PicoFixed {
+     let difficulty = state.settings.difficulty;
+     let patterns = state.settings.patterns_enabled;
+     let powerups = state.settings.powerups_enabled;
+@@ -910,12 +966,12 @@ fn map_color(color: u8, state: &RenderState) -> Option<u8> {
+     state.palette_index(color)
+ }
+ 
+-fn render_game(state: &FullState, render: &RenderState, framebuffer: &mut IndexedFramebuffer) {
++fn render_game(state: &RenderView<'_>, render: &RenderState, framebuffer: &mut IndexedFramebuffer) {
+     if state.lifecycle.dead {
+         render_game_over(state, render, framebuffer);
+         return;
+     }
+-    for particle in &state.particles {
++    for particle in state.particles {
+         let x = coordinate(particle.x);
+         let y = coordinate(particle.y);
+         if particle.kind == 0 {
+@@ -925,7 +981,7 @@ fn render_game(state: &FullState, render: &RenderState, framebuffer: &mut Indexe
+             framebuffer.plot_world(x, y, particle.color, render);
+         }
+     }
+-    for particle in &state.particles {
++    for particle in state.particles {
+         if particle.kind == 0 {
+             framebuffer.circle_fill(
+                 coordinate(particle.x),
+@@ -936,7 +992,7 @@ fn render_game(state: &FullState, render: &RenderState, framebuffer: &mut Indexe
+             );
+         }
+     }
+-    for enemy in &state.enemies {
++    for enemy in state.enemies {
+         let x = coordinate(enemy.x);
+         let y = coordinate(enemy.y);
+         if enemy.personality >= 2 {
+@@ -953,9 +1009,7 @@ fn render_game(state: &FullState, render: &RenderState, framebuffer: &mut Indexe
+             }
+         }
+     }
+-    if let Some(pattern_index) = state.active_pattern
+-        && let Some(pattern) = state.patterns.get(pattern_index)
+-    {
++    if let Some(pattern) = state.active_pattern {
+         render_pattern(pattern, render, framebuffer);
+     }
+     let score = ceil_fixed(state.score);
+@@ -965,7 +1019,11 @@ fn render_game(state: &FullState, render: &RenderState, framebuffer: &mut Indexe
+     print2(framebuffer, &score_text, 1, 1, render);
+ }
+ 
+-fn render_game_over(state: &FullState, render: &RenderState, framebuffer: &mut IndexedFramebuffer) {
++fn render_game_over(
++    state: &RenderView<'_>,
++    render: &RenderState,
++    framebuffer: &mut IndexedFramebuffer,
++) {
+     let button_active = state.input.source_input_mode();
+     let settings_prompt = if button_active {
+         "press 🅾 to open settings"
+@@ -994,7 +1052,7 @@ fn render_game_over(state: &FullState, render: &RenderState, framebuffer: &mut I
+     }
+ }
+ 
+-fn render_wave(state: &FullState, render: &RenderState, framebuffer: &mut IndexedFramebuffer) {
++fn render_wave(state: &RenderView<'_>, render: &RenderState, framebuffer: &mut IndexedFramebuffer) {
+     // Pemsa's deterministic headless clock reports time just after the
+     // completed frame: frame 501 is 8.3666 seconds, or (501 + 1) / 60.
+     let time = PicoFixed::from_int(state.lifecycle.frame as i32)
+@@ -2136,3 +2194,29 @@ mod tests {
+         }
+     }
+ }
++
++#[cfg(test)]
++mod headless_projection_tests {
++    use super::*;
++
++    #[test]
++    fn camera_exposed_physical_edges_survive_clear_but_projection_pads_zero() {
++        for (x, y) in [(1, -1), (-1, 1), (2, 2), (-2, -2)] {
++            let mut render = RenderState::new(0);
++            render.camera_x = PicoFixed::from_int(x);
++            render.camera_y = PicoFixed::from_int(y);
++            render.screen_palette[12] = 9;
++            let mut physical = IndexedFramebuffer::filled(15);
++            physical.clear(12, &render);
++            // Physical clear deliberately leaves camera-exposed memory intact.
++            assert!(physical.pixels().contains(&15));
++            let expected = physical.project(&render);
++            let mut projected = [255; FRAMEBUFFER_SIZE];
++            physical.project_into(&render, &mut projected);
++            assert_eq!(&projected, expected.pixels());
++            assert!(projected.contains(&0));
++            assert!(projected.contains(&9));
++            assert!(projected.iter().all(|&pixel| pixel == 0 || pixel == 9));
++        }
++    }
++}
+diff --git a/crates/dodge-core/src/headless.rs b/crates/dodge-core/src/headless.rs
+new file mode 100644
+index 0000000..5fa12d6
+--- /dev/null
++++ b/crates/dodge-core/src/headless.rs
+@@ -0,0 +1,55 @@
++use crate::{EnemyState, Mode, PatternRect, PicoFixed, PlayerState};
++
++/// One completed simulation frame without a snapshot or framebuffer.
++///
++/// `reward` preserves the legacy fixed-point survival reward: one for an alive
++/// frame whose previous mode was `Game`, zero otherwise. It is not the v2 RL
++/// objective. A wrapper must accumulate score deltas and apply its own alive
++/// bonus and one-time death penalty across the frames it actually executes.
++#[derive(Clone, Copy, Debug, Eq, PartialEq)]
++pub struct HeadlessResult {
++    pub frame: u32,
++    pub mode: Mode,
++    pub input_mask: u8,
++    pub previous_input_mask: u8,
++    pub game_ready: bool,
++    pub started: bool,
++    pub dead: bool,
++    pub done: bool,
++    pub reward: PicoFixed,
++    /// Actual score change, including a negative reset delta on legacy retry.
++    pub score_delta: PicoFixed,
++    pub score: PicoFixed,
++}
++
++/// Borrowed active rectangle geometry and current charging state (`rect.sh`).
++///
++/// This raw Rust view is not a policy tensor contract. `PatternRect` also holds
++/// engine bookkeeping and future targets; consumers must use an explicit
++/// feature allowlist and must not encode those hidden fields. No pattern timer
++/// or inactive pattern catalog is provided here.
++#[derive(Clone, Copy, Debug, Eq, PartialEq)]
++pub struct ActivePatternView<'a> {
++    pub pattern_type: u8,
++    pub rects: &'a [PatternRect],
++}
++
++/// Borrowed current state at the post-method boundary used by `render_into`.
++///
++/// These references avoid snapshot clones. The raw entity/rectangle types are
++/// engine data, not permission to serialize every field into an observation.
++/// Policy featurization must explicitly select its 14 global and 16 entity
++/// scalars, excluding schedules, future targets, and other hidden bookkeeping.
++#[derive(Clone, Copy, Debug, Eq, PartialEq)]
++pub struct PrivilegedView<'a> {
++    pub player: &'a PlayerState,
++    pub enemies: &'a [EnemyState],
++    pub freeze_rate: PicoFixed,
++    pub speed: PicoFixed,
++    pub enemy_est: PicoFixed,
++    pub score: PicoFixed,
++    pub active_pattern: Option<ActivePatternView<'a>>,
++    pub difficulty: u8,
++    pub patterns_enabled: bool,
++    pub powerups_enabled: bool,
++}
+diff --git a/crates/dodge-core/src/headless_tests.rs b/crates/dodge-core/src/headless_tests.rs
+new file mode 100644
+index 0000000..dc74f55
+--- /dev/null
++++ b/crates/dodge-core/src/headless_tests.rs
+@@ -0,0 +1,634 @@
++use super::*;
++
++#[test]
++fn legacy_capture_fingerprints() -> Result<(), CoreError> {
++    let mut expected = [
++        (7, 1, 2382405504059571444, 4658003992535463839),
++        (7, 7, 4918416684084750761, 11922084184276059089),
++        (7, 13, 9648576986366091147, 1708781393887045466),
++        (7, 14, 9648576986366091147, 17569629299030478356),
++        (7, 57, 5682733197914214409, 13646171142066451070),
++        (7, 67, 10496645156560837851, 12365251265229754560),
++        (7, 400, 11110010719727987246, 5454277453573999821),
++        (7, 2000, 11110010719727987246, 5891900393778317937),
++        (42, 1, 2382405504059571444, 15090823182380564159),
++        (42, 7, 4918416684084750761, 15029457823635562651),
++        (42, 13, 9648576986366091147, 8849507733778565182),
++        (42, 14, 9648576986366091147, 6109647735718362678),
++        (42, 57, 11519952295273132330, 3726709463488178743),
++        (42, 67, 5667634479482931506, 3133253928471107290),
++        (42, 400, 11110010719727987246, 5749966501647720722),
++        (42, 2000, 11110010719727987246, 3541424567596643815),
++        (1234, 1, 2382405504059571444, 1372283663662136067),
++        (1234, 7, 4918416684084750761, 13120509659350496321),
++        (1234, 13, 9648576986366091147, 8228325366525848782),
++        (1234, 14, 9648576986366091147, 15992919611806836253),
++        (1234, 57, 367697024428938075, 2580479566689377288),
++        (1234, 67, 2623419666436361622, 3063020656298531632),
++        (1234, 400, 11110010719727987246, 12576243943002496908),
++        (1234, 2000, 11110010719727987246, 9628872391059616427),
++    ]
++    .into_iter();
++    for seed in [7, 42, 1234] {
++        let mut game = NativeGame::new(NativeConfig::new(seed));
++        let mut actions = PicoRng::new(seed + 100);
++        for frame in 1..=2000 {
++            let mask = if frame == 1 {
++                crate::BUTTON_X_MASK
++            } else if frame <= 13 {
++                0
++            } else {
++                let index = actions.rnd(PicoFixed::from_int(9)).floor().raw() >> 16;
++                Action::ALL
++                    .get(index as usize)
++                    .copied()
++                    .unwrap_or(Action::Neutral)
++                    .mask()
++            };
++            let result = game.advance_frame_with_post_mask(mask, 0)?;
++            if [1, 7, 13, 14, 57, 67, 400, 2000].contains(&frame) {
++                assert_eq!(
++                    Some((
++                        seed,
++                        frame,
++                        result.snapshot.pixel_hash(),
++                        result.snapshot.state_hash()
++                    )),
++                    expected.next()
++                );
++            }
++        }
++    }
++    assert_eq!(expected.next(), None);
++    Ok(())
++}
++
++fn random_mask(rng: &mut PicoRng) -> u8 {
++    let index = rng.rnd(PicoFixed::from_int(9)).floor().raw() >> 16;
++    Action::ALL
++        .get(index as usize)
++        .copied()
++        .unwrap_or(Action::Neutral)
++        .mask()
++}
++
++fn assert_live_parity(full: &NativeGame, headless: &NativeGame) {
++    let mut full_state = full.full_state();
++    let mut headless_state = headless.full_state();
++    // This is the only excluded FullState field. Compare live state after the
++    // method returns, including the extra trail missing from transition snapshots.
++    full_state.physical_screen = IndexedFramebuffer::blank();
++    headless_state.physical_screen = IndexedFramebuffer::blank();
++    assert_eq!(full_state, headless_state);
++    assert_eq!(full.config, headless.config);
++    assert_eq!(full.frame_audio, headless.frame_audio);
++}
++
++fn pair_step(
++    full: &mut NativeGame,
++    headless: &mut NativeGame,
++    mask: u8,
++    post: u8,
++) -> Result<(FrameResult, HeadlessResult), CoreError> {
++    let score_before = full.score;
++    // Exercise both public headless entry points, including a different post mask.
++    let actual = if mask == post {
++        headless.advance_frame_headless(mask)?
++    } else {
++        headless.advance_frame_headless_with_post_mask(mask, post)?
++    };
++    let expected = full.advance_frame_with_post_mask(mask, post)?;
++    assert_live_parity(full, headless);
++    assert_eq!(actual.frame, expected.frame);
++    assert_eq!(actual.mode, expected.mode);
++    assert_eq!(actual.input_mask, expected.input_mask);
++    assert_eq!(actual.previous_input_mask, expected.previous_input_mask);
++    assert_eq!(actual.game_ready, expected.game_ready);
++    assert_eq!(actual.started, expected.started);
++    assert_eq!(actual.dead, expected.dead);
++    assert_eq!(actual.done, expected.done);
++    assert_eq!(actual.reward, expected.reward);
++    assert_eq!(actual.score, full.score);
++    assert_eq!(actual.score_delta, full.score.sub(score_before));
++    Ok((expected, actual))
++}
++
++fn running_game() -> Result<NativeGame, CoreError> {
++    let mut game = NativeGame::new(NativeConfig::new(42));
++    game.advance_frame_headless(crate::BUTTON_X_MASK)?;
++    for _ in 1..13 {
++        game.advance_frame_headless(0)?;
++    }
++    assert_eq!(game.lifecycle.mode, Mode::Game);
++    game.friendly_enabled = false;
++    game.enemy_timer = PicoFixed::from_int(-10_000);
++    game.patterns_enabled = false;
++    game.enemies.clear();
++    Ok(game)
++}
++
++fn enemy(personality: i8, x: i32, y: i32) -> EnemyState {
++    EnemyState {
++        personality,
++        ..EnemyState::normal(
++            PicoFixed::from_int(x),
++            PicoFixed::from_int(y),
++            PicoFixed::from_int(3),
++        )
++    }
++}
++
++#[test]
++fn headless_equivalence_100_seeds_2000_raw_frames() -> Result<(), CoreError> {
++    let mut alive_frames = 0;
++    let mut dead_frames = 0;
++    for seed in 0..100 {
++        let mut full = NativeGame::new(NativeConfig::new(seed));
++        let mut headless = full.clone();
++        let mut actions = PicoRng::new(seed + 1000);
++        for frame in 0..2000 {
++            let mask = if frame == 0 {
++                crate::BUTTON_X_MASK
++            } else if frame < 13 {
++                0
++            } else {
++                random_mask(&mut actions)
++            };
++            let post = if frame % 2 == 0 { mask } else { 0 };
++            let (_, result) = pair_step(&mut full, &mut headless, mask, post)?;
++            if result.dead {
++                dead_frames += 1;
++            } else if result.mode == Mode::Game {
++                alive_frames += 1;
++            }
++        }
++    }
++    assert!(alive_frames > 1000);
++    assert!(dead_frames > 0);
++    Ok(())
++}
++
++#[test]
++fn headless_start_boundary_preserves_extra_trail_and_cached_pixels() -> Result<(), CoreError> {
++    let mut full = NativeGame::new(NativeConfig::new(42));
++    let mut headless = full.clone();
++    let cached_pixels = headless.snapshot().pixels().to_owned();
++    for frame in 1..=13 {
++        let mask = if frame == 1 { crate::BUTTON_X_MASK } else { 0 };
++        let (legacy, result) = pair_step(&mut full, &mut headless, mask, 0)?;
++        assert_eq!(result.reward, PicoFixed::ZERO);
++        if frame < 13 {
++            assert_eq!(result.mode, Mode::TransitionToGame);
++        } else {
++            assert_eq!(result.mode, Mode::Game);
++            assert_eq!(
++                full.particles.len(),
++                legacy.snapshot.logical_state().particles.len() + 1
++            );
++            assert_eq!(headless.particles.last().map(|p| p.age), Some(0));
++        }
++    }
++    assert_eq!(headless.snapshot().pixels(), &cached_pixels);
++    Ok(())
++}
++
++#[test]
++fn headless_invalid_masks_leave_every_field_unchanged() -> Result<(), CoreError> {
++    let mut game = running_game()?;
++    // Nonempty audio must also survive pre-mutation validation.
++    game.emit_music(3);
++    for invalid in 64..=u8::MAX {
++        let before = game.clone();
++        assert_eq!(
++            game.advance_frame_headless(invalid),
++            Err(CoreError::InvalidButtonMask(invalid))
++        );
++        assert_eq!(game, before);
++        assert_eq!(
++            game.advance_frame_headless_with_post_mask(Button::X.mask(), invalid),
++            Err(CoreError::InvalidButtonMask(invalid))
++        );
++        assert_eq!(game, before);
++        assert_eq!(
++            game.advance_frame_headless_with_post_mask(invalid, 0),
++            Err(CoreError::InvalidButtonMask(invalid))
++        );
++        assert_eq!(game, before);
++        assert_eq!(
++            game.advance_frame_with_post_mask(Button::X.mask(), invalid),
++            Err(CoreError::InvalidButtonMask(invalid))
++        );
++        assert_eq!(game, before);
++    }
++    Ok(())
++}
++
++#[test]
++fn headless_death_input_and_retry_preserve_legacy_reward_and_score_delta() -> Result<(), CoreError>
++{
++    let mut full = running_game()?;
++    full.score = PicoFixed::from_f32(3.5);
++    full.enemies.push(enemy(0, 64, 64));
++    let mut headless = full.clone();
++    let (legacy, result) = pair_step(&mut full, &mut headless, Button::Right.mask(), 0)?;
++    assert!(result.dead && result.done);
++    assert_eq!(result.mode, Mode::Game);
++    assert_eq!(result.reward, PicoFixed::ZERO);
++    assert_eq!(result.score_delta, PicoFixed::ZERO);
++    assert_eq!(result.input_mask, Button::Right.mask());
++    assert_eq!(result.previous_input_mask, Button::Right.mask());
++    assert!(legacy.events.contains(&FrameEvent::Death));
++    assert!(full.new_highscore);
++    let (_, retry) = pair_step(&mut full, &mut headless, Button::X.mask(), 0)?;
++    assert!(!retry.dead);
++    assert_eq!(retry.reward, PicoFixed::ONE);
++    assert_eq!(retry.score_delta, PicoFixed::from_f32(-3.5));
++    Ok(())
++}
++
++#[test]
++fn headless_freeze_shrink_collection_and_expiration() -> Result<(), CoreError> {
++    let mut full = running_game()?;
++    full.enemies.push(enemy(3, 64, 64));
++    let mut headless = full.clone();
++    let (_, freeze) = pair_step(&mut full, &mut headless, 0, 0)?;
++    assert_eq!(freeze.score_delta, PicoFixed::ONE);
++    assert_eq!(freeze.reward, PicoFixed::ONE);
++    assert_eq!(headless.freeze_rate, PicoFixed::from_f32(0.4));
++    full.enemies.push(enemy(4, 64, 64));
++    headless.enemies.push(enemy(4, 64, 64));
++    let (_, shrink) = pair_step(&mut full, &mut headless, 0, 0)?;
++    assert_eq!(shrink.score_delta, PicoFixed::ONE);
++    assert_eq!(headless.player.size, PicoFixed::from_int(2));
++    for _ in 0..1000 {
++        pair_step(&mut full, &mut headless, 0, 0)?;
++    }
++    assert!(!headless.freeze_active);
++    assert_eq!(headless.freeze_rate, PicoFixed::ONE);
++    assert_eq!(headless.player.size, PicoFixed::from_int(4));
++    Ok(())
++}
++
++#[test]
++fn headless_explode_powerup_kamikaze_and_draw_rng() -> Result<(), CoreError> {
++    let mut full = running_game()?;
++    // Draw-side powerup trails must consume RNG even when no raster runs.
++    full.enemies = vec![enemy(2, 20, 20), enemy(3, 30, 30), enemy(4, 40, 40)];
++    let mut headless = full.clone();
++    let checkpoint = headless.rng_checkpoint();
++    pair_step(&mut full, &mut headless, 0, 0)?;
++    assert_ne!(checkpoint, headless.rng_checkpoint());
++    for colors in [[8, 9, 10], [1, 13, 7], [7, 0, 0]] {
++        assert!(
++            headless
++                .particles
++                .iter()
++                .any(|p| p.kind == 1 && p.age == 0 && p.colors == colors)
++        );
++    }
++    full.enemies = vec![
++        enemy(2, 64, 64),
++        enemy(0, 20, 20),
++        enemy(1, 30, 30),
++        enemy(3, 40, 40),
++    ];
++    headless.enemies = full.enemies.clone();
++    let (_, explode) = pair_step(&mut full, &mut headless, 0, 0)?;
++    assert_eq!(explode.score_delta, PicoFixed::from_int(5));
++    assert!(headless.enemies.iter().any(|e| e.personality == -1));
++    let start_size = headless.enemies.first().map(|e| e.size);
++    for _ in 0..15 {
++        pair_step(&mut full, &mut headless, 0, 0)?;
++    }
++    assert!(headless.enemies.first().map(|e| e.size) > start_size);
++    for _ in 0..60 {
++        pair_step(&mut full, &mut headless, 0, 0)?;
++    }
++    assert!(headless.enemies.is_empty());
++    Ok(())
++}
++
++#[test]
++fn headless_all_active_patterns_static_moving_and_completion() -> Result<(), CoreError> {
++    let base = running_game()?;
++    assert!(!base.patterns.is_empty());
++    let mut saw_static = false;
++    let mut saw_moving = false;
++    let mut completed = 0;
++    for index in 0..base.patterns.len() {
++        let mut full = base.clone();
++        full.patterns_enabled = true;
++        full.active_pattern = Some(index);
++        full.pattern_active = true;
++        full.should_collide = false;
++        full.enemies = vec![enemy(0, 20, 20), enemy(1, 40, 40), enemy(3, 100, 100)];
++        let pattern = full
++            .patterns
++            .get(index)
++            .ok_or(CoreError::InvalidSnapshotValue)?;
++        saw_static |= pattern.pattern_type == 0;
++        saw_moving |= pattern.pattern_type == 1;
++        let mut headless = full.clone();
++        for frame in 0..900 {
++            let mask = if frame % 80 < 40 {
++                Action::UpLeft.mask()
++            } else {
++                Action::DownRight.mask()
++            };
++            pair_step(&mut full, &mut headless, mask, mask)?;
++            if full.active_pattern.is_none() {
++                completed += 1;
++                break;
++            }
++        }
++    }
++    assert!(saw_static && saw_moving);
++    assert!(completed > 0);
++    Ok(())
++}
++
++#[test]
++fn headless_static_charging_and_moving_rect_death() -> Result<(), CoreError> {
++    for pattern_type in [0, 1] {
++        let mut full = running_game()?;
++        full.patterns_enabled = true;
++        full.active_pattern = Some(0);
++        full.pattern_active = true;
++        let pattern = full
++            .patterns
++            .first_mut()
++            .ok_or(CoreError::InvalidSnapshotValue)?;
++        pattern.pattern_type = pattern_type;
++        pattern.rects.truncate(1);
++        let rect = pattern
++            .rects
++            .first_mut()
++            .ok_or(CoreError::InvalidSnapshotValue)?;
++        rect.x = PicoFixed::from_int(60);
++        rect.y = PicoFixed::from_int(60);
++        rect.width = PicoFixed::from_int(8);
++        rect.height = PicoFixed::from_int(8);
++        rect.sh = PicoFixed::ZERO;
++        rect.dx = PicoFixed::ZERO;
++        rect.dy = PicoFixed::ZERO;
++        let mut headless = full.clone();
++        let (_, result) = pair_step(&mut full, &mut headless, 0, 0)?;
++        assert_eq!(result.dead, pattern_type == 1);
++        if pattern_type == 0 {
++            for game in [&mut full, &mut headless] {
++                let rect = game
++                    .patterns
++                    .first_mut()
++                    .and_then(|p| p.rects.first_mut())
++                    .ok_or(CoreError::InvalidSnapshotValue)?;
++                rect.sh = PicoFixed::from_int(2);
++            }
++            let (_, result) = pair_step(&mut full, &mut headless, 0, 0)?;
++            assert!(result.dead);
++        }
++    }
++    Ok(())
++}
++
++#[test]
++fn headless_settings_and_transitions_match_in_menu_game_and_death() -> Result<(), CoreError> {
++    for initial in 0..3 {
++        let mut full = if initial == 0 {
++            NativeGame::new(NativeConfig::new(42))
++        } else {
++            running_game()?
++        };
++        if initial == 2 {
++            full.die();
++        }
++        let mut headless = full.clone();
++        pair_step(&mut full, &mut headless, Button::O.mask(), 0)?;
++        for _ in 0..13 {
++            pair_step(&mut full, &mut headless, 0, 0)?;
++        }
++        assert_eq!(full.lifecycle.mode, Mode::Settings);
++        for mask in [
++            Button::Right.mask(),
++            0,
++            Button::Down.mask(),
++            0,
++            Button::Left.mask(),
++            0,
++            Button::Down.mask(),
++            0,
++            Button::Right.mask(),
++            0,
++            Button::Down.mask(),
++            0,
++            Button::Left.mask(),
++            0,
++            Button::X.mask(),
++        ] {
++            pair_step(&mut full, &mut headless, mask, 0)?;
++        }
++        for _ in 0..13 {
++            pair_step(&mut full, &mut headless, 0, 0)?;
++        }
++        assert_eq!(
++            full.lifecycle.mode,
++            if initial == 0 { Mode::Menu } else { Mode::Game }
++        );
++        assert_eq!(full.privileged_view(), headless.privileged_view());
++    }
++    Ok(())
++}
++
++fn assert_current_render(game: &NativeGame) {
++    let state = game.full_state();
++    let view = crate::snapshot::RenderView::from(&state);
++    let render = view.render_state();
++    // Start from cached physical pixels to verify scratch rendering preserves
++    // canonical projection even when physical camera-exposed edges are stale.
++    let mut expected = state.physical_screen.clone();
++    crate::snapshot::render_full_state_into(&view, &render, &mut expected);
++    let mut projected = [0; crate::FRAMEBUFFER_SIZE];
++    expected.project_into(&render, &mut projected);
++    let mut actual = [255; crate::FRAMEBUFFER_SIZE];
++    game.render_into(&mut actual);
++    assert_eq!(actual, projected);
++    assert!(actual.iter().all(|&p| p < 16));
++    assert_eq!(game.full_state(), state);
++}
++
++#[test]
++fn on_demand_render_cadence_cannot_change_future_state_or_rng() -> Result<(), CoreError> {
++    let mut never = running_game()?;
++    never.patterns_enabled = true;
++    never.active_pattern = Some(16);
++    // No catalog entry enables `smooth`. Exercise that supported branch with
++    // an explicit synthetic moving/resizing target without changing the engine.
++    let pattern = never
++        .patterns
++        .get_mut(16)
++        .ok_or(CoreError::InvalidSnapshotValue)?;
++    pattern.smooth = true;
++    let rect = pattern
++        .rects
++        .first_mut()
++        .ok_or(CoreError::InvalidSnapshotValue)?;
++    rect.sh = PicoFixed::from_int(2);
++    rect.targets = vec![crate::PatternTarget::Move {
++        x: PicoFixed::from_int(-20),
++        y: PicoFixed::from_int(110),
++        width: PicoFixed::from_int(127),
++        height: PicoFixed::from_int(32),
++    }];
++    never.pattern_active = true;
++    never.should_collide = false;
++    never.enemies = vec![
++        enemy(1, 20, 20),
++        enemy(2, 30, 30),
++        enemy(3, 40, 40),
++        enemy(4, 50, 50),
++    ];
++    never.shake = PicoFixed::from_f32(0.1);
++    let mut each = never.clone();
++    let mut each_k = never.clone();
++    let mut actions = PicoRng::new(1234);
++    let mut pixels = [0; crate::FRAMEBUFFER_SIZE];
++    for frame in 0..2000 {
++        let mask = random_mask(&mut actions);
++        assert_eq!(
++            never.advance_frame_headless(mask)?,
++            each.advance_frame_headless(mask)?
++        );
++        assert_eq!(
++            each_k.advance_frame_headless(mask)?.frame,
++            never.lifecycle.frame
++        );
++        let before = each.clone();
++        each.render_into(&mut pixels);
++        let first = pixels;
++        each.render_into(&mut pixels);
++        assert_eq!(pixels, first);
++        assert_eq!(each, before);
++        if frame % 4 == 0 {
++            each_k.render_into(&mut pixels);
++            assert_current_render(&each_k);
++        }
++        assert_eq!(never, each);
++        assert_eq!(never, each_k);
++    }
++    Ok(())
++}
++
++#[test]
++fn privileged_view_borrows_current_geometry_and_matches_post_method_pixels() -> Result<(), CoreError>
++{
++    let mut game = running_game()?;
++    game.enemies.push(enemy(3, 100, 100));
++    game.active_pattern = Some(0);
++    let view = game.privileged_view();
++    assert!(std::ptr::eq(view.player, &game.player));
++    assert!(std::ptr::eq(view.enemies.as_ptr(), game.enemies.as_ptr()));
++    let active = view.active_pattern.ok_or(CoreError::InvalidSnapshotValue)?;
++    let pattern = game
++        .patterns
++        .first()
++        .ok_or(CoreError::InvalidSnapshotValue)?;
++    assert!(std::ptr::eq(active.rects.as_ptr(), pattern.rects.as_ptr()));
++    assert_eq!(active.pattern_type, pattern.pattern_type);
++    assert_eq!(
++        (view.freeze_rate, view.speed, view.enemy_est, view.score),
++        (game.freeze_rate, game.speed, game.enemy_est, game.score)
++    );
++    assert_eq!(
++        (
++            view.difficulty,
++            view.patterns_enabled,
++            view.powerups_enabled
++        ),
++        (
++            game.settings.difficulty,
++            game.patterns_enabled,
++            game.powerups_enabled
++        )
++    );
++    assert_current_render(&game);
++
++    let mut legacy = running_game()?;
++    legacy.player.vx = PicoFixed::from_int(20);
++    let captured = legacy.advance_frame(Action::Right.mask())?;
++    // A newly emitted player particle belongs to the post-method state.
++    let current = legacy.privileged_view();
++    assert_eq!(
++        current.player.x,
++        legacy
++            .particles
++            .last()
++            .map(|p| p.x)
++            .ok_or(CoreError::InvalidSnapshotValue)?
++    );
++    let mut pixels = [0; crate::FRAMEBUFFER_SIZE];
++    legacy.render_into(&mut pixels);
++    assert_ne!(&pixels, captured.snapshot.pixels());
++    assert_current_render(&legacy);
++    Ok(())
++}
++
++#[test]
++fn headless_frozen_static_rect_charges_at_current_freeze_rate() -> Result<(), CoreError> {
++    let mut full = running_game()?;
++    full.patterns_enabled = true;
++    full.active_pattern = Some(0);
++    full.pattern_active = true;
++    full.should_collide = false;
++    full.freeze_active = true;
++    let mut headless = full.clone();
++    for _ in 0..100 {
++        pair_step(&mut full, &mut headless, 0, 0)?;
++    }
++    let rect = headless
++        .patterns
++        .first()
++        .and_then(|p| p.rects.first())
++        .ok_or(CoreError::InvalidSnapshotValue)?;
++    let expected = PicoFixed::from_f32(0.02)
++        .mul_fixed(PicoFixed::from_f32(0.4))
++        .mul_fixed(PicoFixed::from_int(100));
++    assert_eq!(rect.sh, expected);
++    assert!(rect.sh < PicoFixed::ONE);
++    assert_eq!(
++        headless.privileged_view().freeze_rate,
++        PicoFixed::from_f32(0.4)
++    );
++    Ok(())
++}
++
++#[test]
++fn headless_configurations_and_post_method_renders_match() -> Result<(), CoreError> {
++    for difficulty in 1..=3 {
++        for flags in 0..4 {
++            let config = NativeConfig {
++                difficulty,
++                patterns_enabled: flags & 1 != 0,
++                powerups_enabled: flags & 2 != 0,
++                theme_background: 9,
++                theme_shadow: 8,
++                ..NativeConfig::new(17)
++            };
++            let mut full = NativeGame::new(config);
++            let mut headless = full.clone();
++            let mut actions = PicoRng::new(100);
++            for frame in 0..160 {
++                let mask = if frame == 0 {
++                    Button::X.mask()
++                } else if frame < 13 {
++                    0
++                } else {
++                    random_mask(&mut actions)
++                };
++                pair_step(&mut full, &mut headless, mask, 0)?;
++                if frame % 4 == 0 {
++                    assert_current_render(&headless);
++                }
++            }
++        }
++    }
++    Ok(())
++}
+diff --git a/crates/dodge-core/examples/headless_profile.rs b/crates/dodge-core/examples/headless_profile.rs
+new file mode 100644
+index 0000000..d4922b2
+--- /dev/null
++++ b/crates/dodge-core/examples/headless_profile.rs
+@@ -0,0 +1,165 @@
++//! Matched local stepping microbenchmark, not the unmodified-engine M0 baseline.
++//!
++//! Run with `cargo +1.97.1 run --release -p dodge-core --example headless_profile`.
++//! Uses 64 fresh seeds, deterministic K=4 random actions, immediate death stops,
++//! and a 2,000-frame cap. Startup, initialization, schedule generation, and final
++//! state comparisons are outside timings. Five rounds rotate execution order.
++//! Reports stepping wall time only; it does not measure allocation counts.
++use std::{hint::black_box, time::Instant};
++
++use dodge_core::{
++    Action, BUTTON_X_MASK, CoreError, FRAMEBUFFER_SIZE, FullState, IndexedFramebuffer, Mode,
++    NativeConfig, NativeGame, PicoFixed, PicoRng,
++};
++
++const SEEDS: u32 = 64;
++const ROUNDS: usize = 5;
++
++#[derive(Clone, Copy)]
++enum Path {
++    Full,
++    Headless,
++    RenderK4,
++}
++
++struct Episode {
++    seed: u32,
++    masks: Vec<u8>,
++    final_state: FullState,
++}
++
++fn started(seed: u32, path: Path) -> Result<NativeGame, CoreError> {
++    let mut game = NativeGame::new(NativeConfig::new(seed));
++    for frame in 0..13 {
++        let mask = if frame == 0 { BUTTON_X_MASK } else { 0 };
++        match path {
++            Path::Full => {
++                black_box(game.advance_frame(mask)?);
++            }
++            Path::Headless | Path::RenderK4 => {
++                black_box(game.advance_frame_headless(mask)?);
++            }
++        }
++    }
++    if game.lifecycle().mode != Mode::Game {
++        return Err(CoreError::InvalidSnapshotValue);
++    }
++    Ok(game)
++}
++
++fn logical_state(game: &NativeGame) -> FullState {
++    let mut state = game.snapshot().logical_state().clone();
++    state.physical_screen = IndexedFramebuffer::blank();
++    state
++}
++
++fn schedules() -> Result<Vec<Episode>, CoreError> {
++    let mut episodes = Vec::new();
++    for seed in 1000..1000 + SEEDS {
++        let mut game = started(seed, Path::Headless)?;
++        let mut rng = PicoRng::new(seed + 10_000);
++        let mut masks = Vec::new();
++        let mut mask = 0;
++        for frame in 0..2000 {
++            if frame % 4 == 0 {
++                let index = rng.rnd(PicoFixed::from_int(9)).floor().raw() >> 16;
++                mask = Action::ALL
++                    .get(index as usize)
++                    .copied()
++                    .ok_or(CoreError::InvalidActionName)?
++                    .mask();
++            }
++            masks.push(mask);
++            if game.advance_frame_headless(mask)?.dead {
++                break;
++            }
++        }
++        episodes.push(Episode {
++            seed,
++            masks,
++            final_state: logical_state(&game),
++        });
++    }
++    Ok(episodes)
++}
++
++fn measure(episodes: &[Episode], path: Path) -> Result<f64, CoreError> {
++    let mut seconds = 0.0;
++    for episode in episodes {
++        let mut game = started(episode.seed, path)?;
++        let mut pixels = [0; FRAMEBUFFER_SIZE];
++        let begin = Instant::now();
++        for (frame, &mask) in episode.masks.iter().enumerate() {
++            match path {
++                Path::Full => {
++                    black_box(game.advance_frame(black_box(mask))?);
++                }
++                Path::Headless | Path::RenderK4 => {
++                    black_box(game.advance_frame_headless(black_box(mask))?);
++                    if matches!(path, Path::RenderK4) && (frame + 1) % 4 == 0 {
++                        game.render_into(black_box(&mut pixels));
++                        black_box(&pixels);
++                    }
++                }
++            }
++        }
++        seconds += begin.elapsed().as_secs_f64();
++        if logical_state(&game) != episode.final_state {
++            return Err(CoreError::InvalidSnapshotValue);
++        }
++    }
++    Ok(seconds)
++}
++
++fn median(values: &[f64]) -> Result<f64, CoreError> {
++    let mut sorted = values.to_vec();
++    sorted.sort_by(f64::total_cmp);
++    sorted
++        .get(sorted.len() / 2)
++        .copied()
++        .ok_or(CoreError::InvalidSnapshotValue)
++}
++
++fn main() -> Result<(), Box<dyn std::error::Error>> {
++    let episodes = schedules()?;
++    let frames: usize = episodes.iter().map(|e| e.masks.len()).sum();
++    let deaths = episodes
++        .iter()
++        .filter(|e| e.final_state.lifecycle.dead)
++        .count();
++    let mut full = Vec::new();
++    let mut headless = Vec::new();
++    let mut render_k4 = Vec::new();
++    // Warm each path before timed rounds.
++    for path in [Path::Full, Path::Headless, Path::RenderK4] {
++        black_box(measure(&episodes, path)?);
++    }
++    for round in 0..ROUNDS {
++        let order = match round % 3 {
++            0 => [Path::Full, Path::Headless, Path::RenderK4],
++            1 => [Path::Headless, Path::RenderK4, Path::Full],
++            _ => [Path::RenderK4, Path::Full, Path::Headless],
++        };
++        for path in order {
++            let seconds = measure(&episodes, path)?;
++            match path {
++                Path::Full => full.push(seconds),
++                Path::Headless => headless.push(seconds),
++                Path::RenderK4 => render_k4.push(seconds),
++            }
++        }
++    }
++    let full_median = median(&full)?;
++    let headless_median = median(&headless)?;
++    let render_median = median(&render_k4)?;
++    println!(
++        "{{\"kind\":\"modified-core matched stepping microbenchmark\",\"seeds\":\"1000..1064\",\"difficulty\":2,\"patterns_enabled\":true,\"powerups_enabled\":true,\"action_repeat\":4,\"cap_raw_frames\":2000,\"episodes\":{},\"deaths\":{deaths},\"raw_frames_per_round\":{frames},\"rounds\":{ROUNDS},\"full_seconds\":{full:?},\"headless_seconds\":{headless:?},\"headless_render_k4_seconds\":{render_k4:?},\"full_median_sps\":{},\"headless_median_sps\":{},\"headless_render_k4_median_sps\":{},\"headless_speedup\":{},\"render_k4_speedup\":{},\"final_logical_states_match\":true}}",
++        episodes.len(),
++        frames as f64 / full_median,
++        frames as f64 / headless_median,
++        frames as f64 / render_median,
++        full_median / headless_median,
++        full_median / render_median
++    );
++    Ok(())
++}

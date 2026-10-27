@@ -1,0 +1,123 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+        "-B",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-lr3em5-prepare-luna-20261026-r2/test_source_contract.py"
+      ],
+      "exit": 0,
+      "log": "check-1.log",
+      "log_sha256": "62930c078c994c524877c8c099c87c6fcba960bfb52b827d317781ed235cda32"
+    },
+    {
+      "argv": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+        "-B",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-lr3em5-prepare-luna-20261026-r2/test_entry_evaluation.py"
+      ],
+      "exit": 0,
+      "log": "check-2.log",
+      "log_sha256": "b091211bc5871fb2f0d26afb677342074eaf5fcd668f89668cc625a18bc5b4be"
+    },
+    {
+      "argv": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+        "-B",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-lr3em5-prepare-luna-20261026-r2/test_entry_counter_binding.py"
+      ],
+      "exit": 0,
+      "log": "check-3.log",
+      "log_sha256": "d1a412e35d26b76d51197cd96b5ccbe25b4c14a027dc32ee8397a904c8b417a5"
+    },
+    {
+      "argv": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+        "-B",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-lr3em5-prepare-luna-20261026-r2/test_worker_progress_binding.py"
+      ],
+      "exit": 0,
+      "log": "check-4.log",
+      "log_sha256": "977c1067a1f9cba1e23b31c5ea0bdab4a0937684358eb3d52c4bf473224949c8"
+    },
+    {
+      "argv": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+        "-B",
+        "-c",
+        "import copy,json,runpy,sys\nfrom pathlib import Path\nfrom unittest.mock import patch\nsource=Path(sys.argv[1]);owned=Path(sys.argv[2]);original=Path.open\nmapping={source/'cpu-restore-and-controls.json':owned/'cpu-restore-and-controls.json',\n         source/'attempts/mutated-resource-cost-anchor.json':owned/'mutated-resource-cost-anchor.json'}\ndef owned_open(path,mode='r',*args,**kwargs):\n    target=mapping.get(path)\n    if target is not None and (any(c in mode for c in 'wax+') or target.exists()):\n        return original(target,mode,*args,**kwargs)\n    return original(path,mode,*args,**kwargs)\nwith patch.object(Path,'open',owned_open):\n    result=runpy.run_path(str(source/'cpu_restore_and_controls.py'),run_name='__main__')\nhelper=result['helper'];parent=result['parent']['optimizer'];controls={}\nbefore=helper.begin_transition_record(parent,{})\nfor name in ['moment','step','epsilon']:\n    effective=copy.deepcopy(parent);effective['param_groups'][0]['lr']=0.00003\n    first=next(iter(effective['state']))\n    if name=='moment':effective['state'][first]['exp_avg'].add_(1)\n    elif name=='step':effective['state'][first]['step'].add_(1)\n    else:effective['param_groups'][0]['eps']+=0.000001\n    try:helper.transition_record(before,effective,result['delta'])\n    except ValueError as error:\n        assert 'outside declared' in str(error);controls[name]=True\n    else:raise AssertionError('Mutation passed transition validator: '+name)\n(owned/'extra-adam-controls.json').write_text(json.dumps({'status':'passed','controls':controls,'optimizer_steps':0},indent=2)+'\\n')\nprint(json.dumps({'extra_Adam_mutation_controls':controls}))\n",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-lr3em5-prepare-luna-20261026-r2",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-lr3em5-parent-preflight-20261026-r2"
+      ],
+      "exit": 0,
+      "log": "check-5.log",
+      "log_sha256": "246f0b801c29900fd2ccbcb4a0fb86d158252a8a406f016bec783df657e8d244"
+    },
+    {
+      "argv": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+        "-B",
+        "-c",
+        "import runpy,sys,tempfile\nfrom pathlib import Path\nfrom unittest.mock import patch\nsource=Path(sys.argv[1]);owned=Path(sys.argv[2]);scratch=owned/'scratch';scratch.mkdir()\noriginal=tempfile.mkdtemp\ndef parent_temp(*args,**kwargs):\n    kwargs['dir']=scratch\n    return original(*args,**kwargs)\nsys.path.insert(0,str(source))\nwith patch.object(tempfile,'mkdtemp',parent_temp):\n    runpy.run_path(str(source/'test_execute_registration_boundary.py'),run_name='__main__')\n",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-lr3em5-prepare-luna-20261026-r2",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-lr3em5-parent-preflight-20261026-r2"
+      ],
+      "exit": 1,
+      "log": "check-6.log",
+      "log_sha256": "d70631ab5d177e6a90a659fe3987e7cc637a0621e5f4a0a73d046f6378202e47"
+    },
+    {
+      "argv": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+        "-B",
+        "-c",
+        "import runpy,sys,tempfile\nfrom pathlib import Path\nfrom unittest.mock import patch\nsource=Path(sys.argv[1]);scratch=Path(sys.argv[2])/'scratch';original=tempfile.mkdtemp\ndef parent_temp(suffix=None,prefix=None,dir=None):\n    return original(suffix=suffix,prefix=prefix,dir=scratch)\nsys.path.insert(0,str(source))\nwith patch.object(tempfile,'mkdtemp',parent_temp):\n    runpy.run_path(str(source/'test_execute_registration_boundary.py'),run_name='__main__')\nimport execute_once\nreg=execute_once.r.read(source/'registration.json');output=Path(reg['output']);assert not output.exists()\nclass Reached(Exception):pass\ndef sentinel(path,*args,**kwargs):\n    assert path.resolve()==output.resolve();raise Reached()\nwith patch.object(Path,'mkdir',sentinel):\n    try:execute_once.execute(source/'registration.json',sys.argv[3])\n    except Reached:pass\n    else:raise AssertionError('real registration did not reach mutation boundary')\nassert not output.exists()\nprint('Unmocked read of real frozen registration reached actual execute output boundary; no output mutation')\n",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-lr3em5-prepare-luna-20261026-r2",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-lr3em5-parent-preflight-20261026-r2",
+        "8e17e1188253f091b62a8b60397663a530c4a865166f9568978dd009148308e7"
+      ],
+      "exit": 0,
+      "log": "check-6-parent-corrected.log",
+      "log_sha256": "d7ab1564a4f043beb82217625448528cc1dd3051be617ea1a26dc0c02d83de34"
+    },
+    {
+      "argv": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+        "-B",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-lr3em5-prepare-luna-20261026-r2/preflight_prepare.py",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-lr3em5-prepare-luna-20261026-r2/registration.json",
+        "8e17e1188253f091b62a8b60397663a530c4a865166f9568978dd009148308e7"
+      ],
+      "exit": 0,
+      "log": "check-7-parent-corrected.log",
+      "log_sha256": "c07be7b4862d0273fb7f230cad72b114c02f0961e72bba045a389726616c18cc"
+    }
+  ],
+  "game_weight_optimizer_steps": 0,
+  "MPS_used": false,
+  "environment_constructed": false,
+  "campaign_launched": false,
+  "synthetic_progress_test_optimizer_steps": 3,
+  "before": {
+    "pins": 13801,
+    "frozen_files": 87
+  },
+  "status": "passed_7_CPU_checks_and3_extra_Adam_controls_pending_exact_lease_and_unmocked_preflight",
+  "elapsed_seconds": 8.072468083002605,
+  "preserved_parent_replay_failure": "AssertionError('Check 6 failed; inspect retained log')",
+  "after": {
+    "pins": 13801,
+    "frozen_files": 87
+  },
+  "extra_Adam_mutations": {
+    "status": "passed",
+    "controls": {
+      "moment": true,
+      "step": true,
+      "epsilon": true
+    },
+    "optimizer_steps": 0
+  },
+  "corrected_parent_replay_seconds": 2.099859124980867,
+  "preparation_metadata_note": "Copied validation.json retains R1 registration SHA and13800 pin label; current independently replayed R2 registration and13801 pins are authoritative preparation evidence."
+}

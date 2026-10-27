@@ -1,0 +1,588 @@
+--- a/ranking-selection-producer-luna-20261026-r2/selection.py
++++ b/selection-cap-proof-repair-luna-20261026-r3/selection.py
+@@ -2,6 +2,8 @@
+ import hashlib
+ import json
+ import math
++import os
++import tempfile
+ from pathlib import Path
+ 
+ UPDATES = (180, 204, 276, 300, 324, 348)
+@@ -61,27 +63,52 @@
+ 
+ 
+ def _row_alive(row, i):
+-    if not isinstance(row, dict) or type(row.get("seed")) is not int or row["seed"] != SEEDS[i]:
++    if not isinstance(row, dict):
++        raise ValueError("row must be an object")
++    integer_fields = ("episode_index", "seed", "score_raw_fixed", "score_delta_sum_raw_fixed",
++                      "alive_frames", "gameplay_frames", "startup_frames")
++    for key in integer_fields:
++        if type(row.get(key)) is not int or row[key] < 0:
++            raise ValueError(key + " must be a nonnegative integer")
++    if row["seed"] != SEEDS[i] or row["episode_index"] != i:
+         raise ValueError("rows must follow exact registered manifest seed order")
+-    if row.get("episode_index") != i:
+-        raise ValueError("episode index mismatch")
+-    alive = row.get("alive_frames")
+-    if type(alive) is not int or not 0 <= alive <= CAP or row.get("gameplay_frames") != alive + 1:
+-        raise ValueError("alive/gameplay frame accounting invalid")
++    if row["startup_frames"] != 13:
++        raise ValueError("row identity/startup differs")
++    if row["score_delta_sum_raw_fixed"] != row["score_raw_fixed"]:
++        raise ValueError("fixed score accumulation differs")
+     term, trunc = row.get("terminated"), row.get("truncated")
+     if type(term) is not bool or type(trunc) is not bool or term == trunc:
+-        raise ValueError("termination flags invalid")
+-    if trunc and (alive != CAP or row.get("death_cause") is not None):
+-        raise ValueError("cap row fields invalid")
+-    if term and (alive >= CAP or row.get("death_cause") not in DEATH_CAUSES):
+-        raise ValueError("terminated row fields invalid")
++        raise ValueError("episode boundary flags invalid")
++    alive, gameplay = row["alive_frames"], row["gameplay_frames"]
++    if not alive <= gameplay <= CAP:
++        raise ValueError("raw frame bound exceeded")
++    if term:
++        if alive + 1 != gameplay:
++            raise ValueError("fatal-frame conservation differs")
++        cause = row.get("death_cause")
++        if cause not in DEATH_CAUSES:
++            raise ValueError("terminated row cause missing/invalid")
++        if cause == "unavailable":
++            if row.get("fatal_gameplay_frame") is not None or row.get("death_observed_lethal_contacts") is not None:
++                raise ValueError("unavailable telemetry cannot infer fatal contacts")
++        else:
++            contacts = row.get("death_observed_lethal_contacts")
++            if (row.get("fatal_gameplay_frame") != gameplay or type(contacts) is not dict or
++                    set(contacts) != set(DEATH_CAUSES[:-1]) or
++                    any(type(v) is not int or v < 0 for v in contacts.values()) or
++                    (cause != "unknown" and contacts[cause] < 1)):
++                raise ValueError("native death telemetry differs")
++    elif (gameplay != alive or alive != CAP or row.get("death_cause") is not None or
++          row.get("fatal_gameplay_frame") is not None or
++          row.get("death_observed_lethal_contacts") is not None):
++        raise ValueError("truncation telemetry/frame cap differs")
+     score = _finite(row.get("score"), "score")
+     objective = _finite(row.get("objective_return"), "objective_return")
+-    if type(row.get("score_raw_fixed")) is not int or score != row["score_raw_fixed"] / 65536:
+-        raise ValueError("score fixed-point identity mismatch")
+-    expected = score + alive / 100 - 5 * term
++    if score != row["score_raw_fixed"] / 65536:
++        raise ValueError("score identity differs")
++    expected = row["score_raw_fixed"] / 65536 + alive / 100 - 5 * term
+     if not math.isclose(objective, expected, rel_tol=0, abs_tol=1e-9):
+-        raise ValueError("objective-return identity mismatch")
++        raise ValueError("raw objective identity differs")
+     return alive
+ 
+ 
+@@ -117,10 +144,8 @@
+     if result.get("backend") != backend:
+         raise ValueError("candidate backend differs from registration runtime")
+     rows = result.get("rows")
+-    if not isinstance(rows, list) or result.get("episodes") != len(rows):
++    if not isinstance(rows, list) or result.get("episodes") != len(rows) or len(rows) != 1024:
+         raise ValueError("candidate episode count differs from rows")
+-    if result.get("episodes") != 1024:
+-        raise ValueError("candidate must contain exactly 1024 episodes")
+     values = [_row_alive(row, i) for i, row in enumerate(rows)]
+     metrics = _metrics(values)
+     _check_metrics(result.get("performance"), metrics, "result")
+@@ -129,12 +154,10 @@
+     deaths = [row for row in rows if row["terminated"]]
+     death_causes = {cause: 0 for cause in DEATH_CAUSES}
+     for row in deaths:
+-        cause = row.get("death_cause")
+-        death_causes[cause] += 1
++        death_causes[row["death_cause"]] += 1
+     if result.get("death_causes") != death_causes:
+         raise ValueError("candidate death cause counts mismatch")
+-    elapsed = _finite(result.get("elapsed_seconds"), "elapsed_seconds")
+-    if elapsed <= 0:
++    if _finite(result.get("elapsed_seconds"), "elapsed_seconds") <= 0:
+         raise ValueError("elapsed_seconds must be positive")
+     return metrics
+ 
+@@ -143,26 +166,20 @@
+     reg = read_pinned(path, pin, "ranking registration")
+     if reg.get("schema") != "expanded_D2_evaluation_registration_v1" or reg.get("mode") != "ranking":
+         raise ValueError("ranking registration schema/mode mismatch")
+-    source = reg.get("source", {})
+-    evaluator = source.get("evaluator_sha256")
++    evaluator = reg.get("source", {}).get("evaluator_sha256")
+     if not isinstance(evaluator, str) or len(evaluator) != 64:
+         raise ValueError("registration evaluator pin missing")
+     cohort = reg.get("cohorts", {}).get("ranking", {})
+     manifest_path, manifest_sha = cohort.get("manifest_path"), cohort.get("manifest_sha256")
+     manifest = read_pinned(manifest_path, manifest_sha, "ranking manifest")
+-    seeds = manifest.get("seeds")
+-    if manifest.get("count") != 1024 or seeds != list(SEEDS) or cohort.get("count") != 1024:
++    if manifest.get("count") != 1024 or manifest.get("seeds") != list(SEEDS) or cohort.get("count") != 1024:
+         raise ValueError("registered ranking manifest differs from exact cohort")
+     return reg, evaluator, runtime_digest(reg), manifest_sha
+ 
+ 
+-def produce_selection(registration_path, registration_sha256, summary_path,
+-                      summary_sha256, outer_receipt_path, outer_receipt_sha256,
+-                      result_bindings, output_path):
+-    """Consume pinned R5 registration, ranking bundle, outer receipt, and six result artifacts.
+-
+-    result_bindings maps integer update to (absolute path, SHA-256).
+-    """
++def _derive_proof(registration_path, registration_sha256, summary_path, summary_sha256,
++                  outer_receipt_path, outer_receipt_sha256, result_bindings):
++    """Shared read-only replay used by producer and future confirmation validator."""
+     reg, evaluator_sha, runtime_sha, manifest_sha = _load_registration(
+         registration_path, registration_sha256)
+     summary = read_pinned(summary_path, summary_sha256, "ranking summary")
+@@ -174,12 +191,10 @@
+         (outer.get("raw_exit_code") != 0, outer.get("stop_reason") is not None,
+          outer.get("process_group_absent") is not True, outer.get("stage") != "ranking",
+          outer.get("candidate_update") != 348, outer.get("cohort") != "ranking",
+-         outer.get("run_id") != run_id,
+-         outer.get("registration_sha256") != registration_sha256,
++         outer.get("run_id") != run_id, outer.get("registration_sha256") != registration_sha256,
+          outer.get("evaluator_sha256") != evaluator_sha)):
+         raise ValueError("outer receipt failed ranking identity/postflight")
+-    worker_pin = reg["source"].get("worker_sha256")
+-    if outer.get("worker_sha256") != worker_pin:
++    if outer.get("worker_sha256") != reg["source"].get("worker_sha256"):
+         raise ValueError("outer receipt worker pin differs from registration")
+     pins = _pins(reg)
+     if not isinstance(result_bindings, dict) or set(result_bindings) != set(UPDATES):
+@@ -199,7 +214,8 @@
+     if not isinstance(artifacts, list):
+         raise ValueError("outer output_artifacts missing")
+     artifact_pins = {(item.get("path"), item.get("sha256")) for item in artifacts}
+-    if (str(Path(summary_path).resolve()), summary_sha256) not in artifact_pins:
++    summary_ref = {"path": str(Path(summary_path).resolve()), "sha256": summary_sha256}
++    if (summary_ref["path"], summary_sha256) not in artifact_pins:
+         raise ValueError("outer receipt does not bind ranking summary")
+     refs, means = [], {}
+     for update in UPDATES:
+@@ -211,7 +227,6 @@
+         metrics = _validate_result(result, update, registration_sha256, evaluator_sha,
+                                    runtime_sha, reg["cohorts"]["ranking"]["manifest_sha256"],
+                                    manifest_sha, reg["runtime"].get("backend"), pins)
+-        # R5 summary embeds each complete candidate result. Require exact semantic equality.
+         if by_update[update] != result:
+             raise ValueError("ranking summary candidate differs from pinned result")
+         means[update] = metrics["mean"]
+@@ -219,11 +234,14 @@
+     winner = min(UPDATES, key=lambda u: (-means[u], u))
+     if summary.get("winner_update") != winner:
+         raise ValueError("ranking summary winner differs from row argmax")
+-    record = {"schema": "expanded_D2_selection_record_v2", "winner_update": winner,
+-              "winner_checkpoint_sha256": pins[winner],
+-              "incumbent_checkpoint_sha256": pins[348], "ranking_results": refs,
++    record = {"schema": "expanded_D2_selection_record_v3", "winner_update": winner,
++              "winner_checkpoint_sha256": pins[winner], "incumbent_checkpoint_sha256": pins[348],
++              "ranking_results": refs,
+               "ranking_registration_path": str(Path(registration_path).resolve()),
+               "ranking_registration_sha256": registration_sha256,
++              "ranking_summary_path": summary_ref["path"], "ranking_summary_sha256": summary_sha256,
++              "outer_receipt_path": str(Path(outer_receipt_path).resolve()),
++              "outer_receipt_sha256": outer_receipt_sha256,
+               "ranking_run_id": run_id, "evaluator_sha256": evaluator_sha,
+               "runtime_member_map_sha256": runtime_sha,
+               "ranking_manifest_path": str(Path(reg["cohorts"]["ranking"]["manifest_path"]).resolve()),
+@@ -234,52 +252,46 @@
+               "evidence_limit": "selection preparation only; does not alter accepted update 348 or authorize confirmation"}
+     if winner == 348:
+         record["invocable_confirmation_record"] = False
++    return record
++
++
++def produce_selection(registration_path, registration_sha256, summary_path,
++                      summary_sha256, outer_receipt_path, outer_receipt_sha256,
++                      result_bindings, output_path):
++    record = _derive_proof(registration_path, registration_sha256, summary_path,
++                           summary_sha256, outer_receipt_path, outer_receipt_sha256,
++                           result_bindings)
+     output = Path(output_path)
+     output.parent.mkdir(parents=True, exist_ok=True)
+-    with output.open("x") as f:
+-        json.dump(record, f, sort_keys=True, separators=(",", ":"))
+-        f.write("\n")
+-        f.flush()
++    temp_name = None
++    try:
++        with tempfile.NamedTemporaryFile(mode="wb", dir=output.parent, prefix=".selection-",
++                                         delete=False) as stream:
++            temp_name = stream.name
++            stream.write((json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n").encode())
++            stream.flush()
++            os.fsync(stream.fileno())
++        os.link(temp_name, output)
++        os.unlink(temp_name)
++        temp_name = None
++        dir_fd = os.open(output.parent, os.O_RDONLY)
++        try:
++            os.fsync(dir_fd)
++        finally:
++            os.close(dir_fd)
++    finally:
++        if temp_name is not None:
++            os.unlink(temp_name)
+     return record
+ 
+ 
+ def validate_selection_record(record_path, record_sha256, ranking_registration_path,
+-                              ranking_registration_sha256, result_bindings):
+-    """Future confirmation-side pure validator with registration hash externally bound."""
++                              ranking_registration_sha256, summary_path, summary_sha256,
++                              outer_receipt_path, outer_receipt_sha256, result_bindings):
+     record = read_pinned(record_path, record_sha256, "selection record")
+-    if record.get("ranking_registration_path") != str(Path(ranking_registration_path).resolve()) or \
+-       record.get("ranking_registration_sha256") != ranking_registration_sha256:
+-        raise ValueError("selection ranking registration binding mismatch")
+-    reg, evaluator_sha, runtime_sha, manifest_sha = _load_registration(
+-        ranking_registration_path, ranking_registration_sha256)
+-    expected_manifest_path = str(Path(reg["cohorts"]["ranking"]["manifest_path"]).resolve())
+-    if record.get("ranking_run_id") != reg.get("run_id") or record.get("evaluator_sha256") != evaluator_sha or \
+-       record.get("runtime_member_map_sha256") != runtime_sha or record.get("ranking_manifest_sha256") != manifest_sha or \
+-       record.get("ranking_manifest_path") != expected_manifest_path:
+-        raise ValueError("selection provenance mismatch")
+-    pins = _pins(reg)
+-    if set(result_bindings) != set(UPDATES) or len(record.get("ranking_results", [])) != 6:
+-        raise ValueError("six externally pinned result bindings required")
+-    means = {}
+-    refs = []
+-    for update in UPDATES:
+-        path, pin = result_bindings[update]
+-        path = str(Path(path).resolve())
+-        result = read_pinned(path, pin, "candidate result")
+-        metrics = _validate_result(result, update, ranking_registration_sha256,
+-                                   evaluator_sha, runtime_sha, reg["cohorts"]["ranking"]["manifest_sha256"],
+-                                   manifest_sha, reg["runtime"].get("backend"), pins)
+-        means[update] = metrics["mean"]
+-        refs.append({"path": path, "sha256": pin})
+-    winner = min(UPDATES, key=lambda u: (-means[u], u))
+-    if record.get("ranking_results") != refs or record.get("winner_update") != winner:
+-        raise ValueError("selection refs/winner differ from pinned ranking results")
+-    if record.get("winner_checkpoint_sha256") != pins[winner] or record.get("incumbent_checkpoint_sha256") != pins[348]:
+-        raise ValueError("selection checkpoint pin mismatch")
+-    if record.get("ranking_mean_alive_frames") != means[winner]:
+-        raise ValueError("selection winner metric mismatch")
+-    if winner == 348 and (record.get("confirmation_status") != "no_confirmation" or record.get("invocable_confirmation_record") is not False):
+-        raise ValueError("348 winner must leave confirmation unopened")
+-    if winner != 348 and record.get("confirmation_status") != "eligible_for_parent_confirmation_gate":
+-        raise ValueError("confirmation gate status invalid")
++    expected = _derive_proof(ranking_registration_path, ranking_registration_sha256,
++                             summary_path, summary_sha256, outer_receipt_path,
++                             outer_receipt_sha256, result_bindings)
++    if record != expected:
++        raise ValueError("selection record differs from replayed ranking proof")
+     return record
+--- a/ranking-selection-producer-luna-20261026-r2/test_selection.py
++++ b/selection-cap-proof-repair-luna-20261026-r3/test_selection.py
+@@ -1,4 +1,3 @@
+-import hashlib
+ import json
+ import tempfile
+ import unittest
+@@ -7,33 +6,39 @@
+ import selection
+ 
+ 
+-def write(path, obj):
+-    path.write_text(json.dumps(obj, sort_keys=True, separators=(",", ":")) + "\n")
++def write(path, value):
++    path.write_text(json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n")
+     return selection.sha256(path)
+ 
+ 
+-def make_result(update, value, reg_sha, checkpoint, cohort_sha):
+-    rows = []
+-    for i, seed in enumerate(selection.SEEDS):
+-        alive = value
+-        rows.append({"episode_index": i, "seed": seed, "score_raw_fixed": 0,
+-                     "score": 0.0, "objective_return": alive / 100 - 5,
+-                     "alive_frames": alive, "gameplay_frames": alive + 1,
+-                     "startup_frames": 0, "score_delta_sum_raw_fixed": 0,
+-                     "terminated": True, "truncated": False,
+-                     "death_cause": "normal_enemy", "fatal_gameplay_frame": None,
+-                     "death_observed_lethal_contacts": None})
++def row(i, alive, capped=False):
++    score_raw = 65536
++    return {"episode_index": i, "seed": selection.SEEDS[i], "score_raw_fixed": score_raw,
++            "score_delta_sum_raw_fixed": score_raw, "score": 1.0,
++            "objective_return": 1 + alive / 100 - (0 if capped else 5),
++            "alive_frames": alive, "gameplay_frames": alive if capped else alive + 1,
++            "startup_frames": 13, "terminated": not capped, "truncated": capped,
++            "death_cause": None if capped else "normal_enemy",
++            "fatal_gameplay_frame": None if capped else alive + 1,
++            "death_observed_lethal_contacts": None if capped else {
++                cause: (1 if cause == "normal_enemy" else 0) for cause in selection.DEATH_CAUSES[:-1]}}
++
++
++def make_result(update, alive, reg_sha, checkpoint, cohort_sha, caps=0):
++    rows = [row(i, selection.CAP if i < caps else alive, i < caps)
++            for i in range(1024)]
++    values = [r["alive_frames"] for r in rows]
++    ordered, q = sorted(values), len(values) // 4
+     return {"schema": "expanded_D2_candidate_evaluation_v1", "complete": True,
+-            "candidate_update": update, "checkpoint_sha256": checkpoint,
+-            "cohort_name": "ranking", "cohort_sha256": cohort_sha,
+-            "episodes": 1024, "caps": 0,
+-            "death_causes": {cause: (1024 if cause == "normal_enemy" else 0)
+-                              for cause in selection.DEATH_CAUSES},
+-            "performance": {"worst": value, "q1_bottom_quarter_mean": float(value),
+-                "mean": float(value), "q4_top_quarter_mean": float(value), "best": value},
+-            "elapsed_seconds": 1.25, "rows": rows,
+-            "evidence_limit": "ranking is selection-only; confirmation is one conditional winner-vs-348 comparison",
+-            "registration_sha256": reg_sha, "model_state_dict_sha256": "m" * 64,
++            "registration_sha256": reg_sha, "candidate_update": update,
++            "checkpoint_sha256": checkpoint, "cohort_name": "ranking",
++            "cohort_sha256": cohort_sha, "episodes": 1024, "caps": caps,
++            "death_causes": {cause: (1024 - caps if cause == "normal_enemy" else 0)
++                             for cause in selection.DEATH_CAUSES},
++            "performance": {"worst": ordered[0], "q1_bottom_quarter_mean": sum(ordered[:q]) / q,
++                "mean": sum(values) / len(values), "q4_top_quarter_mean": sum(ordered[-q:]) / q,
++                "best": ordered[-1]},
++            "elapsed_seconds": 1.25, "rows": rows, "model_state_dict_sha256": "m" * 64,
+             "backend": "cpu"}
+ 
+ 
+@@ -41,13 +46,13 @@
+     def setUp(self):
+         self.tmp = tempfile.TemporaryDirectory()
+         self.d = Path(self.tmp.name)
+-        self.manifest = self.d / "ranking-manifest.json"
+-        write(self.manifest, {"count": 1024, "seeds": list(selection.SEEDS)})
+-        self.cohort_sha = selection.sha256(self.manifest)
+-        self.pins = {u: ("%064x" % u) for u in selection.UPDATES}
++        self.manifest = self.d / "manifest.json"
++        self.cohort_sha = write(self.manifest, {"count": 1024, "seeds": list(selection.SEEDS)})
++        self.pins = {u: "%064x" % u for u in selection.UPDATES}
+         self.reg = {"schema": "expanded_D2_evaluation_registration_v1", "mode": "ranking",
+             "run_id": "synthetic-rank-run", "source": {"evaluator_sha256": "e" * 64,
+-            "worker_sha256": "w" * 64}, "runtime": {"backend": "cpu", "member_sha256": {"member-%02d" % i: ("%064x" % i) for i in range(13)}},
++            "worker_sha256": "w" * 64}, "runtime": {"backend": "cpu", "member_sha256": {
++            "member-%02d" % i: "%064x" % i for i in range(13)}},
+             "candidates": {str(u): {"phase_update": u, "checkpoint_sha256": self.pins[u],
+                 "checkpoint_path": "/synthetic/checkpoint-%d" % u,
+                 "source_receipt_path": "/synthetic/receipt-%d" % u,
+@@ -56,27 +61,31 @@
+                 "manifest_sha256": self.cohort_sha, "count": 1024}}}
+         self.regpath = self.d / "registration.json"
+         self.regsha = write(self.regpath, self.reg)
+-        self.result_paths, self.results = {}, {}
+-        for u in selection.UPDATES:
+-            path = self.d / ("candidate-%d.json" % u)
+-            result = make_result(u, 1000 + u, self.regsha, self.pins[u], self.cohort_sha)
+-            self.result_paths[u] = path
+-            self.results[u] = result
+-            write(path, result)
+-        self.summary = self.d / "ranking-bundle.json"
+-        self.outer = self.d / "outer.json"
+-        self.refresh()
++        self.paths, self.results = {}, {}
++        self.caps = 1
++        for update in selection.UPDATES:
++            path = self.d / ("candidate-%d.json" % update)
++            result = make_result(update, 1000 + update, self.regsha, self.pins[update],
++                                 self.cohort_sha, self.caps)
++            self.paths[update], self.results[update] = path, result
++        self.summary, self.outer = self.d / "summary.json", self.d / "outer.json"
++        self.refresh()
++
++    def bindings(self):
++        return {u: (str(p), selection.sha256(p)) for u, p in self.paths.items()}
+ 
+     def refresh(self, winner=None):
++        for u, path in self.paths.items():
++            write(path, self.results[u])
+         if winner is None:
+-            winner = max(selection.UPDATES, key=lambda u: (self.results[u]["performance"]["mean"], -u))
+-        for u, path in self.result_paths.items():
+-            write(path, self.results[u])
++            winner = max(selection.UPDATES,
++                         key=lambda u: (self.results[u]["performance"]["mean"], -u))
+         self.summary_sha = write(self.summary, {"schema": selection.RANKING_SCHEMA,
+             "selection_only": True, "winner_update": winner,
+             "candidate_results": [self.results[u] for u in selection.UPDATES]})
+         artifacts = [{"path": str(self.summary.resolve()), "sha256": self.summary_sha}]
+-        artifacts += [{"path": str(self.result_paths[u].resolve()), "sha256": selection.sha256(self.result_paths[u])} for u in selection.UPDATES]
++        artifacts += [{"path": str(self.paths[u].resolve()), "sha256": selection.sha256(self.paths[u])}
++                      for u in selection.UPDATES]
+         self.outer_sha = write(self.outer, {"schema": "expanded_eval_outer_receipt_v1",
+             "run_id": self.reg["run_id"], "registration_sha256": self.regsha,
+             "stage": "ranking", "candidate_update": 348, "cohort": "ranking",
+@@ -84,69 +93,117 @@
+             "output_artifacts": artifacts, "worker_sha256": self.reg["source"]["worker_sha256"],
+             "evaluator_sha256": self.reg["source"]["evaluator_sha256"]})
+ 
+-    def produce(self):
+-        return selection.produce_selection(str(self.regpath), self.regsha,
+-            str(self.summary), self.summary_sha, str(self.outer), self.outer_sha,
+-            {u: (str(p), selection.sha256(p)) for u, p in self.result_paths.items()},
+-            str(self.d / "selection.json"))
+-
+-    def test_current_result_shape_and_validator(self):
++    def produce(self, output=None):
++        return selection.produce_selection(str(self.regpath), self.regsha, str(self.summary),
++            self.summary_sha, str(self.outer), self.outer_sha, self.bindings(),
++            str(output or self.d / "selection.json"))
++
++    def validate(self, record_path=None, record_sha=None):
++        record_path = record_path or self.d / "selection.json"
++        return selection.validate_selection_record(str(record_path), record_sha or selection.sha256(record_path),
++            str(self.regpath), self.regsha, str(self.summary), self.summary_sha,
++            str(self.outer), self.outer_sha, self.bindings())
++
++    def test_cap_record_replays_full_proof_chain(self):
+         record = self.produce()
++        self.assertEqual(record["winner_update"], 348)
++        self.assertEqual(record["ranking_summary_sha256"], self.summary_sha)
++        self.assertEqual(record["outer_receipt_sha256"], self.outer_sha)
++        self.assertEqual(self.validate(), record)
++
++    def test_all_1024_seeds_are_ordered_and_valid(self):
++        result = self.results[180]
++        self.assertEqual([r["seed"] for r in result["rows"]], list(selection.SEEDS))
++        result["rows"][512], result["rows"][513] = result["rows"][513], result["rows"][512]
++        self.refresh()
++        with self.assertRaisesRegex(ValueError, "seed"):
++            self.produce()
++
++    def test_wrong_flags_frame_and_telemetry_rejected(self):
++        mutations = [
++            (lambda r: r.update(terminated=False), "boundary flags"),
++            (lambda r: r.update(gameplay_frames=r["alive_frames"]), "fatal-frame"),
++            (lambda r: r.update(fatal_gameplay_frame=None), "telemetry"),
++            (lambda r: r.update(death_observed_lethal_contacts=None), "telemetry"),
++        ]
++        for mutate, message in mutations:
++            with self.subTest(message=message):
++                self.tearDown()
++                self.setUp()
++                mutate(self.results[180]["rows"][2])
++                self.refresh()
++                with self.assertRaisesRegex(ValueError, message):
++                    self.produce()
++
++    def test_invalid_cap_frames_and_flags_rejected(self):
++        r = self.results[180]["rows"][0]
++        r["gameplay_frames"] = selection.CAP + 1
++        self.refresh()
++        with self.assertRaisesRegex(ValueError, "raw frame bound"):
++            self.produce()
++
++    def test_outer_status_and_artifact_binding_rejected(self):
++        record = self.produce()
++        outer = json.loads(self.outer.read_text())
++        outer["raw_exit_code"] = 1
++        self.outer_sha = write(self.outer, outer)
++        with self.assertRaisesRegex(ValueError, "outer receipt"):
++            self.validate(record_sha=selection.sha256(self.d / "selection.json"))
++        self.refresh()
++        record = self.produce(self.d / "other.json")
++        outer = json.loads(self.outer.read_text())
++        outer["output_artifacts"].pop()
++        self.outer_sha = write(self.outer, outer)
++        with self.assertRaisesRegex(ValueError, "does not bind candidate"):
++            self.validate(self.d / "other.json", selection.sha256(self.d / "other.json"))
++
++    def test_summary_drift_and_wrong_winner_rejected(self):
+         out = self.d / "selection.json"
+-        validated = selection.validate_selection_record(str(out), selection.sha256(out),
+-            str(self.regpath), self.regsha,
+-            {u: (str(p), selection.sha256(p)) for u, p in self.result_paths.items()})
+-        self.assertEqual(validated["winner_update"], 348)
++        self.produce()
++        self.refresh(180)
++        with self.assertRaisesRegex(ValueError, "row argmax"):
++            self.validate(out, selection.sha256(out))
++
++    def test_metrics_tie_stale_registration_and_count(self):
++        self.results[180]["performance"]["mean"] += 1
++        self.refresh()
++        with self.assertRaisesRegex(ValueError, "performance mismatch"):
++            self.produce()
++        for result in self.results.values():
++            for i, r in enumerate(result["rows"]):
++                result["rows"][i] = row(i, 700)
++            result["caps"] = 0
++            result["death_causes"] = {cause: (1024 if cause == "normal_enemy" else 0)
++                                       for cause in selection.DEATH_CAUSES}
++            result["performance"] = {"worst": 700, "q1_bottom_quarter_mean": 700,
++                "mean": 700, "q4_top_quarter_mean": 700, "best": 700}
++        self.refresh(180)
++        self.assertEqual(self.produce(self.d / "tie.json")["winner_update"], 180)
++        self.results[180]["registration_sha256"] = "0" * 64
++        self.refresh()
++        with self.assertRaisesRegex(ValueError, "registration_sha256"):
++            self.produce(self.d / "stale.json")
++        self.tearDown()
++        self.setUp()
++        self.results[180]["rows"].pop()
++        self.refresh()
++        with self.assertRaisesRegex(ValueError, "episode count"):
++            self.produce(self.d / "count.json")
++
++    def test_348_winner_stays_noninvocable_and_collision_preserves_bytes(self):
++        out = self.d / "collision.json"
++        out.write_bytes(b"preserve-me\n")
++        with self.assertRaises(FileExistsError):
++            self.produce(out)
++        self.assertEqual(out.read_bytes(), b"preserve-me\n")
++        for u in selection.UPDATES:
++            self.results[u] = make_result(u, 1000 + u, self.regsha, self.pins[u], self.cohort_sha)
++        self.refresh(348)
++        record = self.produce(self.d / "incumbent.json")
++        self.assertEqual(record["winner_update"], 348)
+         self.assertEqual(record["confirmation_status"], "no_confirmation")
+         self.assertFalse(record["invocable_confirmation_record"])
+ 
+-    def test_wrong_summary_winner_rejected(self):
+-        self.refresh(180)
+-        with self.assertRaisesRegex(ValueError, "row argmax"):
+-            self.produce()
+-
+-    def test_wrong_1024_count_rejected(self):
+-        result = self.results[180]
+-        result["rows"] = result["rows"][:-1]
+-        result["episodes"] = 1023
+-        self.refresh()
+-        with self.assertRaisesRegex(ValueError, "episodes"):
+-            self.produce()
+-
+-    def test_stale_registration_hash_rejected(self):
+-        self.results[180]["registration_sha256"] = "0" * 64
+-        self.refresh()
+-        with self.assertRaisesRegex(ValueError, "registration_sha256"):
+-            self.produce()
+-
+-    def test_mean_mismatch_rejected(self):
+-        self.results[180]["performance"]["mean"] += 1
+-        self.refresh()
+-        with self.assertRaisesRegex(ValueError, "performance mismatch: mean"):
+-            self.produce()
+-
+-    def test_tie_chooses_earlier_update(self):
+-        for result in self.results.values():
+-            for row in result["rows"]:
+-                row["alive_frames"] = 700
+-                row["gameplay_frames"] = 701
+-                row["objective_return"] = 2
+-            result["performance"] = {"worst": 700, "q1_bottom_quarter_mean": 700.0,
+-                "mean": 700.0, "q4_top_quarter_mean": 700.0, "best": 700}
+-        self.refresh(180)
+-        self.assertEqual(self.produce()["winner_update"], 180)
+-
+-    def test_tampered_selection_winner_rejected(self):
+-        self.produce()
+-        out = self.d / "selection.json"
+-        record = json.loads(out.read_text())
+-        record["winner_update"] = 180
+-        write(out, record)
+-        with self.assertRaisesRegex(ValueError, "refs/winner"):
+-            selection.validate_selection_record(str(out), selection.sha256(out),
+-                str(self.regpath), self.regsha,
+-                {u: (str(p), selection.sha256(p)) for u, p in self.result_paths.items()})
+-
+     def tearDown(self):
+         self.tmp.cleanup()
+ 

@@ -1,0 +1,72 @@
+{
+  "schema": "d2_gradient_alignment_continuation_preparation_plan_v1",
+  "status": "preparation_only_no_campaign_launch",
+  "scope": "Prepare one normal D2 continuation, phase 132 to 180, with one CPU-shadow gradient alignment probe per update. No training, rollout, evaluation, registration, launch, environment, commit, PR, deployment, or external action.",
+  "continuation": {
+    "run_id": "D2-gradient-alignment-20261025-r1",
+    "run_seed": 810631976,
+    "phase": "D2",
+    "parent_phase_update": 132,
+    "new_updates": 48,
+    "local_update_range": [1, 48],
+    "phase_update_range": [133, 180],
+    "parent_local_updates": 60,
+    "parent_cumulative_updates": 180,
+    "expected_cumulative_updates": 228,
+    "parent_checkpoint_sha256": "bf858ed9975e6f994acbca011895b140be6943cf1852c88b54549a9c8db0c1a8",
+    "parent_registration_sha256": "bf425a502987b51b4e637cbe750eee652ce359baa07e229af84f291da3e931ed",
+    "parent_terminal_receipt_sha256": "fce4262d97f4cca11d8c28dd68fe4a4ec8fa48ba747c393ab864a380f07f90a3",
+    "parent_full_D2_inclusive_wall_seconds": 2222.619523167091,
+    "resume": "Same master seed and exact saved next_episode_indices from accepted phase-132 candidate. Start a fresh environment; preserve 64 prior live-episode abandonment records. This is not native exact-trajectory resume.",
+    "evaluations": "Entry at phase 132 must match accepted predecessor evaluation rows after sorting by seed. Evaluate entry and phase 180 only, using the same 64 D2 development seeds and deterministic argmax.",
+    "gates": "Require exact successful normal parent receipt, complete phase-132 checkpoint, registration and checkpoint file digests as distinct pins, complete update boundaries, exact source/runtime pins, and unchanged provisional checkpoint eligibility. No failed or diagnostic lineage, D1 restart, D3, student, B, or E path. Mean alive frames >=3060 remains a separate progress gate; score and gradient alignment are out of gate."
+  },
+  "runtime_transition": {
+    "old_runtime_root": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/critic-diagnostic-parent-prepare-20261025-r1/runtime",
+    "new_runtime_root_read_only": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/gradient-alignment-prepare-luna-20261025-r3/own/runtime",
+    "old_ppo_sha256": "abf25f327f9ff749a8a32de4edb07705f12ebcdc5cd0eba8775ad4f693eff1d5",
+    "new_ppo_sha256": "b3cef91b1293056e9d1820a94fd5730accae4c5728d23566857a6c3a0e1eeac5",
+    "old_gradient_alignment_helper": "absent",
+    "new_gradient_alignment_helper_sha256": "cd7d16aebe9eed247b0a4747956d8106991b3637ab0b45118ea9e7ebc0c1e25f",
+    "semantics": "measurement_only_CPU_shadow transition; not native MPS gradients",
+    "other_runtime_files": "All 11 other runtime files, including native 022d41dde9bace0b4f4c4c06b9b4ed007bc2c60013cd98734086e587d7bb997e, must retain exact source pins. Dependency inventory identity remains 2957832457c39751998012f4aeb4440f5d7570250ae9ab072ee10d86dd970ed6.",
+    "registration": "Parent registration must pin all old and new runtime files and include runtime_transition with exact old/new PPO and helper identities. Runtime manifest hashes intentionally differ; validator accepts only the audited PPO replacement and helper addition. Never ignore PPO identity."
+  },
+  "gradient_alignment": {
+    "enabled_in_new_run_only": true,
+    "backend": "cpu_shadow",
+    "snapshot": "first existing 512-sample minibatch before its live optimizer step, per update",
+    "probe_count_per_update": 1,
+    "measures_live_MPS_gradients": false,
+    "full_rollout_gradient": false,
+    "coverage": "All shared trunk parameters, both layers, embeddings/input projections, and final norm.",
+    "checks": "Finite global and group reductions; coverage counts; dot/norm/cosine/norm-ratio identities; omit cosine and ratio when undefined; live preclip norm/clip coefficient formula. Do not equate averaged metrics.grad_norm with the single probe's live_preclip_grad_norm.",
+    "minibatch_count_field": "Current helper uses minibatch_count for the number of samples (512), not number of minibatches. Validator and documentation preserve this existing meaning.",
+    "interpretation": "Diagnostic only. No competence, promotion, or training-eligibility gate. Synthetic measurements are not production runtime guarantees."
+  },
+  "budget": {
+    "registered_work_seconds": 1600,
+    "registered_total_seconds": 1800,
+    "rss_cap_bytes": 6442450944,
+    "mps_cap_bytes": 6442450944,
+    "accepted_parent_metrics_sha256": "c1a7d16c7a7d0a18b839dc0ff24a13be52884ce3ac580b0f55571f6d5e7fc920",
+    "steady_intervals": 59,
+    "maximum_steady_interval_seconds": 24.653448292054236,
+    "maximum_shadow_added_seconds_per_probe": 0.29457124997861683,
+    "safety_multiplier": 1.15,
+    "entry_final_evaluation_allowance_seconds": 150,
+    "equation": "24.653448292054236*48*1.15 + 0.29457124997861683*48*1.15 + 150 = 1527.1306787202134 < 1600",
+    "estimated_work_seconds": 1527.1306787202134,
+    "resource_note": "Separate RSS and MPS caps unchanged. Keep external parent observer aggregating owned RSS through final CPU decode. No internal RSS watcher thread.",
+    "evidence_limit": "Synthetic PPO and MPS probe measurements only; overhead is not a production guarantee. Existing guard remains unchanged."
+  },
+  "source_evidence": {
+    "accepted_parent_checkpoint": "learning/runs/v2/D2-continuation-20261025-r1/checkpoint-000132-candidate.pt",
+    "accepted_parent_receipt": "learning/runs/v2/d2-continuation-parent-terminal-audit-20261025-r1/parent-terminal-receipt.json",
+    "accepted_parent_registration_sha256": "bf425a502987b51b4e637cbe750eee652ce359baa07e229af84f291da3e931ed",
+    "pointwise_measurement_validation": "learning/runs/v2/gradient-alignment-parent-prepare-20261025-r1/pointwise-validation-plan-r3.json, SHA-256 d07af78a2322b5df2f5139c65b17c055e40fc05f45f9cb9a18dcfa482702db07; proof fc6f728d5f1f1f95124518e75662605ba796d1237cd4413751fd8edf469e915d; same-run exact live model/Adam/grad/RNG/modes/batch invariance passed with mutation negative control. Independent MPS bitwise replay is not an acceptance requirement because baseline repeats differ by 1.1641532182693481e-10 in Adam exp_avg. Historical separate-run parity blocker remains preserved; current pointwise reconciliation governs measurement acceptance.",
+    "Haiku_review": "Frozen review is running in parallel. Parent must resolve it before any campaign launch. This preparation does not inspect partial review output."
+  },
+  "owned_output_only": true,
+  "no_launch": true
+}

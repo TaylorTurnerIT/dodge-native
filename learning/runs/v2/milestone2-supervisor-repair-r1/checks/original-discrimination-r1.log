@@ -1,0 +1,200 @@
+test_internally_valid_replacement_rejected_by_original_anchor (__main__.SupervisorTests.test_internally_valid_replacement_rejected_by_original_anchor) ... FAIL
+test_replacement_during_identity_verification_rejected (__main__.SupervisorTests.test_replacement_during_identity_verification_rejected) ... FAIL
+test_replacement_after_final_worker_starts_fails_original_anchor (__main__.SupervisorTests.test_replacement_after_final_worker_starts_fails_original_anchor) ... FAIL
+test_replacement_during_final_verification_fails (__main__.SupervisorTests.test_replacement_during_final_verification_fails) ... FAIL
+test_late_exit_without_poll_iteration_rejected (__main__.SupervisorTests.test_late_exit_without_poll_iteration_rejected) ... FAIL
+test_prelaunch_cutoff_launches_nothing (__main__.SupervisorTests.test_prelaunch_cutoff_launches_nothing) ... FAIL
+test_between_stages_deadline_prevents_next_launch (__main__.SupervisorTests.test_between_stages_deadline_prevents_next_launch) ... FAIL
+test_expensive_native_parse_rejected_and_receipts_survive (__main__.SupervisorTests.test_expensive_native_parse_rejected_and_receipts_survive) ... FAIL
+test_final_revocation_fails (__main__.SupervisorTests.test_final_revocation_fails) ... FAIL
+test_final_deadline_fails (__main__.SupervisorTests.test_final_deadline_fails) ... FAIL
+test_campaign_kill_race_retains_cleanup_stage_overall (__main__.SupervisorTests.test_campaign_kill_race_retains_cleanup_stage_overall) ... ERROR
+test_exit_between_timeout_and_kill_reaped (__main__.CleanupTests.test_exit_between_timeout_and_kill_reaped) ... ERROR
+
+======================================================================
+ERROR: test_campaign_kill_race_retains_cleanup_stage_overall (__main__.SupervisorTests.test_campaign_kill_race_retains_cleanup_stage_overall)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/snapshots/learning/scripts/v2_validate_environment.py", line 541, in campaign
+    require(time.monotonic() < deadline, "Campaign wall guard expired")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/snapshots/learning/scripts/v2_validate_environment.py", line 65, in require
+    raise ValueError(message)
+ValueError: Campaign wall guard expired
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/snapshots/learning/scripts/v2_validate_environment.py", line 496, in stop_owned
+    process.wait(timeout=2)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/test_supervisor.py", line 62, in wait
+    raise value
+subprocess.TimeoutExpired: Command 'synthetic' timed out after 2 seconds
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/test_supervisor.py", line 344, in test_campaign_kill_race_retains_cleanup_stage_overall
+    result = self.failed("Campaign wall guard expired")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/test_supervisor.py", line 169, in failed
+    self.campaign()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/test_supervisor.py", line 165, in campaign
+    H.campaign(SimpleNamespace(identity=self.identity_path, output=self.output, run_id="pure-test"))
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/snapshots/learning/scripts/v2_validate_environment.py", line 576, in campaign
+    overall["owned_process_stop"] = stop_owned(active)
+                                    ^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/snapshots/learning/scripts/v2_validate_environment.py", line 498, in stop_owned
+    os.killpg(process.pid, signal.SIGKILL)
+  File "/Users/taylor/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1202, in _execute_mock_call
+    raise result
+ProcessLookupError: synthetic group exited before KILL
+
+======================================================================
+ERROR: test_exit_between_timeout_and_kill_reaped (__main__.CleanupTests.test_exit_between_timeout_and_kill_reaped)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/snapshots/learning/scripts/v2_validate_environment.py", line 496, in stop_owned
+    process.wait(timeout=2)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/test_supervisor.py", line 62, in wait
+    raise value
+subprocess.TimeoutExpired: Command 'synthetic' timed out after 2 seconds
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/test_supervisor.py", line 435, in test_exit_between_timeout_and_kill_reaped
+    result, send = self.stop(process, [None, ProcessLookupError("KILL race")])
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/test_supervisor.py", line 410, in stop
+    result = H.stop_owned(process)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/snapshots/learning/scripts/v2_validate_environment.py", line 498, in stop_owned
+    os.killpg(process.pid, signal.SIGKILL)
+  File "/Users/taylor/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/unittest/mock.py", line 1202, in _execute_mock_call
+    raise result
+ProcessLookupError: KILL race
+
+======================================================================
+FAIL: test_internally_valid_replacement_rejected_by_original_anchor (__main__.SupervisorTests.test_internally_valid_replacement_rejected_by_original_anchor)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/test_supervisor.py", line 185, in test_internally_valid_replacement_rejected_by_original_anchor
+    with self.assertRaisesRegex(ValueError, "identity document changed"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_replacement_during_identity_verification_rejected (__main__.SupervisorTests.test_replacement_during_identity_verification_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/test_supervisor.py", line 205, in test_replacement_during_identity_verification_rejected
+    with self.assertRaisesRegex(ValueError, "identity document changed"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_replacement_after_final_worker_starts_fails_original_anchor (__main__.SupervisorTests.test_replacement_after_final_worker_starts_fails_original_anchor)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/test_supervisor.py", line 213, in test_replacement_after_final_worker_starts_fails_original_anchor
+    result = self.failed("identity document changed")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/test_supervisor.py", line 168, in failed
+    with self.assertRaisesRegex((ValueError, RuntimeError), pattern):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'RuntimeError'>) not raised
+
+======================================================================
+FAIL: test_replacement_during_final_verification_fails (__main__.SupervisorTests.test_replacement_during_final_verification_fails)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/test_supervisor.py", line 225, in test_replacement_during_final_verification_fails
+    self.failed("identity document changed")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/test_supervisor.py", line 168, in failed
+    with self.assertRaisesRegex((ValueError, RuntimeError), pattern):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'RuntimeError'>) not raised
+
+======================================================================
+FAIL: test_late_exit_without_poll_iteration_rejected (__main__.SupervisorTests.test_late_exit_without_poll_iteration_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/test_supervisor.py", line 241, in test_late_exit_without_poll_iteration_rejected
+    result = self.failed("trajectory wall guard expired")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/test_supervisor.py", line 168, in failed
+    with self.assertRaisesRegex((ValueError, RuntimeError), pattern):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'RuntimeError'>) not raised
+
+======================================================================
+FAIL: test_prelaunch_cutoff_launches_nothing (__main__.SupervisorTests.test_prelaunch_cutoff_launches_nothing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/test_supervisor.py", line 260, in test_prelaunch_cutoff_launches_nothing
+    self.failed("Overnight cutoff reached")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/test_supervisor.py", line 168, in failed
+    with self.assertRaisesRegex((ValueError, RuntimeError), pattern):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'RuntimeError'>) not raised
+
+======================================================================
+FAIL: test_between_stages_deadline_prevents_next_launch (__main__.SupervisorTests.test_between_stages_deadline_prevents_next_launch)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/test_supervisor.py", line 271, in test_between_stages_deadline_prevents_next_launch
+    self.failed("Campaign wall guard expired")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/test_supervisor.py", line 168, in failed
+    with self.assertRaisesRegex((ValueError, RuntimeError), pattern):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'RuntimeError'>) not raised
+
+======================================================================
+FAIL: test_expensive_native_parse_rejected_and_receipts_survive (__main__.SupervisorTests.test_expensive_native_parse_rejected_and_receipts_survive)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/test_supervisor.py", line 299, in test_expensive_native_parse_rejected_and_receipts_survive
+    self.failed("native_parity wall guard expired")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/test_supervisor.py", line 168, in failed
+    with self.assertRaisesRegex((ValueError, RuntimeError), pattern):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'RuntimeError'>) not raised
+
+======================================================================
+FAIL: test_final_revocation_fails (__main__.SupervisorTests.test_final_revocation_fails)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/test_supervisor.py", line 229, in test_final_revocation_fails
+    self.failed("No parent-owned")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/test_supervisor.py", line 168, in failed
+    with self.assertRaisesRegex((ValueError, RuntimeError), pattern):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'RuntimeError'>) not raised
+
+======================================================================
+FAIL: test_final_deadline_fails (__main__.SupervisorTests.test_final_deadline_fails)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/test_supervisor.py", line 233, in test_final_deadline_fails
+    self.failed("Campaign wall guard expired")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-supervisor-repair-r1/test_supervisor.py", line 168, in failed
+    with self.assertRaisesRegex((ValueError, RuntimeError), pattern):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'RuntimeError'>) not raised
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.030s
+
+FAILED (failures=10, errors=2)

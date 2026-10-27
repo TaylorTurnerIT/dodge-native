@@ -1,0 +1,132 @@
+   Compiling target-lexicon v0.13.5
+   Compiling quote v1.0.47
+   Compiling num-traits v0.2.19
+   Compiling memoffset v0.9.1
+   Compiling matrixmultiply v0.3.11
+   Compiling heck v0.5.0
+    Checking rawpointer v0.2.1
+   Compiling indoc v2.0.8
+    Checking once_cell v1.21.4
+    Checking unindent v0.2.4
+    Checking rustc-hash v2.1.3
+   Compiling syn v3.0.4
+   Compiling syn v2.0.119
+   Compiling pyo3-build-config v0.27.2
+    Checking num-integer v0.1.47
+    Checking num-complex v0.4.6
+    Checking image v0.24.9
+    Checking ndarray v0.17.2
+    Checking macroquad v0.4.16
+   Compiling serde_derive v1.0.229
+   Compiling pyo3-ffi v0.27.2
+   Compiling pyo3-macros-backend v0.27.2
+   Compiling pyo3 v0.27.2
+   Compiling numpy v0.27.1
+    Checking serde v1.0.229
+    Checking dodge-viewer v0.1.0 (/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-viewer)
+    Checking dodge-native-runner v0.1.0 (/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-native-runner)
+   Compiling pyo3-macros v0.27.2
+    Checking dodge-rl-env v0.1.0 (/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-rl-env)
+error[E0277]: `(dyn for<'a> std::ops::FnMut(&'a dodge_core::NativeGame) + std::marker::Send + 'static)` cannot be shared between threads safely
+   --> crates/dodge-rl-env/src/python.rs:246:8
+    |
+246 | struct PyVecDodgeEnv {
+    |        ^^^^^^^^^^^^^ `(dyn for<'a> std::ops::FnMut(&'a dodge_core::NativeGame) + std::marker::Send + 'static)` cannot be shared between threads safely
+    |
+    = help: the trait `std::marker::Sync` is not implemented for `(dyn for<'a> std::ops::FnMut(&'a dodge_core::NativeGame) + std::marker::Send + 'static)`
+    = note: required for `Unique<dyn FnMut(&NativeGame) + Send>` to implement `std::marker::Sync`
+note: required because it appears within the type `Box<dyn FnMut(&NativeGame) + Send>`
+   --> /rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/boxed.rs:234:11
+note: required because it appears within the type `Option<Box<dyn FnMut(&NativeGame) + Send>>`
+   --> /rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/option.rs:597:9
+note: required because it appears within the type `env::Slot`
+   --> crates/dodge-rl-env/src/env.rs:61:8
+    |
+ 61 | struct Slot {
+    |        ^^^^
+note: required because it appears within the type `std::marker::PhantomData<env::Slot>`
+   --> /rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/marker.rs:811:11
+note: required because it appears within the type `alloc::raw_vec::RawVec<env::Slot>`
+   --> /rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/raw_vec/mod.rs:73:18
+note: required because it appears within the type `std::vec::Vec<env::Slot>`
+   --> /rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/vec/mod.rs:438:11
+note: required because it appears within the type `env::VecDodgeEnv`
+   --> crates/dodge-rl-env/src/env.rs:257:12
+    |
+257 | pub struct VecDodgeEnv {
+    |            ^^^^^^^^^^^
+note: required because it appears within the type `python::PyVecDodgeEnv`
+   --> crates/dodge-rl-env/src/python.rs:246:8
+    |
+246 | struct PyVecDodgeEnv {
+    |        ^^^^^^^^^^^^^
+note: required by a bound in `pyo3::impl_::pyclass::assertions::assert_pyclass_sync`
+   --> /Users/taylor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pyo3-0.27.2/src/impl_/pyclass/assertions.rs:12:22
+    |
+ 10 | pub const fn assert_pyclass_sync<T>()
+    |              ------------------- required by a bound in this function
+ 11 | where
+ 12 |     T: PyClassSync + Sync,
+    |                      ^^^^ required by this bound in `assert_pyclass_sync`
+    = note: the full name for the type has been written to '/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/target/debug/deps/dodge_rl_env-33ee2330e9cbab6f.long-type-8681396599404445869.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+
+error[E0277]: `(dyn for<'a> std::ops::FnMut(&'a dodge_core::NativeGame) + std::marker::Send + 'static)` cannot be shared between threads safely
+   --> crates/dodge-rl-env/src/python.rs:298:31
+    |
+298 |         let value = py.detach(|| self.inner.observations()).map_err(env_error)?;
+    |                        ------ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `(dyn for<'a> std::ops::FnMut(&'a dodge_core::NativeGame) + std::marker::Send + 'static)` cannot be shared between threads safely
+    |                        |
+    |                        required by a bound introduced by this call
+    |
+    = help: the trait `std::marker::Sync` is not implemented for `(dyn for<'a> std::ops::FnMut(&'a dodge_core::NativeGame) + std::marker::Send + 'static)`
+    = note: required for `Unique<dyn FnMut(&NativeGame) + Send>` to implement `std::marker::Sync`
+note: required because it appears within the type `Box<dyn FnMut(&NativeGame) + Send>`
+   --> /rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/boxed.rs:234:11
+note: required because it appears within the type `Option<Box<dyn FnMut(&NativeGame) + Send>>`
+   --> /rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/option.rs:597:9
+note: required because it appears within the type `env::Slot`
+   --> crates/dodge-rl-env/src/env.rs:61:8
+    |
+ 61 | struct Slot {
+    |        ^^^^
+note: required because it appears within the type `std::marker::PhantomData<env::Slot>`
+   --> /rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/marker.rs:811:11
+note: required because it appears within the type `alloc::raw_vec::RawVec<env::Slot>`
+   --> /rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/raw_vec/mod.rs:73:18
+note: required because it appears within the type `std::vec::Vec<env::Slot>`
+   --> /rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/vec/mod.rs:438:11
+note: required because it appears within the type `env::VecDodgeEnv`
+   --> crates/dodge-rl-env/src/env.rs:257:12
+    |
+257 | pub struct VecDodgeEnv {
+    |            ^^^^^^^^^^^
+note: required because it appears within the type `python::PyVecDodgeEnv`
+   --> crates/dodge-rl-env/src/python.rs:246:8
+    |
+246 | struct PyVecDodgeEnv {
+    |        ^^^^^^^^^^^^^
+    = note: required for `&python::PyVecDodgeEnv` to implement `std::marker::Send`
+note: required because it's used within this closure
+   --> crates/dodge-rl-env/src/python.rs:298:31
+    |
+298 |         let value = py.detach(|| self.inner.observations()).map_err(env_error)?;
+    |                               ^^
+    = note: required for `{closure@crates/dodge-rl-env/src/python.rs:298:31: 298:33}` to implement `pyo3::marker::Ungil`
+note: required by a bound in `pyo3::Python::<'py>::detach`
+   --> /Users/taylor/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pyo3-0.27.2/src/marker.rs:596:12
+    |
+594 |     pub fn detach<T, F>(self, f: F) -> T
+    |            ------ required by a bound in this associated function
+595 |     where
+596 |         F: Ungil + FnOnce() -> T,
+    |            ^^^^^ required by this bound in `Python::<'py>::detach`
+    = note: the full name for the type has been written to '/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/target/debug/deps/dodge_rl_env-33ee2330e9cbab6f.long-type-8681396599404445869.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: use parentheses to call this trait object
+    |
+298 |         let value = py.detach((|| self.inner.observations())(/* &dodge_core::NativeGame */)).map_err(env_error)?;
+    |                               +                            ++++++++++++++++++++++++++++++++
+
+For more information about this error, try `rustc --explain E0277`.
+error: could not compile `dodge-rl-env` (lib test) due to 2 previous errors

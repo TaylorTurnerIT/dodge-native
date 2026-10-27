@@ -1,0 +1,35 @@
+{
+  "schema": "confirmed324_transition_parent_review_v1",
+  "status": "blocking_preparation_finding",
+  "reviewer": {
+    "provider_instance_id": "codex",
+    "model": "gpt-6-luna",
+    "reasoning_effort": "medium"
+  },
+  "target": "learning/runs/v2/confirmed324-transition-parent-repair-20261026-r3",
+  "source_hash_manifest": "learning/runs/v2/confirmed324-transition-parent-repair-20261026-r3/source-hashes.json",
+  "source_hash_manifest_sha256": "5f08413b33869d40eeb4a6af9a53af29372c76ce8c0d6d5bb5fa4462f5294f71",
+  "verified_source_hashes": {
+    "README.md": "776e8e7f6f53c8a538564c2e2a0fc23adfe15ff5beef9f6c7b95dca96602259f",
+    "attempt_claim.py": "bf993c076c6c3270a3efb89f42d3ca86a070a044da286b42b4803790c3759206",
+    "driver_binding.py": "082e2c9439395a4ed478124ca39d778902a09a36e78623aef0c59b3b99f86e64",
+    "fingerprints.py": "6ef9cf3f08fe800f54230801a921a2f5c82e47e5013ef3087ead6499d2533d61",
+    "rng_reference.py": "9abfb7f892fc3a0b62d665a390effcfd7cbf4161ccf1ade3a9240d9392172917",
+    "test_regressions.py": "2d4ef71f35fdd602c056ca3ad13abd25118411bed49ecbd28c650d59e11204fb",
+    "test_transition.py": "dee7ac8916df53f4ca06e6050705890d63eda00a5606b444cf27b9439f0d8b7b",
+    "transition.py": "bda044d213db3424a3b578c7c63cb30d942e9c8e5527c1e854abe03abcf83e03"
+  },
+  "finding_count": 1,
+  "blocking_finding": {
+    "severity": "high",
+    "path": "driver_binding.py",
+    "lines": "48-55,64-70",
+    "summary": "Loaded callback implementation is not bound to pinned source bytes; caller-controlled hash assertion can authorize substituted callable."
+  },
+  "limits": [
+    "Static source review only; no tests rerun.",
+    "No MPS/game/environment imports, real RNG reads, production checkpoint deserialization, training, evaluation, or launch.",
+    "Real RNG reference pending_notrun; constructor and environment seeds remain driver-deferred.",
+    "No runtime qualification, readiness, or launch authority; parent acceptance required."
+  ]
+}

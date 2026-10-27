@@ -1,0 +1,367 @@
+{
+  "accepted_by_parent": false,
+  "artifacts": {
+    "files": [
+      "long_d2.py (r3)",
+      "long_d2_executor.py (stdlib)",
+      "tests/probes",
+      "capsule freeze",
+      "identity doc"
+    ],
+    "new_dir": "learning/runs/v2/postovernight-long-D2-prepare-r3/",
+    "retain": [
+      "prepare-r1",
+      "prepare-r2",
+      "all failed attempts",
+      "r1/r2 reviews"
+    ]
+  },
+  "authority": {
+    "decision_point_D": "last observation in final_decision(): sigpending scan, latch counters, guard failure, one lease read, monotonic<deadline; afterwards only os._exit(code) or failure-only downgrade writes then exit 1",
+    "executor_failure_path": "SIGTERM supervisor session at spawn+7215s, SIGKILL after 5s, record reject; never retry/resume; never writes campaign output",
+    "in_process_receipt": {
+      "acceptance_authority": "outer-executor-receipt",
+      "authoritative": false,
+      "internal_decision": [
+        "complete_pending_outer_acceptance",
+        "failed"
+      ]
+    },
+    "lease_commit_point": "none; lease cancellable until executor post-reap read; cancel at any time -> reject (strengthens live cancellation contract)",
+    "outer_executor_accept_rules": [
+      "WIFEXITED and code in {0,2}",
+      "executor sent no cancellation signal before observed exit",
+      "post-reap lease strict 15-field equal and cancel_requested is False",
+      "reap_monotonic - spawn_monotonic <= 7200",
+      "internal receipt complete_pending_outer_acceptance, expected_exit_code == raw code, manifest sha matches",
+      "every output file listed and rehash matches; no extra/.pending/.failed-publication",
+      "post-reap pure preflight passes all pins incl. 75 legacy module-origin bytes and original identity; controller sha == protocol",
+      "owned worker group and supervisor session positively absent"
+    ],
+    "post_D_forbidden": [
+      "handler restoration",
+      "unmask",
+      "thread join",
+      "flush",
+      "atexit/interpreter finalization",
+      "hash",
+      "normal write",
+      "upgrade of decision"
+    ],
+    "post_D_signal_semantics": "INT/TERM/ALRM blocked in main from before D to _exit; other threads positively absent; pending signals discarded at _exit; raw -2/-14/-15 impossible from owned signals",
+    "stated_unclosed_in_process_window": "bytecodes between last read at D and os._exit; closed by executor rules 2/3/4/7; third-party direct signals to supervisor PID in this window are outside channel of record"
+  },
+  "byte_identical_required": [
+    "Learner",
+    "Schedule",
+    "run_schedule",
+    "environment_kwargs",
+    "counter_report",
+    "compare_control",
+    "tree_fingerprint",
+    "assert_equal_tree",
+    "stop_owned",
+    "assert_lease",
+    "check_module_origins",
+    "worker body",
+    "validate_long_config",
+    "expected_lease",
+    "old 1800/cutoff validators",
+    "module-origin policy"
+  ],
+  "candidate_inspected": {
+    "all_rehashed_match": true,
+    "capsule_final_manifest_sha256": "b1ccbeefe219c24f33b34db19178f4af68baa9674a058b066738231282ef25a1",
+    "config_sha256": "2ac814d3842228017d09669364a8391344722da56ad19f41ad9030dbb930c2db",
+    "controller": "learning/runs/v2/postovernight-long-D2-prepare-r2/long_d2.py",
+    "controller_sha256": "0fe9970187e5c4c2576ff2929a475025cd5731a538325ffac78f172304af1d01",
+    "identity_sha256": "969d825968e7782bc377cfd4d9312cf186df351e5219bff64d849f3d79781ed0",
+    "protocol_r2_sha256": "f662a4aba18e144098faeb01d398b67f489aea7549a9ebe4a5959f993e1cff09"
+  },
+  "design_id": "postovernight-long-D2-terminal-design-opus-r1",
+  "function_changes": {
+    "Guard.close": "unchanged plus positive absence fact",
+    "Guard.start": "two thread.start -> start_masked_thread; locks, 0.5s/5s bounds, memory stream unchanged",
+    "ProcessLatch(new; replaces cancellation_signals and absolute_alarm)": "install once before any thread/output; handlers for INT/TERM/ALRM never saved/restored; single ITIMER_REAL armed once, never if deadline passed; phases normal/failure/final; handler raises at most once, sets FAILURE before raising; FAILURE latches only; scan_pending_blocked uses sigpending + sigwait on non-empty set (no sigtimedwait on macOS)",
+    "_supervise": "remove all alarm contexts; LATCH.enter_failure first in every failure handler; cleanup_owned_once; post-publication: authority(force) -> guard.close -> stream.close -> last terminal write -> authority(force) -> final_decision",
+    "after_handler_restore": "deleted",
+    "cleanup_owned_once(new wrapper)": "stop_owned byte-identical; at most one failure-phase repeat if a NORMAL raise aborted first attempt; stable requires reaped+group_empty+no errors; >10s -> publication_failure",
+    "final_decision(new)": "block OWNED, disarm timer, flush, require enumerate()==[main], lease_check, scan_pending_blocked, guard failure, deadline -> D; downgrade-only revoke if decided 1",
+    "main run": "os._exit(supervise(args)); preflight/worker paths unchanged",
+    "publish_terminal": "no cancellation_signals; check() consults LATCH; provisional receipt fields",
+    "revoke_terminal": "adds internal_decision=failed; otherwise unchanged, failure-only, idempotent",
+    "start_masked_thread(new)": "block OWNED around Thread.start so threads inherit blocked mask",
+    "supervise": "LATCH.install(started+BUDGET); _supervise; return final_decision result"
+  },
+  "lease": "15-field schema unchanged; controller_sha256 -> r3",
+  "non_claims": [
+    "-14 cause unproven",
+    "[D,_exit] window stated not eliminated; executor closes",
+    "no ML defect claimed",
+    "MPS restore/entry/throughput/PPO/qualification untested"
+  ],
+  "parent_protocol_r3_fields": [
+    "controller_path",
+    "controller_sha256",
+    "capsule_manifest_sha256",
+    "identity_sha256",
+    "executor_path",
+    "executor_sha256",
+    "acceptance_authority=outer-executor-receipt",
+    "acceptance_receipt_path (outside campaign output)",
+    "in_process_terminal_receipt_semantics=provisional_internal_decision",
+    "executor_wall_rule=reap_minus_spawn_le_7200",
+    "executor_kill_after_seconds=7215 (failure-only)",
+    "cancellation_channel_of_record=[lease.cancel_requested, executor_forwarded_signal]",
+    "supersedes=protocol-r2 (r1/r2 retained)",
+    "registered_at"
+  ],
+  "root_causes": [
+    {
+      "confidence": "confirmed",
+      "findings": [
+        "SUP-001-R2",
+        "SUP-002-R2",
+        "r1 SUP-001",
+        "r1 SUP-002"
+      ],
+      "id": "RC-1",
+      "source": [
+        "long_d2.py:407-465",
+        "long_d2.py:1281-1317"
+      ],
+      "summary": "Teardown restores saved process state (SIG_DFL/default_int_handler, signal mask) after the last in-process authority check; any check placed before a restoration leaves that restoration unchecked, so r2 moved the blind interval from alarm restoration to the final pthread_sigmask(SIG_SETMASK)."
+    },
+    {
+      "confidence": "source_proven_latent",
+      "id": "RC-2",
+      "source": [
+        "long_d2.py:640-663"
+      ],
+      "summary": "Per-context absolute_alarm save/arm/restore entered ~7 times; post-deadline entry arms max(1e-6,...) i.e. a 1us asynchronous raise that can land in contextlib __exit__ or generator finally, skipping/deferring restoration of stale old=SIG_DFL."
+    },
+    {
+      "case": "r2 old-late-terminal-write-closure raw -14",
+      "confidence": "plausible_unproven",
+      "discriminating_test": "T-ALRM-3",
+      "facts": [
+        "BUDGET=0.8, 1.1s delay at terminal-after",
+        "failed wall_guard terminal written at wall 0.8069",
+        "manifest absent, owned group reaped and absent",
+        "events end at trigger, no guard_closed event, no traceback/observation"
+      ],
+      "hypotheses_ranked": [
+        "deferred/skipped absolute_alarm generator finally restoring SIG_DFL while a post-deadline 1us timer from an overlapping context is live (two @contextmanager layers via probe alarm wrapper)",
+        "process-directed ITIMER_REAL delivered to an unblocked non-main thread with disposition evaluated after main restored SIG_DFL (weakened: Guard threads self-exit ~0.05s after deadline)"
+      ],
+      "id": "RC-3",
+      "retry_performed": false
+    }
+  ],
+  "sequence": [
+    "parent reconciles this design",
+    "normal Codex implements prepare-r3",
+    "new frozen supervisor review",
+    "one authorized 7200s run via executor"
+  ],
+  "status": "design_only",
+  "test_rules": [
+    "every injected test paired with no-mutation false-pass control requiring in-process 2/0 AND executor ACCEPT",
+    "assert trigger_fired and ML_imports==[] and outcome category; API/import errors are not failures",
+    "kill test: seam tests run against frozen r2 (seam=final SIG_SETMASK) must fail with AssertionError for T-FU, T-SIG, T-ALRM-3",
+    "OS tests in fresh subprocess with actual Guard and owned stdlib worker; all attempts retained, no retries"
+  ],
+  "tests": [
+    {
+      "expect": "1 revoked",
+      "id": "T-FU-1",
+      "inject": "lease cancel + 0.65s",
+      "modes": [
+        "closure",
+        "pass"
+      ],
+      "seam": "S_teardown"
+    },
+    {
+      "expect": "1",
+      "id": "T-FU-2",
+      "inject": "pinned input change + 5.1s",
+      "modes": [
+        "closure",
+        "pass"
+      ],
+      "seam": "S_teardown"
+    },
+    {
+      "expect": "1 wall_guard, no -14",
+      "id": "T-FU-3",
+      "inject": "BUDGET 0.8, 1.0s delay",
+      "modes": [
+        "closure",
+        "pass"
+      ],
+      "seam": "S_teardown"
+    },
+    {
+      "expect": "1",
+      "id": "T-FU-4",
+      "inject": "cancel|input|deadline",
+      "modes": [
+        "closure",
+        "pass"
+      ],
+      "seam": "S_pre_D"
+    },
+    {
+      "expect": "provisional 2/0; executor REJECT",
+      "id": "T-FU-5",
+      "inject": "cancel|input|deadline delay",
+      "modes": [
+        "closure",
+        "pass"
+      ],
+      "seam": "S_D_exit"
+    },
+    {
+      "expect": "1 cancelled, not -15",
+      "id": "T-SIG-1",
+      "inject": "real SIGTERM",
+      "modes": [
+        "closure",
+        "pass"
+      ],
+      "seam": "S_teardown"
+    },
+    {
+      "expect": "1, no KeyboardInterrupt trace, not -2",
+      "id": "T-SIG-2",
+      "inject": "real SIGINT",
+      "modes": [
+        "closure",
+        "pass"
+      ],
+      "seam": "S_teardown"
+    },
+    {
+      "expect": "1",
+      "id": "T-SIG-3",
+      "inject": "SIGTERM|SIGINT pending",
+      "modes": [
+        "closure",
+        "pass"
+      ],
+      "seam": "S_pre_D"
+    },
+    {
+      "expect": "raw==provisional code, never -15/-2; executor-forwarded -> REJECT",
+      "id": "T-SIG-4",
+      "inject": "SIGTERM|SIGINT after last scan",
+      "modes": [
+        "closure",
+        "pass"
+      ],
+      "seam": "S_D_exit"
+    },
+    {
+      "expect": "1, group absent",
+      "id": "T-SIG-5",
+      "inject": "coalesced SIGTERMx2; SIGINT+SIGTERM during worker"
+    },
+    {
+      "expect": "1, raised once",
+      "id": "T-ALRM-1",
+      "inject": "timer in NORMAL hash"
+    },
+    {
+      "expect": "no raise, revoke complete, 1",
+      "id": "T-ALRM-2",
+      "inject": "timer during FAILURE persistence"
+    },
+    {
+      "expect": "1, guard_closed present, observation written, no -14",
+      "id": "T-ALRM-3",
+      "inject": "exact r2 old-late-terminal-write config, 20 retained samples"
+    },
+    {
+      "expect": "no setitimer, Stop wall_guard",
+      "id": "T-ALRM-4",
+      "inject": "install after deadline"
+    },
+    {
+      "expect": "1",
+      "id": "T-ALRM-5",
+      "inject": "ALRM pending at final_decision"
+    },
+    {
+      "expect": "signal.signal only in install; no getsignal; one nonzero setitimer; no unblocking SETMASK after final_decision",
+      "id": "T-ALRM-6",
+      "kind": "static"
+    },
+    {
+      "expect": "1",
+      "id": "T-R1",
+      "inject": "all r1 SUP-001/002 boundaries"
+    },
+    {
+      "expect": "1, assertions complete",
+      "id": "T-R2-old",
+      "inject": "17 r2 old-boundary probes incl blocked worker"
+    },
+    {
+      "expect": "1/1/gaps<=0.5",
+      "id": "T-SAMP-1..3",
+      "inject": "sample gap >0.5s; full gap >5s; 0.7s hash with sampling"
+    },
+    {
+      "expect": "1 / reaped 1 / executor kill REJECT",
+      "id": "T-IO-1..3",
+      "inject": "fifo block NORMAL; worker ignores SIGTERM; lease read hang in final_decision"
+    },
+    {
+      "expect": "1 / [MainThread] / OWNED blocked",
+      "id": "T-THR-1..3",
+      "inject": "wedged Guard thread; enumerate at D; thread masks"
+    },
+    {
+      "expect": "none / failure-only",
+      "id": "T-WR-1..2",
+      "inject": "open writers at hash; writes after final_decision"
+    },
+    {
+      "expect": "in-process 1 if pre-D; executor REJECT",
+      "id": "T-OWN-1",
+      "inject": "late own terminal rewrite after manifest"
+    },
+    {
+      "expect": "REJECT x5, ACCEPT control, no campaign writes",
+      "id": "T-EXE-1..7",
+      "inject": "raw -15/-2/-14/-9, exit 1/3; code/receipt mismatch; extra file; wall 7200+e; lease cancel; no-mutation control; output write spy"
+    },
+    {
+      "expect": "preflight 793 pins, 75 legacy bytes, module origins, learner AST identical",
+      "id": "T-IDN-1",
+      "kind": "static"
+    }
+  ],
+  "unchanged_campaign_parameters": {
+    "D1_parent": "ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f",
+    "budget_s": 7200,
+    "cadence": "16-update eval, periodic at 8, reserves unchanged",
+    "entry_control": "9 fields 64 rows means 1.4765625/295.25 before gradient",
+    "exit_codes": {
+      "clean_closure": 2,
+      "failure": 1,
+      "pass": 0
+    },
+    "failed_D2_parents": false,
+    "failure_cleanup_s": 10,
+    "gate": "pass50 score3060 alive",
+    "master_seed": "5562873868232098305",
+    "mps_limit": "6GiB separate",
+    "resume": false,
+    "rss_limit": "6GiB",
+    "scheduler": "disabled",
+    "teacher": "321290 params 128/2/4/81",
+    "worker_s": 7140
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "checker_sha256": "d0c0d6af9ac93475bbbca28d384fb0ad155b1e7d25e4002b10999edb88aba29f",
+  "checks": [
+    {
+      "JSON_files_parsed": 19,
+      "campaign_artifacts": 16,
+      "check": "exact_campaign_artifact_coverage",
+      "execution_artifacts": 16,
+      "outer_campaign_files": 17,
+      "passed": true
+    },
+    {
+      "binary_receipt_pins": 3,
+      "capsule_files": 116,
+      "check": "frozen_archive_capsule_and_binary_pins",
+      "installed_extension_sha256": "967c7249acd52339d1818dcbe94e63ee734aea914c3497eb59a7e945a6e95583",
+      "live_supervisor_compared": false,
+      "passed": true,
+      "source_archive_members": 62,
+      "source_pins": 62
+    },
+    {
+      "changed": [],
+      "check": "input_preservation",
+      "files": 158,
+      "passed": true
+    }
+  ],
+  "created_at_utc": "2026-10-24T08:32:09.034668+00:00",
+  "failures": [
+    {
+      "check": "independent_original_baseline_native_record_comparison",
+      "error": "AssertionError('Existing per-difficulty audit differs')",
+      "traceback": "Traceback (most recent call last):\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-validation-parent-audit-r1/check_receipts.py\", line 185, in audit\n    require(all(retained[\"difficulties\"][key][name] == expected for name, expected in value.items() if name not in {\"death_event_sum\", \"maximum_terminal_frame_death_events\"}), \"Existing per-difficulty audit differs\")\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-validation-parent-audit-r1/check_receipts.py\", line 41, in require\n    raise AssertionError(message)\nAssertionError: Existing per-difficulty audit differs\n"
+    }
+  ],
+  "findings": [],
+  "frozen_identity_sha256": "9139a19d0b9862fb0cdc2befd3d7fd20601f3efea5934885e83a493f4f170c19",
+  "limitations": [
+    "Passing native retained evidence belongs to frozen r1 identity; it is not transferred qualification for a changed supervisor or future campaign.",
+    "Retained passing test output plus pinned native test source support raw-frame parity; the log does not serialize all ten million intermediate states.",
+    "Sampled RSS is a cooperative resource observation, not an unsampled hard OS memory ceiling.",
+    "Recorded wait/exit/reaping receipts are checked; current live process existence is left to the parent.",
+    "No trajectory comparison, memory stress, throughput measurement, teacher learning or teacher qualification passed in this failed campaign."
+  ],
+  "schema": "independent_failed_m2_campaign_receipt_audit_v1",
+  "scope": "Read-only hash/archive/source and independently parsed retained execution evidence; no project import or execution.",
+  "status": "audit_failed",
+  "total_M2_qualification": false
+}

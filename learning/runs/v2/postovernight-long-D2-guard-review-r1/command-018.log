@@ -1,0 +1,67 @@
+{
+  "schema": "source_extracted_failure_publication_discriminator_v1",
+  "controller_sha256": "2f4480096926de8b8237b43a36f8bb4e97053c5adf831cf96a564d04480ac19c",
+  "executor_sha256": "236431d2986fdfc4a10ef336ef125eadecf9211c46054e7e683377fafbf27adb",
+  "scope": "2 injected stdlib reporting paths and 1 no-telemetry control; no signals, processes, monitors, ML, inference or campaign",
+  "results": [
+    {
+      "case": "partial-normal-timing",
+      "primary_injection": "OSError('injected telemetry IO failure after file creation')",
+      "failed_receipt_write_calls": [],
+      "retained_receipt": {
+        "accepted": true,
+        "experiment_status": "complete"
+      },
+      "timing_exists": true,
+      "timing_manifest_exists": false,
+      "swallowed": [
+        "FileExistsError(17, 'File exists')"
+      ]
+    },
+    {
+      "case": "failed-hash-observer",
+      "primary_injection": "normal Guard deadline expired with cleanup time remaining",
+      "failed_receipt_write_calls": [],
+      "retained_receipt": {
+        "accepted": true,
+        "experiment_status": "complete"
+      },
+      "timing_exists": true,
+      "timing_manifest_exists": false,
+      "swallowed": [
+        "Stop('Absolute wall guard reached')"
+      ]
+    },
+    {
+      "case": "no-telemetry-control",
+      "primary_injection": null,
+      "failed_receipt_write_calls": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-guard-review-r1/v3-no-telemetry-control/terminal-receipt.json"
+      ],
+      "retained_receipt": {
+        "accepted": false,
+        "cleanup_complete": true,
+        "cleanup_until_monotonic": 20.025173625,
+        "error": "OSError('control failure')",
+        "events": [],
+        "expected_exit_code": 1,
+        "experiment_status": "failed",
+        "first_failure_monotonic": 0.02517375,
+        "forwarded_cancellation": [],
+        "inner_wait": null,
+        "limitations": [],
+        "ownership": {},
+        "schema": "long_d2_outer_acceptance_v1",
+        "teacher_qualified": false,
+        "traceback": "NoneType: None\n",
+        "training_parent_eligible": false,
+        "worker_wait": null
+      },
+      "timing_exists": false,
+      "timing_manifest_exists": false,
+      "swallowed": []
+    }
+  ],
+  "candidate_accepted_for_training": false,
+  "acceptance_bypass_claimed": false
+}

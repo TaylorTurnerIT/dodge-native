@@ -1,0 +1,61 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "python/.venv/bin/python",
+        "-B",
+        "-W",
+        "error",
+        "-m",
+        "dodge_rl.train_teacher",
+        "config",
+        "--phase",
+        "probe",
+        "--device",
+        "cpu",
+        "--output",
+        "learning/runs/v2/milestone3-trainer-runtime-r1/cli-probe-config.json"
+      ],
+      "exit_code": 0,
+      "stdout": "cli-config.log",
+      "stdout_sha256": "fcaa9decaf2d3ea3ccbce7a7471533ff0c139cda6d4f40c04f62b8917174bc91"
+    },
+    {
+      "argv": [
+        "python/.venv/bin/python",
+        "-B",
+        "-W",
+        "error",
+        "-m",
+        "dodge_rl.train_teacher",
+        "freeze",
+        "--config",
+        "learning/runs/v2/milestone3-trainer-runtime-r1/cli-probe-config.json",
+        "--output",
+        "learning/runs/v2/milestone3-trainer-runtime-r1/cli-probe-identity.json"
+      ],
+      "exit_code": 0,
+      "stdout": "cli-freeze.log",
+      "stdout_sha256": "308389080de4f5d6572086389520140101b1c2b17f2cfee30e978a6583347aa7"
+    },
+    {
+      "argv": [
+        "python/.venv/bin/python",
+        "-B",
+        "-W",
+        "error",
+        "-m",
+        "dodge_rl.train_teacher",
+        "freeze",
+        "--config",
+        "learning/runs/v2/milestone3-trainer-runtime-r1/cli-probe-config.json",
+        "--output",
+        "learning/runs/v2/milestone3-trainer-runtime-r1/cli-final-preparation-identity.json"
+      ],
+      "exit_code": 0,
+      "stdout": "cli-final-freeze.log",
+      "stdout_sha256": "3c4509d50c9c49ed12bf7183e23d3b660a7a3b6b75fa3fb9e38a4defb514336a"
+    }
+  ],
+  "scope": "Preparation only, no environment construction, game, real optimization, device probe, pilot or stage"
+}

@@ -1,0 +1,31 @@
+{
+  "schema": "critic_diagnostic_haiku_r3_reconciliation_v1",
+  "review_receipt_sha256": "a40eb699bfc70fcbde24ac327de39290f77d0634ee62186a616a4b19e6885e8f",
+  "reviewed_sources_match": true,
+  "findings": [
+    {
+      "id": 1,
+      "disposition": "Resolved through exact registered command environment PYTHONPYCACHEPREFIX at a dedicated empty directory, combined with -B. Launcher copies environment into worker. Existing caches remain preserved and unused. Separate source-only import/restoration validation passed; prefix stayed empty. No runner source changes."
+    },
+    {
+      "id": 2,
+      "disposition": "Accept conservative strict deadline; never admits budget overrun. No cap relaxation."
+    },
+    {
+      "id": 3,
+      "disposition": "Parent requires externally observed raw exit0, bounded wall, all receipts and absence of publication-failure.json; status string alone never authoritative."
+    },
+    {
+      "id": 4,
+      "disposition": "Accept disclosed sampled peak limits. Guard tracks max ru_maxrss/MPS across samples; observer will retain external process resource evidence as available. No continuous MPS peak claim."
+    }
+  ],
+  "reviewer_claim_corrections": [
+    "Torch/NumPy source and native dependencies have13512 file pins, not version-only identification.",
+    "Guard accumulates maximum over samples, not merely latest sample; after-last-sample peaks remain a limit."
+  ],
+  "no_source_changes": true,
+  "source_only_import_validation": "learning/runs/v2/critic-diagnostic-parent-prepare-20261025-r3/restoration-validation-result.json",
+  "source_only_import_validation_external_wall_seconds": 4.63,
+  "source_only_import_validation_external_max_rss_bytes": 341491712
+}

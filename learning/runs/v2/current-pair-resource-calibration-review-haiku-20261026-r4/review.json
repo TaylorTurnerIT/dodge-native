@@ -1,0 +1,94 @@
+{
+  "schema": "current_pair_resource_calibration_review_v4",
+  "reviewer": "haiku-5.5 fresh adversarial source review",
+  "run_id": "current-pair-resource-calibration-luna-20261026-r4",
+  "frozen_source_dir": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r4/",
+  "frozen_source_claims_given": {
+    "plan_sha256": "b2216ad4ac619db865354018946716902d5af5d644a9be8878cf2f341f658b58",
+    "pins_sha256": "2e5499c8d00234aa57bb296d409990194ca750fcc689c2d72ff585f45f464d75",
+    "pins_file_count": 58,
+    "freeze_manifest_sha256": "8ef0b450767334bb45c56b273974e232cca8a9f9e695a2c42d840685fd08f4d5",
+    "review_source_manifest_sha256": "f7f81a31868ca99deee279b40ced5187281798a9da2ef399f546ffd4759f4d1c",
+    "preparation_receipt_sha256": "dc2fc26d868e107f74daa2900fc43dd43637522d5eec311361253209c86c966a"
+  },
+  "verdict": "BLOCK_CALIBRATION_PROBE",
+  "training_impact": "none; no finding reserves hardware or blocks independent training",
+  "constraints_followed": "source read only; no launch, reservation, lease, state write, checkpoint load, MPS, real env, probe, training, or pyc write",
+  "findings": [
+    {
+      "id": "R4-01",
+      "severity": "high",
+      "verdict": "CONFIRMED",
+      "category": "correctness",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r4/launch_once.py",
+      "line": 162,
+      "summary": "CPU preflight subprocess cannot produce the artifact the launcher reads.",
+      "failure_scenario": "launch_once.py:162 runs cpu_preflight.py with --output. cpu_preflight.py (62 lines) defines run(output_dir) at line 23 and has no __main__ block and no argparse parser, although argparse is imported at line 5. The subprocess exits 0 and writes nothing. launch_once.py:168 then reads <output>/cpu-preflight-validation/cpu-preflight.json and raises FileNotFoundError. Even with an entrypoint, run() writes output_dir/cpu-preflight.json (cpu_preflight.py:61), not output_dir/cpu-preflight-validation/cpu-preflight.json. Result: every launch attempt fails before claim_once (launch_once.py:182), so no marker is consumed but the probe cannot run. README.md's documented preflight command is also a silent no-op. cpu-preflight-run.log was produced by an entrypoint that is not in the pinned source."
+    },
+    {
+      "id": "R4-02",
+      "severity": "high",
+      "verdict": "PLAUSIBLE",
+      "category": "correctness",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r4/probe.py",
+      "line": 117,
+      "summary": "Zero MPS driver samples taken before the MPS model load fail a healthy run after the one-shot marker is claimed.",
+      "failure_scenario": "probe.py:197 starts the ResourceSampler before load_inference_model('best204', device='mps'). The sampler's _default_probe (worker.py, R6 frozen) reads torch.mps.driver_allocated_memory() every 0.25 s from sampler start. Startup samples taken before any MPS tensor exists can legitimately be 0. validate_representative_measurements (probe.py:117) requires all(value > 0), so the run is marked failed even when the workload is healthy. That happens after claim_once (launch_once.py:182), so the single authorized probe is consumed and a new review and reservation are required. Fix: require finite, nonnegative samples everywhere, and positive high-water only over samples after the MPS load timestamp. This needs a measured run to confirm; no hardware run was allowed here."
+    },
+    {
+      "id": "R4-03",
+      "severity": "medium",
+      "verdict": "PLAUSIBLE",
+      "category": "feasibility",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r4/probe.py",
+      "line": 227,
+      "summary": "The 240-forward target may not be reachable inside the 45-second active bound at the measured per-pass rate.",
+      "failure_scenario": "Frozen evidence shows 16 forwards and 272 guards over 2 synthetic passes, so about 8 forwards and 136 guards per pass. The loop exits only when forwards >= 240 and elapsed >= 30 s. Reaching 240 forwards needs about 30 passes, about 1920 synthetic rows with per-row fsync (probe.py fsync sink), and about 4080 guards, all inside the 45 s active deadline. If per-pass time is above roughly 1.5 s, the guard raises at 45 s and the probe fails closed after claim_once. This is a risk to the acceptance target, not a logic error; the parent must measure it."
+    },
+    {
+      "id": "R4-04",
+      "severity": "low",
+      "verdict": "CONFIRMED",
+      "category": "resource-guard",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r4/launch_once.py",
+      "line": 221,
+      "summary": "The 6 GiB cap is enforced in flight only for RSS; the MPS driver cap is checked only after the run.",
+      "failure_scenario": "The launcher monitor sums ps current RSS of launcher and worker and kills the group above 6 GiB. MPS driver allocation is never sampled by the launcher. probe.py checks mps_peak <= 6 GiB only after the workload finishes. A runaway MPS allocation therefore runs until the 45 s active or 90 s work deadline, not until the cap. Brief asks for separate 6 GiB RSS and MPS driver bounds; the MPS bound is post-hoc only."
+    },
+    {
+      "id": "R4-05",
+      "severity": "low",
+      "verdict": "PLAUSIBLE",
+      "category": "timeout-cleanup",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r4/launch_once.py",
+      "line": 274,
+      "summary": "Post-SIGKILL communicate() has no timeout, so the 120 s outer bound can be exceeded on a hung child.",
+      "failure_scenario": "On timeout the launcher sends SIGTERM, waits 5 s, then SIGKILL and calls process.communicate() with no timeout. If the child is stuck in an uninterruptible state, the launcher hangs past 120 s and the timeout evidence is never written."
+    },
+    {
+      "id": "R4-06",
+      "severity": "low",
+      "verdict": "CONFIRMED",
+      "category": "evidence",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r4/launch_once.py",
+      "line": 294,
+      "summary": "Launcher leaves status child_reaped_postflight_pending if a later post-check fails.",
+      "failure_scenario": "launch_once.py:294 writes status child_reaped_postflight_pending before the post-child checks. If a later check raises, main()'s except (launch_once.py main) sees launcher-result.json already exists and does not overwrite it. A failed run therefore looks pending in evidence. Still fail-closed, but misleading."
+    }
+  ],
+  "not_verified": [
+    "Pins 58 vs prior 60 member differences: not reconciled.",
+    "R4 receipt mtime timezone correction (2026-10-25T22:16:57Z vs 03:16:57 UTC next day): not checked.",
+    "authoritative_state_fields contents and live state shape: not inspected.",
+    "136-guards-per-pass arithmetic: consistent with frozen 272/2 evidence but not re-derived against full worker.evaluate control flow.",
+    "test_calibration_cpu.py and CPU preflight logs: not re-run, per constraints.",
+    "Ownership trace of R6 __pycache__ files: not traced.",
+    "Line numbers for worker.py cited by function name only."
+  ],
+  "required_before_probe": [
+    "Fix R4-01: add a real __main__ entrypoint that writes the path launch_once.py reads, or change launch_once.py to read what run() writes; repin and re-review.",
+    "Fix R4-02 or confirm the zero-sample behavior with a parent-owned measured run before any further marker claim.",
+    "Parent registers new plan and reservation after the fixes; this review does not authorize a probe."
+  ],
+  "fixed_in_this_review": false
+}

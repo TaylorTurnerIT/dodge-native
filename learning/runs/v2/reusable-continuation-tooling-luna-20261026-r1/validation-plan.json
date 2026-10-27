@@ -1,0 +1,18 @@
+{
+  "schema": "reusable_d2_continuation_tooling_validation_plan_v1",
+  "budget_seconds": 180,
+  "scope": "stdlib-only source and contract prototype; no training, environment, optimizer, gradients, or large evaluation",
+  "steps": [
+    "Validate exact accepted phase-180 receipt and current frozen registration digest and cross-bind checkpoint, receipt, registration, phase, counters, outer wall, runtime, and policy.",
+    "Reject synthetic failed, ineligible, wrong-phase, wrong-run, altered-counter, altered-runtime, altered-policy, and altered-registration cases.",
+    "Summarize 64 alive-frame rows using sorted bottom/top 16 means; prove shuffled row order preserves canonical results and values match the retained 252/180 receipts.",
+    "Record exact argv, cwd, environment policy, exit status, timing, and closed logs; stop on first failure."
+  ],
+  "limits": [
+    "Do not run execute_once.py or any worker.",
+    "Do not load checkpoint tensors or construct environments.",
+    "Use accepted receipt as a selective positive fixture; do not rehash the full 13,744-file inventory.",
+    "Do not mutate frozen sources, registration, receipts, checkpoint, lease, or historical summaries."
+  ],
+  "stop_policy": "Stop on first validation failure; preserve this candidate and logs without retry or in-place repair."
+}

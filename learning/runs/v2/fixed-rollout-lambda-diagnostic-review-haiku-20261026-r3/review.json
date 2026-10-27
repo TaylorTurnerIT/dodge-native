@@ -1,0 +1,52 @@
+{
+  "schema": "fixed_rollout_lambda_diagnostic_review_v3",
+  "target": "learning/runs/v2/fixed-rollout-lambda-diagnostic-luna-20261026-r3",
+  "verdict": "findings",
+  "findings": [
+    {
+      "id": 1,
+      "severity": "high",
+      "category": "correctness",
+      "file": "learning/runs/v2/fixed-rollout-lambda-diagnostic-luna-20261026-r3/diagnostic.py",
+      "lines": [153, 155],
+      "summary": "Observed-return recurrence appends G_t then propagates with rewards[t] instead of rewards[t] before append; distance>=1 returns use the wrong reward index.",
+      "failure_scenario": "T=3 one slot, death at t=2, rewards a,b,c: start 1 yields c+gamma*c instead of b+gamma*c; start 0 yields b+gamma*c+gamma^2*c instead of a+gamma*b+gamma^2*c. observed_discounted_return_mean and time_to_death_bucket_means 1_4/5_16/17_plus are wrong; bucket counts still pass.",
+      "consequence": "Reported observed-death descriptive values are silently wrong; no control asserts observed-return values.",
+      "fix": "Compute ret = rewards[t] + GAMMA*ret_next at non-terminal steps before appending; add hand-value tests for observed returns and bucket means."
+    },
+    {
+      "id": 2,
+      "severity": "medium",
+      "category": "validation",
+      "file": "learning/runs/v2/fixed-rollout-lambda-diagnostic-luna-20261026-r3/diagnostic.py",
+      "lines": [31, 58, 59],
+      "summary": "Partial raw variant is accepted with complete scaled components; the component path silently ignores the partial raw fields.",
+      "failure_scenario": "NPZ with score_reward, survival_reward, death_reward and only elapsed_raw_frames: load_npz passes (components <= keys), analyze takes component path (have_raw False, have_comp True).",
+      "consequence": "Raw accounting checks (elapsed bounds, alive == elapsed - terminated, score >= 0) are skipped, violating the exactly-one-variant contract. Untested.",
+      "fix": "Reject any partial raw set or partial component set in load_npz and analyze."
+    },
+    {
+      "id": 3,
+      "severity": "low",
+      "category": "test-coverage",
+      "file": "learning/runs/v2/fixed-rollout-lambda-diagnostic-luna-20261026-r3/controls_r3.py",
+      "lines": [71, 73],
+      "summary": "Parity compares only mean/variance to production; near-constant case asserts only target_variance > 0, not finite EV; no component-variant rejection tests.",
+      "failure_scenario": "Compensating element errors in target/advantage pass mean/variance parity; near-constant EV regressions to None or NaN are not caught.",
+      "consequence": "Test strength overstated relative to the claimed parity and no-epsilon EV checks.",
+      "fix": "Compare per-element target and advantage; assert finite EV for near-constant targets; add scaled-component rejection cases."
+    }
+  ],
+  "closed_from_r1": [
+    "distance-0 bucket present",
+    "dead target_minus_baseline_norm field removed",
+    "exact-equality constant detection (no epsilon)",
+    "analyzer-vs-production moment parity for both lambdas plus hand terminal/reset/tail and truncation cases",
+    "raw-plus-component rejection preserved"
+  ],
+  "not_executed": ["controls_r3.py", "controls-r3.log PASS", "analyzer runs"],
+  "actual_rollout_read": false,
+  "checkpoint_decoding": false,
+  "runtime_or_analyzer_import": false,
+  "training_or_source_state_lease_change": false
+}

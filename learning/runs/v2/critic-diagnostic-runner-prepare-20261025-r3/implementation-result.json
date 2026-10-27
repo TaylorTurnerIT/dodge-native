@@ -1,0 +1,98 @@
+{
+  "schema": "critic_diagnostic_runner_implementation_result_v1",
+  "revision": "r3",
+  "status": "ready_for_frozen_Claude_Haiku_review",
+  "scope": {
+    "owned_directory_only": "learning/runs/v2/critic-diagnostic-runner-prepare-20261025-r3",
+    "campaign_launched": false,
+    "environment_created": false,
+    "inference_evaluation": false,
+    "ppo_updates_or_gradients": false,
+    "training_seed_consumed": false,
+    "old_registration_or_artifacts_modified": false,
+    "installed_native_extension_modified": false
+  },
+  "source_lineage": {
+    "copied_from": "learning/runs/v2/critic-diagnostic-runner-prepare-20261025-r2",
+    "r2_sha256": {
+      "runner.py": "5aa564528b5f173c4f94dd5bc3c38c8ec5796571b3da45be47f52ee40475851c",
+      "execute_once.py": "6d935fd6081e84bca1b4b22f16573494dd520f7109c65eb46b4e3a5df917f903",
+      "test_contract.py": "8a31eaf50b5288c31410a4a592e554bd9b7a5ef9e4b8a4acf500b51ab10eca2d",
+      "README.md": "ab1183c94b7f80fa243701e7d0c4778fc0d87dc8020108d56c9393d81da6cb7c"
+    },
+    "r3_sha256": {
+      "runner.py": "48bde41f4cc71b2ffa973b9cc61da5ea1cee175ca36b4344d520d5765d0699f1",
+      "execute_once.py": "6d935fd6081e84bca1b4b22f16573494dd520f7109c65eb46b4e3a5df917f903",
+      "test_contract.py": "d8d98676b428d91d53ad11fd857f6737e8d320ffaf48da83ff25e2224768218d",
+      "test_torch_restore.py": "faf0c55671fb304deb5f5b0d7720ec502826fa1da675c5032395279c0049b9a9",
+      "startup_rehearsal.py": "a60d484843531cbae1e1f0cf35bed14bfb5ef543fb749acf57c417cd5571c711"
+    }
+  },
+  "implementation": [
+    "Canonical mapping comparison treats dict and OrderedDict alike, including nested Adam state and reordered keys.",
+    "Length-framed structural encoding preserves mapping keys, scalar types, tensor dtype/shape/bytes, and list/tuple distinctions.",
+    "Restoration receipt persists component matched flags, safe SHA-256 digests, and mismatch paths before the fail-closed decision; contents are not serialized.",
+    "Existing launcher late-cancellation and absent-process-group protections retained unchanged.",
+    "Historical validators, learner settings, registration identity, and native binaries unchanged."
+  ],
+  "validations": [
+    {
+      "name": "original_contract_suite_plus_mapping_test",
+      "command": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python -m unittest -v test_contract.py",
+      "exit_code": 0,
+      "wall_seconds": 0.023,
+      "result": "16 passed: all 15 copied contract tests plus mapping canonicalization and structural negatives"
+    },
+    {
+      "name": "actual_torch_model_adam_restore_fixtures",
+      "command": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python test_torch_restore.py",
+      "exit_code": 0,
+      "wall_seconds": 0.955,
+      "result": "actual model and Adam mapping restoration equivalent; changed tensor value, dtype, shape, scalar type, and list/tuple rejected; no gradients or updates"
+    },
+    {
+      "name": "python_compile",
+      "command": "/usr/bin/time -l /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python -m py_compile runner.py execute_once.py test_contract.py test_torch_restore.py startup_rehearsal.py",
+      "exit_code": 0,
+      "wall_seconds": 0.03,
+      "observed_peak_memory_bytes": 22085632
+    },
+    {
+      "name": "actual_checkpoint_startup_only_rehearsal",
+      "command": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python startup_rehearsal.py",
+      "exit_code": 0,
+      "wall_seconds": 0.869,
+      "result_file": "startup-rehearsal-result.json",
+      "checkpoint_sha256": "ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f",
+      "new_native_sha256": "022d41dde9bace0b4f4c4c06b9b4ed007bc2c60013cd98734086e587d7bb997e",
+      "original_native_sha256": "967c7249acd52339d1818dcbe94e63ee734aea914c3497eb59a7e945a6e95583",
+      "interpreter": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+      "runtime": {"python": "3.12.15", "torch": "2.14.1", "numpy": "2.5.4"},
+      "comparisons": {
+        "model": {"matched": true, "sha256": "415355ea78de1c5d7106a41b772f1e7ba129f31ce8563b45e69cf6be69b75d2f", "mismatch_paths": []},
+        "Adam": {"matched": true, "sha256": "05ebd5a56a5766a816e7d0b8d1cb3307a5ee4ec00ed846f139917469facc3d2d", "mismatch_paths": []},
+        "RNG": {"matched": true, "sha256": "90fdf06c54a072a1de7d2669cb5b418b780730f6e2cf34bca2d001d9253a52c2", "mismatch_paths": []}
+      },
+      "resource_samples": [
+        {"stage": "checkpoint_loaded", "elapsed_seconds": 0.417727250023745, "observed_peak_rss_bytes": 216629248, "observed_mps_driver_bytes": 475136},
+        {"stage": "learner_restored", "elapsed_seconds": 0.8046144160907716, "observed_peak_rss_bytes": 297762816, "observed_mps_driver_bytes": 8880128}
+      ],
+      "overall_observed_peak_rss_bytes": 297975808,
+      "overall_observed_mps_driver_bytes": 8880128,
+      "limits": {"wall_seconds": 120, "RSS_bytes": 6442450944, "MPS_bytes": 6442450944},
+      "rehearsal_scope": "teacher and Adam instantiated; exact checkpoint restored and all three identities compared before any environment, gradients, or updates"
+    }
+  ],
+  "failed_attempts": [
+    {"command": "python/.venv/bin/python -m unittest -v test_contract.py", "exit_code": 127, "wall_seconds": 0.0, "failure": "relative interpreter path was invalid from the r3 working directory; rerun used absolute pinned interpreter"},
+    {"command": "absolute pinned interpreter -m unittest -v test_contract.py", "exit_code": 1, "wall_seconds": 0.1, "failure": "new test incorrectly expected reordered mapping keys to differ; corrected expectation to mapping key-order equivalence"},
+    {"command": "absolute pinned interpreter test_torch_restore.py", "exit_code": 1, "wall_seconds": 1.1, "failure": "fixture had not initialized Adam state entries; fixture now populates actual optimizer parameter IDs"},
+    {"command": "absolute pinned interpreter test_torch_restore.py", "exit_code": 1, "wall_seconds": 1.0, "failure": "negative-control shallow copy aliased the expected Adam tensor; fixture now clones state tensors before mutation"},
+    {"command": "absolute pinned interpreter startup_rehearsal.py", "exit_code": 1, "wall_seconds": 0.6, "failure": "interpreter symlink path compared without resolution; comparison now resolves both paths"}
+  ],
+  "review_boundary": {
+    "human_facing_reference_cohort": {"name": "historical best development cohort", "survival_q1_frames": 648.25, "survival_q4_frames": 4508.8125, "survival_mean_frames": 2240},
+    "performance_or_qualification_claim": false,
+    "next_action": "frozen Claude Haiku review; parent owns registration and any future campaign execution"
+  }
+}

@@ -1,0 +1,139 @@
+{
+  "schema": "d2_retained276_continuation_frozen_source_review_v1",
+  "review_run_id": "D2-retained276-continuation-review-haiku-20261026-r2",
+  "reviewed_r1_review": "learning/runs/v2/D2-retained276-continuation-review-haiku-20261026-r1/review.json",
+  "reviewed_r1_review_sha256": "89da0b39250c6d978b6759d0baa05010c9efed28710a7b12c3aac1932df50c2c",
+  "target": {
+    "preparation_dir": "learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r2",
+    "registration_sha256": "477217f3c7617ccbe01c651db8932eab01f54ea3924f213e67b413e640cf866c",
+    "source_manifest_sha256": "0c11fd8338d85f5c55d76583c7909d62e45101ec66ef4ce00dab7bcab803b37d",
+    "preparation_receipt_sha256": "308d89cd7a26b87a8342fcc98f0db68c05da513a3728d6ddcf2929325fdfc4cf",
+    "validation_sha256": "56098091191df3bd32472b3a8c23653aad5b39b32d42243972653a1776f53eed",
+    "runner_sha256": "db0bb3389ee5562bbb9cc1c550cdf64a077c7a1bf84a4f233df861867113a37b",
+    "execute_once_sha256": "6c1ed02b8b29e88491d6f5b7656bed43bfb40bfbb1c327c3ee1d57783e3c3554",
+    "test_worker_progress_binding_sha256": "bf7b2c44a6c74cc196bfc5645202ff6666b911708400e432e465f5b735073b12",
+    "continuation_config_sha256": "f858a63c324fc312f794c0423aa56db2daf60793b62990cd51fa400afe3af628",
+    "parent_checkpoint_sha256": "0b5cf72b4eb9629fa4f10ce2cecb3625b56f8787c0eca6395b9fe17161e6b292",
+    "parent_terminal_receipt_sha256": "d64d0f803d02a8d2c33da9fa0ba862f06ba7d9c56dcf4f0494e559a49e48fcc4"
+  },
+  "scope": "Source-only frozen review of r2 with focus on the progress=progress binding. No source, state, lease, environment, MPS, checkpoint-load, training, or pyc writes outside this review directory.",
+  "verdict": "no_launch_blockers",
+  "blockers": [],
+  "r1_to_r2_delta": {
+    "runner_py_diff_lines": 2,
+    "changes": [
+      "RUN_ID r1 -> r2 (runner.py:56)",
+      "ppo_update call at runner.py:774-776 adds progress=progress"
+    ],
+    "execute_once_py_unchanged": true,
+    "continuation_config_unchanged": true,
+    "other_focused_test_files_byte_identical_to_r1": ["test_source_contract.py", "test_entry_counter_binding.py", "test_entry_evaluation.py"],
+    "registration_pins": {"r1": 13786, "r2": 13787},
+    "registration_pin_delta": "13774 non-owned pins identical to r1 by path and hash; owned-directory pins re-pointed to r2 paths; test_worker_progress_binding.py added. All 13 owned-dir pin hashes equal on-disk bytes."
+  },
+  "progress_binding_review": {
+    "binding_correct": true,
+    "evidence": [
+      "pinned ppo.py:403-405 accepts progress kwarg; progress is only written via progress.update, never read for control flow",
+      "ppo.py:416-417 sets state=in_update, complete=False on entry; 532 sets optimizer_steps after each optimizer step; 597 sets complete=True, in_update=False only on the single return path (600)",
+      "runner.py:785 sets completed_updates only after ppo_update returns and validation passes",
+      "runner.py:743 is the only save_checkpoint site and sits in evaluate_at after completion; checkpoints.py:131-134 require_complete_update rejects in_update checkpoints, and the post-success state satisfies it",
+      "failure record at runner.py:817 now reports in_update True for mid-update failures, matching the parent repro"
+    ],
+    "test_validity": {
+      "extracts_actual_runner_call": true,
+      "imports_pinned_runtime": true,
+      "executed_by_reviewer": true,
+      "reviewer_result": "exit 0; failure_with_binding complete=false in_update=true optimizer_steps=1; failure_missing_binding complete=true (reproduces r1 defect); successful_boundary complete=true completed_updates=1 optimizer_steps=1",
+      "pyc_written_by_reviewer_run": false,
+      "mps_used": false,
+      "environment_constructed": false
+    }
+  },
+  "post_success_checkpoint_review": {
+    "conclusion": "Checkpoints saved after a successful update carry update_progress complete=true, in_update=false, completed_updates equal to the completed local update, because completed_updates is set at runner.py:785 before evaluate_at at runner.py:790+. Initial checkpoint at phase 276 carries the initial complete=true, completed_updates=0 state. No checkpoint is written on the failure path."
+  },
+  "advisories": [
+    {
+      "id": "A1",
+      "severity": "low",
+      "category": "evidence-accounting",
+      "status": "partially_addressed",
+      "file": "learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r2/r1-attempt-accounting.json",
+      "summary": "r2 accounting note covers 2 of the 5 retained_failed_attempts entries in the frozen r1 receipt; three label errors remain uncorrected.",
+      "detail": "Covered: preflight-attempt-02.log (passed, not a fix) and superseded top-level preflight.log. Not covered: preflight-attempt-01.log (receipt: inherited runtime-continuity pin defect; log: 'ValueError: Full audit candidate set differs'); cpu-restore-attempt-02.log (receipt: misplaced fingerprint assertion; log: 'SyntaxError: expected except or finally block'); cpu-restore-attempt-03.log (receipt: wall-clock fields nested under wall_accounting; log: 'ValueError: Saved endpoint metadata and receipt wall fields differ').",
+      "failure_scenario": "An auditor reads the r1 receipt, maps preflight-attempt-01 to a fixed runtime-continuity defect, and cannot reproduce that fix from the cited log.",
+      "recommended_action": "Extend the accounting in a new note file covering all five receipt entries; do not edit the historical receipt.",
+      "blocks_launch": false
+    },
+    {
+      "id": "A2",
+      "severity": "low",
+      "category": "integrity-check-strength",
+      "status": "unchanged_accepted",
+      "file": "learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r2/runner.py",
+      "line": 297,
+      "summary": "validate_runtime_continuity still compares the runtime tree with itself; the byte-level member check is vacuous.",
+      "detail": "Unchanged from r1. Runtime binding still holds through verify_pins and runtime_sha256 2cf10e9f...",
+      "blocks_launch": false
+    },
+    {
+      "id": "F3",
+      "severity": "low",
+      "category": "failure-accounting-window",
+      "file": "learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r2/runner.py",
+      "line": 785,
+      "summary": "If validation fails after ppo_update returns, the failure record shows the previous update as complete while the current update's optimizer steps were already applied.",
+      "detail": "Between ppo_update returning (runner.py:776) and progress['completed_updates'] = update (runner.py:785) there are raising checks: assert_effective_lr (777), finite_tree (778), need (780, 783-784) and validate_gradient_alignment (781). A raise there reaches the except handler (runner.py:817) with update_progress showing complete=true, in_update=false, completed_updates=update-1, optimizer_steps from update N. counters are also bumped only after line 785. Found by reading the code; not executed.",
+      "failure_scenario": "A gradient-alignment validation error on update N after a successful PPO step writes a failure record stating update N-1 is the last completed update.",
+      "consequence": "Failure-record accounting only. The failure path writes no checkpoint (only save site is runner.py:743 inside evaluate_at), so no restore or promotion path consumes this state.",
+      "recommended_action": "Optional: set progress['completed_updates'] = update immediately after ppo_update returns, or accept and document. Any code change needs a new RUN_ID.",
+      "blocks_launch": false
+    },
+    {
+      "id": "F4",
+      "severity": "low",
+      "category": "test-evidence-scope",
+      "file": "learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r2/test_worker_progress_binding.py",
+      "summary": "The success branch sets completed_updates itself, and the test model is a tiny stand-in rather than the production teacher.",
+      "detail": "execute() sets progress['completed_updates'] = 1 on the success path, mirroring runner.py:785 rather than executing it. TinyTeacher replaces the production model. The test does verify the ppo_update boundary through the extracted runner call, which is the claim it supports.",
+      "blocks_launch": false
+    },
+    {
+      "id": "F5",
+      "severity": "low",
+      "category": "evidence-label",
+      "file": "learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r2/preparation-receipt.json",
+      "summary": "scope.optimizer_steps 0 can be misread as zero optimizer steps overall; the CPU progress test performs 3 synthetic PPO optimizer steps.",
+      "detail": "validation.json records optimizer_steps 0 with synthetic_optimizer_steps 3 and game_weight_optimizer_steps 0 (cpu restore). progress-finding.json (parent repro) records synthetic_optimizer_steps 2 for the earlier reproduction. The 0 refers to game-weight campaign steps. Parent is clarifying the receipt scope externally, per brief.",
+      "blocks_launch": false
+    }
+  ],
+  "observations": [
+    "Six pre-existing .pyc files under the pinned runtime tree (learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/**/__pycache__, mtime 20:28) predate this review. The reviewer run wrote none. Parent should confirm whether runtime pins or tree walks include them."
+  ],
+  "residual_risks": [
+    "MPS RNG restore is not exercised by any CPU test. The worker fails closed on RNG fingerprint mismatch (ed93fb48...). Parent fresh unmocked preflight and the one actual run must confirm.",
+    "Full unmocked preflight with the real exact lease remains parent-owned. Preparation mocked only the exact lease assertion.",
+    "Reviewer did not re-run the source-contract, entry-counter, entry-evaluation, or CPU restore checks; their outcomes are taken from parent validation.json, and the three test files are byte-identical to r1."
+  ],
+  "checks_run_by_reviewer": [
+    "sha256 of all 18 source-manifest.json entries against disk: 0 mismatches; disk files outside manifest: freeze-hashes.json, preparation-receipt.json, registration.json, source-manifest.json",
+    "registration.json: 13787 pins; r1-vs-r2 pin diff as above; owned-dir pin hashes equal disk",
+    "diff runner.py r1 vs r2 (2 lines), execute_once.py / cpu_restore_and_controls.py / continuation-config.json / focused tests byte-identical to r1",
+    "AST extraction of ppo_update call and executing test_worker_progress_binding.py on pinned CPU runtime (exit 0)",
+    "grep for stale r1 path references in r2 scripts and registration: only parent-run identifiers (D2-retained204-lr1e4-...-r1) remain, which is correct",
+    "sha256 of parent checkpoint, parent terminal receipt, selected metadata, r1 attempt-02 and preflight logs, preparation-receipt, validation.log: match cited values",
+    "no .pyc or __pycache__ written under the r2 directory or by the reviewer run"
+  ],
+  "limits": {
+    "children_spawned": false,
+    "mps_used": false,
+    "checkpoint_loaded": false,
+    "environment_constructed": false,
+    "training_or_probe_run": false,
+    "lease_touched": false,
+    "source_or_state_written": false,
+    "pyc_written": false
+  }
+}

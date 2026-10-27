@@ -1,0 +1,51 @@
+{
+  "schema": "parent_RNG_helper_validation_v1",
+  "status": "six_fake_tests_pass;two_integration_defects",
+  "source_hashes_verified": {
+    "transition.py": "bc4fde169e5923c0b254942d5f6a60f2eaa3d582fc2711a211f2ec33bc482b8f",
+    "test_transition.py": "8f61ad17f48b9982f7f30a2a5ca3d52eadd40e8927bc6b7367bf19fc0ccb146c",
+    "seed-vectors-successor-metadata.json": "92cab6ca41058ffd1510ee83d272973d78c4a1d82bb102a9c93390cbe108e102",
+    "controls.log": "93136c8ae71bc3d7f4b01c2f53b266005acaea6a388597c02a223f9060dce395",
+    "report.md": "e0b17db384985c5abdb2e7b375b1df4c246dd7d837d190a9d6ad1d6b7b3e1606"
+  },
+  "test_exit": 0,
+  "findings": [
+    {
+      "severity": "high",
+      "source": "transition.py:79",
+      "trigger": "Real torch.mps API has no initial_seed",
+      "consequence": "AttributeError after reseeding, before evidence/invariance/LR complete",
+      "torch_mps_source": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/lib/python3.12/site-packages/torch/mps/__init__.py",
+      "torch_mps_source_sha256": "642d893d4e235fac8a75d47cb795f0aeb9e9ee85998b9b54beb49bc01f289d7a",
+      "public_functions": [
+        "_get_default_mps_generator",
+        "device_count",
+        "synchronize",
+        "get_rng_state",
+        "set_rng_state",
+        "manual_seed",
+        "seed",
+        "empty_cache",
+        "set_per_process_memory_fraction",
+        "current_allocated_memory",
+        "driver_allocated_memory",
+        "recommended_max_memory",
+        "compile_shader",
+        "load_metallib",
+        "is_available",
+        "_host_alias_storage"
+      ]
+    },
+    {
+      "severity": "medium",
+      "source": "transition.py:132-134",
+      "trigger": "Use exact prospective sorted exclusion union",
+      "consequence": "Identical union rejected by ordering comparison",
+      "error": "future environment requires exact five-range exclusion union"
+    }
+  ],
+  "limits": [
+    "stdlib fake APIs only; no torch/native/MPS/checkpoint import",
+    "No real seeds applied or environments constructed"
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "schema": "latest_best_paired_eval_frozen_review_v1",
+  "review_round": "r2",
+  "reviewer_provider": "claude-haiku-5-5 (native)",
+  "target_directory": "learning/runs/v2/latest-best-paired-eval-prepare-luna-20261026-r2",
+  "target_hashes": {
+    "preparation_receipt_sha256": "40657b9443e5aee179ca46fbdf807b4e4642edbbcbb9999af980456370b41660",
+    "protocol_sha256": "5b6910133b33cd5e8350581e42230864fa9902bf18b0617f9af233a65b2ee954",
+    "input_manifest_sha256": "ca1cfbe01b6cfdb06e65aa17b5c974ec8e59167e7bbf33d2480324b2a3e1f227",
+    "harness_sha256": "8d5a56509f5b44171f4cfa222064a9ad3eaf61a9408787018b9da1623b3db10a"
+  },
+  "verdict": "no_blocking_defect_launch_gated_on_R1",
+  "prior_findings_closure": {
+    "F1_live_step_death_fields": "closed_in_code; committed tests cover live-to-cap only; live-to-death is a parent test",
+    "F2_dependency_bytes": "closed_truthful_scope; Torch transitive pure-Python packages, stdlib, OS and driver not pinned",
+    "F3_run_once_lifecycle": "closed_for_stated_scope; test uses cwd-relative protocol path"
+  },
+  "findings": [
+    {
+      "id": "R1",
+      "severity": "medium",
+      "status": "open_settle_before_launch",
+      "file": "worker.py",
+      "lines": "454-456, 364-365",
+      "summary": "Argmax controls run on MPS, while the frozen dev_eval.evaluate defaults to CPU; the device that produced the control rows is not established.",
+      "impact": "A near-tie argmax flip on MPS vs the stored CPU control rows aborts before any sampled arm and spends the one-shot launch."
+    },
+    {
+      "id": "R2",
+      "severity": "medium",
+      "status": "measure_or_narrow_before_launch",
+      "file": "worker.py",
+      "lines": "339-341, 468-470",
+      "summary": "check_guard calls _lease_check, which re-reads and parses the 302111-byte state.json on every env step.",
+      "impact": "About 0.63 ms per read; about 140 s of the 590 s hard work cap across an estimated 221k decision steps, not yet measured end-to-end."
+    },
+    {
+      "id": "R3",
+      "severity": "low",
+      "status": "recommended",
+      "file": "supervisor.py",
+      "lines": "38-42, 183, 190-194",
+      "summary": "latest_resource_sample parses a possibly partial trailing line in resources.jsonl; the parse error cancels the owned child as resource_monitor_failure.",
+      "impact": "Rare race that fails closed and spends the one-shot launch."
+    }
+  ],
+  "checked_no_material_defect": [
+    "argmax control whole-row compare and schema (committed control files: 64 rows, seed set equal to SEEDS, episode_index == SEEDS.index(seed))",
+    "per-step validation vs frozen dev_eval.evaluate lines 145-149",
+    "private SplitMix64 uniform streams and CPU float64 inverse CDF with exact boundaries",
+    "bootstrap registration, C4 primary contrast, decision rules, allow_nan=False serialization",
+    "checkpoint SHA, terminal receipt, v3 identity binding, strict load, no-grad",
+    "module origins under a clean lexical venv launch (numpy and torch from python/.venv site-packages; no user-site entry)",
+    "lease gate keys match protocol.lease_contract; state.json lease fields null; nothing launched"
+  ],
+  "not_reviewed": [
+    "scientific plan and statistical interpretation beyond the code paths above",
+    "Rust behavior beyond Python-visible fields in python.rs"
+  ]
+}

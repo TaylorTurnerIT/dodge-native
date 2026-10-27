@@ -1,0 +1,19 @@
+{
+  "at_utc": "2026-10-24T08:08:54.174381+00:00",
+  "task_id": "node:delegated-task:command%3Amcp%3Addabe9aa-111f-44d8-8b93-9dcd3a4e910d%3Adelegate-task%3Adodge-v2-m2-campaign-review-codex-20261024-r2-fullaccess",
+  "status": "completed",
+  "review_type": "independent_codex_static_fallback;free_provider_quota_exhausted",
+  "reviewed_identity_sha256": "e4c55768638c269cf17d9c84f444da16a22b9bfca97f2777789daa8f8df9ad53",
+  "findings": [
+    {
+      "severity": "P2",
+      "id": "throughput_final_iteration_wall_guard",
+      "source": "learning/scripts/v2_validate_environment.py",
+      "trigger": "Last measured iteration starts before60s and finishes after60s; only pre-iteration guard runs.",
+      "consequence": "Late measurement can be accepted when stage/campaign guards still pass.",
+      "parent_decision": "accepted;add post-loop elapsed guard with same <=60 semantics"
+    }
+  ],
+  "other_findings": [],
+  "execution": "none;static_only"
+}

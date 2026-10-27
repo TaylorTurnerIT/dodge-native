@@ -1,0 +1,386 @@
+{
+  "ast_parsed_only": [
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/ppo.py",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/checkpoints.py",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/models/teacher.py",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/identity.py",
+    "python/tests/test_env.py",
+    "python/tests/test_ppo.py",
+    "learning/runs/v2/expanded-evaluator-publication-repair-parent-20261026-r4/expanded_eval.py"
+  ],
+  "blockers": [
+    "F1",
+    "F2",
+    "F3",
+    "F4"
+  ],
+  "created_at_utc": "2026-10-27T01:02:54.465084+00:00",
+  "design_manifest_all_seven_match": true,
+  "evidence_limits": [
+    "Current Rust source hashes do not establish build correspondence with the accepted binary or a future successor.",
+    "No complete ancestry, consumed-seed-union or live registration audit performed.",
+    "No successor implementation, CPU/native test execution, calibration, training, evaluation or runtime qualification.",
+    "Mastery threshold, mix and exposure numbers are proposals, not user-approved requirements.",
+    "Sixty updates is a bounded early-stage pilot; later stages may remain untested.",
+    "B/E remain unopened; D100 opened and D200 consumed are preserved constraints, not freshly exercised cohorts."
+  ],
+  "findings": [
+    {
+      "classification": "design_blocker",
+      "consequence": "Equal 60-update, 256-decision rollouts do not guarantee equal Adam steps. Enforcing the stated equality would require an unregistered PPO change, topping up, or stopping one arm.",
+      "id": "F1",
+      "locations": [
+        {
+          "lines": [
+            12
+          ],
+          "path": "learning/runs/v2/progressive1000-curriculum-design-luna-20261026-r1/plan.md"
+        },
+        {
+          "lines": [
+            27,
+            75
+          ],
+          "path": "learning/runs/v2/progressive1000-curriculum-design-luna-20261026-r1/experiment.json"
+        },
+        {
+          "lines": [
+            60,
+            70,
+            470,
+            475,
+            521,
+            565,
+            567
+          ],
+          "path": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/ppo.py"
+        }
+      ],
+      "resolution": "Keep the inherited KL rule; define equality as rollout transitions and identical PPO settings/maximum optimization budget, and report actual epochs/Adam steps. If exact Adam-step equality is essential, specify and review a separate matched protocol before implementation.",
+      "severity": "P1",
+      "title": "Equal optimizer steps conflict with unchanged PPO KL stopping",
+      "trigger": "The two arms cross target_kl=0.03 after different epochs."
+    },
+    {
+      "classification": "design_blocker",
+      "consequence": "Completion order, entry reset, and exposure-clock choices change promotions and the training distribution despite identical seeds.",
+      "id": "F2",
+      "locations": [
+        {
+          "lines": [
+            40,
+            41,
+            44,
+            47,
+            49,
+            53
+          ],
+          "path": "learning/runs/v2/progressive1000-curriculum-design-luna-20261026-r1/experiment.json"
+        },
+        {
+          "lines": [
+            340,
+            349
+          ],
+          "path": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/ppo.py"
+        }
+      ],
+      "resolution": "Specify stable (learner update, rollout decision, slot) ordering, atomic completion-batch processing, one promotion boundary, stage-generation eligibility, and reset of episode/window/streak/update counters on entry. Freeze in-flight assignments. Define whether pre-minimum windows qualify, whether later failures erase eligibility, and exactly when the tenth completed stage update counts; no double-charging an update to stages.",
+      "severity": "P1",
+      "title": "Stage/window state machine has multiple valid interpretations",
+      "trigger": "Simultaneous completions straddle a 100-episode window or promotion; old-horizon episodes remain active; two passing windows arrive before update ten."
+    },
+    {
+      "classification": "design_blocker",
+      "consequence": "Each interpretation changes experienced frames and mastery arrival. Normal-start H episodes also practice every earlier section; 70% current episodes is neither 70% current-section frames nor guaranteed exposure beyond H-1000.",
+      "id": "F3",
+      "locations": [
+        {
+          "lines": [
+            36,
+            39,
+            40,
+            52,
+            53
+          ],
+          "path": "learning/runs/v2/progressive1000-curriculum-design-luna-20261026-r1/experiment.json"
+        }
+      ],
+      "resolution": "Choose one explicit assignment algorithm, balancing scope, rounding/remainder order, RNG/hash, and stage-entry behavior. Use scheduler randomness independent of policy/minibatch RNG. Declare this a cumulative-prefix curriculum, not isolated section starts; log actual raw frames, reaches, and survival through each 1000-frame interval. Retain the proposed 90%, 200 episodes, 10 updates and 70/30 only as unapproved design choices, not user requirements.",
+      "severity": "P1",
+      "title": "70/30 assignment does not yet define section exposure",
+      "trigger": "Implementations interpret 'episode slots' as fixed vector occupancy, reset-event quotas, or Bernoulli episode draws; earlier horizons need rounding."
+    },
+    {
+      "classification": "design_blocker",
+      "consequence": "The cohort becomes selection data; a curriculum can improve capped training mastery while regressing complete runs. The requested death-cause comparison is absent from the required metric list.",
+      "id": "F4",
+      "locations": [
+        {
+          "lines": [
+            64,
+            67,
+            69,
+            70,
+            71
+          ],
+          "path": "learning/runs/v2/progressive1000-curriculum-design-luna-20261026-r1/experiment.json"
+        },
+        {
+          "lines": [
+            20
+          ],
+          "path": "learning/runs/v2/progressive1000-curriculum-design-luna-20261026-r1/plan.md"
+        }
+      ],
+      "resolution": "Predeclare endpoint/cadence and per-replica plus paired aggregation; minimal pilot uses every terminal update-60 replica without best-of-stage/replica selection. Compare both arms and checkpoint324 on the same new normal-start cohort with cutoffs disabled, fixed action selection/backend, milestone rates, Worst/Q1/Mean/Q4/Best and death causes/caps/unknown/unavailable counts. Define survival as alive_frames (fatal frame excluded), quartile size/rounding and milestone ties. Any later candidate selection needs separate fresh confirmation and a parent-defined regression/acceptance rule; do not invent a mastery threshold.",
+      "severity": "P1",
+      "title": "Full-run regression, endpoint selection, and required death metrics are unspecified",
+      "trigger": "Choosing a checkpoint or replica after inspecting the fresh cohort, pooling away a lower-tail regression, or implementing only the listed metrics."
+    },
+    {
+      "classification": "bounded_pilot_evidence_limit",
+      "consequence": "Even perfect success can master at most six stages and enter 7000 at the end, with no remaining training. Exposing 18000 requires at least 170 prior-stage updates; mastering all stages requires at least 180, before episode-count constraints.",
+      "id": "F5",
+      "locations": [
+        {
+          "lines": [
+            24,
+            37,
+            41,
+            48,
+            50
+          ],
+          "path": "learning/runs/v2/progressive1000-curriculum-design-luna-20261026-r1/experiment.json"
+        }
+      ],
+      "resolution": "Explicitly label 60 updates per replica a bounded early-stage pilot; clarify global budget versus per-stage timeout, and record stages reached/mastered and untested stages. This is a limit, not permission to increase the cap.",
+      "severity": "P2",
+      "title": "The 60-update pilot cannot cover the entire 18-stage program",
+      "trigger": "At least ten non-overlapping learner updates are required per mastered stage."
+    },
+    {
+      "classification": "pre_registration_definition",
+      "consequence": "Pairs may have unequal completed decisions or silently different total cost. The unspecified evaluation count/cadence prevents a complete resource bound.",
+      "id": "F6",
+      "locations": [
+        {
+          "lines": [
+            23,
+            24,
+            27,
+            28,
+            31,
+            67
+          ],
+          "path": "learning/runs/v2/progressive1000-curriculum-design-luna-20261026-r1/experiment.json"
+        },
+        {
+          "lines": [
+            12,
+            20
+          ],
+          "path": "learning/runs/v2/progressive1000-curriculum-design-luna-20261026-r1/plan.md"
+        }
+      ],
+      "resolution": "Pin batch size, six-run execution/concurrency plan, evaluation count/cadence, and train/eval/aggregate wall, raw-frame, memory and cleanup budgets. Count every startup (13 frames/reset), reset, initial construction, discarded work and evaluation. Define fail-closed partial-pair reporting without top-ups. At inherited batch64, each replica plans 983040 transitions and at most 7680 Adam steps; six replicas plan 5898240 transitions. Actual steps may be lower under KL stopping.",
+      "severity": "P2",
+      "title": "Training equality and total resource ceilings need separate semantics",
+      "trigger": "One arm hits a raw-frame/wall cap first, or evaluation/baseline/checkpoint overhead is charged inconsistently."
+    },
+    {
+      "classification": "pre_registration_definition",
+      "consequence": "Disjointness from B/E/D128/D100/D200 alone does not prove held-out freshness or independent replicas. Matching run_seed does not mean both arms consume identical episode counts, because cutoffs reset sooner.",
+      "id": "F7",
+      "locations": [
+        {
+          "lines": [
+            25,
+            26,
+            40,
+            67,
+            68
+          ],
+          "path": "learning/runs/v2/progressive1000-curriculum-design-luna-20261026-r1/experiment.json"
+        },
+        {
+          "lines": [
+            75,
+            89,
+            115,
+            136
+          ],
+          "path": "crates/dodge-rl-env/src/seed.rs"
+        },
+        {
+          "lines": [
+            138,
+            142
+          ],
+          "path": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/checkpoints.py"
+        }
+      ],
+      "resolution": "Make the ancestry audit cover all observed/consumed seed sets, including discarded branches, and reserve the new cohort against future training in both arms before construction. Preserve B/E unopened, D100 opened and D200 consumed. Pin model/Adam restoration and replica-specific paired policy/minibatch RNG forks, run_seed/slot/episode offsets and collision handling. Treat pairing as matched streams and report actual consumed seeds/exposure; exact seed manifests may remain parent-owned registration work.",
+      "severity": "P2",
+      "title": "Five named exclusions are not a complete freshness or replica contract",
+      "trigger": "A 'fresh' evaluation seed appeared in historical training, discarded later updates, probes/benchmarks or other consumed cohorts; replicas share restored RNG without a declared fork."
+    }
+  ],
+  "input_hashes_rechecked_before_write": true,
+  "inputs": {
+    "crates/dodge-rl-env/src/death_tests.rs": {
+      "bytes": 8670,
+      "sha256": "fd5c90a261fc0685a732fabfed78790e0c297616240a10be561b7af1477703ff"
+    },
+    "crates/dodge-rl-env/src/env.rs": {
+      "bytes": 20955,
+      "design_manifest_match": true,
+      "sha256": "39f7ea0720e349ab7930a748da9df9df9ce411d334baf6b035503ee86543b942"
+    },
+    "crates/dodge-rl-env/src/features.rs": {
+      "bytes": 19316,
+      "sha256": "78d72ee29fdcf2c0828e26d0a4265b50809f4c9899183332a4c48fb326dc006c"
+    },
+    "crates/dodge-rl-env/src/lib.rs": {
+      "bytes": 1966,
+      "sha256": "fad458cc36ab386e47b71a337fa78fb123d6aba23ca040de4c2cdccb8a166c00"
+    },
+    "crates/dodge-rl-env/src/python.rs": {
+      "bytes": 14646,
+      "design_manifest_match": true,
+      "sha256": "604db40f4b49f462fe7fd81dd62f4fe845fb0061e742e7cf6b11a49324da25ab"
+    },
+    "crates/dodge-rl-env/src/seed.rs": {
+      "bytes": 5086,
+      "design_manifest_match": true,
+      "sha256": "239cb9d88a61fff7d63c3c13c80e4552caafe814729160f8fb2948d3c1498832"
+    },
+    "crates/dodge-rl-env/src/tests.rs": {
+      "bytes": 41308,
+      "sha256": "3a6b8caa021a87240d2fb02cae60b70c763febcaae2062aefc6d5e1d725fbf8b"
+    },
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/_native.cpython-312-darwin.so": {
+      "bytes": 1157680,
+      "sha256": "022d41dde9bace0b4f4c4c06b9b4ed007bc2c60013cd98734086e587d7bb997e"
+    },
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/checkpoints.py": {
+      "bytes": 14754,
+      "design_manifest_match": true,
+      "sha256": "807141943a742c6e9fdd34274c191b3c318134cc7fb0c1c6256874cadee1cbc3"
+    },
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/identity.py": {
+      "bytes": 12169,
+      "design_manifest_match": true,
+      "sha256": "50775b2e7c30e53757dd3134d11613f716733cee8e6a96cc18b62e8ff2a4a053"
+    },
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/models/teacher.py": {
+      "bytes": 8653,
+      "design_manifest_match": true,
+      "sha256": "e4d7f597a2824c2b0d4ba261dddc9d7d1ee1d5592c2fc966a44c54b5ec417e35"
+    },
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/ppo.py": {
+      "bytes": 32684,
+      "design_manifest_match": true,
+      "sha256": "b3cef91b1293056e9d1820a94fd5730accae4c5728d23566857a6c3a0e1eeac5"
+    },
+    "learning/runs/v2/D2-retained276-lr3em5-prepare-luna-20261026-r2/D2-retained276-lr3em5-config.json": {
+      "bytes": 1583,
+      "sha256": "1c24df3eea150160451ada08e9f6844cd67645abf5fb8b712afd14abca930ce8"
+    },
+    "learning/runs/v2/D2-retained300-continuation-20261026-r1/checkpoint-000324-candidate.pt": {
+      "bytes": 3940531,
+      "sha256": "c10d90ec0e67503afef8f4d90c4968581d430ef2065117a75e81c445a04c8ddc"
+    },
+    "learning/runs/v2/D2-retained300-continuation-20261026-r1/checkpoint-000324-candidate.pt.json": {
+      "bytes": 216,
+      "sha256": "cedb20704c9a7c0ec9126c6e7da2f75e230d6acdaa1b7b47f25256ed4f1fd939"
+    },
+    "learning/runs/v2/D2-retained300-continuation-20261026-r1/entry-restoration.json": {
+      "bytes": 999,
+      "sha256": "5238e1a09d8f20fb3c735af919c307eb17254f30f29b7d549bb466304090c85a"
+    },
+    "learning/runs/v2/D2-retained300-continuation-freeze-20261026-r5/registration.json": {
+      "bytes": 3049816,
+      "sha256": "8a60dc80f1ebe03c43bf18eebf75199e14f207b677570ac2d6d4368ddfcb0f79"
+    },
+    "learning/runs/v2/D2-retained300-parent-terminal-audit-20261026-r1/retained-best-candidate-receipt.json": {
+      "bytes": 6913,
+      "sha256": "76cb15733e87518cb3b473b7f8ebd847ed206351fb9f17d89b8b92e6bf853f08"
+    },
+    "learning/runs/v2/expanded-confirmation-parent-20261026-r1/parent-acceptance.json": {
+      "bytes": 4369,
+      "sha256": "3e84979c4c8da76d0f98666a23f90eb15c1e813ca5edf1001e19daebaf4d5bbd"
+    },
+    "learning/runs/v2/expanded-confirmation-parent-20261026-r1/registration-final.json": {
+      "bytes": 20602,
+      "sha256": "55189edc118ed63a430baf94f3d68098c695a6684e7479f3a35bd78bbf76d516"
+    },
+    "learning/runs/v2/expanded-evaluator-publication-repair-parent-20261026-r4/expanded_eval.py": {
+      "bytes": 36976,
+      "sha256": "a3439c33152b082471cd9f9a36ef4bb03783b9544ae7c1e3fe1878e607b128aa"
+    },
+    "learning/runs/v2/progressive1000-curriculum-design-luna-20261026-r1/experiment.json": {
+      "bytes": 7905,
+      "sha256": "001575cd3e2244ef9573bc2411693d1d165b6123462a0602bd34f826b6adc7b3"
+    },
+    "learning/runs/v2/progressive1000-curriculum-design-luna-20261026-r1/plan.md": {
+      "bytes": 4903,
+      "sha256": "75f58d4b4de1bd7a68458e9cc68c252ac9ce2903a6e536157b38d030484f6d21"
+    },
+    "learning/runs/v2/progressive1000-curriculum-design-luna-20261026-r1/source-sha256.txt": {
+      "bytes": 947,
+      "sha256": "b3104c6baf66fee636b48d6f16e67a16694a785a18344422c632c861b2ca5bb2"
+    },
+    "python/tests/test_env.py": {
+      "bytes": 20341,
+      "sha256": "dd1a8e653988e3870a5a7b01b03a0664536d4b14f3d00a6a36328d31cb8b6c4e"
+    },
+    "python/tests/test_ppo.py": {
+      "bytes": 27207,
+      "sha256": "948c0a89388a10aaebb55e11950a0a97f323fb23ea2d0c7bf63556f3234da642"
+    }
+  },
+  "output_directory": "learning/runs/v2/progressive1000-design-review-sol-20261026-r1",
+  "parent_anchor_verification": {
+    "acceptance_receipt_sha256": "3e84979c4c8da76d0f98666a23f90eb15c1e813ca5edf1001e19daebaf4d5bbd",
+    "checkpoint_sha256": "c10d90ec0e67503afef8f4d90c4968581d430ef2065117a75e81c445a04c8ddc",
+    "cumulative_updates": 372,
+    "integrity_receipt_sha256": "76cb15733e87518cb3b473b7f8ebd847ed206351fb9f17d89b8b92e6bf853f08",
+    "phase_updates": 324,
+    "verification_scope": "Raw byte hashes and receipt JSON fields only; no checkpoint deserialization or requalification."
+  },
+  "pilot_limit_and_registration_items": [
+    "F5",
+    "F6",
+    "F7"
+  ],
+  "review_model": "gpt-6.1-sol",
+  "review_sha256": "2a4219dd7e52708313ccf5ccacb8165c6bb877381c6973a888d6ce0bd2c7cdd5",
+  "reviewer": "sol",
+  "schema": "progressive1000_source_only_review_v1",
+  "scope": {
+    "builds": false,
+    "checkpoint_deserialization": false,
+    "environment_construction": false,
+    "evaluation": false,
+    "model_construction": false,
+    "mps": false,
+    "native_imports": false,
+    "numpy_imports": false,
+    "project_imports": false,
+    "runtime_qualification_claimed": false,
+    "source_only": true,
+    "stdlib_python_flags": [
+      "-B",
+      "-S"
+    ],
+    "subdelegation": false,
+    "tests_run": false,
+    "torch_imports": false,
+    "training": false,
+    "training_authorized": false,
+    "writes": "Only review.md and receipt.json inside the newly created named review directory."
+  },
+  "status": "changes_required_before_implementation_freeze",
+  "workspace": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79"
+}

@@ -1,0 +1,60 @@
+{
+  "schema": "retained300_all_candidate_auditor_review_v1",
+  "reviewer": {"model": "claude-haiku-5-5", "provenance": "self-reported model identity in harness; no tool-level attestation", "delegation": false},
+  "scope": "static read/hash only of frozen auditor D2-retained300-all-candidate-auditor-luna-20261026-r5; no imports, tests, MPS, training, lease, ledger, or source writes; no current RUN outputs read",
+  "verdict": "no_blockers",
+  "blockers": [],
+  "findings": [
+    {
+      "severity": "low",
+      "file": "learning/runs/v2/D2-retained300-all-candidate-auditor-luna-20261026-r5/audit_candidates.py",
+      "line": 369,
+      "summary": "validate_observer_instantiation is defined but never called; audit() checks only the instantiation.json digest (line 514-515), so its schema, observer_sha256, and actual_launches==0 fields are not enforced in code.",
+      "trigger": "Full mode runs with the pinned instantiation.json (sha 53b3cffc...). The pin fixes content, so the gap is latent.",
+      "consequence": "No current wrong result. The no-launch declaration rests on the pin alone, not on a runtime check."
+    },
+    {
+      "severity": "low",
+      "file": "learning/runs/v2/D2-retained300-execution-observer-parent-20261026-r1/observe.py",
+      "line": 184,
+      "summary": "outer_process_group is None when the outer pid is missing from the process snapshot at launch; wrapper.py owned_processes_absent then calls os.killpg(None, 0).",
+      "trigger": "process_rows() returns no row for proc.pid immediately after Popen.",
+      "consequence": "TypeError in full mode after terminal work, before full-audit.json is created. No state damage; parent reruns after fix. Not an actual observed crash; unlikely because the child exists right after Popen."
+    },
+    {
+      "severity": "low",
+      "file": "learning/runs/v2/D2-retained300-all-candidate-auditor-luna-20261026-r5/wrapper.py",
+      "line": 280,
+      "summary": "run_audit opens the exclusive output with path.open('x') before json.dump; a serialization error after open leaves a truncated full-audit.json.",
+      "trigger": "A non-JSON or NaN value reaches the record (allow_nan=False). Finite checks in audit_candidates.py make this unlikely.",
+      "consequence": "Truncated exclusive file blocks retry until manually removed. Write to a temp name and rename would avoid this."
+    },
+    {
+      "severity": "info",
+      "file": "learning/runs/v2/D2-retained300-all-candidate-auditor-luna-20261026-r5/audit_candidates.py",
+      "line": 242,
+      "summary": "Duplicate len(metrics) check at lines 242 and 246; the docstring at line 243 sits after a statement, so it is not a docstring.",
+      "trigger": "Always.",
+      "consequence": "Cosmetic only."
+    }
+  ],
+  "verified": [
+    "All pinned digests match: audit_candidates.py 5481cc94, wrapper.py 824b69bc, observe.py 37713a27, instantiation.json 53b3cffc, registration.json 8a60dc80, runner.py 108ba55a, execute_once.py 7215ae66, registration_schema.py eae76ec9, parent_adapter.py a969f2a5, test files, and manifests.",
+    "Registration pin_count 13827; forbidden_outputs is exactly [lr-transition.json]; no LR-transition or old 7-candidate/137xx pin requirement appears in the auditor.",
+    "Six candidates 300/312/324/336/348/360 and expected_outputs inventory match the registration (runner.py expected output names).",
+    "Observer keys read by wrapper.terminal_gates and audit() full mode exist in observe.py with matching names: outer_raw_exit, worker_raw_exit, first_event, launch_count, success_authoritative, outer_inclusive_wall_seconds, outer_limit_seconds, max_aggregate_rss_bytes, aggregate_rss_limit_bytes, mps_limit_bytes, outer_process_absent, worker_process_absent, worker_group_absent, observer_pid, outer_pid, outer_process_group, postflight.pins.checked/failures, postflight.lease.*, cache_empty_after, publication_failure_absent. observation.json is written by save() into the observer directory, the same path the wrapper reads.",
+    "Execution keys read by the wrapper (actual_worker_launch_count, observed_worker_raw_exit, status, worker_pid, owned_pgid) are set in execute_once.py lines 331-332 and written as execution-result.json (line 397).",
+    "Frozen launcher validate_outputs(reg, worker, registration_sha) exists at execute_once.py:88 with that signature; launcher 'import runner as r' resolves to the sys.modules['runner'] entry the auditor installs.",
+    "Runner state keys written at runner.py ~755-778 match every key the auditor reads for identity, counters, cumulative counters, and both clock fields. Clock fields are distinct: selected trajectory 5190.209660791156 and completed campaign cost 8621.338345875141 each add current_iteration_observed_outer_seconds (wall formula checked at audit_candidates.py:329-330).",
+    "Checkpoint API matches use: load_checkpoint(path, expected_sha256=...) at checkpoints.py:112; require_complete_update, episode_resume_state, save_checkpoint, capture_rng, identity_hash, progress_passed exist.",
+    "Entry-candidate abandoned records are emitted as abandoned_parent_episode and excluded from completed-frame conservation, so the raw-frame check at audit_candidates.py:364-366 is consistent with runner.py:741-743 and 827.",
+    "Wrapper CLI refuses full mode (wrapper.main parser.error); full mode requires observer_dir equal to the registered observer directory."
+  ],
+  "limits": [
+    "Not read: runner.load_registration body (runner.py:347-401) and runner.validate_gradient_alignment / validate_metric_rows keys (runner.py:444-487), so metric row keys ('transitions', 'gradient_alignment_diagnostics', update_progress) are inferred from writers, not confirmed against readers.",
+    "Not read: launcher validate_outputs body beyond lines 88-108 and 171-183, 255-279; its full-mode return value is assumed JSON-safe.",
+    "Not read: dodge_rl.dev_eval, evaluate episode-row keys, and the objective_return formula source; audit_candidates.py:402-403 is taken as written.",
+    "No runtime execution. Full-mode crash-freedom is established only by static key/signature matching, not by running the wrapper.",
+    "Entry-candidate raw-frame conservation depends on the runtime value of abandoned gameplay_frames at update 300, which cannot be read without loading the checkpoint."
+  ]
+}

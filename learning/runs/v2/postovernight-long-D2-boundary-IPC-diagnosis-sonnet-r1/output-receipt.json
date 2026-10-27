@@ -1,0 +1,122 @@
+{
+ "excludes_itself": true,
+ "files": {
+  "./diagnosis.md": {
+   "bytes": 12216,
+   "sha256": "b1d6752881822ff0e0ef3ba96a01fd0e6f56c427d6f7368a4c39894609f61370"
+  },
+  "./input-hashes.json": {
+   "bytes": 4508,
+   "sha256": "a75258011964295ee8db9df6961aa657637afbefa046fe26acb5a4eee9ce1f3b"
+  },
+  "./ipc_probe.py": {
+   "bytes": 7187,
+   "sha256": "19b338027ea57738680e71aef5a46e86a4b1632d3c8f6ff14f184f2837766154"
+  },
+  "./make_hashes.py": {
+   "bytes": 1835,
+   "sha256": "577f2da79663383c58e32930621b52c9b2cb23dc5982e232463635adaeeac3f5"
+  },
+  "./plan.json": {
+   "bytes": 2499,
+   "sha256": "fdbfb9925a097afcfc6017fc8e8ea47bbd7a6d926d19aebf97332c73da5be456"
+  },
+  "./probe-end.epoch": {
+   "bytes": 11,
+   "sha256": "1e20b069b268b12fbf4f31e5e9ea018d934332c0975ff235c0dc637a23c8eea5"
+  },
+  "./probe-exit.txt": {
+   "bytes": 11,
+   "sha256": "dfdec0bcf374ed6c76c0606c7cddb7ff9a04831d1d7d3921342121555b9823cf"
+  },
+  "./probe-out/D1.jsonl": {
+   "bytes": 2025,
+   "sha256": "f974a2446ae20a8f5a48c174368552b09eb02468b7d8a38a449e9c677d457230"
+  },
+  "./probe-out/D2.jsonl": {
+   "bytes": 1960,
+   "sha256": "247d4929178b868bc02c55922e43c8c5a1cc4da7dc72057f26b386988aea54f5"
+  },
+  "./probe-script.sha256": {
+   "bytes": 79,
+   "sha256": "3e7b7f292569d2f782d590b5fd58e3f84bee352cd86a92d9b96ddd9bd909f9d9"
+  },
+  "./probe-start.epoch": {
+   "bytes": 11,
+   "sha256": "1c97f020a21639f03610a4ba986761550e96bcc83d90065b66e270e34ee0344a"
+  },
+  "./probe-stderr.log": {
+   "bytes": 0,
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "./probe-stdout.json": {
+   "bytes": 2256,
+   "sha256": "835aade139afac1b773ab8f93e839da4d9c148946dd0ff52bc631c36c8eb95eb"
+  },
+  "./probe-wrapper-failure-exit.txt": {
+   "bytes": 13,
+   "sha256": "ae22099c192dff5b2029d2caf438fa58b94d36cf0c77619159035415153e0bf5"
+  },
+  "./starvation_model.out.json": {
+   "bytes": 267,
+   "sha256": "78304f8ca961e20c61c9c48d305c937b573f6b28517511639e53313d1c2a4c84"
+  },
+  "./starvation_model.py": {
+   "bytes": 1684,
+   "sha256": "068c2f95596917d388136a668020181825514fc6cc196c582feefe44c1c2cb83"
+  },
+  "./wrapper-failed-end.epoch": {
+   "bytes": 11,
+   "sha256": "5d4d5a9893f30ce65185c8bbeb817a8843bca377b5248fdf988614cb0b49f3bf"
+  },
+  "./wrapper-failed-start.epoch": {
+   "bytes": 11,
+   "sha256": "5d4d5a9893f30ce65185c8bbeb817a8843bca377b5248fdf988614cb0b49f3bf"
+  }
+ },
+ "json_validation": {
+  "./input-hashes.json": true,
+  "./plan.json": true,
+  "./probe-stdout.json": true,
+  "./starvation_model.out.json": true
+ },
+ "probe": {
+  "argv": [
+   "learning/.venv/bin/python",
+   "-B",
+   "ipc_probe.py",
+   "main",
+   "probe-out"
+  ],
+  "env_added": [
+   "PYTHONPYCACHEPREFIX=<owned>/fresh-pycache",
+   "PYTHONDONTWRITEBYTECODE=1"
+  ],
+  "failed_wrapper_launch_exit": "raw_exit=127",
+  "invocations_of_script": 1,
+  "raw_exit": "raw_exit=0",
+  "script": "ipc_probe.py",
+  "survivors": "none (pgrep after run)",
+  "wall_epoch": [
+   1792894681,
+   1792894682
+  ]
+ },
+ "safety": {
+  "acceptance_bypass_claimed": false,
+  "delegation": false,
+  "ml_imports": false,
+  "os_cases_run": 0,
+  "source_edited": false,
+  "state_edited": false
+ },
+ "schema": "ipc_diagnosis_output_receipt_v1",
+ "starvation_model": {
+  "argv": [
+   "learning/.venv/bin/python",
+   "-B",
+   "starvation_model.py"
+  ],
+  "out": "starvation_model.out.json"
+ }
+}

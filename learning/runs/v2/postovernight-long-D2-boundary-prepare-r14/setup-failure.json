@@ -1,0 +1,33 @@
+{
+  "cause": "My new precheck code assigned a local dict named `now` inside main(), shadowing the module-level now() timestamp function. Defect in the wrapper only; candidate source and tests are not implicated.",
+  "command_json_written": false,
+  "exception_text": "TypeError: 'dict' object is not callable at unit_stage.py line 122 (now() in command.json registration); the except handler then failed again at line 143 (now()).",
+  "raw_result": {
+    "no_retry": true,
+    "raw_exit": null,
+    "validation_attempts": 0
+  },
+  "rule_applied": "Parent rule: unexpected mutating setup failure stops without patch or retry. Wrapper not patched; stage not rerun.",
+  "schema": "r14_setup_failure_v1",
+  "setup_precheck_passed": {
+    "changed_inherited_methods": [
+      "test_r10.R10.test_exact_r9_transport_success_consumers_protected_blocks",
+      "test_r11.R11.test_C01_exact_success_consumers_transport_inner_fixtures_and_old91",
+      "test_r11.R11.test_C02_protocol_only_candidate_paths_and_qualified_semantics",
+      "test_r7.R7.test_success_consumers_and_protected_failure_helpers_byte_equal"
+    ],
+    "existing_methods_exact": true,
+    "existing_test_sources_exact": true,
+    "input_bindings_all_match": true,
+    "new_methods": 31,
+    "original_fixture_exact": true,
+    "unchanged_inherited_methods": 108,
+    "unique_names": true
+  },
+  "source_inventory_unchanged": true,
+  "stage": "unit_stage.py wrapper before test child launch",
+  "suggested_parent_fix_not_applied": "Rename the local `now` dict/lists in unit_stage.py::main (the `now_text, now_lines, now = method_texts(...)` line and its uses) so module-level now() stays callable.",
+  "test_child_launched": false,
+  "test_invocations": 0,
+  "validation_attempts": 0
+}

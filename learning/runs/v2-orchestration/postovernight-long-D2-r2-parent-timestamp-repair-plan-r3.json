@@ -1,0 +1,52 @@
+{
+  "OS_attempt08": {
+    "controls_passed": [
+      "normal-closure",
+      "normal-fake-gate"
+    ],
+    "first_unexpected": "inner-optional-timing-error",
+    "harness_kill_required": false,
+    "observed": "Worker gate reported truncatedIPC, supervisor could not read workerresult; cleanup handling then raised Failure descriptor timestamp differs. No failedreceipt survived; original initiating outer error not recorded, so root cause unproven.",
+    "raw_exit": 1,
+    "raw_wait_status": 256,
+    "stress_or_startup_run": false
+  },
+  "capsule_manifest_sha256": "6034455e3fea6b44ae55f30e4cf63fa4530cea2c8281eb32f7a29288d88bfab4",
+  "confirmed_source_defect": "FailurePool.fail(reason, at=None) assigns fresh now before reading reason.first_failure_descriptor and rejects its earlier valid source timestamp. Fallback failure reporting cannot preserve descriptor-bearing exceptions.",
+  "executor_preflight": "attempt07passed",
+  "fix": "If caller omits at, use valid supplied/source descriptor timestamp; explicit conflicting at still rejects. Maintain first/global monotone cleanup pool. Add meaningful regression.",
+  "frozen_source_directory": "learning/runs/v2/postovernight-long-D2-boundary-prepare-r2",
+  "no_identical_OS_retry": "New r3 source with targeted timestamp repair, new registration and preserved r2 evidence; no oldstress/rehearsal was run.",
+  "recorded_at_utc": "2026-10-25T00:57:23.652406+00:00",
+  "registration_sha256": "c3bb20919b49aa8126a76f5a1904d5f6501b4a99b60b011757e5945d5a560d56",
+  "source_hashes": {
+    "boundary_integrity.py": "d4aafd463d105967b44151f11ec8e1c5fb5d5b633c6892db8bde829f28eff560",
+    "freeze.py": "c04bd6c3402cc920f76c4d4485af2042549329872082c327da09e6c93cb4b1f3",
+    "implement.py": "ff3860808e7e1faa25f961af4e404bab85bd7ea0df3818044c08d0a971102378",
+    "implement_executor.py": "fc19acaf10bee351c6b4280f315a3af9173571b449fd3c2133ad0c559eabd1b3",
+    "implement_lifecycle.py": "8318716ee6f7e9722cc2d185104db56837fbacd08d89e6f3e1ddb002e9b81945",
+    "lifecycle.py": "8ba29f68a2fb9f28b7645ad45e7745eaedfdd779a4ff45f8a83f45aae4fccaf8",
+    "long_d2.py": "ace0c2e4cebb3e8cd96066394bc6274ff875e7174aecb05252a470c1d7bdcc00",
+    "long_d2_executor.py": "4fe9fb1388fd79000665f193197e452f99453ce2e7d02a48ead9b2c0c1137f05",
+    "os_checks.py": "a3472b2e31d0ab2f5fd868dc86a84037d5a42a0c3f53c87c15df1034428e5d96",
+    "parent_command.py": "cfde69f9c767f8172767208510c83adbc71692a265d428e5878234bb4c7c5eed",
+    "prepare_os_fixtures.py": "017d484db171c5e43ee157165bf6938bb8d6e2869594d7b01085609a821e7c28",
+    "processes.py": "4a80831dd6fbc4cf045b7ce5acd06b62d95088db6a19a307602c5709bf42cdef",
+    "refine.py": "1df104d299c49c1f937a26cc7569fcd1ff6ce7971a83fce0494d0fa9dce18030",
+    "rehearsal.py": "9c4c8a440c24d9f257404830d6119522dba52ba2c72cd7896561b03e8699fa31",
+    "source_equality.py": "bcc9e084ce214b462f1361a8a5fcf45607ee745941135ce63027a7be581842fb",
+    "stress.py": "cd0da16ef3c865dc02bb0866be755baaf62ffbb7c3978e3ebf6eb0304a4585ee",
+    "synthetic.py": "12bdb659d4ce17eb8ba63f201066eca5f3a960d2a08da321d164fa6c0164ebc7",
+    "test_boundary.py": "20b14bd9988b6959052b30652a6912ccef35a78e8c014a1d1639c2b35245538d"
+  },
+  "stage_budget": "Parent completion/validation began00:51UTC with900s validation cap; no cap change.",
+  "units": {
+    "attempt05": 20,
+    "passed": true,
+    "prior_failures_retained": [
+      "attempt02 missing VALIDATION_DIR",
+      "attempt03 outermandatoryhelper omission",
+      "attempt04 stalepyc fixture compile prefix"
+    ]
+  }
+}

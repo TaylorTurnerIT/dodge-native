@@ -1,0 +1,44 @@
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained324-execution-observer-parent-20261026-r1/observe.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained324-linear-execution-observer-parent-20261026-r1/observe.py
+@@ -1,4 +1,4 @@
+-"""One-shot external observer for the registered retained BEST324 same-LR3e-5 D2 continuation."""
++"""One-shot external observer for the registered retained BEST324 linear-LR3e-5-to1e-5 D2 continuation."""
+ import datetime
+ import hashlib
+ import json
+@@ -10,9 +10,9 @@
+ import time
+ 
+ ROOT = Path('/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79')
+-OWN = ROOT / 'learning/runs/v2/D2-retained324-execution-observer-parent-20261026-r1'
+-REG_PATH = ROOT / 'learning/runs/v2/D2-retained324-continuation-prepare-luna-20261026-r2/registration.json'
+-REG_SHA = '44ac8185b24de2d98cc1c870191f18be47734b5cc11c7c6ff91b9feacb34cd5a'
++OWN = ROOT / 'learning/runs/v2/D2-retained324-linear-execution-observer-parent-20261026-r1'
++REG_PATH = ROOT / 'learning/runs/v2/D2-retained324-linear-integrated-luna-20261026-r4/registration-final-r2.json'
++REG_SHA = '0a6bf98221689ffcf62a28289dae7bb98eb89bc8d3c02b93127f4a04df75cb4e'
+ WALL_LIMIT = 1800.0
+ WORK_LIMIT = 1790.0
+ RSS_LIMIT = MPS_LIMIT = 6442450944
+@@ -150,11 +150,11 @@
+         'command': cmd,
+         'cwd': str(ROOT),
+         'limits': reg['limits'],
+-        'registration_pins_expected': 13846,
++        'registration_pins_expected': 13857,
+     }
+     save('prelaunch.json', pre)
+     assert pre['registration_sha256'] == REG_SHA
+-    assert pre['pins']['checked'] == pre['pins']['expected'] == 13846 and not pre['pins']['failures']
++    assert pre['pins']['checked'] == pre['pins']['expected'] == 13857 and not pre['pins']['failures']
+     assert pre['lease']['active_long_campaign_exact'] and pre['lease']['active_inference_campaign'] is None
+     assert pre['lease']['active_inference_lease'] is None
+     assert pre['lease']['active_inference_diagnostic'] is None
+@@ -302,7 +302,7 @@
+         and record['postflight']['lease']['active_inference_campaign'] is None
+         and record['postflight']['lease']['active_inference_lease'] is None
+         and record['postflight']['lease']['active_inference_diagnostic'] is None
+-        and record['postflight']['pins']['checked'] == 13846
++        and record['postflight']['pins']['checked'] == 13857
+         and not record['postflight']['pins']['failures']
+         and record['postflight']['cache_empty_after']
+         and record['postflight']['publication_failure_absent']

@@ -1,0 +1,42 @@
+{
+  "review": "D2-retained324-control-r2-review-haiku-20261026-r1",
+  "reviewed": "learning/runs/v2/D2-retained324-continuation-prepare-luna-20261026-r2/",
+  "registration_sha256": "44ac8185b24de2d98cc1c870191f18be47734b5cc11c7c6ff91b9feacb34cd5a",
+  "verdict": "no_blockers; R1_F1_fixed; new_low_findings_only",
+  "launch_qualification_or_acceptance_authority": false,
+  "pins": {"count": 13846, "R1_pins_removed": 0, "R1_shared_value_changes": 0, "r5_pins_missing": 0, "added_vs_R1": 19, "restored_historical_recomputed_matches": 15, "R2_source_recomputed_matches": 4},
+  "findings": [
+    {
+      "severity": "low",
+      "category": "runbook-stale-command",
+      "file": "learning/runs/v2/D2-retained324-continuation-prepare-luna-20261026-r2/launch-command.json",
+      "line": 1,
+      "summary": "Recorded launch command omits required --registration-sha256; superseded by observer parent-command.json which includes it.",
+      "failure_scenario": "Verbatim execution of launch-command.json fails argparse before claim or write; wasted attempt only. Fix the runbook record; no code refreeze."
+    },
+    {
+      "severity": "low",
+      "category": "test-coverage",
+      "file": "learning/runs/v2/D2-retained324-continuation-prepare-luna-20261026-r2/validate.py",
+      "line": 7,
+      "summary": "parent_run_id check is a substring search of runner.py text, not a check of the state field value.",
+      "failure_scenario": "Literal appearing anywhere in runner.py satisfies the check while the emitted state field is wrong. Preparation-only, unpinned; not launch-blocking."
+    },
+    {
+      "severity": "low",
+      "category": "carried-r1",
+      "file": "learning/runs/v2/D2-retained324-continuation-prepare-luna-20261026-r2/execute_once.py",
+      "line": 297,
+      "summary": "mkdir(exist_ok=True) carried from R1 F2; inherited byte-identical; parent observer absence gate covers it.",
+      "failure_scenario": "Stray pre-existing output dir accepted by launcher if gate bypassed."
+    },
+    {
+      "severity": "low",
+      "category": "carried-r1",
+      "file": "learning/runs/v2/D2-retained324-continuation-prepare-luna-20261026-r2/registration.json",
+      "line": 1,
+      "summary": "forbidden_outputs lr-transition.json declared in registration but not runner-enforced (no runner.py match); carried from R1 F4.",
+      "failure_scenario": "A future writer could create lr-transition.json undetected by the runner."
+    }
+  ]
+}

@@ -1,0 +1,180 @@
+{
+  "schema": "gradient_alignment_cpu_shadow_implementation_result_v1",
+  "status": "prepared_with_mps_exact_parity_blocker",
+  "scope": "owned r3 output only; no real environment, rollout, training campaign, evaluation, registration, launch, PR, commit, deployment, or messages",
+  "design": {
+    "enabled_by_default": false,
+    "backend": "cpu_shadow",
+    "measures_live_MPS_gradients": false,
+    "snapshot": "first_minibatch_pre_optimizer_step",
+    "probe_count_per_update": 1,
+    "live_graph_additional_autograd_grad_calls": 0,
+    "shadow_optimizer": false,
+    "live_loss_optimizer_clip_path": "cloned original runtime path preserved"
+  },
+  "source_provenance": {
+    "base_runtime": "learning/runs/v2/critic-diagnostic-parent-prepare-20261025-r1/runtime",
+    "original_existing_files_unchanged_except": [
+      "dodge_rl/ppo.py"
+    ],
+    "new_runtime_file": "dodge_rl/gradient_alignment.py",
+    "inventory_sha256": "4c4dc63d350805efd91567234510eb6f74fae04670a3d9247a293b15106a0e06",
+    "original_native_sha256": "022d41dde9bace0b4f4c4c06b9b4ed007bc2c60013cd98734086e587d7bb997e"
+  },
+  "tests": {
+    "command": "PYTHONPYCACHEPREFIX=<absolute-r3>/own/pycache PYTHONPATH=<absolute-r3>/own/runtime python/.venv/bin/python3.12 -B -m pytest -q <absolute-r3>/own/tests/test_gradient_alignment.py <absolute-r3>/own/tests/test_ppo_baseline.py",
+    "result": "48 passed in 2.77s",
+    "python_source_parse": "passed"
+  },
+  "parity": {
+    "fixture": "synthetic frozen RolloutBatch; no environment/checkpoint",
+    "cpu_1_thread": {
+      "enabled_disabled_exact": true,
+      "disabled_repeat_exact": true,
+      "optimizer_steps": 4
+    },
+    "mps_4_threads": {
+      "enabled_disabled_exact": false,
+      "disabled_repeat_exact": false,
+      "baseline_first_delta": {
+        "tensor": "adam.state.6.exp_avg",
+        "max_abs_delta": 1.1641532182693481e-10
+      },
+      "enabled_first_delta": {
+        "tensor": "adam.state.6.exp_avg",
+        "max_abs_delta": 1.1641532182693481e-10
+      },
+      "resource_bytes": {
+        "peak_rss_bytes": 545390592,
+        "mps_allocated_bytes": 15427584,
+        "driver_allocated_bytes": 46956544
+      },
+      "raw_adam_state_fingerprints": {
+        "disabled": "5fd6cc30a5b4a3b867fead6e23c655f0a5734f9dcfb4902b0216ca51a621fafe",
+        "enabled": "5fd6cc30a5b4a3b867fead6e23c655f0a5734f9dcfb4902b0216ca51a621fafe"
+      }
+    }
+  },
+  "benchmark": {
+    "scope": "synthetic 512-sample PPO update only; no rollout or environment",
+    "method": "one warmup pair then three paired repeats, disabled then enabled; fixed synthetic batch; device synchronization for MPS",
+    "results": [
+      {
+        "device": "cpu",
+        "threads": 1,
+        "samples": 512,
+        "pairs": [
+          {
+            "repeat": 1,
+            "disabled_seconds": 0.4381276670610532,
+            "enabled_seconds": 0.931587417027913,
+            "absolute_added_seconds": 0.4934597499668598,
+            "minibatches": 1,
+            "epochs": 1,
+            "probe_count": 1
+          },
+          {
+            "repeat": 2,
+            "disabled_seconds": 0.43417725001927465,
+            "enabled_seconds": 0.9129596250131726,
+            "absolute_added_seconds": 0.478782374993898,
+            "minibatches": 1,
+            "epochs": 1,
+            "probe_count": 1
+          },
+          {
+            "repeat": 3,
+            "disabled_seconds": 0.4411456249654293,
+            "enabled_seconds": 0.9201427079970017,
+            "absolute_added_seconds": 0.4789970830315724,
+            "minibatches": 1,
+            "epochs": 1,
+            "probe_count": 1
+          }
+        ],
+        "peak_rss_bytes": 1456275456,
+        "mps_allocated_bytes": 0,
+        "mps_driver_allocated_bytes": 0
+      },
+      {
+        "device": "mps",
+        "threads": 4,
+        "samples": 512,
+        "pairs": [
+          {
+            "repeat": 1,
+            "disabled_seconds": 0.09719404205679893,
+            "enabled_seconds": 0.38921054103411734,
+            "absolute_added_seconds": 0.2920164989773184,
+            "minibatches": 1,
+            "epochs": 1,
+            "probe_count": 1
+          },
+          {
+            "repeat": 2,
+            "disabled_seconds": 0.09829475008882582,
+            "enabled_seconds": 0.39230441593099385,
+            "absolute_added_seconds": 0.29400966584216803,
+            "minibatches": 1,
+            "epochs": 1,
+            "probe_count": 1
+          },
+          {
+            "repeat": 3,
+            "disabled_seconds": 0.09717979200650007,
+            "enabled_seconds": 0.3917510419851169,
+            "absolute_added_seconds": 0.29457124997861683,
+            "minibatches": 1,
+            "epochs": 1,
+            "probe_count": 1
+          }
+        ],
+        "peak_rss_bytes": 1650245632,
+        "mps_allocated_bytes": 1285632,
+        "mps_driver_allocated_bytes": 2315075584
+      }
+    ],
+    "caps_bytes": {
+      "RSS": 6442450944,
+      "MPS": 6442450944
+    }
+  },
+  "protected_inputs": {
+    "matches_before": true,
+    "sha256": {
+      "learning/runs/v2/D2-continuation-20261025-r1/checkpoint-000132-candidate.pt": "bf858ed9975e6f994acbca011895b140be6943cf1852c88b54549a9c8db0c1a8",
+      "learning/runs/v2/D2-continuation-20261025-r1/checkpoint-000132-candidate.pt.json": "e658dc631a2cfa8ac43495993672d26a0c3f8a533e526c4d55de3b05013e5dba",
+      "learning/runs/v2/d2-continuation-parent-terminal-audit-20261025-r1/parent-terminal-receipt.json": "fce4262d97f4cca11d8c28dd68fe4a4ec8fa48ba747c393ab864a380f07f90a3",
+      "learning/runs/v2/critic-diagnostic-parent-prepare-20261025-r1/runtime/dodge_rl/_native.cpython-312-darwin.so": "022d41dde9bace0b4f4c4c06b9b4ed007bc2c60013cd98734086e587d7bb997e"
+    },
+    "checkpoint_loaded_or_modified": false
+  },
+  "limits": [
+    "CPU reference gradient only; no claim it matches native MPS gradients.",
+    "Exact MPS parity remains unestablished because disabled baseline repeats are not exact.",
+    "No tolerance relaxation, NaN substitution, or optimizer parity exception.",
+    "Haiku review and parent reconciliation remain required before integration or campaign use."
+  ],
+  "sha256": {
+    "sources": {
+      "own/runtime/dodge_rl/ppo.py": "b3cef91b1293056e9d1820a94fd5730accae4c5728d23566857a6c3a0e1eeac5",
+      "own/runtime/dodge_rl/gradient_alignment.py": "cd7d16aebe9eed247b0a4747956d8106991b3637ab0b45118ea9e7ebc0c1e25f"
+    },
+    "tests": {
+      "own/tests/test_gradient_alignment.py": "5cd2c9dfa335c6709f587eb069000785c395805baae872a2b7fc7c969b0616f6",
+      "own/tests/test_ppo_baseline.py": "948c0a89388a10aaebb55e11950a0a97f323fb23ea2d0c7bf63556f3234da642",
+      "own/tests/parity_fixture.py": "ce86409cdf009592535204fcea2130f52b352e6e16309409ea89f7d52990dff1",
+      "own/tests/benchmark_shadow.py": "d450dbffcbf616f2de4ec44c433dabe211bc9190fc404a4ddd7ae31ff59f2776"
+    },
+    "logs": {
+      "own/tests.log": "57a8f8e02999815cfc10b59dfea1cff36b7517de37f7c619c5ca5d0e11625692",
+      "own/parity-final.log": "d49136d05b1bb227e22270758c973e5bbe80630ea0ca7cb69ee59caf354b1b84",
+      "own/benchmark.log": "24c866956902c23825c6c37ab74a1e181165d436c14a932e3e5c009a2a004628"
+    },
+    "evidence": {
+      "own/runtime-inventory.json": "4c4dc63d350805efd91567234510eb6f74fae04670a3d9247a293b15106a0e06",
+      "own/protected-before.sha256": "e2efaaad7c3354d8a7d89d5fcd30adc3ad50c06b7ae3b7e8ce7e7483849a48fa",
+      "own/protected-after.json": "2d453b6bcb9e33bf805025af5533e457ec10505cb84b33f76aabfe62769ccf7d"
+    }
+  }
+}

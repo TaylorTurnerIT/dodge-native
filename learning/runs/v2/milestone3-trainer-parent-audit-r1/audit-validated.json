@@ -1,0 +1,105 @@
+{
+    "checker_sha256": "110a443dc811b24de9403debb1801d301237d8bd455c414190ca21a2000dbc0e",
+    "checks": [
+        {
+            "artifact_hashes": 720,
+            "check": "exact_artifact_manifest",
+            "nested_fixture_manifests_included": true,
+            "passed": true
+        },
+        {
+            "archive_members": 7,
+            "check": "live_sources_archive_patch_and_protected_inputs",
+            "exact_patch_reconstruction": true,
+            "owned_sources": 7,
+            "passed": true,
+            "protected_inputs": 67
+        },
+        {
+            "attempts": [
+                {
+                    "attempt": 1,
+                    "exit_code": 0,
+                    "failed": 0,
+                    "passed": 53,
+                    "source_pins": 7
+                },
+                {
+                    "attempt": 2,
+                    "exit_code": 0,
+                    "failed": 0,
+                    "passed": 61,
+                    "source_pins": 7
+                },
+                {
+                    "attempt": 3,
+                    "exit_code": 0,
+                    "failed": 0,
+                    "passed": 61,
+                    "source_pins": 7
+                },
+                {
+                    "attempt": 4,
+                    "exit_code": 1,
+                    "failed": 2,
+                    "passed": 62,
+                    "source_pins": 7
+                },
+                {
+                    "attempt": 5,
+                    "exit_code": 0,
+                    "failed": 0,
+                    "passed": 64,
+                    "source_pins": 7
+                }
+            ],
+            "check": "retained_test_commands_snapshots_and_discriminated_fixture_correction",
+            "final_tests_passed": 64,
+            "passed": true,
+            "production_files_unchanged_between_attempts_4_5": 5,
+            "test_assertions_unchanged": true
+        },
+        {
+            "check": "CLI_preparation_raw_semantic_hashes_final_inventory_and_native_lineage",
+            "earlier_identity_is_obsolete_preparation_only": true,
+            "earlier_preparation_identity_changed_sources": [
+                "python/dodge_rl/train_teacher.py",
+                "python/tests/test_teacher_runner.py"
+            ],
+            "final_identity_sha256": "464c8a99f65d2223885de5715a0c7b23c8f8dc98510c923409778cffcc21116d",
+            "final_source_pins": 71,
+            "native_binary_receipt_pins": 3,
+            "native_input_pins": 50,
+            "passed": true,
+            "raw_config_sha256": "aa14a822cd8d1cd559d385501c65a93ad828897f1125d071bb90f2d9f06b28b5",
+            "registered_u64_run_seed_exact": 5562878279179977985,
+            "semantic_config_sha256": "c712523fbb96db069ac2c41235bb233d92954e3ceec7fe12a6b9666bc40a0fee"
+        },
+        {
+            "check": "intentional_nonJSON_fixture_and_receipt_validation_scope",
+            "declared_intentional_nonJSON_fixtures": 40,
+            "original_scope_error_preserved": true,
+            "passed": true,
+            "root_receipt_JSON_files_parsed": 16
+        },
+        {
+            "changed": [],
+            "check": "input_preservation",
+            "files": 803,
+            "passed": true
+        }
+    ],
+    "created_at_utc": "2026-10-24T10:01:21.937962+00:00",
+    "failures": [],
+    "findings": [],
+    "limitations": [
+        "Retained commands, source snapshots and logs are audited; tests and CLI commands were not rerun.",
+        "No end-to-end trainer execution, game learning, MPS compatibility or whole-pipeline readiness follows from this audit.",
+        "Synthetic fixtures intentionally include non-JSON files with .json suffixes; only declared receipts are parsed.",
+        "Version strings are retained runtime observations; interpreter, installed extension, native executable and receipt bytes are independently hashed.",
+        "Current preservation is checked against recorded pins; it does not reconstruct a complete pre-edit checkout or prove historical execution independently."
+    ],
+    "schema": "independent_M3_trainer_component_receipt_audit_v1",
+    "scope": "Byte/hash, archive, AST and retained-log audit only; no audited project import or execution.",
+    "status": "passed_trainer_component_receipt_audit;parent_integration_and_code_review_required"
+}

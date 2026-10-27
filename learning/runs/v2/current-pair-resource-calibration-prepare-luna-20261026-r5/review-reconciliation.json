@@ -1,0 +1,71 @@
+{
+  "antecedent_review": {
+    "findings": [
+      "B-1 spawn identity failure had unbounded communicate and no cleanup evidence",
+      "B-2 startup zero MPS sample could reject later positive workload samples"
+    ],
+    "path": "learning/runs/v2/current-pair-resource-calibration-review-luna-20261026-r4-r2/review.json",
+    "receipt_sha256": "46b0acb91688081cd65f276c952f658450a23d6ce192d26394c46e3d22a252de",
+    "sha256": "84e18dce2deb5730a2ddc8bbf2ba2b858da8a771c5ae7c43ce144f2734cceb0f",
+    "verdict": "BLOCK"
+  },
+  "claims": {
+    "campaign_eligible": false,
+    "current_pair_comparison": false,
+    "hardware_acceptance": false,
+    "probe_authorized": false,
+    "qualification": false,
+    "training_result": false
+  },
+  "pending": [
+    "independent exact R5 frozen source review",
+    "parent verifies plan SHA and writes distinct reservation",
+    "parent owned one shot probe authorization after training priority check"
+  ],
+  "preserved": {
+    "R1_failed_probe": true,
+    "R3_and_R4_artifacts": true,
+    "R4_review_and_receipt": true,
+    "R6_historical_cache_files": true,
+    "R6_protocol_and_sources": true,
+    "state_and_leases": true,
+    "training_priority": true
+  },
+  "resolutions": {
+    "B-1": {
+      "details": "Every postspawn identity failure enters bounded cleanup under one absolute outer deadline. Cleanup budget is at most 10 seconds within 120 seconds. A direct Popen child may be terminated and reaped without process identity. Group TERM/KILL requires a fresh exact birth identity and PGID equal to the owned child PID. Unknown cleanup remains unknown in launcher receipt and cleanup evidence. All communicate calls have finite timeouts.",
+      "status": "implemented_and_cpu_tested",
+      "tests": [
+        "test_launcher_postspawn_boundary_ps_missing_and_malformed_reap_child",
+        "test_launcher_postspawn_boundary_pgid_mismatch_never_signals_group",
+        "test_launcher_cleanup_identity_mismatch_uses_direct_child_only",
+        "test_launcher_cleanup_kills_term_ignoring_harmless_child_within_bound"
+      ]
+    },
+    "B-2": {
+      "details": "All session samples must be numeric, finite, and nonnegative. Startup samples remain in all session caps and receipts. Sample count, interarrival gaps, freshness, and positive allocation use only samples timestamped inside the post model load representative active window. Startup zeros pass; active zero only fails closed.",
+      "status": "implemented_and_cpu_tested",
+      "tests": [
+        "test_mps_startup_zero_is_valid_but_active_zero_and_bad_values_fail",
+        "test_active_sample_window_excludes_startup_and_records_bounds"
+      ]
+    }
+  },
+  "schema": "current_pair_resource_calibration_r5_reconciliation_v1",
+  "scope": "New R5 CPU-only preparation. No reservation, marker, state or lease write; no probe, MPS, game, training, or hardware operation.",
+  "source_pin_count": {
+    "R3_prior": 60,
+    "R3_to_R4_explanation": "Five R3 self proposal file pins were replaced by their R4 successors. Two R3 review-only files, review-reconciliation.json and review-source-manifest.json, were removed from runtime source pins. Net count changed from 60 to 58. R5 replaces the five R4 self proposal pins with R5 files and keeps all 58 entries.",
+    "R4": 58,
+    "R5": 58,
+    "R5_directory_pins": 0
+  },
+  "tests": {
+    "command": "OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 MKL_NUM_THREADS=4 VECLIB_MAXIMUM_THREADS=4 NUMEXPR_NUM_THREADS=4 PYTHONDONTWRITEBYTECODE=1 PYTHONPYCACHEPREFIX=<R5>/test-bytecode-prefix <lexical-python> -B <R5>/test_calibration_cpu.py",
+    "count": 13,
+    "evidence_limit": "CPU synthetic and harmless lifecycle controls only; no hardware or probe acceptance.",
+    "failed_attempt_log": "cpu-tests-attempt-1-failed.log",
+    "log": "cpu-tests-final.log",
+    "status": "passed"
+  }
+}

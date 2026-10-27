@@ -1,0 +1,284 @@
+{
+  "changes": [
+    "near_uniform_actor_initialization",
+    "PPO_reward_scale_0.01_raw_survival_metrics_preserved",
+    "deterministic_rollout_cache_with_invalidation",
+    "teacher_hyperparameter_controls",
+    "provenance_checked_weights_only_warm_start"
+  ],
+  "current_teacher_reviews": {
+    "beam": "reconciled",
+    "deepseek": "cancel_requested_no_output_10min",
+    "mimo": "node:delegated-task:command%3Amcp%3Addabe9aa-111f-44d8-8b93-9dcd3a4e910d%3Adelegate-task%3Adodge-teacher-training-mimo-20261023-r2-fullaccess"
+  },
+  "direction": {
+    "attachment_sha256": "53a6c21657c59db35c80137519a186cd5b850ccad7b76666fa3407de43182c65",
+    "authority": "docs/SPEC_PRIVILEGED_VIT_RL.md",
+    "current_priority": "Milestones0and1:profilingandheadlessparitybeforeteachertraining",
+    "old_experiment_loop": "stopped",
+    "overnight_authorization": "continue_under_v2_plan_after_source_audit",
+    "status": "superseded_by_user_supplied_v2_spec"
+  },
+  "experiments": {
+    "entity_pilot_1000": {
+      "frames": 1000,
+      "qualification": false
+    },
+    "heuristic_bootstrap_unweighted_10000": {
+      "avoidance_smoke_mean": 1000,
+      "frames": 10000,
+      "neutral_label_share": 0.6886,
+      "qualified": false,
+      "seconds": 123.60221120796632,
+      "teacher_smoke_mean": 188.5,
+      "training_accuracy": 0.707125
+    },
+    "heuristic_bootstrap_weighted_10000": {
+      "avoidance_smoke_mean": 1000,
+      "frames": 10000,
+      "method": "sqrt_inverse_frequency_class_weights_cap4",
+      "qualification": false,
+      "same_trajectories_and_labels_as_unweighted": true,
+      "seconds": 125.14012345904484,
+      "teacher_smoke_mean": 188.5,
+      "training_accuracy": 0.6924
+    },
+    "scaled_PPO_10000": {
+      "avoidance_mean_survival": 1000,
+      "frames": 10000,
+      "qualification": false,
+      "seconds": 122.2565708750044,
+      "smoke_cap": 1000,
+      "teacher_completed_pattern_episodes": 0,
+      "teacher_mean_survival": 107.8
+    },
+    "warm_PPO_100000": {
+      "actual_frames": 100000,
+      "avoidance_smoke_mean_survival": 1000,
+      "formal_validation": "skipped_weak_smoke",
+      "frame_cap": 100000,
+      "optimizer_steps": 6252,
+      "parent_checkpoint_sha256": "4efff874e6efec673a3763bcf084ddde5a49e5ab61b672c255fd9b9d168370e9",
+      "pattern_completions": 0,
+      "pattern_encounters": 0,
+      "status": "completed_unqualified",
+      "task_id": "node:delegated-task:command%3Amcp%3Addabe9aa-111f-44d8-8b93-9dcd3a4e910d%3Adelegate-task%3Adodge-teacher-warm-ppo-100000-20261023-r1-fullaccess",
+      "teacher_smoke_mean_survival": 196.9,
+      "training_seconds": 1238.764856749971,
+      "training_seconds_cap": 1800,
+      "unoptimized_frames": 0
+    }
+  },
+  "fit_budget_experiment": {
+    "PPO_allowed": false,
+    "campaign_started": true,
+    "collector_checkpoint": "runs/teacher-representation-ablation-r1/relative.pt",
+    "cost_margin_instrumentation": "deferred",
+    "epochs": [
+      8,
+      16,
+      32,
+      64
+    ],
+    "factor": "optimizer_updates",
+    "fixed_data_hash": "08ffb7335ae8841d05c0a9197a741b036523d2847047a3079211e61fae364d05",
+    "launch_receipt": "../teacher-failure-diagnosis/fit-budget-campaign-r1-launch.json",
+    "live_source_matches_snapshot": true,
+    "manifest_sha256": "a0a57e26e4f1b383be9a7c64e1630169d817a715d8bfeb76fd6fe0467fe9d0eb",
+    "max_seconds": 1800,
+    "memory_enforcement": "cooperative_checks_between_operations",
+    "method": "teacher_fit_budget_supervised",
+    "observed_peak_RSS_threshold_bytes": 6442450944,
+    "planned_output": "runs/teacher-fit-budget-r1",
+    "pool_changes": false,
+    "reference_checkpoint": "runs/teacher-onset-ablation-r1/learned_state_relabel.pt",
+    "review_status": "completed_no_findings",
+    "review_task_id": "node:delegated-task:command%3Amcp%3Addabe9aa-111f-44d8-8b93-9dcd3a4e910d%3Adelegate-task%3Adodge-teacher-fit-budget-beam-20261024-r1-fullaccess",
+    "source_audit": "No remaining validity blockers; final source verification counted before final budget check",
+    "source_snapshot": "learning/.cache/teacher-fit-budget-review-r1",
+    "status": "completed_historical_superseded",
+    "student_work": "deferred",
+    "task_id": "node:delegated-task:command%3Amcp%3Addabe9aa-111f-44d8-8b93-9dcd3a4e910d%3Adelegate-task%3Adodge-teacher-fit-budget-20261024-r1-fullaccess",
+    "tests": {
+      "full_python_suite": 214,
+      "targeted_fit_budget": 18
+    }
+  },
+  "interpretation": "One collection intervention repairs sampled movement initiation and raises mean survival, with6better/4unchanged versusneutral. Still belowrandommean; no patterncompletions. Cadence,horizon,proportions,andduplicatesconfound purecovariateshiftcausality. Broadimitationremainsweak.",
+  "onset_experiment": {
+    "PPO_allowed": false,
+    "arms": [
+      "extra_oracle_states",
+      "oracle_relabelled_relative_teacher_states"
+    ],
+    "base_samples": 5000,
+    "campaign_invocations": 1,
+    "campaign_started": true,
+    "collector_checkpoint": "runs/teacher-representation-ablation-r1/relative.pt",
+    "elapsed_seconds": 499.69904412498,
+    "epochs": 8,
+    "extra_samples_per_arm": 2500,
+    "interpretation_limit": "data-collection bundle; cadence,horizon,labeldistribution and overlap differ; single initialization",
+    "launch_receipt": "../teacher-failure-diagnosis/onset-campaign-r1-launch.json",
+    "matched_initialization": true,
+    "matched_training_budget": true,
+    "means": {
+      "avoidance": 1000.0,
+      "learned_state_relabel": 253.8,
+      "neutral": 188.5,
+      "oracle_control": 188.5,
+      "random": 260.9
+    },
+    "module": "python/dodge_learning/teacher_onset_ablation.py",
+    "paired_vs_neutral": {
+      "improved": 6,
+      "unchanged": 4
+    },
+    "paired_vs_random": {
+      "losses": 5,
+      "wins": 5
+    },
+    "parent_interpretation": "../teacher-onset-ablation-r1/parent-interpretation.json",
+    "planned_optimizer_steps_per_arm": 944,
+    "planned_output": "runs/teacher-onset-ablation-r1",
+    "planned_sample_visits_per_arm": 60000,
+    "pool_changes": false,
+    "qualified": false,
+    "review_reconciliation": [
+      {
+        "disposition": "rejected_intentional_budget_enforcement",
+        "evidence": "teacher_onset_ablation.py:576-619",
+        "finding": "Trailing arm deadline check rejects an otherwise completed arm at or beyond deadline.",
+        "reason": "The declared arm wall-time cap includes model evaluation and source-identity verification. Per-operation checks cannot enforce time spent between calls. Completion after the cap is not a valid capped comparison. Checkpoints and fit receipts are written before this check; exception handling retains the in-memory metrics in partial-run.json. No source change."
+      }
+    ],
+    "review_status": "reconciled_no_accepted_findings",
+    "review_task_id": "node:delegated-task:command%3Amcp%3Addabe9aa-111f-44d8-8b93-9dcd3a4e910d%3Adelegate-task%3Adodge-teacher-onset-beam-20261024-r2-fullaccess",
+    "run": "../teacher-onset-ablation-r1/run.json",
+    "seed": 7,
+    "source_audit": "No remaining validity blockers; corrected survival reward versus executed frames and included preprocessing in arm deadline.",
+    "source_manifest_sha256": "6ba198d7c45b086cc0a45d966dbb460b1a5a4d7d52c35c058bfc62b392e3f2ec",
+    "source_snapshot": "learning/.cache/teacher-onset-review-r2",
+    "status": "completed_diagnostic_unqualified",
+    "student_work": "deferred",
+    "task_id": "node:delegated-task:command%3Amcp%3Addabe9aa-111f-44d8-8b93-9dcd3a4e910d%3Adelegate-task%3Adodge-teacher-onset-ablation-20261024-r1-fullaccess",
+    "tests": {
+      "full_suite_before_last_deadline_origin_fix": 195,
+      "onset_after_fix": 18,
+      "warmstart_after_fix": 5
+    },
+    "verification": "../teacher-onset-ablation-r1/postrun-verification.json"
+  },
+  "opus55_diagnosis": {
+    "model": "claude-opus-5-5",
+    "provider": "claudeAgent",
+    "receipt": "../teacher-failure-diagnosis/opus55-task-result.json",
+    "status": "completed",
+    "task_id": "node:delegated-task:command%3Amcp%3Addabe9aa-111f-44d8-8b93-9dcd3a4e910d%3Adelegate-task%3Adodge-teacher-diagnosis-opus55-20261023-r1-fullaccess"
+  },
+  "opus55_diagnosis_r2": {
+    "archive": "../../../docs/investigations/opus-teacher-diagnosis-2026-10-24-round2/manifest.json",
+    "near_rest_raw_velocity_threshold": 0.05,
+    "observed_failure": "neutral throughout three traced greedy smoke episodes; missed48near-restnonneutral labels",
+    "receipt": "../teacher-failure-diagnosis/opus55-r2-task-result.json",
+    "status": "completed_audited",
+    "task_id": "node:delegated-task:command%3Amcp%3Addabe9aa-111f-44d8-8b93-9dcd3a4e910d%3Adelegate-task%3Adodge-teacher-diagnosis-opus55-20261023-r2-fullaccess",
+    "unsupported_inference": "historical online training_accuracy does not establish final-model underfitting"
+  },
+  "opus55_diagnosis_r3": {
+    "corrections": [
+      "online_loss_not_final_CE",
+      "original_stationary_collector_required",
+      "tensor_optimizer_reproduction_not_checkpoint_file_SHA",
+      "training_errors_do_not_rule_out_aggregation",
+      "action_summaries_do_not_establish_effective_independence"
+    ],
+    "launch_receipt": "../teacher-failure-diagnosis/opus55-r3-launch.json",
+    "receipt": "../teacher-failure-diagnosis/opus55-r3-result.json",
+    "scope": "remaining_failure_after_partial_movement_repair;oneboundednextexperiment;noeditsorprobes",
+    "status": "completed_audited",
+    "task_id": "node:delegated-task:command%3Amcp%3Addabe9aa-111f-44d8-8b93-9dcd3a4e910d%3Adelegate-task%3Adodge-teacher-diagnosis-opus55-20261024-r3-fullaccess"
+  },
+  "pool_size_follow_up": {
+    "candidate_future_patch_pixels": [
+      8,
+      4
+    ],
+    "changed": false,
+    "grown_normal_enemy_visible_body_width_pixels": [
+      4,
+      7
+    ],
+    "source_player_visible_body_width_pixels": 7,
+    "source_shrunk_player_visible_body_width_pixels": 3,
+    "status": "deferred_until_Opus_teacher_work_resolved",
+    "visual_patch_pixels": 16
+  },
+  "representation_experiment": {
+    "PPO_allowed": false,
+    "arms": [
+      "baseline",
+      "prior",
+      "relative",
+      "combined"
+    ],
+    "baseline_smoke_mean": 188.5,
+    "full_privileged_state_retained": true,
+    "method": "fixed_data_supervised",
+    "relative_smoke_mean": 188.5,
+    "results": {
+      "baseline": {
+        "balanced_accuracy": 0.3785683610401735,
+        "diagnostic_gate_passed": false,
+        "enemy_tv_max": 0.006213170476257801,
+        "held_out_accuracy": 0.736
+      },
+      "combined": {
+        "balanced_accuracy": 0.43587133346098583,
+        "diagnostic_gate_passed": false,
+        "enemy_tv_max": 0.1525886356830597,
+        "held_out_accuracy": 0.755
+      },
+      "prior": {
+        "balanced_accuracy": 0.379540074309402,
+        "diagnostic_gate_passed": false,
+        "enemy_tv_max": 0.008784184232354164,
+        "held_out_accuracy": 0.728
+      },
+      "relative": {
+        "balanced_accuracy": 0.46139991396313884,
+        "diagnostic_gate_passed": false,
+        "enemy_tv_max": 0.16515707969665527,
+        "held_out_accuracy": 0.751
+      }
+    },
+    "status": "completed_no_candidate_passed",
+    "student_work": "deferred",
+    "task_id": "node:delegated-task:command%3Amcp%3Addabe9aa-111f-44d8-8b93-9dcd3a4e910d%3Adelegate-task%3Adodge-teacher-representation-ablation-20261023-r1-fullaccess",
+    "teacher_qualified": false
+  },
+  "representation_review": {
+    "live_source_matches_snapshot": true,
+    "manifest_sha256": "80dff5cf487391ecd2b489ead1e4e34ff94c95643bec53116a6f4d7dcc1e5bff",
+    "model": "opencode/beam-free",
+    "provider": "opencode",
+    "scope": "frozen_static_source_review",
+    "status": "completed_no_findings",
+    "task_id": "node:delegated-task:command%3Amcp%3Addabe9aa-111f-44d8-8b93-9dcd3a4e910d%3Adelegate-task%3Adodge-teacher-representation-beam-20261023-r1-fullaccess"
+  },
+  "review_beam": {
+    "GAE_boolean_flags": "fixed_helper_api_numeric_flags_rejected_native_training_already_boolean",
+    "status": "reconciled",
+    "warm_start_training_source_fingerprints": "added_PPO_checkpoint_run_and_bootstrap_if_used"
+  },
+  "student_work": "deferred",
+  "superseded_review_tasks": {
+    "deepseek_entity_r1": "cancel_requested_stalled_more_than_hour",
+    "mimo_entity_r1": "cancel_requested_stalled_more_than_hour"
+  },
+  "teacher_only": true,
+  "tests": {
+    "log": "../teacher-failure-diagnosis/pre-ablation-final-tests.log",
+    "python": 176
+  }
+}

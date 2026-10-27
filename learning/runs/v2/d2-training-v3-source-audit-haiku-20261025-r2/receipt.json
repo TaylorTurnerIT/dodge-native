@@ -1,0 +1,54 @@
+{
+  "schema": "d2_training_v3_source_audit_receipt_v1",
+  "reviewer": "Claude Haiku 5.5 (readonly review sub-agent)",
+  "review_round": "r2",
+  "scope": "frozen d2-training-v3-adapter-prepare-20261025-r2 adapter/worker/launcher/helper/tests/result plus parent-plan-r2 and parent-r2-source-findings",
+  "verdict": "not_approvable_for_registration",
+  "fresh_round_required_after_luna_fixes": true,
+  "campaign_launches": 0,
+  "source_mutation": false,
+  "execution": "none; read-only inspection, sha256, grep, system python3 time.get_clock_info only",
+  "input_sha256": {
+    "learning/runs/v2/d2-training-v3-adapter-prepare-20261025-r2/adapter.py": "bde7f66b7a9ebcc609328712a9f487ccbe24f75581758756be797b682f7e2b62",
+    "learning/runs/v2/d2-training-v3-adapter-prepare-20261025-r2/worker.py": "9543c4134dfacbd112368c9a4d6579b2798f1f5af8ac6f53133150be97ef69f1",
+    "learning/runs/v2/d2-training-v3-adapter-prepare-20261025-r2/launcher.py": "49dd0c7a831efd933baed71aaeeb6f298f3261a7f069fe932c26e9ba0943627a",
+    "learning/runs/v2/d2-training-v3-adapter-prepare-20261025-r2/helper.py": "8240aaed1dfc41b099cb29519d50a89f3c5d721bc8fcd015215aa6d119570e1e",
+    "learning/runs/v2/d2-training-v3-adapter-prepare-20261025-r2/test_adapter.py": "552539191ae34471d2a9db28fbefa8bab79c4e8e8e3a8d73a6c67e9ebcaa3c56",
+    "learning/runs/v2/d2-training-v3-adapter-prepare-20261025-r2/test_launcher.py": "435ea1dfc599a73154e856e4979007c2a620d7609fbe80c4400c4d730edc0f9f",
+    "learning/runs/v2/d2-training-v3-adapter-prepare-20261025-r2/test_checkpoint_schema.py": "77eb0dfe1d185c0f1f9e33e6b605e254bca217469f7aa12e97ce8ac7509e946a",
+    "learning/runs/v2/d2-training-v3-adapter-prepare-20261025-r2/implementation-result.json": "5ac71f3c324f28c0880d47a7c413c65a4dc4b961fa30583a3b6c29043ef567b6",
+    "learning/runs/v2/d2-training-v3-parent-prepare-20261025-r1/parent-plan-r2.json": "83e0773a02f8f6eee82ac83ed14849ca547e498eba20569dd20012e57d51ec18",
+    "learning/runs/v2/d2-training-v3-parent-prepare-20261025-r1/parent-r2-source-findings.json": "01159f2ed4dbe0c982ab280c5a8ef6483a1344b593b5f523c34c5ca3f56bff73"
+  },
+  "grep_read_unhashed": [
+    "learning/runs/v2/critic-diagnostic-parent-prepare-20261025-r1/runtime/dodge_rl/identity.py",
+    "learning/runs/v2/critic-diagnostic-parent-prepare-20261025-r1/runtime/dodge_rl/checkpoints.py",
+    "learning/runs/v2/critic-diagnostic-parent-prepare-20261025-r1/runtime/dodge_rl/ppo.py"
+  ],
+  "known_findings_disposition": {
+    "REG-SELF-HASH": {"status": "confirmed_open", "where": "worker.py:27"},
+    "FINAL-HASH-CONFUSION": {"status": "confirmed_open", "where": "launcher.py:68-69,192-193"},
+    "EPISODE-CONTRACT": {"status": "confirmed_open_detail_extended", "where": "adapter.py:327,342; worker.py:141; launcher.py:82-84"},
+    "CHECKPOINT-CONFIG": {"status": "confirmed_open", "where": "adapter.py:239-252; launcher.py:74"},
+    "CACHE-AND-DEPS": {"status": "confirmed_open_for_empty_prefix; manifest_part_unverified", "where": "launcher.py:131; adapter.py:204-207"},
+    "FROZEN-TIME-ANCHOR": {"status": "confirmed_open_extended_by_N3", "where": "adapter.py:79-83; launcher.py:106-108,33-36"},
+    "LATE-SIGNAL-REGRESSION": {"status": "confirmed_open", "where": "launcher.py:209-218,272-273"}
+  },
+  "additional_findings": [
+    {"id": "N1", "severity": "P1", "status": "proven_by_reading", "where": "launcher.py:238-251,113", "summary": "Second invocation after success writes publication-failure.json onto completed run"},
+    {"id": "N2", "severity": "P1", "status": "proven_by_arithmetic_and_code", "where": "launcher.py:144,121; helper.py:162; worker.py:166,174,186", "summary": "Launcher kills worker at 1600s before worker finalization and worker-result save; parent plan leaves ~28s margin"},
+    {"id": "N3", "severity": "P2", "status": "negative_elapsed_proven; sleep_behavior_hypothesis", "where": "launcher.py:33-36,106-108,140-147,168; helper.py:162-163", "summary": "time.monotonic is mach_absolute_time; no clock() >= started check; sleep exclusion unverified"},
+    {"id": "N4", "severity": "P2", "status": "proven_by_reading", "where": "worker.py:96; launcher.py:77-80; ppo.py:416,576", "summary": "progress.completed_updates never incremented; final checkpoint records 0 with counters.updates=72"},
+    {"id": "N5", "severity": "P2", "status": "proven_structure; cost_unmeasured", "where": "launcher.py:172,194,174,196; worker.py:22", "summary": "Full registration revalidation after training counts against 1800s deadline"},
+    {"id": "N6", "severity": "P2", "status": "proven_pins_do_not_cover_bytecode; exploit_path_hypothesis", "where": "adapter dir __pycache__ (7 cpython-312 .pyc); launcher.py:128", "summary": "Frozen source dir contains bytecode not in pins; -B does not block reads"},
+    {"id": "N7", "severity": "P2", "status": "proven_by_reading; design_question", "where": "launcher.py:112,100,252-261", "summary": "Pre-run failures consume run ID and output dir"},
+    {"id": "N8", "severity": "P3", "status": "hypothesis", "where": "launcher.py:143,154,135", "summary": "Per-tick state.json parse can kill healthy run; launcher death leaves worker without hard watchdog"}
+  ],
+  "not_verified": [
+    "native initial next-episode indices",
+    "dependency inventory and manifest allowlist contents",
+    "validate_summary and save_checkpoint beyond grep",
+    "test reruns (readonly; not executed)",
+    "partialr3 and old source/state/runtime/metadata (not inspected for modification)"
+  ]
+}

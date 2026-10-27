@@ -1,0 +1,80 @@
+{
+  "before": {
+    "pins": 13786,
+    "manifest_files": 11
+  },
+  "prior_checks_reused": [
+    {
+      "argv": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+        "-B",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r1/test_source_contract.py"
+      ],
+      "exit": 0,
+      "log": "check-1.log",
+      "log_sha256": "578d55db683b15e6ba085405b5a6868dde73026d999149ea50008d0e28e92308"
+    },
+    {
+      "argv": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+        "-B",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r1/test_entry_counter_binding.py"
+      ],
+      "exit": 0,
+      "log": "check-2.log",
+      "log_sha256": "7f586d4acd7f2e3b789e29e2a70abe9dbcef95a108a5adc62a51e4449ce408cf"
+    },
+    {
+      "argv": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+        "-B",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r1/test_entry_evaluation.py"
+      ],
+      "exit": 0,
+      "log": "check-3.log",
+      "log_sha256": "b091211bc5871fb2f0d26afb677342074eaf5fcd668f89668cc625a18bc5b4be"
+    }
+  ],
+  "prior_invocation_failure": "Parent used its own empty cache prefix instead of the registered prefix; production rejected it before checkpoint restore.",
+  "prior_evidence": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-parent-preflight-20261026-r1/validation.json",
+  "production_source_changed": false,
+  "campaign_launched": false,
+  "restore_command": [
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+    "-B",
+    "-c",
+    "import runpy,sys\nfrom pathlib import Path\nfrom unittest.mock import patch\nsource=Path(sys.argv[1]); target=Path(sys.argv[2]); original=Path.write_text\nexpected=source.parent/'cpu-restore-and-controls.json'\ndef owned_write(path,*args,**kwargs):\n    if path == expected:\n        return original(target,*args,**kwargs)\n    raise AssertionError('Unexpected test write: '+str(path))\nwith patch.object(Path,'write_text',owned_write):\n    runpy.run_path(str(source),run_name='__main__')\n",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r1/cpu_restore_and_controls.py",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-parent-preflight-20261026-r2/cpu-restore-and-controls.json"
+  ],
+  "restore_exit": 0,
+  "after": {
+    "pins": 13786,
+    "manifest_files": 11
+  },
+  "restore": {
+    "adam_fingerprint": "57d2d1b2e38843dcc047818f0eef490095056024f7dd34720a1ca61b8b614098",
+    "effective_learning_rate": 0.0001,
+    "environment_constructed": false,
+    "game_weight_optimizer_steps": 0,
+    "model_fingerprint": "c5e22fd99f7e8410aa17527e43081461d754dc682a3ca18a7e97072c688d9592",
+    "mps_used": false,
+    "negative_controls": {
+      "config_mutation": true,
+      "counter_mutation": true,
+      "effective_group_lr_mutation": true,
+      "phase_204_parent_rejected": true,
+      "resume_index_mutation": true,
+      "wrong_parent_digest_rejected": true,
+      "wrong_receipt_checkpoint": true
+    },
+    "optimizer_mutation_applied": false,
+    "parent_checkpoint_sha256": "0b5cf72b4eb9629fa4f10ce2cecb3625b56f8787c0eca6395b9fe17161e6b292",
+    "rng_scope": "CPU-only restore test made no MPS RNG claim; actual registered worker must restore full MPS RNG before environment construction.",
+    "schema": "d2_retained276_cpu_restore_and_controls_v1",
+    "status": "passed"
+  },
+  "status": "passed_preparation_only_pending_source_review_exact_lease_and_unmocked_preflight",
+  "elapsed_seconds": 4.823891666000001,
+  "cpu_restore_log_sha256": "00009ed84612de2ee127588144185a27a4d543da53630ff82d4b03d5eceb6e13"
+}

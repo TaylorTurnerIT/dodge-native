@@ -1,0 +1,42 @@
+{
+  "accepted": [
+    "One new 60s fixed-work switch-interval probe, no target source edits, no profiler, no training.",
+    "Actual r11 Guard/integrity.verify and unchanged contender; fixed A1/B1/A2/B2 order at .005/.0001 seconds.",
+    "Any failure stops; <1s and >=10x short-interval criteria and >=4s baseline criterion fixed before invocation.",
+    "New repair considered only after positive scoped probe evidence; original stress remains failed."
+  ],
+  "budget_seconds": 600,
+  "elapsed_seconds_child_reported": 242.0,
+  "external_marker_observation": {
+    "child_disclosed_path": "/tmp/sonnet_r1_start.txt",
+    "cleanup_claimed": false,
+    "contents": "1792899722\n",
+    "observed_bytes": 11,
+    "observed_sha256": "c0211dc700cf306ee961d423a2a81612dc21d2360e4b88407fc961feb0ede82c",
+    "scope_violation": true
+  },
+  "frozen_pins_verified": 8,
+  "has_pending_child_runs": false,
+  "immutable_inputs_verified": 25,
+  "outputs_verified": 2,
+  "qualifications": [
+    "The approximately2400 profiler calls are not measured GIL-release or handoff counts. Cached metadata calls and short hash updates need not release the GIL. The 8-16s quantitative fit remains an approximation.",
+    "Unprofiled stress establishes slowdown without cProfile, but does not quantify cProfile overhead in the separate profile.",
+    "The claimed14percent batching upper bound and predicted11-14s are unsupported analytical estimates, not measured limits.",
+    "A shorter process-global switch interval changes contender and sampler scheduling together. A positive probe supports this intervention under the fixed workload; it does not uniquely identify every wait or predict production MPS speedup.",
+    "Single Guard verify_lock is not a process-wide lock against all interval setters. Any future helper needs explicit single-writer/main-thread assumptions or synchronization and failure-path review.",
+    "Two nested finally blocks cover tested single interruptions, not arbitrary repeated asynchronous exceptions. A leaked interval can affect time/resource guard outcomes, not only performance.",
+    "Fork can inherit interpreter state; exec launches a fresh interpreter. Do not claim all child processes cannot inherit the interval.",
+    "classification.json contains changed source digests and must be freshly derived along with manifests/identity/registration in any new candidate. Byte-identical classification is not accepted.",
+    "If either default pass is below4s while short passes meet their criteria, parent classifies the outcome inconclusive, including the mixed case omitted from the child plan.",
+    "The child receipt discloses /tmp/sonnet_r1_start.txt, violating output-only scope. It is an epoch marker, not a runtime defect. The claim that nothing outside its output was touched is not accepted.",
+    "The receipt records ledger hashes/size but no exact ledger snapshot artifact. Treat it as contextual observation, not preserved snapshot bytes."
+  ],
+  "receipt_sha256": "936b2dc7ca6a1ec443c6f3886cc1660556a3d3c7467fff908e221ab6ace00494",
+  "reconciled_at_utc": "2026-10-25T03:48:11.663213+00:00",
+  "schema": "parent_contention_sonnet_design_reconciliation_v1",
+  "single_use_consumed": false,
+  "status": "accepted_probe_proposal_with_qualifications;repair_not_yet_accepted",
+  "task_terminal_status": "completed",
+  "training_launched": false
+}

@@ -1,0 +1,79 @@
+{
+  "schema": "d2_retained300_parent_receipt_review_v1",
+  "reviewer": "claude-haiku-5-5 (review sub-agent)",
+  "scope": "read-only review of D2-retained276-lr3em5 parent terminal closeout and selected INTERMEDIATE300 continuation receipt",
+  "verdict": "no_blocking_findings",
+  "blocking_findings": 0,
+  "non_blocking_findings": 4,
+  "authority_note": "Review only. Does not accept, clear, or grant authority. Parent owns acceptance and lease clearing.",
+  "verified_static": [
+    "audit.json, completed-iteration-receipt.json, retained-best-candidate-receipt.json, retained-best-decision.json sha256 match the parent-cited hashes",
+    "full-audit.json sha256 048c9dcb matches audit.json full_audit_sha256 and completed receipt",
+    "checkpoint-000300-candidate.pt sha256 e2c8fbe4 matches selected checkpoint in audit, receipt, decision, and full-audit row 300",
+    "checkpoint-000300-candidate.pt.json sidecar sha256 7d6f5eb8 matches candidate receipt checkpoint_sidecar_sha256",
+    "development-000300.json sha256 9c8ac125 matches evaluation_sha256 and performance certificate; development-000300.jsonl sha256 2c6b2dba matches",
+    "parent terminal receipt sha256 d64d0f80 matches external receipt; registration.json sha256 8e17e118 matches registration_sha256 in audit, completed receipt, and candidate receipt",
+    "config_sha256 1c24df3e, policy_sha256 bfcbee16, runtime_sha256 2cf10e9f, native sha256 022d41dd match registration.json",
+    "expected_lease parent_checkpoint_sha256 0b5cf72b matches candidate receipt parent-of-run sha and registration parent",
+    "counter chain: inherited + local = cumulative for updates (324+24=348, 324+60=384), environment_decisions (5308416+393216=5701632; +983040=6291456), raw_frames (21202529+1571574=22774103; +3929095=25131624), optimizer_steps (40352+3072=43424; +7680=48032)",
+    "per-update decisions 16384 and optimizer steps 128 per update are consistent for the 24 and 60 local updates",
+    "wall chain: 4760.062404125177+430.1472566659795=5190.209660791156 (selected baseline); 7118.78208862512+1502.5562572500203=8621.338345875140 (completed cost, float-rounded); 4760.062404125177+1502.5562572500203=6262.618661375197 (discarded highwater); 7118.78208862512 equals prior resource_cost_anchor after-value",
+    "selection: 300 has max mean_alive_frames (2704.390625) across 276/288/300/312/324/336 in full-audit.json; +8.89% over 276 (2483.65625); all six caps 0, deaths 64",
+    "death cause counts sum to 64 for the selected candidate; means times 64 are integers",
+    "state-after-lease-clear.json has tasks/retained276_lr3em5_r2_execution_luna_20261026_r2/lease_cleared_at_utc 2026-10-26T16:30:32.621873 matching at_utc",
+    "source_pins_unchanged 13801 and registration limits (max_updates 60, RSS/MPS 6442450944, total 1800, work 1790) consistent with 1502.56s observed outer and raw exits 0/0"
+  ],
+  "not_verified_by_reviewer": [
+    "learner fingerprints model/optimizer/rng (5ef8dfe3, 984959f3, 9c2a7dc6): not decoded; reviewer did not read checkpoints as tensors per scope",
+    "next_episode_indices (64 entries, 31 unique, range 251-296): length verified; not compared against parent state or training-episodes.jsonl",
+    "observer_sha256 f049e12f, process absence return codes, and owned group absence: not re-run",
+    "identity_sha256 723339ec: no recipe reviewed"
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "low",
+      "category": "field-naming / parent selection",
+      "file": "learning/runs/v2/D2-retained276-lr3em5-parent-terminal-audit-20261026-r2/retained-best-candidate-receipt.json",
+      "field": "candidate_parent_checkpoint_sha256",
+      "value": "0b5cf72b4eb9629fa4f10ce2cecb3625b56f8787c0eca6395b9fe17161e6b292",
+      "summary": "Field name suggests the continuation parent, but it is the parent of the run that produced the candidate. Continuation parent is checkpoint_sha256 e2c8fbe4.",
+      "failure_scenario": "A continuation registration that resolves its parent by the name candidate_parent_checkpoint_sha256 loads 0b5cf72 (update 276) instead of e2c8fbe4 (update 300). It then discards the 24 selected updates and its counters (324 vs 348) and clock baseline (4760 vs 5190) would be wrong.",
+      "fix": "Before the continuation is registered, add an explicit continuation_parent_checkpoint_sha256 = e2c8fbe4 and state the parent-of-run field meaning in the schema. Do not rely on the name alone."
+    },
+    {
+      "id": "F2",
+      "severity": "low",
+      "category": "stale sidecar metadata",
+      "file": "learning/runs/v2/D2-retained276-lr3em5-20261026-r2/checkpoint-000300-candidate.pt.json",
+      "field": "eligibility_status / training_eligible",
+      "value": "provisional_pending_parent_terminal_receipt / false",
+      "summary": "The checkpoint sidecar still says training ineligible. The candidate receipt grants continuation and says checkpoint_metadata_unchanged=true, so the two disagree.",
+      "failure_scenario": "A preflight that reads only the sidecar rejects the authorized continuation. This fails closed, so it is not an unsafe acceptance, but it blocks the next run or invites an ad hoc override.",
+      "fix": "Continuation preflight must gate on retained-best-candidate-receipt.json (sha ccc73fbc) plus parent terminal receipt d64d0f80, not the sidecar. Document this in the continuation registration."
+    },
+    {
+      "id": "F3",
+      "severity": "low",
+      "category": "lineage documentation",
+      "file": "learning/runs/v2/D2-retained276-lr3em5-20261026-r2/checkpoint-000276-candidate.pt.json",
+      "field": "checkpoint_sha256",
+      "value": "165ae5c597b73ed3116740d6edd9649f5b37b5d92664b65c316be1e8887079a2",
+      "summary": "The run's own phase-276 checkpoint (sha 165ae5c5) differs from the parent 0b5cf72b that the receipts cite. entry-restoration.json shows model, Adam, and RNG matched the parent. The 276 row in full-audit.json is 165ae5c5 with mean 2483.65625, the same mean as the parent in D2-retained204 retained-best-selection.json.",
+      "failure_scenario": "A reader auditing the 276 incumbent sees two different 276 shas and cannot tell which one the 300 lineage descends from. No selection outcome changes because the eval means match.",
+      "fix": "Name 165ae5c5 as the phase-276 re-save of parent 0b5cf72 in the candidate receipt or completed-iteration receipt, with the entry-restoration evidence hash."
+    },
+    {
+      "id": "F4",
+      "severity": "low",
+      "category": "wall-clock budget semantics",
+      "file": "learning/runs/v2/D2-retained276-lr3em5-parent-terminal-audit-20261026-r2/retained-best-candidate-receipt.json",
+      "field": "wall_accounting.future_checkpoint_trajectory_baseline_seconds",
+      "value": "5190.209660791156",
+      "summary": "The future baseline (5190.21) equals the prior discarded-branch highwater 4760.062 plus 430.147, not the parent saved point 4740.377 plus 430.147 (about 19.685 s more). The receipt has three candidate clocks (5190.21 trajectory, 8621.34 completed campaign cost, 1502.56 observed outer) and no field saying which one the next registration's budget charges.",
+      "failure_scenario": "The next registration charges its 1800 s limit against the wrong base, for example 8621.34 instead of 5190.21, and fails a budget it should pass, or the reverse. The 5190.21 choice is conservative and matches registration resource_estimate retained_parent_future_branch_high_water_seconds, so this is a clarity issue, not a bad number.",
+      "fix": "Add an explicit continuation_budget_base_seconds field (expected 5190.209660791156) and state that the monotonic outer cap applies to the new run only."
+    }
+  ],
+  "no_blocking_defect_reason": "All cited hashes, counters, wall arithmetic, selection, and lease state match actual closed JSON and files. The four findings are documentation or field-semantics gaps. None changes the accepted selection or the authority scope."
+}

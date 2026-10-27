@@ -1,0 +1,124 @@
+{
+  "D1_competence_passed": false,
+  "D2_D3_qualified": false,
+  "caveats": [
+    "Fresh initialization seed and RNG lineage are supported by registered config, empty initial optimizer, distinct probe/pilot starting weights and reviewed initialization/loading code. No initializer or gameplay replay was performed.",
+    "Pilot improvement only; final development score3.921875 and alive990.296875 remain below registered D1 progress floors10 and1500.",
+    "Observed RSS and MPS driver peaks are separate sampled/cooperative measurements, not an unsampled hard OS bound."
+  ],
+  "checkpoint_tensor_summary": [
+    {
+      "actual_Adam_steps": [],
+      "file": "checkpoint-000001-pilot_initial.pt",
+      "optimizer_entries": 0,
+      "phase_updates": 0,
+      "tag": "pilot_initial"
+    },
+    {
+      "actual_Adam_steps": [
+        1024.0
+      ],
+      "file": "checkpoint-000002-periodic.pt",
+      "optimizer_entries": 41,
+      "phase_updates": 8,
+      "tag": "periodic"
+    },
+    {
+      "actual_Adam_steps": [
+        2048.0
+      ],
+      "file": "checkpoint-000003-periodic.pt",
+      "optimizer_entries": 41,
+      "phase_updates": 16,
+      "tag": "periodic"
+    },
+    {
+      "actual_Adam_steps": [
+        2048.0
+      ],
+      "file": "checkpoint-000004-candidate.pt",
+      "optimizer_entries": 41,
+      "phase_updates": 16,
+      "tag": "candidate"
+    }
+  ],
+  "elapsed_seconds": 0.11090770800365135,
+  "findings": [],
+  "finished_at_utc": "2026-10-24T11:38:08.059905+00:00",
+  "paired_development": {
+    "after": {
+      "caps": 3,
+      "deaths": 61,
+      "episodes": 64,
+      "mean_alive_frames": 990.296875,
+      "mean_score": 3.921875
+    },
+    "before": {
+      "caps": 0,
+      "deaths": 64,
+      "episodes": 64,
+      "mean_alive_frames": 223.140625,
+      "mean_score": 0.03125
+    }
+  },
+  "parent_checkpoint": "learning/runs/v2/milestone3-D1-pilot-r1/checkpoint-000004-candidate.pt",
+  "parent_checkpoint_sha256": "aaafdaaef6c2e79acf7af025714f2d4f9113631743c7b80a7d4fa1b9724e374b",
+  "parent_terminal_receipt": {
+    "checkpoint_sha256": "aaafdaaef6c2e79acf7af025714f2d4f9113631743c7b80a7d4fa1b9724e374b",
+    "config_sha256": "0c987279795ff2618592dc46fbab723a4341fce290df718475897494f56d19e4",
+    "evaluation_sha256": "2248edcec6bcf74f92a6351978ad6b4444c7a79e3a24733afb086e9f574b5231",
+    "identity_sha256": "7d59a77c389abcaa91481be8cd8dd7d1154f29f2544f70badc06c706db543379",
+    "phase": "pilot",
+    "run_id": "v2-m3-pilot-20261024-r1",
+    "run_result_sha256": "0c46eefe7b5c7b5f90c44a9fe270998091c195c2fe6f17745c83ae5e73e8fd2c",
+    "supervisor_exit_code": 0
+  },
+  "pilot_improvement_passed": true,
+  "resource_maxima": {
+    "supervisor-resources.jsonl": {
+      "maximum_mps_driver_bytes": 0,
+      "maximum_rss_bytes": 225247232,
+      "maximum_self_peak_rss_bytes": 225247232,
+      "maximum_worker_rss_bytes": 932855808,
+      "samples": 1015
+    },
+    "worker-resources.jsonl": {
+      "maximum_mps_driver_bytes": 2399076352,
+      "maximum_rss_bytes": 932855808,
+      "maximum_self_peak_rss_bytes": 934952960,
+      "maximum_worker_rss_bytes": 0,
+      "samples": 538
+    }
+  },
+  "retained_audit_parser_failure": {
+    "attempt": "attempt1",
+    "cause": "audit expected argmax instead of reviewed deterministic_argmax spelling",
+    "correction": "audit-parser-correction.json",
+    "project_execution_or_mutation": false,
+    "source_archive": "verify-attempt1.py"
+  },
+  "scope": "retained_receipts_raw_rows_CPU_checkpoint_deserialization_and_read_only_terminal_validator;no_model_execution_update_gameplay_or_tests",
+  "started_at_utc": "2026-10-24T11:38:07.948871+00:00",
+  "status": "passed",
+  "verified": {
+    "actual_Adam_steps": 2048,
+    "all_inspected_inputs_unchanged": 208,
+    "command_invocations": 1,
+    "completed_training_episodes": 3098,
+    "completed_updates": 16,
+    "current_source_pins": 75,
+    "execution_artifacts": 108,
+    "maximum_reward_error": 0.0,
+    "no_owned_processes": [
+      12988,
+      12990,
+      12996
+    ],
+    "runner_artifacts": 19,
+    "source_phase_wall_seconds": 276.3868367500254,
+    "supervisor_exit_code": 0,
+    "terminal_validator": "passed",
+    "training_seed_starts_and_resets_checked": 3162,
+    "worker_exit_code": 0
+  }
+}

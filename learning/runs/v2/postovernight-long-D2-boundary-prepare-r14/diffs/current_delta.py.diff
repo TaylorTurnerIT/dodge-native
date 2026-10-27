@@ -1,0 +1,183 @@
+--- r12-source/current_delta.py
++++ r14/current_delta.py
+@@ -0,0 +1,180 @@
++"""Strict current-candidate (r14) delta against exact historical controllers.
++
++Byte projection only: every removed or replaced string is listed explicitly,
++must occur the stated number of times, and no protected body is normalized
++by AST or blanket Guard/full_check exclusion.
++"""
++import ast
++
++SCHEDULING_HELPERS = ('restore_boundary_switch_interval', 'boundary_switch_interval')
++R11_SHA = 'fe11c08159bdb9ca1f03cb0fb96ffd133ad144d107b2a854d19fc49159aa2db2'
++R12_SHA = '22110a3cb52c36c86934ce02bb0b5c82e2041dc1a00e39a11bb80dd23697d115'
++
++WRAP_R14 = ('            callback_error = None\n'
++            '            try:\n'
++            '                with boundary_switch_interval():\n'
++            '                    try:\n'
++            '                        observation = self.verify()\n'
++            '                    except BaseException as error:\n'
++            '                        # Latch at the actual callback catch, before interval\n'
++            '                        # cleanup can raise a later error that replaces it.\n'
++            '                        callback_error = error\n'
++            '                        self.failure_at = self.failure_at or self.clock()\n'
++            "                        self.failure = self.failure or (error if isinstance(error, Stop) else Stop(repr(error)))\n"
++            '                        raise\n')
++WRAP_R12 = ('            try:\n'
++            '                with boundary_switch_interval():\n'
++            '                    observation = self.verify()\n')
++WRAP_R11 = ('            try:\n'
++            '                observation = self.verify()\n')
++PROPAGATE_R14 = ('                if callback_error is not None and error is not callback_error:\n'
++                 '                    # Later cleanup failure stays represented and fatal, but\n'
++                 '                    # the original callback failure remains primary.\n'
++                 "                    row.update(verdict='failed', error=repr(callback_error), cleanup_error=repr(error))\n"
++                 '                    raise callback_error from error\n')
++
++
++def _once(value, old, new):
++    if value.count(old) != 1:
++        raise AssertionError('Exactly one allowed delta occurrence required: ' + old[:60])
++    return value.replace(old, new)
++
++
++def _drop_helpers(text):
++    lines = text.splitlines(True)
++    found = []
++    for node in sorted((n for n in ast.parse(text).body
++                        if isinstance(n, ast.FunctionDef) and n.name in SCHEDULING_HELPERS),
++                       key=lambda n: n.lineno, reverse=True):
++        first = min([node.lineno] + [n.lineno for n in node.decorator_list])
++        found.append(node.name)
++        del lines[first - 1:node.end_lineno + 2]  # Each helper owns two following blanks.
++    if sorted(found) != sorted(SCHEDULING_HELPERS):
++        raise AssertionError('Exactly the two scheduling helpers required')
++    return ''.join(lines)
++
++
++def project_to_r12(text):
++    """Remove only the r14 first-callback-failure additions and mechanical constants."""
++    value = _once(text, WRAP_R14, WRAP_R12)
++    value = _once(value, PROPAGATE_R14, '')
++    value = _once(value, 'postovernight-long-D2-boundary-prepare-r14', 'postovernight-long-D2-boundary-prepare-r12')
++    value = _once(value, 'postovernight-long-D2-r2-protocol-r10.json', 'postovernight-long-D2-r2-protocol-r9.json')
++    return value
++
++
++def project_to_r11(text):
++    """Strict controller projection to exact r11, from the r14 candidate."""
++    value = project_to_r12(text)
++    value = _drop_helpers(value)
++    value = _once(value, 'BOUNDARY_SWITCH_INTERVAL = 0.0001\n', '')
++    value = _once(value, WRAP_R12, WRAP_R11)
++    value = _once(value, 'postovernight-long-D2-boundary-prepare-r12', 'postovernight-long-D2-boundary-prepare-r11')
++    value = _once(value, 'postovernight-long-D2-r2-protocol-r9.json', 'postovernight-long-D2-r2-protocol-r8.json')
++    return value
++
++
++def project_to_r11_with_sha(text, current_sha, r12_sha=R12_SHA):
++    """Same as project_to_r11 with the three-step protocol hash mapping."""
++    value = _once(text, current_sha, r12_sha)
++    value = project_to_r11(value)
++    return _once(value, r12_sha, R11_SHA)
++
++
++def guard_text_without_full_check(text):
++    lines = text.splitlines(True)
++    guard = next(n for n in ast.parse(text).body if isinstance(n, ast.ClassDef) and n.name == 'Guard')
++    method = next(n for n in guard.body if isinstance(n, ast.FunctionDef) and n.name == 'full_check')
++    return ''.join(lines[guard.lineno - 1:method.lineno - 1] + lines[method.end_lineno:guard.end_lineno])
++
++
++def blocks_equal_except_scheduling_delta(old, new, extra_excluded=(), exact_additions=True):
++    """Compare top-level blocks. Guard compares byte-for-byte except full_check;
++    the two scheduling helpers must be added. exact_additions=True also forbids
++    any other addition (the original exact-dict assertion); False keeps the
++    original old-keys-only loops of the r9/r6 tests. full_check itself is
++    covered by the strict whole-controller byte projection in test_r14."""
++    added = set(new) - set(old)
++    if not set(SCHEDULING_HELPERS) <= added or (exact_additions and added != set(SCHEDULING_HELPERS)):
++        raise AssertionError('Unexpected block additions: %r' % sorted(added))
++    for name in old:
++        if name in extra_excluded:
++            continue
++        if name == 'Guard':
++            if guard_text_without_full_check(old[name]) != guard_text_without_full_check(new[name]):
++                raise AssertionError('Guard methods other than full_check differ')
++        elif old[name] != new[name]:
++            raise AssertionError('Protected block differs: ' + name)
++    return sorted(set(SCHEDULING_HELPERS))
++
++
++RUNTIME_CONTROLLER = ('long_d2.py', 'long_d2_executor.py', 'lifecycle.py', 'processes.py', 'boundary_integrity.py')
++TOOLING = ('freeze.py', 'source_equality.py', 'synthetic.py', 'os_checks.py', 'stress.py', 'rehearsal.py',
++           'fixture_guards.py', 'fixture_preconditions.py', 'parent_command.py', 'model_r11.py',
++           'current_delta.py', 'run_unit_suite.py', 'unit_stage.py', 'prepare_r14.py', 'finalize_r14.py',
++           'write_diffs_r14.py')
++ALLOWED_RUNTIME_SETTER_SCOPES = {'long_d2.py': set(SCHEDULING_HELPERS)}
++
++
++def classify_python(controller_names, identity_python):
++    """Explicit classes: runtime (launched import closure), test (test evidence),
++    tooling (preparation/validation scripts never launched by production).
++    Unclassified or doubly-classified Python is an error, never silently omitted."""
++    classes = {}
++    def put(path, kind):
++        if path in classes:
++            raise AssertionError('Doubly classified: ' + path)
++        classes[path] = kind
++    for name in controller_names:
++        if name in RUNTIME_CONTROLLER:
++            put(name, 'runtime')
++        elif name.startswith('test_') or name == 'conftest.py':
++            put(name, 'test')
++        elif name in TOOLING:
++            put(name, 'tooling')
++        else:
++            raise AssertionError('Unclassified controller Python: ' + name)
++    for name in identity_python:
++        if name.startswith('python/dodge_rl/'):
++            put(name, 'runtime')
++        elif name.startswith('python/tests/'):
++            put(name, 'test')
++        else:
++            raise AssertionError('Unclassified identity Python: ' + name)
++    return classes
++
++
++def _setter_sites(path, text):
++    tree = ast.parse(text)
++    sites = []
++    def visit(node, scope):
++        for child in ast.iter_child_nodes(node):
++            inner = scope + [child.name] if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) else scope
++            hit = ((isinstance(child, ast.Attribute) and child.attr == 'setswitchinterval')
++                   or (isinstance(child, ast.Name) and child.id == 'setswitchinterval')
++                   or (isinstance(child, ast.Constant) and child.value == 'setswitchinterval')
++                   or (isinstance(child, ast.alias) and child.name == 'setswitchinterval'))
++            if hit:
++                sites.append(dict(path=path, scope='.'.join(scope), line=getattr(child, 'lineno', None)))
++            visit(child, inner)
++    visit(tree, [])
++    return sites
++
++
++def scan_setters(sources, classes):
++    """sources: {path: text}; classes: {path: kind}. Returns separated reports.
++    Competing runtime setters are runtime sites outside the registered helpers.
++    This is a bounded registered-source scan, not a whole-program absence claim."""
++    if set(sources) != set(classes):
++        raise AssertionError('Classification must cover exactly the scanned sources')
++    report = dict(runtime_allowed=[], runtime_competing=[], test=[], tooling=[])
++    for path in sorted(sources):
++        for site in _setter_sites(path, sources[path]):
++            kind = classes[path]
++            if kind == 'runtime':
++                allowed = ALLOWED_RUNTIME_SETTER_SCOPES.get(path, set())
++                top = site['scope'].split('.')[0]
++                report['runtime_allowed' if top in allowed else 'runtime_competing'].append(site)
++            else:
++                report[kind].append(site)
++    return report

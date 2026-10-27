@@ -1,0 +1,152 @@
+{
+  "scope": "Parent source/data reconciliation;proposednewpreparationonly",
+  "metrics_recomputed_from_both72rowjournals": {
+    "D2-retained204-lr1e4-20261026-r1": {
+      "ev_pre": {
+        "early_mean": 0.42247547745903086,
+        "middle_mean": 0.37639287855014664,
+        "late_mean": 0.43965762206298065,
+        "mean": 0.41284199269071936,
+        "max": 0.5347993074658856
+      },
+      "ev_post": {
+        "early_mean": 0.4757893661733264,
+        "middle_mean": 0.4350388702902576,
+        "late_mean": 0.4938133100795721,
+        "mean": 0.46821384884771866,
+        "max": 0.5818887432697925
+      },
+      "cosine": {
+        "early_mean": -0.034028308092736735,
+        "middle_mean": 0.0006714303699977131,
+        "late_mean": -0.005115358638153759,
+        "mean": -0.01282407878696426,
+        "max": 0.4155027198937832
+      },
+      "critic_actor_ratio": {
+        "early_mean": 0.017221508973066665,
+        "middle_mean": 0.018561746711286308,
+        "late_mean": 0.01890053273577921,
+        "mean": 0.018227929473377393,
+        "max": 0.028216553135936958
+      },
+      "rotation_degrees": {
+        "early_mean": 0.9806770029284767,
+        "middle_mean": 1.0553966209833148,
+        "late_mean": 1.0795476079512116,
+        "mean": 1.038540410621001,
+        "max": 1.604522120810948
+      },
+      "entropy": {
+        "early_mean": 1.7311033669005458,
+        "middle_mean": 1.7074490846134722,
+        "late_mean": 1.675984109325024,
+        "mean": 1.7048455202796806,
+        "max": 1.7929283184930682
+      },
+      "approx_kl": {
+        "early_mean": 0.012319277558466032,
+        "middle_mean": 0.013754005479616657,
+        "late_mean": 0.01449597562168492,
+        "mean": 0.013523086219922535,
+        "max": 0.01668788242386654
+      },
+      "optimizer_steps": 9216
+    },
+    "D2-retained276-continuation-20261026-r2": {
+      "ev_pre": {
+        "early_mean": 0.4118944894011607,
+        "middle_mean": 0.4325584297484999,
+        "late_mean": 0.41579912462544044,
+        "mean": 0.4200840145917003,
+        "max": 0.5294361503113741
+      },
+      "ev_post": {
+        "early_mean": 0.46963978323104477,
+        "middle_mean": 0.48722574336872,
+        "late_mean": 0.4720964600917454,
+        "mean": 0.4763206622305034,
+        "max": 0.5713267022194399
+      },
+      "cosine": {
+        "early_mean": 0.0038040423157936626,
+        "middle_mean": -0.0011574994427394562,
+        "late_mean": -0.00029423026225155417,
+        "mean": 0.0007841042036008841,
+        "max": 0.2341930011388089
+      },
+      "critic_actor_ratio": {
+        "early_mean": 0.017686291298856432,
+        "middle_mean": 0.019759476672247697,
+        "late_mean": 0.01971707201591535,
+        "mean": 0.019054279995673162,
+        "max": 0.03508694873780348
+      },
+      "rotation_degrees": {
+        "early_mean": 1.0079189928297383,
+        "middle_mean": 1.125005116410699,
+        "late_mean": 1.1236109378187527,
+        "mean": 1.0855116823530633,
+        "max": 1.9687519364651414
+      },
+      "entropy": {
+        "early_mean": 1.6759526261982198,
+        "middle_mean": 1.6482455596948664,
+        "late_mean": 1.6719264438531052,
+        "mean": 1.6653748765820637,
+        "max": 1.732973468489945
+      },
+      "approx_kl": {
+        "early_mean": 0.015293029720851337,
+        "middle_mean": 0.015745010086296436,
+        "late_mean": 0.016125502394667517,
+        "mean": 0.01572118073393843,
+        "max": 0.019919782236684114
+      },
+      "optimizer_steps": 9216
+    }
+  },
+  "input_hash_drift": [
+    {
+      "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/docs/v2-D2-training-2026-10-25.md",
+      "expected": "f854d6bcb6493b1d08382f4f01287ec1b40d334985dabeb11b1b4cd04fd7301c",
+      "current": "104f7ca57c1cfbbefbb298cd1e48eed99f8da75f9cc3387cba1a858aa2390a8c"
+    }
+  ],
+  "corrections": [
+    "Low shared-trunk critic/actor ratio and near-zero cosine weaken this specific interference hypothesis; they do not prove critic quality cannot bottleneck learning.",
+    "ApproxKL need not fall in every stochastic on-policy run. Verify LR override directly with exact optimizer param_groups and before/after model/Adam/RNG fingerprints; do not gate on KL.",
+    "Bootstrap intervals on the reused development cohort are descriptive. Keep existing mean-based retention and3060competence rule; do not introduce a new CI acceptance gate.",
+    "The CI for276minus204 spanszero, so the report table claiming an advantage over204 at95percent contradicts its own interval.",
+    "Earlier3e-4 branches also produced accepted180/204 gains; LR history supports an exploratory option, not a causal proof or sole improving phase.",
+    "Fresh-seed training can improve a model; a same-config replicate estimates stochastic spread and is not mathematically incapable of improvement.",
+    "Use exact atan2 vector-sum angle, not asin(r*sin(theta)), for reported actor-plus-weighted-critic rotation. CPU shadow is one minibatch perupdate, not live MPS or Adam direction.",
+    "Entry276 re-saved checkpoint642da0 differs in run identity/local counters/metadata from retained0b5cf7; strict full audit verified exact model/Adam/RNG equality. No identity mismatch or metadata edit.",
+    "Parent accepted276to348 iteration without replacingbest. The report pendingacceptance statement is stale."
+  ],
+  "accepted_next_preparation": {
+    "control_observed_72update_outer_seconds": 1581.0090618329123,
+    "72update_with15percent_margin": 1818.160421107849,
+    "60update_scaled_with15percent_margin": 1515.1336842565406,
+    "new_updates": 60,
+    "phase_start": 276,
+    "phase_end": 336,
+    "new_cumulative_end": 384,
+    "planned_work_seconds": 1650,
+    "hard_work_seconds": 1790,
+    "outer_seconds": 1800,
+    "new_master_seed": 3791628420,
+    "LR_before": 0.0001,
+    "LR_after": 3e-05,
+    "resource_cost_anchor": "learning/runs/v2/D2-retained276-continuation-parent-terminal-audit-20261026-r2/completed-iteration-receipt.json",
+    "resource_cost_anchor_sha256": "711b2949fb4123381d9af6618e47f4628540f424a0973785bb6392e14169b4c3",
+    "resource_cost_baseline_seconds": 7118.78208862512,
+    "retained_branch_baseline_seconds": 4760.062404125177
+  },
+  "authority": "Existing user authorization covers bounded implementation/review/one later registered run after gates; diagnosis itself grants no authority.",
+  "project_doc_input_recovered": {
+    "path": "diagnosis-input-project-doc.md",
+    "sha256": "f854d6bcb6493b1d08382f4f01287ec1b40d334985dabeb11b1b4cd04fd7301c",
+    "method": "Exact byte-hash recovery by removing the parent-added completed-iteration paragraph; original project doc remains unchanged."
+  }
+}

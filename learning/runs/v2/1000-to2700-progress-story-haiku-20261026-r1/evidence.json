@@ -1,0 +1,315 @@
+{
+ "comparison_rule": "Q1/Q4 = mean of bottom/top 16 of 64 ranked alive frames; means recomputed from evaluation.rows where present",
+ "context_not_comparable": [
+  {
+   "comparable": "same 64 seeds and identical entry 295.25, but run failed the 1800 s guard; last complete eval phase 96 mean 1148.78; not eligible",
+   "evals": [
+    {
+     "mean": 295.25,
+     "phase_updates": 0
+    },
+    {
+     "mean": 756.65625,
+     "phase_updates": 16
+    },
+    {
+     "mean": 869.984375,
+     "phase_updates": 32
+    },
+    {
+     "mean": 855.890625,
+     "phase_updates": 48
+    },
+    {
+     "mean": 877.96875,
+     "phase_updates": 64
+    },
+    {
+     "mean": 939.609375,
+     "phase_updates": 80
+    },
+    {
+     "mean": 1148.78125,
+     "phase_updates": 96
+    }
+   ],
+   "label": "M3 failed D2 run (ineligible; 1800 s guard)",
+   "sha256": "a07005def4bcf0b3bc75dd97731d2b04ead87a344528758f6af2160b37e11c59",
+   "source": "learning/runs/v2/milestone3-D2-execution-r1/result.json"
+  },
+  {
+   "comparable": "NO: different difficulty/patterns/cap 2000; censored",
+   "label": "D1 sanity heuristic",
+   "source": "docs/v2-D2-training-2026-10-25.md"
+  },
+  {
+   "comparable": "NO for learned-policy milestones: heuristic policy, 1000 episodes, not 64-seed argmax; 3060 gate is the progression threshold",
+   "label": "Heuristic D2 baseline mean 6114.593",
+   "source": "learning/runs/v2-orchestration/state.json measured_baselines.D2"
+  },
+  {
+   "comparable": "PARTIAL: same D2 evaluation idea, different training stream from D1; not in the chain; not independently recomputed here",
+   "label": "48-update critic diagnostic 1101.94",
+   "source": "docs/v2-D2-training-2026-10-25.md (line ~12)"
+  },
+  {
+   "comparable": "UNVERIFIED: not located in receipts during this pass",
+   "label": "Historical selected best 2240 after 320 D2 updates",
+   "source": "docs/v2-D2-training-2026-10-25.md (line ~12)"
+  }
+ ],
+ "current_accepted": {
+  "checkpoint": "checkpoint-000300-candidate.pt",
+  "death_causes_64": {
+   "kamikaze_enemy": 15,
+   "kamikaze_explosion": 1,
+   "moving_pattern_rect": 6,
+   "normal_enemy": 26,
+   "static_pattern_rect": 16
+  },
+  "receipt_sha256": "ccc73fbc72c83e9dc061ad11be536b2e0d7cb076319e6d7cff27b9f2a0f8838d",
+  "sha256": "e2c8fbe44e23da910686954e90cb7841b38b6d7f60f69ca657a4a69b14214710"
+ },
+ "milestones": [
+  {
+   "milestone": "D2 entry (accepted D1 parent, update 0)",
+   "note": "same 64 seeds, argmax; values from audit (recomputed only where rows exist)",
+   "sha256": "0835f8f6982f3e912da3a662b65dfde4bf23b3448395ff7aa142ccd8c4bb30ca",
+   "source": "learning/runs/v2/d2-training-v3-parent-terminal-audit-20261025-r1/audit.json",
+   "stats": {
+    "death_causes": {
+     "moving_pattern_rect": 8,
+     "normal_enemy": 44,
+     "static_pattern_rect": 12
+    },
+    "mean": 295.25,
+    "q1_bottom16": 165.4375,
+    "q4_top16": 566.375,
+    "source_field": "audit evaluations[0] (values as reported; rows not in audit)"
+   }
+  },
+  {
+   "milestone": "D2 update 72, first accepted D2 run (~1000 level)",
+   "note": "comparable: same cohort, argmax, cap 0",
+   "sha256": "ea4443ae6b206396b12f85fafe26f8b96f6800ff5b04541c6ff31c37023fd127",
+   "source": "learning/runs/v2/D2-training-v3-20261025-r1/development-000072.json",
+   "stats": {
+    "action_mode": "deterministic_argmax",
+    "caps": 0,
+    "checkpoint": "checkpoint-000072-candidate.pt",
+    "checkpoint_sha256": "2e13b46edad5b2790cec52b47d33b643cbd6846387994c24fe14d5d36f0521a2",
+    "death_causes": {
+     "kamikaze_enemy": 10,
+     "kamikaze_explosion": 2,
+     "moving_pattern_rect": 8,
+     "normal_enemy": 38,
+     "static_pattern_rect": 6
+    },
+    "deaths": 64,
+    "local_label": null,
+    "mean": 1178.0625,
+    "phase_label": null,
+    "q1_bottom16": 533.3125,
+    "q4_top16": 2325.625
+   }
+  },
+  {
+   "milestone": "Best180 continuation endpoint 180 (current-lineage best then)",
+   "note": "comparable",
+   "sha256": "ed8244688da40a466c82427af9047b418f380921bf471e8508ca1e407893e2c4",
+   "source": "learning/runs/v2/D2-continuation-20261025-r2/development-000180.json",
+   "stats": {
+    "action_mode": "deterministic_argmax",
+    "caps": 0,
+    "checkpoint": "checkpoint-000180-candidate.pt",
+    "checkpoint_sha256": "3173d293dc3309afcdeaec5d386807be40b27c0f024f67c23221d067d2b2cca8",
+    "death_causes": {
+     "kamikaze_enemy": 11,
+     "moving_pattern_rect": 11,
+     "normal_enemy": 32,
+     "static_pattern_rect": 10
+    },
+    "deaths": 64,
+    "local_label": 0,
+    "mean": 1854.46875,
+    "phase_label": 180,
+    "q1_bottom16": 585.625,
+    "q4_top16": 3502.5625
+   }
+  },
+  {
+   "milestone": "Continuation endpoint 252 (regressed, discarded as parent)",
+   "note": "comparable; retained-best rules forbade auto-parenting",
+   "sha256": "f6f5dd73f1f3e4537f6646ea2c6726932569d88f26ca85d5b0eeb82384274614",
+   "source": "learning/runs/v2/D2-continuation-20261025-r2/development-000252.json",
+   "stats": {
+    "action_mode": "deterministic_argmax",
+    "caps": 0,
+    "checkpoint": "checkpoint-000252-candidate.pt",
+    "checkpoint_sha256": "cbdc65d0f3b2e32644ba64ada80093f20c7a6bceb8730f2eecac7a188504254b",
+    "death_causes": {
+     "kamikaze_enemy": 9,
+     "kamikaze_explosion": 3,
+     "moving_pattern_rect": 13,
+     "normal_enemy": 24,
+     "static_pattern_rect": 15
+    },
+    "deaths": 64,
+    "local_label": 72,
+    "mean": 1604.078125,
+    "phase_label": 252,
+    "q1_bottom16": 532.8125,
+    "q4_top16": 3192.3125
+   }
+  },
+  {
+   "milestone": "Retained204 (intermediate of LR3e-4 branch from 180)",
+   "note": "comparable",
+   "sha256": "4a6ff2e4615b4fe6ded781decc29858935fcdbc01f0c216f631abe02c10f5d48",
+   "source": "learning/runs/v2/D2-best180-branch-luna-20261026-r1/development-000204.json",
+   "stats": {
+    "action_mode": "deterministic_argmax",
+    "caps": 0,
+    "checkpoint": "checkpoint-000204-candidate.pt",
+    "checkpoint_sha256": "f1300e4e86ec89ed9cfba446c8e7f66cf29caad6a1130864edd4d6ee7859d442",
+    "death_causes": {
+     "kamikaze_enemy": 9,
+     "kamikaze_explosion": 3,
+     "moving_pattern_rect": 9,
+     "normal_enemy": 31,
+     "static_pattern_rect": 12
+    },
+    "deaths": 64,
+    "local_label": 24,
+    "mean": 1921.171875,
+    "phase_label": 204,
+    "q1_bottom16": 630.4375,
+    "q4_top16": 3913.5625
+   }
+  },
+  {
+   "milestone": "Retained276 (LR1e-4 branch from 204)",
+   "note": "comparable",
+   "sha256": "89454dba1753d5cb89eadc4339865780daadecdf78d7d040873e69e2c6d6e974",
+   "source": "learning/runs/v2/D2-retained204-lr1e4-20261026-r1/development-000276.json",
+   "stats": {
+    "action_mode": "deterministic_argmax",
+    "caps": 0,
+    "checkpoint": "checkpoint-000276-candidate.pt",
+    "checkpoint_sha256": "0b5cf72b4eb9629fa4f10ce2cecb3625b56f8787c0eca6395b9fe17161e6b292",
+    "death_causes": {
+     "kamikaze_enemy": 13,
+     "kamikaze_explosion": 1,
+     "moving_pattern_rect": 10,
+     "normal_enemy": 26,
+     "static_pattern_rect": 14
+    },
+    "deaths": 64,
+    "local_label": 72,
+    "mean": 2483.65625,
+    "phase_label": 276,
+    "q1_bottom16": 566.75,
+    "q4_top16": 5171.8125
+   }
+  },
+  {
+   "milestone": "Endpoint 348 (LR1e-4 continuation from 276; not retained)",
+   "note": "comparable; not selected",
+   "sha256": "ebce06b9d4d9faa971b7d7f6f4c6fa1dc1c87a825c40252c462359bf81768668",
+   "source": "learning/runs/v2/D2-retained276-continuation-20261026-r2/development-000348.json",
+   "stats": {
+    "action_mode": "deterministic_argmax",
+    "caps": 0,
+    "checkpoint": "checkpoint-000348-candidate.pt",
+    "checkpoint_sha256": "2a21ca3b4a68d608e53d003e4242beceacbb76f418e726fd6db30c1251c3dc19",
+    "death_causes": {
+     "kamikaze_enemy": 16,
+     "kamikaze_explosion": 2,
+     "moving_pattern_rect": 5,
+     "normal_enemy": 32,
+     "static_pattern_rect": 9
+    },
+    "deaths": 64,
+    "local_label": 72,
+    "mean": 2273.171875,
+    "phase_label": 348,
+    "q1_bottom16": 861.25,
+    "q4_top16": 4004.875
+   }
+  },
+  {
+   "milestone": "Retained300 (LR3e-5 ablation from exact 276; current accepted)",
+   "note": "comparable; fresh training seed 3791628420",
+   "sha256": "9c8ac12576e4582ab6b2a30a82a56a595c904dc6bc31543f021c59517cd73046",
+   "source": "learning/runs/v2/D2-retained276-lr3em5-20261026-r2/development-000300.json",
+   "stats": {
+    "action_mode": "deterministic_argmax",
+    "caps": 0,
+    "checkpoint": "checkpoint-000300-candidate.pt",
+    "checkpoint_sha256": "e2c8fbe44e23da910686954e90cb7841b38b6d7f60f69ca657a4a69b14214710",
+    "death_causes": {
+     "kamikaze_enemy": 15,
+     "kamikaze_explosion": 1,
+     "moving_pattern_rect": 6,
+     "normal_enemy": 26,
+     "static_pattern_rect": 16
+    },
+    "deaths": 64,
+    "local_label": 24,
+    "mean": 2704.390625,
+    "phase_label": 300,
+    "q1_bottom16": 808.875,
+    "q4_top16": 5222.9375
+   }
+  },
+  {
+   "milestone": "Endpoint 336 (LR3e-5 ablation endpoint; discarded)",
+   "note": "comparable; discarded",
+   "sha256": "107a00b9f9216ca0fd3246a5a0669179b21d77ab17aab588e2b0e1572c63b900",
+   "source": "learning/runs/v2/D2-retained276-lr3em5-20261026-r2/development-000336.json",
+   "stats": {
+    "action_mode": "deterministic_argmax",
+    "caps": 0,
+    "checkpoint": "checkpoint-000336-candidate.pt",
+    "checkpoint_sha256": "27154dfad88cecfa011a0a323af0dffb3fc76bb584c1c31c6230578b2288a853",
+    "death_causes": {
+     "kamikaze_enemy": 12,
+     "kamikaze_explosion": 2,
+     "moving_pattern_rect": 10,
+     "normal_enemy": 33,
+     "static_pattern_rect": 7
+    },
+    "deaths": 64,
+    "local_label": 60,
+    "mean": 2443.484375,
+    "phase_label": 336,
+    "q1_bottom16": 699.5625,
+    "q4_top16": 4868.6875
+   }
+  }
+ ],
+ "percent_changes": {
+  "p204_vs_180": 3.5968859006116904,
+  "p252_vs_180": -13.502013716866356,
+  "p276_vs_204": 29.278191208165595,
+  "p300_vs_276": 8.887476880103673,
+  "p300_vs_entry295": 815.9663420829805,
+  "p300_vs_u72_1178": 129.56257626399278,
+  "p336_vs_300": -9.647506080967872,
+  "p348_vs_276": -8.47477886684198,
+  "ratio_300_over_entry": 9.159663420829805,
+  "ratio_300_over_u72": 2.295625762639928,
+  "seconds_1000_at_60fps": 16.666666666666668,
+  "seconds_2704_at_60fps": 45.073177083333334
+ },
+ "schema": "haiku_progress_story_evidence_v1",
+ "scope": "read-only stdlib recomputation; no runtime/torch/checkpoint decoding",
+ "uncertainty": [
+  "One training run per milestone; each LR change also came with a fresh training seed (LR1e-4 continuation 3791628419; LR3e-5 ablation 3791628420), so LR effect is confounded with seed and repeated selection.",
+  "All development means are selected on one fixed 64-seed deterministic argmax cohort; no held-out or generalization claim; 3060 competence threshold unmet.",
+  "Receipt phase and cumulative labels disagree in places (for example best180 branch inherited counters imply 228 updates while docs say 180 cumulative); this report uses the recorded phase labels and does not compute update totals from counters.",
+  "The user nominal 1000 level is not an exact baseline; nearest verified comparable is 1178.06 at D2 update 72 (entry 295.25).",
+  "EV and gradient diagnostics are self-bootstrapped and in-sample; they do not prove critic quality or absence of interference.",
+  "Failed M3 run values are ineligible and shown only as context."
+ ]
+}

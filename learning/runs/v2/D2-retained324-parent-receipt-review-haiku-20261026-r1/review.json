@@ -1,0 +1,70 @@
+{
+  "reviewer": "haiku-r1",
+  "mode": "read_only_stdlib",
+  "verdict": "no_blocking_findings",
+  "checks_total": 177,
+  "checks_failed": 0,
+  "hashes_recorded": 64,
+  "authority_changes": "none",
+  "findings": [
+    {
+      "severity": "low",
+      "file": "learning/runs/v2/D2-retained300-parent-terminal-audit-20261026-r1/retained-best-candidate-receipt.json",
+      "line": 128,
+      "category": "naming",
+      "summary": "parent_checkpoint_sha256 holds the producing-run parent e2c8, while the selected resume is continuation_parent_checkpoint_sha256 c10d (line 31).",
+      "trigger": "Next continuation binds its parent on the generic parent_checkpoint_sha256 key.",
+      "consequence": "Resumes from the wrong ancestor (300 parent instead of selected 324).",
+      "origin": "finalize_parent.py:169"
+    },
+    {
+      "severity": "low",
+      "file": "learning/runs/v2/D2-retained300-parent-terminal-audit-20261026-r1/finalize_parent.py",
+      "line": 144,
+      "category": "evidence",
+      "summary": "checkpoint_metadata_unchanged, resource_limits_passed, and stage_promotion_eligible are literal constants, not computed checks.",
+      "trigger": "Reading the script as the source of these flags.",
+      "consequence": "Flags look verified but are not; support exists only from the full audit's sidecar hash and the need() guards above.",
+      "origin": "finalize_parent.py:136,144,160"
+    },
+    {
+      "severity": "low",
+      "file": "learning/runs/v2/D2-retained300-parent-terminal-audit-20261026-r1/retained-best-candidate-receipt.json",
+      "line": 171,
+      "category": "accounting",
+      "summary": "Receipt cost uses observer outer 1137.0271 s (9758.365 s). Worker reports 9754.963 s from current_iteration 1133.6248 s.",
+      "trigger": "Comparing receipt cost with worker-result.json cumulative.",
+      "consequence": "3.40 s basis difference; receipt does not cite the worker figure.",
+      "origin": "worker-result.json cumulative_successful_ancestor_and_completed_campaign_cost_seconds"
+    },
+    {
+      "severity": "info",
+      "file": "learning/runs/v2/D2-retained300-parent-terminal-audit-20261026-r1/audit.json",
+      "line": null,
+      "category": "clock",
+      "summary": "Outer UTC span 2671.39 s vs monotonic 1137.03 s. The 1534 s gap is unexplained by artifacts.",
+      "trigger": "Comparing observer UTC start/end with outer_inclusive_wall_seconds.",
+      "consequence": "If suspend occurred, real elapsed exceeded the 1800 s cap while monotonic cap passed. Policy says monotonic governs; record suspension evidence if available."
+    },
+    {
+      "severity": "info",
+      "file": "learning/runs/v2/D2-retained300-parent-terminal-audit-20261026-r1/state-after-lease-clear.json",
+      "line": 6234,
+      "category": "ledger-text",
+      "summary": "Executor acceptance field still says actual_campaign_remains_running while actual_outcome says completed. Status 'failed' preserved.",
+      "trigger": "Reading the executor task entry.",
+      "consequence": "Historical wording only."
+    },
+    {
+      "severity": "info",
+      "file": "learning/runs/v2/D2-retained300-continuation-20261026-r1/checkpoint-000324-candidate.pt.json",
+      "line": null,
+      "category": "sidecar",
+      "summary": "Sidecar reports provisional_pending_parent_terminal_receipt and training_eligible false.",
+      "trigger": "Reading the sidecar alone.",
+      "consequence": "Continuation authority lives only in the external receipt; by design."
+    }
+  ],
+  "receipt_file": "receipt.json",
+  "review_file": "review.md"
+}

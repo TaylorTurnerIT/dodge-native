@@ -1,0 +1,78 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+body{margin:0;color:var(--foreground);font-family:var(--font-sans,system-ui)}
+#dodge-replay{display:grid;gap:12px;width:100%}
+#dodge-replay canvas{display:block;width:min(100%,512px);height:auto;image-rendering:pixelated;margin:auto}
+#dodge-replay .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+#dodge-replay input{flex:1;min-width:140px}
+#dodge-replay button,#dodge-replay select{font:inherit;padding:8px 12px;background:var(--secondary);color:var(--secondary-foreground);border:1px solid var(--border);border-radius:var(--radius,6px)}
+#dodge-replay output{font-variant-numeric:tabular-nums}
+#dodge-replay .caption{color:var(--muted-foreground)}
+@media(max-width:480px){#dodge-replay canvas{width:100%}}
+</style></head><body>
+<div id="dodge-replay">
+  <div>Checkpoint 000050 · average-like game · 2,209 alive frames / 36.8s · score 18</div>
+  <div class="caption">Cohort survival: Q1 648 · Q4 4,509 · mean 2,240 frames</div>
+  <canvas width="128" height="128" role="img" aria-label="Recorded Dodge gameplay. Nearest-to-mean episode from the best retained teacher checkpoint."></canvas>
+  <div class="controls">
+    <button type="button" id="replay-toggle" disabled>Loading</button>
+    <label for="replay-time" class="sr-only">Playback position</label>
+    <input id="replay-time" type="range" min="0" max="1105" value="0" step="1" aria-label="Playback position">
+    <output id="replay-clock">0.0 / 36.8s</output>
+    <label for="replay-speed">Speed</label>
+    <select id="replay-speed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option></select>
+  </div>
+  <div id="replay-detail" class="caption" aria-live="polite">Loading recorded frames</div>
+</div>
+<script>
+(() => {
+  const root=document.getElementById('dodge-replay');
+  const canvas=root.querySelector('canvas'),ctx=canvas.getContext('2d');
+  const toggle=document.getElementById('replay-toggle'),slider=document.getElementById('replay-time');
+  const clock=document.getElementById('replay-clock'),detail=document.getElementById('replay-detail');
+  const speed=document.getElementById('replay-speed');
+  const encoded="__FRAMES__", scores=__SCORES__;
+  const palette=__PALETTE__;
+  let data,index=0,playing=false,start=0,base=0;
+  const frameCount=scores.length,last=frameCount-1;
+  const pixels=ctx.createImageData(128,128);
+  function draw(value){
+    index=Math.max(0,Math.min(last,Math.floor(value)));
+    const offset=index*16384;
+    for(let p=0;p<16384;p++){
+      const color=palette[data[offset+p]],q=p*4;
+      pixels.data[q]=color[0];pixels.data[q+1]=color[1];pixels.data[q+2]=color[2];pixels.data[q+3]=255;
+    }
+    ctx.putImageData(pixels,0,0);slider.value=index;
+    clock.value=(index/30).toFixed(1)+' / '+(last/30).toFixed(1)+'s';
+    const text='Score '+scores[index]+' · '+(index===last?'Episode ended; killer unrecorded':'K4 decisions · 30 FPS capture · no audio');
+    if(detail.textContent!==text)detail.textContent=text;
+  }
+  function pause(){playing=false;toggle.textContent=index===last?'Replay':'Play';}
+  function play(){if(index===last)draw(0);base=index;start=performance.now();playing=true;toggle.textContent='Pause';}
+  function tick(now){
+    if(playing){draw(base+(now-start)*0.03*Number(speed.value));if(index===last)pause();}
+    requestAnimationFrame(tick);
+  }
+  toggle.addEventListener('click',()=>playing?pause():play());
+  slider.addEventListener('input',()=>{pause();draw(Number(slider.value));});
+  speed.addEventListener('change',()=>{base=index;start=performance.now();});
+  (async()=>{
+    const packed=Uint8Array.from(atob(encoded),c=>c.charCodeAt(0));
+    const reader=new Blob([packed]).stream().pipeThrough(new DecompressionStream('deflate')).getReader();
+    const parts=[];let length=0;
+    while(true){const chunk=await reader.read();if(chunk.done)break;parts.push(chunk.value);length+=chunk.value.length;}
+    data=new Uint8Array(length);let pos=0;for(const part of parts){data.set(part,pos);pos+=part.length;}
+    if(data.length!==frameCount*16384)throw new Error('Frame length mismatch');
+    slider.max=last;draw(0);
+    const first=pixels.data.slice();draw(Math.floor(last/2));
+    console.assert(pixels.data.some((value,i)=>value!==first[i]),'Midpoint must differ from initial image');
+    draw(0);toggle.disabled=false;toggle.textContent='Play';
+    console.log(JSON.stringify({playback_ready:true,frame_count:frameCount,compressed_bytes:packed.length,decoded_bytes:data.length,overflow:document.documentElement.scrollWidth>innerWidth}));
+    window.dodgePlayback={seek(frame){pause();draw(frame);return index;},state(){return {index,playing,score:scores[index]};}};
+    if(!matchMedia('(prefers-reduced-motion: reduce)').matches)play();
+    requestAnimationFrame(tick);
+  })().catch(error=>{detail.textContent='Playback error: '+error.message;detail.setAttribute('role','alert');console.error(error);});
+})();
+</script></body></html>

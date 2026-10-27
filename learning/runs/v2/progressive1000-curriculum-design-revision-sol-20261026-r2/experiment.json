@@ -1,0 +1,123 @@
+{
+  "schema": "progressive-survival-curriculum-design-v2",
+  "status": "design_only_not_registered_not_launchable",
+  "hypothesis": "Insufficient early practice may weaken early-survival lower tails; this bounded cumulative-prefix pilot tests that unproven hypothesis.",
+  "authority": "Parent decisions define this concrete draft. The 90/100 threshold, 70:30 mix, 10 updates, 200 episodes, 60 global updates and 3 pairs are design choices, not original user requirements or launch approval.",
+  "parent": {
+    "checkpoint": "learning/runs/v2/D2-retained300-continuation-20261026-r1/checkpoint-000324-candidate.pt",
+    "checkpoint_sha256": "c10d90ec0e67503afef8f4d90c4968581d430ef2065117a75e81c445a04c8ddc",
+    "integrity_receipt_sha256": "76cb15733e87518cb3b473b7f8ebd847ed206351fb9f17d89b8b92e6bf853f08",
+    "acceptance": "learning/runs/v2/expanded-confirmation-parent-20261026-r1/parent-acceptance.json",
+    "acceptance_sha256": "3e84979c4c8da76d0f98666a23f90eb15c1e813ca5edf1001e19daebaf4d5bbd",
+    "phase_updates": 324,
+    "actual_cumulative_updates": 372,
+    "restore": "Restore exact accepted324 model, full Adam state and accepted RNG fingerprints before paired replica reseeding. Preserve accepted324 per-slot episode indices; derive next indices from its receipt, never a different parent's seed proposal."
+  },
+  "comparison": {
+    "arms": ["matched_control", "progressive_curriculum"],
+    "paired_replicas": 3,
+    "runs": 6,
+    "global_updates_per_run": 60,
+    "terminal_controller_update": 432,
+    "batch_size": 64,
+    "rollout_decisions_per_slot_per_update": 256,
+    "transitions_per_update": 16384,
+    "planned_transitions_per_run": 983040,
+    "planned_transitions_all_runs": 5898240,
+    "maximum_adam_steps_per_update": 128,
+    "maximum_adam_steps_per_run": 7680,
+    "budget_equality": "Same transitions and same maximum optimization budget/settings. Inherited target_kl stopping may produce different actual epochs/Adam steps; log both. No KL changes, optimizer top-ups, replacement seeds or budget extensions.",
+    "same_runtime": "Both arms use one successor native binary, runtime, model, PPO, evaluator, dependencies, backend and shared configuration. Only curriculum assignment/cutoff enablement differs; seed vectors match within each pair.",
+    "control_reuse": "No existing control reuse unless every runtime/config/parent/seed/budget/exclusion/evaluation field is identical and reviewed before registration.",
+    "isolation": "Future implementation, outputs and checkpoints require new successor-owned paths, separate from frozen sources, current PPO/LR control, RNG probe and LR study. This directory contains design and synthetic evidence only."
+  },
+  "architecture_and_ppo": {
+    "model": "Same accepted OmniscientEntityTeacher: two layers, width128, 81-token entity transformer with full attention; no capacity change.",
+    "reward": "score + alive_frames/100 - 5 on true death; unchanged, no reward shaping",
+    "learning_rate_schedule": "none; constant 3e-5 for both arms",
+    "ppo": {
+      "gamma": 0.995, "gae_lambda": 0.95, "learning_rate": 0.00003,
+      "adam_eps": 0.00001, "clip_coef": 0.2, "vf_coef": 0.5,
+      "ent_coef": 0.01, "max_grad_norm": 0.5, "update_epochs": 4,
+      "minibatch_size": 512, "target_kl": 0.03, "reward_scale": 0.1
+    },
+    "action_repeat": 4,
+    "ordinary_raw_gameplay_frame_cap": 18000,
+    "unchanged": "All inherited PPO, reward, difficulty2, pattern/powerup, observation/history, normalization and sampled-action settings remain pinned. No GAE rewrite."
+  },
+  "curriculum": {
+    "type": "cumulative_prefix_normal_start_only",
+    "stages_raw_gameplay_frames": [1000,2000,3000,4000,5000,6000,7000,8000,9000,10000,11000,12000,13000,14000,15000,16000,17000,18000],
+    "initial_generation": 0,
+    "stage_horizon_formula": "H = 1000 * (generation + 1), generation in 0..17",
+    "episode_freeze": "At construction/normal reset, freeze generation, assigned horizon and assignment ordinal until that episode ends. Never force-reset or rewrite in-flight episodes on promotion.",
+    "completion_order": "Lexicographic (global learner update 1..60, rollout decision 0..255, slot 0..63). Process the entire simultaneous completion batch and all update rows before considering promotion. Reset ended slots in ascending slot order after recording final rows.",
+    "stage_exposure": "An update counts once for the generation active at its preceding update boundary, only after its rollout and PPO update complete. Generation0 enters at boundary0. Process all completion rows, increment this stage's completed-update count, then check promotion at the end boundary. Never charge that update to the next stage.",
+    "eligible_completion": "Only completed episodes whose frozen generation equals current generation and whose assigned horizon equals current H count toward mastery. Old-generation episodes finish unchanged and are logged but cannot count, even if their horizon matches a later target.",
+    "windows": "From stage entry, append eligible booleans in completion order into nonoverlapping windows of100. Pass iff at least90 successes. A pass increments consecutive passing streak; failure resets it to0. Keep leftover 0..99 rows as the next partial window across updates; partial windows neither pass nor fail. Never use rolling/overlapping windows.",
+    "promotion": "At end-of-update only: mark stage mastered iff completed_stage_updates>=10, current_target_completions>=200 and latest consecutive completed-window passing streak>=2. Preminimum passes remain valid only while no later completed window fails. Process every row first, so a later failure in the same update cancels an earlier streak. Partial windows do not cancel a completed-window streak. Promote at most once per update to H+1000; at18000 record mastery once but no next stage.",
+    "stage_entry_reset": "Increment generation; reset completed-stage-updates, target completions, partial window, successes, passing streak, mastery flag and assignment ordinal/block to0. Retain prior-stage logs. Do not carry partial windows or mastery credit forward.",
+    "earlier_practice": "Earlier-horizon completions are diagnostics only. Each H episode also practices its normal prefix, so 70:30 measures episode assignments, not interval frames or vector occupancy.",
+    "exposure_log": "For each1000-frame interval(lo,hi], log executed gameplay frames including fatal frames, interval-entry count(gameplay_frames>lo), boundary reaches(gameplay_frames>=hi) and alive-through count(alive_frames>=hi). Accumulate exact executed frames in that interval, not inferred assignment quotas. Tag by replica/arm, episode frozen generation/horizon and scheduler generation active during work; retain in-flight partial exposure, old/new-generation totals, all reset assignments and terminal unfinished episodes.",
+    "terminal": "Stop at GLOBAL update60, regardless of stage. No per-stage60 timeout. At most6 stages can master;7000 may enter at terminal with zero training. Report entered stages, update exposure, actual old/new-generation frames, mastered stages and untested stages separately. No promise of reaching18000. Terminal partial windows and in-flight episodes are logged, never drained for extra training or mastery."
+  },
+  "assignment_stream": {
+    "reference": "scheduler_reference.py is a pure-stdlib executable specification, not a collector/runtime integration.",
+    "scope": "One stream per replica and stage-generation; starts ordinal a=0 at entry, advances once per newly constructed normal episode in stable (update,decision,slot) reset order. Initial construction uses ascending slots before update1. No assignment consumed for episodes already in flight at entry.",
+    "canonical_json": "UTF-8 bytes of json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=True,allow_nan=False), no newline; integer fields must be integers, never booleans/floats.",
+    "complete_seed_vector": ["constructor_init_seed","python_random_seed","numpy_global_seed","torch_cpu_global_seed","action_sampler_torch_mps_seed","env_master_seed"],
+    "vector_hash": "Lowercase SHA256 hex of canonical_json({'study_id': parent_owned_string, 'replica': zero_based_integer_0_to_2, 'seeds': complete_six_field_vector}); this is the acceptedR5 canonical vector rule. Arm is excluded.",
+    "domain": "dodge.progressive1000.assignment.v2",
+    "block_and_position": "For assignment ordinal a, b=a//100 and p=a%100. Generation0 yields1000 for every assignment. For generation g>0, n=g earlier horizons, H=1000*(g+1).",
+    "quota_and_rotation": "Set q=30//n, r=30%n. Earlier horizon i (0-based, value1000*(i+1)) gets q plus1 iff i is among {(b*r+j)%n for j in0..r-1}. Empty remainder set when r=0. Thus each block has exactly70 current and30 earlier assignments, and extras rotate without a per-block restart.",
+    "base_multiset": "Create indexed items0..99: first70 copies of H; then append earlier horizons ascending, each repeated its quota. Indices distinguish duplicate values.",
+    "permutation": "For each base index i compute SHA256(canonical_json([domain,vector_hash,generation,b,i])).digest(). Sort indices ascending by (32-byte digest lexicographically, integer i as tie-break). Assignment p is base[sorted_indices[p]]. Hashes consume no policy/minibatch RNG.",
+    "entry_and_prefixes": "Discard unused old-generation assignments on entry, not active episodes. Each completed100-assignment block has exact quotas; partial blocks need not have70:30 proportions. Log ordinal/block/index, hash, horizon and generation. Control logs actual seed/reset stream but does not run a mastery scheduler or cut off episodes; matching RNG stream origins does not require matching reset counts."
+  },
+  "native_collector_contract": {
+    "boundary": "Successor native active-slot truncation operation plus thin adapter/collector/scheduler only. Normal start at frame0, complete native histories; no frame-counter jumps, reset_all substitution or isolated later-section starts.",
+    "validation": "Whole-request validation before mutation: reject duplicate/out-of-range/ended/wrong-frame slots and poison/overflow. Select only alive non-ended slots exactly at assigned H<18000. Assert H divisible by K4 and exact H-reaching step; reject misalignment, not overshoot.",
+    "preservation": "Mark truncated=true, terminated=false while preserving owned final observation/history, reward/counts, seed and episode index. Synchronize step masks and episode metadata before collector audit/storage and bootstrap. Do not simulate beyond alive H. No death penalty for cutoff.",
+    "death_precedence": "True death, including on H, wins: terminated=true,truncated=false; one death penalty, first death cause, no terminal bootstrap. At18000 use ordinary alive-cap truncation, no duplicate practice cutoff.",
+    "gae": "Keep inherited GAE bootstrap mask1-terminated and recurrence mask1-(terminated|truncated). Value actual final observation before resetting; alive cutoff bootstraps, death does not. Reset each ended slot exactly once in stable slot order, increment episode index once; no next-episode leakage or filler/abandoned transitions.",
+    "pins": "Both arms share successor identity/runtime/native/evaluator pins. Prove disabled-cutoff parity against accepted runtime on fixed seeds/actions before registration. Current Rust hashes do not prove correspondence to accepted binary. Copy/adapt only successor identity/evaluator plumbing; never weaken frozen validators."
+  },
+  "evaluation": {
+    "selection": "Predetermined terminal global-update60 endpoints for all6 runs, plus accepted324 once. No within-stage, intermediate-checkpoint, best-replica or fresh-cohort selection.",
+    "cohort": "One new shared full-run cohort of1024 seeds, reserved and exhaustively ancestry-audited by parent before either arm constructs environments. No seeds reserved here.",
+    "policies": 7,
+    "planned_episodes": 7168,
+    "cadence": "One full cohort per predetermined endpoint and accepted parent; no adaptive re-evaluation or replacement. Missing endpoint/cohort rows make comparison incomplete.",
+    "execution": "Every episode starts normally, cutoff disabled, runs to true death or ordinary18000 cap. Pin inherited sampled action semantics, backend, evaluator/version, evaluation RNG handling, seed order and common exclusions before registration; never switch to greedy actions.",
+    "survival": "alive_frames excludes fatal frame. Milestone H succeeds iff alive_frames>=H (survived through H); death on gameplay frameH fails. Record death frame independently. Alive ordinary cap at18000 succeeds for all milestones.",
+    "milestones_raw_frames": [1000,2000,3000,4000,5000,6000,7000,8000,9000,10000,11000,12000,13000,14000,15000,16000,17000,18000],
+    "statistics": "Per policy on all1024 rows: Worst=min, Q1=mean(sorted alive_frames[0:256]), Mean=mean(all), Q4=mean(sorted alive_frames[768:1024]), Best=max. Exact256 rows per quarter; tie order cannot change these means. No percentile substitution.",
+    "accounting": "Report every milestone numerator/1024 and death causes by pinned taxonomy, caps, unknown and unavailable. Every completed episode has exactly one outcome bucket: named true-death cause, unknown true-death cause, unavailable true-death cause, or alive cap. Missing/invalid rows are separate incomplete counts, never silently dropped or fabricated.",
+    "pairing": "For each replica retain per-seed curriculum-control and both-arm-parent alive-frame/milestone differences, arm summaries and metric differences including Q1. Across3 paired replicas report arithmetic mean, min, max and sample standard deviation of each metric difference; show each replica and any regressions. Parent evaluated once is reused as a shared baseline, not three independent samples.",
+    "interpretation": "Descriptive pilot only. No pooling away replica/lower-tail regressions, formal method-superiority claim with n3, automatic promotion or retained-best replacement. Training mastery is not independent evaluation.",
+    "later_acceptance": "Separate registration, a new fresh confirmation cohort and explicit parent-owned regression/acceptance policy are required before launching an acceptance phase. D100 opened and D200 consumed cannot provide fresh confirmation; preserve B/E unopened."
+  },
+  "resources": {
+    "status": "Parent-owned calibration/registration items; proposals are not measured caps or launch authority.",
+    "proposed_training_run_wall_seconds": 1800,
+    "proposed_training_run_peak_rss_bytes": 6442450944,
+    "proposed_training_run_mps_allocation_bytes": 6442450944,
+    "memory_scope": "RSS and MPS are separate6GiB ceilings, not a combined budget; parent must bind exact measurement/enforcement and supervisor/child accounting.",
+    "initial_execution_order": "Sequential: replica0 control, replica0 curriculum, replica1 control, replica1 curriculum, replica2 control, replica2 curriculum. Any concurrency needs an explicit reviewed resource plan.",
+    "registration_required": "Calibrate and pin training/evaluation/aggregate wall, raw-frame, RSS, MPS, reset and cleanup ceilings; evaluation/baseline/checkpoint overhead and one-shot per-run launch/cleanup must be reviewed. No invented measured values or automatic cap increase.",
+    "separate_counters": ["learner_transitions","actual_epochs_and_adam_steps","raw_gameplay_frames_by_arm_generation_interval","resets","13_startup_frames_per_reset","initial_construction_frames_and_cost","discarded_work_frames_and_cost","evaluation_gameplay_startup_and_construction","wall_time_and_peak_rss_and_mps"],
+    "stop": "Resource/cleanup stop preserves partial receipts and marks affected run/pair and whole comparison incomplete. Never top up, retry, replace seeds/runs, select another endpoint, extend caps or hide unequal completed budgets. Stop campaign on failure pending parent reconciliation; no automatic continuation."
+  },
+  "seed_and_restore_gates": {
+    "freshness": "Audit complete lineage union of all observed/consumed actual seed sets: ancestors, retained/discarded branches and updates, all cohorts, probes, benchmarks, calibration, RNG probe and LR study. B/E/D128/D100/D200 are necessary named exclusions, not an exhaustive audit. Preserve B/E unopened, D100 opened and D200 consumed.",
+    "reservation": "Parent owns new studyID, three disjoint full six-field vectors, shared1024 cohort, actual-seed collision/rejection controls, full future exclusion union in both arms and exact accepted324 slot/episode offsets before construction. Never consume independent RNG-probe/LR-study seeds or modify their files. No reservations in this design.",
+    "transition": "Use acceptedR5 durable one-shot claim and authenticated restore/reseed transition with curriculum-owned successor bindings, not LR-study execution/config. Restore exact model/Adam/accepted RNG, then paired replica policy/minibatch forks from full vector; require independent measured CPU/MPS two-digest reference bound to studyID, replica, full vector, backend/version and accepted324 lineage before restore/reseed. No reference synthesized from the same transition being checked.",
+    "qualification_limit": "R5 source acceptance is preparation-only; real RNG reference and driver restore qualification remain pending. Its LR controller must not be imported as curriculum behavior: constant saved3e-5 in both arms, all other Adam content exact.",
+    "stream_accounting": "Pair stream origins, not identical consumed episode counts. Preserve accepted324 episode indices, increment only on real resets, log run_seed/slot/episode/rejection counter/actual normalized seed and assignments, audit collisions/exclusions fail-closed before construction, retain consumed-seed union for future exclusions."
+  },
+  "gates": {
+    "before_registration": ["independent review of r2 and successor implementation", "accepted324 source/ancestry/receipt revalidation", "same successor config/runtime/native/evaluator pins and disabled-cutoff parity", "required native/collector/scheduler/evaluator test matrix", "full seed freshness and future exclusions", "acceptedR5 authenticated durable transition and independent measured CPU/MPS reference", "resource calibration and train/eval/aggregate caps plus cleanup", "parent registration and explicit one-shot launch/seed/lease/marker controls"],
+    "before_acceptance_phase": ["separately registered fresh confirmation", "explicit full-run regression/acceptance policy", "parent review and launch authorization"],
+    "authority": "Registration, review, resources, seeds, leases, markers, launch and acceptance remain parent-owned. No current control/checkpoint/state/ledger/lease/marker or frozen validator is edited. This design cannot launch or qualify anything."
+  }
+}

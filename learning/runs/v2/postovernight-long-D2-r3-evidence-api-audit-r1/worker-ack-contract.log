@@ -1,0 +1,33 @@
+test_acknowledged_failure_preserves_checkpoint_and_shared_deadline (__main__.WorkerAckContract) ... ERROR
+test_missing_ack_must_block_failure_persistence (__main__.WorkerAckContract) ... FAIL
+
+======================================================================
+ERROR: test_acknowledged_failure_preserves_checkpoint_and_shared_deadline (__main__.WorkerAckContract)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "actual_r3_worker_except_finally", line 803, in <module>
+ProbeFailure: injected worker failure
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-r3-evidence-api-audit-r1/test_worker_ack_contract.py", line 55, in test_acknowledged_failure_preserves_checkpoint_and_shared_deadline
+    events,deadline=exercise(True)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-r3-evidence-api-audit-r1/test_worker_ack_contract.py", line 45, in exercise
+    try:exec(compile(module,'actual_r3_worker_except_finally','exec'),namespace)
+  File "actual_r3_worker_except_finally", line 857, in <module>
+  File "actual_r3_worker_except_finally", line 319, in failure_outcome
+AttributeError: 'ProbeFailure' object has no attribute 'outcome'
+
+======================================================================
+FAIL: test_missing_ack_must_block_failure_persistence (__main__.WorkerAckContract)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-r3-evidence-api-audit-r1/test_worker_ack_contract.py", line 53, in test_missing_ack_must_block_failure_persistence
+    self.assertFalse(any(e['operation'] in ('emergency_checkpoint','persistence_write') for e in events),events)
+AssertionError: True is not false : [{'operation': 'notify_failure'}, {'operation': 'emergency_checkpoint', 'acknowledged': False, 'deadline': 7140}, {'operation': 'learner_close'}, {'operation': 'persistence_write', 'path': 'checkpoint-index.json'}]
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.020s
+
+FAILED (failures=1, errors=1)

@@ -1,0 +1,61 @@
+{
+  "failed_command_attempts": [
+    {
+      "name": "check",
+      "command": [
+        "cargo",
+        "+1.97.1",
+        "check",
+        "-p",
+        "dodge-rl-env"
+      ],
+      "exit_code": 101,
+      "log": "check-01.log",
+      "source_changed": true
+    },
+    {
+      "name": "test",
+      "command": [
+        "cargo",
+        "+1.97.1",
+        "test",
+        "-p",
+        "dodge-rl-env",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 101,
+      "log": "test-01.log",
+      "source_changed": false
+    },
+    {
+      "name": "clippy",
+      "command": [
+        "cargo",
+        "+1.97.1",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 101,
+      "log": "clippy-01.log",
+      "source_changed": false
+    }
+  ],
+  "resolutions": {
+    "check-01.log": "Unstable Option::map_or_default replaced with stable map_or. First dependency resolution also generated the authorized Cargo.lock additions; this is the only check with source_changed=true.",
+    "test-01.log": "Test support was initially unused before the release replay was added; replay now uses the exact frozen policy and observer seam.",
+    "clippy-01.log": "Factored a test-only RawObserver type alias; no lint suppression.",
+    "trajectory-checker-failure.log": "Native probe succeeded on its only execution. Result parser chose trajectory-01.log instead of actual trajectory-02.log; parse-only repair read the retained command receipt. No simulation rerun."
+  },
+  "replay_attempts": 1,
+  "trajectory_native_attempts": 1,
+  "timeouts": 0,
+  "automatic_native_retries": 0,
+  "limit_increases": 0
+}

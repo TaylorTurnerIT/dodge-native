@@ -1,0 +1,83 @@
+{
+  "claims": {
+    "campaign_eligible": false,
+    "hardware_acceptance": false,
+    "probe_authorized": false,
+    "qualification": false,
+    "training_result": false
+  },
+  "pending": [
+    "independent source review of exact frozen R4 set",
+    "parent-side exact plan-hash verification and distinct reservation",
+    "parent-owned one-shot probe authorization"
+  ],
+  "preserved": {
+    "R1_failed_probe": true,
+    "R2_and_R3_artifacts": true,
+    "R3_receipts_and_claims": true,
+    "R6_historical_cache_files": true,
+    "R6_protocol_and_source": true,
+    "state_and_leases": true,
+    "training_priority": true
+  },
+  "reconciled_findings": {
+    "B-1_wrong_interpreter": {
+      "evidence": "test_real_lexical_venv_cpu_child_and_base_isolated_negative",
+      "resolution": "Launch lexical python/.venv/bin/python with -B. Independently hash and compare resolved target. Before marker, run lexical CPU startup checking sys.prefix and NumPy/Torch origins under pinned venv site-packages. No -I."
+    },
+    "B-2_historical_bytecode": {
+      "evidence": "calibration-plan.json historical_cache_correction; cache hashes rechecked after tests",
+      "resolution": "Every Python entry point disables bytecode. Child env unsets PYTHONPATH, sets PYTHONDONTWRITEBYTECODE=1, and points PYTHONPYCACHEPREFIX at the R4-owned empty prefix. R6 cache files remain untouched."
+    },
+    "B-3_mps_zero_or_unmeasured": {
+      "evidence": "test_mps_and_resource_measurement_negative_controls",
+      "resolution": "Require exactly one finite nonnegative numeric MPS query result per complete sample and positive allocation values/high-water. Missing, malformed, NaN, negative and zero-only data fail."
+    },
+    "N-1_active_window_and_stale_forward_gate": {
+      "evidence": "plan-bound and guard negative controls; no timing claim from CPU tests",
+      "resolution": "At least 240 forwards and 30 active seconds; stop/fail at 45 active seconds. Full work limit remains 90 seconds; outer limit 120 seconds includes up to 10 seconds cleanup. Removed stale mps_forward_calls:8."
+    },
+    "N-2_RSS_exit_race": {
+      "evidence": "source implementation; CPU path not timed under live probe",
+      "resolution": "After ps returns, poll/reap child before accepting its RSS. A vanished child ends the RSS sample instead of recording RSS zero as a failed measurement. A partial launcher result is written after child reap before postflight checks."
+    },
+    "N-3_hardcoded_counters_and_failure_receipts": {
+      "evidence": "source implementation; probe not launched",
+      "resolution": "Record actual return codes, evaluated pin counts, measured sampler counts, cleanup result, process birth identity, and marker status. Keep partial probe and launcher results on failure paths."
+    },
+    "N-4_exact_calibration_authority": {
+      "evidence": "CPU fake-authority unit coverage and source inspection; no live lease written or tested",
+      "resolution": "Require active_long_campaign=null and distinct R4 resource_calibration active_inference_diagnostic fields for owner, run, client, plan SHA, source-pin SHA, identity, authorization, cancellation, campaign authorization and no-concurrent-training. Require parent reservation review status and review/source-manifest hashes to match live state. Never use actual-evaluator lease authority."
+    },
+    "N-5_plan_hash_DAG": {
+      "evidence": "plan and launcher gates; no reservation written",
+      "resolution": "Reservation is parent-owned and must bind the exact frozen plan and source-pin hashes. Parent verifies plan hash before registration/reservation. Plan excludes its own hash and reservation, avoiding a circular hash DAG."
+    },
+    "N-6_output_and_marker": {
+      "evidence": "test_fixed_marker_is_per_registration_not_output_path; marker absent",
+      "resolution": "Output path is fixed under R4 owned directory. One fixed per-registration marker is claimed only after source pins, exact reservation, lexical interpreter, CPU preflight and live authority checks."
+    },
+    "N-7_test_isolation_and_global_restore": {
+      "evidence": "six passing CPU controls",
+      "resolution": "Use actual lexical interpreter child. Tests restore patched marker globals, use R4-owned scratch/cache paths, and do not stub the interpreter defect or CPU evaluator."
+    },
+    "N-8_timeout_process_identity": {
+      "evidence": "source implementation; timeout branch not exercised",
+      "resolution": "Capture ps birth identity and PGID after spawn; compare both before TERM/KILL. Do not infer group identity from PGID=PID. After leader reaping, never signal a numeric group with stale identity."
+    },
+    "PARENT-272_guard_count": {
+      "evidence": "test_actual_cpu_two_pass_r6_evaluator_reproduces_272_guards; guard-reproduction.json",
+      "resolution": "Use 136 * evaluate_passes. Each pass constructs 64 synthetic environments and makes eight decisions with nine guard calls each. One pass is not evidence of repeated workload."
+    }
+  },
+  "schema": "current_pair_resource_calibration_r4_reconciliation_v1",
+  "scope": "CPU-only successor preparation; no source, state, lease, training, MPS, game, actual episode, probe, or marker writes",
+  "source_review": {
+    "parent_guard_reproduction": "learning/runs/v2/current-pair-calibration-r3-parent-reconciliation-20261026-r1/guard-reproduction.json",
+    "parent_guard_reproduction_sha256": "377d8ae4d23ff62a349d2c826bbda4ea2edfc9672f00fa4b153e99d04928f1cd",
+    "r3_plan_sha256": "b65924df4979a05526205d7765e6611b90f49c7e14c07f8bbf341dbe549fde54",
+    "r3_review_sha256": "b50c56ec7c13992c8e4f6611d934483d61787d427f46305e0e6efdf041c9b3c8",
+    "r3_source_pins_sha256": "ceb8f5ec33a953c39711363fbaaf29dce976da956ca8f4745673c5b7dfc8c5c2",
+    "r3_verdict": "BLOCK"
+  }
+}

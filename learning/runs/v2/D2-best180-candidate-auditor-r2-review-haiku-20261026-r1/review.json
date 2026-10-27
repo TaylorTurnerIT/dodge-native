@@ -1,0 +1,114 @@
+{
+  "schema": "d2_best180_candidate_auditor_r2_review_v1",
+  "reviewer": "haiku-5.5 read-only review sub-agent",
+  "target_dir": "learning/runs/v2/D2-best180-all-candidate-auditor-luna-20261026-r2",
+  "verdict": "no_blocking_findings_for_readonly_provisional; fix findings 1-3 before full terminal parent use",
+  "r1_defects": {
+    "identity_config_key": "closed",
+    "ranking_always_clears": "closed",
+    "sibling_runner_import": "closed",
+    "run_result_lookup": "closed",
+    "default_hostpython_cp312": "partially_closed_documented_only"
+  },
+  "findings": [
+    {
+      "id": 1,
+      "severity": "medium",
+      "file": "learning/runs/v2/D2-best180-all-candidate-auditor-luna-20261026-r2/audit_candidates.py",
+      "lines": "28-29, 95, 109, 159, 252",
+      "category": "bytecode-policy",
+      "summary": "Full mode does not require -B or registered PYTHONPYCACHEPREFIX; imports can write __pycache__ into frozen prepare and runtime trees.",
+      "fix": "In full mode, require sys.flags.dont_write_bytecode and PYTHONPYCACHEPREFIX equal to registered prefix; otherwise raise."
+    },
+    {
+      "id": 2,
+      "severity": "medium",
+      "file": "learning/runs/v2/D2-best180-all-candidate-auditor-luna-20261026-r2/audit_candidates.py",
+      "lines": "220-221",
+      "category": "ranking-baseline",
+      "summary": "Ranking baseline development-000180.json is unpinned; certificates[180] mean is not checked against it.",
+      "fix": "Pin baseline SHA; require certificates[180].mean_alive_frames equal baseline mean (real entry180 mean 1854.46875)."
+    },
+    {
+      "id": 3,
+      "severity": "low",
+      "file": "learning/runs/v2/D2-best180-all-candidate-auditor-luna-20261026-r2/audit_candidates.py",
+      "lines": "137-139, 217",
+      "category": "schema-binding",
+      "summary": "Development certificate phase_update and local_update are not validated against the candidate update.",
+      "fix": "Check cert phase_update == update and local_update == update-180."
+    },
+    {
+      "id": 4,
+      "severity": "low",
+      "file": "learning/runs/v2/D2-best180-all-candidate-auditor-luna-20261026-r2/audit_candidates.py",
+      "lines": "109, 159",
+      "category": "module-origin",
+      "summary": "dodge_rl checkpoints, identity, and native module origins are not asserted under the runtime root.",
+      "fix": "Assert __file__ of checkpoints and identity resolves under runtime/dodge_rl."
+    },
+    {
+      "id": 5,
+      "severity": "low",
+      "file": "learning/runs/v2/D2-best180-all-candidate-auditor-luna-20261026-r2/audit_candidates.py",
+      "lines": "200, 214",
+      "category": "duplicated-constants",
+      "summary": "Competence threshold 3060 and objective formula are hardcoded instead of bound to runner constants."
+    },
+    {
+      "id": 6,
+      "severity": "low",
+      "file": "learning/runs/v2/D2-best180-all-candidate-auditor-luna-20261026-r2/audit_candidates.py",
+      "lines": "252-253",
+      "category": "output-overwrite",
+      "summary": "Output overwrite refusal is check-then-write (TOCTOU).",
+      "fix": "Open output with mode 'x'."
+    },
+    {
+      "id": 7,
+      "severity": "low",
+      "file": "learning/runs/v2/D2-best180-all-candidate-auditor-luna-20261026-r2/audit_candidates.py",
+      "lines": "23-26, 120-126, 186",
+      "category": "stable-reads",
+      "summary": "Provisional mode fails closed when journal or metrics is mid-append instead of reading the stable newline-complete prefix."
+    },
+    {
+      "id": 8,
+      "severity": "info",
+      "file": "learning/runs/v2/D2-best180-all-candidate-auditor-luna-20261026-r2/audit_candidates.py",
+      "lines": "123, 136, 218, 77-80",
+      "category": "dead-code",
+      "summary": "Vacuous .partial clause, overwritten first choose_best call, exact_tree tensor fallback (fail closed)."
+    },
+    {
+      "id": 9,
+      "severity": "info",
+      "file": "learning/runs/v2/D2-best180-all-candidate-auditor-luna-20261026-r2/audit_candidates.py",
+      "lines": "69-71, 221",
+      "category": "ranking-scope",
+      "summary": "Ranking ignores competence_passed; matches spec 'highest strictly improved mean only'. Parent acceptance must check competence (3060)."
+    }
+  ],
+  "items_checked_no_finding": [
+    "parent abandoned frames excluded from local complete sum (line 192; runner.py:515)",
+    "validate_outputs signature (execute_once.py:64) matches call at line 235",
+    "stable checkpoint hash before and after load (lines 142-143) and tracked-file rehash (242-246)",
+    "duplicate per-slot episode indices allowed; no cross-slot uniqueness gate"
+  ],
+  "inputs_sha256": {
+    "learning/runs/v2/D2-best180-all-candidate-auditor-luna-20261026-r2/audit_candidates.py": "26d1e21c3ddf6d5ace6f95157b3caae0053d999d90f6af4b50538800839dd7a5",
+    "learning/runs/v2/D2-best180-all-candidate-auditor-luna-20261026-r2/test_audit_candidates.py": "5a7b87194f32c386c6250b003243d71dcafd3060aee6c5673a28e27f97779036",
+    "learning/runs/v2/D2-best180-all-candidate-auditor-luna-20261026-r2/receipt.json": "64e3504dee515200b00294ae2d5d00c7ab88cc0c1ad3e116bf14cfa765640235",
+    "learning/runs/v2/D2-best180-all-candidate-auditor-luna-20261026-r2/README.md": "14051cabdee5357ad3dabd5f0f14783914424672ce92714dcbc363b24441a2e4",
+    "learning/runs/v2/D2-best180-all-candidate-auditor-luna-20261026-r2/provisional-frozen-r3.json": "b73d4ba0ad8162801ba03cfa2a607cd2d9b15a0895f6badbe57da345b786874d",
+    "learning/runs/v2/D2-best180-all-candidate-auditor-luna-20261026-r2/provisional-frozen-r2.json": "3790a8055f01df62237e5c9f8fd16bd230bb59d866b0ea6ef748e60375e1bdb6",
+    "learning/runs/v2/D2-best180-all-candidate-auditor-luna-20261026-r2/provisional-frozen.json": "7b137e4b588300df4773d1d206b2e257ba71bd43f6e6e10ed2126548983ac2c3",
+    "learning/runs/v2/D2-best180-all-candidate-auditor-luna-20261026-r2/negative-controls.json": "7938099fc00fa0545045c3c16df8b168f165b1dd4e53acc0d886f02f13f116ca",
+    "learning/runs/v2/D2-best180-branch-prepare-luna-20261026-r1/runner.py": "8807b5200f10d6d8ba5414a793a1e44ebb34479744744992ef4f5adf0513637b",
+    "learning/runs/v2/D2-best180-branch-prepare-luna-20261026-r1/execute_once.py": "cd15ee2b1c2148ed6d397fdf019b20ab3cd134652fa68e4fb9878424dc10bb8b",
+    "learning/runs/v2/D2-best180-branch-parent-launch-20261026-r1/review-reconciliation.json": "5b0f8e322f485557d70b5eede7eb421d26a8bc66495a14f2bb688cd5d0b5e2d4",
+    "learning/runs/v2/D2-best180-all-candidate-parent-preflight-20261026-r1/reconciliation.json": "c33c83d18179c919e67bf19ba3793fd0c6e226ed21657a04e55c43459df8df54"
+  },
+  "readiness_scope": "static read-only review; provisional read-only mode only; not terminal acceptance, not candidate selection, not parent authority; checkpoints not read; auditor not executed",
+  "authority": "none"
+}

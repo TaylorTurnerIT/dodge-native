@@ -1,0 +1,1332 @@
+{
+  "status": "passed",
+  "records": [
+    {
+      "case": "actual_CPython_quantization_and_nested_LIFO",
+      "rows": [
+        {
+          "requested": 1e-06,
+          "saved": 1e-06,
+          "restored": 1e-06
+        },
+        {
+          "requested": 1.7e-05,
+          "saved": 1.7e-05,
+          "restored": 1.7e-05
+        },
+        {
+          "requested": 9.9e-05,
+          "saved": 9.9e-05,
+          "restored": 9.9e-05
+        },
+        {
+          "requested": 0.0001,
+          "saved": 9.999999999999999e-05,
+          "restored": 9.999999999999999e-05
+        },
+        {
+          "requested": 0.000731,
+          "saved": 0.000731,
+          "restored": 0.000731
+        },
+        {
+          "requested": 0.002731,
+          "saved": 0.002731,
+          "restored": 0.002731
+        },
+        {
+          "requested": 0.005,
+          "saved": 0.005,
+          "restored": 0.005
+        },
+        {
+          "requested": 0.02,
+          "saved": 0.02,
+          "restored": 0.02
+        }
+      ]
+    },
+    {
+      "case": "nonmain",
+      "errors": [
+        "Stop('Boundary switch interval requires main-thread ownership')"
+      ],
+      "setters": [
+        0.0001,
+        0.002731,
+        0.0001,
+        0.002731,
+        0.002731,
+        0.0001,
+        0.002731,
+        0.002731,
+        0.0001,
+        0.002731,
+        0.0001,
+        0.002731,
+        0.002731,
+        0.0001,
+        0.002731,
+        0.0001,
+        0.002731,
+        0.002731,
+        0.0001,
+        0.002731,
+        0.0001,
+        0.002731,
+        0.002731,
+        0.0001,
+        0.002731,
+        0.0001,
+        0.002731,
+        0.002731,
+        0.0001,
+        0.002731,
+        0.0001,
+        0.002731,
+        0.002731,
+        0.0001,
+        0.002731,
+        0.0001,
+        0.002731,
+        0.002731,
+        0.0001,
+        0.002731,
+        0.002731,
+        0.0001,
+        0.002731,
+        0.002731,
+        0.0001,
+        0.002731,
+        0.002731,
+        0.0001,
+        0.002731,
+        0.002731,
+        0.0001,
+        0.002731,
+        0.0001,
+        0.002731,
+        0.002731,
+        0.0001,
+        0.002731,
+        0.002731,
+        0.0001,
+        0.002731,
+        0.002731,
+        0.0001,
+        0.002731,
+        0.002731,
+        0.005
+      ],
+      "thread_absent": true
+    },
+    {
+      "case": "success_callback",
+      "verdict": "passed",
+      "callback_count": 1,
+      "restored": true
+    },
+    {
+      "case": "r12_negative_control",
+      "raised": "Stop('Cancellation latched')",
+      "cause": "None",
+      "descriptor": {
+        "timestamp": 101.0,
+        "kind": "safety_monitor",
+        "outcome": "cancelled",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "global_descriptor": {
+        "timestamp": 101.0,
+        "kind": "safety_monitor",
+        "outcome": "cancelled",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "until": 111.0,
+      "guard_failure_at": 101.0,
+      "worker_outcome": "cancelled",
+      "acknowledged": true,
+      "permission": {
+        "failed": true,
+        "acknowledged_until": 111.0,
+        "ack_failed": false
+      },
+      "boundary": {
+        "sequence": 0,
+        "start_monotonic": 95.0,
+        "verdict": "failed",
+        "error": "Stop('Cancellation latched')",
+        "end_monotonic": 101.0,
+        "duration_seconds": 6.0,
+        "thread_cpu_seconds": 1.0374999999999968e-05,
+        "files": 0,
+        "bytes": 0,
+        "components": {}
+      },
+      "callback_count": 1,
+      "restored": true
+    },
+    {
+      "case": "stop_cancel_before_set",
+      "raised": "Stop('callback')",
+      "cause": "Stop('Cancellation latched')",
+      "descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "resource_stop",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "global_descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "resource_stop",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "until": 110.0,
+      "guard_failure_at": 100.0,
+      "worker_outcome": "resource_stop",
+      "acknowledged": true,
+      "permission": {
+        "failed": true,
+        "acknowledged_until": 110.0,
+        "ack_failed": false
+      },
+      "boundary": {
+        "sequence": 0,
+        "start_monotonic": 95.0,
+        "verdict": "failed",
+        "error": "Stop('callback')",
+        "cleanup_error": "Stop('Cancellation latched')",
+        "end_monotonic": 101.0,
+        "duration_seconds": 6.0,
+        "thread_cpu_seconds": 7.500000000000562e-06,
+        "files": 0,
+        "bytes": 0,
+        "components": {}
+      },
+      "callback_count": 1,
+      "restored": true
+    },
+    {
+      "case": "stop_cancel_after_set",
+      "raised": "Stop('callback')",
+      "cause": "Stop('Cancellation latched')",
+      "descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "resource_stop",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "global_descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "resource_stop",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "until": 110.0,
+      "guard_failure_at": 100.0,
+      "worker_outcome": "resource_stop",
+      "acknowledged": true,
+      "permission": {
+        "failed": true,
+        "acknowledged_until": 110.0,
+        "ack_failed": false
+      },
+      "boundary": {
+        "sequence": 0,
+        "start_monotonic": 95.0,
+        "verdict": "failed",
+        "error": "Stop('callback')",
+        "cleanup_error": "Stop('Cancellation latched')",
+        "end_monotonic": 101.0,
+        "duration_seconds": 6.0,
+        "thread_cpu_seconds": 5.874999999995467e-06,
+        "files": 0,
+        "bytes": 0,
+        "components": {}
+      },
+      "callback_count": 1,
+      "restored": true
+    },
+    {
+      "case": "stop_alarm_before_set",
+      "raised": "Stop('callback')",
+      "cause": "Stop('Lifetime wall alarm')",
+      "descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "resource_stop",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "global_descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "resource_stop",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "until": 110.0,
+      "guard_failure_at": 100.0,
+      "worker_outcome": "resource_stop",
+      "acknowledged": true,
+      "permission": {
+        "failed": true,
+        "acknowledged_until": 110.0,
+        "ack_failed": false
+      },
+      "boundary": {
+        "sequence": 0,
+        "start_monotonic": 95.0,
+        "verdict": "failed",
+        "error": "Stop('callback')",
+        "cleanup_error": "Stop('Lifetime wall alarm')",
+        "end_monotonic": 101.0,
+        "duration_seconds": 6.0,
+        "thread_cpu_seconds": 6.041999999997771e-06,
+        "files": 0,
+        "bytes": 0,
+        "components": {}
+      },
+      "callback_count": 1,
+      "restored": true
+    },
+    {
+      "case": "stop_alarm_after_set",
+      "raised": "Stop('callback')",
+      "cause": "Stop('Lifetime wall alarm')",
+      "descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "resource_stop",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "global_descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "resource_stop",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "until": 110.0,
+      "guard_failure_at": 100.0,
+      "worker_outcome": "resource_stop",
+      "acknowledged": true,
+      "permission": {
+        "failed": true,
+        "acknowledged_until": 110.0,
+        "ack_failed": false
+      },
+      "boundary": {
+        "sequence": 0,
+        "start_monotonic": 95.0,
+        "verdict": "failed",
+        "error": "Stop('callback')",
+        "cleanup_error": "Stop('Lifetime wall alarm')",
+        "end_monotonic": 101.0,
+        "duration_seconds": 6.0,
+        "thread_cpu_seconds": 5.58400000000292e-06,
+        "files": 0,
+        "bytes": 0,
+        "components": {}
+      },
+      "callback_count": 1,
+      "restored": true
+    },
+    {
+      "case": "stop_foreign_before_set",
+      "raised": "Stop('callback')",
+      "cause": "ForeignFailure('cleanup')",
+      "descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "resource_stop",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "global_descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "resource_stop",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "until": 110.0,
+      "guard_failure_at": 100.0,
+      "worker_outcome": "resource_stop",
+      "acknowledged": true,
+      "permission": {
+        "failed": true,
+        "acknowledged_until": 110.0,
+        "ack_failed": false
+      },
+      "boundary": {
+        "sequence": 0,
+        "start_monotonic": 95.0,
+        "verdict": "failed",
+        "error": "Stop('callback')",
+        "cleanup_error": "ForeignFailure('cleanup')",
+        "end_monotonic": 101.0,
+        "duration_seconds": 6.0,
+        "thread_cpu_seconds": 5.875000000002406e-06,
+        "files": 0,
+        "bytes": 0,
+        "components": {}
+      },
+      "callback_count": 1,
+      "restored": true
+    },
+    {
+      "case": "stop_foreign_after_set",
+      "raised": "Stop('callback')",
+      "cause": "ForeignFailure('cleanup')",
+      "descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "resource_stop",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "global_descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "resource_stop",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "until": 110.0,
+      "guard_failure_at": 100.0,
+      "worker_outcome": "resource_stop",
+      "acknowledged": true,
+      "permission": {
+        "failed": true,
+        "acknowledged_until": 110.0,
+        "ack_failed": false
+      },
+      "boundary": {
+        "sequence": 0,
+        "start_monotonic": 95.0,
+        "verdict": "failed",
+        "error": "Stop('callback')",
+        "cleanup_error": "ForeignFailure('cleanup')",
+        "end_monotonic": 101.0,
+        "duration_seconds": 6.0,
+        "thread_cpu_seconds": 4.875000000001406e-06,
+        "files": 0,
+        "bytes": 0,
+        "components": {}
+      },
+      "callback_count": 1,
+      "restored": true
+    },
+    {
+      "case": "foreign_cancel_before_set",
+      "raised": "ForeignFailure('callback')",
+      "cause": "Stop('Cancellation latched')",
+      "descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "identity_or_lease_failure",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "global_descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "identity_or_lease_failure",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "until": 110.0,
+      "guard_failure_at": 100.0,
+      "worker_outcome": "identity_or_lease_failure",
+      "acknowledged": true,
+      "permission": {
+        "failed": true,
+        "acknowledged_until": 110.0,
+        "ack_failed": false
+      },
+      "boundary": {
+        "sequence": 0,
+        "start_monotonic": 95.0,
+        "verdict": "failed",
+        "error": "ForeignFailure('callback')",
+        "cleanup_error": "Stop('Cancellation latched')",
+        "end_monotonic": 101.0,
+        "duration_seconds": 6.0,
+        "thread_cpu_seconds": 7.874999999997467e-06,
+        "files": 0,
+        "bytes": 0,
+        "components": {}
+      },
+      "callback_count": 1,
+      "restored": true
+    },
+    {
+      "case": "foreign_cancel_after_set",
+      "raised": "ForeignFailure('callback')",
+      "cause": "Stop('Cancellation latched')",
+      "descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "identity_or_lease_failure",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "global_descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "identity_or_lease_failure",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "until": 110.0,
+      "guard_failure_at": 100.0,
+      "worker_outcome": "identity_or_lease_failure",
+      "acknowledged": true,
+      "permission": {
+        "failed": true,
+        "acknowledged_until": 110.0,
+        "ack_failed": false
+      },
+      "boundary": {
+        "sequence": 0,
+        "start_monotonic": 95.0,
+        "verdict": "failed",
+        "error": "ForeignFailure('callback')",
+        "cleanup_error": "Stop('Cancellation latched')",
+        "end_monotonic": 101.0,
+        "duration_seconds": 6.0,
+        "thread_cpu_seconds": 6.416699999999692e-05,
+        "files": 0,
+        "bytes": 0,
+        "components": {}
+      },
+      "callback_count": 1,
+      "restored": true
+    },
+    {
+      "case": "foreign_alarm_before_set",
+      "raised": "ForeignFailure('callback')",
+      "cause": "Stop('Lifetime wall alarm')",
+      "descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "identity_or_lease_failure",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "global_descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "identity_or_lease_failure",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "until": 110.0,
+      "guard_failure_at": 100.0,
+      "worker_outcome": "identity_or_lease_failure",
+      "acknowledged": true,
+      "permission": {
+        "failed": true,
+        "acknowledged_until": 110.0,
+        "ack_failed": false
+      },
+      "boundary": {
+        "sequence": 0,
+        "start_monotonic": 95.0,
+        "verdict": "failed",
+        "error": "ForeignFailure('callback')",
+        "cleanup_error": "Stop('Lifetime wall alarm')",
+        "end_monotonic": 101.0,
+        "duration_seconds": 6.0,
+        "thread_cpu_seconds": 6.666999999994927e-06,
+        "files": 0,
+        "bytes": 0,
+        "components": {}
+      },
+      "callback_count": 1,
+      "restored": true
+    },
+    {
+      "case": "foreign_alarm_after_set",
+      "raised": "ForeignFailure('callback')",
+      "cause": "Stop('Lifetime wall alarm')",
+      "descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "identity_or_lease_failure",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "global_descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "identity_or_lease_failure",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "until": 110.0,
+      "guard_failure_at": 100.0,
+      "worker_outcome": "identity_or_lease_failure",
+      "acknowledged": true,
+      "permission": {
+        "failed": true,
+        "acknowledged_until": 110.0,
+        "ack_failed": false
+      },
+      "boundary": {
+        "sequence": 0,
+        "start_monotonic": 95.0,
+        "verdict": "failed",
+        "error": "ForeignFailure('callback')",
+        "cleanup_error": "Stop('Lifetime wall alarm')",
+        "end_monotonic": 101.0,
+        "duration_seconds": 6.0,
+        "thread_cpu_seconds": 6.374999999995967e-06,
+        "files": 0,
+        "bytes": 0,
+        "components": {}
+      },
+      "callback_count": 1,
+      "restored": true
+    },
+    {
+      "case": "foreign_foreign_before_set",
+      "raised": "ForeignFailure('callback')",
+      "cause": "ForeignFailure('cleanup')",
+      "descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "identity_or_lease_failure",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "global_descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "identity_or_lease_failure",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "until": 110.0,
+      "guard_failure_at": 100.0,
+      "worker_outcome": "identity_or_lease_failure",
+      "acknowledged": true,
+      "permission": {
+        "failed": true,
+        "acknowledged_until": 110.0,
+        "ack_failed": false
+      },
+      "boundary": {
+        "sequence": 0,
+        "start_monotonic": 95.0,
+        "verdict": "failed",
+        "error": "ForeignFailure('callback')",
+        "cleanup_error": "ForeignFailure('cleanup')",
+        "end_monotonic": 101.0,
+        "duration_seconds": 6.0,
+        "thread_cpu_seconds": 5.417000000000616e-06,
+        "files": 0,
+        "bytes": 0,
+        "components": {}
+      },
+      "callback_count": 1,
+      "restored": true
+    },
+    {
+      "case": "foreign_foreign_after_set",
+      "raised": "ForeignFailure('callback')",
+      "cause": "ForeignFailure('cleanup')",
+      "descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "identity_or_lease_failure",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "global_descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "identity_or_lease_failure",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "until": 110.0,
+      "guard_failure_at": 100.0,
+      "worker_outcome": "identity_or_lease_failure",
+      "acknowledged": true,
+      "permission": {
+        "failed": true,
+        "acknowledged_until": 110.0,
+        "ack_failed": false
+      },
+      "boundary": {
+        "sequence": 0,
+        "start_monotonic": 95.0,
+        "verdict": "failed",
+        "error": "ForeignFailure('callback')",
+        "cleanup_error": "ForeignFailure('cleanup')",
+        "end_monotonic": 101.0,
+        "duration_seconds": 6.0,
+        "thread_cpu_seconds": 4.666999999999866e-06,
+        "files": 0,
+        "bytes": 0,
+        "components": {}
+      },
+      "callback_count": 1,
+      "restored": true
+    },
+    {
+      "case": "earlier_guard",
+      "raised": "Stop('callback')",
+      "cause": "Stop('Cancellation latched')",
+      "descriptor": {
+        "timestamp": 98.0,
+        "kind": "safety_monitor",
+        "outcome": "resource_stop",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "global_descriptor": {
+        "timestamp": 98.0,
+        "kind": "safety_monitor",
+        "outcome": "resource_stop",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "until": 108.0,
+      "guard_failure_at": 98.0,
+      "worker_outcome": "resource_stop",
+      "acknowledged": true,
+      "permission": {
+        "failed": true,
+        "acknowledged_until": 108.0,
+        "ack_failed": false
+      },
+      "boundary": {
+        "sequence": 0,
+        "start_monotonic": 95.0,
+        "verdict": "failed",
+        "error": "Stop('callback')",
+        "cleanup_error": "Stop('Cancellation latched')",
+        "end_monotonic": 101.0,
+        "duration_seconds": 6.0,
+        "thread_cpu_seconds": 5.791999999997521e-06,
+        "files": 0,
+        "bytes": 0,
+        "components": {}
+      },
+      "callback_count": 1,
+      "restored": true
+    },
+    {
+      "case": "earlier_cancel",
+      "raised": "Stop('callback')",
+      "cause": "Stop('Cancellation latched')",
+      "descriptor": {
+        "timestamp": 97.0,
+        "kind": "cancel",
+        "outcome": "cancelled",
+        "role": "worker",
+        "timing_basis": "signal_observed_sender_unknown",
+        "signal": 15
+      },
+      "global_descriptor": {
+        "timestamp": 97.0,
+        "kind": "cancel",
+        "outcome": "cancelled",
+        "role": "worker",
+        "timing_basis": "signal_observed_sender_unknown",
+        "signal": 15
+      },
+      "until": 107.0,
+      "guard_failure_at": 100.0,
+      "worker_outcome": "cancelled",
+      "acknowledged": true,
+      "permission": {
+        "failed": true,
+        "acknowledged_until": 107.0,
+        "ack_failed": false
+      },
+      "boundary": {
+        "sequence": 0,
+        "start_monotonic": 95.0,
+        "verdict": "failed",
+        "error": "Stop('callback')",
+        "cleanup_error": "Stop('Cancellation latched')",
+        "end_monotonic": 101.0,
+        "duration_seconds": 6.0,
+        "thread_cpu_seconds": 5.625000000002156e-06,
+        "files": 0,
+        "bytes": 0,
+        "components": {}
+      },
+      "callback_count": 1,
+      "restored": true
+    },
+    {
+      "case": "earlier_alarm",
+      "raised": "Stop('callback')",
+      "cause": "Stop('Cancellation latched')",
+      "descriptor": {
+        "timestamp": 97.0,
+        "kind": "alarm",
+        "outcome": "wall_guard",
+        "role": "worker",
+        "timing_basis": "signal_observed",
+        "signal": 14
+      },
+      "global_descriptor": {
+        "timestamp": 97.0,
+        "kind": "alarm",
+        "outcome": "wall_guard",
+        "role": "worker",
+        "timing_basis": "signal_observed",
+        "signal": 14
+      },
+      "until": 107.0,
+      "guard_failure_at": 100.0,
+      "worker_outcome": "wall_guard",
+      "acknowledged": true,
+      "permission": {
+        "failed": true,
+        "acknowledged_until": 107.0,
+        "ack_failed": false
+      },
+      "boundary": {
+        "sequence": 0,
+        "start_monotonic": 95.0,
+        "verdict": "failed",
+        "error": "Stop('callback')",
+        "cleanup_error": "Stop('Cancellation latched')",
+        "end_monotonic": 101.0,
+        "duration_seconds": 6.0,
+        "thread_cpu_seconds": 5.2499999999983116e-06,
+        "files": 0,
+        "bytes": 0,
+        "components": {}
+      },
+      "callback_count": 1,
+      "restored": true
+    },
+    {
+      "case": "original_descriptor",
+      "raised": "Stop('callback')",
+      "cause": "Stop('Cancellation latched')",
+      "descriptor": {
+        "timestamp": 96.0,
+        "kind": "peer_failure_observed",
+        "outcome": "resource_stop",
+        "role": "peer",
+        "timing_basis": "peer_catch_observation",
+        "signal": null
+      },
+      "global_descriptor": {
+        "timestamp": 96.0,
+        "kind": "peer_failure_observed",
+        "outcome": "resource_stop",
+        "role": "peer",
+        "timing_basis": "peer_catch_observation",
+        "signal": null
+      },
+      "until": 106.0,
+      "guard_failure_at": 100.0,
+      "worker_outcome": "resource_stop",
+      "acknowledged": true,
+      "permission": {
+        "failed": true,
+        "acknowledged_until": 106.0,
+        "ack_failed": false
+      },
+      "boundary": {
+        "sequence": 0,
+        "start_monotonic": 95.0,
+        "verdict": "failed",
+        "error": "Stop('callback')",
+        "cleanup_error": "Stop('Cancellation latched')",
+        "end_monotonic": 101.0,
+        "duration_seconds": 6.0,
+        "thread_cpu_seconds": 5.875000000002406e-06,
+        "files": 0,
+        "bytes": 0,
+        "components": {}
+      },
+      "callback_count": 1,
+      "restored": true
+    },
+    {
+      "case": "earlier_peer_pool",
+      "raised": "Stop('callback')",
+      "cause": "Stop('Cancellation latched')",
+      "descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "resource_stop",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "global_descriptor": {
+        "timestamp": 96.0,
+        "kind": "peer_failure_observed",
+        "outcome": "resource_stop",
+        "role": "peer",
+        "timing_basis": "peer_catch_observation",
+        "signal": null
+      },
+      "until": 106.0,
+      "guard_failure_at": 100.0,
+      "worker_outcome": "resource_stop",
+      "acknowledged": true,
+      "permission": {
+        "failed": true,
+        "acknowledged_until": 106.0,
+        "ack_failed": false
+      },
+      "boundary": {
+        "sequence": 0,
+        "start_monotonic": 95.0,
+        "verdict": "failed",
+        "error": "Stop('callback')",
+        "cleanup_error": "Stop('Cancellation latched')",
+        "end_monotonic": 101.0,
+        "duration_seconds": 6.0,
+        "thread_cpu_seconds": 5.29200000000396e-06,
+        "files": 0,
+        "bytes": 0,
+        "components": {}
+      },
+      "callback_count": 1,
+      "restored": true
+    },
+    {
+      "case": "callback_without_cleanup",
+      "raised": "Stop('callback')",
+      "cause": "None",
+      "descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "resource_stop",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "global_descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "resource_stop",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "until": 110.0,
+      "guard_failure_at": 100.0,
+      "worker_outcome": "resource_stop",
+      "acknowledged": true,
+      "permission": {
+        "failed": true,
+        "acknowledged_until": 110.0,
+        "ack_failed": false
+      },
+      "boundary": {
+        "sequence": 0,
+        "start_monotonic": 95.0,
+        "verdict": "failed",
+        "error": "Stop('callback')",
+        "end_monotonic": 100.0,
+        "duration_seconds": 5.0,
+        "thread_cpu_seconds": 4.207999999998602e-06,
+        "files": 0,
+        "bytes": 0,
+        "components": {}
+      },
+      "callback_count": 1,
+      "restored": true
+    },
+    {
+      "case": "cleanup_only_cancel",
+      "raised": "Stop('Cancellation latched')",
+      "cause": "None",
+      "descriptor": {
+        "timestamp": 101.0,
+        "kind": "safety_monitor",
+        "outcome": "cancelled",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "global_descriptor": {
+        "timestamp": 101.0,
+        "kind": "safety_monitor",
+        "outcome": "cancelled",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "until": 111.0,
+      "guard_failure_at": 101.0,
+      "worker_outcome": "cancelled",
+      "acknowledged": true,
+      "permission": {
+        "failed": true,
+        "acknowledged_until": 111.0,
+        "ack_failed": false
+      },
+      "boundary": {
+        "sequence": 0,
+        "start_monotonic": 95.0,
+        "verdict": "failed",
+        "error": "Stop('Cancellation latched')",
+        "end_monotonic": 101.0,
+        "duration_seconds": 6.0,
+        "thread_cpu_seconds": 5.416000000001142e-06,
+        "files": 0,
+        "bytes": 0,
+        "components": {}
+      },
+      "callback_count": 1,
+      "restored": true
+    },
+    {
+      "case": "cleanup_only_alarm",
+      "raised": "Stop('Lifetime wall alarm')",
+      "cause": "None",
+      "descriptor": {
+        "timestamp": 101.0,
+        "kind": "safety_monitor",
+        "outcome": "wall_guard",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "global_descriptor": {
+        "timestamp": 101.0,
+        "kind": "safety_monitor",
+        "outcome": "wall_guard",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "until": 111.0,
+      "guard_failure_at": 101.0,
+      "worker_outcome": "wall_guard",
+      "acknowledged": true,
+      "permission": {
+        "failed": true,
+        "acknowledged_until": 111.0,
+        "ack_failed": false
+      },
+      "boundary": {
+        "sequence": 0,
+        "start_monotonic": 95.0,
+        "verdict": "failed",
+        "error": "Stop('Lifetime wall alarm')",
+        "end_monotonic": 101.0,
+        "duration_seconds": 6.0,
+        "thread_cpu_seconds": 8.083999999998481e-06,
+        "files": 0,
+        "bytes": 0,
+        "components": {}
+      },
+      "callback_count": 1,
+      "restored": true
+    },
+    {
+      "case": "missing_ack_forbids_writes",
+      "raised": "Stop('callback')",
+      "cause": "Stop('Cancellation latched')",
+      "descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "resource_stop",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "global_descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "resource_stop",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "until": 110.0,
+      "guard_failure_at": 100.0,
+      "worker_outcome": "resource_stop",
+      "acknowledged": false,
+      "permission": {
+        "failed": true,
+        "acknowledged_until": null,
+        "ack_failed": true
+      },
+      "boundary": {
+        "sequence": 0,
+        "start_monotonic": 95.0,
+        "verdict": "failed",
+        "error": "Stop('callback')",
+        "cleanup_error": "Stop('Cancellation latched')",
+        "end_monotonic": 101.0,
+        "duration_seconds": 6.0,
+        "thread_cpu_seconds": 5.875000000002406e-06,
+        "files": 0,
+        "bytes": 0,
+        "components": {}
+      },
+      "callback_count": 1,
+      "restored": true
+    },
+    {
+      "case": "original_pool_cap_stays_tighter",
+      "raised": "Stop('callback')",
+      "cause": "Stop('Cancellation latched')",
+      "descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "resource_stop",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "global_descriptor": {
+        "timestamp": 100.0,
+        "kind": "safety_monitor",
+        "outcome": "resource_stop",
+        "role": "worker",
+        "timing_basis": "actual_guard_observation",
+        "signal": null
+      },
+      "until": 108.0,
+      "guard_failure_at": 100.0,
+      "worker_outcome": "resource_stop",
+      "acknowledged": true,
+      "permission": {
+        "failed": true,
+        "acknowledged_until": 108.0,
+        "ack_failed": false
+      },
+      "boundary": {
+        "sequence": 0,
+        "start_monotonic": 95.0,
+        "verdict": "failed",
+        "error": "Stop('callback')",
+        "cleanup_error": "Stop('Cancellation latched')",
+        "end_monotonic": 101.0,
+        "duration_seconds": 6.0,
+        "thread_cpu_seconds": 5.375000000001906e-06,
+        "files": 0,
+        "bytes": 0,
+        "components": {}
+      },
+      "callback_count": 1,
+      "restored": true
+    }
+  ],
+  "extractions": [
+    {
+      "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r14/lifecycle.py",
+      "sha256": "aab36d678526b6fbd4eecbe1493ad3511365f00064a91d459b85834eaf3e752b",
+      "nodes": [
+        {
+          "name": "Stop",
+          "line": 23,
+          "end": 26
+        },
+        {
+          "name": "remaining",
+          "line": 29,
+          "end": 33
+        },
+        {
+          "name": "FailurePool",
+          "line": 36,
+          "end": 70
+        },
+        {
+          "name": "ProcessLatch",
+          "line": 73,
+          "end": 134
+        },
+        {
+          "name": "notify_failure",
+          "line": 243,
+          "end": 280
+        }
+      ]
+    },
+    {
+      "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r14/long_d2.py",
+      "sha256": "209b03f19c08355ca05c66acd366465cc784ebf376cf1c238403a39ef4eafbc5",
+      "nodes": [
+        {
+          "name": "require",
+          "line": 60,
+          "end": 62
+        },
+        {
+          "name": "outcome_fields",
+          "line": 339,
+          "end": 345
+        },
+        {
+          "name": "result_code",
+          "line": 348,
+          "end": 354
+        },
+        {
+          "name": "failure_outcome",
+          "line": 357,
+          "end": 362
+        },
+        {
+          "name": "restore_boundary_switch_interval",
+          "line": 468,
+          "end": 480
+        },
+        {
+          "name": "boundary_switch_interval",
+          "line": 484,
+          "end": 508
+        },
+        {
+          "name": "Guard",
+          "line": 511,
+          "end": 668
+        },
+        {
+          "name": "observed_failure",
+          "line": 922,
+          "end": 945
+        },
+        {
+          "name": "primary_error",
+          "line": 948,
+          "end": 949
+        },
+        {
+          "name": "record_primary_failure",
+          "line": 952,
+          "end": 964
+        },
+        {
+          "name": "worker_failure",
+          "line": 1013,
+          "end": 1045
+        },
+        {
+          "name": "worker_write_permission",
+          "line": 1048,
+          "end": 1062
+        }
+      ]
+    },
+    {
+      "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r14/r12-source/long_d2.py",
+      "sha256": "f8e03c2a84cc9549f9be3107aee0d1767512f7e81ca1bd4c4c23c9a26ea18897",
+      "nodes": [
+        {
+          "name": "require",
+          "line": 60,
+          "end": 62
+        },
+        {
+          "name": "outcome_fields",
+          "line": 339,
+          "end": 345
+        },
+        {
+          "name": "result_code",
+          "line": 348,
+          "end": 354
+        },
+        {
+          "name": "failure_outcome",
+          "line": 357,
+          "end": 362
+        },
+        {
+          "name": "restore_boundary_switch_interval",
+          "line": 468,
+          "end": 480
+        },
+        {
+          "name": "boundary_switch_interval",
+          "line": 484,
+          "end": 508
+        },
+        {
+          "name": "Guard",
+          "line": 511,
+          "end": 654
+        },
+        {
+          "name": "observed_failure",
+          "line": 908,
+          "end": 931
+        },
+        {
+          "name": "primary_error",
+          "line": 934,
+          "end": 935
+        },
+        {
+          "name": "record_primary_failure",
+          "line": 938,
+          "end": 950
+        },
+        {
+          "name": "worker_failure",
+          "line": 999,
+          "end": 1031
+        },
+        {
+          "name": "worker_write_permission",
+          "line": 1034,
+          "end": 1048
+        }
+      ]
+    }
+  ],
+  "original_interval": 0.005,
+  "final_interval": 0.005,
+  "limitations": [
+    "Extracted exact source nodes, modeled clock and direct ProcessLatch.handle only; no project imports, OS signals, IPC transport, real cleanup or suite rerun.",
+    "Successful ACK channel is modeled; missing ACK exercises actual write rejection."
+  ]
+}

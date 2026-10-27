@@ -1,0 +1,192 @@
+{
+  "version": 1,
+  "run_id": "v2-m2-validation-20261024-r1",
+  "status": "failed",
+  "campaign_invocations": 1,
+  "automatic_retries": 0,
+  "total_M2_qualification": false,
+  "root_independent_audit_required": true,
+  "initial_utc": "2026-10-24T08:15:45Z",
+  "start_utc": "2026-10-24T08:18:24.375570+00:00",
+  "end_utc": "2026-10-24T08:27:22.583256+00:00",
+  "elapsed_seconds": 538.2088509580353,
+  "exit_code": 1,
+  "cwd": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79",
+  "argv": [
+    "python/.venv/bin/python",
+    "learning/scripts/v2_validate_environment.py",
+    "campaign",
+    "--identity",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-campaign-freeze-r3/frozen-identity.json",
+    "--run-id",
+    "v2-m2-validation-20261024-r1",
+    "--output",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-validation-campaign-r1"
+  ],
+  "interpreter_sha256": "8dcafa7835e861e88a8f8ac7e61effbf5a987f32b0ec47bb1f3c9987caf9216d",
+  "runner_sha256": "a7e4fd87ca0c606d42cab7e8d03fe3437a29e502d04cde8ddcd62db9afcbd35f",
+  "identity_sha256": "9139a19d0b9862fb0cdc2befd3d7fd20601f3efea5934885e83a493f4f170c19",
+  "output_present": true,
+  "ownership": {
+    "exec_session_id": 44319,
+    "wrapper_pid": 21807,
+    "runner_pid": 21831,
+    "worker_pids": [
+      21834,
+      26356
+    ],
+    "manual_signals_sent": false,
+    "runner_stop_receipt": {
+      "errors": [],
+      "exit_code": 1,
+      "kill_sent": false,
+      "owned_pgid": 26356,
+      "owned_pid": 26356,
+      "reaped": true,
+      "signal_races": [],
+      "term_sent": false
+    }
+  },
+  "phases": {
+    "native_parity": {
+      "at_utc": "2026-10-24T08:18:24.883281+00:00",
+      "command": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m2-integration-build-r2/release/deps/dodge_rl_env-af3e363fd4e3a01d",
+        "qualification_replay_tests::frozen_m0_full_heuristic_d2_d3",
+        "--ignored",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "elapsed_seconds": 535.52118362498,
+      "exit_code": 0,
+      "name": "native_parity",
+      "observed_peak_worker_rss_bytes": 6799360,
+      "owned_pgid": 21834,
+      "owned_pid": 21834,
+      "rss_samples": 1045,
+      "status": "passed",
+      "stdout_sha256": "a4bea68d01b7b232c473d66eb872ea4dea2f92430e787e643c82cc40280c5fb4",
+      "wall_limit_seconds": 900,
+      "episodes": 2000,
+      "raw_frames_per_path": 10146614,
+      "native_test_wall_seconds": 534.793354292,
+      "difficulties": {
+        "D2": {
+          "alive_frames": 6114593,
+          "alive_frames_mean": 6114.593,
+          "caps": 15,
+          "difficulty": 2,
+          "episodes": 1000,
+          "pattern_ids": 39,
+          "raw_frames_per_path": 6115578,
+          "score_mean": 100.1075,
+          "score_sum_raw_fixed": 6560645120
+        },
+        "D3": {
+          "alive_frames": 4030038,
+          "alive_frames_mean": 4030.038,
+          "caps": 2,
+          "difficulty": 3,
+          "episodes": 1000,
+          "pattern_ids": 39,
+          "raw_frames_per_path": 4031036,
+          "score_mean": 88.633,
+          "score_sum_raw_fixed": 5808652288
+        }
+      }
+    },
+    "trajectory": {
+      "at_utc": "2026-10-24T08:27:21.021518+00:00",
+      "command": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/scripts/v2_validate_environment.py",
+        "_worker",
+        "--phase",
+        "trajectory",
+        "--identity",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-campaign-freeze-r3/frozen-identity.json",
+        "--identity-sha256",
+        "9139a19d0b9862fb0cdc2befd3d7fd20601f3efea5934885e83a493f4f170c19",
+        "--campaign-deadline-monotonic",
+        "451896.681221583",
+        "--phase-started-monotonic",
+        "450633.328313916",
+        "--run-id",
+        "v2-m2-validation-20261024-r1",
+        "--directory",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-validation-campaign-r1"
+      ],
+      "elapsed_seconds": 1.5609702090150677,
+      "error": "ValueError('trajectory failed with exit 1')",
+      "exit_code": 1,
+      "name": "trajectory",
+      "observed_peak_worker_rss_bytes": 29573120,
+      "owned_pgid": 26356,
+      "owned_pid": 26356,
+      "rss_samples": 2,
+      "status": "failed",
+      "stdout_sha256": "7c589beec4a606e26712628894c519e2d7d53c431c74fd578e7078e0ece1863d",
+      "wall_limit_seconds": 120,
+      "failure": {
+        "at_utc": "2026-10-24T08:27:22.151893+00:00",
+        "elapsed_seconds": 0.570285249967128,
+        "error": "TypeError(\"argument 'excluded_seed_ranges': 'list' object cannot be cast as 'tuple'\")",
+        "identity_sha256": "9139a19d0b9862fb0cdc2befd3d7fd20601f3efea5934885e83a493f4f170c19",
+        "observed_peak_self_rss_bytes": 40714240,
+        "phase": "trajectory",
+        "status": "failed",
+        "traceback": "Traceback (most recent call last):\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/scripts/v2_validate_environment.py\", line 503, in worker\n    result = funcs[args.phase](np, Env, plan, args.directory)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/scripts/v2_validate_environment.py\", line 339, in worker_trajectory\n    left = Env(**base_config(plan, batch_size=batch, raw_frame_cap=cap, num_threads=1, chunk_size=1))\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: argument 'excluded_seed_ranges': 'list' object cannot be cast as 'tuple'\n"
+      },
+      "completed_trajectory_comparisons": 0,
+      "failure_point": "first environment constructor"
+    },
+    "memory": {
+      "status": "not_run",
+      "measured_step_calls": 0,
+      "plateau_result": null
+    },
+    "throughput": {
+      "status": "not_run",
+      "completed_configs": 0,
+      "measurements": null
+    }
+  },
+  "resource_semantics": "Cooperative sampled worker RSS and wall/cutoff guards; late observed exits are rejected, not assigned an exact OS finish time. Not a hard OS ceiling.",
+  "source_or_frozen_artifact_edits": false,
+  "ledger_writes": false,
+  "scheduler_writes": false,
+  "lease_cleared": false,
+  "M3_or_training_started": false,
+  "runner_artifact_hash_verification": "all 16 declared artifacts matched",
+  "campaign_output_sha256": {
+    "learning/runs/v2/milestone2-validation-campaign-r1/campaign-start.json": "d06a2bb233d9ba38d55c172a0b14539bb9d8e8bb3239ecef3cd9b48187e55c96",
+    "learning/runs/v2/milestone2-validation-campaign-r1/native_parity.stdout.log": "a4bea68d01b7b232c473d66eb872ea4dea2f92430e787e643c82cc40280c5fb4",
+    "learning/runs/v2/milestone2-validation-campaign-r1/native_parity-receipt.json": "2543f8c952b97eeadf034ccb639d6a7e6c25389c730129782e2500875575c573",
+    "learning/runs/v2/milestone2-validation-campaign-r1/native_parity.rss.jsonl": "f16d558fdda3095426cc1a1f93b5ed9b020c5ffa438d8a1e0de002e80b5c6ee6",
+    "learning/runs/v2/milestone2-validation-campaign-r1/registered-plan.json": "de2cd54ca1925f5d9430a2a0f74b55a9f8b7ee44152af26b2e2394b1f0724b05",
+    "learning/runs/v2/milestone2-validation-campaign-r1/native_parity-command.json": "aa58bbdb3f9532e91ede27f0d88f1786e008a6f5e954c2e846d622cbce5b5e1c",
+    "learning/runs/v2/milestone2-validation-campaign-r1/identity.json": "9139a19d0b9862fb0cdc2befd3d7fd20601f3efea5934885e83a493f4f170c19",
+    "learning/runs/v2/milestone2-validation-campaign-r1/trajectory.stdout.log": "7c589beec4a606e26712628894c519e2d7d53c431c74fd578e7078e0ece1863d",
+    "learning/runs/v2/milestone2-validation-campaign-r1/trajectory-failure.json": "a9c10a0c1de55d74a4f24e67297a2a9a462dea001bf65a472970e9ae43b71782",
+    "learning/runs/v2/milestone2-validation-campaign-r1/trajectory.rss.jsonl": "a716e57fe58963609c352ab2e96ab39981f85d69deb46d8e416c2f50fc7b2fed",
+    "learning/runs/v2/milestone2-validation-campaign-r1/trajectory-launch.json": "cc0d2e8b59377c392775e7c276ceb82c4b9920232af2ecd5331e9d7029211303",
+    "learning/runs/v2/milestone2-validation-campaign-r1/artifact-sha256.json": "c5cc1f382ad9b7b6d429fbd0e2d25a2f3d5b9827084564e02c1d591b539d7b90",
+    "learning/runs/v2/milestone2-validation-campaign-r1/native-parity-audit.json": "c5e186d5adb1106beec685f8c279ddb57dfbcb0befe8e5341ec5defb8f51d32d",
+    "learning/runs/v2/milestone2-validation-campaign-r1/trajectory-receipt.json": "0a8a41f548d51b1c05eef4c4dc9bbdd0d9bf4135a9d45886ad5fa87ac3c2270c",
+    "learning/runs/v2/milestone2-validation-campaign-r1/native_parity-launch.json": "f9b6c108989d2bdb29b97d0e8d8119b1eed2c8a9dddacc8d5483794ff6663614",
+    "learning/runs/v2/milestone2-validation-campaign-r1/trajectory-command.json": "625375f096855287af11367dd215d870671528696ed790fc0d338f61df608126",
+    "learning/runs/v2/milestone2-validation-campaign-r1/campaign-result.json": "1cd791eca7a012bf49cc51ef6f8d885378455de13e49aac9fb04d5d902164832"
+  },
+  "evidence": {
+    "campaign_result": "learning/runs/v2/milestone2-validation-campaign-r1/campaign-result.json",
+    "trajectory_failure": "learning/runs/v2/milestone2-validation-campaign-r1/trajectory-failure.json",
+    "native_parity_audit": "learning/runs/v2/milestone2-validation-campaign-r1/native-parity-audit.json",
+    "outer_stdout": "learning/runs/v2/milestone2-validation-execution-r1/outer-stdout.log",
+    "outer_stderr": "learning/runs/v2/milestone2-validation-execution-r1/outer-stderr.log",
+    "launch_receipt": "learning/runs/v2/milestone2-validation-execution-r1/launch.json",
+    "termination_receipt": "learning/runs/v2/milestone2-validation-execution-r1/termination.json",
+    "json_validation": "learning/runs/v2/milestone2-validation-execution-r1/json-validation.txt",
+    "campaign_output_hashes": "learning/runs/v2/milestone2-validation-execution-r1/campaign-output-sha256.json"
+  }
+}

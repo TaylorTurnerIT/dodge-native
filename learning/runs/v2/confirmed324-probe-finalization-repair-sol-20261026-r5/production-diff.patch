@@ -1,0 +1,27 @@
+--- learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/supervisor_cli.py
++++ learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/supervisor_cli.py
+@@ -157,9 +157,12 @@
+  reg=read(rp); ns=verified_primitives(); preflight(rp,rsha,reg,worker)
+  start=time.monotonic(); work_deadline=start+45; outer_deadline=start+55; proc=None; reason=None; raw_exit=None; claimed=False; claim_complete=False; claim_identity=None; rows=None
+  log=Path(reg['output_dir'])/'worker.log'; hb=Path(reg['output_dir'])/'worker-heartbeat.json'; receipt_path=Path(reg['output_dir'])/'outer-receipt.json'
+- old={}; received=[]; deferred=True; errors=[]; result=None
++ old={}; received=[]; deferred=True; outcome_frozen=False; errors=[]; result=None
+  def handler(sig,frame):
+   nonlocal reason,deferred
++  # After the outcome boundary, ignore handled signals without changing verdict
++  # or history. Keep this policy until each original handler is restored.
++  if outcome_frozen: return
+   received.append(signal.Signals(sig).name)
+   reason=reason or 'supervisor_signal:'+signal.Signals(sig).name
+   if deferred: return
+@@ -236,6 +239,10 @@
+     artifacts,inventory_errors=inventory(reg['output_dir'])
+     if inventory_errors: reason=reason or 'inventory_failed'
+     rows=checks['process_absence'].get('observed',{}).get('rows')
++    # Finalization commit boundary: cleanup, required checks and inventory are done.
++    # Signals before this assignment still cancel; signals after it are ignored
++    # through receipt publication/restoration. No OS signal mask reaches children.
++    outcome_frozen=True
+     result={'schema':'d2_layerb_rng_reference_probe_outer_receipt_v1','run_id':reg['run_id'],'registration_sha256':rsha,'raw_worker_exit_code':raw_exit,'stop_reason':reason,'process_group_remaining':rows,'process_group_absent':checks['process_absence']['status']=='pass','artifacts':artifacts,'inventory_errors':inventory_errors,'errors':errors,'postflight':checks,'failed_checks':failed,'claim_created':True,'claim_write_completed':claim_complete,'claim_identity':claim_identity,'handled_signals':received,'elapsed_seconds':time.monotonic()-start,'status':'accepted_pending_parent_postflight' if reason is None else 'partial_failure_preserved','bounds_limit':'55-second decisions; filesystem/hash/fsync/receipt finalization lack a hard watchdog'}
+     exclusive_json(receipt_path,result)
+  finally:

@@ -1,0 +1,98 @@
+{
+  "budget_seconds": 600,
+  "constraints": [
+    "All commands run from the owned adapter directory with the pinned workspace interpreter, -B, absolute empty PYTHONPYCACHEPREFIX, and PYTHONDONTWRITEBYTECODE=1.",
+    "No command constructs environments or runs evaluation/training/gradients.",
+    "Full preflight mocks only inactive lease assertion; actual launch never mocks lease.",
+    "Logs close before hashes are computed."
+  ],
+  "python": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+  "schema": "D2_continuation180_preparation_validation_plan_v1",
+  "scope": "Preparation only. No environment, evaluation, training, gradient computation, PPO update, ledger mutation, lease mutation, or checkpoint mutation.",
+  "steps": [
+    {
+      "argv": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+        "-B",
+        "validate_registration_keys.py"
+      ],
+      "budget_seconds": 60,
+      "cwd": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-continuation180-repair-luna-20261025-r2",
+      "env": {
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "PYTHONPYCACHEPREFIX": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-continuation180-repair-luna-20261025-r2/empty-pycache-prefix"
+      },
+      "id": "registration_pin_path_inventory_audit",
+      "log": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-continuation180-repair-luna-20261025-r2/pin_audit.log"
+    },
+    {
+      "argv": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+        "-B",
+        "-m",
+        "unittest",
+        "-v",
+        "test_continuation_contract",
+        "test_launcher_lifecycle",
+        "test_capsule_support",
+        "test_outputs"
+      ],
+      "budget_seconds": 120,
+      "cwd": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-continuation180-repair-luna-20261025-r2",
+      "env": {
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "PYTHONPYCACHEPREFIX": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-continuation180-repair-luna-20261025-r2/empty-pycache-prefix"
+      },
+      "id": "contracts_lifecycle_output_same_runtime_negative_controls",
+      "log": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-continuation180-repair-luna-20261025-r2/contracts.log"
+    },
+    {
+      "argv": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+        "-B",
+        "compare_smoke.py"
+      ],
+      "budget_seconds": 60,
+      "cwd": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-continuation180-repair-luna-20261025-r2",
+      "env": {
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "PYTHONPYCACHEPREFIX": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-continuation180-repair-luna-20261025-r2/empty-pycache-prefix"
+      },
+      "id": "no_environment_protocol_and_dev_seed_config",
+      "log": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-continuation180-repair-luna-20261025-r2/protocol_smoke.log"
+    },
+    {
+      "argv": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+        "-B",
+        "test_torch_restore.py"
+      ],
+      "budget_seconds": 180,
+      "cwd": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-continuation180-repair-luna-20261025-r2",
+      "env": {
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "PYTHONPYCACHEPREFIX": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-continuation180-repair-luna-20261025-r2/empty-pycache-prefix"
+      },
+      "id": "accepted180_model_adam_mps_rng_restore_only",
+      "log": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-continuation180-repair-luna-20261025-r2/learner_restoration.log"
+    },
+    {
+      "argv": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+        "-B",
+        "preflight_prepare.py",
+        "registration-proposed.json",
+        "f48db254b4b720d28563afcb76d4120d7d47f4a425dedca5fca81ad40eb5c9fc"
+      ],
+      "budget_seconds": 120,
+      "cwd": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-continuation180-repair-luna-20261025-r2",
+      "env": {
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "PYTHONPYCACHEPREFIX": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-continuation180-repair-luna-20261025-r2/empty-pycache-prefix"
+      },
+      "id": "full_registration_preflight_inactive_lease_mock_only",
+      "log": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-continuation180-repair-luna-20261025-r2/full_preflight.log"
+    }
+  ],
+  "stop_policy": "Stop on first failed stage. No retries, source edits, successor candidate, environment construction, or training after a registered validation failure."
+}

@@ -1,0 +1,75 @@
+{
+  "API": {
+    "KL": "Full frozen rollout reevaluated at epoch end, nonnegative estimator mean(exp(logratio)-1-logratio); stops additional epochs above target.",
+    "completed_episodes": "flat deep-copied episode-info records with zero-based rollout_step",
+    "description": "PPOConfig.description() is JSON-compatible and records exact loss/normalization/KL/audit conventions.",
+    "explained_variance": "Frozen-rollout predictions versus GAE returns; JSON null when target variance<=1e-12.",
+    "exports": [
+      "PPOConfig",
+      "RolloutBatch",
+      "RolloutCollection",
+      "compute_gae",
+      "collect_rollout",
+      "ppo_update"
+    ],
+    "progress": "optional dict mutated with state/in_update/complete/phase/zero-based epoch and minibatch/actual optimizer_steps/epochs_completed; updated immediately after optimizer.step before later guard",
+    "reset_info": "events with rollout_step, indices, info; trainer logs initial seeds separately",
+    "rollout_storage": "CPU-owned detached tensors; mandatory collected raw_rewards float32 and score_delta_raw_fixed/alive_raw_frames/elapsed_raw_frames int64.",
+    "value_loss": "0.5*mean((new_value-GAE_return)**2); total=policy+vf_coef*value_loss-ent_coef*entropy"
+  },
+  "completed_at_utc": "2026-10-24T09:32:37.619799+00:00",
+  "coverage": [
+    "Independent explicit segment-sum GAE reference with mixed death/truncation/rollout-end bootstrap",
+    "Tagged final/reset value alignment, one death penalty despite repeated native Death diagnostics",
+    "Partial episode cumulative integer counters across separate rollouts; wrong self-consistent metadata rejected",
+    "Returned-buffer mutation independence and detached collection; fixed B/D/E preconstruction exclusions audited",
+    "Independent clipped policy/value/entropy loss formula; current full-buffer epoch KL and early stop",
+    "Actor/critic/trunk gradients, finite-input/gradient guards, optimizer ownership",
+    "CPU fixed-buffer learner/Adam/RNG save-load equality",
+    "Interrupted optimizer update progress reflects actual completed step before guard exception"
+  ],
+  "final_additional_checks": "Parent r2 episode objective tolerance1e-9 boundary acceptance/rejection plus valid raw-diagnostics update;44 passed. Integer counters remain exact.",
+  "first_attempt": {
+    "fix": "Isolate surrogate/loss formula using exactly representable +/-1 advantages and zero discounts; original assertion tolerances unchanged.",
+    "outcome": "40 passed;1 loss-oracle precision fixture failure",
+    "retained": "cpu-tests-r1/"
+  },
+  "input_pins": {
+    "docs/SPEC_PRIVILEGED_VIT_RL.md": "02230eea7a3b36c786d3deeb31471baf8270efb09c3c1e77b7a77c7cfae240f3",
+    "docs/teacher-qualification-v2.json": "e091f8a2fad0a307d289a6d306112606b15df8f8aa0f3a75707ac7cfb2cee803",
+    "docs/v2-m3-component-contract.md": "a1051d82527a9aec1f7967ff8ab217c30263240e032991aeff7b993fd975ba47",
+    "docs/v2-m3-run-protocol.json": "9e0d82028011f83e0cf6ddaef5f5e118591158d8a557f6698c82c150d5a69bab",
+    "docs/v2-teacher-training-plan.md": "36e1c5aef5fdcc4f5863d9adfef505ee3f4163ba4fbaf5ed2bb1ef282dac9338",
+    "learning/runs/v2-orchestration/milestone2-acceptance-r2.json": "15384c4296dfd1e577746a896c0ef3c3d2de01400948155fc2daa766e8e0f006",
+    "python/requirements-local-mac.txt": "a02ffb8e053dfc7a6d3e7a0d1333e0907982a944593ef1cd4572353cbb71f34a"
+  },
+  "latest_observed_child_peak_RSS_bytes": 337739776,
+  "latest_test_elapsed_seconds": 2.214025959,
+  "latest_test_log_sha256": "38ccac2b2bd18580bc153c7ba8b5420ea4e9f37f8a4e7e5f903202b6cb0194c4",
+  "latest_test_receipt": "learning/runs/v2/milestone3-ppo-core-r1/cpu-tests-r3/receipt.json",
+  "limitations": [
+    "Synthetic doubles verify PPO/collector arithmetic and control flow; they do not establish actual teacher learning or native integration.",
+    "No MPS/device or performance qualification is claimed.",
+    "Collection/update failures may leave environments or learner partially advanced; progress is retained for trainer failure checkpoints, not transactional rollback.",
+    "Actual checkpoint identity/resume and campaign supervision belong to the separately owned trainer component.",
+    "Parent integration and independent frozen review remain prerequisites for any real training."
+  ],
+  "no_MPS_probe": true,
+  "no_dependency_or_Rust_or_old_artifact_edits": true,
+  "no_real_game_or_native_rollout": true,
+  "no_training_campaign": true,
+  "owned_sources": {
+    "python/dodge_rl/ppo.py": "533055b0832b87f3eccd6d005437583c074b525fc5f1d002e0e84e06b4239a58",
+    "python/tests/test_ppo.py": "948c0a89388a10aaebb55e11950a0a97f323fb23ea2d0c7bf63556f3234da642"
+  },
+  "protected_files_unchanged": 66,
+  "second_attempt": {
+    "outcome": "41 passed",
+    "retained": "cpu-tests-r2/"
+  },
+  "source_archive_sha256": "fcbe7b36027088f3081cd144bed1e642d48c8b8f427894725bcead5c1d7f791d",
+  "source_patch_sha256": "d294f3628040a38a0f109c2c090d1dd3d66ca31c04dd3d2f92225826013de9df",
+  "status": "implemented_synthetic_CPU_tests_passed_pending_parent_review",
+  "synthetic_tests_passed": 44,
+  "version": "v2_M3_PPO_core_component_r1"
+}

@@ -1,0 +1,937 @@
+--- before/python/dodge_rl/checkpoints.py
++++ after/python/dodge_rl/checkpoints.py
+@@ -5,6 +5,7 @@
+ import hashlib
+ import io
+ import json
++import math
+ import os
+ from pathlib import Path
+ import random
+@@ -145,10 +146,87 @@
+     return Path(str(checkpoint_path) + ".evaluation.json")
+ 
+ 
+-def validate_transition(parent_path: Path, target_identity: dict) -> tuple[dict, dict]:
++def validate_terminal_receipt(run_dir: Path, anchor: dict) -> tuple[dict, dict]:
++    """Check immutable terminal evidence against authority supplied by the parent.
++
++    The artifact index proves consistency only. Raw source-lease document hashes
++    belong to the anchor; copied identity/config documents are compared
++    semantically because the runner serializes them again.
++    """
++    run_dir = Path(run_dir)
++    fields = {"run_id", "phase", "run_result_sha256", "checkpoint_sha256",
++              "evaluation_sha256", "identity_sha256", "config_sha256", "supervisor_exit_code"}
++    require(isinstance(anchor, dict) and set(anchor) == fields, "Invalid parent terminal receipt anchor")
++    require(type(anchor["supervisor_exit_code"]) is int and anchor["supervisor_exit_code"] == 0,
++            "Parent did not observe successful supervisor exit")
++    require(isinstance(anchor["run_id"], str) and bool(anchor["run_id"]), "Invalid source run ID")
++    for field in fields - {"run_id", "phase", "supervisor_exit_code"}:
++        value = anchor[field]
++        require(isinstance(value, str) and len(value) == 64
++                and all(char in "0123456789abcdef" for char in value), "Invalid terminal anchor hash")
++    require(anchor["phase"] in set(read_protocol()["seed_namespace_table"]) - {"probe"},
++            "Source phase is not a registered training phase")
++    result_path = run_dir / "run-result.json"
++    require(file_hash(result_path) == anchor["run_result_sha256"], "Terminal run-result hash differs")
++    rr = json.loads(result_path.read_bytes())
++    require(rr["status"] == "passed" and type(rr["worker_exit_code"]) is int
++            and rr["worker_exit_code"] == 0, "Source run did not finish successfully")
++    for field in ("run_id", "phase", "identity_sha256", "config_sha256"):
++        require(rr[field] == anchor[field], f"Terminal source {field} differs")
++    require(type(rr["automatic_retries"]) is int and rr["automatic_retries"] == 0
++            and rr["limits_relaxed"] is False and rr["B_opened"] is False
++            and rr.get("E_opened", False) is False, "Source run relaxed limits/retried/opened B/E")
++    from .identity import validate_config
++    config = validate_config(json.loads((run_dir / "registered-config.json").read_bytes()))
++    identity = json.loads((run_dir / "identity.json").read_bytes())
++    require(config["phase"] == anchor["phase"] and identity["config"] == config
++            and identity["config_sha256"] == identity_hash(config), "Terminal source identity/config differs")
++    consumed = rr["consumed_phase_wall_seconds"]
++    require(type(consumed) in (int, float) and math.isfinite(consumed)
++            and 0 <= consumed <= config["phase_settings"]["budget_seconds"],
++            "Source phase wall budget was not completed within registered limit")
++    wr = json.loads((run_dir / "worker-result.json").read_bytes())
++    require(wr == rr["worker_result"] and wr["status"] == "passed", "Terminal worker result differs or failed")
++    for field in ("phase", "identity_sha256", "config_sha256"):
++        require(wr[field] == anchor[field], f"Terminal worker {field} differs")
++    require(wr.get("B_opened", False) is False and wr.get("E_opened", False) is False,
++            "Source worker opened B/E")
++    name = wr["checkpoint"]
++    require(isinstance(name, str) and name not in {"", ".", ".."} and Path(name).name == name,
++            "Terminal checkpoint must be an exact local filename")
++    checkpoint_path = run_dir / name
++    require(wr["checkpoint_sha256"] == anchor["checkpoint_sha256"] == file_hash(checkpoint_path),
++            "Terminal checkpoint hash differs")
++    proof_path = evaluation_path(checkpoint_path)
++    proof = json.loads(proof_path.read_bytes())
++    require(file_hash(proof_path) == anchor["evaluation_sha256"] and proof == wr["evaluation"]
++            and proof["checkpoint_sha256"] == anchor["checkpoint_sha256"]
++            and proof["phase"] == anchor["phase"]
++            and proof["complete"] is True and proof["passed"] is True,
++            "Terminal evaluation differs or is not complete/passing/hash-bound")
++    require(not (set(proof["evaluations"]) - {"D1", "D2", "D3"}), "Terminal evaluation opened B/E")
++    manifest = json.loads((run_dir / "artifact-sha256.json").read_bytes())
++    for path in (result_path, run_dir / "worker-result.json", checkpoint_path, proof_path,
++                 run_dir / "identity.json", run_dir / "registered-config.json"):
++        require(manifest.get(path.name) == file_hash(path), f"Terminal artifact hash differs: {path.name}")
++    require(file_hash(result_path) == anchor["run_result_sha256"], "Terminal receipt changed during validation")
++    return rr, wr
++
++
++def validate_transition(parent_path: Path, target_identity: dict, *, terminal_anchor: dict) -> tuple[dict, dict]:
++    parent_path = Path(parent_path)
++    _, worker_result = validate_terminal_receipt(parent_path.parent, terminal_anchor)
++    require(parent_path.name == worker_result["checkpoint"], "Only exact terminal checkpoint can advance")
+     parent_hash = file_hash(parent_path)
++    require(parent_hash == terminal_anchor["checkpoint_sha256"], "Transition terminal checkpoint hash differs")
+     parent = load_checkpoint(parent_path, expected_sha256=parent_hash)
+     require(parent["tag"] not in REJECTED_PARENT_TAGS, "Interrupted/failure/probe checkpoint cannot advance")
++    require(parent["tag"] == "candidate", "Only run-end candidate checkpoint can advance")
++    require_complete_update(parent)
++    require(parent["identity"] == json.loads((parent_path.parent / "identity.json").read_bytes()),
++            "Transition checkpoint differs from source run identity")
++    require(parent["identity"]["config"] == json.loads((parent_path.parent / "registered-config.json").read_bytes()),
++            "Transition checkpoint differs from registered source config")
+     old_identity = copy.deepcopy(parent["identity"])
+     new_identity = copy.deepcopy(target_identity)
+     old_cfg, new_cfg = old_identity.pop("config"), new_identity.pop("config")
+--- before/python/dodge_rl/supervision.py
++++ after/python/dodge_rl/supervision.py
+@@ -2,6 +2,7 @@
+ from __future__ import annotations
+ 
+ from contextlib import contextmanager
++import copy
+ from datetime import datetime, timedelta, timezone
+ import json
+ import os
+@@ -18,6 +19,7 @@
+ STATE_PATH = ROOT / "learning/runs/v2-orchestration/state.json"
+ CUTOFF = datetime(2026, 10, 24, 13, tzinfo=timezone.utc)
+ RSS_LIMIT = 6 * 1024**3
++_UNSET = object()
+ 
+ 
+ class GuardStop(RuntimeError):
+@@ -107,7 +109,8 @@
+ 
+ 
+ def assert_lease(run_id: str, identity_sha256: str, config_sha256: str,
+-                 state_path: Path = STATE_PATH) -> dict:
++                 state_path: Path = STATE_PATH, *, phase=None,
++                 expected_parent_receipt=_UNSET) -> dict:
+     lease = json.loads(state_path.read_text()).get("active_long_campaign")
+     require(isinstance(lease, dict) and lease.get("run_id") == run_id,
+             "Parent-owned teacher lease missing or changed")
+@@ -115,6 +118,18 @@
+             "Teacher work was not authorized after frozen review")
+     require(lease.get("identity_sha256") == identity_sha256 and lease.get("config_sha256") == config_sha256,
+             "Parent lease identity/config mismatch")
++    phase = lease.get("phase") if phase is None else phase
++    require(phase in {"probe", "pilot", "D1", "D2", "D3"}, "Parent lease phase missing or invalid")
++    require(lease.get("phase") == phase, "Parent lease phase changed")
++    receipt = lease.get("parent_terminal_receipt")
++    if expected_parent_receipt is not _UNSET and receipt != expected_parent_receipt:
++        raise GuardStop("Parent terminal receipt changed during run")
++    if phase in {"D1", "D2", "D3"}:
++        require(isinstance(receipt, dict), "Parent terminal receipt missing for curriculum phase")
++        require(receipt.get("phase") == {"D1": "pilot", "D2": "D1", "D3": "D2"}[phase],
++                "Parent terminal receipt source phase differs")
++    else:
++        require("parent_terminal_receipt" not in lease, "Unexpected parent terminal receipt for fresh phase")
+     return lease
+ 
+ 
+@@ -126,13 +141,17 @@
+ class Guard:
+     def __init__(self, *, deadline: float, run_id: str, identity_sha256: str,
+                  config_sha256: str, stream, identity_check=None, mps=False,
+-                 state_path: Path = STATE_PATH, sample_seconds=0.5):
++                 state_path: Path = STATE_PATH, sample_seconds=0.5, phase=None,
++                 expected_parent_receipt=_UNSET):
+         self.deadline, self.run_id = deadline, run_id
+         self.identity_sha256, self.config_sha256 = identity_sha256, config_sha256
+         self.stream, self.identity_check, self.mps = stream, identity_check, mps
+         self.state_path, self.sample_seconds = state_path, sample_seconds
+         self.last_sample = float("-inf")
+         self.maximum_rss = self.maximum_mps = 0
++        self.phase = phase
++        self.expected_parent_receipt = (_UNSET if expected_parent_receipt is _UNSET
++                                        else copy.deepcopy(expected_parent_receipt))
+ 
+     def check(self, force=False) -> None:
+         now = time.monotonic()
+@@ -140,8 +159,11 @@
+             raise GuardStop("Experiment wall guard expired")
+         if utc_now() >= CUTOFF:
+             raise GuardStop("Overnight cutoff reached")
++        lease = assert_lease(self.run_id, self.identity_sha256, self.config_sha256, self.state_path,
++                             phase=self.phase, expected_parent_receipt=self.expected_parent_receipt)
++        if self.expected_parent_receipt is _UNSET:
++            self.expected_parent_receipt = copy.deepcopy(lease.get("parent_terminal_receipt"))
+         if force or now - self.last_sample >= self.sample_seconds:
+-            assert_lease(self.run_id, self.identity_sha256, self.config_sha256, self.state_path)
+             if self.identity_check is not None:
+                 self.identity_check()
+             rss = current_rss_bytes(os.getpid())
+--- before/python/dodge_rl/train_teacher.py
++++ after/python/dodge_rl/train_teacher.py
+@@ -136,6 +136,13 @@
+             state = ckpt.load_checkpoint(args.resume_checkpoint, identity, args.resume_checkpoint_sha256)
+             ckpt.require_complete_update(state)
+             remaining_phase_budget(config, state)
++        lease = assert_lease(args.run_id, args.identity_sha256, args.config_sha256, phase=config["phase"])
++        terminal_anchor = copy.deepcopy(lease.get("parent_terminal_receipt"))
++        if args.parent_checkpoint is not None:
++            ckpt.validate_transition(
++                args.parent_checkpoint, identity, terminal_anchor=terminal_anchor)
++        else:
++            require(config["phase"] in {"probe", "pilot"}, "Long stage requires an explicit eligible parent")
+         self.device = torch.device(config["device"])
+         require(self.device.type == "cpu" or torch.backends.mps.is_available(), "MPS is unavailable")
+         self.model = OmniscientEntityTeacher().to(self.device)
+@@ -154,7 +161,11 @@
+         self.metrics = (self.directory / "training-metrics.jsonl").open("x")
+         self.guard.check(force=True)
+         if args.parent_checkpoint is not None:
+-            state, certificate = ckpt.validate_transition(args.parent_checkpoint, identity)
++            # Check again at the restore boundary, including the guard's pinned lease.
++            assert_lease(args.run_id, args.identity_sha256, args.config_sha256,
++                         phase=config["phase"], expected_parent_receipt=terminal_anchor)
++            state, certificate = ckpt.validate_transition(
++                args.parent_checkpoint, identity, terminal_anchor=terminal_anchor)
+             ckpt.restore_learner(state, self.model, self.optimizer, self.device)
+             self.counters = copy.deepcopy(state["counters"])
+             self.counters["phase_updates"] = 0
+@@ -171,6 +182,7 @@
+             save_json(self.directory / "parent-lineage.json", {
+                 "parent_checkpoint": str(args.parent_checkpoint),
+                 "parent_sha256": file_hash(args.parent_checkpoint),
++                "parent_terminal_receipt": terminal_anchor,
+                 "parent_evaluation": certificate, "transition_to": config["phase"]})
+             self.make_environment([0] * config["batch_size"])
+         else:
+@@ -408,7 +420,8 @@
+ 
+ def worker(args) -> int:
+     with cancellation_signals() as cancellation:
+-        return _run_worker(args, cancellation)
++        code = _run_worker(args, cancellation)
++    return 1 if cancellation.signal_number is not None else code
+ 
+ 
+ def _run_worker(args, cancellation) -> int:
+@@ -429,6 +442,8 @@
+     require(utc_now().timestamp() + remaining + 600 <= CUTOFF.timestamp(),
+             "Worker deadline and receipt reserve exceed cutoff")
+     identity = verify_inputs(args, config)
++    lease = assert_lease(args.run_id, args.identity_sha256, args.config_sha256, phase=args.phase)
++    terminal_anchor = copy.deepcopy(lease.get("parent_terminal_receipt"))
+     torch.set_num_threads(config["num_threads"])
+     seed_initialization(config["phase_settings"].get("initialization_seed", 0))
+     experiment = None
+@@ -436,6 +451,7 @@
+         guard = Guard(deadline=args.deadline_monotonic, run_id=args.run_id,
+                       identity_sha256=args.identity_sha256, config_sha256=args.config_sha256,
+                       stream=resources, identity_check=lambda: verify_inputs(args, config),
++                      phase=args.phase, expected_parent_receipt=terminal_anchor,
+                       mps=config["device"] == "mps" or (args.phase == "probe" and torch.backends.mps.is_available()))
+         try:
+             guard.check(force=True)
+@@ -479,7 +495,8 @@
+ 
+ def run_supervised(args) -> int:
+     with cancellation_signals() as cancellation:
+-        return _run_supervised(args, cancellation)
++        code = _run_supervised(args, cancellation)
++    return 1 if cancellation.signal_number is not None else code
+ 
+ 
+ def _run_supervised(args, cancellation) -> int:
+@@ -498,14 +515,18 @@
+     check_budget(utc_now(), math.ceil(remaining))
+     identity_digest, config_digest = file_hash(args.identity), file_hash(args.config)
+     args.identity_sha256, args.config_sha256 = identity_digest, config_digest
+-    assert_lease(args.run_id, identity_digest, config_digest)
+-    verify_inputs(args, config)
++    lease = assert_lease(args.run_id, identity_digest, config_digest, phase=phase)
++    terminal_anchor = copy.deepcopy(lease.get("parent_terminal_receipt"))
++    identity = verify_inputs(args, config)
+     require(not (args.resume_checkpoint is not None and args.parent_checkpoint is not None),
+             "Choose resume or transition parent")
+     if phase in {"probe", "pilot"}:
+         require(args.parent_checkpoint is None, "Fresh probe/pilot cannot inherit weights")
+     if phase == "probe":
+         require(args.resume_checkpoint is None, "Probe cannot resume")
++    if phase in {"D1", "D2", "D3"}:
++        require(args.parent_checkpoint is not None, "Long stage requires an explicit eligible parent")
++        ckpt.validate_transition(args.parent_checkpoint, identity, terminal_anchor=terminal_anchor)
+     args.run_dir.mkdir(parents=True, exist_ok=False)
+     deadline = started + remaining
+     command = [sys.executable, "-B", "-m", "dodge_rl.train_teacher", "_worker",
+@@ -534,6 +555,7 @@
+             (args.run_dir / "worker-stdout.log").open("xb") as stdout:
+         guard = Guard(deadline=deadline, run_id=args.run_id, identity_sha256=identity_digest,
+                       config_sha256=config_digest, stream=resources,
++                      phase=phase, expected_parent_receipt=terminal_anchor,
+                       identity_check=lambda: verify_inputs(args, config), mps=False)
+         try:
+             guard.check(force=True)
+@@ -579,7 +601,7 @@
+             save_json(args.run_dir / "run-result.json", result)
+             hashes = {str(p.relative_to(args.run_dir)): file_hash(p) for p in sorted(args.run_dir.rglob("*")) if p.is_file()}
+             save_json(args.run_dir / "artifact-sha256.json", hashes)
+-    return 0 if result["status"] == "passed" else 1
++    return 0 if result["status"] == "passed" and cancellation.signal_number is None else 1
+ 
+ 
+ def main() -> int:
+--- before/python/tests/test_checkpoints.py
++++ after/python/tests/test_checkpoints.py
+@@ -56,6 +56,11 @@
+              "actor_gradient_seen": True, "critic_gradient_seen": True, "completed_training_updates": 1}
+     c.evaluation_path(path).write_text(json.dumps(proof))
+     return proof
++
++
++def terminal_transition(path, target):
++    from test_terminal_eligibility import terminal_receipt
++    return c.validate_transition(path, target, terminal_anchor=terminal_receipt(path))
+ 
+ 
+ def test_atomic_publish_never_overwrites(tmp_path):
+@@ -171,7 +176,7 @@
+     certificate(path, digest)
+     original = path.read_bytes()
+     target = simple_identity(default_config("D1", parent_sha256=digest))
+-    loaded, proof = c.validate_transition(path, target)
++    loaded, proof = terminal_transition(path, target)
+     assert proof["passed"] and loaded["identity"]["config"]["phase"] == "pilot"
+     assert path.read_bytes() == original
+     assert torch.equal(loaded["rng"]["torch_cpu"], parent["rng"]["torch_cpu"])
+@@ -187,20 +192,20 @@
+     if field == "source": target["sources"]["source.py"] = "modified"
+     if field == "device": target["runtime"]["device"] = "mps"
+     if field == "budget": target["config"]["phase_settings"]["budget_seconds"] = 1801
+-    with pytest.raises(ValueError): c.validate_transition(path, target)
++    with pytest.raises(ValueError): terminal_transition(path, target)
+ 
+ 
+ @pytest.mark.parametrize("tag", sorted(c.REJECTED_PARENT_TAGS))
+ def test_interrupted_failed_timeout_probe_parent_refused(tmp_path, tag):
+     path = tmp_path / "parent.pt"; _, digest = checkpoint(path, tag=tag); certificate(path, digest)
+     with pytest.raises(ValueError, match="cannot advance"):
+-        c.validate_transition(path, simple_identity(default_config("D1", parent_sha256=digest)))
++        terminal_transition(path, simple_identity(default_config("D1", parent_sha256=digest)))
+ 
+ 
+ def test_claimed_pilot_pass_without_score_improvement_is_rejected(tmp_path):
+     path = tmp_path / "pilot.pt"; _, digest = checkpoint(path); certificate(path, digest, after_score=.5)
+     with pytest.raises(ValueError, match="improvement"):
+-        c.validate_transition(path, simple_identity(default_config("D1", parent_sha256=digest)))
++        terminal_transition(path, simple_identity(default_config("D1", parent_sha256=digest)))
+ 
+ 
+ def test_mid_update_progress_is_retained_and_cannot_advance(tmp_path):
+@@ -213,4 +218,4 @@
+     assert c.load_checkpoint(path)["update_progress"] == progress
+     certificate(path, digest)
+     with pytest.raises(ValueError):
+-        c.validate_transition(path, simple_identity(default_config("D1", parent_sha256=digest)))
++        terminal_transition(path, simple_identity(default_config("D1", parent_sha256=digest)))
+--- before/python/tests/test_runtime_repair.py
++++ after/python/tests/test_runtime_repair.py
+@@ -45,8 +45,8 @@
+ 
+ def mock_authorization(monkeypatch):
+     monkeypatch.setattr(t, "Guard", NoopGuard)
+-    monkeypatch.setattr(t, "verify_inputs", lambda *args: {})
+-    monkeypatch.setattr(t, "assert_lease", lambda *args: {})
++    monkeypatch.setattr(t, "verify_inputs", lambda *args, **kwargs: {})
++    monkeypatch.setattr(t, "assert_lease", lambda *args, **kwargs: {})
+     monkeypatch.setattr(t, "utc_now", lambda: datetime(2026, 10, 24, 10, tzinfo=timezone.utc))
+ 
+ 
+@@ -127,7 +127,7 @@
+     maximum_rss = maximum_mps = 0
+     def __init__(self, **kwargs): pass
+     def check(self, **kwargs): pass
+-t.Guard=Guard; t.assert_lease=lambda *a: {{}}; t.verify_inputs=lambda *a: {{}}
++t.Guard=Guard; t.assert_lease=lambda *a, **kw: {{}}; t.verify_inputs=lambda *a, **kw: {{}}
+ t.utc_now=lambda:datetime(2026,10,24,10,tzinfo=timezone.utc)
+ t.current_rss_bytes=lambda pid:100
+ real_popen=subprocess.Popen
+@@ -199,7 +199,7 @@
+         path=directory/(tag+'.pt')
+         return path,c.save_checkpoint(path,{{'tag':tag,'update_progress':self.progress}})
+     def close(self): (directory/'closed').write_text('yes')
+-t.Guard=Guard;t.Experiment=Experiment;t.verify_inputs=lambda *a:{{}}
++t.Guard=Guard;t.Experiment=Experiment;t.verify_inputs=lambda *a:{{}};t.assert_lease=lambda *a, **kw:{{}}
+ t.utc_now=lambda:datetime(2026,10,24,10,tzinfo=timezone.utc)
+ started=time.monotonic()
+ args=SimpleNamespace(config=config,config_sha256=i.file_hash(config),identity_sha256='a'*64,
+--- before/python/tests/test_teacher_runner.py
++++ after/python/tests/test_teacher_runner.py
+@@ -179,7 +179,7 @@
+ def guard_fixture(tmp_path,monkeypatch,*,rss=100,mps=False):
+     state=tmp_path/"state.json";state.write_text(json.dumps({"active_long_campaign":{
+         "run_id":"run","identity_sha256":"id","config_sha256":"cfg",
+-        "kind":"M3_teacher","authorization":"frozen_reviewed_M3_teacher"}}))
++        "kind":"M3_teacher","authorization":"frozen_reviewed_M3_teacher","phase":"pilot"}}))
+     monkeypatch.setattr(s.time,"monotonic",lambda:0.)
+     monkeypatch.setattr(s,"utc_now",lambda:datetime(2026,10,24,10,tzinfo=timezone.utc))
+     monkeypatch.setattr(s,"current_rss_bytes",lambda pid:rss)
+@@ -309,9 +309,9 @@
+     monkeypatch.setattr(t.time,"monotonic",lambda:clock.now)
+     monkeypatch.setattr(s,"utc_now",lambda:datetime(2026,10,24,10,tzinfo=timezone.utc))
+     monkeypatch.setattr(t,"utc_now",s.utc_now)
+-    monkeypatch.setattr(t,"verify_inputs",lambda *a:{})
+-    monkeypatch.setattr(t,"assert_lease",lambda *a:{})
+-    monkeypatch.setattr(s,"assert_lease",lambda *a:{})
++    monkeypatch.setattr(t,"verify_inputs",lambda *a, **kw:{})
++    monkeypatch.setattr(t,"assert_lease",lambda *a, **kw:{})
++    monkeypatch.setattr(s,"assert_lease",lambda *a, **kw:{})
+     monkeypatch.setattr(s,"current_rss_bytes",lambda pid:100)
+     monkeypatch.setattr(s,"peak_rss_bytes",lambda:100)
+     class Process:
+--- /dev/null
++++ after/python/tests/test_terminal_eligibility.py
+@@ -0,0 +1,300 @@
++"""Terminal-source authority controls; all fixtures are synthetic CPU artifacts."""
++from __future__ import annotations
++
++import copy
++import hashlib
++import inspect
++import json
++from pathlib import Path
++
++import pytest
++import torch
++
++from dodge_rl import checkpoints as c
++from dodge_rl.identity import default_config, file_hash
++
++
++def _write(path: Path, value) -> None:
++    # Nonfinite fixture values are intentional rejection controls.
++    path.write_text(json.dumps(value, sort_keys=True) + "\n")
++
++
++def refresh_manifest(directory: Path) -> dict:
++    entries = {path.name: file_hash(path) for path in sorted(directory.iterdir())
++               if path.is_file() and path.name != "artifact-sha256.json"}
++    _write(directory / "artifact-sha256.json", entries)
++    return entries
++
++
++def terminal_receipt(path: Path, state=None, digest=None) -> dict:
++    """Add a complete terminal fixture around an existing checkpoint and certificate.
++
++    Lease hashes describe the source documents. Run copies use different JSON
++    formatting, as the actual runner does, and must be compared semantically.
++    """
++    directory = path.parent
++    state = c.load_checkpoint(path) if state is None else state
++    digest = file_hash(path) if digest is None else digest
++    identity = state["identity"]
++    config = identity["config"]
++    _write(directory / "identity.json", identity)
++    _write(directory / "registered-config.json", config)
++    source_hash = lambda value: hashlib.sha256(json.dumps(value, indent=4).encode()).hexdigest()
++    identity_digest, config_digest = source_hash(identity), source_hash(config)
++    proof = json.loads(c.evaluation_path(path).read_text())
++    worker = {"status": "passed", "phase": config["phase"],
++              "identity_sha256": identity_digest, "config_sha256": config_digest,
++              "checkpoint": path.name, "checkpoint_sha256": digest,
++              "evaluation": proof, "B_opened": False, "elapsed_seconds": 1.0}
++    result = {"status": "passed", "run_id": "source-run", "phase": config["phase"],
++              "identity_sha256": identity_digest, "config_sha256": config_digest,
++              "worker_exit_code": 0, "automatic_retries": 0, "limits_relaxed": False,
++              "B_opened": False, "consumed_phase_wall_seconds": 1.0,
++              "prior_consumed_wall_seconds": 0.0, "elapsed_seconds": 1.0,
++              "finished_at_utc": "2026-10-24T10:00:01+00:00", "worker_result": worker}
++    _write(directory / "worker-result.json", worker)
++    _write(directory / "run-result.json", result)
++    refresh_manifest(directory)
++    return {"run_id": result["run_id"], "phase": config["phase"],
++            "run_result_sha256": file_hash(directory / "run-result.json"),
++            "checkpoint_sha256": digest, "evaluation_sha256": file_hash(c.evaluation_path(path)),
++            "identity_sha256": identity_digest, "config_sha256": config_digest,
++            "supervisor_exit_code": 0}
++
++
++def transition(path: Path, target: dict, anchor: dict):
++    """Exercise old behavior directly when running the frozen r2 control.
++
++    This adapter permits a behavioral comparison. Missing new API keywords are
++    never accepted as evidence that the old implementation was defective.
++    """
++    if "terminal_anchor" in inspect.signature(c.validate_transition).parameters:
++        return c.validate_transition(path, target, terminal_anchor=anchor)
++    return c.validate_transition(path, target)
++
++
++def _source(directory: Path, *, tag="candidate"):
++    from test_checkpoints import certificate, checkpoint, simple_identity
++    path = directory / "candidate.pt"
++    state, digest = checkpoint(path, tag=tag)
++    certificate(path, digest)
++    anchor = terminal_receipt(path, state, digest)
++    target = simple_identity(default_config("D1", parent_sha256=digest))
++    return path, state, target, anchor
++
++
++def _rewrite_result(path: Path, anchor: dict, mutate):
++    result_path = path.parent / "run-result.json"
++    result = json.loads(result_path.read_text())
++    mutate(result)
++    _write(result_path, result)
++    anchor["run_result_sha256"] = file_hash(result_path)
++    refresh_manifest(path.parent)
++
++
++def test_terminal_exact_candidate_preserves_weights_rng_and_parent_bytes(tmp_path):
++    path, state, target, anchor = _source(tmp_path)
++    before = {p.name: p.read_bytes() for p in tmp_path.iterdir() if p.is_file()}
++    rng_before = torch.get_rng_state().clone()
++    loaded, proof = transition(path, target, anchor)
++    assert proof["passed"] is True
++    assert anchor["identity_sha256"] != file_hash(tmp_path / "identity.json")
++    assert anchor["config_sha256"] != file_hash(tmp_path / "registered-config.json")
++    assert {p.name: p.read_bytes() for p in tmp_path.iterdir() if p.is_file()} == before
++    assert torch.equal(torch.get_rng_state(), rng_before)
++    assert torch.equal(loaded["rng"]["torch_cpu"], state["rng"]["torch_cpu"])
++    for key, value in state["model"].items():
++        assert torch.equal(loaded["model"][key], value)
++
++
++@pytest.mark.parametrize("status", ["failed", "cancelled"])
++def test_terminal_nonpassing_supervisor_rejects_passing_candidate(tmp_path, status):
++    path, _, target, anchor = _source(tmp_path)
++    _rewrite_result(path, anchor, lambda result: result.update(status=status))
++    with pytest.raises(ValueError):
++        transition(path, target, anchor)
++
++
++def test_terminal_missing_supervisor_receipt_rejects_passing_candidate(tmp_path):
++    path, _, target, anchor = _source(tmp_path)
++    (tmp_path / "run-result.json").unlink()
++    with pytest.raises((ValueError, FileNotFoundError)):
++        transition(path, target, anchor)
++
++
++def test_terminal_worker_only_pass_cannot_override_failed_supervisor(tmp_path):
++    path, _, target, anchor = _source(tmp_path)
++    _rewrite_result(path, anchor, lambda result: result.update(status="failed", worker_exit_code=1))
++    assert json.loads((tmp_path / "worker-result.json").read_text())["status"] == "passed"
++    with pytest.raises(ValueError):
++        transition(path, target, anchor)
++
++
++@pytest.mark.parametrize("field,value", [
++    ("worker_exit_code", 1), ("worker_exit_code", False),
++    ("automatic_retries", 1), ("automatic_retries", False),
++    ("limits_relaxed", True), ("B_opened", True),
++    ("phase", "D1"), ("run_id", "another-run"),
++    ("identity_sha256", "a" * 64), ("config_sha256", "b" * 64),
++])
++def test_terminal_supervisor_fields_reject_even_with_updated_index_and_pin(tmp_path, field, value):
++    path, _, target, anchor = _source(tmp_path)
++    _rewrite_result(path, anchor, lambda result: result.update({field: value}))
++    with pytest.raises(ValueError):
++        transition(path, target, anchor)
++
++
++@pytest.mark.parametrize("consumed", [300.001, -0.001, float("nan"), float("inf"), float("-inf"), True, "1"])
++def test_terminal_invalid_or_late_consumed_phase_budget_rejects(tmp_path, consumed):
++    path, _, target, anchor = _source(tmp_path)
++    _rewrite_result(path, anchor, lambda result: result.update(consumed_phase_wall_seconds=consumed))
++    with pytest.raises(ValueError):
++        transition(path, target, anchor)
++
++
++@pytest.mark.parametrize("field", [
++    "run_id", "phase", "run_result_sha256", "checkpoint_sha256", "evaluation_sha256",
++    "identity_sha256", "config_sha256", "supervisor_exit_code",
++])
++def test_terminal_parent_anchor_each_field_is_authoritative(tmp_path, field):
++    path, _, target, anchor = _source(tmp_path)
++    anchor[field] = 1 if field == "supervisor_exit_code" else ("D1" if field == "phase" else "0" * 64)
++    with pytest.raises(ValueError):
++        transition(path, target, anchor)
++
++
++def test_terminal_parent_observed_exit_requires_exact_integer_zero(tmp_path):
++    path, _, target, anchor = _source(tmp_path)
++    anchor["supervisor_exit_code"] = False
++    with pytest.raises(ValueError):
++        transition(path, target, anchor)
++
++
++@pytest.mark.parametrize("field,value", [
++    ("status", "failed"), ("phase", "D1"), ("identity_sha256", "a" * 64),
++    ("config_sha256", "b" * 64), ("checkpoint", "../candidate.pt"),
++    ("checkpoint_sha256", "c" * 64), ("B_opened", True),
++])
++def test_terminal_worker_claims_must_match_source_and_exact_artifacts(tmp_path, field, value):
++    path, _, target, anchor = _source(tmp_path)
++    def mutate(result):
++        result["worker_result"][field] = value
++        _write(tmp_path / "worker-result.json", result["worker_result"])
++    _rewrite_result(path, anchor, mutate)
++    with pytest.raises(ValueError):
++        transition(path, target, anchor)
++
++
++def test_terminal_worker_file_must_equal_supervisor_copy(tmp_path):
++    path, _, target, anchor = _source(tmp_path)
++    worker = json.loads((tmp_path / "worker-result.json").read_text())
++    worker["elapsed_seconds"] += 0.1
++    _write(tmp_path / "worker-result.json", worker)
++    refresh_manifest(tmp_path)
++    with pytest.raises(ValueError):
++        transition(path, target, anchor)
++
++
++@pytest.mark.parametrize("tag", ["candidate", "periodic", "failure", "timeout", "interrupted_mid_update"])
++def test_terminal_other_checkpoint_in_same_run_is_not_the_run_end_candidate(tmp_path, tag):
++    from test_checkpoints import certificate, checkpoint, simple_identity
++    _, _, _, anchor = _source(tmp_path)
++    other = tmp_path / "other.pt"
++    _, digest = checkpoint(other, tag=tag)
++    certificate(other, digest)
++    refresh_manifest(tmp_path)
++    target = simple_identity(default_config("D1", parent_sha256=digest))
++    with pytest.raises(ValueError):
++        transition(other, target, anchor)
++
++
++@pytest.mark.parametrize("tag", ["periodic", "pilot_initial", "diagnostic", "failure", "timeout", "probe_diagnostic"])
++def test_terminal_even_exact_run_end_requires_candidate_allowlist(tmp_path, tag):
++    path, _, target, anchor = _source(tmp_path, tag=tag)
++    with pytest.raises(ValueError):
++        transition(path, target, anchor)
++
++
++def test_terminal_edited_certificate_rejects_with_unchanged_parent_anchor(tmp_path):
++    path, _, target, anchor = _source(tmp_path)
++    c.evaluation_path(path).write_text(c.evaluation_path(path).read_text() + "\n")
++    refresh_manifest(tmp_path)
++    with pytest.raises(ValueError):
++        transition(path, target, anchor)
++
++
++def test_terminal_evaluation_file_must_equal_worker_evaluation(tmp_path):
++    path, _, target, anchor = _source(tmp_path)
++    proof = json.loads(c.evaluation_path(path).read_text())
++    proof["completed_training_updates"] += 1
++    _write(c.evaluation_path(path), proof)
++    anchor["evaluation_sha256"] = file_hash(c.evaluation_path(path))
++    refresh_manifest(tmp_path)
++    with pytest.raises(ValueError):
++        transition(path, target, anchor)
++
++
++@pytest.mark.parametrize("artifact", ["run-result.json", "worker-result.json", "candidate.pt", "candidate.pt.evaluation.json",
++                                      "identity.json", "registered-config.json"])
++def test_terminal_manifest_critical_entries_cannot_be_inconsistent(tmp_path, artifact):
++    path, _, target, anchor = _source(tmp_path)
++    manifest = json.loads((tmp_path / "artifact-sha256.json").read_text())
++    manifest[artifact] = "0" * 64
++    _write(tmp_path / "artifact-sha256.json", manifest)
++    with pytest.raises(ValueError):
++        transition(path, target, anchor)
++
++
++def test_terminal_missing_manifest_cannot_authorize_parent(tmp_path):
++    path, _, target, anchor = _source(tmp_path)
++    (tmp_path / "artifact-sha256.json").unlink()
++    with pytest.raises((ValueError, FileNotFoundError)):
++        transition(path, target, anchor)
++
++
++@pytest.mark.parametrize("artifact", ["identity.json", "registered-config.json"])
++def test_terminal_copied_identity_config_must_semantically_match_checkpoint(tmp_path, artifact):
++    path, _, target, anchor = _source(tmp_path)
++    copied = json.loads((tmp_path / artifact).read_text())
++    if artifact == "identity.json":
++        copied["sources"]["source.py"] = "different-source"
++    else:
++        copied["ppo"]["gamma"] = 0.9
++    _write(tmp_path / artifact, copied)
++    refresh_manifest(tmp_path)
++    with pytest.raises(ValueError):
++        transition(path, target, anchor)
++
++
++def test_terminal_whitespace_replacement_of_pinned_run_result_rejects(tmp_path):
++    path, _, target, anchor = _source(tmp_path)
++    receipt = tmp_path / "run-result.json"
++    receipt.write_text(receipt.read_text() + "\n")
++    refresh_manifest(tmp_path)
++    with pytest.raises(ValueError):
++        transition(path, target, anchor)
++
++
++@pytest.mark.parametrize("source_phase,target_phase", [("D1", "D2"), ("D2", "D3")])
++def test_terminal_valid_registered_stage_source_remains_eligible(tmp_path, source_phase, target_phase):
++    from test_checkpoints import checkpoint, eval_result, simple_identity
++    path = tmp_path / "candidate.pt"
++    identity = simple_identity(default_config(source_phase, parent_sha256="a" * 64))
++    state, digest = checkpoint(path, identity=identity)
++    score, alive = (10, 1500) if source_phase == "D1" else (50, 3060)
++    _write(c.evaluation_path(path), {"phase": source_phase, "checkpoint_sha256": digest,
++           "complete": True, "passed": True,
++           "evaluations": {source_phase: eval_result(score, alive, source_phase)}})
++    anchor = terminal_receipt(path, state, digest)
++    target = simple_identity(default_config(target_phase, parent_sha256=digest))
++    loaded, proof = transition(path, target, anchor)
++    assert proof["passed"] and loaded["identity"] == identity
++
++
++@pytest.mark.parametrize("field", ["run_id", "phase", "run_result_sha256", "checkpoint_sha256", "evaluation_sha256",
++                                    "identity_sha256", "config_sha256", "supervisor_exit_code"])
++def test_terminal_manifest_consistency_does_not_replace_missing_parent_authority(tmp_path, field):
++    path, _, target, anchor = _source(tmp_path)
++    del anchor[field]
++    with pytest.raises(ValueError):
++        transition(path, target, anchor)
+--- /dev/null
++++ after/python/tests/test_terminal_runtime.py
+@@ -0,0 +1,233 @@
++"""Synthetic lease, launch, worker-bypass and late-finalization controls."""
++from __future__ import annotations
++
++import copy
++from datetime import datetime, timezone
++import inspect
++import io
++import json
++import os
++import signal
++from types import SimpleNamespace
++
++import pytest
++import torch
++
++from dodge_rl import checkpoints as c, identity as i, supervision as s, train_teacher as t
++from test_runtime_repair import NoopGuard, runner_args, mock_authorization
++from test_terminal_eligibility import _source, transition
++
++
++def lease_for(args, phase, anchor=None):
++    value = {"kind": "M3_teacher", "authorization": "frozen_reviewed_M3_teacher",
++             "run_id": args.run_id, "phase": phase,
++             "identity_sha256": i.file_hash(args.identity), "config_sha256": i.file_hash(args.config)}
++    if anchor is not None:
++        value["parent_terminal_receipt"] = copy.deepcopy(anchor)
++    return value
++
++
++def bind_state(monkeypatch, path):
++    actual = s.assert_lease
++    parameters = inspect.signature(actual).parameters
++    def bound(run_id, identity_sha256, config_sha256, *args, **kwargs):
++        return actual(run_id, identity_sha256, config_sha256, path,
++                      **{key: value for key, value in kwargs.items() if key in parameters})
++    monkeypatch.setattr(t, "assert_lease", bound)
++    return bound
++
++
++@pytest.mark.parametrize("phase", ["D1", "D2", "D3", "pilot", "probe"])
++def test_terminal_phase_anchor_presence_enforced_before_mkdir_or_launch(tmp_path, monkeypatch, phase):
++    args = runner_args(tmp_path, phase)
++    mock_authorization(monkeypatch)
++    if phase.startswith("D"):
++        parent = tmp_path / "parent.pt"; parent.write_bytes(b"synthetic-unread-parent")
++        args.parent_checkpoint = parent
++    anchor = {"phase": "pilot", "supervisor_exit_code": 0} if phase in {"pilot", "probe"} else None
++    state = tmp_path / "state.json"
++    state.write_text(json.dumps({"active_long_campaign": lease_for(args, phase, anchor)}))
++    bind_state(monkeypatch, state)
++    launches = []
++    def launch(*args, **kwargs):
++        launches.append(True)
++        raise RuntimeError("Invalid lease reached worker launch")
++    monkeypatch.setattr(t.subprocess, "Popen", launch)
++    rejected = None
++    try:
++        t.run_supervised(args)
++    except ValueError as error:
++        rejected = error
++    assert rejected is not None, "Invalid phase anchor reached supervisor launch boundary"
++    assert "terminal receipt" in str(rejected)
++    assert not launches and not args.run_dir.exists()
++
++
++def test_terminal_guard_rejects_anchor_swap_even_between_resource_samples(tmp_path, monkeypatch):
++    args = runner_args(tmp_path, "D1")
++    anchor = {"phase": "pilot", "run_result_sha256": "a" * 64}
++    lease = lease_for(args, "D1", anchor)
++    path = tmp_path / "state.json"; path.write_text(json.dumps({"active_long_campaign": lease}))
++    monkeypatch.setattr(s.time, "monotonic", lambda: 0.)
++    monkeypatch.setattr(s, "utc_now", lambda: datetime(2026, 10, 24, 10, tzinfo=timezone.utc))
++    monkeypatch.setattr(s, "current_rss_bytes", lambda pid: 100)
++    monkeypatch.setattr(s, "peak_rss_bytes", lambda: 100)
++    guard = s.Guard(deadline=100., run_id=args.run_id, identity_sha256=lease["identity_sha256"],
++                    config_sha256=lease["config_sha256"], stream=io.StringIO(), state_path=path)
++    guard.check(force=True)
++    lease["parent_terminal_receipt"]["run_result_sha256"] = "b" * 64
++    path.write_text(json.dumps({"active_long_campaign": lease}))
++    with pytest.raises(s.GuardStop, match="terminal receipt changed"):
++        guard.check()
++
++
++def test_terminal_worker_constructor_rejects_actual_lease_anchor_before_model_or_env(tmp_path, monkeypatch):
++    source = tmp_path / "source"; source.mkdir()
++    parent, _, target, anchor = _source(source)
++    args = runner_args(tmp_path, "D1")
++    args.config.write_text(json.dumps(target["config"]))
++    args.identity.write_text(json.dumps(target))
++    args.parent_checkpoint = parent
++    args.identity_sha256 = i.file_hash(args.identity); args.config_sha256 = i.file_hash(args.config)
++    args.run_dir.mkdir()
++    anchor["run_result_sha256"] = "0" * 64
++    path = tmp_path / "state.json"
++    path.write_text(json.dumps({"active_long_campaign": lease_for(args, "D1", anchor)}))
++    bind_state(monkeypatch, path)
++    models = []; environments = []
++    def model():
++        models.append(True)
++        return torch.nn.Linear(2, 1)
++    monkeypatch.setattr(t, "OmniscientEntityTeacher", model)
++    monkeypatch.setattr(t.Experiment, "make_environment", lambda *a: environments.append(True))
++    rejected = None; experiment = None
++    try:
++        experiment = t.Experiment(args, target["config"], target, NoopGuard())
++    except ValueError as error:
++        rejected = error
++    finally:
++        if experiment is not None:
++            experiment.close()
++    assert rejected is not None, "Worker bypass restored unanchored parent"
++    assert not models and not environments
++
++
++def completed_process(args):
++    class Process:
++        pid = 740120
++        def __init__(self, *a, **kw):
++            (args.run_dir / "worker-result.json").write_text(json.dumps({
++                "status": "passed", "identity_sha256": i.file_hash(args.identity),
++                "config_sha256": i.file_hash(args.config)}))
++        def poll(self): return 0
++        def wait(self, timeout): return 0
++    return Process
++
++
++@pytest.mark.parametrize("boundary", ["run-result.json", "artifact-sha256.json", "resources-close"])
++def test_terminal_supervisor_recorded_signal_after_pass_publication_forces_nonzero(tmp_path, monkeypatch, boundary):
++    args = runner_args(tmp_path)
++    mock_authorization(monkeypatch)
++    monkeypatch.setattr(t.subprocess, "Popen", completed_process(args))
++    actual = t.save_json
++    def publish(path, value):
++        actual(path, value)
++        if path.name == boundary:
++            os.kill(os.getpid(), signal.SIGTERM)
++    monkeypatch.setattr(t, "save_json", publish)
++    if boundary == "resources-close":
++        # Context exit is after both final artifacts were published, before return.
++        original = s.cancellation_signals
++        from contextlib import contextmanager
++        @contextmanager
++        def context():
++            with original() as cancellation:
++                yield cancellation
++                os.kill(os.getpid(), signal.SIGTERM)
++        monkeypatch.setattr(t, "cancellation_signals", context)
++    status = t.run_supervised(args)
++    assert status != 0, "Recorded late SIGTERM returned success after publishing a passing receipt"
++    assert json.loads((args.run_dir / "run-result.json").read_text())["status"] == "passed"
++    assert (args.run_dir / "artifact-sha256.json").exists()
++
++
++@pytest.mark.parametrize("boundary", ["publication", "close"])
++def test_terminal_worker_recorded_signal_cannot_silently_return_pass(tmp_path, monkeypatch, boundary):
++    args = runner_args(tmp_path)
++    args.run_dir.mkdir()
++    started = t.time.monotonic()
++    args.phase = "pilot"; args.config_sha256 = i.file_hash(args.config)
++    args.identity_sha256 = i.file_hash(args.identity)
++    args.consumed_wall_seconds = 0; args.execution_started_monotonic = started
++    args.deadline_monotonic = started + 300
++    mock_authorization(monkeypatch)
++    class Experiment:
++        progress = {}
++        def __init__(self, *args): pass
++        def pilot(self): return {"status": "passed", "phase": "pilot", "B_opened": False}
++        def close(self):
++            if boundary == "close": os.kill(os.getpid(), signal.SIGTERM)
++        def checkpoint(self, tag): raise RuntimeError("No real learner in synthetic worker")
++    monkeypatch.setattr(t, "Experiment", Experiment)
++    actual = t.save_json
++    def publish(path, value):
++        actual(path, value)
++        if boundary == "publication" and value["status"] == "passed":
++            # Emulate first signal in deferred finalization, rather than a throw.
++            signal.getsignal(signal.SIGTERM).__self__.defer()
++            os.kill(os.getpid(), signal.SIGTERM)
++    monkeypatch.setattr(t, "save_json", publish)
++    status = t.worker(args)
++    assert status != 0, "Recorded late worker SIGTERM silently returned success"
++    assert json.loads((args.run_dir / "worker-result.json").read_text())["status"] == "passed"
++
++
++def test_terminal_actual_evaluate_final_guard_expiry_never_authorizes_candidate(tmp_path, monkeypatch):
++    from test_checkpoints import checkpoint, eval_result, simple_identity
++    path = tmp_path / "candidate.pt"; _, digest = checkpoint(path)
++    experiment = t.Experiment.__new__(t.Experiment)
++    experiment.directory = tmp_path; experiment.config = i.default_config("pilot")
++    experiment.model = torch.nn.Linear(2, 1); experiment.device = torch.device("cpu")
++    experiment.actor_gradient_seen = experiment.critic_gradient_seen = True
++    experiment.counters = {"phase_updates": 1}; experiment.last_metrics = None
++    checks = []
++    def expired(**kwargs):
++        checks.append(True)
++        if len(checks) == 3:
++            raise s.GuardStop("Experiment wall guard expired after certificate")
++    experiment.guard = SimpleNamespace(check=expired)
++    monkeypatch.setattr(t, "evaluate", lambda *a, **kw: eval_result(2, 700))
++    with pytest.raises(s.GuardStop, match="after certificate"):
++        experiment.evaluate_checkpoint(path, digest, pilot_before=eval_result(.5, 500))
++    assert json.loads(c.evaluation_path(path).read_text())["passed"] is True
++    target = simple_identity(i.default_config("D1", parent_sha256=digest))
++    anchor = {"run_id": "expired", "phase": "pilot", "run_result_sha256": "0" * 64,
++              "checkpoint_sha256": digest, "evaluation_sha256": i.file_hash(c.evaluation_path(path)),
++              "identity_sha256": "a" * 64, "config_sha256": "b" * 64, "supervisor_exit_code": 1}
++    with pytest.raises(ValueError):
++        transition(path, target, anchor)
++
++
++def test_terminal_valid_worker_restore_records_lease_anchor_and_preserves_rng(tmp_path, monkeypatch):
++    source = tmp_path / "source"; source.mkdir()
++    parent, state, target, anchor = _source(source)
++    args = runner_args(tmp_path, "D1")
++    args.config.write_text(json.dumps(target["config"])); args.identity.write_text(json.dumps(target))
++    args.identity_sha256 = i.file_hash(args.identity); args.config_sha256 = i.file_hash(args.config)
++    args.parent_checkpoint = parent; args.run_dir.mkdir()
++    ledger = tmp_path / "state.json"
++    ledger.write_text(json.dumps({"active_long_campaign": lease_for(args, "D1", anchor)}))
++    original_ledger = ledger.read_bytes(); bind_state(monkeypatch, ledger)
++    monkeypatch.setattr(t, "OmniscientEntityTeacher", lambda: torch.nn.Linear(2, 1))
++    initial_indices = []
++    monkeypatch.setattr(t.Experiment, "make_environment", lambda self, indices: initial_indices.append(indices))
++    experiment = t.Experiment(args, target["config"], target, NoopGuard())
++    try:
++        assert all(torch.equal(value, experiment.model.state_dict()[key]) for key, value in state["model"].items())
++        assert torch.equal(torch.get_rng_state(), state["rng"]["torch_cpu"])
++        lineage = json.loads((args.run_dir / "parent-lineage.json").read_text())
++        assert lineage["parent_terminal_receipt"] == anchor
++        assert initial_indices == [[0] * 64]
++        assert ledger.read_bytes() == original_ledger
++    finally:
++        experiment.close()

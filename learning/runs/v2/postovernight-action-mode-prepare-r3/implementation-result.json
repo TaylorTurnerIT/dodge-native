@@ -1,0 +1,114 @@
+{
+  "accepted_findings_repaired": [
+    "R1-F1",
+    "R1-F2",
+    "R2-F1"
+  ],
+  "actual_mps_inference_calls": 0,
+  "actual_native_environments": 0,
+  "actual_teacher_forwards": 0,
+  "automatic_campaign_retries": 0,
+  "campaign_output_exists": false,
+  "cancellation_repair": "Every signal request is latched and counted even while cleanup defers raising; supervisor checks retained latch after context exit before terminal publication.",
+  "capsule_manifest_sha256": "1b27ce7ec141a124dc880cddc214eee1788ac503a3951005f1200c1873445e50",
+  "checkpoint_files_written": 0,
+  "checkpoint_files_written_count_scope": "Zero learner checkpoint creation/reserialization. Three byte-identical read-only checkpoint input copies in candidate capsule.",
+  "checkpoint_input_snapshot_copies": 3,
+  "children_launched": 0,
+  "counter_repair": "None; original worker counter-copy loop preserved and success/partial counts tested.",
+  "diagnostic_campaign_launched": false,
+  "existing_source_changes": 0,
+  "external_messages": 0,
+  "full_patch_vs_r1": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-action-mode-prepare-r3/full-patch-vs-r1.diff",
+  "invocation_after_parent_review_only": [
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+    "-B",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-action-mode-prepare-r3/source-snapshot/learning/runs/v2/postovernight-action-mode-prepare-r3/runner.py",
+    "--protocol",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2-orchestration/postovernight-action-mode-r3-protocol.json",
+    "--output",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-action-mode-campaign-r1",
+    "--state-path",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2-orchestration/state.json"
+  ],
+  "invocation_notes": [
+    "Parent independently reviews these exact source hashes and capsule, then registers the exact lease in the authoritative ledger. Preparation does not grant acceptance or launch authority.",
+    "Run the capsule copy with python/.venv/bin/python. The legacy learning/.venv is never used. CLI requires --protocol and --output; --state-path defaults to the original production ledger.",
+    "All capsule files and ancestor directories are mode 0444/0555. Runtime input verification includes original 75 pins and capsule copies, protocol, identity, three checkpoints, two controls, own helper source, interpreter and foundation binary/receipt pins. The mutable ledger and campaign logs are not hashed as inputs.",
+    "The supervisor starts one new-session worker. The separate diagnostic guard checks the new lease and has no overnight cutoff or training-receipt dependency. Existing supervision.Guard/check_budget are unchanged.",
+    "The 600 seconds begin at supervisor module startup and include imports, loads, evaluations, logging, controls, analysis, worker receipts and all normal finalization. The watchdog samples every 0.25 seconds, fails closed above a 0.5-second sample gap, and checks each inference/step boundary.",
+    "Cleanup sends signals only to the owned new-session group and reaps its leader, with a separate bounded reserve. Final stable artifact hashing occurs after worker exit. No retry/fallback is available.",
+    "Only exact complete failed-run diagnostic weights are read with weights_only=True and the prior narrow NumPy safe globals. No optimizer, RNG or episode restoration and no eligibility calls occur.",
+    "Exact original entry and phase96 controls gate all sampled episodes. Phase104 is a new baseline. Exact sorted active B1 batching, direct D seeds, K4, caps and endpoint rows are preserved.",
+    "Sample controller seeds are set once per checkpoint/replicate after loading. The seed-cluster bootstrap averages three replicates within each seed, uses 10000 shared-index resamples and the fixed 764002 seed.",
+    "Decision traces retain all nine actual probabilities, actions, entropy and margins. Context counts and first observed pattern visibility are logged, with death cause UNKNOWN. No checkpoint selection or automatic learner action is produced."
+  ],
+  "limitations": [
+    "Native gameplay, full teacher loading/forward, MPS runtime behavior, historical control replay, throughput, 768-episode completion and real campaign resource use remain unverified by design. No real gameplay smoke was run.",
+    "The tests validate fake CPU policies/environments and fixture supervisors. They do not establish that logging and inference will fit 600 seconds. A timeout must remain a retained failed diagnostic without retries.",
+    "Memory guards are sampled RSS/MPS plus process self peak, not hard OS allocation limits. Missed sample cadence is a failure. A temporary identity change between samples cannot be ruled out by hash sampling.",
+    "The pinned runtime identity covers the registered interpreter hash, Torch/NumPy versions, platform and native extension hash; it is not a byte inventory of every installed dependency/shared library.",
+    "All r1 and r2 development failures, sources and receipts remain byte-identical. R3 preparation logs are retained. Final validation reruns all44original cases plus28finalization/cancellation cases on delivered hashes;12selected cases fail semantically against exactr1 and8cancellation cases fail semantically against exactr2.",
+    "If worker termination/reaping cannot be established, the run remains failed and no stable artifact manifest is claimed. Partial decision/evaluation logs remain available; exact inference counts can be unknown if a worker was killed before its receipt."
+  ],
+  "negative_control_r2_receipt": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-action-mode-prepare-r3/negative-control-r2-receipt.json",
+  "negative_control_r2_semantic_assertion_failures": 8,
+  "negative_control_receipt": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-action-mode-prepare-r3/negative-control-receipt.json",
+  "negative_control_semantic_assertion_failures": 12,
+  "new_finalization_regressions_passed": 28,
+  "new_tests_passed": 72,
+  "original_regressions_passed": 44,
+  "parent_acceptance": "pending",
+  "preparation_budget_about_seconds": 900,
+  "preparation_finished_at_utc": "2026-10-24T15:37:02.269358+00:00",
+  "production_ledger_or_metadata_writes": 0,
+  "protected_prior_evidence_byte_identical": true,
+  "protected_prior_evidence_count": 218,
+  "protocol": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2-orchestration/postovernight-action-mode-r3-protocol.json",
+  "protocol_modified": false,
+  "protocol_revision_experiment_settings_unchanged": true,
+  "protocol_sha256": "90e3ae1cc8ba253e2e64a708f9b66ed59762e85668a15197d04d9265180ea741",
+  "qualification": false,
+  "real_checkpoints_deserialized_during_preparation": 0,
+  "receipt_script_wall_seconds": 1.93965345795732,
+  "required_parent_lease": {
+    "active_long_campaign": {
+      "authorization": "new_postovernight_inference_only",
+      "cancel_requested": false,
+      "frozen_capsule_manifest_sha256": "1b27ce7ec141a124dc880cddc214eee1788ac503a3951005f1200c1873445e50",
+      "frozen_capsule_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-action-mode-prepare-r3/source-snapshot",
+      "harness_sha256": "8c4be28db13db8df2c4fb647ea10fdd815ef6612139dc497b04b4b6915f9e329",
+      "kind": "M3_action_mode_diagnostic",
+      "protocol_sha256": "90e3ae1cc8ba253e2e64a708f9b66ed59762e85668a15197d04d9265180ea741",
+      "run_id": "v2-m3-action-mode-20261024-r1"
+    }
+  },
+  "runner": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-action-mode-prepare-r3/runner.py",
+  "runner_sha256": "8c4be28db13db8df2c4fb647ea10fdd815ef6612139dc497b04b4b6915f9e329",
+  "source_snapshot": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-action-mode-prepare-r3/source-snapshot",
+  "status": "prepared_for_independent_parent_review",
+  "terminal_publication": "finalization-result.json is authoritative and binds the nonrecursive artifact manifest and run-result hash. Success requires exit 0; all normal stages use the original absolute deadline. Late failure removes candidate success manifest/terminal before publishing failed partial receipts. Unproven groups never hash mutable outputs.",
+  "test_commands": [
+    [
+      "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+      "-B",
+      "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-action-mode-prepare-r3/test_harness.py"
+    ],
+    [
+      "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+      "-B",
+      "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-action-mode-prepare-r3/test_finalization.py"
+    ]
+  ],
+  "test_receipt": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-action-mode-prepare-r3/test-receipt.json",
+  "test_scope": "Standalone synthetic/pure CPU tests, fake tiny policies/environments, mocked probes, fixture leases, real bounded dummy subprocesses. Dodge imports are forbidden by an import guard. New finalization cases call actual supervise with fake worker/clock/guard and real fixture persistence. No actual teacher/native/model/MPS inference, no production campaign, no training.",
+  "test_source_hashes": {
+    "prepare_receipts.py": "ab505698c56393e375f6849b4d68e5eae5250ab910e0400eea753f93df5358c2",
+    "runner.py": "8c4be28db13db8df2c4fb647ea10fdd815ef6612139dc497b04b4b6915f9e329",
+    "test_finalization.py": "3f3d1a4ac6d5d13bdc9ea69f655b18a40640958d1ce21660ba34a442b67ec677",
+    "test_harness.py": "b9847856c92adb3b649d7afe3e6382d23a8318aa7e5cf1874c803aa07ffa4778"
+  },
+  "timing_scope": "run-result prepublication_wall_seconds ends before its write. Authoritative finalization-result actual_total_wall_seconds includes result serialization, all artifact hashing, manifest publication/hash, and receipt preparation. It is explicitly a lower bound excluding its own write/process exit; a post-write check revokes late success. Parent observes actual process exit/wall. Cleanup is separately measured and cannot shift deadline.",
+  "training_eligibility_changed": false,
+  "training_updates": 0
+}

@@ -1,0 +1,911 @@
+--- r1/audit_candidates.py
++++ r2/audit_candidates.py
+@@ -18,8 +18,6 @@
+ from collections import Counter
+ from pathlib import Path
+ 
+-import schedule_contract
+-
+ ROOT = Path(__file__).resolve().parents[4]
+ OUT = Path(__file__).resolve().parent
+ PREP = ROOT / "learning/runs/v2/D2-retained324-linear-integrated-luna-20261026-r4"
+@@ -29,15 +27,18 @@
+ OBSERVER_DIR = None
+ OBSERVER_SOURCE = None
+ OBSERVER_SHA = None
++OBSERVER_INSTANTIATION_SHA = "56d547b6ccd96df759740d1573fc1de44319094fe0d3ff8296ae75aa3dbbf166"
++OBSERVER_INSTANTIATION_PATH = ROOT / "learning/runs/v2/D2-retained324-linear-execution-observer-parent-20261026-r1/instantiation.json"
+ VENV_SITE = ROOT / "python/.venv/lib/python3.12/site-packages"
+ 
+-REG_PATH = PREP / "registration.json"
+-REG_SHA = None
+-RUNNER_SHA = None
+-REGISTRATION_SCHEMA_SHA = None
+-PARENT_ADAPTER_SHA = None
+-LAUNCHER_SHA = None
+-LAUNCHER_PATH = None
++REG_PATH = PREP / "registration-final-r2.json"
++REGISTRATION_SHA256 = "0a6bf98221689ffcf62a28289dae7bb98eb89bc8d3c02b93127f4a04df75cb4e"
++REG_SHA = REGISTRATION_SHA256
++RUNNER_SHA = "e80fba02fbef45564d9937cc9eb59bfe1a988040233a41f5bb417e26ed70019f"
++REGISTRATION_SCHEMA_SHA = "ed21c10e4c148b995e62784d0bc2c8a1af33d7ab404bcd6b7d8dbf68c02e782f"
++PARENT_ADAPTER_SHA = "8091c8e90d86404ff96c7272d403e9ad8d3c3a8f9d767b42acfce13a8ccb692d"
++LAUNCHER_SHA = "6b27b5702e050ba1899078a80c4909ff89cd12a72abcff0ff5dcc7006d679728"
++LAUNCHER_PATH = PREP / "execute_once.py"
+ CONFIG_SHA = "1c24df3eea150160451ada08e9f6844cd67645abf5fb8b712afd14abca930ce8"
+ POLICY_SHA = "bfcbee1609cec0180495c957cf4b5e0b31356f395e2a706217cc9225647d23ae"
+ NEW_NATIVE_SHA = "022d41dde9bace0b4f4c4c06b9b4ed007bc2c60013cd98734086e587d7bb997e"
+@@ -61,6 +62,7 @@
+ ORIGINAL_PRODUCING_CAMPAIGN_COST = 9758.365427209174
+ CAMPAIGN_COST_BASELINE = 10824.835578584221
+ CAMPAIGN_COST_BASELINE_SHA = "d3ddc427f18c8a88c45439452c9efcd966daefe423222e0fa03e97ff4f4fc7d3"
++ORIGINAL_PRODUCING_CAMPAIGN_COST_SHA = "7c6f250b5c5aa9e4098603cc8772c532a713e65f478cbda6ebfdd3941692fc9b"
+ BASELINE_MEAN_ALIVE = 2939.40625
+ BASELINE_PERFORMANCE = {'alive_frames': {'Q1': 767.5, 'Q4': 5468.6875, 'mean': 2939.40625}, 'score': {'Q1': 4.09375, 'Q4': 61.53125, 'mean': 29.53125}}
+ BASELINE_DEATH_CAUSES = {'kamikaze_enemy': 9, 'kamikaze_explosion': 3, 'moving_pattern_rect': 3, 'normal_enemy': 35, 'static_pattern_rect': 14}
+@@ -70,6 +72,9 @@
+                "dodge_rl.survival_gate": "dodge_rl/survival_gate.py", "dodge_rl.identity": "dodge_rl/identity.py",
+                "dodge_rl._native": "dodge_rl/_native.cpython-312-darwin.so"}
+ AUTHORITY = {"selection": False, "best_replacement": False, "continuation": False, "terminal_acceptance": False}
++schedule_contract = None
++lr_schedule = None
++BINDING_SHA = None
+ 
+ 
+ class AuditError(ValueError):
+@@ -99,6 +104,52 @@
+ def stable_json(path):
+     raw = read_stable(path)
+     return json.loads(raw), sha_bytes(raw)
++
++
++def validate_actual_package(registration, registration_sha256):
++    """Check source-manifest contracts for the exact frozen integrated package."""
++    check(registration_sha256 == REGISTRATION_SHA256, "Actual registration digest differs")
++    manifest, _ = stable_json(PREP / "source-manifest.json")
++    check(manifest.get("schema") == "d2_retained324_linear_integrated_source_manifest_v1"
++          and manifest.get("run_id") == RUN_ID
++          and manifest.get("controls", {}).get("final_registration") == REG_PATH.name
++          and manifest.get("artifacts", {}).get(REG_PATH.name) == REGISTRATION_SHA256,
++          "Actual source-manifest registration contract differs")
++    checks = {
++        "runner.py": "e80fba02fbef45564d9937cc9eb59bfe1a988040233a41f5bb417e26ed70019f",
++        "execute_once.py": "6b27b5702e050ba1899078a80c4909ff89cd12a72abcff0ff5dcc7006d679728",
++        "lr_schedule.py": "ef81e87580c39e6f733098a5c228e4660af03e7fccddcc06044e9d3612bce079",
++        "registration_schema.py": "ed21c10e4c148b995e62784d0bc2c8a1af33d7ab404bcd6b7d8dbf68c02e782f",
++        "parent_adapter.py": "8091c8e90d86404ff96c7272d403e9ad8d3c3a8f9d767b42acfce13a8ccb692d",
++    }
++    for name, digest in checks.items():
++        path = PREP / name
++        check(sha_file(path) == digest and registration.get("pins", {}).get(str(path.resolve())) == digest,
++              f"Actual package source pin differs: {name}")
++    check(registration.get("run_id") == RUN_ID
++          and registration.get("schema") == "d2_retained324_linear_lr_registration_v1"
++          and Path(registration.get("root", "")).resolve() == ROOT.resolve()
++          and Path(registration.get("runner_path", "")).resolve() == (PREP / "runner.py").resolve()
++          and Path(registration.get("launcher_path", "")).resolve() == (PREP / "execute_once.py").resolve()
++          and Path(registration.get("registration_schema_path", "")).resolve()
++          == (PREP / "registration_schema.py").resolve()
++          and registration.get("runtime_sha256") == "2cf10e9f056f41b39dc17845192e9adf553a5f699546d4f5dcea764a23e36b31"
++          and Path(registration.get("runtime_root", "")).resolve()
++          == (ROOT / "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime").resolve(),
++          "Actual package root, runtime, paths, or schema differ")
++    check(isinstance(registration.get("pins"), dict) and len(registration["pins"]) == 13857
++          and registration.get("parent", {}).get("registration_sha256") == PARENT_REGISTRATION_SHA,
++          "Actual registration pin inventory or parent registration differs")
++    check(registration.get("config_sha256") == CONFIG_SHA
++          and registration.get("parent", {}).get("sha256") == PARENT_SHA
++          and registration.get("parent", {}).get("terminal_receipt_sha256") == PARENT_RECEIPT_SHA
++          and registration.get("native", {}).get("sha256") == NEW_NATIVE_SHA,
++          "Actual config, selected parent, terminal receipt, or native differs from independent pins")
++    anchor = registration.get("latest_resource_cost_anchor", {})
++    check(anchor.get("sha256") == CAMPAIGN_COST_BASELINE_SHA
++          and registration.get("parent", {}).get("completed_cost_receipt_sha256")
++          == ORIGINAL_PRODUCING_CAMPAIGN_COST_SHA,
++          "Actual resource-cost provenance differs")
+ 
+ 
+ def parse_journal(raw, *, strict):
+@@ -119,6 +170,31 @@
+     sys.modules[name] = module
+     exec(compile(source, str(path), "exec", dont_inherit=True), module.__dict__)
+     return module
++
++
++def binding_digest(raw: bytes, expected: str) -> str:
++    check(isinstance(expected, str) and len(expected) == 64
++          and all(ch in "0123456789abcdef" for ch in expected),
++          "Parent-supplied expected binding SHA-256 is required")
++    actual = sha_bytes(raw)
++    check(actual == expected, "Audit binding digest differs from parent-supplied digest")
++    return actual
++
++
++def load_bound_schedule_modules(source_pins):
++    """Load both schedule modules by explicit OWN path and digest, never sys.path lookup."""
++    global schedule_contract, lr_schedule
++    lr_path = (OUT / "lr_schedule.py").resolve()
++    contract_path = (OUT / "schedule_contract.py").resolve()
++    check(source_pins.get(str(lr_path)) and source_pins.get(str(contract_path)),
++          "Binding omits pinned schedule module sources")
++    lr_schedule = load_pinned_module("lr_schedule", lr_path, source_pins[str(lr_path)])
++    schedule_contract = load_pinned_module("schedule_contract", contract_path, source_pins[str(contract_path)])
++    check(Path(lr_schedule.__file__).resolve() == lr_path
++          and schedule_contract.lr_schedule is lr_schedule
++          and Path(schedule_contract.__file__).resolve() == contract_path,
++          "Pinned schedule module origins differ")
++    return schedule_contract, lr_schedule
+ 
+ 
+ def bind_environment():
+@@ -134,16 +210,20 @@
+         check(name not in sys.modules, f"Module cache already contains {name}")
+ 
+ 
+-def load_frozen():
++def load_frozen(*, expected_binding_sha256):
+     """Frozen runner by exact bytes, then the live registration through its own preflight.
+     """
+-    global REG_SHA, RUNNER_SHA, REGISTRATION_SCHEMA_SHA, PARENT_ADAPTER_SHA, LAUNCHER_SHA, LAUNCHER_PATH
++    global REGISTRATION_SCHEMA_SHA, PARENT_ADAPTER_SHA, LAUNCHER_PATH
+     global CONFIG_SHA, PARENT_SHA, PARENT_RECEIPT_SHA, NEW_NATIVE_SHA
+-    global OBSERVER_SHA, OBSERVER_SOURCE, OBSERVER_DIR
++    global OBSERVER_SHA, OBSERVER_SOURCE, OBSERVER_DIR, schedule_contract, lr_schedule, BINDING_SHA
+     bind_environment()
+     binding_path = OUT / "audit-binding.json"
+     check(binding_path.is_file(), "Parent-generated exact audit binding is required")
+-    binding, binding_sha = stable_json(binding_path)
++    check(binding_path.resolve() == (OUT / "audit-binding.json").resolve(), "Binding path differs")
++    binding_raw = read_stable(binding_path)
++    binding_sha = binding_digest(binding_raw, expected_binding_sha256)
++    binding = json.loads(binding_raw)
++    BINDING_SHA = binding_sha
+     check(binding.get("schema") == "d2_retained324_linear_auditor_binding_v1"
+           and binding.get("run_id") == RUN_ID, "Audit binding identity differs")
+     required_sources = {str((OUT / name).resolve()) for name in
+@@ -154,17 +234,24 @@
+     for path_text, digest in binding["auditor_sources"].items():
+         check(Path(path_text).is_absolute() and sha_file(path_text) == digest,
+               "OWN auditor source binding differs")
++    schedule_contract, lr_schedule = load_bound_schedule_modules(binding["auditor_sources"])
+     check(sha_file(binding["reviewed_manifest"]["path"]) == binding["reviewed_manifest"]["sha256"],
+           "Reviewed manifest digest differs")
+     OBSERVER_SOURCE = Path(binding["observer_source"]["path"])
++    check(OBSERVER_SOURCE.is_absolute(), "Observer source path must be absolute")
+     OBSERVER_SHA = binding["observer_source"]["sha256"]
+     OBSERVER_DIR = OBSERVER_SOURCE.parent
++    check(binding.get("observer_instantiation") == {
++        "path": str(OBSERVER_INSTANTIATION_PATH.resolve()), "sha256": OBSERVER_INSTANTIATION_SHA},
++        "Observer instantiation binding differs from immutable parent record")
+     reg_raw = read_stable(REG_PATH)
+-    REG_SHA = sha_bytes(reg_raw)
+-    check(REG_SHA == binding["registration"]["sha256"]
++    actual_registration_sha = sha_bytes(reg_raw)
++    check(actual_registration_sha == REG_SHA, "Actual registration digest differs from independent auditor pin")
++    check(actual_registration_sha == binding["registration"]["sha256"]
+           and Path(binding["registration"]["path"]).resolve() == REG_PATH.resolve(),
+           "Final registration binding differs")
+     reg_preview = json.loads(reg_raw)
++    validate_actual_package(reg_preview, REG_SHA)
+     check(reg_preview.get("run_id") == RUN_ID
+           and Path(reg_preview.get("runner_path", "")).resolve() == (PREP / "runner.py").resolve(),
+           "Final registration runner path or run identity differs")
+@@ -176,17 +263,22 @@
+         return digest
+     schema_path = Path(reg_preview["registration_schema_path"]).resolve()
+     check(schema_path == (PREP / "registration_schema.py").resolve(), "Registration schema path differs")
+-    REGISTRATION_SCHEMA_SHA = reg_preview["registration_schema_sha256"]
+-    RUNNER_SHA = registered_sha(PREP / "runner.py")
+-    check(Path(reg_preview["parent_adapter_path"]).resolve() == (PREP / "parent_adapter.py").resolve(),
+-          "Registered parent adapter path differs")
+-    PARENT_ADAPTER_SHA = registered_sha(reg_preview["parent_adapter_path"])
+-    LAUNCHER_PATH = Path(reg_preview["launcher_path"]).resolve()
+-    LAUNCHER_SHA = registered_sha(LAUNCHER_PATH)
+-    CONFIG_SHA = reg_preview["config_sha256"]
+-    PARENT_SHA = reg_preview["parent"]["sha256"]
+-    PARENT_RECEIPT_SHA = registered_sha(reg_preview["parent"]["terminal_receipt_path"])
+-    NEW_NATIVE_SHA = reg_preview["native"]["sha256"]
++    check(reg_preview.get("registration_schema_sha256") == REGISTRATION_SCHEMA_SHA,
++          "Registration schema digest differs from independent auditor pin")
++    check(registered_sha(PREP / "runner.py") == RUNNER_SHA,
++          "Registered runner differs from independent auditor pin")
++    check(Path(reg_preview["parent_adapter_path"]).resolve() == (PREP / "parent_adapter.py").resolve()
++          and registered_sha(PREP / "parent_adapter.py") == PARENT_ADAPTER_SHA,
++          "Registered parent adapter differs from independent auditor pin")
++    check(Path(reg_preview["launcher_path"]).resolve() == LAUNCHER_PATH.resolve()
++          and registered_sha(LAUNCHER_PATH) == LAUNCHER_SHA,
++          "Registered launcher differs from independent auditor pin")
++    check(reg_preview.get("config_sha256") == CONFIG_SHA
++          and reg_preview.get("parent", {}).get("sha256") == PARENT_SHA
++          and reg_preview.get("parent", {}).get("terminal_receipt_sha256") == PARENT_RECEIPT_SHA
++          and reg_preview.get("native", {}).get("sha256") == NEW_NATIVE_SHA
++          and registered_sha(reg_preview["parent"]["terminal_receipt_path"]) == PARENT_RECEIPT_SHA,
++          "Registration config, parent, receipt, or native differs from independent auditor pin")
+     schema = load_pinned_module("registration_schema", schema_path, REGISTRATION_SCHEMA_SHA)
+     check(Path(schema.__file__).resolve() == schema_path.resolve(), "Registration schema origin differs")
+     check(schema.RUN_ID == RUN_ID, "Registration schema run identity differs")
+@@ -279,8 +371,12 @@
+ 
+ def check_saved_lr(state, local_update):
+     """Bind every candidate optimizer LR to exact inherited + local schedule progress."""
+-    inherited = state.get("inherited_counters", {}).get("updates")
+-    cumulative = state.get("cumulative_counters", {}).get("updates")
++    inherited_counters = state.get("inherited_counters")
++    cumulative_counters = state.get("cumulative_counters")
++    check(isinstance(inherited_counters, dict) and isinstance(cumulative_counters, dict),
++          "Checkpoint inherited or cumulative counters missing or invalid")
++    inherited = inherited_counters.get("updates")
++    cumulative = cumulative_counters.get("updates")
+     try:
+         schedule_contract.validate_checkpoint_schedule(
+             state, inherited_updates=inherited, local_updates=local_update,
+@@ -560,8 +656,8 @@
+     return max(means, key=lambda update: (means[update], -update))
+ 
+ 
+-def audit(*, provisional, observer_dir=None):
+-    runner, reg, config = load_frozen()
++def audit(*, provisional, expected_binding_sha256, observer_dir=None):
++    runner, reg, config = load_frozen(expected_binding_sha256=expected_binding_sha256)
+     ckpt, survival_gate, identity_hash = import_runtime(reg)
+     tracked = {}
+     journal_raw = read_stable(RUN / "training-episodes.jsonl")
+@@ -580,8 +676,11 @@
+         check(sha_file(OBSERVER_SOURCE) == OBSERVER_SHA, "Registered observer source digest differs")
+         observer = load_pinned_module("retained324_observer_source", OBSERVER_SOURCE, OBSERVER_SHA)
+         check(observer.REG_SHA == REG_SHA, "Pinned observer source registration binding differs")
+-        instantiation_path = OBSERVER_DIR / "instantiation.json"
++        instantiation_path = OBSERVER_INSTANTIATION_PATH
+         instantiation, instantiation_sha = stable_json(instantiation_path)
++        check(instantiation_sha == OBSERVER_INSTANTIATION_SHA
++              and instantiation_path.resolve() == OBSERVER_INSTANTIATION_PATH.resolve(),
++              "Observer instantiation digest or path differs")
+         validate_observer_instantiation(instantiation)
+         tracked[str(instantiation_path)] = instantiation_sha
+         targets = UPDATES
+@@ -631,7 +730,8 @@
+     check(retained == proposed, "Chronological retained best differs from strict-max selection")
+     result = {"schema": "retained324_linear_lr_all_candidate_audit_v1",
+               "status": "readonly_published_prefix_provisional" if provisional else "all_candidates_audited_pending_parent_terminal_acceptance",
+-              "run_id": RUN_ID, "registration_sha256": REG_SHA, "updates_audited": list(targets),
++              "run_id": RUN_ID, "registration_sha256": REG_SHA, "binding_sha256": BINDING_SHA,
++              "updates_audited": list(targets),
+               "baseline_mean_alive_frames": BASELINE_MEAN_ALIVE, "proposed_best_update": proposed, "selection_basis": "mean_alive_frames_including_entry324_no_score_gate",
+               "candidates": results, "schedule_spec": schedule_contract.lr_schedule.SCHEDULE_SPEC,
+               "schedule_spec_sha256": schedule_contract.lr_schedule.SCHEDULE_SPEC_SHA256,
+@@ -651,13 +751,19 @@
+         check(tuple(published) == UPDATES, "Full mode requires all six published certificates")
+         missing = [name for name in expected if not (RUN / name).is_file()]
+         check(not missing, f"Terminal outputs missing: {missing[:3]}")
+-        execution, _ = stable_json(RUN / "execution-result.json")
+-        worker, _ = stable_json(RUN / "worker-result.json")
++        execution_path = RUN / "execution-result.json"
++        worker_path = RUN / "worker-result.json"
++        execution, execution_sha = stable_json(execution_path)
++        worker, worker_sha = stable_json(worker_path)
++        tracked[str(execution_path)] = execution_sha
++        tracked[str(worker_path)] = worker_sha
+         check(execution.get("status") == "passed" and worker.get("status") == "completed", "Terminal status not successful")
+         launcher = load_pinned_module("execute_once_frozen", LAUNCHER_PATH, LAUNCHER_SHA)
+         check(launcher.r is runner, "Frozen launcher did not bind the audited runner")
+         result["frozen_launcher_terminal_checks"] = launcher.validate_outputs(reg, worker, REG_SHA)
+-        observation, _ = stable_json(Path(observer_dir) / "observation.json")
++        observation_path = Path(observer_dir) / "observation.json"
++        observation, observation_sha = stable_json(observation_path)
++        tracked[str(observation_path)] = observation_sha
+         check(observation["outer_raw_exit"] == 0 and observation["worker_raw_exit"] == 0, "Observer raw exits differ")
+         check(observation.get("launch_count") == 1 and observation.get("first_event") is None
+               and observation.get("outer_process_absent") is True and observation.get("worker_process_absent") is True
+@@ -677,6 +783,13 @@
+               and lease.get("active_inference_campaign") is None and lease.get("active_inference_lease") is None
+               and lease.get("active_inference_diagnostic") is None, "Observer lease postflight differs")
+         check(sha_file(OBSERVER_SOURCE) == OBSERVER_SHA, "Registered observer source changed during audit")
++        result["terminal_record_sha256"] = {
++            str(execution_path): execution_sha,
++            str(worker_path): worker_sha,
++            str(observation_path): observation_sha,
++        }
++        result["_terminal_records"] = {"execution": execution, "worker": worker,
++                                       "observation": observation}
+ 
+     # Append-only journals and published files must be unchanged after the audit.
+     check(Path(RUN / "training-episodes.jsonl").read_bytes()[: len(journal_consumed)] == journal_consumed,
+@@ -702,12 +815,14 @@
+     parser = argparse.ArgumentParser()
+     parser.add_argument("--output", required=True)
+     parser.add_argument("--provisional", action="store_true")
++    parser.add_argument("--binding-sha256", required=True,
++                        help="exact audit-binding.json digest supplied by the parent")
+     args = parser.parse_args(argv)
+     if not args.provisional:
+         parser.error("full mode is parent-only; use the wrapper's explicit full_mode function")
+     output = Path(args.output)
+     check(output.parent.resolve() == OUT.resolve(), "Output must be in the auditor directory")
+-    result = audit(provisional=True)
++    result = audit(provisional=True, expected_binding_sha256=args.binding_sha256)
+     with output.open("x") as stream:
+         json.dump(result, stream, indent=2, sort_keys=True, allow_nan=False)
+         stream.write("\n")
+--- r1/wrapper.py
++++ r2/wrapper.py
+@@ -28,12 +28,18 @@
+ VENV_SITE = VENV / "lib/python3.12/site-packages"
+ INTERPRETER = VENV / "bin/python"
+ PYCACHE_PREFIX = OUT / "empty-pycache"
+-REG_PATH = PREP / "registration.json"
++REG_PATH = PREP / "registration-final-r2.json"
++REG_SHA256 = "0a6bf98221689ffcf62a28289dae7bb98eb89bc8d3c02b93127f4a04df75cb4e"
++OBSERVER_SOURCE_PATH = ROOT / "learning/runs/v2/D2-retained324-linear-execution-observer-parent-20261026-r1/observe.py"
++OBSERVER_SOURCE_SHA256 = "f271b2641b995fc34a90cebe420657953cb16ce9038886edc2fd74c184ccacad"
++OBSERVER_INSTANTIATION_PATH = ROOT / "learning/runs/v2/D2-retained324-linear-execution-observer-parent-20261026-r1/instantiation.json"
++OBSERVER_INSTANTIATION_SHA256 = "56d547b6ccd96df759740d1573fc1de44319094fe0d3ff8296ae75aa3dbbf166"
+ REG_SHA = None
+ AUD_PATH = OUT / "audit_candidates.py"
+ SCHEMA_PATH = PREP / "registration_schema.py"
+ AUD_SHA = None
+ BINDING = None
++BINDING_SHA = None
+ DEP_ORIGINS = {"torch": VENV_SITE / "torch/__init__.py", "numpy": VENV_SITE / "numpy/__init__.py"}
+ AUTHORITY = {"selection": False, "best_replacement": False, "continuation": False,
+              "terminal_acceptance": False, "lease_clear": False, "new_receipt": False, "retained_publication": False}
+@@ -57,6 +63,15 @@
+         for chunk in iter(lambda: stream.read(1048576), b""):
+             digest.update(chunk)
+     return digest.hexdigest()
++
++
++def binding_digest(raw, expected):
++    need(isinstance(expected, str) and len(expected) == 64
++         and all(ch in "0123456789abcdef" for ch in expected),
++         "Parent-supplied expected binding SHA-256 is required")
++    actual = hashlib.sha256(raw).hexdigest()
++    need(actual == expected, "Audit binding digest differs from parent-supplied digest")
++    return actual
+ 
+ 
+ def verify_pins(pins):
+@@ -68,10 +83,14 @@
+     return len(pins)
+ 
+ 
+-def load_binding():
+-    global BINDING, REG_SHA, AUD_SHA, OBSERVER_DIR, OBSERVER_SOURCE, OBSERVER_SHA
++def load_binding(expected_binding_sha256):
++    global BINDING, BINDING_SHA, REG_SHA, AUD_SHA, OBSERVER_DIR, OBSERVER_SOURCE, OBSERVER_SHA
+     need(BINDING_PATH.is_file(), "Parent-generated exact audit binding is required")
+-    BINDING = json.loads(BINDING_PATH.read_bytes())
++    need(BINDING_PATH.resolve() == (OUT / "audit-binding.json").resolve(), "Binding path differs")
++    binding_bytes = BINDING_PATH.read_bytes()
++    need(BINDING_PATH.read_bytes() == binding_bytes, "Audit binding changed while reading")
++    BINDING_SHA = binding_digest(binding_bytes, expected_binding_sha256)
++    BINDING = json.loads(binding_bytes)
+     need(BINDING.get("schema") == "d2_retained324_linear_auditor_binding_v1"
+          and BINDING.get("run_id") == RUN.name, "Audit binding identity differs")
+     required_sources = {str((OUT / name).resolve()) for name in
+@@ -82,12 +101,20 @@
+     for name, digest in BINDING["auditor_sources"].items():
+         need(Path(name).is_absolute() and sha_file(name) == digest, "OWN auditor source binding differs")
+     REG_SHA = BINDING["registration"]["sha256"]
+-    need(Path(BINDING["registration"]["path"]).resolve() == REG_PATH.resolve(), "Bound registration path differs")
++    need(REG_SHA == REG_SHA256
++         and Path(BINDING["registration"]["path"]).resolve() == REG_PATH.resolve(),
++         "Bound registration path or independent digest differs")
+     need(sha_file(BINDING["reviewed_manifest"]["path"]) == BINDING["reviewed_manifest"]["sha256"],
+          "Reviewed manifest digest differs")
+     AUD_SHA = BINDING["auditor_sources"][str(AUD_PATH.resolve())]
+     OBSERVER_SOURCE = Path(BINDING["observer_source"]["path"])
+     OBSERVER_SHA = BINDING["observer_source"]["sha256"]
++    need(OBSERVER_SOURCE.resolve() == OBSERVER_SOURCE_PATH.resolve()
++         and OBSERVER_SHA == OBSERVER_SOURCE_SHA256
++         and BINDING.get("observer_instantiation") == {
++             "path": str(OBSERVER_INSTANTIATION_PATH.resolve()),
++             "sha256": OBSERVER_INSTANTIATION_SHA256},
++         "Observer source or instantiation pin differs from independent parent pins")
+     OBSERVER_DIR = OBSERVER_SOURCE.parent
+     return BINDING
+ 
+@@ -124,7 +151,26 @@
+ 
+ def load_registration():
+     need(BINDING is not None and sha_file(REG_PATH) == REG_SHA, "Registration digest differs")
+-    return json.loads(REG_PATH.read_bytes())
++    need(REG_SHA == REG_SHA256, "Actual registration digest differs")
++    reg = json.loads(REG_PATH.read_bytes())
++    source_manifest = json.loads((PREP / "source-manifest.json").read_bytes())
++    need(source_manifest.get("schema") == "d2_retained324_linear_integrated_source_manifest_v1"
++         and source_manifest.get("run_id") == RUN.name
++         and source_manifest.get("controls", {}).get("final_registration") == REG_PATH.name
++         and source_manifest.get("artifacts", {}).get(REG_PATH.name) == REG_SHA256
++         and reg.get("schema") == "d2_retained324_linear_lr_registration_v1"
++         and reg.get("run_id") == RUN.name
++         and Path(reg.get("runner_path", "")).resolve() == (PREP / "runner.py").resolve(),
++         "Actual package source-manifest or registration contract differs")
++    for name, digest in (("runner.py", "e80fba02fbef45564d9937cc9eb59bfe1a988040233a41f5bb417e26ed70019f"),
++                         ("execute_once.py", "6b27b5702e050ba1899078a80c4909ff89cd12a72abcff0ff5dcc7006d679728"),
++                         ("lr_schedule.py", "ef81e87580c39e6f733098a5c228e4660af03e7fccddcc06044e9d3612bce079"),
++                         ("registration_schema.py", "ed21c10e4c148b995e62784d0bc2c8a1af33d7ab404bcd6b7d8dbf68c02e782f"),
++                         ("parent_adapter.py", "8091c8e90d86404ff96c7272d403e9ad8d3c3a8f9d767b42acfce13a8ccb692d")):
++        path = PREP / name
++        need(sha_file(path) == digest and reg.get("pins", {}).get(str(path.resolve())) == digest,
++             f"Actual package source pin differs: {name}")
++    return reg
+ 
+ 
+ def load_auditor():
+@@ -252,9 +298,9 @@
+     return True
+ 
+ 
+-def run_audit(*, provisional, name, observer_dir=None):
++def run_audit(*, provisional, name, expected_binding_sha256, observer_dir=None):
+     need(Path(name).name == name and name.endswith(".json"), "Output must be a plain .json name")
+-    load_binding()
++    load_binding(expected_binding_sha256)
+     if not provisional:
+         bind_observer_directory(observer_dir)
+     reg = load_registration()
+@@ -270,16 +316,18 @@
+     origins = bind_dependency_origins(reg)
+ 
+     aud.import_runtime = make_strict_import_runtime(aud.import_runtime, reg)
+-    audit = aud.audit(provisional=provisional, observer_dir=observer_dir)
++    audit = aud.audit(provisional=provisional, expected_binding_sha256=expected_binding_sha256,
++                      observer_dir=observer_dir)
+     check_versions(reg)
+     dodge_origins = check_loaded_dodge(reg, Path(reg["runtime_root"]).resolve(), reg["runtime_continuity"]["member_sha256"])
+ 
+     gates = None
+     if not provisional:
+         need(observer_dir is not None, "Full mode requires the parent-owned observer directory")
+-        execution = json.loads((RUN / "execution-result.json").read_bytes())
+-        worker = json.loads((RUN / "worker-result.json").read_bytes())
+-        observation = json.loads((Path(observer_dir) / "observation.json").read_bytes())
++        terminal_records = audit.pop("_terminal_records")
++        execution = terminal_records["execution"]
++        worker = terminal_records["worker"]
++        observation = terminal_records["observation"]
+         gates = terminal_gates(observation, execution, worker, reg)
+         gates["owned_processes_absent"] = owned_processes_absent(observation, execution)
+         need(sha_file(OBSERVER_SOURCE) == OBSERVER_SHA, "Registered observer source changed during audit")
+@@ -298,6 +346,7 @@
+         "wrapper_sha256": sha_file(Path(__file__).resolve()),
+         "auditor": {"path": str(AUD_PATH), "sha256": AUD_SHA},
+         "registration": {"path": str(REG_PATH), "sha256": REG_SHA, "pins_checked_before_and_after": pins_after},
++        "binding_sha256": BINDING_SHA,
+         "reviewed_manifest": BINDING["reviewed_manifest"],
+         "interpreter": {"lexical": sys.executable, "resolved": str(Path(sys.executable).resolve()),
+                         "prefix": sys.prefix, "version": sys.version.split()[0]},
+@@ -315,19 +364,23 @@
+     return record
+ 
+ 
+-def full_mode(*, observer_dir, name="full-audit.json"):
++def full_mode(*, observer_dir, expected_binding_sha256, name="full-audit.json"):
+     """Parent-only entry point. Requires all six candidates and successful closed terminal receipts."""
+-    return run_audit(provisional=False, name=name, observer_dir=observer_dir)
++    return run_audit(provisional=False, name=name, observer_dir=observer_dir,
++                     expected_binding_sha256=expected_binding_sha256)
+ 
+ 
+ def main(argv=None):
+     parser = argparse.ArgumentParser(description="Read-only provisional audit; full mode is parent-only.")
+     parser.add_argument("--provisional", action="store_true", help="required; read-only published-prefix audit")
+     parser.add_argument("--name", default="wrapper-provisional-audit.json")
++    parser.add_argument("--binding-sha256", required=True,
++                        help="exact audit-binding.json digest supplied by the parent")
+     args = parser.parse_args(argv)
+     if not args.provisional:
+         parser.error("full mode is parent-only; call wrapper.full_mode(observer_dir=..., name=...)")
+-    record = run_audit(provisional=True, name=args.name)
++    record = run_audit(provisional=True, name=args.name,
++                       expected_binding_sha256=args.binding_sha256)
+     print(json.dumps({"status": "passed", "output": args.name, "mode": record["mode"],
+                       "updates_audited": record["audit"]["updates_audited"],
+                       "proposed_best_update": record["audit"]["proposed_best_update"]}, sort_keys=True))
+--- r1/binding_builder.py
++++ r2/binding_builder.py
+@@ -10,6 +10,13 @@
+ RUN_ID = "D2-retained324-linear-lr-20261026-r1"
+ PREP = HERE.parent / "D2-retained324-linear-integrated-luna-20261026-r4"
+ RUN = HERE.parent / RUN_ID
++REGISTRATION = PREP / "registration-final-r2.json"
++OBSERVER = HERE.parent / "D2-retained324-linear-execution-observer-parent-20261026-r1" / "observe.py"
++OBSERVER_SHA256 = "f271b2641b995fc34a90cebe420657953cb16ce9038886edc2fd74c184ccacad"
++OBSERVER_INSTANTIATION = HERE.parent / "D2-retained324-linear-execution-observer-parent-20261026-r1" / "instantiation.json"
++OBSERVER_INSTANTIATION_SHA256 = "56d547b6ccd96df759740d1573fc1de44319094fe0d3ff8296ae75aa3dbbf166"
++REGISTRATION_SHA256 = "0a6bf98221689ffcf62a28289dae7bb98eb89bc8d3c02b93127f4a04df75cb4e"
++FROZEN_MANIFEST = HERE / "frozen-manifest.json"
+ SOURCE_NAMES = ("audit_candidates.py", "wrapper.py", "binding_builder.py",
+                 "schedule_contract.py", "lr_schedule.py")
+ 
+@@ -29,26 +36,86 @@
+     return data
+ 
+ 
++def _manifest_matches_reviewed_inputs(value: dict, registration: Path, registration_sha256: str,
++                                      frozen_manifest: Path, frozen_manifest_sha256: str,
++                                      auditor_sources: dict[str, str]) -> bool:
++    return (value.get("schema") == "d2_retained324_linear_auditor_review_assembly_v1"
++            and value.get("run_id") == RUN_ID
++            and value.get("registration") == {"path": str(registration), "sha256": registration_sha256}
++            and value.get("frozen_manifest") == {"path": str(frozen_manifest), "sha256": frozen_manifest_sha256}
++            and value.get("auditor_sources") == auditor_sources)
++
++
+ def build_binding(*, registration: Path, registration_sha256: str,
+                   reviewed_manifest: Path, reviewed_manifest_sha256: str,
+-                  observer_source: Path, observer_sha256: str) -> dict:
+-    if registration.resolve() != (PREP / "registration.json").resolve():
+-        raise ValueError("Registration path is not the final integrated-run registration")
++                  observer_source: Path, observer_sha256: str,
++                  frozen_manifest: Path, frozen_manifest_sha256: str) -> dict:
++    if not registration.is_absolute():
++        raise ValueError("Registration path must be absolute")
++    registration = registration.resolve()
++    if registration != REGISTRATION.resolve():
++        raise ValueError("Registration path is not registration-final-r2.json")
++    if registration_sha256 != REGISTRATION_SHA256:
++        raise ValueError("Registration digest is not the frozen actual package digest")
+     reg_bytes = checked_bytes(registration, registration_sha256, "Registration")
+     reviewed_bytes = checked_bytes(reviewed_manifest, reviewed_manifest_sha256, "Reviewed manifest")
+-    observer_bytes = checked_bytes(observer_source, observer_sha256, "Parent observer source")
++    if not observer_source.is_absolute():
++        raise ValueError("Observer source path must be absolute")
++    observer_source = observer_source.resolve()
++    if observer_source != OBSERVER.resolve() or observer_sha256 != OBSERVER_SHA256:
++        raise ValueError("Observer source is not the exact registered parent observer")
++    checked_bytes(observer_source, observer_sha256, "Parent observer source")
++    if not frozen_manifest.is_absolute():
++        raise ValueError("Frozen manifest path must be absolute")
++    frozen_manifest = frozen_manifest.resolve()
++    if frozen_manifest != FROZEN_MANIFEST.resolve():
++        raise ValueError("Frozen manifest path is not this successor's immutable manifest")
++    frozen_bytes = checked_bytes(frozen_manifest, frozen_manifest_sha256, "Frozen manifest")
+     reg = json.loads(reg_bytes)
+     if reg.get("run_id") != RUN_ID:
+         raise ValueError("Registration run_id differs from requested successor")
+-    if not reviewed_bytes or not observer_bytes:
+-        raise ValueError("Reviewed manifest and observer source must be nonempty")
+-    source_pins = {str((HERE / name).resolve()): sha256(HERE / name) for name in SOURCE_NAMES}
++    if reg.get("schema") != "d2_retained324_linear_lr_registration_v1":
++        raise ValueError("Registration schema differs from actual package")
++    source_manifest_path = PREP / "source-manifest.json"
++    source_manifest_raw = source_manifest_path.read_bytes()
++    source_manifest = json.loads(source_manifest_raw)
++    if (source_manifest.get("schema") != "d2_retained324_linear_integrated_source_manifest_v1"
++            or source_manifest.get("run_id") != RUN_ID
++            or source_manifest.get("controls", {}).get("final_registration") != REGISTRATION.name
++            or source_manifest.get("artifacts", {}).get(REGISTRATION.name) != REGISTRATION_SHA256):
++        raise ValueError("Actual source manifest does not bind registration-final-r2.json")
++    observer_instantiation_raw = checked_bytes(
++        OBSERVER_INSTANTIATION, OBSERVER_INSTANTIATION_SHA256, "Parent observer instantiation")
++    observer_instantiation = json.loads(observer_instantiation_raw)
++    if (observer_instantiation.get("schema") != "retained324_linear_lr_observer_instantiation_v1"
++            or observer_instantiation.get("registration_path") != str(REGISTRATION.resolve())
++            or observer_instantiation.get("registration_sha256") != REGISTRATION_SHA256
++            or observer_instantiation.get("observer_sha256") != OBSERVER_SHA256
++            or observer_instantiation.get("actual_launches") != 0
++            or observer_instantiation.get("one_shot_marker_absent") is not True):
++        raise ValueError("Parent observer instantiation does not bind exact registration and no-launch state")
++    frozen = json.loads(frozen_bytes)
++    if frozen.get("inputs", {}).get("source_manifest_sha256") != hashlib.sha256(source_manifest_raw).hexdigest():
++        raise ValueError("Actual source-manifest digest differs from frozen input pin")
++    frozen_sources = frozen.get("auditor_sources")
++    if frozen.get("schema") != "d2_retained324_linear_auditor_frozen_manifest_v2" or not isinstance(frozen_sources, dict):
++        raise ValueError("Frozen manifest schema or source pins differ")
++    source_pins = {str((HERE / name).resolve()): frozen_sources.get(name) for name in SOURCE_NAMES}
++    if any(not isinstance(digest, str) or len(digest) != 64 or sha256(HERE / name) != digest
++           for name, digest in zip(SOURCE_NAMES, source_pins.values())):
++        raise ValueError("Current auditor sources do not match explicit frozen-manifest pins")
++    review = json.loads(reviewed_bytes)
++    if not _manifest_matches_reviewed_inputs(review, registration, registration_sha256,
++                                             frozen_manifest, frozen_manifest_sha256, source_pins):
++        raise ValueError("Reviewed manifest does not bind exact registration, frozen manifest, and auditor sources")
+     return {
+         "schema": "d2_retained324_linear_auditor_binding_v1",
+         "run_id": RUN_ID,
+         "registration": {"path": str(registration), "sha256": registration_sha256},
+-        "reviewed_manifest": {"path": str(reviewed_manifest), "sha256": reviewed_manifest_sha256},
++        "reviewed_manifest": {"path": str(reviewed_manifest.resolve()), "sha256": reviewed_manifest_sha256},
+         "observer_source": {"path": str(observer_source), "sha256": observer_sha256},
++        "observer_instantiation": {"path": str(OBSERVER_INSTANTIATION.resolve()),
++                                   "sha256": OBSERVER_INSTANTIATION_SHA256},
+         "auditor_sources": source_pins,
+         "run_directory": str(RUN),
+         "authority": {"selection": False, "best_replacement": False, "continuation": False,
+@@ -64,6 +131,8 @@
+     parser.add_argument("--reviewed-manifest-sha256", required=True)
+     parser.add_argument("--observer-source", type=Path, required=True)
+     parser.add_argument("--observer-sha256", required=True)
++    parser.add_argument("--frozen-manifest", type=Path, required=True)
++    parser.add_argument("--frozen-manifest-sha256", required=True)
+     parser.add_argument("--output", type=Path, required=True)
+     args = parser.parse_args(argv)
+     if args.output.resolve() != (HERE / "audit-binding.json").resolve():
+@@ -73,7 +142,9 @@
+                             reviewed_manifest=args.reviewed_manifest,
+                             reviewed_manifest_sha256=args.reviewed_manifest_sha256,
+                             observer_source=args.observer_source,
+-                            observer_sha256=args.observer_sha256)
++                            observer_sha256=args.observer_sha256,
++                            frozen_manifest=args.frozen_manifest,
++                            frozen_manifest_sha256=args.frozen_manifest_sha256)
+     with args.output.open("x") as stream:
+         json.dump(binding, stream, indent=2, sort_keys=True, allow_nan=False)
+         stream.write("\n")
+--- r1/lr_schedule.py
++++ r2/lr_schedule.py
+@@ -115,10 +115,13 @@
+ 
+ 
+ def verify_frozen_manifest(directory: Path) -> None:
+-    """Verify spec declaration and source bytes against adjacent frozen manifest."""
++    """Verify helper bytes and schedule spec against this auditor's frozen manifest."""
+     manifest = json.loads((directory / "frozen-manifest.json").read_text())
+     source_sha = hashlib.sha256((directory / "lr_schedule.py").read_bytes()).hexdigest()
+     spec_sha = hashlib.sha256(json.dumps(SCHEDULE_SPEC, sort_keys=True,
+         separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+-    if manifest != {"schedule_spec_sha256": spec_sha, "schedule_source_sha256": source_sha}:
++    if (manifest.get("schema") != "d2_retained324_linear_auditor_frozen_manifest_v2"
++            or manifest.get("schedule_spec_sha256") != spec_sha
++            or manifest.get("auditor_sources", {}).get("lr_schedule.py") != source_sha
++            or manifest.get("files", {}).get("lr_schedule.py") != source_sha):
+         raise ValueError("frozen schedule manifest mismatch")
+--- r1/bootstrap_readiness.py
++++ r2/bootstrap_readiness.py
+@@ -0,0 +1,66 @@
++"""Parent-only unmocked package-loader check; never audits candidates or loads checkpoints."""
++from __future__ import annotations
++
++import argparse
++import json
++from pathlib import Path
++
++import wrapper
++
++
++def bootstrap(*, expected_binding_sha256: str) -> dict:
++    if Path(wrapper.__file__).resolve() != (wrapper.OUT / "wrapper.py").resolve():
++        raise wrapper.WrapperError("Bootstrap wrapper origin differs from OWN source")
++    wrapper.load_binding(expected_binding_sha256)
++    reg = wrapper.load_registration()
++    wrapper.bind_interpreter(reg)
++    wrapper.reject_preloaded_dodge()
++    wrapper.bind_bytecode()
++    pins_before = wrapper.verify_pins(reg["pins"])
++    auditor = wrapper.load_auditor()
++    dependency_origins_before = wrapper.bind_dependency_origins(reg)
++    runner, loaded_reg, config = auditor.load_frozen(
++        expected_binding_sha256=expected_binding_sha256)
++    launcher = auditor.load_pinned_module(
++        "execute_once_frozen", auditor.LAUNCHER_PATH, auditor.LAUNCHER_SHA)
++    if launcher.r is not runner:
++        raise wrapper.WrapperError("Frozen launcher did not bind the actual loaded runner")
++    dependency_origins_after = wrapper.bind_dependency_origins(loaded_reg)
++    if dependency_origins_before != dependency_origins_after:
++        raise wrapper.WrapperError("Dependency origins changed during bootstrap")
++    if pins_before != len(reg["pins"]) or wrapper.verify_pins(reg["pins"]) != pins_before:
++        raise wrapper.WrapperError("Registration pins changed during bootstrap")
++    if any(wrapper.PYCACHE_PREFIX.iterdir()):
++        raise wrapper.WrapperError("Bytecode prefix gained files during bootstrap")
++    return {
++        "status": "bootstrap_ready_only",
++        "registration_sha256": auditor.REG_SHA,
++        "binding_sha256": wrapper.BINDING_SHA,
++        "runner_sha256": auditor.RUNNER_SHA,
++        "launcher_sha256": auditor.LAUNCHER_SHA,
++        "registration_schema_sha256": auditor.REGISTRATION_SCHEMA_SHA,
++        "parent_adapter_sha256": auditor.PARENT_ADAPTER_SHA,
++        "schedule_module_origins": {
++            "schedule_contract": str(Path(auditor.schedule_contract.__file__).resolve()),
++            "lr_schedule": str(Path(auditor.lr_schedule.__file__).resolve()),
++        },
++        "dependency_origins": dependency_origins_after,
++        "pins_checked": pins_before,
++        "checkpoint_deserialization": False,
++        "candidate_audit": False,
++        "training_launch": False,
++        "authority": dict(wrapper.AUTHORITY),
++    }
++
++
++def main(argv=None) -> None:
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--binding-sha256", required=True,
++                        help="exact audit-binding.json digest supplied by the parent")
++    args = parser.parse_args(argv)
++    print(json.dumps(bootstrap(expected_binding_sha256=args.binding_sha256),
++                     sort_keys=True, allow_nan=False))
++
++
++if __name__ == "__main__":
++    main()
+--- r1/test_schedule_contract.py
++++ r2/test_schedule_contract.py
+@@ -3,6 +3,7 @@
+ 
+ import copy
+ import hashlib
++import json
+ import unittest
+ from pathlib import Path
+ 
+@@ -10,6 +11,7 @@
+ import lr_schedule
+ import schedule_contract as sc
+ import wrapper
++import audit_candidates as auditor
+ 
+ OWN = Path(__file__).resolve().parent
+ 
+@@ -62,6 +64,9 @@
+         self.assertEqual(values[-1], 1e-5)
+         self.assertEqual(len(set(values)), 60)
+ 
++    def test_frozen_manifest_binds_schedule_helper_and_spec(self):
++        lr_schedule.verify_frozen_manifest(OWN)
++
+     def test_wrong_fixed_or_stale_saved_lr_fails(self):
+         state = checkpoint(12)
+         state["optimizer"]["param_groups"][1]["lr"] = 3e-5
+@@ -124,6 +129,109 @@
+             bb.checked_bytes(path, "0" * 64, "source")
+         with self.assertRaises(ValueError):
+             bb.checked_bytes(path, "", "source")
++
++    def test_binding_builder_positive_uses_actual_package_and_pinned_observer(self):
++        registration = bb.REGISTRATION
++        observer = bb.OBSERVER
++        source_pins = {str((OWN / name).resolve()): hashlib.sha256((OWN / name).read_bytes()).hexdigest()
++                       for name in bb.SOURCE_NAMES}
++        manifest = {
++            "schema": "d2_retained324_linear_auditor_review_assembly_v1",
++            "run_id": bb.RUN_ID,
++            "registration": {"path": str(registration.resolve()), "sha256": bb.REGISTRATION_SHA256},
++            "frozen_manifest": {"path": str(bb.FROZEN_MANIFEST.resolve()),
++                                "sha256": hashlib.sha256(bb.FROZEN_MANIFEST.read_bytes()).hexdigest()},
++            "auditor_sources": source_pins,
++        }
++        fixture = OWN / "review-assembly-fixture.json"
++        fixture.write_text(json.dumps(manifest, sort_keys=True))
++        try:
++            review_sha = hashlib.sha256(fixture.read_bytes()).hexdigest()
++            binding = bb.build_binding(
++                registration=registration, registration_sha256=bb.REGISTRATION_SHA256,
++                reviewed_manifest=fixture, reviewed_manifest_sha256=review_sha,
++                observer_source=observer, observer_sha256=bb.OBSERVER_SHA256,
++                frozen_manifest=bb.FROZEN_MANIFEST,
++                frozen_manifest_sha256=hashlib.sha256(bb.FROZEN_MANIFEST.read_bytes()).hexdigest())
++            self.assertEqual(binding["registration"]["path"], str(registration.resolve()))
++            self.assertEqual(binding["auditor_sources"], source_pins)
++            self.assertEqual(binding["observer_source"]["sha256"], bb.OBSERVER_SHA256)
++            manifest["registration"]["path"] = str(OWN / "wrong-registration.json")
++            fixture.write_text(json.dumps(manifest, sort_keys=True))
++            with self.assertRaises(ValueError):
++                bb.build_binding(
++                    registration=registration, registration_sha256=bb.REGISTRATION_SHA256,
++                    reviewed_manifest=fixture,
++                    reviewed_manifest_sha256=hashlib.sha256(fixture.read_bytes()).hexdigest(),
++                    observer_source=observer, observer_sha256=bb.OBSERVER_SHA256,
++                    frozen_manifest=bb.FROZEN_MANIFEST,
++                    frozen_manifest_sha256=hashlib.sha256(bb.FROZEN_MANIFEST.read_bytes()).hexdigest())
++        finally:
++            fixture.unlink(missing_ok=True)
++
++    def test_external_binding_digest_gates_reject_wrong_expected_hash(self):
++        payload = b'{"schema":"fixture"}\n'
++        expected = hashlib.sha256(payload).hexdigest()
++        self.assertEqual(auditor.binding_digest(payload, expected), expected)
++        self.assertEqual(wrapper.binding_digest(payload, expected), expected)
++        with self.assertRaises(auditor.AuditError):
++            auditor.binding_digest(payload, "0" * 64)
++        with self.assertRaises(wrapper.WrapperError):
++            wrapper.binding_digest(payload, "0" * 64)
++
++    def test_schedule_modules_load_only_from_pinned_own_paths(self):
++        pins = {str((OWN / name).resolve()): hashlib.sha256((OWN / name).read_bytes()).hexdigest()
++                for name in ("lr_schedule.py", "schedule_contract.py")}
++        contract, helper = auditor.load_bound_schedule_modules(pins)
++        self.assertEqual(Path(contract.__file__).resolve(), (OWN / "schedule_contract.py").resolve())
++        self.assertEqual(Path(helper.__file__).resolve(), (OWN / "lr_schedule.py").resolve())
++        pins[str((OWN / "lr_schedule.py").resolve())] = "0" * 64
++        with self.assertRaises(auditor.AuditError):
++            auditor.load_bound_schedule_modules(pins)
++
++    def test_metric_rows_bind_actual_validator_to_schedule_evidence(self):
++        pins = {str((OWN / name).resolve()): hashlib.sha256((OWN / name).read_bytes()).hexdigest()
++                for name in ("lr_schedule.py", "schedule_contract.py")}
++        auditor.load_bound_schedule_modules(pins)
++
++        class Runner:
++            @staticmethod
++            def finite_tree(value):
++                return None
++
++            @staticmethod
++            def validate_gradient_alignment(value):
++                return None
++
++        rows = []
++        for local in (1, 2):
++            row = metric(local)
++            row.update({"phase_update": 324 + local, "local_update": local,
++                        "metrics": {"optimizer_steps": 1, "transitions": 16384},
++                        "counters": {"updates": local, "optimizer_steps": local,
++                                     "environment_decisions": local * 16384},
++                        "update_progress": {"completed_updates": local, "complete": True,
++                                            "in_update": False}})
++            rows.append(row)
++        self.assertEqual(auditor.validate_metric_rows(Runner, rows, 2, 2), 2)
++        bad = copy.deepcopy(rows)
++        bad[1]["optimizer_group_lrs"][0] = 3e-5
++        with self.assertRaises(auditor.AuditError):
++            auditor.validate_metric_rows(Runner, bad, 2, 2)
++
++    def test_saved_lr_guard_rejects_non_mapping_counters(self):
++        pins = {str((OWN / name).resolve()): hashlib.sha256((OWN / name).read_bytes()).hexdigest()
++                for name in ("lr_schedule.py", "schedule_contract.py")}
++        auditor.load_bound_schedule_modules(pins)
++        with self.assertRaises(auditor.AuditError):
++            auditor.check_saved_lr({"inherited_counters": [], "cumulative_counters": {}}, 0)
++
++    def test_actual_package_contract_rejects_parent_substitution(self):
++        import json
++        reg = json.loads(bb.REGISTRATION.read_bytes())
++        reg["parent"]["sha256"] = "0" * 64
++        with self.assertRaises(auditor.AuditError):
++            auditor.validate_actual_package(reg, bb.REGISTRATION_SHA256)
+ 
+     def test_inventory_hash_boundary(self):
+         path = OWN / "lr_schedule.py"
+--- r1/test_source_contract.py
++++ r2/test_source_contract.py
+@@ -14,6 +14,8 @@
+     def test_six_candidates_and_schedule_contract_are_in_auditor(self):
+         self.assertEqual(auditor.UPDATES, (324, 336, 348, 360, 372, 384))
+         self.assertEqual(auditor.RUN_ID, "D2-retained324-linear-lr-20261026-r1")
++        self.assertEqual(auditor.REG_PATH.name, "registration-final-r2.json")
++        self.assertIn("validate_actual_package", (OWN / "audit_candidates.py").read_text())
+         self.assertEqual(auditor.CAMPAIGN_COST_BASELINE, 10824.835578584221)
+         self.assertEqual(auditor.ORIGINAL_PRODUCING_CAMPAIGN_COST, 9758.365427209174)
+         self.assertEqual(auditor.CAMPAIGN_COST_BASELINE_SHA,
+@@ -27,6 +29,13 @@
+         self.assertIn("validate_metric_schedule", source)
+         self.assertIn("validate_progression", source)
+         self.assertNotIn("differs from arm LR", source)
++
++    def test_actual_registration_and_source_manifest_contract(self):
++        import json
++        reg = json.loads(auditor.REG_PATH.read_bytes())
++        auditor.validate_actual_package(reg, auditor.REGISTRATION_SHA256)
++        self.assertEqual(reg["runtime_sha256"], "2cf10e9f056f41b39dc17845192e9adf553a5f699546d4f5dcea764a23e36b31")
++        self.assertEqual(reg["latest_resource_cost_anchor"]["sha256"], auditor.CAMPAIGN_COST_BASELINE_SHA)
+ 
+     def test_full_audit_has_no_direct_cli_authority(self):
+         source = (OWN / "audit_candidates.py").read_text()
+@@ -43,7 +52,25 @@
+         self.assertIn('args.output.open("x")', source)
+         self.assertIn("--registration-sha256", source)
+         self.assertIn("--reviewed-manifest-sha256", source)
++        self.assertIn("frozen_sources.get(name)", source)
++        self.assertIn('"observer_instantiation"', source)
+         self.assertFalse((OWN / "audit-binding.json").exists())
++
++    def test_parent_binding_digest_is_required_and_recorded(self):
++        wrapper = (OWN / "wrapper.py").read_text()
++        auditor_source = (OWN / "audit_candidates.py").read_text()
++        self.assertIn('parser.add_argument("--binding-sha256", required=True', wrapper)
++        self.assertIn('parser.add_argument("--binding-sha256", required=True', auditor_source)
++        self.assertIn('"binding_sha256": BINDING_SHA', auditor_source)
++        self.assertIn('"binding_sha256": BINDING_SHA', wrapper)
++        self.assertIn('terminal_record_sha256', auditor_source)
++        self.assertIn('audit.pop("_terminal_records")', wrapper)
++
++    def test_bootstrap_readiness_stops_before_candidate_audit(self):
++        source = (OWN / "bootstrap_readiness.py").read_text()
++        self.assertIn("auditor.load_frozen(", source)
++        self.assertNotIn("auditor.audit(", source)
++        self.assertIn('"checkpoint_deserialization": False', source)
+ 
+     def test_all_python_sources_parse_without_importing_runtime(self):
+         for path in sorted(OWN.glob("*.py")):

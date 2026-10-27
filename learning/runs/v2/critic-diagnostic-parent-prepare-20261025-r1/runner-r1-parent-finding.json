@@ -1,0 +1,20 @@
+{
+  "at_utc": "2026-10-25T18:48:40.708221+00:00",
+  "candidate": "critic-diagnostic-runner-prepare-20261025-r1",
+  "registration": "registration-r1.json",
+  "status": "blocked_before_launch",
+  "actual_worker_launches": 0,
+  "finding": {
+    "severity": "P1",
+    "path": "execute_once.py",
+    "lines": [
+      209,
+      212,
+      226,
+      229
+    ],
+    "trigger": "SIGTERM latch after finally signal_event check and before handlers are restored/publication",
+    "consequence": "Passed receipt and raw0 despite cancellation; independent raw/wall check cannot detect swallowed cancellation."
+  },
+  "repair": "Preserve r1; create a separate corrected candidate and explicit regression. Same unused seed, no resampling or experiment retry."
+}

@@ -1,0 +1,40 @@
+{
+  "schema": "d2_rng_transition_integration_source_review_v1",
+  "reviewer": "claude-haiku-5-5 read-only sub-agent",
+  "date": "2026-10-26",
+  "reviewed_directory": "learning/runs/v2/RNG-transition-components-integration-luna-20261026-r6",
+  "reviewed_source_sha256": {
+    "transition.py": "e10278be79c31a6e52737f86112d5663be86c90ee2d5021712ea993cdc510dcc",
+    "fingerprints.py": "6ef9cf3f08fe800f54230801a921a2f5c82e47e5013ef3087ead6499d2533d61",
+    "rng_reference.py": "d302828e9ffc0c9f2a4337f01a2c714c6f048845d44a6bb9aaec6dad9a32b23d",
+    "test_transition.py": "56f20741e4b346ab0e7cb700b5b2479fe0bb42f24410ffb21c51b238bf153c64",
+    "receipt.json": "627487eb6f46ac3fca4d212970ffec4596372a3eb41b5911ced3401e420e506e"
+  },
+  "pinned_checks": {
+    "fingerprints.py": {"pinned_sha256": "6ef9cf3f08fe800f54230801a921a2f5c82e47e5013ef3087ead6499d2533d61", "matches": true},
+    "rng_reference.py": {"pinned_sha256": "d302828e9ffc0c9f2a4337f01a2c714c6f048845d44a6bb9aaec6dad9a32b23d", "matches": true}
+  },
+  "tests": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest -v",
+    "python_version": "3.9.6",
+    "ran": 5,
+    "passed": 5,
+    "failed": 0
+  },
+  "status": "source_review_complete_no_blockers",
+  "blockers": 0,
+  "findings": {"major": 1, "medium": 3, "low_medium": 2, "low": 3, "info": 2},
+  "evidence_limits": [
+    "Toy CPU fixtures only; no torch import",
+    "No MPS access, real RNG reads, or checkpoint deserialization",
+    "stdlibderive.py cited by rng_reference.py is not present in this worktree; canonical vector rule unverified",
+    "Production capture_rngpayload callback and trusted restore source not reviewed",
+    "Real measured RNG reference is pending_notrun and was not read"
+  ],
+  "runtime_qualification": false,
+  "ranking_campaign_read": false,
+  "writes": [
+    "learning/runs/v2/RNG-transition-integration-r6-review-haiku-20261026-r1/review.md",
+    "learning/runs/v2/RNG-transition-integration-r6-review-haiku-20261026-r1/receipt.json"
+  ]
+}

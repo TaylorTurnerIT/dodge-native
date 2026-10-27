@@ -1,0 +1,50 @@
+--- retained-r2/execute_once.py
++++ r2b/execute_once.py
+@@ -3,14 +3,14 @@
+ import datetime, hashlib, json, math, os, shlex, signal, subprocess, sys, time, traceback
+ from pathlib import Path
+ ROOT=Path('/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79')
+-OUT=ROOT/'learning/runs/v2/postovernight-long-D2-execution-observer-r2'
++OUT=ROOT/'learning/runs/v2/postovernight-long-D2-execution-observer-r2b'
+ PLAN=ROOT/'learning/runs/v2-orchestration/postovernight-long-D2-execution-r2-plan.json'
+ STATE=ROOT/'learning/runs/v2-orchestration/state.json'
+ PLAN_SHA='42b069b10f0cb71b7a6b2ae5e18b0c4a3bc4af26391431aa1a300c1b52621517'
+ PREP=ROOT/'learning/runs/v2/postovernight-long-D2-boundary-prepare-r14'
+ CAPSULE=PREP/'capsule-final'
+ HELPERS=CAPSULE/'learning/runs/v2/postovernight-long-D2-boundary-prepare-r14'
+-TASK='postovernight_long_D2_execution_r2'
++TASK='postovernight_long_D2_execution_r2b'
+ START=time.monotonic()
+ def utc(): return datetime.datetime.now(datetime.timezone.utc).isoformat()
+ def sha(path):
+@@ -153,7 +153,7 @@
+     need(d1['status']=='accepted_D1_progress_only' and d1['supervisor_exit_code']==anchor['supervisor_exit_code']==0,'D1 not accepted')
+     need(sha(ROOT/plan['training_parent'])==plan['training_parent_sha256']==anchor['checkpoint_sha256']==d1['candidate_sha256'],'D1 checkpoint differs')
+     for field in ('run_result','identity','config'):need(sha(ROOT/d1[field])==anchor[field+'_sha256'],'D1 '+field+' differs')
+-    candidate=ROOT/plan['training_parent'];need(sha(candidate.with_name(candidate.stem+'-D1-development.jsonl'))==anchor['evaluation_sha256'],'D1 evaluation differs')
++    candidate=ROOT/plan['training_parent'];need(sha(candidate.with_name(candidate.name+'.evaluation.json'))==anchor['evaluation_sha256'],'D1 evaluation differs')
+     env=dict(os.environ);env.update(plan['environment'])
+     for k in plan['unset_environment']:env.pop(k,None)
+     for k,v in registration['cache_policy']['environment'].items():need(env.get(k)==v,'Registered runtime environment differs: '+k)
+@@ -196,10 +196,10 @@
+                 if now-last_update>=30:
+                     progress=dict(elapsed_seconds=now-before_popen,pid=process.pid,roles=list(groups),t0_monotonic_hex=None if t0 is None else t0.hex(),cleanup_until_monotonic=pool_until,status='attached_running')
+                     save('progress.json',progress,replace=True);print(json.dumps(progress),flush=True);last_update=now
+-                if pool_until is not None and now>=pool_until-.5 and cancel_at is not None and not kill_attempted:
++                if pool_until is not None and now>=pool_until and not kill_attempted:
+                     kill_attempted=True
+                     for role in ('worker','supervisor','outer'):signal_owned(role,signal.SIGKILL,'existing_shared_deadline_final_bound')
+-                if pool_until is not None and now>=pool_until and cancel_at is not None:result['deadline_exceeded']=True
++                if pool_until is not None and now>=pool_until:result['deadline_exceeded']=True
+             except BaseException as error:
+                 observer_errors.append(dict(error=repr(error),at_monotonic=time.monotonic(),traceback=traceback.format_exc()));emit('observer-errors.jsonl',observer_errors[-1])
+                 if cancel_at is None:
+@@ -241,7 +241,7 @@
+             for role,g in receipt.get('ownership',{}).items():
+                 absence.setdefault(role,dict(pid=g['pid'],pgid=g['pgid'],group_absent=owned.absent(g['pgid'],time.monotonic()+.2),identity_source='frozen_executor_receipt',identity=g))
+         save('postflight-owned-absence.json',absence)
+-        stable=bool(absence) and all(x['group_absent'] for x in absence.values())
++        stable=set(absence)=={'outer','supervisor','worker'} and all(x['group_absent'] for x in absence.values())
+         result['owned_groups_positive_absence']=stable;result['receipt_present']=receipt is not None
+         current={};mismatches={}
+         for p,d in read(OUT/'sourcehashes-before.json').items():

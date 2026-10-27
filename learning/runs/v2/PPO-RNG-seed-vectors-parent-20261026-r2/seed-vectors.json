@@ -1,0 +1,494 @@
+{
+  "schema": "d2_layerb_proposed_rng_seed_vectors_v2",
+  "status": "proposed_only_not_reserved_not_applied",
+  "study_id": "expanded-D2-training-replication-layerb-20261026-r1",
+  "proposal_scope": {
+    "planned_arms": [
+      "A_constant_3e-5",
+      "B_linear_3e-5_to_1e-5_over_60"
+    ],
+    "planned_pairs": 3,
+    "pairing": "identical vector across arms, distinct vector across replicas",
+    "claim_limit": "descriptive only; n=3 exploratory pairs; no .05 confirmatory claim",
+    "authority": "none; seeds are not reserved, no launch, no gate or protocol mutation",
+    "not_applied": [
+      "training exclusion union B/E/D128/D1_new/D2_new is not installed",
+      "no runner or registration binds these vectors",
+      "no checkpoint or RNG reseed has been executed"
+    ]
+  },
+  "derivation": {
+    "domain": "D2-LAYERB-RNG-VECTOR-V1",
+    "token_rule": "token=SHA256(DOMAIN|study=STUDY_ID|replica=i|stream=name|attempt=n)",
+    "field_rule": "env_master_seed,torch_cpu_global_seed,action_sampler_torch_mps_seed,python_random_seed take the first 8 token bytes as a big-endian integer; 63-bit streams mask to 2**63-1; numpy_global_seed and constructor_init_seed take the first 4 bytes; an out-of-bounds or reserved candidate increments attempt",
+    "canonical_json": "sort_keys=True,separators=(',',':'),ensure_ascii=True",
+    "vector_sha256_rule": "SHA256(canonical_json({study_id,replica,seeds}))",
+    "bounds": {
+      "env_master_seed": {
+        "min": 1,
+        "max": 18446744073709551615,
+        "api": "u64 run_seed at VecDodgeEnv construction"
+      },
+      "torch_cpu_global_seed": {
+        "min": 1,
+        "max": 9223372036854775807,
+        "api": "torch.manual_seed / torch.set_rng_state"
+      },
+      "action_sampler_torch_mps_seed": {
+        "min": 1,
+        "max": 9223372036854775807,
+        "api": "torch.mps.manual_seed"
+      },
+      "python_random_seed": {
+        "min": 1,
+        "max": 9223372036854775807,
+        "api": "random.seed"
+      },
+      "numpy_global_seed": {
+        "min": 0,
+        "max": 4294967295,
+        "api": "numpy.random.seed"
+      },
+      "constructor_init_seed": {
+        "min": 1,
+        "max": 4294967295,
+        "api": "seed_initialization calls numpy.random.seed; u32 before model construction"
+      }
+    },
+    "reserved_ranges": [
+      {
+        "name": "B",
+        "low": 2952790016,
+        "high": 2952791015
+      },
+      {
+        "name": "D128",
+        "low": 3489660928,
+        "high": 3489661055
+      },
+      {
+        "name": "E",
+        "low": 3758096384,
+        "high": 3758097383
+      },
+      {
+        "name": "D1_new",
+        "low": 3506438144,
+        "high": 3506439167
+      },
+      {
+        "name": "D2_new",
+        "low": 3523215360,
+        "high": 3523217407
+      }
+    ],
+    "prior_master_seeds_rejected": [
+      810631976,
+      3192039780,
+      3791628417,
+      4200000000,
+      4200000001
+    ]
+  },
+  "streams": {
+    "env_master_seed": {
+      "owner": "native environment (Rust), per environment construction",
+      "role": "training namespace master seed for the 64-slot stream",
+      "consumed_by": [
+        "training_seed_normalized(run_seed, slot, episode)"
+      ],
+      "state": "immutable per run; episode seeds are pure function outputs",
+      "paired_identical_across_arms": true,
+      "distinct_across_replicas": true
+    },
+    "constructor_init_seed": {
+      "owner": "python learner bootstrap (train_teacher.seed_initialization)",
+      "role": "seeds Python/NumPy/torch-CPU before model construction",
+      "consumed_by": [
+        "nn.init.orthogonal_ actor/critic heads",
+        "pytorch default trunk init"
+      ],
+      "state": "consumed then overwritten by verified restore; retained only so the pre-restore phase is identical across arms",
+      "paired_identical_across_arms": true,
+      "distinct_across_replicas": true
+    },
+    "torch_cpu_global_seed": {
+      "owner": "process-wide torch CPU default generator",
+      "role": "minibatch shuffle and any CPU-side torch draw",
+      "consumed_by": [
+        "torch.randperm(16384, device='cpu') once per epoch",
+        "Categorical.sample only if the model runs on CPU"
+      ],
+      "state": "single shared generator; no independent minibatch stream exists",
+      "paired_identical_across_arms": true,
+      "distinct_across_replicas": true
+    },
+    "action_sampler_torch_mps_seed": {
+      "owner": "process-wide torch MPS default generator",
+      "role": "action sampling when the policy is on MPS",
+      "consumed_by": [
+        "Categorical.sample() on [64,9] logits"
+      ],
+      "state": "active only when the pinned backend is mps",
+      "paired_identical_across_arms": true,
+      "distinct_across_replicas": true
+    },
+    "python_random_seed": {
+      "owner": "python random module global state",
+      "role": "captured and restored by checkpoints.capture_rng/restore_rng",
+      "consumed_by": [],
+      "state": "dormant in the pinned runtime; no random.* call exists",
+      "paired_identical_across_arms": true,
+      "distinct_across_replicas": true
+    },
+    "numpy_global_seed": {
+      "owner": "numpy global RandomState",
+      "role": "captured and restored by checkpoints.capture_rng/restore_rng",
+      "consumed_by": [],
+      "state": "dormant in the pinned runtime; np.random is never drawn from",
+      "paired_identical_across_arms": true,
+      "distinct_across_replicas": true
+    },
+    "numpy_owned_generator": {
+      "owner": "none in the pinned runtime",
+      "role": "not implemented; capture_rng accepts an optional generator but make_state never captures one",
+      "consumed_by": [],
+      "state": "absent; do not claim an independent NumPy stream",
+      "paired_identical_across_arms": null,
+      "distinct_across_replicas": null
+    }
+  },
+  "vectors": [
+    {
+      "replica": 1,
+      "seeds": {
+        "env_master_seed": 6341453824149129831,
+        "torch_cpu_global_seed": 5067376632470299089,
+        "action_sampler_torch_mps_seed": 8255390458005185857,
+        "python_random_seed": 5688562681954791714,
+        "numpy_global_seed": 2781058238,
+        "constructor_init_seed": 3917617846
+      },
+      "vector_sha256": "b947179030548e2c1b269ca317954e228b3f8a64b3214465dc2d30073ae3c838",
+      "derivation_attempts": {
+        "env_master_seed": 0,
+        "torch_cpu_global_seed": 0,
+        "action_sampler_torch_mps_seed": 0,
+        "python_random_seed": 0,
+        "numpy_global_seed": 0,
+        "constructor_init_seed": 0
+      },
+      "env_control": {
+        "kind": "splitmix64_slot_stream_first_episode",
+        "source": "crates/dodge-rl-env/src/seed.rs training_seed_normalized",
+        "episode_indices": [
+          282,
+          289,
+          286,
+          291,
+          305,
+          279,
+          308,
+          300,
+          320,
+          296,
+          300,
+          304,
+          288,
+          303,
+          298,
+          301,
+          305,
+          308,
+          297,
+          283,
+          301,
+          293,
+          275,
+          298,
+          285,
+          310,
+          296,
+          300,
+          277,
+          288,
+          291,
+          298,
+          304,
+          305,
+          311,
+          284,
+          288,
+          288,
+          298,
+          287,
+          301,
+          309,
+          296,
+          286,
+          293,
+          291,
+          274,
+          302,
+          306,
+          283,
+          296,
+          309,
+          301,
+          304,
+          293,
+          309,
+          291,
+          298,
+          305,
+          300,
+          273,
+          300,
+          290,
+          322
+        ],
+        "first_slot_actual_seeds": [
+          3960649771,
+          1417037313,
+          1079650161,
+          223564391
+        ],
+        "all_slots_actual_seed_sha256": "c3f4d39f7e20966e563a5f0fc7a2a251dfa5300fcfee75549e7227f371808894",
+        "distinct_actual_seeds": 64,
+        "reserved_hits": 0,
+        "zero_actual_seeds": 0
+      },
+      "python_control": {
+        "stream": "python_random_seed",
+        "kind": "scratch_instance_stdlib",
+        "first_getrandbits64": 1786493790060949876,
+        "first_random_float_repr": "0.46117655533954616",
+        "post_seed_state_sha256": "5520e759cc951230a1887245cb227038495554a8e4daa32ae7aaf6f5f6e601e3",
+        "note": "Computed with random.Random(seed) so the global stream is untouched."
+      }
+    },
+    {
+      "replica": 2,
+      "seeds": {
+        "env_master_seed": 12312454464013200898,
+        "torch_cpu_global_seed": 6978366105873999230,
+        "action_sampler_torch_mps_seed": 2014223016979908082,
+        "python_random_seed": 784214229967482698,
+        "numpy_global_seed": 707065709,
+        "constructor_init_seed": 926977497
+      },
+      "vector_sha256": "d38cdfdb9b3ce7437bdc683bae7cfcb2589682bc780491252096bcb88f58f9c5",
+      "derivation_attempts": {
+        "env_master_seed": 0,
+        "torch_cpu_global_seed": 0,
+        "action_sampler_torch_mps_seed": 0,
+        "python_random_seed": 0,
+        "numpy_global_seed": 0,
+        "constructor_init_seed": 0
+      },
+      "env_control": {
+        "kind": "splitmix64_slot_stream_first_episode",
+        "source": "crates/dodge-rl-env/src/seed.rs training_seed_normalized",
+        "episode_indices": [
+          282,
+          289,
+          286,
+          291,
+          305,
+          279,
+          308,
+          300,
+          320,
+          296,
+          300,
+          304,
+          288,
+          303,
+          298,
+          301,
+          305,
+          308,
+          297,
+          283,
+          301,
+          293,
+          275,
+          298,
+          285,
+          310,
+          296,
+          300,
+          277,
+          288,
+          291,
+          298,
+          304,
+          305,
+          311,
+          284,
+          288,
+          288,
+          298,
+          287,
+          301,
+          309,
+          296,
+          286,
+          293,
+          291,
+          274,
+          302,
+          306,
+          283,
+          296,
+          309,
+          301,
+          304,
+          293,
+          309,
+          291,
+          298,
+          305,
+          300,
+          273,
+          300,
+          290,
+          322
+        ],
+        "first_slot_actual_seeds": [
+          4253022496,
+          3887242490,
+          58901420,
+          2779924862
+        ],
+        "all_slots_actual_seed_sha256": "8ca0f4b26482801f2d978bc2c732deab7419f037262839f62870d28328813b1b",
+        "distinct_actual_seeds": 64,
+        "reserved_hits": 0,
+        "zero_actual_seeds": 0
+      },
+      "python_control": {
+        "stream": "python_random_seed",
+        "kind": "scratch_instance_stdlib",
+        "first_getrandbits64": 12469840339477468242,
+        "first_random_float_repr": "0.6293821464202541",
+        "post_seed_state_sha256": "0529f79d441699519ec3cf0a55307a24c8cc1bb8d232a51cb64a98e9502e1e5a",
+        "note": "Computed with random.Random(seed) so the global stream is untouched."
+      }
+    },
+    {
+      "replica": 3,
+      "seeds": {
+        "env_master_seed": 12504964076835590278,
+        "torch_cpu_global_seed": 6400185594956142826,
+        "action_sampler_torch_mps_seed": 5029084674687519350,
+        "python_random_seed": 7263135491696025241,
+        "numpy_global_seed": 3214285863,
+        "constructor_init_seed": 16489749
+      },
+      "vector_sha256": "546194b86086bb4cff4d6ac9efbd8e03dfbafdeb221d9387327e0ad04f431254",
+      "derivation_attempts": {
+        "env_master_seed": 0,
+        "torch_cpu_global_seed": 0,
+        "action_sampler_torch_mps_seed": 0,
+        "python_random_seed": 0,
+        "numpy_global_seed": 0,
+        "constructor_init_seed": 0
+      },
+      "env_control": {
+        "kind": "splitmix64_slot_stream_first_episode",
+        "source": "crates/dodge-rl-env/src/seed.rs training_seed_normalized",
+        "episode_indices": [
+          282,
+          289,
+          286,
+          291,
+          305,
+          279,
+          308,
+          300,
+          320,
+          296,
+          300,
+          304,
+          288,
+          303,
+          298,
+          301,
+          305,
+          308,
+          297,
+          283,
+          301,
+          293,
+          275,
+          298,
+          285,
+          310,
+          296,
+          300,
+          277,
+          288,
+          291,
+          298,
+          304,
+          305,
+          311,
+          284,
+          288,
+          288,
+          298,
+          287,
+          301,
+          309,
+          296,
+          286,
+          293,
+          291,
+          274,
+          302,
+          306,
+          283,
+          296,
+          309,
+          301,
+          304,
+          293,
+          309,
+          291,
+          298,
+          305,
+          300,
+          273,
+          300,
+          290,
+          322
+        ],
+        "first_slot_actual_seeds": [
+          4048268227,
+          681833185,
+          2848945354,
+          3962004534
+        ],
+        "all_slots_actual_seed_sha256": "f24d1f2e50f088b6baf0560af678ac67bda5819725dbf6f69d3bb93956c9036e",
+        "distinct_actual_seeds": 64,
+        "reserved_hits": 0,
+        "zero_actual_seeds": 0
+      },
+      "python_control": {
+        "stream": "python_random_seed",
+        "kind": "scratch_instance_stdlib",
+        "first_getrandbits64": 11328512633047025714,
+        "first_random_float_repr": "0.060111485687561195",
+        "post_seed_state_sha256": "364f5dee15920ed780ea3fd1a6050768e673d8beb6e79c50b818c03681c5d7af",
+        "note": "Computed with random.Random(seed) so the global stream is untouched."
+      }
+    }
+  ],
+  "controls_pending_runtime": [
+    "capture torch CPU/MPS generator state fingerprints after reseed (torch.get_rng_state / torch.mps.get_rng_state)",
+    "assert the post-restore, pre-reseed RNG fingerprint equals the parent receipt value",
+    "assert model and Adam fingerprints are unchanged across the reseed",
+    "record the first torch.randperm(16384) and first Categorical.sample outputs for the first update; not predictable without torch",
+    "assert a scratch numpy RandomState control for numpy_global_seed"
+  ]
+}

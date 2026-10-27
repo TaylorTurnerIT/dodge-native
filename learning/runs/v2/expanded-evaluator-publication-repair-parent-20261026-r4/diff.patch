@@ -1,0 +1,11 @@
+--- learning/runs/v2/expanded-evaluator-native-boundary-repair-luna-20261026-r3/expanded_eval.py
++++ learning/runs/v2/expanded-evaluator-publication-repair-parent-20261026-r4/expanded_eval.py
+@@ -545,7 +545,7 @@
+     _require(_file_sha(checkpoint) == before, "checkpoint bytes changed during inference")
+     check_guard()
+     result = _summarize(rows, seeds, started, candidate["checkpoint_sha256"], candidate_update,
+-                        cohort_name, chosen["manifest_sha256"])
++                        cohort_name, reg["cohorts"][cohort_name]["manifest_sha256"])
+     result["elapsed_seconds"] = time.monotonic() - started
+     result["registration_sha256"] = registration_sha256
+     result["model_state_dict_sha256"] = model_sha_before

@@ -1,0 +1,54 @@
+test_real_SIGINT_SIGTERM_outer_publication_alarm_exit (test_publication.PublicationTests.test_real_SIGINT_SIGTERM_outer_publication_alarm_exit) ... 
+  test_real_SIGINT_SIGTERM_outer_publication_alarm_exit (test_publication.PublicationTests.test_real_SIGINT_SIGTERM_outer_publication_alarm_exit) (signal='SIGINT', mode='closure') ... FAIL
+  test_real_SIGINT_SIGTERM_outer_publication_alarm_exit (test_publication.PublicationTests.test_real_SIGINT_SIGTERM_outer_publication_alarm_exit) (signal='SIGINT', mode='pass') ... FAIL
+  test_real_SIGINT_SIGTERM_outer_publication_alarm_exit (test_publication.PublicationTests.test_real_SIGINT_SIGTERM_outer_publication_alarm_exit) (signal='SIGTERM', mode='closure') ... FAIL
+  test_real_SIGINT_SIGTERM_outer_publication_alarm_exit (test_publication.PublicationTests.test_real_SIGINT_SIGTERM_outer_publication_alarm_exit) (signal='SIGTERM', mode='pass') ... FAIL
+
+======================================================================
+FAIL: test_real_SIGINT_SIGTERM_outer_publication_alarm_exit (test_publication.PublicationTests.test_real_SIGINT_SIGTERM_outer_publication_alarm_exit) (signal='SIGINT', mode='closure')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-prepare-r2/test_publication.py", line 60, in test_real_SIGINT_SIGTERM_outer_publication_alarm_exit
+    self.assertEqual(value['terminal']['outcome'],'cancelled')
+AssertionError: 'publication_failure' != 'cancelled'
+- publication_failure
++ cancelled
+
+
+======================================================================
+FAIL: test_real_SIGINT_SIGTERM_outer_publication_alarm_exit (test_publication.PublicationTests.test_real_SIGINT_SIGTERM_outer_publication_alarm_exit) (signal='SIGINT', mode='pass')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-prepare-r2/test_publication.py", line 60, in test_real_SIGINT_SIGTERM_outer_publication_alarm_exit
+    self.assertEqual(value['terminal']['outcome'],'cancelled')
+AssertionError: 'publication_failure' != 'cancelled'
+- publication_failure
++ cancelled
+
+
+======================================================================
+FAIL: test_real_SIGINT_SIGTERM_outer_publication_alarm_exit (test_publication.PublicationTests.test_real_SIGINT_SIGTERM_outer_publication_alarm_exit) (signal='SIGTERM', mode='closure')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-prepare-r2/test_publication.py", line 58, in test_real_SIGINT_SIGTERM_outer_publication_alarm_exit
+    value=self.run_probe('alarm-exit',sig,mode)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-prepare-r2/test_publication.py", line 29, in run_probe
+    self.assertTrue((root/'observation.json').exists(),run.stderr)
+AssertionError: False is not true : 
+
+======================================================================
+FAIL: test_real_SIGINT_SIGTERM_outer_publication_alarm_exit (test_publication.PublicationTests.test_real_SIGINT_SIGTERM_outer_publication_alarm_exit) (signal='SIGTERM', mode='pass')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-prepare-r2/test_publication.py", line 58, in test_real_SIGINT_SIGTERM_outer_publication_alarm_exit
+    value=self.run_probe('alarm-exit',sig,mode)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-prepare-r2/test_publication.py", line 29, in run_probe
+    self.assertTrue((root/'observation.json').exists(),run.stderr)
+AssertionError: False is not true : 
+
+----------------------------------------------------------------------
+Ran 1 test in 0.356s
+
+FAILED (failures=4)

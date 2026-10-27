@@ -1,0 +1,5 @@
+Preparation attempt 1; preserved console excerpt (not a full raw traceback):
+Command: python/.venv/bin/python -m pytest -q learning/runs/v2/resume-lr-ablation-prepare-luna-20261026-r1/test_resume_lr_override.py
+Result: 3 passed, 1 failed.
+Failure: ckpt.restore_learner(state, model, optimizer, "cpu") raised ValueError: Sampling RNG backend changed.
+Reason: accepted checkpoint records MPS sampling RNG; frozen restore correctly rejects restoring it as CPU RNG. Revised real-checkpoint test loads exact model and Adam state on CPU, does not restore RNG, and verifies hook leaves CPU RNG unchanged.

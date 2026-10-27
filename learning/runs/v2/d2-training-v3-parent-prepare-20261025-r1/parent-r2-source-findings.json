@@ -1,0 +1,59 @@
+{
+  "schema": "D2_training_v3_parent_source_findings_v1",
+  "created_at_utc": "2026-10-25T20:34:59.187020+00:00",
+  "source_revision": "d2-training-v3-adapter-prepare-20261025-r2",
+  "reported_source_hashes_verified": 15,
+  "campaign_launches": 0,
+  "findings": [
+    {
+      "id": "REG-SELF-HASH",
+      "severity": "P1",
+      "path": "worker.py:29",
+      "trigger": "Worker requires reg[registration_sha256] equal digest of entire registration, making an ordinary frozen registration impossible or raising KeyError.",
+      "fix": "Pass external digest separately throughout; never require registration to contain its own hash."
+    },
+    {
+      "id": "FINAL-HASH-CONFUSION",
+      "severity": "P1",
+      "path": "launcher.py:64",
+      "trigger": "Final checkpoint registration_sha256 compared with checkpoint file SHA argument instead of registration digest.",
+      "fix": "Separate checkpoint_sha and registration_sha arguments and verify both, with unequal-digest regression."
+    },
+    {
+      "id": "EPISODE-CONTRACT",
+      "severity": "P1",
+      "path": "adapter.py:validate_episode_journal;worker.py:episode emission",
+      "trigger": "Initial next_episode_indices expected0 but actual native next indices1. Reset payload expected top-level indices/list but actual nested info mapping. Completed events emitted before all resets loses per-slot chronological ordering when multiple episodes complete in a rollout. Saved future-next indices are current+1, not completed-count.",
+      "fix": "Use real retained original episode journal shape as fixture; merge events by rollout_step/completed-before-reset at ties; validate each slot chain and final resume-next=current+1 after abandoning live episodes."
+    },
+    {
+      "id": "CHECKPOINT-CONFIG",
+      "severity": "P1",
+      "path": "adapter.py:checkpoint_payload;launcher.py:validate_final_checkpoint",
+      "trigger": "Launcher requires top-level config_sha256 not emitted by checkpoint_payload; no inherited/cumulative counters saved despite promised120 cumulativeupdates.",
+      "fix": "Save exact config pin and inherited/cumulative counters, identity actual new run seed; preserve new-phase counters72."
+    },
+    {
+      "id": "CACHE-AND-DEPS",
+      "severity": "P1",
+      "path": "adapter.py:check_import_cache/manifest;launcher.py:env",
+      "trigger": "PYTHONPYCACHEPREFIX empty string enables defaultcache, not bypass. Manifest path allowlist excludes frozen Torch/NumPy dependency inventory and D1 original terminal evidence.",
+      "fix": "Use real dedicated empty absolute prefix inherited launcher/worker, -B/no bytecode writes, inspect sys.pycache_prefix. Retain original dependency inventory pins and D1 evidence in allowed source manifest."
+    },
+    {
+      "id": "FROZEN-TIME-ANCHOR",
+      "severity": "P1",
+      "path": "registration-template.json;launcher.py:budget checks",
+      "trigger": "Frozen numeric started_monotonic/deadline issued before source review spends experiment budget before execution; maintaining fresh hash afterward defeats reviewed registration identity.",
+      "fix": "Frozen timing policy with launcherT0 captured before full preflight; worker inherits same absoluteT0, derive1600/1800 deadlines once. PersistT0 in ownedlaunchreceipt; independentobserver retains raw inclusive1800bound. No restart/reset duringrun."
+    },
+    {
+      "id": "LATE-SIGNAL-REGRESSION",
+      "severity": "P1",
+      "path": "launcher.py:latch_signal;__main__ publication",
+      "trigger": "Handler only latches, so signal after last finalization check and before final print/exit can still exit0. New launcher did not inherit all tested r3 protections merely by rerunning oldlauncher tests.",
+      "fix": "Bring audited r3 late-publication failure behavior into newlauncher and test actual newlauncher. Keep bounded directreaping and never signal after positivegroupabsence."
+    }
+  ],
+  "evidence_boundary": "Source inspection only; no new experiment or model execution; real original telemetry fixture already retained."
+}

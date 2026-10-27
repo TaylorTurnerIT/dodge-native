@@ -1,0 +1,1233 @@
+{
+  "old": {
+    "signals": [
+      [
+        200,
+        15,
+        100.02
+      ],
+      [
+        300,
+        15,
+        100.02
+      ],
+      [
+        200,
+        9,
+        105.0
+      ],
+      [
+        300,
+        9,
+        105.0
+      ]
+    ],
+    "worker_wait": null,
+    "inner_wait": {
+      "pid": 200,
+      "reaped_by": 150,
+      "direct_child_reaped": true,
+      "raw_wait_status": 9,
+      "returncode": -9,
+      "observed_monotonic": 105.02
+    },
+    "first": 100.0,
+    "until": 110.0,
+    "final_clock": 105.04,
+    "cleanup_complete": true,
+    "events": [
+      {
+        "kind": "monitor_error",
+        "duty": "IPC",
+        "error": "Stop('Unexpected private IPC loss: {}')"
+      }
+    ],
+    "reads": [
+      [
+        "worker",
+        105.0
+      ],
+      [
+        "worker",
+        105.02
+      ]
+    ],
+    "supplied_model_direct_reports": []
+  },
+  "new": {
+    "signals": [
+      [
+        200,
+        15,
+        100.02
+      ],
+      [
+        300,
+        15,
+        100.02
+      ],
+      [
+        300,
+        9,
+        105.0
+      ],
+      [
+        200,
+        9,
+        105.04
+      ]
+    ],
+    "worker_wait": {
+      "pid": 300,
+      "reaped_by": 200,
+      "direct_child_reaped": true,
+      "raw_wait_status": 9,
+      "returncode": -9,
+      "observed_monotonic": 105.02
+    },
+    "inner_wait": {
+      "pid": 200,
+      "reaped_by": 150,
+      "direct_child_reaped": true,
+      "raw_wait_status": 9,
+      "returncode": -9,
+      "observed_monotonic": 105.06
+    },
+    "first": 100.0,
+    "until": 110.0,
+    "final_clock": 105.08,
+    "cleanup_complete": true,
+    "events": [
+      {
+        "kind": "escalation",
+        "role": "worker",
+        "reason": "original_cutpoint",
+        "monotonic": 105.0
+      },
+      {
+        "kind": "monitor_error",
+        "duty": "IPC_worker",
+        "error": "Stop('Unexpected private IPC loss: {}')",
+        "source": {
+          "timestamp": 105.0,
+          "kind": "ipc_endpoint_observation",
+          "outcome": "identity_or_lease_failure",
+          "role": "outer",
+          "endpoint": "worker",
+          "timing_basis": "endpoint_catch_observation",
+          "signal": null
+        }
+      },
+      {
+        "kind": "monitor_error",
+        "duty": "IPC",
+        "error": "Stop('Unexpected private IPC loss: {}')",
+        "source": {
+          "timestamp": 105.0,
+          "kind": "ipc_endpoint_observation",
+          "outcome": "identity_or_lease_failure",
+          "role": "outer",
+          "endpoint": "worker",
+          "timing_basis": "endpoint_catch_observation",
+          "signal": null
+        }
+      },
+      {
+        "kind": "escalation",
+        "role": "supervisor",
+        "reason": "validated_worker_wait",
+        "monotonic": 105.04
+      }
+    ],
+    "reads": [
+      [
+        "worker",
+        105.0
+      ],
+      [
+        "supervisor",
+        105.02
+      ],
+      [
+        "worker",
+        105.02
+      ],
+      [
+        "worker",
+        105.04
+      ],
+      [
+        "worker",
+        105.06
+      ]
+    ],
+    "supplied_model_direct_reports": [
+      {
+        "pid": 300,
+        "reaped_by": 200,
+        "direct_child_reaped": true,
+        "raw_wait_status": 9,
+        "returncode": -9,
+        "observed_monotonic": 105.02
+      }
+    ]
+  },
+  "no_report": {
+    "signals": [
+      [
+        200,
+        15,
+        100.02
+      ],
+      [
+        300,
+        15,
+        100.02
+      ],
+      [
+        300,
+        9,
+        105.0
+      ],
+      [
+        200,
+        9,
+        109.5
+      ]
+    ],
+    "worker_wait": null,
+    "inner_wait": {
+      "pid": 200,
+      "reaped_by": 150,
+      "direct_child_reaped": true,
+      "raw_wait_status": 9,
+      "returncode": -9,
+      "observed_monotonic": 109.52
+    },
+    "first": 100.0,
+    "until": 110.0,
+    "final_clock": 109.54,
+    "cleanup_complete": true,
+    "events": [
+      {
+        "kind": "escalation",
+        "role": "worker",
+        "reason": "original_cutpoint",
+        "monotonic": 105.0
+      },
+      {
+        "kind": "monitor_error",
+        "duty": "IPC_worker",
+        "error": "Stop('Unexpected private IPC loss: {}')",
+        "source": {
+          "timestamp": 105.0,
+          "kind": "ipc_endpoint_observation",
+          "outcome": "identity_or_lease_failure",
+          "role": "outer",
+          "endpoint": "worker",
+          "timing_basis": "endpoint_catch_observation",
+          "signal": null
+        }
+      },
+      {
+        "kind": "monitor_error",
+        "duty": "IPC",
+        "error": "Stop('Unexpected private IPC loss: {}')",
+        "source": {
+          "timestamp": 105.0,
+          "kind": "ipc_endpoint_observation",
+          "outcome": "identity_or_lease_failure",
+          "role": "outer",
+          "endpoint": "worker",
+          "timing_basis": "endpoint_catch_observation",
+          "signal": null
+        }
+      },
+      {
+        "kind": "escalation",
+        "role": "supervisor",
+        "reason": "latest_bound",
+        "monotonic": 109.5
+      }
+    ],
+    "reads": [
+      [
+        "worker",
+        105.0
+      ],
+      [
+        "worker",
+        105.02
+      ],
+      [
+        "worker",
+        105.04
+      ],
+      [
+        "worker",
+        105.06
+      ],
+      [
+        "worker",
+        105.08
+      ],
+      [
+        "worker",
+        105.1
+      ],
+      [
+        "worker",
+        105.12
+      ],
+      [
+        "worker",
+        105.14
+      ],
+      [
+        "worker",
+        105.16
+      ],
+      [
+        "worker",
+        105.18
+      ],
+      [
+        "worker",
+        105.2
+      ],
+      [
+        "worker",
+        105.22
+      ],
+      [
+        "worker",
+        105.24
+      ],
+      [
+        "worker",
+        105.26
+      ],
+      [
+        "worker",
+        105.28
+      ],
+      [
+        "worker",
+        105.3
+      ],
+      [
+        "worker",
+        105.32
+      ],
+      [
+        "worker",
+        105.34
+      ],
+      [
+        "worker",
+        105.36
+      ],
+      [
+        "worker",
+        105.38
+      ],
+      [
+        "worker",
+        105.4
+      ],
+      [
+        "worker",
+        105.42
+      ],
+      [
+        "worker",
+        105.44
+      ],
+      [
+        "worker",
+        105.46
+      ],
+      [
+        "worker",
+        105.48
+      ],
+      [
+        "worker",
+        105.5
+      ],
+      [
+        "worker",
+        105.52
+      ],
+      [
+        "worker",
+        105.54
+      ],
+      [
+        "worker",
+        105.56
+      ],
+      [
+        "worker",
+        105.58
+      ],
+      [
+        "worker",
+        105.6
+      ],
+      [
+        "worker",
+        105.62
+      ],
+      [
+        "worker",
+        105.64
+      ],
+      [
+        "worker",
+        105.66
+      ],
+      [
+        "worker",
+        105.68
+      ],
+      [
+        "worker",
+        105.7
+      ],
+      [
+        "worker",
+        105.72
+      ],
+      [
+        "worker",
+        105.74
+      ],
+      [
+        "worker",
+        105.76
+      ],
+      [
+        "worker",
+        105.78
+      ],
+      [
+        "worker",
+        105.8
+      ],
+      [
+        "worker",
+        105.82
+      ],
+      [
+        "worker",
+        105.84
+      ],
+      [
+        "worker",
+        105.86
+      ],
+      [
+        "worker",
+        105.88
+      ],
+      [
+        "worker",
+        105.9
+      ],
+      [
+        "worker",
+        105.92
+      ],
+      [
+        "worker",
+        105.94
+      ],
+      [
+        "worker",
+        105.96
+      ],
+      [
+        "worker",
+        105.98
+      ],
+      [
+        "worker",
+        106.0
+      ],
+      [
+        "worker",
+        106.02
+      ],
+      [
+        "worker",
+        106.04
+      ],
+      [
+        "worker",
+        106.06
+      ],
+      [
+        "worker",
+        106.08
+      ],
+      [
+        "worker",
+        106.1
+      ],
+      [
+        "worker",
+        106.12
+      ],
+      [
+        "worker",
+        106.14
+      ],
+      [
+        "worker",
+        106.16
+      ],
+      [
+        "worker",
+        106.18
+      ],
+      [
+        "worker",
+        106.2
+      ],
+      [
+        "worker",
+        106.22
+      ],
+      [
+        "worker",
+        106.24
+      ],
+      [
+        "worker",
+        106.26
+      ],
+      [
+        "worker",
+        106.28
+      ],
+      [
+        "worker",
+        106.3
+      ],
+      [
+        "worker",
+        106.32
+      ],
+      [
+        "worker",
+        106.34
+      ],
+      [
+        "worker",
+        106.36
+      ],
+      [
+        "worker",
+        106.38
+      ],
+      [
+        "worker",
+        106.4
+      ],
+      [
+        "worker",
+        106.42
+      ],
+      [
+        "worker",
+        106.44
+      ],
+      [
+        "worker",
+        106.46
+      ],
+      [
+        "worker",
+        106.48
+      ],
+      [
+        "worker",
+        106.5
+      ],
+      [
+        "worker",
+        106.52
+      ],
+      [
+        "worker",
+        106.54
+      ],
+      [
+        "worker",
+        106.56
+      ],
+      [
+        "worker",
+        106.58
+      ],
+      [
+        "worker",
+        106.6
+      ],
+      [
+        "worker",
+        106.62
+      ],
+      [
+        "worker",
+        106.64
+      ],
+      [
+        "worker",
+        106.66
+      ],
+      [
+        "worker",
+        106.68
+      ],
+      [
+        "worker",
+        106.7
+      ],
+      [
+        "worker",
+        106.72
+      ],
+      [
+        "worker",
+        106.74
+      ],
+      [
+        "worker",
+        106.76
+      ],
+      [
+        "worker",
+        106.78
+      ],
+      [
+        "worker",
+        106.8
+      ],
+      [
+        "worker",
+        106.82
+      ],
+      [
+        "worker",
+        106.84
+      ],
+      [
+        "worker",
+        106.86
+      ],
+      [
+        "worker",
+        106.88
+      ],
+      [
+        "worker",
+        106.9
+      ],
+      [
+        "worker",
+        106.92
+      ],
+      [
+        "worker",
+        106.94
+      ],
+      [
+        "worker",
+        106.96
+      ],
+      [
+        "worker",
+        106.98
+      ],
+      [
+        "worker",
+        107.0
+      ],
+      [
+        "worker",
+        107.02
+      ],
+      [
+        "worker",
+        107.04
+      ],
+      [
+        "worker",
+        107.06
+      ],
+      [
+        "worker",
+        107.08
+      ],
+      [
+        "worker",
+        107.1
+      ],
+      [
+        "worker",
+        107.12
+      ],
+      [
+        "worker",
+        107.14
+      ],
+      [
+        "worker",
+        107.16
+      ],
+      [
+        "worker",
+        107.18
+      ],
+      [
+        "worker",
+        107.2
+      ],
+      [
+        "worker",
+        107.22
+      ],
+      [
+        "worker",
+        107.24
+      ],
+      [
+        "worker",
+        107.26
+      ],
+      [
+        "worker",
+        107.28
+      ],
+      [
+        "worker",
+        107.3
+      ],
+      [
+        "worker",
+        107.32
+      ],
+      [
+        "worker",
+        107.34
+      ],
+      [
+        "worker",
+        107.36
+      ],
+      [
+        "worker",
+        107.38
+      ],
+      [
+        "worker",
+        107.4
+      ],
+      [
+        "worker",
+        107.42
+      ],
+      [
+        "worker",
+        107.44
+      ],
+      [
+        "worker",
+        107.46
+      ],
+      [
+        "worker",
+        107.48
+      ],
+      [
+        "worker",
+        107.5
+      ],
+      [
+        "worker",
+        107.52
+      ],
+      [
+        "worker",
+        107.54
+      ],
+      [
+        "worker",
+        107.56
+      ],
+      [
+        "worker",
+        107.58
+      ],
+      [
+        "worker",
+        107.6
+      ],
+      [
+        "worker",
+        107.62
+      ],
+      [
+        "worker",
+        107.64
+      ],
+      [
+        "worker",
+        107.66
+      ],
+      [
+        "worker",
+        107.68
+      ],
+      [
+        "worker",
+        107.7
+      ],
+      [
+        "worker",
+        107.72
+      ],
+      [
+        "worker",
+        107.74
+      ],
+      [
+        "worker",
+        107.76
+      ],
+      [
+        "worker",
+        107.78
+      ],
+      [
+        "worker",
+        107.8
+      ],
+      [
+        "worker",
+        107.82
+      ],
+      [
+        "worker",
+        107.84
+      ],
+      [
+        "worker",
+        107.86
+      ],
+      [
+        "worker",
+        107.88
+      ],
+      [
+        "worker",
+        107.9
+      ],
+      [
+        "worker",
+        107.92
+      ],
+      [
+        "worker",
+        107.94
+      ],
+      [
+        "worker",
+        107.96
+      ],
+      [
+        "worker",
+        107.98
+      ],
+      [
+        "worker",
+        108.0
+      ],
+      [
+        "worker",
+        108.02
+      ],
+      [
+        "worker",
+        108.04
+      ],
+      [
+        "worker",
+        108.06
+      ],
+      [
+        "worker",
+        108.08
+      ],
+      [
+        "worker",
+        108.1
+      ],
+      [
+        "worker",
+        108.12
+      ],
+      [
+        "worker",
+        108.14
+      ],
+      [
+        "worker",
+        108.16
+      ],
+      [
+        "worker",
+        108.18
+      ],
+      [
+        "worker",
+        108.2
+      ],
+      [
+        "worker",
+        108.22
+      ],
+      [
+        "worker",
+        108.24
+      ],
+      [
+        "worker",
+        108.26
+      ],
+      [
+        "worker",
+        108.28
+      ],
+      [
+        "worker",
+        108.3
+      ],
+      [
+        "worker",
+        108.32
+      ],
+      [
+        "worker",
+        108.34
+      ],
+      [
+        "worker",
+        108.36
+      ],
+      [
+        "worker",
+        108.38
+      ],
+      [
+        "worker",
+        108.4
+      ],
+      [
+        "worker",
+        108.42
+      ],
+      [
+        "worker",
+        108.44
+      ],
+      [
+        "worker",
+        108.46
+      ],
+      [
+        "worker",
+        108.48
+      ],
+      [
+        "worker",
+        108.5
+      ],
+      [
+        "worker",
+        108.52
+      ],
+      [
+        "worker",
+        108.54
+      ],
+      [
+        "worker",
+        108.56
+      ],
+      [
+        "worker",
+        108.58
+      ],
+      [
+        "worker",
+        108.6
+      ],
+      [
+        "worker",
+        108.62
+      ],
+      [
+        "worker",
+        108.64
+      ],
+      [
+        "worker",
+        108.66
+      ],
+      [
+        "worker",
+        108.68
+      ],
+      [
+        "worker",
+        108.7
+      ],
+      [
+        "worker",
+        108.72
+      ],
+      [
+        "worker",
+        108.74
+      ],
+      [
+        "worker",
+        108.76
+      ],
+      [
+        "worker",
+        108.78
+      ],
+      [
+        "worker",
+        108.8
+      ],
+      [
+        "worker",
+        108.82
+      ],
+      [
+        "worker",
+        108.84
+      ],
+      [
+        "worker",
+        108.86
+      ],
+      [
+        "worker",
+        108.88
+      ],
+      [
+        "worker",
+        108.9
+      ],
+      [
+        "worker",
+        108.92
+      ],
+      [
+        "worker",
+        108.94
+      ],
+      [
+        "worker",
+        108.96
+      ],
+      [
+        "worker",
+        108.98
+      ],
+      [
+        "worker",
+        109.0
+      ],
+      [
+        "worker",
+        109.02
+      ],
+      [
+        "worker",
+        109.04
+      ],
+      [
+        "worker",
+        109.06
+      ],
+      [
+        "worker",
+        109.08
+      ],
+      [
+        "worker",
+        109.1
+      ],
+      [
+        "worker",
+        109.12
+      ],
+      [
+        "worker",
+        109.14
+      ],
+      [
+        "worker",
+        109.16
+      ],
+      [
+        "worker",
+        109.18
+      ],
+      [
+        "worker",
+        109.2
+      ],
+      [
+        "worker",
+        109.22
+      ],
+      [
+        "worker",
+        109.24
+      ],
+      [
+        "worker",
+        109.26
+      ],
+      [
+        "worker",
+        109.28
+      ],
+      [
+        "worker",
+        109.3
+      ],
+      [
+        "worker",
+        109.32
+      ],
+      [
+        "worker",
+        109.34
+      ],
+      [
+        "worker",
+        109.36
+      ],
+      [
+        "worker",
+        109.38
+      ],
+      [
+        "worker",
+        109.4
+      ],
+      [
+        "worker",
+        109.42
+      ],
+      [
+        "worker",
+        109.44
+      ],
+      [
+        "worker",
+        109.46
+      ],
+      [
+        "worker",
+        109.48
+      ],
+      [
+        "worker",
+        109.5
+      ],
+      [
+        "worker",
+        109.52
+      ]
+    ],
+    "supplied_model_direct_reports": []
+  },
+  "extractions": [
+    {
+      "file": "lifecycle.py",
+      "name": "Stop",
+      "line": 23,
+      "end_line": 26
+    },
+    {
+      "file": "lifecycle.py",
+      "name": "remaining",
+      "line": 29,
+      "end_line": 33
+    },
+    {
+      "file": "lifecycle.py",
+      "name": "FailurePool",
+      "line": 36,
+      "end_line": 70
+    },
+    {
+      "file": "lifecycle.py",
+      "name": "notify_failure",
+      "line": 243,
+      "end_line": 280
+    },
+    {
+      "file": "long_d2.py",
+      "name": "require",
+      "line": 59,
+      "end_line": 61
+    },
+    {
+      "file": "long_d2.py",
+      "name": "failure_outcome",
+      "line": 356,
+      "end_line": 361
+    },
+    {
+      "file": "long_d2.py",
+      "name": "observed_failure",
+      "line": 863,
+      "end_line": 886
+    },
+    {
+      "file": "long_d2.py",
+      "name": "worker_raw_failure",
+      "line": 1233,
+      "end_line": 1243
+    },
+    {
+      "file": "processes.py",
+      "name": "validate_report",
+      "line": 110,
+      "end_line": 127
+    },
+    {
+      "file": "long_d2_executor.py",
+      "name": "Execution",
+      "line": 178,
+      "end_line": 666
+    }
+  ],
+  "old_class_source": {
+    "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r11/r10-source/long_d2_executor.py",
+    "line": 178,
+    "end_line": 624
+  },
+  "limits": "Exact old/new Execution.monitor/pump/fail and new kill_due; real FailurePool/direct-report validator. Supervisor polling, process table, direct reports, signals, endpoint readiness/reset and absence are modeled. This is control-flow ordering, never actual direct-reap, datagram delivery, native execution or OS closure evidence."
+}

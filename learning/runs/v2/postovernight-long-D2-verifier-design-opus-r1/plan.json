@@ -1,0 +1,240 @@
+{
+  "acceptance": [
+    "all A/P tests pass and N1-N3 fail as discriminators",
+    "A9 completes 120s with max end-prevstart<=5 and recorded counts",
+    "protected byte/AST equality and full pin/capsule/legacy/origin parity",
+    "new protocol revision+identity+capsule frozen",
+    "frozen adversarial review (supported fallback) reconciled by parent",
+    "exact preflight/lease before the single r2 7200s run"
+  ],
+  "budgets": {
+    "implementation_seconds": 1800,
+    "no_retries": true,
+    "single_stress_seconds_max": 120,
+    "validation_stdlib_seconds_max": 900
+  },
+  "chosen_architecture": "A_cooperative_main_thread_full_verification",
+  "cooperation_budget": {
+    "limit_seconds": 5.0,
+    "max_callback_stretch_seconds_derived": "3 - D (~2.57 at D=0.43); exceeding fails honestly via monitor latch",
+    "trigger_seconds": 2.0,
+    "uncontended_pass_seconds_measured": 0.4315,
+    "verification_duty_cycle_estimate": "~15-20% of main-thread wall; fewer updates, no hyperparameter change"
+  },
+  "facts_vs_hypotheses": "see diagnosis.md sections 1-2",
+  "mechanism_facts": [
+    "stress pass1 wall3.4319 vs threadCPU0.4458; full_pins3.3824/0.3964 hot cache",
+    "pass0 forced0.4315 was uncontended (burn started after g.start)",
+    "gap=2.0273 trigger+3.4319 =5.4592 >5",
+    "protected ppo/dev_eval already call check_guard per rollout step/minibatch/eval step",
+    "monitor sampler gaps0.221 stress/0.250 production r1"
+  ],
+  "protected_unchanged": [
+    "python/dodge_rl/* (learner, PPO, reward, teacher, dev_eval, identity, checkpoints)",
+    "Rust sources/extension",
+    "Learner class, Schedule, run_schedule, worker ML body bytes (AST/byte equality vs frozen)",
+    "all 10091 pins (9870 R4 / 9675 older union), 75 legacy sources+mirrors, capsule inventory, origin checks",
+    "9-field 64-row entry control before any gradient",
+    "parent ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f",
+    "config 2ac814d3842228017d09669364a8391344722da56ad19f41ad9030dbb930c2db, seed 5562873868232098305",
+    "7200/7140/7170 and earliest-failure+10 single shared pool"
+  ],
+  "rejected": {
+    "B_process_verifier": "faithful check_frozen needs ML imports in child (extra RSS/MPS role) or worker-supplied metadata (cached-fixture substitute, forbidden); origin table must be IPC-snapshotted from worker; adds 4th owned process, ACK, liveness, parent-death (no PDEATHSIG on macOS), teardown, timing-row persistence; IO/page-cache performance unmeasured; excluded by r2 plan absent new evidence. Retained as fallback only if A production telemetry shows unfixable callback stretches.",
+    "C_hybrid_background_when_late": "is an adaptive trigger; reintroduces contention exactly when needed",
+    "C_lower_trigger_cache_mtime_fewer_pins": "forbidden",
+    "C_switchinterval": "global tuning, no bound, still loses to long GIL holds"
+  },
+  "review_risks": [
+    "production callback stretches unmeasured (startup imports, check_frozen, validate_transition, initialize, checkpoint save); run may fail honestly",
+    "meta_path finder is a new mechanism inside worker process; must be proven resolution-neutral",
+    "main-thread duty cycle reduces updates in budget",
+    "page cache may be evicted under MPS unified-memory pressure, raising D",
+    "monitor-latched failure while main is wedged in native code still relies on existing deadline/outer kill (pre-existing, not widened)"
+  ],
+  "scope_expansions": [
+    "protocol guard field semantics background->cooperative (worker) needs new revision (within authorized narrow repair)",
+    "meta_path cooperative finder (new; reviewer must accept)",
+    "optional ML-import-only timing probe would need NEW user authorization (not required)",
+    "process verifier B would be a real scope expansion"
+  ],
+  "source_edits": [
+    {
+      "edit": "add cooperative flag (True for worker, False for inner/outer); add in_verify reentrancy flag; add bounded top-K inter-callback stretch telemetry (seconds, caller code name/line via sys._getframe(1), start/end monotonic)",
+      "file": "long_d2.py",
+      "unit": "Guard.__init__"
+    },
+    {
+      "edit": "after latched-failure and deadline checks: record callback stretch; if cooperative and current thread is main and not in_verify and last_full is not None and clock-last_full>=2: call existing full_check() unchanged; forced path unchanged (sample(force)->full_check(force))",
+      "file": "long_d2.py",
+      "unit": "Guard.check"
+    },
+    {
+      "edit": "body/gap requires/row unchanged; add row fields mode in {forced,cooperative,background}, preceding_callback_stretch_seconds; set in_verify during verify()",
+      "file": "long_d2.py",
+      "unit": "Guard.full_check"
+    },
+    {
+      "edit": "if cooperative: do NOT start long-D2-inputs thread; monitor thread long-D2-guard unchanged (<=0.5s sample, <=5s staleness latch, runs during in-flight passes); inner/outer keep existing background verifier (main thread wait-only, no ML)",
+      "file": "long_d2.py",
+      "unit": "Guard.start"
+    },
+    {
+      "edit": "before entering worker body imports install sys.meta_path[0] finder whose find_spec calls guard.check() then always returns None; remove after first post-import forced check (detected inside Guard.check(force=True) once); record install/remove and per-import stretches. If wrapper cannot be placed without editing protected worker body bytes, BLOCK and report rather than editing.",
+      "file": "long_d2.py",
+      "unit": "worker startup (controller wrapper only, not worker ML body)"
+    },
+    {
+      "edit": "unchanged ordering: monitor stays alive until final IO observation; persistence only after owned thread absence",
+      "file": "long_d2.py",
+      "unit": "Guard.close/persist_timing"
+    },
+    {
+      "edit": "keep first_at; add first_cancel_at,first_cancel_signal,first_alarm_at and append ledger event(direct_signal|alarm, phase_at_receipt) without lock (handler on main thread)",
+      "file": "lifecycle.py",
+      "unit": "ProcessLatch.record/handle"
+    },
+    {
+      "edit": "append-only (at,seq,kind,role,detail,outcome); Stop.__init__ records at=time.monotonic(); select_primary(events,pool_first)=min(at,seq); signals with at>pool_first labelled cleanup_phase_signal secondary; never 'user'",
+      "file": "lifecycle.py",
+      "unit": "EVENTS ledger + Stop"
+    },
+    {
+      "edit": "failure and failure_ack carry first_kind,first_role,first_outcome with first_monotonic_hex; outer global min; interpreter realpath+sha must equal registered identity for every role else identity failure",
+      "file": "lifecycle.py",
+      "unit": "notify_failure/Channel messages"
+    },
+    {
+      "edit": "replace timestamp-comparison helper with ledger selection computed once at first latch; later errors only append secondary_failures",
+      "file": "long_d2.py",
+      "unit": "primary_error/record_primary_failure/worker_failure"
+    },
+    {
+      "edit": "guard.background_full_input_trigger_seconds -> cooperative_main_thread_full_input_trigger_seconds 2.0 for worker; inner/outer background retained; record meta_path startup finder and ledger schema; all other fields unchanged",
+      "file": "protocol (new revision r2) + identity + capsule"
+    }
+  ],
+  "status": "design_complete_unimplemented;parent_reconciliation_and_frozen_review_required;no_experiment_before_reconcile",
+  "test_matrix": [
+    {
+      "bound_seconds_each": 60,
+      "expect": "pass; max end-prevstart<=5; every pass mode=cooperative/forced on MainThread",
+      "id": "A1",
+      "k_ms": [
+        1,
+        10,
+        100,
+        1000,
+        2000,
+        2500
+      ],
+      "what": "cooperative cadence sweep: main thread pure-Python CPU loop calling guard.check every k ms over real verify closure/full pins, monitor live"
+    },
+    {
+      "expect": "monitor latch, failure_at within ~5.05s of last start, raised at next callback; outcome per ledger",
+      "id": "A2",
+      "what": "negative: callback stretch 3000ms and single uncooperative 6s call"
+    },
+    {
+      "expect": "record result; not acceptance; documents residual sensitivity",
+      "id": "A3",
+      "what": "characterization only: cooperative main + extra continuous Python burn thread"
+    },
+    {
+      "expect": "identical __spec__.origin/loader/__file__, finder never returns spec, removed after first forced post-import check, stretches recorded",
+      "id": "A4",
+      "what": "meta_path finder: synthetic stdlib package imports with/without finder"
+    },
+    {
+      "expect": "no nested pass; single row",
+      "id": "A5",
+      "what": "reentrancy: check() invoked from inside verify()"
+    },
+    {
+      "expect": "unchanged",
+      "id": "A6",
+      "what": "forced boundaries: static count of guard.check(force=True) sites in protected bytes and runtime counts per update/eval/checkpoint in fake learner"
+    },
+    {
+      "expect": "each mutation detected at next pass",
+      "id": "A7",
+      "what": "verify closure AST equality vs frozen; pins 10091, 75 legacy, capsule190, origins; mutation-pin/legacy/module/capsule negatives"
+    },
+    {
+      "expect": "pass; gaps<=5",
+      "id": "A8",
+      "what": "inner role: background verifier with wait-only main loop"
+    },
+    {
+      "expect": "report actual pass count/max gap/max stretch; no tail claims",
+      "id": "A9",
+      "what": "one bounded 120s stdlib stress of chosen mode (A1 k=100 profile + monitor), stop at first failure, no retry"
+    },
+    {
+      "expect": "fails",
+      "id": "N1",
+      "what": "old 4s guard timing discriminator"
+    },
+    {
+      "expect": "fails",
+      "id": "N2",
+      "what": "first-failure overwrite precedence discriminator"
+    },
+    {
+      "expect": "fails (safety_stop) -> discriminator",
+      "id": "N3",
+      "what": "rejected candidate primary_error on deferred-cancel case (existing probe)"
+    },
+    {
+      "expect": "primary cancelled, guard secondary",
+      "id": "P1",
+      "what": "cancel@1 DEFER, guard@2"
+    },
+    {
+      "expect": "primary guard outcome; signal cleanup_phase_signal",
+      "id": "P2",
+      "what": "guard@1, cancel@2"
+    },
+    {
+      "expect": "guard primary; signal secondary",
+      "id": "P3",
+      "what": "guard first then inner automatic SIGTERM during cleanup"
+    },
+    {
+      "expect": "stale latch primary",
+      "id": "P4",
+      "what": "multiple guard failures: stale latch@1, verify gap@1.5"
+    },
+    {
+      "expect": "global first inner; worker records local and global",
+      "id": "P5",
+      "what": "worker local fail@1, inner fail@0.9 via ACK"
+    },
+    {
+      "expect": "min(at,seq)",
+      "id": "P6",
+      "what": "alarm vs cancel ordering both ways; equal timestamps"
+    },
+    {
+      "expect": "main_exception primary",
+      "id": "P7",
+      "what": "non-Stop main exception@1 vs guard@2"
+    },
+    {
+      "expect": "secondary",
+      "id": "P8",
+      "what": "signal in FAILURE phase before ACK"
+    },
+    {
+      "expect": "identity failure before any timestamp comparison",
+      "id": "P9",
+      "what": "mixed interpreter/clock epoch across roles"
+    },
+    {
+      "expect": "cancelled primary; supervisor-disappeared failure; no new cleanup pool",
+      "id": "P10",
+      "what": "outer cancellation before inner start; parent disappearance"
+    }
+  ],
+  "version": "long_D2_verifier_design_opus_r1"
+}

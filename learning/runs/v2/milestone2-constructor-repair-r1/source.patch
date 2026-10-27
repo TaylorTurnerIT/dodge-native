@@ -1,0 +1,11 @@
+--- before/learning/scripts/v2_validate_environment.py
++++ after/learning/scripts/v2_validate_environment.py
+@@ -291,7 +291,7 @@
+ 
+ 
+ def base_config(plan: dict, **changes) -> dict:
+-    config = {"batch_size": 8, "action_repeat": 4, "difficulty": 2, "patterns_enabled": True, "powerups_enabled": True, "raw_frame_cap": 18000, "num_threads": 4, "chunk_size": 2, "render_pixels": True, "auxiliary_targets": True, "run_seed": plan["training_run_seed"], "excluded_seed_ranges": plan["effective_reserved_ranges"]}
++    config = {"batch_size": 8, "action_repeat": 4, "difficulty": 2, "patterns_enabled": True, "powerups_enabled": True, "raw_frame_cap": 18000, "num_threads": 4, "chunk_size": 2, "render_pixels": True, "auxiliary_targets": True, "run_seed": plan["training_run_seed"], "excluded_seed_ranges": [tuple(pair) for pair in plan["effective_reserved_ranges"]]}
+     config.update(changes)
+     return config
+ 

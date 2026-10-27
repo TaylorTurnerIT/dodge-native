@@ -1,0 +1,738 @@
+--- R4/long_d2.py
++++ guard-r1/long_d2.py
+@@ -29,10 +29,10 @@
+ import processes as owned
+ 
+ ORIGINAL_ROOT = Path('/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79')
+-PREPARE_REL = 'learning/runs/v2/postovernight-long-D2-prepare-r4'
++PREPARE_REL = 'learning/runs/v2/postovernight-long-D2-guard-prepare-r1'
+ ROOT = Path(__file__).resolve().parents[4]
+-PROTOCOL_REL = 'learning/runs/v2-orchestration/postovernight-long-D2-r1-protocol-r4.json'
+-PROTOCOL_SHA256 = '66cc36ef1db959bfe4188a3e2d201f8911b3ffc64baeb1d8347be6fd376ab501'
++PROTOCOL_REL = 'learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r1.json'
++PROTOCOL_SHA256 = 'b5329fdf58d984c9e38d36119973e5852601b204265a2422e6e476b0952052da'
+ CONFIG_SHA256 = '2ac814d3842228017d09669364a8391344722da56ad19f41ad9030dbb930c2db'
+ STATE_PATH = ORIGINAL_ROOT / 'learning/runs/v2-orchestration/state.json'
+ LIMIT = 6442450944
+@@ -60,16 +60,23 @@
+ 
+ 
+ HASH_OBSERVER = None
++VERIFY_LOCAL = threading.local()
+ 
+ 
+ def sha(path):
+     digest = hashlib.sha256()
++    bytes_hashed = 0
+     if HASH_OBSERVER is not None:HASH_OBSERVER()
+     with Path(path).open('rb') as stream:
+         for block in iter(lambda: stream.read(1024 * 1024), b''):
+             if HASH_OBSERVER is not None:HASH_OBSERVER()
+             digest.update(block)
++            bytes_hashed += len(block)
+     if HASH_OBSERVER is not None:HASH_OBSERVER()
++    stats = getattr(VERIFY_LOCAL, "stats", None)
++    if stats is not None:
++        stats["files"] += 1
++        stats["bytes"] += bytes_hashed
+     return digest.hexdigest()
+ 
+ 
+@@ -437,6 +444,8 @@
+                  rss=lambda: sampled_rss(os.getpid()), peak=self_peak, mps=lambda: 0):
+         self.deadline, self.lease_check, self.verify, self.stream = deadline, lease_check, verify, stream
+         self.clock, self.rss, self.peak, self.mps = clock, rss, peak, mps
++        self.timings = []
++        self.active_timing = None
+         self.failure = None
+         self.failure_at = None
+         self.maximum_rss = self.maximum_peak = self.maximum_mps = 0
+@@ -455,22 +464,79 @@
+             self.sample(force=True)
+ 
+     def full_check(self, force=False):
++        trigger = self.clock()
+         with self.verify_lock:
+             self.check()
+             at = self.clock()
+-            if not force and self.last_full is not None and at - self.last_full < 4:
++            if not force and self.last_full is not None and at - self.last_full < 2:
+                 return
+-            gap = 0 if self.last_full is None else at - self.last_full
+-            require(gap <= 5, 'Full input verification gap exceeded 5s')
+-            self.verify()
+-            end = self.clock()
+-            # Use consecutive verification starts and include this check's IO.
+-            # This conservatively bounds every pinned byte's revisit interval.
+-            gap = max(gap, end-at if self.last_full is None else end-self.last_full)
+-            self.maximum_full_gap = max(self.maximum_full_gap, gap)
+-            require(gap <= 5, 'Full input verification gap exceeded 5s')
+-            self.last_full = at
+-            self.check()
++            previous = self.last_full
++            due = trigger if previous is None or force else previous + 2
++            row = dict(schema='long_d2_verification_timing_v1', sequence=len(self.timings),
++                       trigger_monotonic=trigger, start_monotonic=at, end_monotonic=None,
++                       forced=bool(force), thread=threading.current_thread().name,
++                       background=threading.current_thread() is self.verify_thread,
++                       previous_successful_start_monotonic=previous,
++                       trigger_delay_seconds=max(0.0, trigger-due),
++                       verify_lock_wait_seconds=at-trigger, components={}, files=0, bytes=0,
++                       status='interrupted',
++                       hash_count_scope='completed controller sha calls; legacy internal file_hash excluded')
++            require(len(self.timings) < 50000, 'Verification telemetry capacity exceeded')
++            self.timings.append(row)
++            self.active_timing = row
++            cpu = time.thread_time()
++            VERIFY_LOCAL.stats = row
++            try:
++                gap = 0 if previous is None else at - previous
++                require(gap <= 5, 'Full input verification gap exceeded 5s')
++                self.verify()
++                end = self.clock()
++                # Use consecutive verification starts and include this check's IO.
++                # This conservatively bounds every pinned byte's revisit interval.
++                gap = max(gap, end-at if previous is None else end-previous)
++                self.maximum_full_gap = max(self.maximum_full_gap, gap)
++                require(gap <= 5, 'Full input verification gap exceeded 5s')
++                self.last_full = at
++                self.check()
++                row['status'] = 'passed'
++            except BaseException as error:
++                row.update(status='failed', error=repr(error))
++                raise
++            finally:
++                end = self.clock()
++                row.update(end_monotonic=end, duration_seconds=end-at,
++                           thread_cpu_seconds=time.thread_time()-cpu,
++                           full_gap_seconds=end-at if previous is None else end-previous)
++                VERIFY_LOCAL.stats = None
++                self.active_timing = None
++
++    def persist_timing(self, path, deadline, permission=lambda: None):
++        """Main-thread IO only, after owned verifier teardown. No telemetry thread.
++
++        Rows stay in bounded memory during verification; IO never takes either
++        resource lock or runs on the independent resource monitor. A killed
++        process can lose unflushed rows; partial/failure receipts retain what is
++        safely available. The process lifetime deadline still owns every write.
++        """
++        require(all(t is None or not t.is_alive() for t in (self.thread,self.verify_thread)),
++                'Timing persistence requires owned Guard thread absence')
++        permission(); life.remaining(deadline)
++        path = Path(path)
++        path.parent.mkdir(parents=False, exist_ok=True)
++        permission(); life.remaining(deadline)
++        with path.open('x') as stream:
++            for row in self.timings:
++                permission(); life.remaining(deadline)
++                emit(stream, row)
++                life.remaining(deadline); permission()
++        life.remaining(deadline); permission()
++        manifest = dict(schema='long_d2_verification_output_v1', path=str(path),
++                        sha256=sha(path), rows=len(self.timings), owned_threads_absent=True,
++                        complete=all(r.get('end_monotonic') is not None for r in self.timings))
++        permission(); life.remaining(deadline)
++        save(path.with_suffix('.manifest.json'), manifest)
++        life.remaining(deadline); permission()
++        return manifest
+ 
+     def sample(self, force=False, *, full=True):
+         with self.lock:
+@@ -507,7 +573,7 @@
+                         require(self.clock()-self.last_full <= 5, 'Full input verification gap exceeded 5s')
+                 except BaseException as error:
+                     self.failure_at = self.failure_at or self.clock()
+-                    self.failure = error if isinstance(error, Stop) else Stop(repr(error))
++                    self.failure = self.failure or (error if isinstance(error, Stop) else Stop(repr(error)))
+                     return
+         self.thread = threading.Thread(target=monitor, daemon=True, name='long-D2-guard')
+         life.start_thread(self.thread)
+@@ -518,7 +584,7 @@
+                     self.full_check()
+                 except BaseException as error:
+                     self.failure_at = self.failure_at or self.clock()
+-                    self.failure = error if isinstance(error, Stop) else Stop(repr(error))
++                    self.failure = self.failure or (error if isinstance(error, Stop) else Stop(repr(error)))
+                     return
+         self.verify_thread = threading.Thread(target=verify_monitor, daemon=True, name='long-D2-inputs')
+         life.start_thread(self.verify_thread)
+@@ -537,7 +603,9 @@
+                     maximum_sample_gap_seconds=self.maximum_sample_gap,
+                     maximum_full_input_gap_seconds=self.maximum_full_gap,
+                     last_sample_monotonic=self.last_sample, last_full_verification_monotonic=self.last_full,
+-                    latched_failure=None if self.failure is None else repr(self.failure))
++                    latched_failure=None if self.failure is None else repr(self.failure),
++                    verification_pass_count=len(self.timings),
++                    interrupted_verification=self.active_timing)
+ 
+ 
+ 
+@@ -774,9 +842,47 @@
+         record('cadence_evaluation',gate_passed=passed)
+ 
+ 
++@contextmanager
++def verification_component(name):
++    row = getattr(VERIFY_LOCAL, 'stats', None)
++    start, cpu = time.monotonic(), time.thread_time()
++    before = None if row is None else (row['files'], row['bytes'])
++    status = 'failed'
++    try:
++        yield
++        status = 'passed'
++    finally:
++        if row is not None:
++            row['components'][name] = dict(duration_seconds=time.monotonic()-start,
++                                          thread_cpu_seconds=time.thread_time()-cpu, status=status,
++                                          observed_hash_files=row['files']-before[0],
++                                          observed_hash_bytes=row['bytes']-before[1])
++
++
++def primary_error(error, guard):
++    # A monitor failure can precede delivery to the main thread. Preserve it
++    # only when it predates the first recorded signal; user cancellation first
++    # remains cancellation. This is ordering evidence, not inferred user intent.
++    first_signal = None if life.ACTIVE is None else life.ACTIVE.first_at
++    if (guard is not None and guard.failure is not None and guard.failure_at is not None
++            and (first_signal is None or guard.failure_at <= first_signal)):
++        return guard.failure
++    return error
++
++
++def record_primary_failure(result, error):
++    """First failure owns outcome/error. Later cleanup signals are evidence only."""
++    if 'primary_failure' not in result:
++        primary = dict(outcome=failure_outcome(error), error=repr(error))
++        result.update(outcome_fields(primary['outcome']), error=primary['error'], primary_failure=primary)
++    else:
++        result.setdefault('secondary_failures', []).append(
++            dict(outcome=failure_outcome(error), error=repr(error)))
++
++
+ def worker_failure(error, args, guard, learner, result, permission):
+     """Memory-first failure latch; a failed ACK permanently forbids new writes."""
+-    result.update(outcome_fields(failure_outcome(error)), error=repr(error))
++    record_primary_failure(result, primary_error(error, guard))
+     permission['failed'] = True
+     permission['acknowledged_until'] = None
+     now = time.monotonic()
+@@ -842,12 +948,17 @@
+         require(os.getppid()==args.supervisor_pid,'Supervisor disappeared')
+         assert_lease(args.state_path,lease)
+     def verify():
+-        verify_files(pins)
+-        assert_readonly_capsule(ROOT,read_json(ROOT/'capsule-manifest.json'))
+-        if imported:
+-            imported['identity'].check_frozen(ORIGINAL_ROOT/p['base_identity_path'],
+-                 p['base_identity_sha256'],base,ORIGINAL_ROOT)
+-            check_module_origins(identity,ROOT)
++        with verification_component('full_pins'):
++            verify_files(pins)
++        with verification_component('capsule_walks'):
++            assert_readonly_capsule(ROOT,read_json(ROOT/'capsule-manifest.json'))
++        with verification_component('legacy_frozen_rebuild'):
++            if imported:
++                imported['identity'].check_frozen(ORIGINAL_ROOT/p['base_identity_path'],
++                     p['base_identity_sha256'],base,ORIGINAL_ROOT)
++        with verification_component('origins'):
++            if imported:
++                check_module_origins(identity,ROOT)
+     with cancellation_signals() as cancel:
+         try:
+             resources=streams.enter_context((args.output/'worker-resources.jsonl').open('x'))
+@@ -903,7 +1014,7 @@
+             guard.check(force=True)
+         except BaseException as error:
+             worker_failure(error, args, guard, learner, result, permission)
+-            result.update(outcome_fields(failure_outcome(error)),error=repr(error),traceback=traceback.format_exc())
++            result['traceback'] = traceback.format_exc()
+         finally:
+             cancel()  # Every later signal is still latched.
+             if learner is not None and learner.model is not None and result_code(result)==1:
+@@ -926,18 +1037,19 @@
+                 require(time.monotonic()<life.POOL.deadline(args.started+WORKER_SECONDS),'Worker finalization crossed absolute deadline','wall_guard')
+             except BaseException as error:
+                 worker_failure(error, args, guard, learner, result, permission)
+-                result.update(outcome_fields(failure_outcome(error)),final_verification_error=repr(error))
++                result['final_verification_error'] = repr(error)
+             try:
+                 streams.close()
+             except BaseException as error:
+                 worker_failure(error, args, guard, learner, result, permission)
+-                result.update(outcome_fields('publication_failure'),stream_close_error=repr(error))
++                result['stream_close_error'] = repr(error)
+             if guard:
+                 result['worker_resources']=guard.receipt()
+     if cancel.cancellation_requests:
+         worker_failure(Stop('Cancellation latched','cancelled'),args,guard,learner,result,permission)
+-        result.update(outcome_fields('cancelled'),cancellation_requests=cancel.cancellation_requests,
+-                      cancellation_signal=signal.Signals(cancel.requested_signal).name)
++        result.update(cancellation_requests=cancel.cancellation_requests,
++                      cancellation_signal=signal.Signals(cancel.requested_signal).name,
++                      cancellation_secondary=result['outcome'] != 'cancelled')
+     result.update(run_id=p['run_id'],protocol_sha256=PROTOCOL_SHA256,
+                   config_document_sha256=CONFIG_SHA256,identity_document_sha256=lease['identity_sha256'],
+                   checkpoint_identity_semantic_sha256=semantic_hash(identity),
+@@ -946,12 +1058,17 @@
+                   worker_wall_seconds_lower_bound=time.monotonic()-args.started,
+                   worker_result_write_and_process_exit_not_timed=True)
+     if time.monotonic()>=life.POOL.deadline(args.started+WORKER_SECONDS):
+-        result.update(outcome_fields('wall_guard'),deadline_expired=True)
++        record_primary_failure(result, Stop('Worker deadline expired','wall_guard'))
++        result['deadline_expired'] = True
+     if result_code(result)==1 and not permission['failed']:
+         worker_failure(Stop(result['outcome']),args,guard,learner,result,permission)
+     if permission.get('ack_failed'):
+         return 1
+     try:
++        if guard is not None:
++            guard.persist_timing(args.output/'worker-verification.jsonl',
++                life.POOL.deadline(args.started+WORKER_SECONDS),
++                lambda: worker_write_permission(args,result,permission,learner))
+         if learner is not None:
+             worker_write_permission(args,result,permission,learner)
+             save(args.output/'checkpoint-index.json',learner.checkpoints)
+@@ -1058,10 +1175,13 @@
+         def lease_check():
+             assert_lease(args.state_path,lease)
+         def verify():
+-            verify_files(pins)
+-            assert_readonly_capsule(ROOT,read_json(ROOT/'capsule-manifest.json'))
+-            if 'legacy_module_origins' in identity:
+-                check_module_origins(identity,ROOT)
++            with verification_component('full_pins'):
++                verify_files(pins)
++            with verification_component('capsule_walks'):
++                assert_readonly_capsule(ROOT,read_json(ROOT/'capsule-manifest.json'))
++            with verification_component('origins'):
++                if 'legacy_module_origins' in identity:
++                    check_module_origins(identity,ROOT)
+         guard=guard_factory(deadline,lease_check,verify,stream)
+         guard.start()
+         def authority(force=False):
+@@ -1144,6 +1264,8 @@
+         global HASH_OBSERVER
+         HASH_OBSERVER=final_hash_observer
+         authority(True)
++        guard.persist_timing(ORIGINAL_ROOT/Path(p['terminal_lifecycle']['acceptance_receipt']).parent/'inner-verification.jsonl',
++                             deadline,lambda: authority(False))
+         return code,guard
+     except BaseException as error:
+         # No ordinary verification or artifact hash after first failure.
+@@ -1170,6 +1292,7 @@
+             gate.close()
+             life.remaining(until)
+             if args.output.is_dir():
++                guard.persist_timing(ORIGINAL_ROOT/Path(p['terminal_lifecycle']['acceptance_receipt']).parent/'inner-verification.jsonl',until)
+                 replace_json(args.output/'inner-failure.json',result)
+             life.remaining(until)
+             life.CHANNEL.sock.close()
+1. Update `devenv.nix` (or configure a `uv` virtual environment inside the `devenv` shell with `LD_LIBRARY_PATH` / CUDA wheel support for NixOS) to provide Python 3.11+, `maturin`, `pytest`, `numpy`, and `torch`.
+2. Benchmark the existing `NativeGame::advance_frame` SPS (single-threaded and multi-threaded).
+3. Run 1,000 episodes each of three baseline policies at `difficulty = 2`, `patterns_enabled = true`, `powerups_enabled = true`:
+  - **Random Policy**
+  - **Stand-Still Policy**
+  - **Scripted Heuristic Dodger** (moves away from nearest lethal AABB, moves toward powerups when safe)
+4. Record mean/median/p90 **Game Score**, **Survival Frames (at 60 Hz)**, **Max Simultaneous Enemies**, and **Max Simultaneous Pattern Rects**. Use these empirical numbers to lock `MAX_ENEMIES` and set the Teacher's target score gate.
+
+### Milestone 1: `dodge-core` Headless Path, Accessors & Parity Tests
+
+1. Implement `advance_frame_headless`, `render_into`, and `PrivilegedView` in `crates/dodge-core`.
+2. Write the **Headless Equivalence Test**: across $100$ seeds $\times 2,000$ random-action frames, assert that `full_state()` after `advance_frame_headless` is bit-for-bit identical to `advance_frame` (ignoring `physical_screen`).
+3. Verify all existing parity tests (`v1xx_*`) pass and `cargo clippy --workspace --all-targets` exits with 0 warnings.
+4. Benchmark `advance_frame_headless` vs `advance_frame` and record the speedup.
+
+### Milestone 2: `crates/dodge-rl-env` Vectorized PyO3 Binding
+
+1. Create `crates/dodge-rl-env` (linking **only** `dodge-core`, with its own `[lints]` table).
+2. Implement `VecDodgeEnv` with per-episode seeded `NativeGame::new`, internal start-sequence fast-forwarding (`X` press + neutral until `Mode::Game`), action repeat $K=4$ with summed $\Delta\text{score}$ and survival rewards, AABB Minkowski/slab featurization, 5-channel $16 \times 16$ box rasterization targets, and optional 4-frame $K$-spaced pixel stacks.
+3. Write Python tests verifying shapes, non-clairvoyance, off-screen coordinate handling (no $[0, 128]$ assertions), and zero memory leaks over 100k steps.
+4. Benchmark multi-threaded Rayon chunked throughput (headless SPS and rendered SPS).
+
+### Milestone 3: Stage 1 — Privileged Entity-Transformer Teacher (PPO)
+
+1. Implement `OmniscientEntityTeacher` with `CustomTransformerLayer` in `python/dodge_rl/models/teacher.py`.
+2. Train via PPO (`gamma = 0.995` at $K=4$) using the built-in curriculum:
+  - **Phase A:** `difficulty = 1, patterns = false, powerups = true` (learn movement, enemy-collision baiting, and powerup collection).
+  - **Phase B:** `difficulty = 2, patterns = true, powerups = true` (learn static rect `frames_until_lethal` and moving walls).
+  - **Phase C:** `difficulty = 3, patterns = true, powerups = true` (full chaos + optional `Snapshot::restore` hard-state replays).
+3. **Gate:** Teacher must beat the Milestone 0 Scripted Heuristic Dodger's mean **Score** and **Survival Time** by a clear margin (e.g., $\ge 2\times$ mean score) at Difficulty 2 and 3.
+
+### Milestone 4: Stage 2A & 2B — Visual Student (DAgger + Box Rasterization)
+
+1. Implement `VisualViTStudent` (with `nn.Embedding(16, 8)` palette embedding and $K$-spaced 4-frame Conv stem) in `python/dodge_rl/models/student.py`.
+2. Train Stage 2A (Action-KL DAgger with $\beta$ annealed $1.0 \to 0.0$) and evaluate pure-visual score and survival.
+3. Train Stage 2B (Action-KL + 5-channel $16 \times 16$ Box Rasterization BCE head) and measure the improvement in pure-visual score and survival.
+
+### Milestone 5: Stage 2C & 2.5 — Ablations & Asymmetric PPO Fine-Tuning
+
+1. Run controlled ablations adding $L_{\text{latent}}$ (MSE on `[CLS]`) and $L_{\text{attn}}$ (AABB-projected Teacher attention KL). Retain only terms that improve pure-visual evaluation score.
+2. If the Student trails the Teacher by $>10\%$ in mean score, run Stage 2.5 Asymmetric PPO (Visual Student Actor + Privileged Teacher Critic) to close the gap.
+
+### Milestone 6: Visual Evaluation & Diagnostics (`eval_visual.py`)
+
+1. Build `python/dodge_rl/eval_visual.py` to output quantitative metrics (mean/median/max Score and Survival Seconds across difficulties) and render a 60 FPS diagnostic video showing:
+  - **Panel 1:** Live $128 \times 128$ PICO-8 game frame (mapped via `PICO8_PALETTE`).
+  - **Panel 2:** The Student's predicted $16 \times 16$ semantic occupancy probabilities (`lethal_now`, `lethal_soon`, `powerup`).
+  - **Panel 3:** The Student ViT's `[CLS]` spatial attention heatmap over the $16 \times 16$ grid.
+#!/usr/bin/env python3
+"""One separately authorized long-D2 experiment. No resume or device override.
+
+The stdlib-only preflight/freeze path never imports the project, Torch, or native
+code. Only the supervisor-owned worker may import the ORIGINAL_ROOT package.
+Legacy proof validates the old D1->D2 contract; it never authorizes this run.
+"""
+from __future__ import annotations
+import time
+LAUNCH_MONOTONIC = time.monotonic()  # Includes all subsequent normal imports.
+
+import argparse
+import copy
+from contextlib import contextmanager, ExitStack
+import hashlib
+import io
+import json
+import math
+import os
+from pathlib import Path
+import resource
+import signal
+import subprocess
+import sys
+import threading
+import traceback
+import socket
+import lifecycle as life
+import processes as owned
+
+ORIGINAL_ROOT = Path('/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79')
+PREPARE_REL = 'learning/runs/v2/postovernight-long-D2-guard-prepare-r1'
+ROOT = Path(__file__).resolve().parents[4]
+PROTOCOL_REL = 'learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r1.json'
+PROTOCOL_SHA256 = 'b5329fdf58d984c9e38d36119973e5852601b204265a2422e6e476b0952052da'
+CONFIG_SHA256 = '2ac814d3842228017d09669364a8391344722da56ad19f41ad9030dbb930c2db'
+STATE_PATH = ORIGINAL_ROOT / 'learning/runs/v2-orchestration/state.json'
+LIMIT = 6442450944
+BUDGET = 7200
+WORKER_SECONDS = 7140
+CLEANUP_SECONDS = 10
+SEEDS = tuple(range(3489660928, 3489660992))
+ROW_KEYS = ('episode_index', 'seed', 'score_raw_fixed', 'score', 'alive_frames',
+            'gameplay_frames', 'terminated', 'truncated', 'objective_return')
+PARENT_COUNTERS = dict(updates=48, phase_updates=32, optimizer_steps=6144,
+                       environment_decisions=786432, raw_frames=3139552, checkpoint_index=9)
+LEASE_KEYS = {'kind', 'authorization', 'run_id', 'protocol_sha256', 'controller_sha256',
+              'capsule_manifest_sha256', 'capsule_path', 'config_sha256', 'identity_sha256',
+              'parent_checkpoint_sha256', 'parent_terminal_receipt', 'budget_seconds',
+              'cleanup_reserve_seconds', 'output', 'cancel_requested'}
+
+
+Stop = life.Stop
+INNER_SECONDS = 7170
+
+
+def require(condition, message, outcome='identity_or_lease_failure'):
+    if not condition:
+        raise Stop(message, outcome)
+
+
+HASH_OBSERVER = None
+VERIFY_LOCAL = threading.local()
+
+
+def sha(path):
+    digest = hashlib.sha256()
+    bytes_hashed = 0
+    if HASH_OBSERVER is not None:HASH_OBSERVER()
+    with Path(path).open('rb') as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b''):
+            if HASH_OBSERVER is not None:HASH_OBSERVER()
+            digest.update(block)
+            bytes_hashed += len(block)
+    if HASH_OBSERVER is not None:HASH_OBSERVER()
+    stats = getattr(VERIFY_LOCAL, "stats", None)
+    if stats is not None:
+        stats["files"] += 1
+        stats["bytes"] += bytes_hashed
+    return digest.hexdigest()
+
+
+def canonical(value):
+    return json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
+
+
+def semantic_hash(value):
+    return hashlib.sha256(canonical(value)).hexdigest()
+
+
+def read_json(path):
+    # Repeated or nonfinite JSON keys/values cannot silently redefine authority.
+    def pairs(items):
+        value = {}
+        for key, item in items:
+            require(key not in value, 'Duplicate JSON field: ' + key)
+            value[key] = item
+        return value
+    return json.loads(Path(path).read_bytes(), object_pairs_hook=pairs,
+                      parse_constant=lambda value: (_ for _ in ()).throw(Stop('Nonfinite JSON: ' + value)))
+
+
+def save(path, value):
+    with Path(path).open('x') as stream:
+        json.dump(value, stream, sort_keys=True, indent=2, allow_nan=False)
+        stream.write('\n')
+        stream.flush()
+        os.fsync(stream.fileno())
+
+
+def replace_json(path, value):
+    pending = path.with_name('.' + path.name + '.pending')
+    save(pending, value)
+    os.replace(pending, path)
+
+
+def emit(stream, value):
+    stream.write(json.dumps(value, sort_keys=True, allow_nan=False) + '\n')
+    stream.flush()
+
+
+def verify_files(pins):
+    for path, digest in pins.items():
+        require(Path(path).is_file() and sha(path) == digest, 'Input hash mismatch: ' + str(path))
+
+
+def registered_protocol(path):
+    require(sha(path) == PROTOCOL_SHA256, 'Parent protocol document hash mismatch')
+    p = read_json(path)
+    require(p['budget_seconds'] == BUDGET and p['cleanup_reserve_seconds'] == CLEANUP_SECONDS
+            and p['guard']['worker_deadline_seconds'] == WORKER_SECONDS, 'Registered bounds differ')
+    require(p['config_sha256'] == CONFIG_SHA256 and len(p['base_identity']['sources']) == 75,
+            'Registered config/base inventory differs')
+    return p
+
+
+def validate_long_config(config, base, protocol, legacy_protocol):
+    require(canonical(config) == canonical(protocol['config']), 'Exact long config differs (extra/missing/value/type)')
+    changed = {'version', 'phase', 'phase_settings'}
+    extra = {'evaluation_stage', 'base_config_sha256', 'long_settings'}
+    require(set(config) == set(base) | extra, 'Long config key set differs')
+    require(canonical({k:v for k,v in config.items() if k not in changed | extra})
+            == canonical({k:v for k,v in base.items() if k not in changed}), 'Learner/environment fields differ')
+    seed = config['phase_settings']['run_seed']
+    reserved = {row[k] for row in legacy_protocol['seed_namespace_table'].values()
+                for k in ('run_seed', 'initialization_seed') if k in row}
+    require(type(seed) is int and seed == 5562873868232098305 and seed not in reserved,
+            'Run seed is wrong or collides with registered run/initialization seed')
+    require(config['phase'] == 'long_D2' and config['evaluation_stage'] == 'D2'
+            and config['phase_settings']['budget_seconds'] == BUDGET, 'Wrong experiment phase/budget')
+    return config
+
+
+def expected_lease(protocol, controller_hash, capsule_hash, capsule_path, identity_document_hash):
+    return dict(kind='M3_long_D2_experiment', authorization=protocol['authorization'],
+                run_id=protocol['run_id'], protocol_sha256=PROTOCOL_SHA256,
+                controller_sha256=controller_hash, capsule_manifest_sha256=capsule_hash,
+                capsule_path=str(capsule_path), config_sha256=CONFIG_SHA256,
+                identity_sha256=identity_document_hash,
+                parent_checkpoint_sha256=protocol['parent_checkpoint_sha256'],
+                parent_terminal_receipt=protocol['parent_terminal_receipt'], budget_seconds=BUDGET,
+                cleanup_reserve_seconds=CLEANUP_SECONDS, output=protocol['output'], cancel_requested=False)
+
+
+def assert_lease(path, expected):
+    lease = read_json(path).get('active_long_campaign')
+    require(isinstance(lease, dict) and set(lease) == LEASE_KEYS, 'Exact lease key set missing/changed')
+    require(lease['cancel_requested'] is False, 'Parent requested cancellation', 'cancelled')
+    require(canonical(lease) == canonical(expected), 'Exact parent-owned long-D2 lease changed')
+    return lease
+
+
+def safe_member(root, name):
+    part = Path(name)
+    require(not part.is_absolute() and '..' not in part.parts, 'Unsafe capsule member')
+    path = root / part
+    require(path.resolve().is_relative_to(root) and not path.is_symlink(), 'Capsule member escaped root')
+    return path
+
+
+def assert_readonly_capsule(root, manifest):
+    require(root != ORIGINAL_ROOT and manifest['version'] == 'long_d2_capsule_v1', 'Execute readonly capsule only')
+    for name in list(manifest['files']) + ['capsule-manifest.json']:
+        path = safe_member(root, name)
+        require(path.is_file() and not path.stat().st_mode & 0o222, 'Capsule file is writable')
+        for parent in (path.parent, *path.parents):
+            if not parent.is_relative_to(root):
+                break
+            require(not parent.stat().st_mode & 0o222, 'Capsule directory is writable')
+    for entry in root.rglob('*'):
+        require(not entry.is_symlink(), 'Capsule contains symlink')
+    actual = {str(x.relative_to(root)) for x in root.rglob('*') if x.is_file()}
+    require(actual == set(manifest['files']) | {'capsule-manifest.json'}, 'Capsule file inventory differs')
+
+
+def check_module_origins(identity, capsule_root, modules=None):
+    modules = sys.modules if modules is None else modules
+    expected = identity['legacy_module_origins']
+    observed = {}
+    for name, module in tuple(modules.items()):
+        if name != 'dodge_rl' and not name.startswith('dodge_rl.'):
+            continue
+        origin = getattr(module, '__file__', None)
+        require(origin is not None, 'Loaded package module has no file: ' + name)
+        path = Path(origin).resolve()
+        require(str(path) in expected, 'Unexpected legacy module origin: ' + str(path))
+        pin = expected[str(path)]
+        require(sha(path) == pin['sha256'] == sha(capsule_root / pin['mirror']),
+                'Loaded legacy module/mirror hash differs: ' + name)
+        observed[name] = dict(origin=str(path), sha256=pin['sha256'], mirror=pin['mirror'])
+    return observed
+
+
+def capsule_context(root, *, require_capsule=True, verify_inputs=True):
+    p = registered_protocol(root / PROTOCOL_REL)
+    manifest_path = root / 'capsule-manifest.json'
+    manifest = read_json(manifest_path)
+    if require_capsule:
+        assert_readonly_capsule(root, manifest)
+    identity_path = root / PREPARE_REL / 'long-identity.json'
+    identity = read_json(identity_path)
+    require(identity['version'] == 'teacher_long_D2_identity_v1', 'Long identity version differs')
+    require(identity['protocol_sha256'] == PROTOCOL_SHA256, 'Identity protocol differs')
+    require(identity['base_registered_identity'] == p['base_identity']
+            and identity['base_registered_identity_sha256'] == p['base_identity_sha256']
+            and identity['parent_terminal_receipt'] == p['parent_terminal_receipt']
+            and identity['parent_checkpoint_sha256'] == p['parent_checkpoint_sha256'], 'Identity lineage differs')
+    require(sha(root / p['config_path']) == CONFIG_SHA256, 'Config document hash differs')
+    config = read_json(root / p['config_path'])
+    base = read_json(root / p['base_config_path'])
+    validate_long_config(config, base, p, read_json(root / 'docs/v2-m3-run-protocol.json'))
+    require(identity['config'] == config and identity['config_sha256'] == CONFIG_SHA256,
+            'Long identity config document binding differs')
+    sources = {str(ORIGINAL_ROOT / k):v for k,v in identity['controller_sources'].items()}
+    require(sources and sources[str(ORIGINAL_ROOT / p['controller'])] == sha(root / p['controller']),
+            'Controller source binding differs')
+    pins = {str(root / k):v for k,v in manifest['files'].items()}
+    pins.update(identity['original_input_pins'])
+    pins.update(sources)
+    pins[str(manifest_path)] = sha(manifest_path)
+    # Bind the preparation identity copy as well as its execution-capsule copy.
+    # The expected digest comes from the capsule, avoiding identity self-hashing.
+    pins[str(ORIGINAL_ROOT / PREPARE_REL / 'long-identity.json')] = sha(identity_path)
+    if verify_inputs:
+        verify_files(pins)
+    require(sha(ORIGINAL_ROOT / p['base_identity_path']) == p['base_identity_sha256']
+            and sha(ORIGINAL_ROOT / p['base_config_path']) == p['base_config_sha256'],
+            'Historical identity/config document binding differs')
+    require(read_json(ORIGINAL_ROOT / p['base_identity_path']) == p['base_identity'],
+            'Full historical identity differs')
+    for name, digest in identity['controller_sources'].items():
+        require(manifest['files'].get(name) == digest, 'Helper/test missing from capsule sources')
+    for path, pin in identity['legacy_module_origins'].items():
+        require(Path(path) == ORIGINAL_ROOT / pin['mirror']
+                and identity['base_registered_identity']['sources'].get(pin['mirror']) == pin['sha256'],
+                'Legacy module origin policy differs from original 75 inputs')
+    require(manifest['files'][str(Path(PREPARE_REL) / 'long-identity.json')] == sha(identity_path),
+            'Identity document not bound to capsule')
+    lease = expected_lease(p, sha(root / p['controller']), sha(manifest_path), root, sha(identity_path))
+    return p, config, base, identity, pins, lease
+
+
+def pure_preflight(root):
+    require(not any(name in {'torch','numpy','dodge_rl'} or name.startswith(('torch.','numpy.','dodge_rl.'))
+                    for name in sys.modules), 'Pure preflight imported ML/project code')
+    context = capsule_context(root)
+    p, config, base, identity, pins, lease = context
+    return dict(status='pure_identity_preflight_passed', protocol_document_sha256=PROTOCOL_SHA256,
+                config_document_sha256=CONFIG_SHA256,
+                identity_document_sha256=sha(root / PREPARE_REL / 'long-identity.json'),
+                checkpoint_identity_semantic_sha256=semantic_hash(identity),
+                capsule_manifest_sha256=sha(root / 'capsule-manifest.json'),
+                legacy_sources=len(identity['base_registered_identity']['sources']),
+                verified_pin_count=len(pins), required_lease=lease,
+                project_torch_native_imported=False, campaign_output_created=False)
+
+
+class Schedule:
+    def __init__(self):
+        self.U, self.E, self.C, self.F = 25.0, 150.0, 15.0, 30.0
+
+    def update_wall(self, wall):
+        require(math.isfinite(wall) and wall >= 0, 'Invalid update timing')
+        self.U = max(self.U, 1.25 * wall)
+
+    def evaluation_wall(self, wall):
+        require(math.isfinite(wall) and wall >= 0, 'Invalid evaluation timing')
+        self.E = max(self.E, 3.0 * wall)
+
+    def block_cost(self):
+        return 16 * self.U + self.E + 2 * self.C + self.F
+
+    def remaining_cost(self, phase_updates):
+        done = phase_updates % 16
+        remaining = 16 - done
+        checkpoints = 2 if done < 8 else 1
+        return remaining * self.U + self.E + checkpoints * self.C + self.F
+
+    def evaluation_cost(self):
+        return self.C + self.E + self.F
+
+    def receipt(self):
+        return dict(U=self.U, E=self.E, C=self.C, F=self.F)
+
+
+def outcome_fields(outcome, complete=False):
+    passed = complete and outcome == 'D2_progress_gate_passed'
+    return dict(experiment_status='complete' if complete else 'failed', outcome=outcome,
+                progression_gate_passed=passed, teacher_qualified=False, training_parent_eligible=False,
+                D3_parent_candidate_pending_separate_parent_audit=passed,
+                B_E_student_D3_opened=False, automatic_retries=0, same_phase_resume=False,
+                expected_exit_code=(0 if passed else 2) if complete else 1)
+
+
+def result_code(result):
+    good = result.get('experiment_status') == 'complete'
+    if good and result.get('outcome') == 'D2_progress_gate_passed' and result.get('progression_gate_passed') is True:
+        return 0
+    if good and result.get('outcome') == 'budget_closed_below_gate' and result.get('progression_gate_passed') is False:
+        return 2
+    return 1
+
+
+def failure_outcome(error):
+    if isinstance(error, Stop):
+        return error.outcome
+    if isinstance(error, KeyboardInterrupt):
+        return 'cancelled'
+    return 'safety_stop'
+
+
+def require_finite(value):
+    if isinstance(value, dict):
+        for item in value.values():
+            require_finite(item)
+    elif isinstance(value, (list, tuple)):
+        for item in value:
+            require_finite(item)
+    elif type(value) is float:
+        require(math.isfinite(value), 'Nonfinite update metric', 'safety_stop')
+
+
+def compare_control(rows, saved):
+    def index(items):
+        require(len(items) == 64, 'Entry needs exactly 64 rows', 'entry_control_mismatch')
+        found = {}
+        for row in items:
+            require(set(row) == set(ROW_KEYS) and type(row['episode_index']) is int
+                    and 0 <= row['episode_index'] < 64 and row['seed'] == SEEDS[row['episode_index']],
+                    'Entry row fields/seed/index differ', 'entry_control_mismatch')
+            require(row['seed'] not in found, 'Duplicate entry seed', 'entry_control_mismatch')
+            found[row['seed']] = row
+        return found
+    actual, expected = index(rows), index(saved)
+    require(canonical(actual) == canonical(expected), 'Exact historical entry control mismatch', 'entry_control_mismatch')
+    require(sum(row['score'] for row in rows)/64 == 1.4765625
+            and sum(row['alive_frames'] for row in rows)/64 == 295.25,
+            'Historical entry control means differ', 'entry_control_mismatch')
+    return dict(matched=True, rows=64, fields=list(ROW_KEYS), comparison='seed_and_index_all_nine_fields')
+

@@ -1,0 +1,46 @@
+{
+  "accepted_at_utc": "2026-10-25T21:56:25.497690+00:00",
+  "all_pins_verified": 13609,
+  "candidate_checkpoint": "checkpoint-000132-candidate.pt",
+  "cumulative_D2_wall_anchor_seconds": 1188.34122675,
+  "cumulative_updates": 180,
+  "direct_runtime_pyc_files": [],
+  "execution_requirements": {
+    "aggregate_owned_RSS_bytes": 6442450944,
+    "external_observer_through_final_CPU_decode": true,
+    "inclusive_total_seconds": 1800,
+    "outer_and_worker_launches": 1,
+    "parent_terminal_audit_before_eligibility": true,
+    "work_seconds": 1600,
+    "worker_MPS_bytes": 6442450944
+  },
+  "findings_reconciliation": {
+    "F1": "Comment promises no subprocess before marker AND full byte checks, which is true. Marker intentionally precedes full preflight for exact-once consumption; invalid registration cannot launch worker. No behavioral contradiction.",
+    "F2": "Receipt publication failure may omit final marker/receipt but propagates nonzero outer exit; parent requires direct observed outer0+worker0 and complete receipts. A missing marker alone never proves success.",
+    "F3": "Manifest omits late receipts; parent independently binds terminal receipt/manifest/observer/source bytes in separate terminal attestation. No manifest-only acceptance.",
+    "F4": "Verified no direct .pyc anywhere in isolated runtime package before launch. Exact empty absolute PYTHONPYCACHEPREFIX plus -B bypasses retained __pycache__ artifacts. External observer must repeat direct-pyc absence postflight. No malicious-write or edit-revert resistance claimed.",
+    "F5": "150s evaluation/startup allowance is planning estimate, not guaranteed. Prior full first metric interval bounds startup+entry+firstupdate at27.55133754s; finalmetric-to-workerfinalgap6.08483308s includes finalevaluation. These observed overhead bounds support allowance while futurelongerevaluation remains guarded by1600work/1800total, no retries/caprelaxation."
+  },
+  "new_updates": 60,
+  "no_D3_B_E_student": true,
+  "parent_checkpoint_sha256": "2e13b46edad5b2790cec52b47d33b643cbd6846387994c24fe14d5d36f0521a2",
+  "phase_updates": [
+    72,
+    132
+  ],
+  "pin_check_seconds": 0.5835371660068631,
+  "previous_measured_timing": {
+    "allowance_seconds": 150,
+    "first_metric_interval_including_setup_entry_and_first_update_seconds": 27.551337540964596,
+    "last_metric_to_worker_terminal_seconds": 6.084833083092235,
+    "limitation": "Not isolated phase timers and not a guarantee for future policy duration.",
+    "sum_seconds": 33.63617062405683
+  },
+  "registration_sha256": "bf425a502987b51b4e637cbe750eee652ce359baa07e229af84f291da3e931ed",
+  "review_receipt_sha256": "7aada7fd6163d66a1bafe7a6cd69665a603c9194715de35e945070157e4bdeea",
+  "review_verdict": "no_blocking_findings",
+  "reviewed_hashes_verified": 14,
+  "run_id": "D2-continuation-20261025-r1",
+  "schema": "d2_continuation_parent_acceptance_v1",
+  "score_in_gate": false
+}

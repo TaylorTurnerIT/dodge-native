@@ -1,0 +1,714 @@
+diff --git a/crates/dodge-core/src/game.rs b/crates/dodge-core/src/game.rs
+index ec5725a..f9f49a5 100644
+--- a/crates/dodge-core/src/game.rs
++++ b/crates/dodge-core/src/game.rs
+@@ -1,7 +1,9 @@
++use crate::enemy_rows::EnemyRows;
+ use crate::{
+-    Action, Button, CoreError, EnemyState, FullState, IndexedFramebuffer, InputState,
+-    LifecycleState, Mode, NativeConfig, ParticleState, PatternState, PicoFixed, PicoRng,
+-    PlayerState, SettingsState, Snapshot, SpawnPoint, pico_mid,
++    Action, ActivePatternView, Button, CoreError, EnemyState, FullState, HeadlessResult,
++    IndexedFramebuffer, InputState, LifecycleState, Mode, NativeConfig, ParticleState,
++    PatternState, PicoFixed, PicoRng, PlayerState, PrivilegedView, SettingsState, Snapshot,
++    SpawnPoint, pico_mid,
+ };
+ 
+ const PLAYER_MIN: PicoFixed = PicoFixed::from_int(2);
+@@ -77,6 +79,20 @@ pub struct FrameResult {
+     pub snapshot: Snapshot,
+ }
+ 
++trait EventSink {
++    fn push(&mut self, event: FrameEvent);
++}
++
++impl EventSink for Vec<FrameEvent> {
++    fn push(&mut self, event: FrameEvent) {
++        Vec::push(self, event);
++    }
++}
++
++impl EventSink for () {
++    fn push(&mut self, _event: FrameEvent) {}
++}
++
+ /// Source-visible side effects emitted at one completed frame boundary.
+ #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+ pub enum FrameEvent {
+@@ -141,7 +157,7 @@ pub struct NativeGame {
+     input: InputState,
+     rng: PicoRng,
+     player: PlayerState,
+-    enemies: Vec<EnemyState>,
++    enemies: EnemyRows,
+     particles: Vec<ParticleState>,
+     patterns: Vec<PatternState>,
+     active_pattern: Option<usize>,
+@@ -193,7 +209,7 @@ impl NativeGame {
+             lifecycle: LifecycleState::new(),
+             input: InputState::new(),
+             player: PlayerState::new(),
+-            enemies: Vec::new(),
++            enemies: EnemyRows::new(),
+             particles: Vec::new(),
+             patterns,
+             active_pattern: None,
+@@ -306,7 +322,7 @@ impl NativeGame {
+             input: state.input,
+             rng,
+             player: state.player,
+-            enemies: state.enemies,
++            enemies: EnemyRows::from_rows(state.enemies),
+             particles: state.particles,
+             patterns: state.patterns,
+             active_pattern: state.active_pattern,
+@@ -363,13 +379,71 @@ impl NativeGame {
+         input_mask: u8,
+         post_frame_mask: u8,
+     ) -> Result<FrameResult, CoreError> {
++        let mut events = Vec::new();
++        let (mode_before, reward) = self.prepare_frame(input_mask, post_frame_mask, &mut events)?;
++        self.render_current_frame();
++        let draw_snapshot = self.snapshot();
++        self.finish_draw(mode_before, input_mask, post_frame_mask);
++        let result = self.result_with_snapshot(
++            reward,
++            events,
++            self.frame_audio.clone(),
++            Snapshot::with_framebuffer_from_game(
++                self,
++                draw_snapshot.framebuffer().clone(),
++                draw_snapshot.render_state().clone(),
++            ),
++        );
++        self.finish_transition_draw(mode_before);
++        Ok(result)
++    }
++
++    /// Advance without rasterization or snapshot construction. Camera RNG,
++    /// draw-side particles, input finalization, and transition-only trails
++    /// still run. `snapshot()` retains cached pixels; use `render_into` for a
++    /// current image paired with `privileged_view`.
++    pub fn advance_frame_headless(&mut self, input_mask: u8) -> Result<HeadlessResult, CoreError> {
++        self.advance_frame_headless_with_post_mask(input_mask, input_mask)
++    }
++
++    /// Headless counterpart of `advance_frame_with_post_mask`. Both masks are
++    /// validated before mutation, including audio/input changes.
++    pub fn advance_frame_headless_with_post_mask(
++        &mut self,
++        input_mask: u8,
++        post_frame_mask: u8,
++    ) -> Result<HeadlessResult, CoreError> {
++        let score_before = self.score;
++        let (mode_before, reward) = self.prepare_frame(input_mask, post_frame_mask, &mut ())?;
++        self.finish_draw(mode_before, input_mask, post_frame_mask);
++        self.finish_transition_draw(mode_before);
++        Ok(HeadlessResult {
++            frame: self.lifecycle.frame,
++            mode: self.lifecycle.mode,
++            input_mask: self.input.current_mask(),
++            previous_input_mask: self.input.previous_mask(),
++            game_ready: self.lifecycle.game_ready,
++            started: self.lifecycle.started,
++            dead: self.lifecycle.dead,
++            done: self.lifecycle.dead,
++            reward,
++            score_delta: self.score.sub(score_before),
++            score: self.score,
++        })
++    }
++
++    fn prepare_frame(
++        &mut self,
++        input_mask: u8,
++        post_frame_mask: u8,
++        events: &mut impl EventSink,
++    ) -> Result<(Mode, PicoFixed), CoreError> {
+         InputState::validate_mask(input_mask)?;
+         InputState::validate_mask(post_frame_mask)?;
+         self.frame_audio.clear();
+         self.input.advance(input_mask)?;
+         self.refresh_enemy_stats();
+         let mode_before = self.lifecycle.mode;
+-        let mut events = Vec::new();
+         let start_pressed = mode_before == Mode::Menu && self.input.btnp(Button::X);
+         if start_pressed {
+             self.has_played = true;
+@@ -424,13 +498,13 @@ impl NativeGame {
+             _ => {}
+         }
+         if game_update_from_draw {
+-            self.update_game_frame(&mut events);
++            self.update_game_frame(events);
+         }
+         let game_update_from_transition_draw = self.lifecycle.mode == Mode::TransitionToSettings
+             && self.transition_render_y > 0
+             && matches!(self.transition_from, Mode::Game | Mode::Terminal);
+         if game_update_from_transition_draw {
+-            self.update_game_frame(&mut events);
++            self.update_game_frame(events);
+         }
+         if mode_before == Mode::Settings {
+             self.update_settings();
+@@ -464,8 +538,10 @@ impl NativeGame {
+             PicoFixed::ZERO
+         };
+         self.update_camera();
+-        self.render_current_frame();
+-        let draw_snapshot = self.snapshot();
++        Ok((mode_before, reward))
++    }
++
++    fn finish_draw(&mut self, mode_before: Mode, input_mask: u8, post_frame_mask: u8) {
+         self.apply_draw_side_effects(mode_before);
+         // The cartridge exits from the update loop immediately after death,
+         // before it can advance to the next command. Preserve the terminal
+@@ -477,16 +553,9 @@ impl NativeGame {
+             post_frame_mask
+         };
+         self.input.finalize_frame(observed_post_mask);
+-        let result = self.result_with_snapshot(
+-            reward,
+-            events,
+-            self.frame_audio.clone(),
+-            Snapshot::with_framebuffer_from_game(
+-                self,
+-                draw_snapshot.framebuffer().clone(),
+-                draw_snapshot.render_state().clone(),
+-            ),
+-        );
++    }
++
++    fn finish_transition_draw(&mut self, mode_before: Mode) {
+         // Pemsa can schedule a second visible draw on the transition boundary
+         // after the canonical capture callback has observed the first draw.
+         // Preserve that source-side particle mutation for the next frame while
+@@ -497,7 +566,6 @@ impl NativeGame {
+         {
+             self.add_player_trail();
+         }
+-        Ok(result)
+     }
+ 
+     pub fn step(&mut self, action: Action, frames: u32) -> Result<FrameResult, CoreError> {
+@@ -531,7 +599,42 @@ impl NativeGame {
+     }
+ 
+     pub fn enemies(&self) -> &[EnemyState] {
+-        self.enemies.as_slice()
++        &self.enemies
++    }
++
++    /// Stable birth identities aligned one-for-one with `enemies()`.
++    ///
++    /// Rows remain strictly increasing while valid. IDs are observation-only:
++    /// never include them in neural tensors or snapshots. Clears, reset, and
++    /// gameplay retry retain the birth counter; restore allocates a fresh
++    /// process-local namespace. Clones preserve IDs. Clear wrapper history on
++    /// every reset/restore and treat newly observed IDs as unknown motion.
++    ///
++    /// `None` means namespace or birth metadata exhausted. This is sticky for
++    /// this instance, including clears/retries; gameplay insertions continue.
++    /// The wrapper must fail closed instead of matching rows by vector index.
++    pub fn enemy_serials(&self) -> Option<&[crate::EnemySerial]> {
++        self.enemies.serials()
++    }
++
++    /// Stored warning lines eligible for the current game scene renderer.
++    ///
++    /// This exposes neither timers nor hidden targets and does not reconstruct
++    /// lines. Stale stored lines are included exactly while renderer-eligible.
++    /// Mode/death are intentionally separate: the actual renderer may display
++    /// a menu or substitute Game Over for the scene. This is not a pixel-level
++    /// visibility, clipping, or occlusion test. The iterator only borrows data.
++    pub fn drawn_warning_lines(&self) -> impl Iterator<Item = &crate::WarningLine> {
++        self.active_pattern
++            .and_then(|index| self.patterns.get(index))
++            .into_iter()
++            .flat_map(|pattern| {
++                pattern
++                    .rects
++                    .iter()
++                    .filter(move |rect| crate::snapshot::rect_warnings_drawn(pattern, rect))
++                    .flat_map(|rect| rect.warnings.iter())
++            })
+     }
+ 
+     pub fn particles(&self) -> &[ParticleState] {
+@@ -561,7 +664,7 @@ impl NativeGame {
+             input: self.input,
+             rng: self.rng.checkpoint(),
+             player: self.player,
+-            enemies: self.enemies.clone(),
++            enemies: self.enemies.to_vec(),
+             particles: self.particles.clone(),
+             patterns: self.patterns.clone(),
+             active_pattern: self.active_pattern,
+@@ -603,11 +706,13 @@ impl NativeGame {
+         }
+     }
+ 
++    /// Capture live logical state with cached legacy pixels. Headless stepping
++    /// leaves those pixels stale; `render_into` renders current post-method state.
+     pub fn snapshot(&self) -> Snapshot {
+         Snapshot::from_game(self)
+     }
+ 
+-    fn update_game_frame(&mut self, events: &mut Vec<FrameEvent>) {
++    fn update_game_frame(&mut self, events: &mut impl EventSink) {
+         if self.friendly_enabled {
+             self.update_fyou(events);
+         }
+@@ -833,15 +938,84 @@ impl NativeGame {
+     }
+ 
+     fn render_current_frame(&mut self) {
+-        let state = self.full_state();
+-        let mut render = crate::RenderState::new(state.transition_render_y);
+-        render.camera_x = state.camera_x;
+-        render.camera_y = state.camera_y;
+-        render.screen_palette[12] = state.settings.theme_background;
+-        render.screen_palette[1] = state.settings.theme_shadow;
++        let state = crate::snapshot::RenderView {
++            lifecycle: self.lifecycle,
++            input: self.input,
++            enemies: &self.enemies,
++            particles: &self.particles,
++            active_pattern: self
++                .active_pattern
++                .and_then(|index| self.patterns.get(index)),
++            score: self.score,
++            settings: self.settings,
++            highscores: &self.highscores,
++            new_highscore: self.new_highscore,
++            has_played: self.has_played,
++            transition_render_y: self.transition_render_y,
++            transition_from: self.transition_from,
++            camera_x: self.camera_x,
++            camera_y: self.camera_y,
++        };
++        let render = state.render_state();
+         crate::snapshot::render_full_state_into(&state, &render, &mut self.screen);
+     }
+ 
++    fn render_view(&self) -> crate::snapshot::RenderView<'_> {
++        crate::snapshot::RenderView {
++            lifecycle: self.lifecycle,
++            input: self.input,
++            enemies: &self.enemies,
++            particles: &self.particles,
++            active_pattern: self
++                .active_pattern
++                .and_then(|index| self.patterns.get(index)),
++            score: self.score,
++            settings: self.settings,
++            highscores: &self.highscores,
++            new_highscore: self.new_highscore,
++            has_played: self.has_played,
++            transition_render_y: self.transition_render_y,
++            transition_from: self.transition_from,
++            camera_x: self.camera_x,
++            camera_y: self.camera_y,
++        }
++    }
++
++    /// Render current post-method state into caller-owned palette indices.
++    ///
++    /// This intentionally differs from legacy cached pre-draw-effect pixels.
++    /// Rendering consumes no RNG and changes no logical state or cached pixels.
++    /// It uses a fixed 16 KB physical scratch buffer plus canonical projection.
++    pub fn render_into(&self, out: &mut [u8; crate::FRAMEBUFFER_SIZE]) {
++        let state = self.render_view();
++        let render = state.render_state();
++        let mut physical = IndexedFramebuffer::blank();
++        crate::snapshot::render_full_state_into(&state, &render, &mut physical);
++        physical.project_into(&render, out);
++    }
++
++    /// Borrow current fields at the same post-method boundary as `render_into`.
++    pub fn privileged_view(&self) -> PrivilegedView<'_> {
++        PrivilegedView {
++            player: &self.player,
++            enemies: &self.enemies,
++            freeze_rate: self.freeze_rate,
++            speed: self.speed,
++            enemy_est: self.enemy_est,
++            score: self.score,
++            active_pattern: self
++                .active_pattern
++                .and_then(|index| self.patterns.get(index))
++                .map(|pattern| ActivePatternView {
++                    pattern_type: pattern.pattern_type,
++                    rects: &pattern.rects,
++                }),
++            difficulty: self.settings.difficulty,
++            patterns_enabled: self.patterns_enabled,
++            powerups_enabled: self.powerups_enabled,
++        }
++    }
++
+     fn update_particles(&mut self) {
+         let mut index = 0;
+         while index < self.particles.len() {
+@@ -870,7 +1044,7 @@ impl NativeGame {
+         }
+     }
+ 
+-    fn update_fyou(&mut self, events: &mut Vec<FrameEvent>) {
++    fn update_fyou(&mut self, events: &mut impl EventSink) {
+         let in_center = self
+             .player
+             .x
+@@ -906,7 +1080,7 @@ impl NativeGame {
+         }
+     }
+ 
+-    fn add_corner_enemies(&mut self, events: &mut Vec<FrameEvent>) {
++    fn add_corner_enemies(&mut self, events: &mut impl EventSink) {
+         for spawn in self.spawns.clone() {
+             self.enemies
+                 .push(EnemyState::normal(spawn.x, spawn.y, self.enemy_max_size));
+@@ -914,7 +1088,7 @@ impl NativeGame {
+         }
+     }
+ 
+-    fn collision_check(&mut self, events: &mut Vec<FrameEvent>) {
++    fn collision_check(&mut self, events: &mut impl EventSink) {
+         if self.lifecycle.dead || !self.should_collide {
+             return;
+         }
+@@ -988,7 +1162,7 @@ impl NativeGame {
+         }
+     }
+ 
+-    fn collide_enemy(&mut self, index: usize, enemy: EnemyState, events: &mut Vec<FrameEvent>) {
++    fn collide_enemy(&mut self, index: usize, enemy: EnemyState, events: &mut impl EventSink) {
+         self.shatter(enemy.x, enemy.y);
+         self.shake = self.shake.add(PicoFixed::from_f32(0.07));
+         match enemy.personality {
+@@ -1111,7 +1285,7 @@ impl NativeGame {
+         self.player.y = pico_mid(PLAYER_MIN, PLAYER_MAX, self.player.y.add(self.player.vy));
+     }
+ 
+-    fn spawn_enemies(&mut self, events: &mut Vec<FrameEvent>) {
++    fn spawn_enemies(&mut self, events: &mut impl EventSink) {
+         self.enemy_timer = self.enemy_timer.add(PicoFixed::ONE);
+         let spawn_multiplier = self
+             .active_pattern
+@@ -3068,3 +3242,11 @@ mod tests {
+         assert_eq!(pico_cosine(angle), expected_cosine);
+     }
+ }
++
++#[cfg(test)]
++#[path = "headless_tests.rs"]
++mod headless_tests;
++
++#[cfg(test)]
++#[path = "observation_tests.rs"]
++mod observation_tests;
+diff --git a/crates/dodge-core/src/lib.rs b/crates/dodge-core/src/lib.rs
+index 3fb24d5..74fa9ab 100644
+--- a/crates/dodge-core/src/lib.rs
++++ b/crates/dodge-core/src/lib.rs
+@@ -2,9 +2,11 @@
+ 
+ mod action;
+ mod config;
++mod enemy_rows;
+ mod error;
+ mod fixed;
+ mod game;
++mod headless;
+ mod input;
+ mod lifecycle;
+ mod patterns;
+@@ -14,9 +16,11 @@ mod state;
+ 
+ pub use action::{Action, BUTTON_X_MASK};
+ pub use config::NativeConfig;
++pub use enemy_rows::EnemySerial;
+ pub use error::CoreError;
+ pub use fixed::{PicoFixed, pico_ceil, pico_floor, pico_mid, pico_mod};
+ pub use game::{AudioEvent, FrameEvent, FrameResult, NativeGame};
++pub use headless::{ActivePatternView, HeadlessResult, PrivilegedView};
+ pub use input::{BUTTON_MASK_LIMIT, Button, InputState};
+ pub use lifecycle::{LifecycleState, Mode};
+ pub use patterns::{PatternRect, PatternState, PatternTarget, SpawnPoint, WarningLine};
+diff --git a/crates/dodge-core/src/snapshot.rs b/crates/dodge-core/src/snapshot.rs
+index 8902874..28a6480 100644
+--- a/crates/dodge-core/src/snapshot.rs
++++ b/crates/dodge-core/src/snapshot.rs
+@@ -314,9 +314,15 @@ impl IndexedFramebuffer {
+     }
+ 
+     fn project(&self, state: &RenderState) -> Self {
++        let mut projected = Self::blank();
++        self.project_into(state, &mut projected.pixels);
++        projected
++    }
++
++    pub(crate) fn project_into(&self, state: &RenderState, out: &mut [u8; FRAMEBUFFER_SIZE]) {
+         let camera_x = camera_offset(state.camera_x);
+         let camera_y = camera_offset(state.camera_y);
+-        let mut projected = Self::blank();
++        out.fill(0);
+         for world_y in 0..FRAMEBUFFER_HEIGHT as i32 {
+             for world_x in 0..FRAMEBUFFER_WIDTH as i32 {
+                 let screen_x = world_x - camera_x;
+@@ -326,16 +332,14 @@ impl IndexedFramebuffer {
+                 {
+                     let source_index = screen_y as usize * FRAMEBUFFER_WIDTH + screen_x as usize;
+                     let target_index = world_y as usize * FRAMEBUFFER_WIDTH + world_x as usize;
+-                    if let (Some(target), Some(source)) = (
+-                        projected.pixels.get_mut(target_index),
+-                        self.pixels.get(source_index),
+-                    ) {
++                    if let (Some(target), Some(source)) =
++                        (out.get_mut(target_index), self.pixels.get(source_index))
++                    {
+                         *target = *source;
+                     }
+                 }
+             }
+         }
+-        projected
+     }
+ 
+     fn sprite(
+@@ -387,11 +391,7 @@ pub struct Snapshot {
+ impl Snapshot {
+     pub(crate) fn from_game(game: &NativeGame) -> Self {
+         let logical_state = game.full_state();
+-        let mut render_state = RenderState::new(logical_state.transition_render_y);
+-        render_state.camera_x = logical_state.camera_x;
+-        render_state.camera_y = logical_state.camera_y;
+-        render_state.screen_palette[12] = logical_state.settings.theme_background;
+-        render_state.screen_palette[1] = logical_state.settings.theme_shadow;
++        let render_state = RenderView::from(&logical_state).render_state();
+         let framebuffer = logical_state.physical_screen.project(&render_state);
+         Self::with_parts(logical_state, render_state, framebuffer)
+     }
+@@ -506,8 +506,60 @@ impl Snapshot {
+     }
+ }
+ 
++/// Private raster-only inputs. No owned vectors or framebuffer clones.
++pub(crate) struct RenderView<'a> {
++    pub lifecycle: LifecycleState,
++    pub input: InputState,
++    pub enemies: &'a [EnemyState],
++    pub particles: &'a [ParticleState],
++    pub active_pattern: Option<&'a PatternState>,
++    pub score: PicoFixed,
++    pub settings: SettingsState,
++    pub highscores: &'a [PicoFixed; 12],
++    pub new_highscore: bool,
++    pub has_played: bool,
++    pub transition_render_y: i16,
++    pub transition_from: Mode,
++    pub camera_x: PicoFixed,
++    pub camera_y: PicoFixed,
++}
++
++impl<'a> From<&'a FullState> for RenderView<'a> {
++    fn from(state: &'a FullState) -> Self {
++        Self {
++            lifecycle: state.lifecycle,
++            input: state.input,
++            enemies: &state.enemies,
++            particles: &state.particles,
++            active_pattern: state
++                .active_pattern
++                .and_then(|index| state.patterns.get(index)),
++            score: state.score,
++            settings: state.settings,
++            highscores: &state.highscores,
++            new_highscore: state.new_highscore,
++            has_played: state.has_played,
++            transition_render_y: state.transition_render_y,
++            transition_from: state.transition_from,
++            camera_x: state.camera_x,
++            camera_y: state.camera_y,
++        }
++    }
++}
++
++impl RenderView<'_> {
++    pub(crate) fn render_state(&self) -> RenderState {
++        let mut render = RenderState::new(self.transition_render_y);
++        render.camera_x = self.camera_x;
++        render.camera_y = self.camera_y;
++        render.screen_palette[12] = self.settings.theme_background;
++        render.screen_palette[1] = self.settings.theme_shadow;
++        render
++    }
++}
++
+ pub(crate) fn render_full_state_into(
+-    state: &FullState,
++    state: &RenderView<'_>,
+     render: &RenderState,
+     framebuffer: &mut IndexedFramebuffer,
+ ) {
+@@ -542,7 +594,7 @@ pub(crate) fn render_full_state_into(
+ }
+ 
+ fn render_transition_base(
+-    state: &FullState,
++    state: &RenderView<'_>,
+     render: &RenderState,
+     framebuffer: &mut IndexedFramebuffer,
+ ) {
+@@ -583,7 +635,7 @@ fn render_transition_base(
+     }
+ }
+ 
+-fn render_menu(state: &FullState, render: &RenderState, framebuffer: &mut IndexedFramebuffer) {
++fn render_menu(state: &RenderView<'_>, render: &RenderState, framebuffer: &mut IndexedFramebuffer) {
+     framebuffer.sprite(17, 6, 18, 14, 7, render);
+     let prompt = if state.input.current_mask() != 0 {
+         "press ❎"
+@@ -598,7 +650,11 @@ fn render_menu(state: &FullState, render: &RenderState, framebuffer: &mut Indexe
+     print2(framebuffer, "oskar zanota", 40, 103, render);
+ }
+ 
+-fn render_settings(state: &FullState, render: &RenderState, framebuffer: &mut IndexedFramebuffer) {
++fn render_settings(
++    state: &RenderView<'_>,
++    render: &RenderState,
++    framebuffer: &mut IndexedFramebuffer,
++) {
+     framebuffer.sprite(160, 38, 8, 8, 2, render);
+     let categories = [("", 1_u8), ("gameplay", 3_u8)];
+     let names = ["theme", "difficulty", "patterns", "powerups"];
+@@ -718,7 +774,7 @@ fn difficulty_name(index: u8) -> &'static str {
+     }
+ }
+ 
+-fn current_highscore(state: &FullState) -> PicoFixed {
++fn current_highscore(state: &RenderView<'_>) -> PicoFixed {
+     let difficulty = state.settings.difficulty;
+     let patterns = state.settings.patterns_enabled;
+     let powerups = state.settings.powerups_enabled;
+@@ -910,12 +966,12 @@ fn map_color(color: u8, state: &RenderState) -> Option<u8> {
+     state.palette_index(color)
+ }
+ 
+-fn render_game(state: &FullState, render: &RenderState, framebuffer: &mut IndexedFramebuffer) {
++fn render_game(state: &RenderView<'_>, render: &RenderState, framebuffer: &mut IndexedFramebuffer) {
+     if state.lifecycle.dead {
+         render_game_over(state, render, framebuffer);
+         return;
+     }
+-    for particle in &state.particles {
++    for particle in state.particles {
+         let x = coordinate(particle.x);
+         let y = coordinate(particle.y);
+         if particle.kind == 0 {
+@@ -925,7 +981,7 @@ fn render_game(state: &FullState, render: &RenderState, framebuffer: &mut Indexe
+             framebuffer.plot_world(x, y, particle.color, render);
+         }
+     }
+-    for particle in &state.particles {
++    for particle in state.particles {
+         if particle.kind == 0 {
+             framebuffer.circle_fill(
+                 coordinate(particle.x),
+@@ -936,7 +992,7 @@ fn render_game(state: &FullState, render: &RenderState, framebuffer: &mut Indexe
+             );
+         }
+     }
+-    for enemy in &state.enemies {
++    for enemy in state.enemies {
+         let x = coordinate(enemy.x);
+         let y = coordinate(enemy.y);
+         if enemy.personality >= 2 {
+@@ -953,9 +1009,7 @@ fn render_game(state: &FullState, render: &RenderState, framebuffer: &mut Indexe
+             }
+         }
+     }
+-    if let Some(pattern_index) = state.active_pattern
+-        && let Some(pattern) = state.patterns.get(pattern_index)
+-    {
++    if let Some(pattern) = state.active_pattern {
+         render_pattern(pattern, render, framebuffer);
+     }
+     let score = ceil_fixed(state.score);
+@@ -965,7 +1019,11 @@ fn render_game(state: &FullState, render: &RenderState, framebuffer: &mut Indexe
+     print2(framebuffer, &score_text, 1, 1, render);
+ }
+ 
+-fn render_game_over(state: &FullState, render: &RenderState, framebuffer: &mut IndexedFramebuffer) {
++fn render_game_over(
++    state: &RenderView<'_>,
++    render: &RenderState,
++    framebuffer: &mut IndexedFramebuffer,
++) {
+     let button_active = state.input.source_input_mode();
+     let settings_prompt = if button_active {
+         "press 🅾 to open settings"
+@@ -994,7 +1052,7 @@ fn render_game_over(state: &FullState, render: &RenderState, framebuffer: &mut I
+     }
+ }
+ 
+-fn render_wave(state: &FullState, render: &RenderState, framebuffer: &mut IndexedFramebuffer) {
++fn render_wave(state: &RenderView<'_>, render: &RenderState, framebuffer: &mut IndexedFramebuffer) {
+     // Pemsa's deterministic headless clock reports time just after the
+     // completed frame: frame 501 is 8.3666 seconds, or (501 + 1) / 60.
+     let time = PicoFixed::from_int(state.lifecycle.frame as i32)
+@@ -1020,6 +1078,13 @@ fn source_sine(angle: PicoFixed) -> PicoFixed {
+     PicoFixed::from_f32(-(radians.sin() as f32))
+ }
+ 
++/// Scene eligibility only; mode/death substitution happens outside the pattern
++/// renderer. Keep this predicate shared with the borrowed warning accessor.
++pub(crate) fn rect_warnings_drawn(pattern: &PatternState, rect: &PatternRect) -> bool {
++    pattern.timer < PicoFixed::from_int(125)
++        && !(pattern.pattern_type == 0 && rect.sh < PicoFixed::from_int(2))
++}
++
+ fn render_pattern(
+     pattern: &PatternState,
+     render: &RenderState,
+@@ -1127,7 +1192,7 @@ fn render_pattern(
+                 render,
+             );
+         } else {
+-            if pattern.timer < PicoFixed::from_int(125) {
++            if rect_warnings_drawn(pattern, rect) {
+                 for warning in &rect.warnings {
+                     line2(
+                         framebuffer,
+@@ -2136,3 +2201,29 @@ mod tests {
+         }
+     }
+ }
++
++#[cfg(test)]
++mod headless_projection_tests {
++    use super::*;
++
++    #[test]
++    fn camera_exposed_physical_edges_survive_clear_but_projection_pads_zero() {
++        for (x, y) in [(1, -1), (-1, 1), (2, 2), (-2, -2)] {
++            let mut render = RenderState::new(0);
++            render.camera_x = PicoFixed::from_int(x);
++            render.camera_y = PicoFixed::from_int(y);
++            render.screen_palette[12] = 9;
++            let mut physical = IndexedFramebuffer::filled(15);
++            physical.clear(12, &render);
++            // Physical clear deliberately leaves camera-exposed memory intact.
++            assert!(physical.pixels().contains(&15));
++            let expected = physical.project(&render);
++            let mut projected = [255; FRAMEBUFFER_SIZE];
++            physical.project_into(&render, &mut projected);
++            assert_eq!(&projected, expected.pixels());
++            assert!(projected.contains(&0));
++            assert!(projected.contains(&9));
++            assert!(projected.iter().all(|&pixel| pixel == 0 || pixel == 9));
++        }
++    }
++}

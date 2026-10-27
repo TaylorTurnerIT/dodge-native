@@ -1,0 +1,109 @@
+{
+  "claims": {
+    "arm_launched": false,
+    "arm_registered": false,
+    "performance_improvement": false,
+    "training_qualification": false
+  },
+  "control_context": "User-directed unchanged-best180 campaign remains separate and must complete/reconcile before future arm registration.",
+  "frozen_config_identity_sha256": "2d8eb5626d0debdf5416d0b89610d78ddd56011c3238a82fec72efabe1bd7fe3",
+  "future_budget_proposal": {
+    "MPS_driver_cap_bytes": 6442450944,
+    "RSS_cap_bytes": 6442450944,
+    "evaluation": "same 64 D seeds/order; deterministic argmax",
+    "measurement": "separate RSS and MPS series",
+    "no_raw_frame_fixed_budget": true,
+    "total_wall_seconds_cap": 1800,
+    "updates": 72
+  },
+  "inputs": {
+    "accepted_parent_receipt": {
+      "path": "learning/runs/v2/d2-gradient-parent-terminal-audit-20261025-r2/parent-terminal-receipt.json",
+      "sha256": "7968a62b6e601fab971e4145dbaebfa1995c8f696e6df442ab70fc0435b74903"
+    },
+    "frozen_adapter": {
+      "path": "learning/runs/v2/D2-best180-branch-prepare-luna-20261026-r1/runner.py",
+      "sha256": "8807b5200f10d6d8ba5414a793a1e44ebb34479744744992ef4f5adf0513637b"
+    },
+    "frozen_checkpoint_loader": {
+      "path": "learning/runs/v2/D2-best180-branch-prepare-luna-20261026-r1/own/runtime/dodge_rl/checkpoints.py",
+      "sha256": "807141943a742c6e9fdd34274c191b3c318134cc7fb0c1c6256874cadee1cbc3"
+    },
+    "frozen_config": {
+      "path": "learning/runs/v2/D2-best180-branch-prepare-luna-20261026-r1/config-devhelper-preflight.json",
+      "sha256": "a6c7ddb6dd906e19b4da777c4ad7dde9d93f607f301d508de7c8200dd9afc167"
+    },
+    "frozen_model": {
+      "path": "learning/runs/v2/D2-best180-branch-prepare-luna-20261026-r1/own/runtime/dodge_rl/models/teacher.py",
+      "sha256": "e4d7f597a2824c2b0d4ba261dddc9d7d1ee1d5592c2fc966a44c54b5ec417e35"
+    },
+    "orchestration_state": {
+      "path": "learning/runs/v2-orchestration/state.json",
+      "sha256": "ee58c19fd57791c8e8f557c828e81e2e49870d5d62cfef168b966c5dff0abfaa"
+    },
+    "parent_checkpoint": {
+      "path": "learning/runs/v2/D2-gradient-alignment-20261025-r2/checkpoint-000180-candidate.pt",
+      "sha256": "105e0f7a83e154116bd9f0d5eaaf573a896886468c9038f548f5ce7e6377c7ea"
+    },
+    "parent_ranking_reconciliation": {
+      "path": "learning/runs/v2/D2-best180-branch-parent-reconciliation-20261026-r1/ranking-reconciliation.json",
+      "sha256": "077003d744b98f0d4c1a56c6e111f7817dd459bfa5bf179af6571590cf22954c"
+    },
+    "ranking_diagnosis": {
+      "path": "learning/runs/v2/next-PPO-experiment-ranking-haiku-20261026-r1/diagnosis.md",
+      "sha256": "695423ca31794b546d0bb8264e149f3370fcf9f8eaa0f569074fb8871256b5db"
+    },
+    "ranking_plan": {
+      "path": "learning/runs/v2/next-PPO-experiment-ranking-haiku-20261026-r1/plan.json",
+      "sha256": "b06f21b11d5926017d532fc70b76d5d0675b6c797eaa67b78d15f6416627bdde"
+    },
+    "ranking_receipt": {
+      "path": "learning/runs/v2/next-PPO-experiment-ranking-haiku-20261026-r1/receipt.json",
+      "sha256": "8ca084be79988b8efed5c64cf91226343030c2ef62eb2b68488d64685ccfe1cb"
+    },
+    "userbest_policy": {
+      "path": "learning/runs/v2/user-best-checkpoint-policy-20261026-r1/policy.json",
+      "sha256": "e8fc13edc89e20f9f76219f0621316708cc050a082a45148b027b307d9a5e6af"
+    }
+  },
+  "integration": "See integration.patch and design.md. Frozen adapter and old registrations remain untouched; future arm needs new source/runtime/config identity and registration after live control reconciliation.",
+  "outputs_sha256": {
+    "attempt-1-failure.log": "395523bc54170403829c9e945a76fd7f2111ec9756a5ac1d3184d75075ac6b7e",
+    "design.md": "2f8a8406ac3054cb85e726eb72f1ba807a4e191697c25740946cbe67925998e1",
+    "integration.patch": "e6ab12a3ecd861800219bc22c2ea4ca92031cb4f4c41da1f9d8165a03f58303a",
+    "resume_lr_override.py": "75c2a28dd158d6fdcd41a03e0ee7aac8ef9aff8d0c22255c78c41f8fe98306b0",
+    "test_resume_lr_override.py": "88ed682699694c794e835b9fd4c06021f717290be95c9856a49de7e07ae030a3",
+    "unit-tests.log": "5890a81757c48c90804c1cbab0edd1d56000658f5b0695bd6e41a11ebf3f54f0"
+  },
+  "parent": {
+    "accepted_receipt_sha256": "7968a62b6e601fab971e4145dbaebfa1995c8f696e6df442ab70fc0435b74903",
+    "checkpoint_sha256": "105e0f7a83e154116bd9f0d5eaaf573a896886468c9038f548f5ce7e6377c7ea",
+    "incumbent_policy_sha256": "e8fc13edc89e20f9f76219f0621316708cc050a082a45148b027b307d9a5e6af",
+    "phase_update": 180
+  },
+  "prior_failed_attempt": "Preserved console excerpt in attempt-1-failure.log; initial CPU call to frozen restore failed closed on MPS RNG backend mismatch. Corrected test passed.",
+  "schema": "resume_lr_ablation_prepare_receipt_v1",
+  "scope": "CPU hook and invariance checks; no training, environment, campaign, lease, registration, or checkpoint mutation",
+  "status": "frozen_pass_preparation_only",
+  "transition": {
+    "Adam_eps": 1e-05,
+    "all_other_config_and_protocol": "must remain exact in a future registered arm",
+    "arm_lr": 0.0001,
+    "changed_optimizer_field": "optimizer.param_groups[*].lr",
+    "optimizer_state_fingerprint_comparison": "equal after removing only param_groups[*].lr",
+    "parent_lr": 0.0003
+  },
+  "validation": {
+    "CPU_rng_unchanged_by_hook": "passed",
+    "accepted_best180_checkpoint_hash_checked_and_model_adam_loaded_cpu": "passed",
+    "command": "python/.venv/bin/python -m pytest -q learning/runs/v2/resume-lr-ablation-prepare-luna-20261026-r1/test_resume_lr_override.py",
+    "environment_gradients_optimizer_step_game_weights_MPS": "not used",
+    "invalid_rate_and_group_mismatch_no_partial_mutation": "passed",
+    "limitation": "Full frozen restore API rejects CPU restore of parent MPS sampling RNG; actual CPU check loaded model and Adam directly and left CPU RNG untouched. Existing frozen receipt reports MPS restore separately.",
+    "load_state_dict_after_override_resets_lr_and_is_detected": "passed",
+    "real_checkpoint_adam_exact_excluding_declared_lr": "passed",
+    "real_checkpoint_model_exact": "passed",
+    "result": "4 passed",
+    "synthetic_loaded_adam_moments_and_group_invariance": "passed"
+  }
+}

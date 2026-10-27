@@ -1,0 +1,43 @@
+--- r2/audit_candidates.py
++++ r3/audit_candidates.py
+@@ -27,6 +27,7 @@
+ OBSERVER_DIR = None
+ OBSERVER_SOURCE = None
+ OBSERVER_SHA = None
++OBSERVER_SOURCE_SHA256 = "f271b2641b995fc34a90cebe420657953cb16ce9038886edc2fd74c184ccacad"
+ OBSERVER_INSTANTIATION_SHA = "56d547b6ccd96df759740d1573fc1de44319094fe0d3ff8296ae75aa3dbbf166"
+ OBSERVER_INSTANTIATION_PATH = ROOT / "learning/runs/v2/D2-retained324-linear-execution-observer-parent-20261026-r1/instantiation.json"
+ VENV_SITE = ROOT / "python/.venv/lib/python3.12/site-packages"
+@@ -528,13 +529,19 @@
+           "Raw-frame conservation differs (excluding parent abandoned)")
+ 
+ 
+-def validate_observer_instantiation(record):
++def validate_observer_instantiation(record, registration):
++    """Bind the immutable prelaunch record through its exact registration and observer pins."""
++    registration_run_id = registration.get("run_id")
++    check(registration_run_id == RUN_ID, "Pinned registration run identity differs")
++    check(OBSERVER_SHA == OBSERVER_SOURCE_SHA256, "Observer source digest differs from independent pin")
++    record_run_id_matches = "run_id" not in record or record.get("run_id") == registration_run_id
+     check(record.get("schema") == "retained324_linear_lr_observer_instantiation_v1"
++          and record.get("registration_path") == str(REG_PATH.resolve())
++          and record.get("registration_sha256") == REG_SHA
+           and record.get("observer_sha256") == OBSERVER_SHA
+-          and record.get("registration_sha256") == REG_SHA
+-          and record.get("run_id") == RUN_ID
++          and record_run_id_matches
+           and record.get("actual_launches") == 0 and record.get("one_shot_marker_absent") is True,
+-          "Observer instantiation identity or no-launch declaration differs")
++          "Observer instantiation registration, observer, schema, identity, or no-launch declaration differs")
+     return True
+ 
+ 
+@@ -681,7 +688,7 @@
+         check(instantiation_sha == OBSERVER_INSTANTIATION_SHA
+               and instantiation_path.resolve() == OBSERVER_INSTANTIATION_PATH.resolve(),
+               "Observer instantiation digest or path differs")
+-        validate_observer_instantiation(instantiation)
++        validate_observer_instantiation(instantiation, reg)
+         tracked[str(instantiation_path)] = instantiation_sha
+         targets = UPDATES
+ 

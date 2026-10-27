@@ -1,0 +1,41 @@
+{
+  "budget": {
+    "allowance": "entry and final evaluation additional",
+    "fits_1600_seconds": false,
+    "max_steady_interval_seconds": 19.777824542019516,
+    "updates_times_max_times_1_15_seconds": 1637.6038720792158
+  },
+  "parent_checkpoint_sha256": "2e13b46edad5b2790cec52b47d33b643cbd6846387994c24fe14d5d36f0521a",
+  "parent_metadata_sha256_after_restore": "68a48660d16e840ba42c52046924cfa79b154c9d992acf1d9d139e68ed519329",
+  "preserved_r1_implementation_result_sha256": "d725c777cb3cb3087bb75de43aa8c3d35264ffea24965142c667a4315b2e2f8d",
+  "remaining_issues": [
+    "No defensible timing allowance fits registered 1600-second work budget; do not register or launch.",
+    "Parent-owned external aggregate RSS and total-wall observer must cover final CPU decode.",
+    "No Haiku review performed under explicit no-agents constraint."
+  ],
+  "schema": "d2_same_phase_continuation_preparation_result_v1",
+  "scope": "No training, rollout, evaluation, registration, launch, commit, PR, deployment, or external messages.",
+  "source_hashes_sha256": {
+    "README.md": "25645cfc3c919b647f2d6576611d2486d8714addb0ac2d28f91cd19926340c26",
+    "execute_once.py": "3b225c0e01eb00e76bac1b5c10d66ffca7efa3819a1b1c30659cb551ac17b9a6",
+    "plan.json": "c0a3cb068cf7fba2b6d29f7d7763ada32343fd3abe6bc9938978799f818e5934",
+    "runner.py": "04e5ae01192654d8c2b6ae26022d56d3f4fb5fce539569ea14e97c1c798d0915",
+    "test_continuation_contract.py": "ccb8f0fb80b9b42fb9e5b74b8771d9a8133c9e50a0123f4e1824fc6c605ac7b0",
+    "test_torch_restore.py": "6b36e67f09c6ea54b0fcaf8cd2875d45d85452137c359f3f530e0357a6017dfb"
+  },
+  "status": "prepared_not_registered_budget_does_not_fit",
+  "test_commands_and_results": [
+    {
+      "command": "env PYTHONPATH=. PYTHONPYCACHEPREFIX=/tmp/d2-r2-pycache-empty PYTHONDONTWRITEBYTECODE=1 /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python3.12 -B -m unittest -v test_continuation_contract",
+      "result": "passed: 8 tests; raw stdout in contract-tests.log"
+    },
+    {
+      "command": "env PYTHONPATH=. PYTHONPYCACHEPREFIX=/tmp/d2-r2-pycache-empty PYTHONDONTWRITEBYTECODE=1 /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python3.12 -B test_torch_restore.py",
+      "result": "passed: actual accepted parent model/Adam/MPS RNG restore; no environment or optimizer step; raw stdout in restore-test.log"
+    },
+    {
+      "command": "python3 -m json.tool plan.json",
+      "result": "passed"
+    }
+  ]
+}

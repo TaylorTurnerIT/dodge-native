@@ -1,0 +1,125 @@
+{
+  "authority": {
+    "best_replacement": false,
+    "continuation": false,
+    "d3": false,
+    "lease_clear": false,
+    "new_receipt": false,
+    "promotion": false,
+    "qualification": false,
+    "retained_publication": false,
+    "selection": false,
+    "student": false,
+    "terminal_acceptance": false
+  },
+  "cpu_tests": {
+    "audit_candidates": {
+      "log": "logs/test-audit-candidates.log",
+      "log_sha256": "e37cc28e2e5763fec7125c27b454a43134a8698c25ed1204d50c16a421cc3a12",
+      "ran": 62,
+      "result": "OK"
+    },
+    "command": "env PYTHONDONTWRITEBYTECODE=1 PYTHONPYCACHEPREFIX=<PREP>/empty-pycache <ROOT>/python/.venv/bin/python -B -m unittest -v <module>, one process per module",
+    "prefix_entries_after_tests": 0,
+    "terminal_wrapper": {
+      "log": "logs/test-terminal-wrapper.log",
+      "log_sha256": "b9858c88e1ba0c2a353c8afd021466f315c70defcd7d4575255e78514e607fd9",
+      "ran": 28,
+      "result": "OK"
+    }
+  },
+  "evidence_checks": {
+    "launcher_record_keys": "execution-result.json keys actual_worker_launch_count, observed_worker_raw_exit, status, worker_pid, owned_pgid and worker-result.json keys status, first_failure, peak_rss_bytes, peak_mps_driver_bytes are written by execute_once.py/runner.py",
+    "native_import_origin": "dodge_rl/__init__ imports _native eagerly; ctx() in the CPU test process resolves dodge_rl._native to the pinned runtime member (sha 022d41dd) with no env construction and no MPS; old native 967c7249 and current 022d41dd are both in the 13787 registration pins",
+    "observer_record_keys": "every observation.json key read by wrapper.terminal_gates/owned_processes_absent and audit() (outer/worker raw exit, first_event, launch_count, wall, RSS, mps limit, postflight pins/cache, process absence, observer_pid, outer_pid, outer_process_group) is written by observe.py (sha e3782f1c)",
+    "production_metrics_schema": "pinned dodge_rl/ppo.py (sha b3cef91b) returns optimizer_steps and transitions (=16384 per update in accepted parent rows) and gradient_alignment_diagnostics when requested; the 72 accepted parent metric rows, phase-relabelled, pass validate_metric_rows including runner.validate_gradient_alignment (test_real_parent_metric_rows_pass_frozen_validator)",
+    "progress_contract": "R2 runner passes progress=progress to ppo_update; without it update_progress stays incomplete (test_stale_progress_rejected); parent rows end complete with completed_updates 72",
+    "wrapper_record_shape": "parent accepted full-audit.json has the same top-level keys and terminal_gates keys as this wrapper record"
+  },
+  "future_full_invocation": {
+    "command": "env PYTHONDONTWRITEBYTECODE=1 PYTHONPYCACHEPREFIX=/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r2/empty-pycache /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python -B -c \"import sys; sys.path.insert(0, '/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-haiku-20261026-r2'); import wrapper; wrapper.run_audit(provisional=False, name='full-audit.json', observer_dir='/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-execution-observer-luna-20261026-r2')\"",
+    "note": "parent-only; CLI refuses full mode by design. Requires: parent lease installed, seven candidate certificates and terminal outputs in RUN, observer observation.json in OBSERVER_DIR, fresh unmocked full preflight. Output name must be new (exclusive create)."
+  },
+  "negative_controls_added": [
+    "observer dir other than registered",
+    "observer source digest drift",
+    "observer instantiation digest drift",
+    "wrapper checks observer dir before audit (AST order)",
+    "runner delta from r1 is exactly RUN_ID and progress",
+    "ppo_update call receives progress",
+    "registration pin count 13787",
+    "parent transitions drift",
+    "stale progress (r1-style)",
+    "missing gradient alignment",
+    "gradient coverage drift"
+  ],
+  "not_run": [
+    "MPS",
+    "training",
+    "candidate audit against published outputs (none exist yet)",
+    "lease install",
+    "fresh unmocked full preflight",
+    "environment construction",
+    "full-mode terminal validation",
+    "observer record for R2 (observation.json absent)",
+    "provisional CLI (not run after lease state change; r1 log shows fail-closed at lease check)"
+  ],
+  "owned_sha256": {
+    "audit_candidates.py": "726318b75981293eafd6dcdd0cf73c951747d4beb8826506072c0563bc6d1dd6",
+    "r1-to-r2.diff": "432d7aaea566b6f69e13b4b8db20dff2c8eb9d9ec21b9ddc2493ba796456a54d",
+    "test_audit_candidates.py": "ca8e3d09f40bf7e2adcd93ed4820ec4d314c86cbca338177587f5ba170ee1af2",
+    "test_terminal_wrapper.py": "b43e9c5b7219175a603e96e924599e95e3771a14f13d27b55eb625b9bb5753d3",
+    "wrapper.py": "ce657c9171c99ee936d72935716640717d902ac9c737d26c0f14857a4ab179b4"
+  },
+  "rebinding": {
+    "delta_from_frozen_r1": [
+      "RUN_ID r1->r2",
+      "PREP/RUN paths r1->r2",
+      "REG_SHA 30a29080->477217f3",
+      "RUNNER_SHA 3ed39368->db0bb338 (runner.py: RUN_ID + progress=progress only, asserted by test)",
+      "AUD_SHA e5d43d3b->726318b7 (wrapper)",
+      "OBSERVER_DIR/OBSERVER_SHA added; check_observer_dir() in auditor full branch and wrapper before audit"
+    ],
+    "unchanged": [
+      "LAUNCHER_SHA 6c1ed02b",
+      "CONFIG_SHA f858a63c",
+      "POLICY_SHA bfcbee16",
+      "NEW_NATIVE_SHA 022d41dd",
+      "PARENT_SHA 0b5cf72b",
+      "PARENT_RECEIPT_SHA d64d0f80",
+      "PARENT_REGISTRATION_SHA 68063348",
+      "RUN_SEED 3791628419",
+      "phase 276->348, eval 276..348 step 12, LR 1e-4, cumulative 324->396"
+    ]
+  },
+  "risks_for_review": [
+    "full mode untested end-to-end: no R2 outputs exist",
+    "lease enforcement only checked in full/provisional paths, disabled in unit tests via enforce_lease=False",
+    "observer and launcher records are checked as written by accepted code; no R2 observer record yet"
+  ],
+  "run_id_target": "D2-retained276-continuation-20261026-r2",
+  "schema": "d2_retained276_all_candidate_auditor_preparation_receipt_v2",
+  "scope": {
+    "environment_constructed": false,
+    "lease_installed": false,
+    "mps_used": false,
+    "optimizer_steps": 0,
+    "provisional_cli_run": false,
+    "real_inputs": [
+      "accepted parent checkpoint 276 (CPU torch load)",
+      "accepted parent development-000276 JSON/JSONL",
+      "accepted parent training-metrics.jsonl",
+      "pinned runtime and registration"
+    ],
+    "synthetic_steps": [
+      "entry_state(): synthetic entry candidate built from the real accepted parent model/Adam/RNG",
+      "later_candidate(): synthetic 288 candidate",
+      "parent metric rows phase_update relabelled +72 to the 276..348 window; values unchanged",
+      "negative controls mutate copies"
+    ],
+    "training_launched": false
+  },
+  "source_manifest_sha256": "ef469183b19b8f8b2d2e3eede1247d5b928572b35b6807e9916154aa3376383f",
+  "status": "frozen_cpu_tests_passed_pending_independent_review_lease_and_fresh_full_preflight",
+  "supersedes": "learning/runs/v2/D2-retained276-all-candidate-auditor-haiku-20261026-r1 (frozen, untouched; target superseded before any actual run)"
+}

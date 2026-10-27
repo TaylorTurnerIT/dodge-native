@@ -1,0 +1,43 @@
+Fresh READONLY adversarial review: Dodge v2 frozen boundary-r9. Budget<=900s. Workspace /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79. Taylor authorized parallel readonly reviews and supported Codex fallback after recorded free OpenCode quota exhaustion. No nested delegation/provider calls. OWNED OUTPUT ONLY NEW learning/runs/v2/postovernight-long-D2-boundary-review-r9/. Never edit candidate/capsule/protocol/state/docs/historical evidence. No OS/lifecycle/stress/startup reruns, ML/native imports/checkpoint decoding/inference/training/lease/scheduler/commits/PR/deploy/messages.
+
+Read FULL docs/implementation-plan-v2.md, docs/SPEC_PRIVILEGED_VIT_RL.md and state.json (mutablecontext). Read original broad brief learning/runs/v2-orchestration/postovernight-long-D2-boundary-review-r6-task.md for full acceptance/provenance/runtime invariants; latest r9 target below supersedes historical r6 target. Read full r6 findings/audit/proofs and parent reconciliation learning/runs/v2-orchestration/postovernight-long-D2-boundary-review-r6-parent-reconciliation.json SHA80fadbc613945121bed2e4d191ca43eace6962c6d7bea79929fed12fa1905838; independent Sonnet learning/runs/v2/postovernight-long-D2-boundary-startup-reap-diagnosis-sonnet-r1/{diagnosis.md,plan.json}; parent-qualified Sonnet reconciliation learning/runs/v2-orchestration/postovernight-long-D2-startup-reap-sonnet-r1-parent-reconciliation.json SHA57547930fe3f0e167fb2068d21f0e61e861b458415abbcfea41045f407539b75; complete implementationbrief learning/runs/v2-orchestration/postovernight-long-D2-boundary-repair-r7-task.md and r7 candidate.diff/implementation-result/PARENT-NEXT.
+
+Target NEW learning/runs/v2/postovernight-long-D2-boundary-prepare-r9/
+Snapshot+verify all parent-frozen-pins.json eightpins FIRST:
+controller288fdec9d013c3506846c17f4a43f4b5252822e983fa06231451a6487d84d18e
+executorfd603a1c1a4722043333d6587d1e1e731778e8c0bf8bcbac7e6ad68bfd276474
+lifecycleaab36d678526b6fbd4eecbe1493ad3511365f00064a91d459b85834eaf3e752b
+boundary_integrityd4aafd463d105967b44151f11ec8e1c5fb5d5b633c6892db8bde829f28eff560
+identityebc83ae5f2f47fcf2a1fc9a305bcc9742e28141eaa589341b1c64725ba3f9e9e
+classification5607a35f564ec41f695cf3f944499f30d29aefd464d7fb5c7a6cf9f99e3eb45d
+registration3ae0fee864d573922292861226515459cc6f6c78fb9b3743612eec1123bf7d0d
+capsulemanifesta76bfa777514b82f1839d4d1691f1e1614ad19c046e7ce4a19db6259ec7c192c
+External learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r6.json SHA96c170a5adb37829c2a8530d13b85d1d9c5f983a2b3582263893aa470b1ba3a4.
+B245/R37/A9998,124capsulefiles. Fiveadditional source/scripts mirrored account for B increase; full10091/9870/9675historicalbindingsstillrequired. No ML/runtime source changed.
+Parent owns mutable validation outputs separately while you read frozen SOURCE. r9 passed69fresh stdlibmethods once, freezepassed2.3723s; purepreflightcurrentlyparentowned, freshOS/stress/startup pending. Don'treadpartialattempts asfinalproof or runvalidation. No training/lease active. One7200sD2authorizationremainsunused.
+
+Prior findings and implementation response:
+r3 ordinaryworkerdescriptor conflict, exactsuccessconsumer missingdirectreap, innertelemetrybeforemandatory, monitorstringfailurestarvation fixedinpreviousr4code; originalreapingconsumer predicatesremain.
+r6 broad:
+A RAW-OBSERVATION-TIME monitor/main threwlatercatch ratherthanretainedwaitpid observed_monotonic.
+B ALARM-CANCEL-SOURCE cancellation used first_at belongingtoearlieralarm.
+C STARTUP-DIRECT-REAP supervisorfailurebranchdidnotpollownedworker.
+SonnetindependentlyconfirmedC;qualified design withinexistingpool.
+r7productionresponse:
+- raw_inner_failure validatesretainedactualChildreport/PID/parent/raw/timestamp andcreates source descriptor; BOTH monitor and main call beforeterminaldrain. Earlierguard/latch/peer and capmustwin.
+- cancellationusesfirst_cancel_at, separatealarm/deadlinecandidates/stableties.
+- mandatoryimmutableinnerfailurepublicationfirst; guardedownChildfallback; afterACKpolluntilshareduntil-1.0; noinnergroupsignals/extraallowance; oneexistingworker_waitsendattemptflagsetbeforeeachpotentialsend; missingACKskipwait; optionaldiagnosticlateoutcomeonly.
+- outerboundedfourpumpdrainbeforefailedreceipt withinuntil-.25; validatedderivedreapingstatusesnotabsence; unsuccessfulcleanuptruthful.
+- preregisteredfixtureclasses accepted/allwaitsunchanged; live-supervisorfailure requires actualworkerwait; deliberateblockedparent-crash requirespositiveregisteredliveworker-at-crash/no-priorwaitmarker/raw7/mandatoryacceptedfalse/positivegroupabsence/explicitunprovenorphanreaping. Legitimatereportbeforelaterparentdeathmustnotgloballybefabricated.
+Normal validate_wait_reports/accept_observed/validate_artifacts/checked_registration/worker_command byteequalr6 perpassedtests. Check actual semantics independently.
+r7stagefirstfailedfixture omittedstartregistrationidentitypins,0pass1fail68unrun; preserved.
+r8parentfixedfixturepins+initiatingerrorretention, firsttimingmethodpassedthen2ndmethoderroredexclusiveevidencepathreuse,1pass1ERROR67unrun; preserved.
+r9isolateshelperoutput per main_path/monitor/drain invocation. Production code equalr7exceptcandidate/protocolpins;69methodspassed once with noML/nativeimports. Oldfailedverdictsunchanged.
+r6OSstoppedninthstartupcancelafter8passes;6laterunrun;parentr9OSnewphaseonlynotoldpasses. No stressafterfailedfoundation. Singlefreshscandir optimizationstillunmeasured.
+
+Review complete original contract, focusing actualfailure/ACK/reap/send/drain/source-time paths and normal acceptance predicates. Reconcile priorfindings againstsource;no inventedhardening/unrelatedgrowth.
+Integritypolicy accepted learning/runs/v2-orchestration/postovernight-long-D2-boundary-policy-parent-reconciliation-r1.json SHA95977b36b45ad1ea670a601b51bb70198d0c0f37bb76c237b6ac032e535ebe9d. ALLforcedB/genuine75sourcecheck_frozen/origins;fullactualB/R/Apre/postbeforeacceptance;nativecache/searchpath/DAG/externalpins actual;no5sfulltreehashwatchdog/cadencechecks/caches/skips,operationalno-writer notOS/memoryattestation. Singlefreshscandir mustpreservetypes/permissions/parents/exactmembership/noaliases/symlinks. ProtectedLearner/Schedule/run_schedule/workerMLtry/PPO/reward/model/core/env unchanged;D1modelAdamRNGrestorebeforeenv/64row9fieldentrybeforegradients.
+Config2ac814d3842228017d09669364a8391344722da56ad19f41ad9030dbb930c2db;seed5562873868232098305;D1ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f.
+7200outer/7140worker/7170inner;sharedmin(prev,earliest+10,T0+7210),monitor.05/.15/max.5,separate6GiBRSS/MPS. Reserves1.0inner/.25outer INSIDEsamepool,notnewdeadline. LateearlierpeerACKtightensnotresets. ACKmissingforbidsworkerwrites/retry. Failurepartialreceiptcannotbeacceptedwithraw1,absencecannotfabricatereaping. No student/D3/B/E/failedweightsresume.
+
+Return onlyconcretereproduciblefindingsseverity/path/line/trigger/consequenceandretainedproofs,or exactlyNo findingsifnone. Smallstdlibrarysource-extracteddiscriminators inOWNdir allowed,noentireunit/OS/stress/rehearsalrerun. Retaincommand/env/rawexit+allfailedproofattempts;don'tupgradefixturefailureintosuccessbypass. Input/outputmanifests/receipt excludingitself andJSONvalidationrequired. SourceauditcannotestablishOSclosure/performance/trainingacceptance. Parentreconcilesyourfindings+actualvalidationbeforelaunch.

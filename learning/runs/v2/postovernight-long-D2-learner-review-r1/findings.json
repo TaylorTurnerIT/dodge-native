@@ -1,0 +1,93 @@
+{
+  "blockers": [],
+  "capsule_manifest_sha256": "6284b4389b1fdd1eadbd3f7d1c9104831a49af9482b78e21d84e1b19cb89227e",
+  "evidence": [
+    {
+      "claim": "Nineteen actual unchanged API call sites bind to original source-extracted signatures.",
+      "receipt": "api-call-signatures.json"
+    },
+    {
+      "claim": "validate_transition returns parent,certificate only after terminal hash/anchor, candidate tag, complete update, equal old learner identity/config, and progress proof checks.",
+      "lines": [
+        216,
+        262
+      ],
+      "source": "python/dodge_rl/checkpoints.py"
+    },
+    {
+      "claim": "The worker calls unchanged check_frozen with exact historical D2 config and original root; validate_terminal_receipt and validate_transition use the exact eligible D1 terminal anchor. No failed D2 checkpoint is loaded.",
+      "lines": [
+        853,
+        869
+      ],
+      "source": "learning/runs/v2/postovernight-long-D2-prepare-r1/long_d2.py"
+    },
+    {
+      "claim": "Teacher/Adam construction precedes strict D1 restore, which restores Python, NumPy, CPU, MPS RNG; bitwise CPU fingerprints validate all restored state before environment construction.",
+      "lines": [
+        612,
+        638
+      ],
+      "source": "learning/runs/v2/postovernight-long-D2-prepare-r1/long_d2.py"
+    },
+    {
+      "claim": "Actual retained terminal D1 JSON matches all six hardcoded parent counters and exact checkpoint hash; the exact final D1 boundary stream contains 64 abandoned episodes and 64 next episode indices.",
+      "receipt": "synthetic-static-checks.json"
+    },
+    {
+      "claim": "Environment kwargs change only the historical run_seed; fresh initial indices and existing exclusions are retained; unchanged verify_training_env does not invoke legacy validate_config.",
+      "lines": [
+        371,
+        384
+      ],
+      "source": "learning/runs/v2/postovernight-long-D2-prepare-r1/long_d2.py"
+    },
+    {
+      "claim": "Checkpoint make_state fields match accessed next_episode_indices, abandoned_episodes, model/Adam/RNG fields; checkpointing does not reset live native environments. Generic serialization supports the new full identity envelope.",
+      "lines": [
+        45,
+        82
+      ],
+      "source": "python/dodge_rl/checkpoints.py"
+    },
+    {
+      "claim": "Entry comparison accepts reordered rows by seed/index and rejects a change in each of the nine fields. Deterministic evaluation restores model training mode and does not sample actions.",
+      "receipt": "synthetic-static-checks.json"
+    },
+    {
+      "claim": "Checkpoint+evaluation verifies preserved RNG, model, Adam and live environment metadata before entry control permits any rollout. Checkpoint file hash is reverified before the long-only certificate.",
+      "lines": [
+        685,
+        721
+      ],
+      "source": "learning/runs/v2/postovernight-long-D2-prepare-r1/long_d2.py"
+    },
+    {
+      "claim": "collect_rollout preserves returned observations for the next update. Existing TrainingEnvLog tracks actual decisions/raw frames and native completion/reset records. PPO complete counters increment only after successful complete progress; partial Adam steps remain separately reported.",
+      "lines": [
+        579,
+        586,
+        723,
+        753
+      ],
+      "source": "learning/runs/v2/postovernight-long-D2-prepare-r1/long_d2.py"
+    },
+    {
+      "claim": "All 75 legacy input hashes match original files and capsule mirrors; new identity document SHA and checkpoint semantic identity hash are distinct and verified.",
+      "receipt": "synthetic-static-checks.json"
+    }
+  ],
+  "findings": [],
+  "finished_at_utc": "2026-10-24T16:47:19.713402+00:00",
+  "identity_document_sha256": "f163c3e0d76ed9d839d8f9838840f6427c0e8ad379b24da6efc585f7f6e51ab4",
+  "limitations": [
+    "No Torch/NumPy/project module import, checkpoint deserialization, real teacher/native/MPS execution, gameplay, training, or real tensor/optimizer restoration occurred in this review.",
+    "The fingerprint check exercises duck-typed tensor method flow, not actual CPU/MPS tensor conversion. Real model/Adam/RNG equality and entry determinism remain mandatory one-shot runtime checks.",
+    "New checkpoints inherit historical run_context.consumed_wall_seconds because the controller copies D1 context. It is not the new long-run budget clock and is never read by the new authority; use new worker/supervisor wall receipts for long-run accounting.",
+    "Guard sampling concurrency/resource behavior and finalization/owned-writer proof are outside this learner/API audit. No campaign launch recommendation transfers beyond this bounded scope."
+  ],
+  "reviewed_controller_sha256": "62ece46ba9a59d3c116013580ce29875aa76eaceed59eb56480a804649c8ffca",
+  "scope": "Read-only static source/JSON review and independent stdlib-only API/signature/control/fingerprint checks. Supervisor lifecycle/absolute-deadline audit is handled separately.",
+  "status": "no_confirmed_learner_API_blockers_in_reviewed_scope",
+  "version": "long_D2_independent_learner_static_review_v1"
+}

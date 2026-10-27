@@ -1,0 +1,156 @@
+{
+  "schema": "current_pair_resource_calibration_r3_frozen_review_v1",
+  "reviewer": "haiku-20261026-r3",
+  "scope": "read-only source review of frozen R3 calibration plan, source, pins, and CPU evidence; no probe, MPS, game, training, checkpoint, lease, state, or source writes; CPU tests not rerun",
+  "verdict": "BLOCK",
+  "verdict_scope": "Do not write the parent reservation or authorize the calibration probe until blockers are fixed and re-frozen",
+  "inspected_sha256": {
+    "calibration_plan": "b65924df4979a05526205d7765e6611b90f49c7e14c07f8bbf341dbe549fde54",
+    "source_pins": "ceb8f5ec33a953c39711363fbaaf29dce976da956ca8f4745673c5b7dfc8c5c2",
+    "launch_once": "c710bd5acabba52bed76bce61f0ad617a2d5024876f06fc6409ba87497db2ca0",
+    "probe": "131354592814fc2c9d16a12d2d044a3d8e139ed81534e35d19bd1d3b83d09b22",
+    "cpu_preflight": "020fdc79a0ed3d66a690cb5055c3a79c87076b87ae4975cdee420466d69f73be",
+    "test_calibration_cpu": "af877f5e5e651f65a25e1eb09d5cb466667e8f8b0b06a86e9be3238291a8db8b",
+    "cpu_preflight_evidence": "4737c9f1c484b1834f62d179cf594fec757b39ee9017df12a282f1efa2e0dc50",
+    "cpu_tests_log": "9ebbbe68c888cb93053da678a2a17ecf907219d054661042d5d330280dd34e6d",
+    "r6_preparation_receipt": "d0d9020657412bf2a5b0040fea05c35c5e49df7bd3e48a09aee5c6752ac3193a",
+    "r6_protocol": "547d33a4716b7be7e03c663f06a9c784d2497d212e2155e07ac872e4d1612655",
+    "r6_input_manifest": "4cafb2cf6ccbb6de77d7d3d05ad9c59674a2d621bc8e88235eeb905fdbba3f00",
+    "r6_worker": "c663543638e6bc5aea684a3dd38e27c079bd633f784590219d148d16fa0d190e",
+    "r6_paired_eval": "51b78e6e74dcbaf3d9b04302d6f9ea1e37ea92779e9d237c48dd03ec77946475",
+    "r6_supervisor": "0aacb8e539585312c053f70518a041a487ca09598865d88e111c5a284b4b25bd",
+    "r6_freeze_artifacts": "ecaf765735b9c30a0d8d4efc11bbabeb067f46224964f90003504bfa86ab5e47",
+    "live_state_provenance_only": "32a11f1430886d4f61796832f9930496cb278387bfe3ac85dde5b3f78c334d26"
+  },
+  "pins_verified": {
+    "file_pins": 60,
+    "directory_pins": 0,
+    "mismatches_on_disk": 0,
+    "runtime_dodge_rl_files": 13,
+    "runtime_files_pinned": 13,
+    "note": "Earlier text cites 56 pins; the current pinset has 60."
+  },
+  "live_state_at_review": {
+    "active_long_campaign": null,
+    "active_inference_diagnostic": null,
+    "effect": "launcher and probe would fail closed now"
+  },
+  "artifacts_absent_at_review": ["parent-reservation.json", "launch-once.marker"],
+  "blockers": [
+    {
+      "id": "B-1",
+      "title": "Probe spawns base interpreter instead of pinned venv",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r3/launch_once.py",
+      "lines": [146, 147, 154, 157],
+      "summary": "launch_once.py spawns resolved_target (uv base cpython-3.12.15/bin/python3.12), not lexical_path (python/.venv/bin/python). Under -I -B the base binary sees neither numpy nor torch. probe.py:152-153 imports them outside the try block, so the child exits 1 with no probe-result after the marker is claimed.",
+      "evidence": "Read-only check: base binary under -I -B reports sys.prefix = uv base; find_spec numpy and torch both None.",
+      "failure_scenario": "Parent writes a matching reservation; launcher claims the one-shot marker at line 154; child fails at import with no MPS measurement and no evidence; one-shot consumed.",
+      "fix": "Spawn lexical venv path. Before the marker, run a CPU-only lexical -I -B check asserting sys.prefix is the venv directory and numpy/torch origins are under python/.venv. Add a test asserting spawn argv[0]. Re-freeze plan and pins; re-review.",
+      "test_gap": "test_calibration_cpu.py:32 uses sys.executable and a harmless child that imports nothing."
+    },
+    {
+      "id": "B-2",
+      "title": "Bytecode written into frozen R6 directory; receipt claim false",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r3/cpu_preflight.py",
+      "lines": [22, 23, 28],
+      "summary": "In-process loads of R6 worker.py (and paired_eval.py and runtime dodge_rl) have no bytecode guard. R6 __pycache__ worker and paired_eval .pyc files are dated 2026-10-25 22:16:57, after the 22:02 R6 freeze and within the R3 preparation window. preparation-receipt.json still states writes_outside_new_r3_directory: false.",
+      "failure_scenario": "Nested imports write .pyc into frozen R6 or runtime directories; pins exclude __pycache__, so pin checks pass while frozen directories change.",
+      "fix": "sys.dont_write_bytecode = True before any import in launch_once.py, cpu_preflight.py, probe.py, and the test file. Parent commands use -B and PYTHONDONTWRITEBYTECODE=1. Correct the receipt. Parent decides ownership of the existing cache; this review did not delete it.",
+      "test_gap": "test_calibration_cpu.py:166 loads R6 worker without bytecode suppression."
+    },
+    {
+      "id": "B-3",
+      "title": "MPS gate can pass with zero or unmeasured MPS data",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r3/probe.py",
+      "lines": [239, 241, 266],
+      "summary": "mps_peak uses max(..., default=0) and the cap check passes at 0. worker.read_latest_resource_sample accepts any non-negative int for mps_driver_bytes. mps_sampler_query_success_count is recorded but not required.",
+      "failure_scenario": "A sampler returning 0 on every sample passes the 6 GiB MPS cap while measuring nothing. Same class as R6 B-4.",
+      "fix": "For status passed require mps_sampler_query_success_count == resource_sample_count and mps_driver_highwater_bytes > 0."
+    }
+  ],
+  "narrow_findings": [
+    {
+      "id": "N-1",
+      "summary": "Active window does not stop at 45 s as the plan says; plan success_gates carries stale mps_forward_calls 8 beside the minimum 240.",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r3/probe.py",
+      "lines": [233],
+      "plan_lines": [149, 167, 169]
+    },
+    {
+      "id": "N-2",
+      "summary": "RSS monitor: poll check precedes ps, but a child exiting as a zombie during ps can return rc 0 with zero RSS. Line 182 raises, monitor_error is set, and the launcher fails after a successful probe with no launcher-result.",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r3/launch_once.py",
+      "lines": [172, 174, 177, 181, 182, 193, 234],
+      "fix": "After ps, return if process.poll() is not None before validating value."
+    },
+    {
+      "id": "N-3",
+      "summary": "Evidence counters are hard-coded constants: pins_checked_before_and_after 2, pins_checked_before_import_and_mps 3 (set even on early failure), term_sent True, observer disposition strings.",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r3/launch_once.py",
+      "lines": [224, 250],
+      "probe_lines": [291, 292]
+    },
+    {
+      "id": "N-4",
+      "summary": "Live gate checks five fields; production worker._lease_check also requires kind, review_status, campaign_launch_authorized, no_concurrent_long_mps_training, and review hashes. Fails closed on current state.",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r3/launch_once.py",
+      "lines": [45, 59],
+      "reference": "learning/runs/v2/latest-best-paired-eval-prepare-luna-20261026-r6/worker.py lines 543-564"
+    },
+    {
+      "id": "N-5",
+      "summary": "Plan anchors not enforced in code: reviewed plan SHA b65924, cpu_preflight_evidence_sha256 4737c9, preparation receipt SHA b7724a3f. Reservation plan_sha256 is the only binding; parent must verify b65924 before writing the reservation.",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r3/launch_once.py",
+      "lines": [116, 123, 125]
+    },
+    {
+      "id": "N-6",
+      "summary": "--output is caller-chosen; marker is fixed so one-shot holds, but evidence location is not pinned.",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r3/launch_once.py",
+      "lines": [18, 62, 131]
+    },
+    {
+      "id": "N-7",
+      "summary": "Test gaps: CLI tests stub spec_from_file_location so real CPU preflight never runs on CLI path; sys.executable masks B-1; launcher.MARKER set globally without restore.",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r3/test_calibration_cpu.py",
+      "lines": [32, 65, 85, 117]
+    },
+    {
+      "id": "N-8",
+      "summary": "Timeout identity is recorded but not compared before signals. start_new_session makes PGID equal PID, so no foreign group is signalled. Acceptable; evidence label overstates the check.",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r3/launch_once.py"
+    }
+  ],
+  "checked_ok": [
+    "Marker fixed and claimed after reservation, interpreter, live-state, and CPU-preflight checks (launch_once.py 18, 62, 146-154)",
+    "Live state checked before marker, before MPS load, and at every guard (probe.py 190-194, 204)",
+    "Pins checked before import and before MPS (probe.py 144, 166, 190)",
+    "Measurement gates reject empty and short data: gaps and ages nonempty, >=20 samples, freshness and gap <=1.0 s, forwards >=240, active 30-90 s (probe.py 85-95)",
+    "Guard count matches worker.evaluate: check_guard at worker.py 482, 491, 508, 526 gives 9 per iteration; one pass = 64 + 72 = 136, asserted by CPU test",
+    "RSS unit conversion correct: worker.py 571-572 converts ru_maxrss from bytes on darwin",
+    "Timeout branch writes evidence and group-absence proof (launch_once.py ~200-233)",
+    "R6 evaluate signature and frozen R6 files match anchors"
+  ],
+  "required_before_rereview": [
+    "Fix B-1, B-2, B-3",
+    "Fix N-1 through N-7",
+    "Re-freeze plan and pins; replay CPU tests with -B and PYTHONDONTWRITEBYTECODE=1",
+    "Fresh independent review of re-frozen source",
+    "Parent writes new reservation bound to new plan SHA only after review and when training permits",
+    "Do not retry failed R1 probe"
+  ],
+  "writes": [
+    "learning/runs/v2/current-pair-resource-calibration-review-haiku-20261026-r3/review.md",
+    "learning/runs/v2/current-pair-resource-calibration-review-haiku-20261026-r3/review.json",
+    "learning/runs/v2/current-pair-resource-calibration-review-haiku-20261026-r3/receipt.json"
+  ],
+  "claims": {
+    "qualification": false,
+    "d3": false,
+    "b_e": false,
+    "student": false,
+    "held_out": false,
+    "hardware_acceptance": false,
+    "probe_authorized": false
+  }
+}

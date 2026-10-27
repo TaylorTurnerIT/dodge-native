@@ -1,0 +1,88 @@
+   488	            VERIFY_LOCAL.stats = row
+   489	            try:
+   490	                gap = 0 if previous is None else at - previous
+   491	                require(gap <= 5, 'Full input verification gap exceeded 5s')
+   492	                self.verify()
+   493	                end = self.clock()
+   494	                # Use consecutive verification starts and include this check's IO.
+   495	                # This conservatively bounds every pinned byte's revisit interval.
+   496	                gap = max(gap, end-at if previous is None else end-previous)
+   497	                self.maximum_full_gap = max(self.maximum_full_gap, gap)
+   498	                require(gap <= 5, 'Full input verification gap exceeded 5s')
+   499	                self.last_full = at
+   500	                self.check()
+   501	                row['status'] = 'passed'
+   502	            except BaseException as error:
+   503	                row.update(status='failed', error=repr(error))
+   504	                raise
+   505	            finally:
+   506	                end = self.clock()
+   507	                row.update(end_monotonic=end, duration_seconds=end-at,
+   508	                           thread_cpu_seconds=time.thread_time()-cpu,
+   509	                           full_gap_seconds=end-at if previous is None else end-previous)
+   510	                VERIFY_LOCAL.stats = None
+   511	                self.active_timing = None
+   512	
+   513	    def persist_timing(self, path, deadline, permission=lambda: None):
+   860	
+   861	
+   862	def primary_error(error, guard):
+   863	    # A monitor failure can precede delivery to the main thread. Preserve it
+   864	    # only when it predates the first recorded signal; user cancellation first
+   865	    # remains cancellation. This is ordering evidence, not inferred user intent.
+   866	    first_signal = None if life.ACTIVE is None else life.ACTIVE.first_at
+   867	    if (guard is not None and guard.failure is not None and guard.failure_at is not None
+   868	            and (first_signal is None or guard.failure_at <= first_signal)):
+   869	        return guard.failure
+   870	    return error
+   871	
+   872	
+   873	def record_primary_failure(result, error):
+   874	    """First failure owns outcome/error. Later cleanup signals are evidence only."""
+   875	    if 'primary_failure' not in result:
+   876	        primary = dict(outcome=failure_outcome(error), error=repr(error))
+   877	        result.update(outcome_fields(primary['outcome']), error=primary['error'], primary_failure=primary)
+   878	    else:
+   879	        result.setdefault('secondary_failures', []).append(
+   880	            dict(outcome=failure_outcome(error), error=repr(error)))
+{
+  "argv": [
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+    "-B",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-guard-prepare-r1/stress.py"
+  ],
+  "cwd": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-guard-prepare-r1",
+  "timeout_seconds": 180,
+  "start_monotonic": 502672.035848333,
+  "raw_exit": 1,
+  "elapsed_seconds": 6.838045417040121
+}
+30:    def test_frozen_ML_nodes_exact(self):
+36:    def test_worker_ML_try_body_byte_identical_to_r3(self):
+44:    def test_outer_normal_IO_keeps_lifetime_alarm_interrupting(self):
+47:        self.assertNotIn('self.latch()',normal)
+49:        self.assertIn("self.latch.phase='FAILURE'",source)
+50:    def test_no_restore_or_rearm_in_final_leaf(self):
+56:    def test_no_ML_top_level_imports(self):
+62:    def test_deadlines_and_protocol_exact(self):
+70:    def test_later_earlier_report_tightens_and_never_resets(self):
+75:    def test_cap_and_invalid_timestamps(self):
+80:    def test_expired_timeout_never_becomes_positive(self):
+82:    def test_no_parent_receipt_only_acceptance(self):
+88:    def test_real_lifetime_alarm_normal_defer_failure_expired_pending(self):
+91:                out=EVIDENCE/('latch-'+mode+'.json')
+92:                command=[sys.executable,'-B',str(HERE/'latch_probe.py'),mode,str(out)]
+94:                (EVIDENCE/('latch-'+mode+'.log')).write_text(r.stdout+r.stderr)
+95:                (EVIDENCE/('latch-'+mode+'-command.json')).write_text(json.dumps(dict(argv=command,raw_exit=r.returncode)))
+105:    def test_slow_full_hash_keeps_resource_observations(self):
+110:    def test_invalid_observations_and_inclusive_caps(self):
+116:    def test_wedged_verifier_cannot_claim_joined(self):
+126:    def test_slow_resource_and_full_IO_reject(self):
+137:    def test_unproven_group_never_signaled(self):
+143:    def test_permission_census_failure_never_proves_absence(self):
+148:    def test_private_fd_sender_schema_sequence_and_T0(self):
+155:    def test_exact_retained_9675_pin_union(self):
+command-result.json
+command-start.json
+raw.log
+sources

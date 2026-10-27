@@ -1,0 +1,119 @@
+{
+  "architecture": {
+    "attention": "full_self_attention",
+    "attention_weights_required": true,
+    "enemy_slots": 64,
+    "entity_features": 16,
+    "global_features": 14,
+    "heads": 4,
+    "layers": 2,
+    "rect_slots": 16,
+    "tokens": 81,
+    "width": 128
+  },
+  "baselines": {
+    "D2": {
+      "alive_frames_mean": 6114.593,
+      "cap_count": 15,
+      "episodes": 1000,
+      "episodes_sha256": "40b5a8a1614a304bfd041dcd6eedfd7e68262f60fbca5cf6acfc1ece9a2694b3",
+      "score_mean": 100.1075
+    },
+    "D3": {
+      "alive_frames_mean": 4030.038,
+      "cap_count": 2,
+      "episodes": 1000,
+      "episodes_sha256": "cd0222856a3e56d3eb2b7ae89228314af5d35feefb1e28784aadfab3ad4f9801",
+      "score_mean": 88.633
+    }
+  },
+  "bootstrap": {
+    "checks": 4,
+    "draw_schedule": {
+      "difficulty_order": [
+        "D2",
+        "D3"
+      ],
+      "episode_order": "Sort exactly 1000 heuristic and 1000 teacher rows by episode index; require identical paired u32 seeds.",
+      "generator_scope": "Create a new numpy.random.Generator(numpy.random.PCG64(seed)) for each difficulty, using the same registered seed.",
+      "implementation_check": "Record NumPy version and SHA256 of concatenated little-endian int64 resample indices per difficulty; any batching must match the specified reference stream.",
+      "metric_index_reuse": "Use that same index vector for teacher and heuristic and for both score and alive-frame ratios in that resample.",
+      "per_resample": "For each j in range(10000), draw generator.integers(0,1000,size=1000,dtype=numpy.int64,endpoint=False).",
+      "stream_order": "Process resamples in increasing j. No additional generator draws. Retained resample arrays have axes [resample, episode] in C order."
+    },
+    "family_alpha_allocation": 0.025,
+    "one_sided_lower_percentile": 0.625,
+    "percentile_method": "linear",
+    "qualification": "percentile_bootstrap_uncertainty_is_approximate_not_exact_finite_sample_guarantee",
+    "resamples": 10000,
+    "rng": "numpy.PCG64",
+    "seed": 3496878118,
+    "statistic": "paired_ratio_of_means"
+  },
+  "environment": {
+    "action_repeat": 4,
+    "patterns_enabled": true,
+    "powerups_enabled": true,
+    "raw_gameplay_cap": 18000,
+    "reward": "sum_actual_score_delta+0.01*alive_raw_frames-5*terminated_once",
+    "startup_frames_excluded": 13,
+    "theme": [
+      12,
+      1
+    ]
+  },
+  "evaluation": {
+    "action_mode": "deterministic_argmax",
+    "baseline_seed_pairing": "same_u32_seed_index_per_difficulty",
+    "candidate": "final_D3_checkpoint",
+    "gate_episodes_never_training_or_labels": true,
+    "include_cap_truncated_episodes": true,
+    "max_qualification_campaigns_overnight": 1,
+    "qualification_budget": {
+      "cutoff_utc": "2026-10-24T13:00:00Z",
+      "includes": "All 2000 teacher episodes, paired-bootstrap calculations, and summary generation.",
+      "incomplete": "Any partial, failed, capped-by-wall, or interrupted B campaign consumes the one overnight opening and is incomplete, never a pass or automatic retry.",
+      "max_wall_seconds": 1800,
+      "preflight": "Before any B episode, register one frozen candidate, actual wrapper/model identities, measured development inference/environment throughput and bootstrap timing, and a conservative projection for all 2000 episodes at the 18000-frame cap. Open B only if projected full work fits 1800 seconds and current UTC plus 1800 plus 600 is at or before cutoff.",
+      "receipt_reserve_seconds": 600,
+      "resources": "Observed peak process RSS <=6442450944 bytes; if MPS is used, its driver allocation has a separate guard of the same size. Cooperative checks and retained samples."
+    },
+    "reserved_replication": "unopened until qualification passes and full replication budget plus600s fits cutoff; then teacher and frozen heuristic once per difficulty",
+    "seed_ranges": [
+      {
+        "end_inclusive": 2952791015,
+        "episodes_per_difficulty": 1000,
+        "role": "qualification",
+        "start": 2952790016
+      },
+      {
+        "end_inclusive": 3489661055,
+        "episodes_available": 128,
+        "role": "development",
+        "start": 3489660928
+      },
+      {
+        "end_inclusive": 3758097383,
+        "episodes_per_difficulty": 1000,
+        "role": "reserved_replication",
+        "start": 3758096384
+      }
+    ]
+  },
+  "overnight_rule": "no weakening, mode selection, best-of checkpoint selection, or cap changes after teacher results; changed policies require future explicit review rather than rewriting this file",
+  "registered_before_teacher_training": true,
+  "supersedes": {
+    "path": "docs/teacher-qualification-v1.json",
+    "reason": "Pretraining review fixes qualification-budget preflight and exact bootstrap draw schedule; all thresholds, seeds, caps, action mode and one-campaign limits unchanged.",
+    "sha256": "120fbb085235f4be2b88c18f2b8ae57cd520718e2f19333fbdac3a2bbd564634"
+  },
+  "thresholds": {
+    "alive_frame_ratio_lower_bound_strict_min": 1.0,
+    "alive_frame_ratio_point_min": 1.1,
+    "all_metrics_all_difficulties_required": true,
+    "ambitious_nonbinding_score_ratio_lower_bound": 2.0,
+    "score_ratio_lower_bound_min": 1.5,
+    "score_ratio_point_min": 2.0
+  },
+  "version": "teacher_qualification_v2"
+}

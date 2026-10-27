@@ -1,0 +1,35 @@
+{
+  "historical_receipt_unchanged": true,
+  "all_five_entries": [
+    {
+      "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r1/attempts/cpu-restore-attempt-01.log",
+      "sha256": "ec9989c233217c16174c153bd53e98a239235a291c0826b1a5e655b9ce468ece",
+      "original_claim": "CPU test found checkpoint state has no embedded learner_fingerprints; validator now recomputes from saved model/Adam/RNG.",
+      "actual_log_tail": "Traceback (most recent call last):\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r1/cpu_restore_and_controls.py\", line 17, in <module>\n    runner.validate_parent_checkpoint_for_restore(parent,runner.PARENT_SHA,receipt)\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r1/runner.py\", line 204, in validate_parent_checkpoint_for_restore\n    need(state.get(key) == expected, \"Parent checkpoint field differs from accepted receipt: \"+key)\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r1/runner.py\", line 64, in need\n    raise ValueError(message)\nValueError: Parent checkpoint field differs from accepted receipt: learner_fingerprints\n"
+    },
+    {
+      "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r1/attempts/cpu-restore-attempt-02.log",
+      "sha256": "7ce0d75050e3835d085a0771917fddc987e4413126fcad6f63edaf7b3ea192c5",
+      "original_claim": "CPU test caught misplaced fingerprint assertion during refactor; corrected locally.",
+      "actual_log_tail": "Traceback (most recent call last):\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r1/cpu_restore_and_controls.py\", line 6, in <module>\n    import runner\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r1/runner.py\", line 725\n    need({\"model\":fingerprint(state[\"model\"]),\"optimizer\":fingerprint(state[\"optimizer\"]),\"rng\":fingerprint(state[\"rng\"])}==receipt.get(\"learner_fingerprints\"),\nSyntaxError: expected 'except' or 'finally' block\n"
+    },
+    {
+      "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r1/attempts/cpu-restore-attempt-03.log",
+      "sha256": "57b4005671f5fe7785a1e8beddc3ccd1af35de891df8490968a8e3721c40bc0f",
+      "original_claim": "CPU test caught wall-clock fields nested under wall_accounting; corrected binding.",
+      "actual_log_tail": "Traceback (most recent call last):\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r1/cpu_restore_and_controls.py\", line 17, in <module>\n    runner.validate_parent_checkpoint_for_restore(parent,runner.PARENT_SHA,receipt)\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r1/runner.py\", line 208, in validate_parent_checkpoint_for_restore\n    need(state.get(\"parent_checkpoint_sha256\") == receipt.get(\"parent_checkpoint_sha256\")\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r1/runner.py\", line 64, in need\n    raise ValueError(message)\nValueError: Saved endpoint metadata and receipt wall fields differ\n"
+    },
+    {
+      "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r1/attempts/preflight-attempt-01.log",
+      "sha256": "f46f36bd42566f5ab24c673390dc95ca524a2f16c93554a7dc436ec61b73dd8c",
+      "original_claim": "Preflight exposed inherited runtime-continuity pin binding defect; corrected locally.",
+      "actual_log_tail": "rktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r1/preflight_prepare.py\", line 8, in <module>\n    reg,config=runner.load_registration(registration,digest)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r1/runner.py\", line 337, in load_registration\n    validate_parent_terminal_receipt(read(parent[\"terminal_receipt_path\"]),reg)\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r1/runner.py\", line 243, in validate_parent_terminal_receipt\n    need(full.get(\"audit\",{}).get(\"status\")==\"passed\"\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r1/runner.py\", line 64, in need\n    raise ValueError(message)\nValueError: Full audit candidate set differs\n"
+    },
+    {
+      "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r1/attempts/preflight-attempt-02.log",
+      "sha256": "a48b89d46a7cd261d1725ec280478faa0277be75ec9e4795b1f4e64c378318c2",
+      "original_claim": "Preflight exposed full-audit status label mismatch; corrected locally.",
+      "actual_log_tail": "registration valid; pins=13786; config_sha256=f858a63c324fc312f794c0423aa56db2daf60793b62990cd51fa400afe3af628; lease_assertion=mocked_only_for_preparation\n"
+    }
+  ]
+}

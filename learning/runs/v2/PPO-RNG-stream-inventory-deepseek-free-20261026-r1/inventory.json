@@ -1,0 +1,551 @@
+{
+ "schema": "d2_ppo_rng_stream_inventory_proposed_v1",
+ "status": "proposed_only_source_inventory_no_edits_no_launch_no_reseed",
+ "authority": "none; research artifact only; nothing here is applied or reserved",
+ "workspace_root": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79",
+ "pinned_sources": {
+  "ppo": {
+   "path": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/ppo.py",
+   "sha256": "b3cef91b1293056e9d1820a94fd5730accae4c5728d23566857a6c3a0e1eeac5"
+  },
+  "checkpoints": {
+   "path": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/checkpoints.py",
+   "sha256": "807141943a742c6e9fdd34274c191b3c318134cc7fb0c1c6256874cadee1cbc3"
+  },
+  "train_teacher": {
+   "path": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/train_teacher.py",
+   "sha256": "1d134bfb221ff52139e1243c9e4f9c3063432942a3274c567b71db4d7669c0cf"
+  },
+  "teacher_model": {
+   "path": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/models/teacher.py",
+   "sha256": "e4d7f597a2824c2b0d4ba261dddc9d7d1ee1d5592c2fc966a44c54b5ec417e35"
+  },
+  "runner": {
+   "path": "learning/runs/v2/D2-retained324-linear-integrated-luna-20261026-r4/runner.py",
+   "sha256": "e80fba02fbef45564d9937cc9eb59bfe1a988040233a41f5bb417e26ed70019f"
+  },
+  "seed_rs": {
+   "path": "crates/dodge-rl-env/src/seed.rs",
+   "sha256": "239cb9d88a61fff7d63c3c13c80e4552caafe814729160f8fb2948d3c1498832"
+  },
+  "rng_rs": {
+   "path": "crates/dodge-core/src/rng.rs",
+   "sha256": "6e5bfcf9d241332fcae2357f5dd420829ed8e8d19330803a5062c817a771b050"
+  },
+  "game_rs": {
+   "path": "crates/dodge-core/src/game.rs",
+   "sha256": "ecf923288d0dfb92931535f8c8f307de3c5127f9de1cf626465a758140edeab6"
+  },
+  "torch_random_py": {
+   "path": "python/.venv/lib/python3.12/site-packages/torch/random.py",
+   "sha256": "0b2bd65c8fdf324e00ed2c64e7b06ca5d5ff96053001055c86352c0b3668d0be"
+  },
+  "protocol": {
+   "path": "docs/v2-m3-run-protocol.json",
+   "sha256": "9e0d82028011f83e0cf6ddaef5f5e118591158d8a557f6698c82c150d5a69bab"
+  }
+ },
+ "parent_context": {
+  "accepted_checkpoint_sha256": "b95228e5e2934c915597595f7eb3c8618ee5f7c2182dde1481a060d01c270369",
+  "accepted_phase_update": 348,
+  "accepted_receipt_sha256": "cb3645899b5cb660d26d44645e00b3f53c5d0c8341b645b3b78af6b651d8b016",
+  "actual_cumulative_updates": 396,
+  "saved_learning_rate": 2.2203389830508474e-05,
+  "saved_schedule_origin": 372,
+  "prior_completed_updates": 24,
+  "parent_learner_fingerprints": {
+   "model": "b106e8e1ef0645b357ae8877587e2668aa239435c845223dd9481b6fa3ad399f",
+   "Adam": "29108e8441b859f02e149b8e52e8cb9d36bbe8d739eef8a7435ab392be4c523e",
+   "RNG": "831d8fa20b4b9aca009382ccb69f9516336b83540850d86b5cdc53a07ba380ad"
+  },
+  "parent_checkpoint_rng_backend_expected": "torch_global_mps",
+  "native_binary_sha256": "022d41dde9bace0b4f4c4c06b9b4ed007bc2c60013cd98734086e587d7bb997e",
+  "pinned_runtime_versions": {
+   "python": "3.12.15",
+   "torch": "2.14.1",
+   "numpy": "2.5.4"
+  },
+  "training_shapes": {
+   "batch_size": 64,
+   "rollout_steps": 256,
+   "minibatch_size": 512,
+   "update_epochs": 4,
+   "transitions_per_update": 16384
+  },
+  "parent_next_episode_indices_source": "retained-best-candidate-receipt.json"
+ },
+ "streams": [
+  {
+   "id": "torch_global_mps_action_sampler",
+   "kind": "torch default generator (MPS)",
+   "owner": "process-wide torch MPS generator",
+   "device": "mps",
+   "consumed": true,
+   "consumed_by": [
+    "Categorical.sample() on [64,9] logits each environment decision"
+   ],
+   "callsites": [
+    {
+     "path": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/ppo.py",
+     "line": 311,
+     "line_sha256": "b69f726891a7808ea7c131f90597b6e41c7f7865288a16f2e5043cae385d379a",
+     "text": "                policy = Categorical(logits=output.logits)"
+    },
+    {
+     "path": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/ppo.py",
+     "line": 312,
+     "line_sha256": "e0cde8884ad14d1359d271c589fac7ef79e0bfc944553aabcf26b321ac2d3998",
+     "text": "                actions = policy.sample()"
+    },
+    {
+     "path": "learning/runs/v2/D2-retained324-linear-integrated-luna-20261026-r4/runner.py",
+     "line": 938,
+     "line_sha256": "f83f99b56b97da5f56434d7f960a9cad4e46cdcfa8ab8e2a2c1f845eecda73c7",
+     "text": "                    collection = collect_rollout(model, env, 256, \"mps\", observation=observation,"
+    },
+    {
+     "path": "learning/runs/v2/D2-retained324-linear-integrated-luna-20261026-r4/runner.py",
+     "line": 939,
+     "line_sha256": "8c1fa9be1309b852bfab556983628e3015d60c6a61bbf059d30ebcbf77c63b32",
+     "text": "                                                 config=ppo, check_guard=guard.check)"
+    }
+   ],
+   "draw_volume_per_update": "256 decisions x 64 slots = 16384 categorical draws",
+   "captured": "checkpoints.capture_rng stores torch.mps state only when device.type=='mps'",
+   "captured_callsites": [
+    {
+     "path": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/checkpoints.py",
+     "line": 27,
+     "line_sha256": "f687e9b6246f94bbc897794c606d6740441acbb6c136a44b36b6e802f5d6c9be",
+     "text": "            \"torch_mps\": torch.mps.get_rng_state().clone() if device.type == \"mps\" else None,"
+    },
+    {
+     "path": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/checkpoints.py",
+     "line": 28,
+     "line_sha256": "a293651860d708b049ec3f895e20ec2d9aa69e6f56d8539d2e559e084c810f60",
+     "text": "            \"sampling_backend\": f\"torch_global_{device.type}\"}"
+    }
+   ],
+   "vector_field": "action_sampler_torch_mps_seed",
+   "notes": "log_prob and entropy construct Categorical but draw nothing (ppo.py 498,557)."
+  },
+  {
+   "id": "torch_global_cpu_minibatch_shuffle",
+   "kind": "torch default generator (CPU)",
+   "owner": "process-wide torch CPU generator",
+   "device": "cpu",
+   "consumed": true,
+   "consumed_by": [
+    "torch.randperm(count=16384, device='cpu') once per PPO epoch (4 per update)"
+   ],
+   "callsites": [
+    {
+     "path": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/ppo.py",
+     "line": 474,
+     "line_sha256": "f3b371630542c346b63b6502851e6dad91c9bec7c8219f407b9c273bb926b31d",
+     "text": "            order = torch.randperm(count, device=\"cpu\")"
+    }
+   ],
+   "draw_volume_per_update": "4 permutations of 16384 indices",
+   "captured": "checkpoints.capture_rng stores torch_cpu state",
+   "vector_field": "torch_cpu_global_seed",
+   "notes": "Shares one generator with the constructor init draws and, on a CPU backend, with action sampling. No independent minibatch stream exists in the pinned runtime."
+  },
+  {
+   "id": "torch_global_cpu_constructor_init",
+   "kind": "torch default generator (CPU), pre-restore only",
+   "owner": "process-wide torch CPU generator",
+   "device": "cpu",
+   "consumed": true,
+   "consumed_by": [
+    "nn.Linear/Embedding default init",
+    "nn.init.orthogonal_ actor head",
+    "nn.init.orthogonal_ critic head"
+   ],
+   "callsites": [
+    {
+     "path": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/train_teacher.py",
+     "line": 148,
+     "line_sha256": "0ec32267500ddae9a8447259c5c8e8add7bf3ce370ee064a2461f0cd22b8913e",
+     "text": "        self.model = OmniscientEntityTeacher().to(self.device)"
+    },
+    {
+     "path": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/train_teacher.py",
+     "line": 149,
+     "line_sha256": "1b36f7e1321491623c30584dd475a08458143a0478e32801c9b275996f303566",
+     "text": "        self.optimizer = make_optimizer(self.model, config)"
+    },
+    {
+     "path": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/models/teacher.py",
+     "line": 109,
+     "line_sha256": "9be2a5bfc5ed110ee01c01ebaef746f33338bc81b8ad044efcb3c3daf34ca397",
+     "text": "            nn.init.orthogonal_(layer.weight, gain=gain)"
+    },
+    {
+     "path": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/models/teacher.py",
+     "line": 110,
+     "line_sha256": "319775441a7de3d364e75569bdbe4ba18d2bf44b35a4abd0562aa368e2525cb2",
+     "text": "            nn.init.zeros_(layer.bias)"
+    },
+    {
+     "path": "learning/runs/v2/D2-retained324-linear-integrated-luna-20261026-r4/runner.py",
+     "line": 826,
+     "line_sha256": "fa6e52f510dbe5739b3b72fdaa4960f7e5b2223cfe35ab9f4e6642f690d7ad3e",
+     "text": "            model = OmniscientEntityTeacher().to(device=\"mps\", dtype=torch.float32)"
+    },
+    {
+     "path": "learning/runs/v2/D2-retained324-linear-integrated-luna-20261026-r4/runner.py",
+     "line": 828,
+     "line_sha256": "72787ff0f84782f106f58de0c26b634951e2ff895d1fadf514c249eb6f06d1ca",
+     "text": "            optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, eps=PPO[\"adam_eps\"])"
+    }
+   ],
+   "draw_volume_per_update": "one model construction per run",
+   "overwritten": true,
+   "overwritten_by": "verified restore of parent model and Adam state (train_teacher 169, runner 829)",
+   "vector_field": "constructor_init_seed",
+   "notes": "Draws are discarded after restore. Seeding them keeps the pre-restore phase reproducible across arms; they must never be used as evidence of an independent stream."
+  },
+  {
+   "id": "python_random_global",
+   "kind": "python random module (Mersenne Twister) global state",
+   "owner": "python process",
+   "consumed": false,
+   "consumed_by": [],
+   "callsites": [
+    {
+     "path": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/train_teacher.py",
+     "line": 69,
+     "line_sha256": "fb6930a02515e401a8fb9129de2570d08f3e2b1ffe2c06dc535d6cdbe6f6af5d",
+     "text": "    random.seed(seed)"
+    },
+    {
+     "path": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/checkpoints.py",
+     "line": 24,
+     "line_sha256": "a19d82ece16331c1709c5f1c2627caefaffb15c3ddbfdf624ca426ef4566e720",
+     "text": "    return {\"python\": random.getstate(), \"numpy_global\": np.random.get_state(),"
+    },
+    {
+     "path": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/checkpoints.py",
+     "line": 34,
+     "line_sha256": "c109f2578d2fdb7316c7a0b77b87cf6f68eaf69568c5b7c518431a4a26c250ae",
+     "text": "    random.setstate(state[\"python\"])"
+    }
+   ],
+   "captured": "checkpoints.capture_rng state['python']",
+   "vector_field": "python_random_seed",
+   "notes": "Captured and restored, but no random.* call exists anywhere in the pinned runtime sources. Dormant; still seeded for a complete, comparable state."
+  },
+  {
+   "id": "numpy_global_randomstate",
+   "kind": "numpy global RandomState",
+   "owner": "python process",
+   "consumed": false,
+   "consumed_by": [],
+   "callsites": [
+    {
+     "path": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/train_teacher.py",
+     "line": 70,
+     "line_sha256": "6ba7d4ced2b636f24b03f774fb301122ebc2fcb8ac9f967cdcde43d8cb1b7db0",
+     "text": "    np.random.seed(seed)"
+    },
+    {
+     "path": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/checkpoints.py",
+     "line": 25,
+     "line_sha256": "ac6e89be04e82dac75246ac7c12d734e22c9d3b319732ac78fb6dd34f9c87776",
+     "text": "            \"numpy_generator\": None if numpy_generator is None else copy.deepcopy(numpy_generator.bit_generator.state),"
+    },
+    {
+     "path": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/checkpoints.py",
+     "line": 35,
+     "line_sha256": "99d4bc1fd0d97bf3d12ae6a46238302b3585b6121542bf50790f7cb34cf2e178",
+     "text": "    np.random.set_state(state[\"numpy_global\"])"
+    }
+   ],
+   "captured": "checkpoints.capture_rng state['numpy_global']",
+   "vector_field": "numpy_global_seed",
+   "notes": "Dormant in training and evaluation paths; dev_eval uses np.asarray/concatenate only."
+  },
+  {
+   "id": "numpy_owned_generator",
+   "kind": "absent",
+   "owner": "none",
+   "consumed": false,
+   "consumed_by": [],
+   "callsites": [
+    {
+     "path": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/checkpoints.py",
+     "line": 25,
+     "line_sha256": "ac6e89be04e82dac75246ac7c12d734e22c9d3b319732ac78fb6dd34f9c87776",
+     "text": "            \"numpy_generator\": None if numpy_generator is None else copy.deepcopy(numpy_generator.bit_generator.state),"
+    },
+    {
+     "path": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/checkpoints.py",
+     "line": 37,
+     "line_sha256": "a81bc0a5b93388df9cdb7dd297b6a41e913b8980ea7214fcae897dc1f0b90b85",
+     "text": "    if state[\"numpy_generator\"] is not None:"
+    },
+    {
+     "path": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/checkpoints.py",
+     "line": 39,
+     "line_sha256": "5820265829c7e2e2613b2a399a42e0b92e18a24a5ff93fcb788c146121ee001f",
+     "text": "        numpy_generator.bit_generator.state = copy.deepcopy(state[\"numpy_generator\"])"
+    }
+   ],
+   "captured": "capture_rng can store a generator if one is passed, but make_state never passes one",
+   "vector_field": null,
+   "notes": "No owned NumPy generator exists. Independent numpy stream would require implementation plus a checkpoint schema change; not invented here."
+  },
+  {
+   "id": "env_slot_splitmix64_master_stream",
+   "kind": "deterministic seed derivation, not a mutable generator",
+   "owner": "native environment (Rust) per run",
+   "device": "native",
+   "consumed": true,
+   "consumed_by": [
+    "training_seed_normalized(run_seed, slot, episode) per episode construction"
+   ],
+   "callsites": [
+    {
+     "path": "crates/dodge-rl-env/src/seed.rs",
+     "line": 66,
+     "line_sha256": "0e6fb1bfc79d15a457a09e8adac3485a7c4e8ebfbb711fb35436dcfeba2e191f",
+     "text": "    let ranges = normalize_seed_exclusions(additional)?;"
+    },
+    {
+     "path": "crates/dodge-rl-env/src/seed.rs",
+     "line": 67,
+     "line_sha256": "b2dbb8cc18f6374dd97021e3c8f244f94d20183107447bdbbbdb2c043b880bb2",
+     "text": "    training_seed_normalized(run, slot, episode, &ranges)"
+    },
+    {
+     "path": "crates/dodge-rl-env/src/seed.rs",
+     "line": 122,
+     "line_sha256": "e7e27fc2a346aca081cb92b99c9107711b6f529230273ed8397e1548a2d4b82d",
+     "text": "        SeedMode::Training { run_seed } => {"
+    },
+    {
+     "path": "crates/dodge-rl-env/src/seed.rs",
+     "line": 123,
+     "line_sha256": "7e0983bbe8b68ac63a54a41a32e4b520feff1a38b52e9c6a18cc3aee6328f482",
+     "text": "            training_seed_normalized(*run_seed, slot, episode, ranges)"
+    }
+   ],
+   "state": "run_seed is immutable; episode index per slot advances only on reset_done and is persisted as next_episode_indices",
+   "vector_field": "env_master_seed",
+   "notes": "High 32 bits of SplitMix64 finalizer, rejection counter advances only within the tuple. The 4th candidate element and rejected intervals are pure functions of (run_seed, slot, episode, exclusions)."
+  },
+  {
+   "id": "native_pico8_game_rng_per_slot",
+   "kind": "native game RNG (PICO-8 compatible), one per live episode slot",
+   "owner": "native environment (Rust) per episode",
+   "device": "native",
+   "consumed": true,
+   "consumed_by": [
+    "enemy spawn / personality / pattern draws during gameplay"
+   ],
+   "callsites": [
+    {
+     "path": "crates/dodge-core/src/rng.rs",
+     "line": 19,
+     "line_sha256": "6a08412d55d70e0d3853c632b0dcf27b106951415bcd976d10d36af4408e58c6",
+     "text": "pub struct PicoRng {"
+    },
+    {
+     "path": "crates/dodge-core/src/rng.rs",
+     "line": 24,
+     "line_sha256": "2291003bfe3bfa8532d75cf6790969e49097862f5cb5f8c28ebda087a4decc83",
+     "text": "    pub fn new(seed: u32) -> Self {"
+    },
+    {
+     "path": "crates/dodge-core/src/rng.rs",
+     "line": 43,
+     "line_sha256": "eb53eaddecabb55d2332ef5424a148ef2540ea26715ce07db8b421236a60c428",
+     "text": "        for _ in 0..RAND_WARMUP {"
+    },
+    {
+     "path": "crates/dodge-core/src/rng.rs",
+     "line": 44,
+     "line_sha256": "8d16a8a9adb084562aefc660176af589442340f29908ea34093250546a262ea8",
+     "text": "            let _ = rng.rand_int();"
+    },
+    {
+     "path": "crates/dodge-core/src/game.rs",
+     "line": 205,
+     "line_sha256": "cddf0a67ed77ecd77dabf89a940099e7672bff5d6d6a3aadc1232203862c561c",
+     "text": "        let mut rng = PicoRng::new(config.seed);"
+    },
+    {
+     "path": "crates/dodge-core/src/game.rs",
+     "line": 206,
+     "line_sha256": "99cf40a78fee54e51874374aaceac4750a9acb738ea33bd0af0bbdb347676437",
+     "text": "        let patterns = crate::patterns::init_patterns(&mut rng);"
+    },
+    {
+     "path": "crates/dodge-core/src/game.rs",
+     "line": 260,
+     "line_sha256": "573b9d094d32522a40ffd00390c27dcacaa98c61d439c98ec9f29d6ccdbd7833",
+     "text": "        self.rng.seed(self.config.seed);"
+    },
+    {
+     "path": "crates/dodge-core/src/game.rs",
+     "line": 261,
+     "line_sha256": "a7a593e3cd546ad665ea1b24d28c36ced95e7db62eb9a415c2fdd171d1c15a8f",
+     "text": "        self.patterns = crate::patterns::init_patterns(&mut self.rng);"
+    }
+   ],
+   "state": "seeded from the episode actual_seed at construction, with RAND_WARMUP draws; checkpoints store only next_episode_indices, so native per-slot RNG state is not restorable and is rebuilt by fresh construction",
+   "vector_field": null,
+   "notes": "PicoRng normalizes seed 0 to 1 (rng.rs 26-29), so an actual_seed of 0 would alias the stream of 1. Proposed env control asserts zero_actual_seeds == 0."
+  },
+  {
+   "id": "dropout_and_noise_masks",
+   "kind": "absent",
+   "owner": "none",
+   "consumed": false,
+   "consumed_by": [],
+   "callsites": [
+    {
+     "path": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/models/teacher.py",
+     "line": 46,
+     "line_sha256": "4581e7c0dabf49399f20071054c3544018dc792e23d03754b0341550a8ef4a1b",
+     "text": "            MODEL_DIM, NUM_HEADS, dropout=0.0, batch_first=True"
+    },
+    {
+     "path": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/models/teacher.py",
+     "line": 198,
+     "line_sha256": "af1ead33327d18c292c408966ab7984cf2766a88d852737c5aa8adc1a2c0c6a8",
+     "text": "            \"dropout\": 0.0,"
+    }
+   ],
+   "vector_field": null,
+   "notes": "MultiheadAttention dropout=0.0 and architecture dropout=0.0. No mask draws, so no dropout stream to seed. Would draw from the device generator if enabled."
+  },
+  {
+   "id": "evaluation_action_selection",
+   "kind": "absent (argmax)",
+   "owner": "none",
+   "consumed": false,
+   "consumed_by": [],
+   "callsites": [
+    {
+     "path": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/train_teacher.py",
+     "line": 356,
+     "line_sha256": "5e1a87876133013bacfa29abed9c93dd66984395af8427bfdc135e32a0fd199c",
+     "text": "        starting_rng = ckpt.capture_rng(\"cpu\")"
+    }
+   ],
+   "vector_field": null,
+   "notes": "dev_eval evaluates with logits.argmax on explicit evaluation seeds_by_slot; it draws no torch RNG, so monitoring evaluation cannot perturb an arm's streams."
+  }
+ ],
+ "state_fields": {
+  "captured_by_checkpoints_capture_rng": [
+   "python",
+   "numpy_global",
+   "numpy_generator",
+   "torch_cpu",
+   "torch_mps",
+   "sampling_backend"
+  ],
+  "consumed_fields": {
+   "torch_cpu": "randperm shuffle and, on cpu backend, action sampling",
+   "torch_mps": "action sampling on mps backend",
+   "sampling_backend": "guard string, not a generator"
+  },
+  "captured_but_not_consumed_fields": {
+   "python": "no random.* call",
+   "numpy_global": "no np.random draw",
+   "numpy_generator": "always None because make_state passes no generator"
+  },
+  "not_in_rng_state_at_all": {
+   "native_pico8_game_rng": "per-slot native RNG state is not saved",
+   "env_episode_cursor": "persisted separately as next_episode_indices",
+   "env_master_seed": "persisted in identity/config, not in rng"
+  }
+ },
+ "sampler_backend_and_restore": {
+  "capture_rule": "sampling_backend = 'torch_global_<device.type>'; torch_mps state stored only for mps",
+  "restore_rule": "restore_rng requires sampling_backend equality with the restore device, then restores python, numpy_global, torch_cpu, optional numpy_generator, and torch_mps on mps",
+  "mps_cpu_compatibility": {
+   "mps_checkpoint_on_mps": "supported",
+   "mps_checkpoint_on_cpu": "fails closed: 'Sampling RNG backend changed'",
+   "cpu_checkpoint_on_cpu": "supported; no MPS state exists",
+   "consequence": "Layer B must pin one backend for all six runs; a 348 parent saved as torch_global_mps cannot be restored on cpu"
+  },
+  "mps_seeding_coupling": {
+   "source": "python/.venv/lib/python3.12/site-packages/torch/random.py lines 62-72",
+   "fact": "torch.manual_seed in pinned torch 2.14.1 seeds cpu, cuda, mps and xpu",
+   "requirement": "call torch.manual_seed(cpu_seed) first, then torch.mps.manual_seed(mps_seed) to domain-separate the two streams"
+  },
+  "cpu_backend_consequence": "on cpu the action sampler and randperm share one generator; no independent action stream exists without implementation",
+  "silent_gap": "restore_rng does not verify fingerprints. It fails closed if a state carries a non-None numpy_generator, because restore_learner supplies none; make_state always stores None today, so an owned NumPy stream needs both a checkpoint schema change and a restore call-site change. Explicit post-restore assertions are required."
+ },
+ "reseed_protocol_proposed": {
+  "position": "after verified model/Adam/RNG restore, before environment construction and before the controller override",
+  "steps": [
+   "load parent checkpoint and require_complete_update",
+   "construct model and Adam exactly as the pinned runner does",
+   "restore_learner(parent, model, optimizer, pinned_device)",
+   "capture and record entry fingerprints model/Adam/RNG; require equality with the parent receipt values",
+   "torch.manual_seed(vector.torch_cpu_global_seed)",
+   "torch.mps.manual_seed(vector.action_sampler_torch_mps_seed) when the pinned backend is mps",
+   "random.seed(vector.python_random_seed)",
+   "numpy.random.seed(vector.numpy_global_seed)",
+   "capture and record post-reseed RNG fingerprints and sampling_backend",
+   "assert model and Adam fingerprints are unchanged across the reseed",
+   "assert the python scratch control matches the precomputed value; numpy control via scratch RandomState",
+   "construct the fresh environment with run_seed=vector.env_master_seed and the parent next_episode_indices",
+   "apply the registered LR controller for cumulative update 397 before the first optimizer step"
+  ],
+  "must_not_change": [
+   "model parameters",
+   "Adam moments",
+   "Adam step counts",
+   "optimizer group count"
+  ],
+  "seeded_once": "the vector is applied once per run; re-seeding between updates would synchronize updates and is not proposed"
+ },
+ "independence_semantics": {
+  "distinct_vector_across_replicas": "samples a new policy-sampling stream and a new environment stream for each replica, so the three paired differences are not driven by one shared random path",
+  "same_policy_rng_with_new_env_seed": "would vary only the environment; policy sampling noise stays correlated across replicas, so replicas are not independent replication units and paired differences inherit a shared policy-noise component",
+  "common_random_numbers_across_arms": "arms A and B share the whole vector, so shared noise cancels within a pair; it does not remove seed-specific luck and it does not create independence between pairs. After the policies diverge, identical seeds no longer imply identical draws, so CRN only guarantees identical draw streams while the consumed state matches",
+  "analysis_unit": "paired training seed, n=3, descriptive only"
+ },
+ "lr_controller_proposed": {
+  "origin_cumulative_update": 396,
+  "first_cumulative_update": 397,
+  "last_cumulative_update": 456,
+  "horizon_updates": 60,
+  "arm_A": "constant 3e-5",
+  "arm_B": "linear 3e-5 to 1e-5, formula start-(start-end)*(u-1)/(60-1), u=cumulative-396",
+  "saved_lr_at_348": 2.2203389830508474e-05,
+  "common_jump": "both arms jump from the saved 2.2203389830508474e-05 to 3e-5 at update 397",
+  "adam": "preserve moments and step counts; do not reset",
+  "prior_schedule": "origin 372 spec kept as provenance only, not active"
+ },
+ "unresolved_requires_implementation_and_tests": [
+  "training exclusion union B/E/D128 plus 0xD1000000..0xD10003FF and 0xD2000000..0xD20007FF is not installed in config or protocol; runner currently requires exactly three ranges",
+  "runner.py hard-codes run_seed 4200000001 and rejects any other seed; a Layer B runner must accept the registered vector instead",
+  "no code path applies a seed vector after restore; reseed helper plus entry-reseed receipt must be implemented",
+  "post-reseed RNG fingerprint recording and model/Adam unchanged assertions do not exist yet",
+  "no registration field binds seed_vector_sha256, backend, or the six per-run seed values",
+  "per-update group LR logging and assertion for both arms is not implemented for the new origin",
+  "first torch.randperm / Categorical.sample outputs cannot be predicted offline; runtime capture required",
+  "numpy scratch-control check requires numpy at runtime; not computed here",
+  "native .so is hash-pinned but the Rust source is not hash-bound to that build; seed.rs and rng.rs match 17 lineage source snapshots",
+  "PicoRng seed 0 normalizes to 1; env control asserts no zero actual seeds but the runtime does not",
+  "concurrent campaign registry and resource watchdog remain separate prerequisites"
+ ],
+ "predecessors_preserved": [
+  "D2-gradient-capsule-parent-freeze-20261025-r5 (runtime and protocol pins)",
+  "D2-retained324-linear-integrated-luna-20261026-r4 (runner, lr_schedule)",
+  "D2-retained324-linear-parent-terminal-audit-20261026-r1/retained-best-candidate-receipt.json",
+  "expanded-evaluation-registration-proposal-parent-20261026-r5 (proposal, manifests)"
+ ],
+ "limits": {
+  "no_format_claim": "no .05 confirmatory claim; three exploratory pairs at most",
+  "no_global_seed_proof": "candidate ancestry disjointness only; no global workspace nonuse claim",
+  "no_execution": "no launch, training, environment, native, torch, checkpoint load, MPS, lease, state, shared or root README action"
+ }
+}

@@ -1,0 +1,77 @@
+{
+  "limits": {
+    "MPS_bytes": 6442450944,
+    "RSS_bytes": 6442450944,
+    "cleanup_reserve_seconds": 10,
+    "fallbacks": 0,
+    "hard_work_seconds": 1790,
+    "max_environment_decisions": 983040,
+    "max_optimizer_steps": 7680,
+    "max_raw_frames": 3932160,
+    "max_updates": 60,
+    "outer_seconds": 1800,
+    "planned_work_seconds": 1650,
+    "previous_72_update_outer_seconds": 1581.0090618329123,
+    "relaxation": false,
+    "retries": 0,
+    "scaled_plus_15_percent_seconds": 1515.1336842565406
+  },
+  "parent": {
+    "checkpoint": "learning/runs/v2/D2-retained204-lr1e4-20261026-r1/checkpoint-000276-candidate.pt",
+    "checkpoint_sha256": "0b5cf72b4eb9629fa4f10ce2cecb3625b56f8787c0eca6395b9fe17161e6b292",
+    "cumulative_counters": {
+      "environment_decisions": 5308416,
+      "optimizer_steps": 40352,
+      "raw_frames": 21202529,
+      "updates": 324
+    },
+    "local_update": 72,
+    "model_adam_cpu_mps_rng_authority": "original parent checkpoint plus original accepted parent terminal receipt only",
+    "phase_update": 276,
+    "terminal_receipt": "learning/runs/v2/D2-retained204-lr1e4-parent-terminal-audit-20261026-r1/parent-terminal-receipt.json",
+    "terminal_receipt_sha256": "d64d0f803d02a8d2c33da9fa0ba862f06ba7d9c56dcf4f0494e559a49e48fcc4"
+  },
+  "pending_parent_gates": [
+    "independent review of frozen source and registration",
+    "parent-owned exact lease registration",
+    "unmocked full preflight",
+    "one actual run after gates"
+  ],
+  "resource_cost_anchor": {
+    "full_resource_cost_seconds": 7118.78208862512,
+    "receipt": "learning/runs/v2/D2-retained276-continuation-parent-terminal-audit-20261026-r2/completed-iteration-receipt.json",
+    "scope": "resource cost only; does not authorize later checkpoint or discarded learner state",
+    "selected_branch_future_checkpoint_baseline_seconds": 4760.062404125177,
+    "sha256": "711b2949fb4123381d9af6618e47f4628540f424a0973785bb6392e14169b4c3"
+  },
+  "run_id": "D2-retained276-lr3em5-20261026-r1",
+  "schema": "d2_retained276_lr3em5_preparation_plan_v1",
+  "scope": "CPU-only preparation, validation, and freeze. No MPS, environment, training, actual campaign, lease, state, shared source, checkpoint, or metadata writes.",
+  "status": "prepared_pending_independent_review_parent_registration_and_unmocked_preflight",
+  "trial": {
+    "algorithm_change": false,
+    "config_change": "ppo.learning_rate 0.0001 -> 0.00003 only, after exact restore",
+    "config_sha256": "1c24df3eea150160451ada08e9f6844cd67645abf5fb8b712afd14abca930ce8",
+    "cumulative_updates": 384,
+    "evaluation_updates": [
+      276,
+      288,
+      300,
+      312,
+      324,
+      336
+    ],
+    "fresh_master_seed": 3791628420,
+    "fresh_seed_confounds_learning_rate_causality": true,
+    "phase_end": 336,
+    "phase_start": 276,
+    "same_64_argmax_D2_development_cohort": true,
+    "updates": 60
+  },
+  "validation": {
+    "cpu_restore": "exact model and Adam restore; CPU RNG preservation only; no MPS RNG claim",
+    "preflight": "all pins and source/runtime/receipt checks active; only lease assertion mocked; worker not started",
+    "terminal_validator": "entry zero plus five later evaluation boundary candidates; positive and negative controls",
+    "transition": "only optimizer.param_groups[*].lr may change; assert before/after; every PPO update pre/post exact LR"
+  }
+}

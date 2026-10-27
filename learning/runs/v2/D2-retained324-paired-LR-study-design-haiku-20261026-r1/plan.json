@@ -1,0 +1,119 @@
+{
+  "run_id": "D2-retained324-paired-LR-study-design-haiku-20261026-r1",
+  "status": "design_proposal_only_no_launch",
+  "launch_authority": "parent_only",
+  "parent": {
+    "run_id": "D2-retained300-parent-terminal-audit-20261026-r1",
+    "checkpoint": "checkpoint-000324-candidate.pt",
+    "checkpoint_sha256": "c10d90ec0e67503afef8f4d90c4968581d430ef2065117a75e81c445a04c8ddc",
+    "receipt_external_sha256": "76cb15733e87518cb3b473b7f8ebd847ed206351fb9f17d89b8b92e6bf853f08",
+    "local_update": 324,
+    "cumulative_update": 372
+  },
+  "operational_control": {
+    "run_id": "D2-retained324-continuation-20261026-r1",
+    "status": "already_running_once",
+    "label": "operational_control_not_preregistered",
+    "constant_lr": 3e-5,
+    "master_seed": 4200000001,
+    "local_updates": "324->384",
+    "cumulative_updates": "372->432",
+    "original_registration": "D2-retained324-continuation-prepare-luna-20261026-r2/registration.json",
+    "original_registration_sha256": "44ac8185b24de2d98cc1c870191f18be47734b5cc11c7c6ff91b9feacb34cd5a",
+    "do_not_modify": true,
+    "resource_limits": {"planned_work_seconds": 1750, "work_limit_seconds": 1790, "total_limit_seconds": 1800, "cleanup_seconds": 10, "rss_gib": 6, "mps_limit": "separate"}
+  },
+  "study": {
+    "id": "paired-fixed-vs-linear-LR-v1",
+    "design": "paired_two_arm_one_seed_first_pair",
+    "pair_seed_master": 4200000001,
+    "reuse_within_pair_is_intentional": true,
+    "treatment_run_id": "D2-retained324-paired-linear-LR-r1",
+    "treatment_run_id_status": "proposed_name_must_be_registered_by_parent",
+    "constant_arm": {
+      "label": "constant_3e-5",
+      "source": "operational_control_run_D2-retained324-continuation-20261026-r1",
+      "preregistered": false,
+      "note": "Scientific pairing uses this run as the constant arm only after parent verifies its frozen config equals treatment except LR; disclose as post-launch control."
+    },
+    "linear_arm": {
+      "label": "linear_3e-5_to_1e-5",
+      "run_id": "D2-retained324-paired-linear-LR-r1",
+      "lr_formula": "LR(u) = 3e-5 - 2e-5 * (u - 1) / 59, u = 1..60, where u = cum_update - 372",
+      "mean_lr": 2e-5,
+      "floor_lr_after_horizon": 1e-5,
+      "horizon_updates": 60,
+      "schedule_origin_cumulative_update": 372,
+      "lr_applied_per_update_convention": "to_be_fixed_by_parent_before_launch; default proposal: set LR for cum update c=373..432 before that update's optimizer step",
+      "schedule_persistence_fields": ["schedule_origin_cumulative_update", "horizon_updates", "completed_schedule_updates", "schedule_spec_sha256"]
+    },
+    "shared": {
+      "parent_state": "checkpoint-000324-candidate.pt at local 324 / cum 372",
+      "restore": "model weights, Adam state (exp_avg, exp_avg_sq, step), torch/numpy/env RNG state restored first; then LR for next update computed from saved schedule progress",
+      "ppo_settings_identical_except_lr": ["epochs=4", "minibatch=512", "clip=0.2", "target_kl=0.03", "rollout_decisions_per_update=16384", "updates=60", "adam_betas_eps_weight_decay_unchanged"],
+      "updates_per_arm": 60,
+      "environment_transitions_per_arm": 983040,
+      "realized_optimizer_steps": "may differ between arms because target-KL early stop is a treatment outcome; record, do not force"
+    },
+    "endpoint": {
+      "fixed_local_update": 384,
+      "fixed_cumulative_update": 432,
+      "checkpoint_selection": "none; final state at update 384 only"
+    }
+  },
+  "evaluation": {
+    "scientific_primary": {
+      "pool": "independent_heldout_pool_candidate_D0000040_to_D000007F_pending_parent_freeze",
+      "episodes": 64,
+      "policy": "deterministic argmax, same as existing dev_eval protocol",
+      "raw_gameplay_cap": 18000,
+      "primary_metric": "mean alive raw frames over 64 independent episodes",
+      "secondary_metrics": ["Q1_mean_lowest_16_episodes", "Q4_mean_highest_16_episodes", "death_cause_counts_and_fractions", "survival_by_cause", "truncations_reported_separately"],
+      "pairing": "per-seed difference linear_minus_constant on identical episode seeds",
+      "score": "diagnostic only"
+    },
+    "secondary": {
+      "pool": "existing_64_dev_seeds_D000000_to_D00003F",
+      "role": "selection_biased_secondary_report_only",
+      "note": "Already used for selection of update 324; not an independent endpoint"
+    },
+    "operational_best_retention": {
+      "separate_from_scientific_endpoint": true,
+      "note": "Best-checkpoint retention decision made on dev seeds is operational and does not alter the scientific comparison"
+    }
+  },
+  "decision_rules": {
+    "unit_of_inference": "one training pair (one master seed) times 64 independent eval seeds; uncertainty from training replicate is NOT estimated by this study",
+    "primary_claim_allowed": "linear decay vs constant 3e-5 paired result for seed 4200000001 at update 384 on the frozen held-out pool",
+    "mean_lr_confound": "linear mean LR is 2e-5; a win does not isolate schedule shape from lower average LR",
+    "followup_constant_2e-5": "not in first budget; only if decay wins on primary metric, with separate registration"
+  },
+  "failure_and_invalid_rules": {
+    "no_retry": true,
+    "no_seed_replacement": true,
+    "no_cap_increase": true,
+    "no_window_extension": true,
+    "invalid_if": [
+      "parent hash or checkpoint hash mismatch",
+      "restored Adam or RNG state not matching saved hashes",
+      "schedule origin, horizon, or completed_schedule_updates mismatch",
+      "any non-finite loss, gradient, or LR",
+      "per-group LR log missing or differing from LR(cum) formula",
+      "held-out eval incomplete, not 64 episodes, or seed order changed",
+      "work or total wall budget exceeded",
+      "concurrent training or MPS overlap"
+    ],
+    "not_invalid": ["early target-KL stop changing realized epochs or optimizer steps (record as outcome)", "death or truncation outcomes"]
+  },
+  "resources": {
+    "training_window_each": {"work_limit_s": 1790, "total_limit_s": 1800, "rss_gib": 6, "device": "MPS one at a time or CPU"},
+    "eval_window_each": {"proposed_total_limit_s": 1800, "rss_gib": 6, "device": "CPU or one MPS run at a time after current training terminal lease cleared", "estimate": "unmeasured in this design; parent must set from a registered timing or the protocol reserve formula"},
+    "windows_for_three_seeds": {"training": 6, "evaluation": 6, "note": "design authorizes first pair only"}
+  },
+  "authorization": {
+    "first_pair_feasible_recommended": true,
+    "full_three_seed_sweep_authorized": false,
+    "implementation_authorized": false,
+    "launch_authorized": false
+  }
+}

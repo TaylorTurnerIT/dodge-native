@@ -1,0 +1,35 @@
+..............................F..........                                [100%]
+=================================== FAILURES ===================================
+__ test_ppo_loss_matches_independent_clipped_surrogate_before_optimizer_step ___
+
+    def test_ppo_loss_matches_independent_clipped_surrogate_before_optimizer_step():
+        model = TinyTeacher()
+        batch = synthetic_batch(model)
+        batch.old_log_probs += torch.linspace(-.7, .7, batch.transitions).reshape(batch.shape)
+        config = PPOConfig(update_epochs=1, minibatch_size=batch.transitions)
+        expected_adv = scalar_gae_reference(*(v.numpy() for v in (
+            batch.rewards, batch.values, batch.next_values, batch.terminated, batch.truncated)),
+            config.gamma, config.gae_lambda).reshape(-1)
+        expected_returns = expected_adv + batch.values.numpy().reshape(-1)
+        normalized = (expected_adv - expected_adv.mean()) / (expected_adv.std() + 1e-8)
+        with torch.no_grad():
+            output = model(*(getattr(batch, name).flatten(0, 1) for name in
+                ("global_feats", "entity_feats", "entity_types", "entity_mask")))
+            distribution = Categorical(logits=output.logits)
+            ratios = np.exp(distribution.log_prob(batch.actions.flatten()).numpy() - batch.old_log_probs.numpy().reshape(-1))
+            expected_policy = np.maximum(-normalized * ratios,
+                                         -normalized * np.clip(ratios, .8, 1.2)).mean()
+            expected_value = .5 * np.square(output.values.numpy() - expected_returns).mean()
+            expected_entropy = distribution.entropy().mean().item()
+        metrics = ppo_update(model, optimizer_for(model, config), batch, config)
+>       assert metrics["policy_loss"] == pytest.approx(expected_policy, abs=2e-7)
+E       assert 0.12150172144174576 == 0.12150124671851921 ± 2.0e-07
+E         
+E         comparison failed
+E         Obtained: 0.12150172144174576
+E         Expected: 0.12150124671851921 ± 2.0e-07
+
+python/tests/test_ppo.py:400: AssertionError
+=========================== short test summary info ============================
+FAILED python/tests/test_ppo.py::test_ppo_loss_matches_independent_clipped_surrogate_before_optimizer_step
+1 failed, 40 passed in 2.37s

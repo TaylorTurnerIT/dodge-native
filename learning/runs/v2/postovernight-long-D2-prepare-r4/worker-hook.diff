@@ -1,0 +1,164 @@
+--- r3/worker_failure
++++ r4/worker_failure
+@@ -1,6 +1,37 @@
+-def worker_failure(error, args, guard, learner):
+-    at = guard.failure_at if guard is not None and guard.failure_at is not None else None
+-    deadline = life.notify_failure(error, at)
++def worker_failure(error, args, guard, learner, result, permission):
++    """Memory-first failure latch; a failed ACK permanently forbids new writes."""
++    result.update(outcome_fields(failure_outcome(error)), error=repr(error))
++    permission['failed'] = True
++    permission['acknowledged_until'] = None
++    now = time.monotonic()
++    candidates = [now]
++    if guard is not None and guard.failure_at is not None:
++        candidates.append(guard.failure_at)
++    if life.ACTIVE is not None:
++        if life.ACTIVE.first_at is not None:
++            candidates.append(life.ACTIVE.first_at)
++        if now >= life.ACTIVE.deadline:
++            candidates.append(life.ACTIVE.deadline)
++        life.ACTIVE.phase = 'FAILURE'
++    local_until = life.POOL.fail(error, min(candidates))
+     if learner is not None:
+-        learner.api.absolute_deadline = deadline
+-    return deadline
++        learner.api.absolute_deadline = local_until
++    if permission.get('ack_failed'):
++        return False  # No recursive ACK retry or new cleanup allowance.
++    try:
++        require(life.CHANNEL is not None, 'Worker failure requires executor ACK')
++        deadline = life.notify_failure(error, life.POOL.first)
++        require(type(deadline) in (float, int) and math.isfinite(deadline)
++                and deadline == life.POOL.until and deadline <= local_until,
++                'Worker failure ACK deadline differs')
++        life.remaining(deadline)
++        if learner is not None:
++            learner.api.absolute_deadline = deadline
++        permission['acknowledged_until'] = deadline
++        return True
++    except BaseException as ack_error:
++        permission['ack_failed'] = True
++        if learner is not None:
++            learner.api.absolute_deadline = life.POOL.until
++        result['failure_ack_unavailable'] = repr(ack_error)
++        return False
+--- r3/worker_write_permission
++++ r4/worker_write_permission
+@@ -0,0 +1,15 @@
++def worker_write_permission(args, result, permission, learner=None):
++    """Check immediately before AND after each checkpoint/index/result write."""
++    if result_code(result) == 1 or permission['failed']:
++        require(permission['failed'] and not permission.get('ack_failed')
++                and permission['acknowledged_until'] is not None
++                and permission['acknowledged_until'] == life.POOL.until,
++                'Unacknowledged failed-worker persistence forbidden')
++        deadline = permission['acknowledged_until']
++        if learner is not None:
++            learner.api.absolute_deadline = deadline
++    else:
++        require(life.POOL.until is None, 'Failure cannot persist complete worker state')
++        deadline = args.started + WORKER_SECONDS
++    life.remaining(deadline)
++    return deadline
+--- r3/worker
++++ r4/worker
+@@ -3,6 +3,7 @@
+     p,config,base,identity,pins,lease=context
+     result=outcome_fields('identity_or_lease_failure')
+     guard=learner=None
++    permission=dict(failed=False, acknowledged_until=None, ack_failed=False)
+     streams=ExitStack()
+     imported={}
+     def lease_check():
+@@ -69,7 +70,7 @@
+             result=run_schedule(learner,guard,schedule)
+             guard.check(force=True)
+         except BaseException as error:
+-            worker_failure(error, args, guard, learner)
++            worker_failure(error, args, guard, learner, result, permission)
+             result.update(outcome_fields(failure_outcome(error)),error=repr(error),traceback=traceback.format_exc())
+         finally:
+             cancel()  # Every later signal is still latched.
+@@ -77,30 +78,32 @@
+                 try:
+                     tag=('interrupted_mid_update' if learner.progress.get('in_update',False)
+                          else 'timeout' if result['outcome']=='wall_guard' else 'failure')
++                    worker_write_permission(args,result,permission,learner)
+                     result['failure_checkpoint']=learner.checkpoint(tag,emergency=True)
++                    worker_write_permission(args,result,permission,learner)
+                 except BaseException as error:
+                     result['failure_checkpoint_unavailable']=repr(error)
+             try:
+                 if learner is not None:
+                     learner.close()
+                     result['counters']=learner.report()
+-                    save(args.output/'checkpoint-index.json',learner.checkpoints)
+                 if guard is not None:
+                     guard.close()
+                 if result_code(result) != 1:
+                     verify()
+                 require(time.monotonic()<life.POOL.deadline(args.started+WORKER_SECONDS),'Worker finalization crossed absolute deadline','wall_guard')
+             except BaseException as error:
+-                worker_failure(error, args, guard, learner)
++                worker_failure(error, args, guard, learner, result, permission)
+                 result.update(outcome_fields(failure_outcome(error)),final_verification_error=repr(error))
+             try:
+                 streams.close()
+             except BaseException as error:
+-                worker_failure(error, args, guard, learner)
++                worker_failure(error, args, guard, learner, result, permission)
+                 result.update(outcome_fields('publication_failure'),stream_close_error=repr(error))
+             if guard:
+                 result['worker_resources']=guard.receipt()
+     if cancel.cancellation_requests:
++        worker_failure(Stop('Cancellation latched','cancelled'),args,guard,learner,result,permission)
+         result.update(outcome_fields('cancelled'),cancellation_requests=cancel.cancellation_requests,
+                       cancellation_signal=signal.Signals(cancel.requested_signal).name)
+     result.update(run_id=p['run_id'],protocol_sha256=PROTOCOL_SHA256,
+@@ -112,9 +115,19 @@
+                   worker_result_write_and_process_exit_not_timed=True)
+     if time.monotonic()>=life.POOL.deadline(args.started+WORKER_SECONDS):
+         result.update(outcome_fields('wall_guard'),deadline_expired=True)
+-    if result_code(result)==1 and life.POOL.until is None:
+-        worker_failure(Stop(result['outcome']),args,guard,learner)
+-    life.remaining(life.POOL.deadline(args.started+WORKER_SECONDS))
+-    save(args.output/'long-worker-result.json',result)
+-    life.remaining(life.POOL.deadline(args.started+WORKER_SECONDS))
+-    return result_code(result) if time.monotonic()<life.POOL.deadline(args.started+WORKER_SECONDS) else 1
++    if result_code(result)==1 and not permission['failed']:
++        worker_failure(Stop(result['outcome']),args,guard,learner,result,permission)
++    if permission.get('ack_failed'):
++        return 1
++    try:
++        if learner is not None:
++            worker_write_permission(args,result,permission,learner)
++            save(args.output/'checkpoint-index.json',learner.checkpoints)
++            worker_write_permission(args,result,permission,learner)
++        worker_write_permission(args,result,permission,learner)
++        save(args.output/'long-worker-result.json',result)
++        worker_write_permission(args,result,permission,learner)
++    except BaseException as error:
++        worker_failure(error,args,guard,learner,result,permission)
++        return 1  # Never recursively retry persistence or ACK after a write error.
++    return result_code(result)
+--- r3/main
++++ r4/main
+@@ -29,8 +29,14 @@
+             try:life.notify_failure(error)
+             except BaseException:pass
+             code=1
+-        life.CHANNEL.send(dict(kind='worker_done',t0_monotonic_hex=args.started.hex(),expected_exit_code=code),
+-                          life.POOL.until or args.started+WORKER_SECONDS)
+-        life.CHANNEL.sock.close()
++        try:
++            if code in (0,2):
++                life.CHANNEL.send(dict(kind='worker_done',t0_monotonic_hex=args.started.hex(),expected_exit_code=code),
++                                  args.started+WORKER_SECONDS)
++            life.CHANNEL.sock.close()
++        except BaseException as error:
++            life.POOL.fail(error)  # Memory only; no recursive failure ACK or persistence.
++            life.ACTIVE.phase='FAILURE'
++            code=1
+         deadline=life.POOL.until if code==1 and life.POOL.until is not None else args.started+WORKER_SECONDS
+         life.final_exit(code,life.ACTIVE,deadline)

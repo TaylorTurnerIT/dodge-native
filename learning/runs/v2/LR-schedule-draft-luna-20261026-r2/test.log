@@ -1,0 +1,46 @@
+cwd=/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/LR-schedule-draft-luna-20261026-r2
+command=PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONPATH unset /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python -B -m unittest -v
+python=/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python
+test_actual_count_and_fresh_parent_are_bound (test_schedule.ScheduleTests.test_actual_count_and_fresh_parent_are_bound) ... ok
+test_all_groups_validate_before_mutation (test_schedule.ScheduleTests.test_all_groups_validate_before_mutation) ... ok
+test_frozen_manifest_binds_spec_and_source (test_schedule.ScheduleTests.test_frozen_manifest_binds_spec_and_source) ... ok
+test_full_sixty_update_sequence_and_hold_resume (test_schedule.ScheduleTests.test_full_sixty_update_sequence_and_hold_resume) ... ok
+test_lr_application_preserves_adam_moments_and_steps (test_schedule.ScheduleTests.test_lr_application_preserves_adam_moments_and_steps) ... ok
+test_metadata_rejects_missing_invalid_and_spec_mismatch (test_schedule.ScheduleTests.test_metadata_rejects_missing_invalid_and_spec_mismatch) ... ok
+test_split_resume_exact_adam_state_and_group_lrs (test_schedule.ScheduleTests.test_split_resume_exact_adam_state_and_group_lrs) ... FAIL
+
+======================================================================
+FAIL: test_split_resume_exact_adam_state_and_group_lrs (test_schedule.ScheduleTests.test_split_resume_exact_adam_state_and_group_lrs)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/LR-schedule-draft-luna-20261026-r2/test_schedule.py", line 124, in test_split_resume_exact_adam_state_and_group_lrs
+    torch.testing.assert_close(fp, rp, rtol=0, atol=0)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/lib/python3.12/site-packages/torch/testing/_comparison.py", line 1689, in assert_close
+    raise error_metas[0].to_error(msg)
+AssertionError: Tensor-likes are not equal!
+
+Mismatched elements: 2 / 2 (100.0%)
+Greatest absolute difference: 0.0006910168800508543 at index (0,)
+Greatest relative difference: 0.002769706454203573 at index (0,)
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.545s
+
+FAILED (failures=1)
+raw_exit=1
+
+retry_cwd=/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/LR-schedule-draft-luna-20261026-r2
+retry_command=PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONPATH unset /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python -B -m unittest -v
+test_actual_count_and_fresh_parent_are_bound (test_schedule.ScheduleTests.test_actual_count_and_fresh_parent_are_bound) ... ok
+test_all_groups_validate_before_mutation (test_schedule.ScheduleTests.test_all_groups_validate_before_mutation) ... ok
+test_frozen_manifest_binds_spec_and_source (test_schedule.ScheduleTests.test_frozen_manifest_binds_spec_and_source) ... ok
+test_full_sixty_update_sequence_and_hold_resume (test_schedule.ScheduleTests.test_full_sixty_update_sequence_and_hold_resume) ... ok
+test_lr_application_preserves_adam_moments_and_steps (test_schedule.ScheduleTests.test_lr_application_preserves_adam_moments_and_steps) ... ok
+test_metadata_rejects_missing_invalid_and_spec_mismatch (test_schedule.ScheduleTests.test_metadata_rejects_missing_invalid_and_spec_mismatch) ... ok
+test_split_resume_exact_adam_state_and_group_lrs (test_schedule.ScheduleTests.test_split_resume_exact_adam_state_and_group_lrs) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.459s
+
+OK
+retry_raw_exit=0

@@ -1,0 +1,186 @@
+{
+  "checkpoint": {
+    "format_version": 2,
+    "kind": "dodge_entity_transformer_teacher",
+    "model_parameters": 430474,
+    "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/teacher-fit-budget-r1/epoch-064.pt",
+    "seed_manifest_hash": "6529b7db720f10ca0ae2bb0faef6dfd5437a66942ac2e486e7b5e4af90fbf0e2",
+    "sha256": "31b981965e29558da060b3988c0d1567db8214d19f1281405365d4b6fd3d70e3"
+  },
+  "early_fit_gate": false,
+  "epoch": 64,
+  "metrics": {
+    "architecture": "entity_transformer",
+    "device": "cpu",
+    "elapsed_seconds": 1442.4662970000063,
+    "elapsed_seconds_definition": "campaign wall time including collection and earlier snapshots, not optimizer-only time",
+    "epochs_completed": 64,
+    "final_training_ce_loss": 0.07022436760784743,
+    "frames_collected": 68890,
+    "initial_weights_sha256": "cd421c946116efbe2162098bde29f932e48c6be39284427f35c827180e5e4abb",
+    "last_grad_norm": 6.513071060180664,
+    "method": "teacher_fit_budget_supervised",
+    "minibatch_order_sha256": "6427776e7490514c2002ac505f129d93bd2b65ffa7b1320d18a3d32154ea6dfb",
+    "model_config": {
+      "attention_prior": 1.0,
+      "depth": 2,
+      "dropout": 0.0,
+      "embed_dim": 128,
+      "kind_embedding_scale": 0.02,
+      "mlp_ratio": 2.0,
+      "num_heads": 4,
+      "relative_geometry": true
+    },
+    "model_parameters": 430474,
+    "online_classification_loss": 0.2525358325508428,
+    "online_training_accuracy": 0.9248145833333333,
+    "optimizer_steps": 7552,
+    "provenance": {
+      "action_masks": [
+        0,
+        1,
+        2,
+        4,
+        8,
+        5,
+        6,
+        9,
+        10
+      ],
+      "action_names": [
+        "neutral",
+        "left",
+        "right",
+        "up",
+        "down",
+        "up_left",
+        "up_right",
+        "down_left",
+        "down_right"
+      ],
+      "action_repeat": 1,
+      "adapter_version": "0.1.0",
+      "cartridge_sha256": "7453a9658fd32577385ad72672a54ad84ff70567fadbde75ba6634aa5cc684a3",
+      "core_schema_version": 1,
+      "core_source_dirty": "false",
+      "difficulty": 2,
+      "discount": 0.9900000095367432,
+      "feature_schema_version": 2,
+      "game_revision": "d7ad95127ad7529c5217a51ae9dc5cfedd3f2365",
+      "max_episode_frames": 500,
+      "patterns_enabled": true,
+      "powerups_enabled": true,
+      "privileged_schema_version": 1,
+      "snapshot_wire_version": 7,
+      "theme_background": 12,
+      "theme_shadow": 1
+    },
+    "reproduction": {
+      "comparison": "tensor values and optimizer tree; new checkpoint file bytes need not match historical metadata",
+      "exact_model_tensors": true,
+      "exact_optimizer_values": true,
+      "model_weights_sha256": "36e4b6bab42bcf274f5fa1b407f7469419ed02825feab233938458b930028d55",
+      "optimizer_values_sha256": "d5c24b8edb5e84d648221e5176c420eac02a50a2befa6788726dc5bb4b2e1fc4",
+      "update_controls_match": true
+    },
+    "samples_optimized": 480000,
+    "stop_reason": "epoch_budget",
+    "student_collection_allowed": false,
+    "teacher_qualified": false,
+    "training_dataset_identity_sha256": "08ffb7335ae8841d05c0a9197a741b036523d2847047a3079211e61fae364d05",
+    "training_samples": 7500
+  },
+  "train": {
+    "dataset_identity_sha256": "08ffb7335ae8841d05c0a9197a741b036523d2847047a3079211e61fae364d05",
+    "final_ce_loss": 0.07022436760784743,
+    "loss_definition": "mean cross entropy of this fixed final model",
+    "prediction_counts": {
+      "down": 177,
+      "down_left": 244,
+      "down_right": 89,
+      "left": 179,
+      "neutral": 5753,
+      "right": 392,
+      "up": 207,
+      "up_left": 280,
+      "up_right": 179
+    },
+    "subsets": {
+      "all": {
+        "correct": 7312,
+        "count": 7500,
+        "final_ce_loss": 0.07022436760784743,
+        "mean_target_probability": 0.9626458154805625,
+        "recall": 0.9749333333333333
+      },
+      "at_rest": {
+        "correct": 4216,
+        "count": 4218,
+        "final_ce_loss": 0.0016784263262444473,
+        "mean_target_probability": 0.9986766505405313,
+        "recall": 0.9995258416311048
+      },
+      "label_changed_vs_previous_frame": {
+        "correct": 911,
+        "count": 1065,
+        "final_ce_loss": 0.3755968972610838,
+        "mean_target_probability": 0.8235264147483162,
+        "recall": 0.8553990610328639
+      },
+      "near_rest": {
+        "correct": 4407,
+        "count": 4418,
+        "final_ce_loss": 0.009369245762841021,
+        "mean_target_probability": 0.9954691648583618,
+        "recall": 0.9975101856043459
+      },
+      "nonneutral": {
+        "correct": 1698,
+        "count": 1864,
+        "final_ce_loss": 0.2302204255112977,
+        "mean_target_probability": 0.8893970673678486,
+        "recall": 0.9109442060085837
+      },
+      "nonneutral_continuation": {
+        "correct": 1144,
+        "count": 1165,
+        "final_ce_loss": 0.0569355562228678,
+        "mean_target_probability": 0.9633831939184359,
+        "recall": 0.9819742489270387
+      },
+      "nonneutral_from_near_rest": {
+        "correct": 383,
+        "count": 394,
+        "final_ce_loss": 0.0881749457703105,
+        "mean_target_probability": 0.9648834794220812,
+        "recall": 0.9720812182741116
+      },
+      "nonneutral_from_rest": {
+        "correct": 375,
+        "count": 377,
+        "final_ce_loss": 0.017417152337854992,
+        "mean_target_probability": 0.9865504286649689,
+        "recall": 0.9946949602122016
+      },
+      "nonneutral_onset": {
+        "correct": 554,
+        "count": 699,
+        "final_ce_loss": 0.5190285409920142,
+        "mean_target_probability": 0.7660868564502034,
+        "recall": 0.7925608011444921
+      }
+    },
+    "tags_identity_sha256": "709ca6ea5806a9c3912a5a0b01f8ee680112bbe835c1b4ae24a183bd653b6fc1",
+    "target_counts": {
+      "down": 180,
+      "down_left": 247,
+      "down_right": 97,
+      "left": 221,
+      "neutral": 5636,
+      "right": 408,
+      "up": 239,
+      "up_left": 293,
+      "up_right": 179
+    }
+  }
+}

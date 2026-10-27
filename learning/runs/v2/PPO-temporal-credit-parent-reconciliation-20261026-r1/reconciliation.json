@@ -1,0 +1,113 @@
+{
+  "accepted": [
+    "Final observations valued before reset; death zeros bootstrap and stops GAE; time-limit truncation bootstraps final observation and stops GAE.",
+    "No GAE carry crosses episode resets; reward scaling applied once. Static source support only.",
+    "GAE trace e-fold about1.184s versus discounted-value e-fold13.300s; this does not establish failed long-term credit.",
+    "No truncations among2563 completed prior-run training episodes; this is not truncation-branch runtime validation."
+  ],
+  "corrections": [
+    {
+      "claim": "decision_seconds=0.25",
+      "resolution": "Incorrect. K4 at60gameframes/s means4/60=0.06666666666666667s per full decision; training wall throughput is separate."
+    },
+    {
+      "claim": "resume recreates episode index0 for allslots",
+      "resolution": "Generic train_teacher curriculum transition was read instead of actual run entry. Frozen runner.py:753 uses saved parent.next_episode_indices, passed at767. Fresh environment state still replaces partial episodes, but episode indices do not restart at0."
+    },
+    {
+      "claim": "H2 horizon13.3s exceeds typical survival scale",
+      "resolution": "Unsupported and numerically contradicted by completed-episode median about26s. Remaining lifetime from arbitrary rollout states was not measured. Shorter gamma also discounts distant death more; do not select gamma0.99 from this argument."
+    },
+    {
+      "claim": "lambda0.95\u21920.99 predicts lower Var(advantage) or higherEV",
+      "resolution": "Not a general implication. Higherlambda trades reduced bootstrapbias against potentially greater target variance. Compare fixed rollout tensors before prospective single-change training; no EV-improvement gate."
+    },
+    {
+      "claim": "listed EV/KL/clip minmax describe whole run",
+      "resolution": "Reported ranges omit extrema. Parent recomputed all72 metric rows; exact full ranges recorded above."
+    },
+    {
+      "claim": "Var(advantage) is independent critic residual diagnosis",
+      "resolution": "GAE return=value+advantage by construction. Preupdate return-value residual equals advantage and is not an independent critic-quality target. Use observed full-to-death returns on eligible completed segments with censoring explicit."
+    },
+    {
+      "claim": "argmax evaluation/selection explains endpoint deterioration",
+      "resolution": "Action-mode difference and selected-cohort bias are plausible paths, not a demonstrated cause of regression. No paired current-best action-mode comparison exists."
+    }
+  ],
+  "independent_recomputation": {
+    "abandoned_parent_episode_count": 64,
+    "completed_game_seconds_median": 25.933333333333334,
+    "completed_policy_decisions_mean": 452.2625829106516,
+    "completed_policy_decisions_min_median_max": [
+      32,
+      389,
+      1847
+    ],
+    "completed_terminated": 2563,
+    "completed_truncated": 0,
+    "decision_seconds": 0.06666666666666667,
+    "decisions_per_game_second": 15,
+    "early_stop_kl_updates": 0,
+    "episode_counts": {
+      "abandoned_parent_episode": 64,
+      "completed": 2563,
+      "initial": 1,
+      "reset": 2387
+    },
+    "gamma": {
+      "discount": 0.995,
+      "e_fold_decisions": 199.49958228835612,
+      "e_fold_seconds": 13.299972152557075,
+      "effective_horizon_decisions": 199.99999999999983,
+      "half_life_decisions": 138.28257298606084,
+      "half_life_seconds": 9.218838199070722
+    },
+    "gamma_times_lambda": {
+      "discount": 0.9452499999999999,
+      "e_fold_decisions": 17.760148277541308,
+      "e_fold_seconds": 1.1840098851694205,
+      "effective_horizon_decisions": 18.264840182648378,
+      "half_life_decisions": 12.310396704904326,
+      "half_life_seconds": 0.8206931136602884
+    },
+    "lambda_099_trace": {
+      "discount": 0.98505,
+      "e_fold_decisions": 66.38837687196357,
+      "e_fold_seconds": 4.425891791464238,
+      "effective_horizon_decisions": 66.88963210702333,
+      "half_life_decisions": 46.01691625075263,
+      "half_life_seconds": 3.067794416716842
+    },
+    "metric_ranges": {
+      "approx_kl": [
+        0.014271181193180382,
+        0.019919782236684114
+      ],
+      "clip_fraction": [
+        0.1014556884765625,
+        0.1325836181640625
+      ],
+      "explained_variance": [
+        0.3010293610678164,
+        0.5294361427371551
+      ]
+    },
+    "metrics_rows": 72
+  },
+  "proposal": "Prepare CPU-only fixed-rollout lambda sensitivity and reward-component variance decomposition with covariance terms; no current run modification or new acceptance gate.",
+  "reviewed_receipt_sha256": "bc93c3beac4213d6a3a9065defcd10a3d7e719a53e703f5a583a0985422451e0",
+  "runtime_claims": {
+    "MPS": false,
+    "checkpoint_decoded": false,
+    "current_training_modified": false,
+    "new_training": false
+  },
+  "schema": "PPO_temporal_credit_parent_reconciliation_v1",
+  "source_pointers": [
+    "crates/dodge-viewer/src/main.rs:17 fixes1/60s presentation cadence",
+    "crates/dodge-core/src/snapshot.rs:1057 expresses engine game time /60",
+    "learning/runs/v2/D2-retained276-lr3em5-prepare-luna-20261026-r2/runner.py:753 savednextindices"
+  ],
+  "status": "static_no_GAE_reset_bug_supported;research_claims_corrected;no_training_change"
+}

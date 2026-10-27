@@ -1,0 +1,38 @@
+{
+  "audit": "PPO temporal credit / rollout / reset / GAE semantics (static)",
+  "agent": "claude-haiku-5-5",
+  "date": "2026-10-26",
+  "mode": "read-only; stdlib calculations only; no torch import, no checkpoint decode, no environment, no MPS, no gradients, no training, no actual-campaign reads, no web",
+  "writes": [
+    "learning/runs/v2/PPO-temporal-credit-audit-haiku-20261026-r1/diagnosis.json",
+    "learning/runs/v2/PPO-temporal-credit-audit-haiku-20261026-r1/concise.md",
+    "learning/runs/v2/PPO-temporal-credit-audit-haiku-20261026-r1/receipt.json"
+  ],
+  "inputs_sha256": {
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/ppo.py": "b3cef91b1293056e9d1820a94fd5730accae4c5728d23566857a6c3a0e1eeac5",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/train_teacher.py": "1d134bfb221ff52139e1243c9e4f9c3063432942a3274c567b71db4d7669c0cf",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/dev_eval.py": "eecf71936f10938169c0283ed1bb0717b87e46da7ee4ac8636a20d366df3753b",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/models/teacher.py": "e4d7f597a2824c2b0d4ba261dddc9d7d1ee1d5592c2fc966a44c54b5ec417e35",
+    "crates/dodge-rl-env/src/env.rs": "39f7ea0720e349ab7930a748da9df9df9ce411d334baf6b035503ee86543b942",
+    "learning/runs/v2/D2-plateau-parent-reconciliation-20261026-r1/reconciliation.json": "958d50b9ebc1abfdc8bff0fbd7c683e762a63651dc6c5c421a0e5b2a13eea572",
+    "learning/runs/v2/D2-retained276-continuation-20261026-r2/training-metrics.jsonl": "130c35743bdaf389acd2e2a06731bff7476786dce4dbe63b7a82475e0ea6a914",
+    "learning/runs/v2/D2-retained276-continuation-20261026-r2/training-episodes.jsonl": "589007071b1a14f8c4af44f4223e201b24fc8da1a8954076e4101260e6d7da02",
+    "learning/runs/v2/D2-retained276-continuation-20261026-r2/development-000276.json": "1f3d36f49233e460824a38a40902a815a503f8042854b17b13da33f0d55fc7e7"
+  },
+  "outputs_sha256": {
+    "learning/runs/v2/PPO-temporal-credit-audit-haiku-20261026-r1/diagnosis.json": "cabe10b6d640101ec3be95988c8574a0baec933521bb6016e7af8ea130091768",
+    "learning/runs/v2/PPO-temporal-credit-audit-haiku-20261026-r1/concise.md": "070619b3293c98bd1a1c05c74d590bfe04318d59a91fda44d964c89997dd4ecd"
+  },
+  "output_hash_note": "receipt.json cannot hash itself; output hashes cover diagnosis.json and concise.md as written.",
+  "result": "no_source_bug_reproduced",
+  "static_limitations": [
+    "No execution or trace; findings come from reading code paths and static retained logs.",
+    "Retained logs contain no per-step advantage, return, or residual variance; H1 and H2 are untested.",
+    "60 raw frames/s timebase is from the task statement, not re-verified in native code.",
+    "Truncated-branch bootstrap is correct in code but unexercised by retained data (0 truncations in 2563 completed episodes).",
+    "Existing research note cites frozen ppo.py SHA 533055b0; current r5 runtime is b3cef91b. Not reconciled.",
+    "Not a proof of critic quality or of a benign explained-variance decline.",
+    "Proposals only: no implementation, no new gate, no promotion, no KL-decrease gate, no caps or seed replacement."
+  ],
+  "no_gate_claim": "No CI, promotion, or gate claim is made. Score was removed from the gate by the user; raw reward remains score + survival."
+}

@@ -1,0 +1,69 @@
+{
+  "at_utc": "2026-10-25T03:25:52.609749+00:00",
+  "failure_policy": "Ordered once-only; stop first unexpected failure; no retries/cap changes or subsequent stages after failed gate.",
+  "production_lease": "None; synthetic local fixture state only.",
+  "protocol_path": "learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r8.json",
+  "protocol_sha256": "fe11c08159bdb9ca1f03cb0fb96ffd133ad144d107b2a854d19fc49159aa2db2",
+  "schema": "r11_parent_ordered_validation_plan_v1",
+  "source_sha256": {
+    "bootstrap_r11.py": "7edbe46b00b66e8588a8431580d4e1aaa1d1aeb35c518a8476c8968f66139e89",
+    "boundary_integrity.py": "d4aafd463d105967b44151f11ec8e1c5fb5d5b633c6892db8bde829f28eff560",
+    "finalize_evidence.py": "ab7b7d3d698c9f9d48595631216d2f1c81c3bb87edeec5ee5dae7556c89779cf",
+    "finalize_r10.py": "1c216673ea1341db7a0d968540e8dc655f5aa45440cdecbebbc016e3f76530c2",
+    "finalize_r11.py": "241f1624f9cc4eb96110450884abf76fac934b9b5f360a328990cb00aecfbc76",
+    "finish_source.py": "b3eb118e993e33bff6626392344dc3bf0aeb9bece8522c02b409f5e733207529",
+    "fixture_guards.py": "3989b5819ab9814ff6ceb247df6bfc05a752ea5965e50f5df9352a18d2e37302",
+    "fixture_preconditions.py": "43e1669dbc3a66add8c3f5676afd383e2844b97a017014f6fcde0f536c3ff623",
+    "freeze.py": "c04bd6c3402cc920f76c4d4485af2042549329872082c327da09e6c93cb4b1f3",
+    "implement_fixtures.py": "89636d1637bd14bc8cae88206abfa36e939ea7b9e9dda35f654c928f24cdfad0",
+    "implement_r10.py": "8326bf9a4d0075e20e60d560c10f62c189afedc39bae000051c5e9531504bfad",
+    "implement_r11.py": "dc10809cf3b994f885e62c57866666c01340f4a7027b96a023f44c217f171f7e",
+    "inspect_inputs_r11.py": "8750b8da6492d580e6af158c55daec15cc043bf726bdf12ba4dd8be569544bc3",
+    "lifecycle.py": "aab36d678526b6fbd4eecbe1493ad3511365f00064a91d459b85834eaf3e752b",
+    "long_d2.py": "d226dac2e1173891fc9cd94ecfb394b3c75f1335ae94d6c1a35f24030caf21d1",
+    "long_d2_executor.py": "b63d5356beb88c801ce4f8d5ccd82d5df1c65d32b6e955c72899c41cd3ffbdd4",
+    "model_r11.py": "4e6a9bee718516de724ec0999bb4ed4cc7d3e91d369819248143414aaec2db49",
+    "os_checks.py": "d375a9c961311d0a724854e35a8bf1c7211d36fa0ee2467766d6a5bc2c336551",
+    "parent_command.py": "cfde69f9c767f8172767208510c83adbc71692a265d428e5878234bb4c7c5eed",
+    "prepare_candidate.py": "6868b905af349d0bd94d7f85b4db18e59e111a69d1720ac2a1bc3daeeb929b3d",
+    "processes.py": "944fcac139dfca2c41d21b3919c33582c0b6cc92ffd61c8153c0a2a3a81811fb",
+    "rehearsal.py": "9c4c8a440c24d9f257404830d6119522dba52ba2c72cd7896561b03e8699fa31",
+    "repair.py": "86a184abab796ab75c288808b8042349053ef15528360aaabaa3f19c500da502",
+    "run_unit_suite.py": "9b33021b52716d8162ad9da068bd88b936083f1f50f6d1829cf2b80b4f0e4345",
+    "source_equality.py": "ea8603d149c6f389604a27c8b8a66ce27641e4af35f07419e1f832ba2ec02779",
+    "stress.py": "cd0da16ef3c865dc02bb0866be755baaf62ffbb7c3978e3ebf6eb0304a4585ee",
+    "synthetic.py": "55bbc8e9218fb6c30780e3c6c7032256b1a0888db9d21201b7f13cb94e448a0c",
+    "test_boundary.py": "cb31555a656fe36af584e9443c52f6a7230a32bd1f6012b69294dcb4c050fac1",
+    "test_r10.py": "9adf5e6febc255254242112866c28608b04ef2df7cb3ee4e109a5abc5ce4d914",
+    "test_r11.py": "29dce743ddab98c9d1e261e23bfc3488fe9e0feca7a8ee54818f4831cba6d0fe",
+    "test_r7.py": "03c344b498d892e1c3135081c43c639a7d6a244a6a81cc6b41b6cea49b150d9f",
+    "test_repairs.py": "12ba000c818a36d7d237cbc406d552c97721dec02d60e269d684c4a5d93cac8e",
+    "unit_stage.py": "b5cc31eb8432d0965b98400e7412e9e9225679f641f7770678e28749b08be404"
+  },
+  "stages": [
+    {
+      "cap_seconds": 60,
+      "name": "freeze"
+    },
+    {
+      "cap_seconds": 60,
+      "name": "pure-preflight"
+    },
+    {
+      "cap_seconds": 300,
+      "name": "focused-real-OS"
+    },
+    {
+      "cap_seconds": 120,
+      "name": "changed-source-contention"
+    },
+    {
+      "cap_seconds": 120,
+      "name": "startup-only"
+    }
+  ],
+  "startup_scope": "Real imports/origins/check_frozen and disclosed architecture-only identity constructor with RNG preservation; no D1 deserialize/env/inference/gradients/training.",
+  "stress_justification": "First current changed-source stress only after passing full OS; unchanged CPU contender/12forcedboundaries/actualBbytes/120s cap. Old r3 failure retained; no performance claim yet.",
+  "total_validation_cap_seconds": 900,
+  "unit_methods_passed": 112
+}

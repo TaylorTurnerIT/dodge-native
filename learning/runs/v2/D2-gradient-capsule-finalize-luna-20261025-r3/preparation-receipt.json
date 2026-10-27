@@ -1,0 +1,67 @@
+{
+  "completed_checks": [
+    "registration_key_audit",
+    "20 contract/lifecycle/support controls",
+    "separate-process runtime smoke and canonical equality",
+    "accepted phase-132 model/Adam/MPS RNG restoration"
+  ],
+  "diff_summary_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-capsule-finalize-luna-20261025-r3/diff-summary.md",
+  "executed_commands": [
+    {
+      "command": "PYTHONPYCACHEPREFIX=/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-capsule-finalize-luna-20261025-r3/own/empty-pycache-prefix PYTHONDONTWRITEBYTECODE=1 /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python -B -m unittest -v test_continuation_contract test_launcher_lifecycle test_capsule_support test_outputs",
+      "elapsed_seconds": 1.4,
+      "exit_code": 0,
+      "id": "contracts",
+      "status": "passed",
+      "tests_run": 20
+    },
+    {
+      "D2_config_rows": 64,
+      "canonical_outputs_equal": true,
+      "command": "PYTHONPYCACHEPREFIX=/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-capsule-finalize-luna-20261025-r3/own/empty-pycache-prefix PYTHONDONTWRITEBYTECODE=1 /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python -B compare_smoke.py",
+      "development_seed_count": 64,
+      "elapsed_seconds": 2.9,
+      "exit_code": 0,
+      "id": "runtime_smoke",
+      "module_origins_reported_separately": true,
+      "status": "passed"
+    },
+    {
+      "command": "PYTHONPYCACHEPREFIX=/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-capsule-finalize-luna-20261025-r3/own/empty-pycache-prefix PYTHONDONTWRITEBYTECODE=1 /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python -B test_torch_restore.py",
+      "elapsed_seconds": 3.1,
+      "exit_code": 0,
+      "id": "restore",
+      "restoration": "accepted phase-132 model/Adam/MPS RNG bitwise; no optimizer step; source checkpoint and sidecar unchanged",
+      "status": "passed"
+    },
+    {
+      "command": "PYTHONPYCACHEPREFIX=/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-capsule-finalize-luna-20261025-r3/own/empty-pycache-prefix PYTHONDONTWRITEBYTECODE=1 /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python -B preflight_prepare.py /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-capsule-finalize-luna-20261025-r3/registration-proposed.json ba8b059c4967a08c2b6a15c11c030031abd04a36e6f3cc43f97a5e7e4642ba8f",
+      "elapsed_seconds": 0.7,
+      "error": "ValueError: Original interpreter/Torch/NumPy dependency pins missing",
+      "exit_code": 1,
+      "id": "preflight",
+      "status": "failed",
+      "traceback": "File \"preflight_prepare.py\", line 8, in <module> -> runner.load_registration(registration,digest) -> runner.py line 264 -> need(all(reg[\"pins\"].get(name) == item[\"sha256\"] for name, item in inventory[\"pins\"].items()), \"Original interpreter/Torch/NumPy dependency pins missing\")"
+    }
+  ],
+  "failed_check": "runner.load_registration during preparation preflight; only runner.check_lease was mocked",
+  "manifest_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-capsule-finalize-luna-20261025-r3/capsule-manifest-proposed.json",
+  "manifest_sha256": "45334a5b8186f28dcb23cc461fed0494503eed6d6b33813f0f54814f40bb5072",
+  "pin_count": 13724,
+  "precheck": {
+    "command": "PYTHONPYCACHEPREFIX=/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-capsule-finalize-luna-20261025-r3/own/empty-pycache-prefix PYTHONDONTWRITEBYTECODE=1 /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python -B validate_registration_keys.py",
+    "elapsed_seconds": 0.7,
+    "exit_code": 0,
+    "status": "passed"
+  },
+  "preparation_result": "failed_preflight; stopped immediately; no retry or repair",
+  "registration_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-capsule-finalize-luna-20261025-r3/registration-proposed.json",
+  "registration_sha256": "ba8b059c4967a08c2b6a15c11c030031abd04a36e6f3cc43f97a5e7e4642ba8f",
+  "run_id": "D2-gradient-alignment-20261025-r2",
+  "runtime_sha256": "ad74b7ffb6b9d2523e7bf7bd7518a04f71405f66350a8a3f84b23b193a6b63e4",
+  "schema": "d2_gradient_capsule_finalize_preparation_receipt_v1",
+  "scope": "preparation_only_no_training_or_environment_construction",
+  "status": "failed_preserved",
+  "unrun_checks_after_failure": [],
+  "validation_plan": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-capsule-finalize-luna-20261025-r3/validation-plan.json"
+}

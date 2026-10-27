@@ -1,0 +1,54 @@
+{
+  "schema": "gradient_alignment_measurement_result_v1",
+  "status": "stopped_on_first_unexpected_failure",
+  "authority": "learning/runs/v2/gradient-alignment-parent-prepare-20261025-r1/parent-plan.json",
+  "scope": "owned preparation only; no real environment, training, evaluation campaign, PR, commit, deployment, or messages",
+  "implementation": {
+    "cloned_runtime": "own/runtime",
+    "edited_source": ["own/runtime/dodge_rl/ppo.py", "own/runtime/dodge_rl/gradient_alignment.py"],
+    "new_tests": ["own/tests/test_gradient_alignment.py", "own/tests/parity_fixture.py"],
+    "ppo_flag": "gradient_alignment_diagnostics: bool = False",
+    "sample": "first minibatch, first epoch, once per PPO update, after existing shuffle; measurements before unchanged loss.backward/clip/step",
+    "unchanged_native_sha256": "022d41dde9bace0b4f4c4c06b9b4ed007bc2c60013cd98734086e587d7bb997e",
+    "unchanged_teacher_sha256": "e4d7f597a2824c2b0d4ba261dddc9d7d1ee1d5592c2fc966a44c54b5ec417e35",
+    "edited_ppo_sha256": "0230e6b2e7476d2d741268ec8edb14250ba7887d7bcefd62559cb3dabf019fc7",
+    "runtime_inventory": "own/runtime-inventory.json"
+  },
+  "fixture_provenance": {
+    "type": "synthetic frozen RolloutBatch and teacher initialized from synthetic seed; no checkpoint loaded",
+    "python": "3.12.15",
+    "torch": "2.14.1",
+    "module_origin": "own/runtime/dodge_rl/ppo.py"
+  },
+  "tests": {
+    "analytic_command": "PYTHONPYCACHEPREFIX=<owned>/own/pycache PYTHONPATH=<owned>/own/runtime python/.venv/bin/python -B -m pytest -q own/tests/test_gradient_alignment.py",
+    "analytic_result": "1 passed",
+    "cpu_parity_command": "PYTHONPYCACHEPREFIX=<owned>/own/pycache PYTHONPATH=<owned>/own/runtime python/.venv/bin/python -B own/tests/parity_fixture.py",
+    "cpu_parity_result": "exact common metrics, model state, and Torch RNG; 4 optimizer steps; one diagnostic sample",
+    "mps_parity_result": "exact common metrics, model state, and Torch CPU RNG; MPS allocation 11718144 bytes; driver allocation 46972928 bytes",
+    "first_unexpected_failure": "MPS diagnostic returned NaN dot, norms, cosine, and per-group values. This violates finite diagnostic requirements. Full output: own/mps.log",
+    "stopped_after_failure": true
+  },
+  "synthetic_512_minibatch_timings_seconds": {
+    "disabled": [0.2772518340498209, 0.19880374998319894, 0.21930666698608547],
+    "enabled": [0.38396637502592057, 0.3796784579753876, 0.38231645803898573],
+    "paired_overhead_fraction": [0.3845, 0.9093, 0.7436],
+    "median_disabled": 0.21930666698608547,
+    "median_enabled": 0.38231645803898573,
+    "median_ratio_minus_one": 0.7429,
+    "rss": "Not reliably captured; initial ru_maxrss interpretation proved invalid on this macOS host. MPS allocations stayed below 6 GiB."
+  },
+  "checkpoint": {
+    "path": "learning/runs/v2/D2-continuation-20261025-r1/checkpoint-000132-candidate.pt",
+    "sha256": "bf858ed9975e6f994acbca011895b140be6943cf1852c88b54549a9c8db0c1a8",
+    "metadata_sha256": "e658dc631a2cfa8ac43495993672d26a0c3f8a533e526c4d55de3b05013e5dba",
+    "loaded_or_modified": false
+  },
+  "limitations": [
+    "No campaign trajectory or future speedup/parity guarantee.",
+    "MPS diagnostic NaNs block acceptance and integration.",
+    "RSS cap measurement remains unavailable.",
+    "The parent terminal receipt path supplied in the task was absent; its hash was not collected."
+  ],
+  "logs": ["own/tests.log", "own/parity.log", "own/benchmark.log", "own/mps.log"]
+}

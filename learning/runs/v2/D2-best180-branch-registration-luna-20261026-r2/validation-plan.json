@@ -1,0 +1,52 @@
+{
+  "commands": [
+    "python3 -m json.tool registration-proposed.json",
+    "<lexical-interpreter> validate_registration_keys.py",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPYCACHEPREFIX=<owned-empty-prefix> <lexical-interpreter> <frozen-r1-source>/preflight_prepare.py <registration-path> <registration-sha256>"
+  ],
+  "estimated_campaign_seconds": 1800,
+  "estimated_remaining_prelaunch_seconds": "review and lease installation dependent; exact runtime preflight under 1 minute in this preparation",
+  "freeze_status": "frozen_after_real_registration_preflight_and_hash_inventory_pass",
+  "future_command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPYCACHEPREFIX='/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-best180-branch-registration-luna-20261026-r2/empty-pycache-prefix' '/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python' '/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-best180-branch-prepare-luna-20261026-r1/execute_once.py' --registration '/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-best180-branch-registration-luna-20261026-r2/registration-proposed.json' --registration-sha256 'd6a5aa8cbdd889728b79486f09673215847b6d8e27f93f1ce80eb1cf3e8cc7ba'",
+  "launch_gates": [
+    "Haiku frozen-source review",
+    "parent reconciliation",
+    "parent installs exact expected lease",
+    "unmocked preflight passes",
+    "inference lease is null at launch",
+    "explicit future launch action by parent"
+  ],
+  "lease_assertion_mocked_only": true,
+  "permitted_validation": "registration loading, exact input hashes, config/helper, pins, dependency inventory, actual runtime membership, parent receipt/checkpoint identities; no environment construction/training/gradients",
+  "preflight_log_sha256": "d14f7566b11d2e82f8277d48f89deec5d814def2ca221fc02c62636fac9c21c2",
+  "registration_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-best180-branch-registration-luna-20261026-r2/registration-proposed.json",
+  "registration_sha256": "d6a5aa8cbdd889728b79486f09673215847b6d8e27f93f1ce80eb1cf3e8cc7ba",
+  "remaining_gates": [
+    "Independent Haiku review of frozen r1 training source.",
+    "Parent reconciliation and approval of this registration.",
+    "Parent installs exact expected lease; preparation must not install it.",
+    "Unmocked preflight validates exact lease after installation.",
+    "Verify inference lease is null immediately before launch.",
+    "Parent starts exactly one registered run; future launch command below."
+  ],
+  "reused_evidence": {
+    "config_helper_preflight": "passed",
+    "contract_tests_passed": 23,
+    "exact_parent_model_adam_mps_rng_restore": "passed",
+    "full_dependency_inventory_keys": 13513,
+    "source_and_log_sha256": {
+      "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-best180-branch-prepare-luna-20261026-r1/actual-best180-restore.log": "6c9c184a1698a167a7f6067dbd4f6d8b165146e64ac73f820a5c4605d0225dbd",
+      "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-best180-branch-prepare-luna-20261026-r1/config-devhelper-preflight.json": "a6c7ddb6dd906e19b4da777c4ad7dde9d93f607f301d508de7c8200dd9afc167",
+      "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-best180-branch-prepare-luna-20261026-r1/contract-tests.log": "2d842a6714ea9f8a065bbb03f12b791d6d4f7f99eb42c6dec3e62f50530ee5aa",
+      "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-best180-branch-prepare-luna-20261026-r1/frozen_dependency_inventory_validation.log": "6ec47066259f021f6f44bb4c49d2e66e98823ed7e6eba51b5875bac92af96176",
+      "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-best180-branch-prepare-luna-20261026-r1/test_capsule_support.py": "a39c24ba55dac28f9f0b87dd3594e096ab71d651e579c4ab44247a29c0945a41",
+      "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-best180-branch-prepare-luna-20261026-r1/test_continuation_contract.py": "b643f5c04a3ec82da141867b976b4e5f9fca68d00bc766e4ac5eb81f84f7fe4a",
+      "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-best180-branch-prepare-luna-20261026-r1/test_launcher_lifecycle.py": "9503808451fad4e2fb2a02ced684d849ce588df627cbed4f465ece7b3451c555",
+      "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-best180-branch-prepare-luna-20261026-r1/test_outputs.py": "0a0e5ada1320a560358e836448f1ed67849a53323bbaafacda2e26ed4597bf6e",
+      "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-best180-branch-prepare-luna-20261026-r1/test_torch_restore.py": "6f60b26f09ab37d144e20497fa1d905b6abf025dd8c0409a3355a4dd7d260e2f"
+    },
+    "status": "reused_only_when_unchanged; hashes recorded below"
+  },
+  "schema": "d2_best180_branch_registration_validation_plan_v1",
+  "status": "preflight_passed_frozen_waiting_for_parent_and_haiku_review"
+}

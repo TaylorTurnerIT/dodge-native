@@ -1,0 +1,35 @@
+{
+  "schema": "d2_best180_candidate_auditor_r2_review_receipt_v1",
+  "reviewer": "haiku-5.5 read-only review sub-agent",
+  "verdict": "no_blocking_findings_for_readonly_provisional; findings 1-3 should be fixed in a successor before full terminal parent use",
+  "outputs_sha256": {
+    "learning/runs/v2/D2-best180-candidate-auditor-r2-review-haiku-20261026-r1/review.md": "d71fcc7f1790473499f51a285aef2c0ebf98ddf6f54c739158014331c54b498f",
+    "learning/runs/v2/D2-best180-candidate-auditor-r2-review-haiku-20261026-r1/review.json": "5a55aaa8a56ee8bacf15f07877c129e4e9382bf4421e261451ad2365875f08e3"
+  },
+  "inputs_sha256": {
+    "learning/runs/v2/D2-best180-all-candidate-auditor-luna-20261026-r2/audit_candidates.py": "26d1e21c3ddf6d5ace6f95157b3caae0053d999d90f6af4b50538800839dd7a5",
+    "learning/runs/v2/D2-best180-all-candidate-auditor-luna-20261026-r2/test_audit_candidates.py": "5a7b87194f32c386c6250b003243d71dcafd3060aee6c5673a28e27f97779036",
+    "learning/runs/v2/D2-best180-all-candidate-auditor-luna-20261026-r2/receipt.json": "64e3504dee515200b00294ae2d5d00c7ab88cc0c1ad3e116bf14cfa765640235",
+    "learning/runs/v2/D2-best180-all-candidate-auditor-luna-20261026-r2/README.md": "14051cabdee5357ad3dabd5f0f14783914424672ce92714dcbc363b24441a2e4",
+    "learning/runs/v2/D2-best180-all-candidate-auditor-luna-20261026-r2/provisional-frozen-r3.json": "b73d4ba0ad8162801ba03cfa2a607cd2d9b15a0895f6badbe57da345b786874d",
+    "learning/runs/v2/D2-best180-all-candidate-auditor-luna-20261026-r2/provisional-frozen-r2.json": "3790a8055f01df62237e5c9f8fd16bd230bb59d866b0ea6ef748e60375e1bdb6",
+    "learning/runs/v2/D2-best180-all-candidate-auditor-luna-20261026-r2/provisional-frozen.json": "7b137e4b588300df4773d1d206b2e257ba71bd43f6e6e10ed2126548983ac2c3",
+    "learning/runs/v2/D2-best180-all-candidate-auditor-luna-20261026-r2/negative-controls.json": "7938099fc00fa0545045c3c16df8b168f165b1dd4e53acc0d886f02f13f116ca",
+    "learning/runs/v2/D2-best180-branch-prepare-luna-20261026-r1/runner.py": "8807b5200f10d6d8ba5414a793a1e44ebb34479744744992ef4f5adf0513637b",
+    "learning/runs/v2/D2-best180-branch-prepare-luna-20261026-r1/execute_once.py": "cd15ee2b1c2148ed6d397fdf019b20ab3cd134652fa68e4fb9878424dc10bb8b",
+    "learning/runs/v2/D2-best180-branch-parent-launch-20261026-r1/review-reconciliation.json": "5b0f8e322f485557d70b5eede7eb421d26a8bc66495a14f2bb688cd5d0b5e2d4",
+    "learning/runs/v2/D2-best180-all-candidate-parent-preflight-20261026-r1/reconciliation.json": "c33c83d18179c919e67bf19ba3793fd0c6e226ed21657a04e55c43459df8df54"
+  },
+  "commands_run": [
+    "read-only file reads of frozen auditor directory, parent-launch reconciliation, runner.py, execute_once.py",
+    "shasum -a 256 on the inputs above"
+  ],
+  "not_run": [
+    "frozen audit_candidates.py (no execution; no CPU audit, no environment, no MPS)",
+    "focused unittest suite (not re-run)",
+    "any checkpoint read"
+  ],
+  "live_run_modified": false,
+  "authority": "none; no candidate selection, acceptance, or replacement",
+  "readiness_scope": "static read-only review of frozen auditor r2 for provisional read-only mode; full terminal parent authority still gated on findings 1-3 and parent review"
+}

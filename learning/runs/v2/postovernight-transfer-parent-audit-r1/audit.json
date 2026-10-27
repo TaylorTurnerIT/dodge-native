@@ -1,0 +1,69 @@
+{
+  "acceptable_next_scope": "A separately preregistered600second inference-only same-seed action-mode diagnostic using complete frozen checkpoints, originalMPS/source/runtime/seedconfiguration, exactrow controls only where existing, per-seed clustered inference and terminalhazard context only. Do notlaunch fromthisaudit; noautomatictraining,CPUfallback,qualificationopening orfailedcheckpointeligibilitychange.",
+  "findings": [
+    {
+      "correction": "Log final hazard context as presence only. Reliable death-cause labels require a separately reviewed collision-time observer/event mapping with preserved gameplay/RNG behavior; otherwise omit cause-based decisions.",
+      "evidence": "diagnosis.md:176,181; game.rs:725-726,1091-1172; env.rs:181-214",
+      "finding": "Terminal-observation overlap cannot identify the killer. Collision precedes update_player; lethal enemies may be removed, multiple native Death events may coexist, and terminal view is post-method. The proposed pattern/enemy classifier and >=70% death-mix decision are unsupported.",
+      "id": "diagnostic_death_labels",
+      "severity": "blocking_for_proposed_diagnostic"
+    },
+    {
+      "correction": "State unpaired observed contrast; early-death fraction among64 initial sampled episodes is1/64 because uncompleted episode survived past200. Compare modes on identical D seeds before causal action-mode claims.",
+      "evidence": "diagnosis.md:8,43-54,111,200; raw-checks.json",
+      "finding": "42/64 argmax early deaths versus1/63 completed stochastic initial episodes use disjoint seed sets. This is a strong action-mode hypothesis, not causal proof that argmax caused entry collapse or that skill transferred. One of64 initial sampled episodes is right-censored at collection end (slot22, no completion before its256K4decisions);63-completer means/median exclude that survivor.",
+      "id": "unpaired_entry_comparison",
+      "severity": "interpretation_correction"
+    },
+    {
+      "correction": "Call430-639 a selected time bucket;<=200 deaths are safely before patterns. Validate observed activation times in a future diagnostic if exact first-pattern attribution is needed.",
+      "evidence": "diagnosis.md:52,65-71; game.rs:472-501,1700-1716; env.rs:113-129; raw-checks.json",
+      "finding": "420 is the schedule-delay counter, not earliest wrapper gameplay frame. Seven game updates occur during13-frame startup (transition render from-108,+20,update when>=0), so initial pattern_timer is7; source-derived earliest schedule activation is gameplay frame413, and freeze can delay it. The430-639 bucket is not a verified episode-specific first-pattern window. Patterns visible on6721/7915 final observations and3484/3567 bucket deaths do not identify killers or establish exposure-adjusted risk.",
+      "id": "pattern_timing_and_cause",
+      "severity": "interpretation_correction"
+    },
+    {
+      "correction": "Keep7915terminal episode/reward audits valid, but label which stats include final52episodes and never call all7915results104complete-updates-only.",
+      "evidence": "parse_training.py:24-31; parse_throughput.py:14; raw-checks.json",
+      "finding": "There are104complete optimizer updates but105acceptedcollections.7915completedepisodes include52episodes in collection152whose optimizer update was interrupted.7863episodes belong to completed-updatecollections48..151. Trend script filtersu<152correctly; training-parse overall/blocks includes105thcollection.",
+      "id": "training_episode_scope",
+      "severity": "scope_correction"
+    },
+    {
+      "correction": "Treat slopes as descriptive and4.9hours as an unvalidated linear scenario, not time needed or a predicted gate crossing. Use appropriately grouped uncertainty or disjoint held-out trajectory evidence before stronger inference.",
+      "evidence": "parse_throughput.py:15-23; diagnosis.md:18,147-148,186,199",
+      "finding": "OLS slopes/standarderrors use per-update means with nonstationary, potentially serially dependent and heteroskedastic samples; naive combinedSE is not evidence that deceleration is statistically established.4.9-hour estimate applies a stochastic-training score slope to deterministic development gate, then extrapolates far beyond104updates.",
+      "id": "ols_projection",
+      "severity": "interpretation_correction"
+    },
+    {
+      "correction": "Pre-register primary checkpoints/metrics and material effect/equivalence margins; aggregate sampled repetitions perseed and use64paired-seed clusters/pairedbootstrap. Define an inconclusive outcome. Keep entropy changes a separate hypothesis. Preserve deterministic qualification.",
+      "evidence": "diagnosis.md:169-180;result.json:ranked_recommendations",
+      "finding": "Within2SEdoesnot establish equivalence or show argmax isnot a bottleneck; failure to reject can be low power. Three sampled repeats per environment seed are clustered, not independent. A sampled advantage doesnot prove changing entropy isnecessary or longer training willfail.",
+      "id": "diagnostic_decision_rule",
+      "severity": "blocking_for_proposed_diagnostic"
+    },
+    {
+      "correction": "Only prior-evaluated checkpoints have historical controls. Treat phase104 as new diagnostic measurement, and deduplicate learned-stage comparisons or explain duplicateweights as continuitycontrol.",
+      "evidence": "diagnosis.md:165-173; result.json:ranked_recommendations",
+      "finding": "Detailed plan correctly demands exact saved-row replay only for000010,000016,000022, not phase104checkpoint000023which wasnever evaluated. Terminal summary incorrectly generalizes exactreplay to allfive. D1parent000009 andD2entry000010have equal modelweights; both are useful lineage/replay controls but not independent learned stages.",
+      "id": "checkpoint_replay_controls",
+      "severity": "scope_clarification"
+    },
+    {
+      "correction": "Retain distribution-shift/untrained-input facts and no concrete defectfound ininspectedpaths; separate attention interference/insufficientexperience/curriculum predictions as hypotheses.",
+      "evidence": "diagnosis.md:78-104,116-121,190-193; checkpoint-introspection.json",
+      "finding": "Zero weight changes and sourceabsence ofpatterninputs inD1 support no D1training ofrows7/8 andglobalcolumn9. They donot prove those randominputs disrupted attention or cap possible skilltransfer. No defectfound isnot proof nothingisbroken.",
+      "id": "no_bug_and_untrained_inputs",
+      "severity": "claim_boundary"
+    }
+  ],
+  "finished_at_utc": "2026-10-24T14:39:40.402273+00:00",
+  "parent_reported_identity_checks": "Parent separately verified26evidence,7source,11output hashes and75currentpins; thisaudit didnotrepeatTorchweightdeserialization.",
+  "raw_checks": "learning/runs/v2/postovernight-transfer-parent-audit-r1/raw-checks.json",
+  "raw_checks_sha256": "c8b37f452fd14268f37f978fe8badbff8a046c3758260851477a69515247f02d",
+  "scope": "independent source review and retained JSONL parsing only; no models,Torch,gameplay,tests,training or mutation outside own new evidence directory",
+  "script": "learning/runs/v2/postovernight-transfer-parent-audit-r1/audit_raw.py",
+  "script_sha256": "94e93be84d6079a88cbb55b9673fff75ae4e10b129b7d1eff3ffcbcc5d49c20f",
+  "status": "completed_with_required_interpretation_and_plan_corrections"
+}

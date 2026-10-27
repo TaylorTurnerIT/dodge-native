@@ -1,0 +1,103 @@
+--- r11-source/long_d2.py
++++ r14/long_d2.py
+@@ -31,10 +31,10 @@
+ import boundary_integrity as integrity
+ 
+ ORIGINAL_ROOT = Path('/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79')
+-PREPARE_REL = 'learning/runs/v2/postovernight-long-D2-boundary-prepare-r11'
++PREPARE_REL = 'learning/runs/v2/postovernight-long-D2-boundary-prepare-r14'
+ ROOT = Path(__file__).resolve().parents[4]
+-PROTOCOL_REL = 'learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r8.json'
+-PROTOCOL_SHA256 = 'fe11c08159bdb9ca1f03cb0fb96ffd133ad144d107b2a854d19fc49159aa2db2'
++PROTOCOL_REL = 'learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r10.json'
++PROTOCOL_SHA256 = 'ff160f8faec7c4d9b165e09db38fc3831e20e3f6609f1a82b63df42a307979ec'
+ CONFIG_SHA256 = '2ac814d3842228017d09669364a8391344722da56ad19f41ad9030dbb930c2db'
+ STATE_PATH = ORIGINAL_ROOT / 'learning/runs/v2-orchestration/state.json'
+ LIMIT = 6442450944
+@@ -54,6 +54,7 @@
+ 
+ Stop = life.Stop
+ INNER_SECONDS = 7170
++BOUNDARY_SWITCH_INTERVAL = 0.0001
+ 
+ 
+ def require(condition, message, outcome='identity_or_lease_failure'):
+@@ -464,6 +465,49 @@
+     life.ACTIVE.check()
+ 
+ 
++def restore_boundary_switch_interval(previous):
++    """Restore the observed CPython value, including microsecond quantization.
++
++    getswitchinterval() can return 99.99999999999999 microseconds for an
++    internal 100-microsecond value. Setting that float can truncate to 99.
++    The adjacent larger float corrects that truncation; equality is mandatory.
++    This is a bounded correction, not a retry of a failed verification.
++    """
++    if sys.getswitchinterval() != previous:
++        sys.setswitchinterval(previous)
++        if sys.getswitchinterval() != previous:
++            sys.setswitchinterval(math.nextafter(previous, math.inf))
++        require(sys.getswitchinterval() == previous, 'Boundary switch interval restoration failed')
++
++
++@contextmanager
++def boundary_switch_interval():
++    """Temporarily cap the process-global interval during forced byte work.
++
++    Registered boundaries run on the main thread; resource observers use
++    full=False. Enforce that single-thread ownership across Guard instances.
++    Cooperating code must not set the interval concurrently: verify_lock is
++    per Guard and cannot serialize arbitrary process-global setters. Already
++    shorter intervals remain shorter. No signal/timer ownership is changed.
++
++    The outer finally recovers one exception interrupting inner restoration.
++    Arbitrary repeated asynchronous interruptions cannot be guaranteed safe;
++    a leak can change guard outcomes as well as performance.
++    """
++    require(threading.current_thread() is threading.main_thread(),
++            'Boundary switch interval requires main-thread ownership')
++    previous = sys.getswitchinterval()
++    try:
++        try:
++            if previous > BOUNDARY_SWITCH_INTERVAL:
++                sys.setswitchinterval(BOUNDARY_SWITCH_INTERVAL)
++            yield
++        finally:
++            restore_boundary_switch_interval(previous)
++    finally:
++        restore_boundary_switch_interval(previous)
++
++
+ class Guard:
+     """Independent safety observer and synchronous declared byte boundaries.
+ 
+@@ -507,12 +551,27 @@
+             cpu = time.thread_time()
+             stats = dict(files=0, bytes=0, components={})
+             VERIFY_LOCAL.stats = stats
++            callback_error = None
+             try:
+-                observation = self.verify()
++                with boundary_switch_interval():
++                    try:
++                        observation = self.verify()
++                    except BaseException as error:
++                        # Latch at the actual callback catch, before interval
++                        # cleanup can raise a later error that replaces it.
++                        callback_error = error
++                        self.failure_at = self.failure_at or self.clock()
++                        self.failure = self.failure or (error if isinstance(error, Stop) else Stop(repr(error)))
++                        raise
+                 self.last_full = at
+                 self.check()
+                 row.update(verdict='passed', observation=observation)
+             except BaseException as error:
++                if callback_error is not None and error is not callback_error:
++                    # Later cleanup failure stays represented and fatal, but
++                    # the original callback failure remains primary.
++                    row.update(verdict='failed', error=repr(callback_error), cleanup_error=repr(error))
++                    raise callback_error from error
+                 row.update(verdict='failed', error=repr(error))
+                 self.failure_at = self.failure_at or self.clock()
+                 self.failure = self.failure or (error if isinstance(error, Stop) else Stop(repr(error)))

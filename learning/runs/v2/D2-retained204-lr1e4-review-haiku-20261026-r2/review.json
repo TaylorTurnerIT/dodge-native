@@ -1,0 +1,227 @@
+{
+  "schema": "d2_retained204_lr1e4_frozen_review_v2",
+  "target": "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r2/",
+  "target_registration_sha256": "ef53c4aaf9e71b1ff93c1e03aa7871b829044b85a510d3f39a13e0380eaf623f",
+  "target_source_manifest_sha256": "64bb691a1314081cf0d7834f3a223c0f8e0ff8f8937b7030fb10e8d26e4b3916",
+  "target_preparation_receipt_sha256": "f5785c0d9b0d301855dd1d6e51a9711ce46714edf31720aee1d3b07c7b26fd0b",
+  "target_runner_sha256": "3d4cdcb0a5876937debe80badbe914aca8042cbc54b71b7f6a5d0b182331d4f3",
+  "target_launcher_sha256": "f99dcaed57c27d2bc082cc609a3cb0ecb30a0d5e304836acf968d56ddb64cdcc",
+  "target_lr_helper_sha256": "b3cd23ccf14f9703dfd86ef3c24bfed41ab81f166c28205d90222bc12488ed8a",
+  "verdict": "not_ready_for_lease_or_launch_until_blocker_fixed_and_refrozen",
+  "blockers": ["B1"],
+  "findings": [
+    {
+      "id": "B1",
+      "classification": "blocker_pre_lease",
+      "severity": "high",
+      "category": "output-validator",
+      "file": "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r2/execute_once.py",
+      "lines": "85, 136, 165-185 (168)",
+      "summary": "Embedded-checkpoint block computes expected counters via next() over metrics rows phase 205-276; evaluation update 204 has no row, so StopIteration is raised.",
+      "failure_scenario": "Worker completes 72 updates and exits 0; validate_outputs raises StopIteration at update 204 (execute_once.py:168); execute() catches it at :320, status failed; retries 0, so the one-shot run is rejected after about 1177-1319 s of training.",
+      "fix": "For update == r.PHASE_START use zero counters {updates, optimizer_steps, environment_decisions, raw_frames = 0}; remove 'row =' chaining. Add a non-MPS fixture test that executes validate_outputs over synthetic 204-276 artifacts. Re-freeze and re-review after any byte change."
+    },
+    {
+      "id": "F4",
+      "classification": "pre_lease_hardening",
+      "severity": "medium",
+      "category": "fail-late-cost",
+      "file": "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r2/execute_once.py",
+      "lines": "186-190; runner.py 812-813",
+      "summary": "Entry evaluation rows are compared with accepted phase-204 rows only in the launcher after all 72 updates.",
+      "fix": "Compare development-000204 rows to reg['parent']['source_evaluation_path'] immediately after runner.py:813 and fail before the first update."
+    },
+    {
+      "id": "F5",
+      "classification": "pre_lease_hardening",
+      "severity": "low",
+      "category": "receipt-honesty",
+      "file": "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r2/runner.py",
+      "lines": "864, 874-878",
+      "summary": "worker-result status remains 'completed' when the finalization guard raises, because the except block does not reset status.",
+      "fix": "Add status='failed' to the except update at runner.py:876-878."
+    },
+    {
+      "id": "F6",
+      "classification": "pre_lease_hardening",
+      "severity": "low",
+      "category": "comment-accuracy",
+      "file": "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r2/execute_once.py",
+      "lines": "245-246, 247, 253-254, 275",
+      "summary": "Comment says no subprocess precedes the exclusive marker and full byte checks; the marker is written before load_registration and the registration is read unverified.",
+      "fix": "Correct the comment, or move the marker after load_registration at :275."
+    },
+    {
+      "id": "F7",
+      "classification": "pre_lease_hardening",
+      "severity": "low",
+      "category": "receipt-atomicity",
+      "file": "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r2/execute_once.py",
+      "lines": "353, 361-362",
+      "summary": "execution-result.json uses exclusive open; a Cancelled raised mid-write leaves a partial file while the comment says the primary receipt is untouched.",
+      "fix": "Write a temp file in the same directory and os.replace, or correct the comment."
+    },
+    {
+      "id": "F8",
+      "classification": "pre_lease_hardening",
+      "severity": "low",
+      "category": "fragility",
+      "file": "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r2/execute_once.py",
+      "lines": "191-193",
+      "summary": "Final checkpoint digest reuses certificate from the last loop iteration.",
+      "fix": "Read development-000276.json explicitly."
+    },
+    {
+      "id": "S1",
+      "classification": "scope_note",
+      "severity": "low",
+      "category": "config-label",
+      "file": "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r2/D2-retained204-lr1e4-config.json",
+      "lines": "parent_checkpoint_sha256; phase_settings.run_seed; runner.py 140, 754-759",
+      "summary": "Archival parent_checkpoint_sha256 ce9c03c8... is the milestone3-D1-curriculum-r1/checkpoint-000009-candidate.pt sha (verified). phase_settings.run_seed 5562881586070242562 is inert; registration run_seed 3791628418 governs; identity embeds the whole config.",
+      "fix": "No config byte change (pinned). Describe both fields as archival or inert in findings."
+    },
+    {
+      "id": "S2",
+      "classification": "scope_note",
+      "severity": "low",
+      "category": "cancellation-wall",
+      "file": "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r2/execute_once.py",
+      "lines": "293-300, 309-318; runner.py 597",
+      "summary": "Launcher wait loop does not consult cancel_path; only the worker honors cancel and the 1790 s work cap. A native hang reaches the 1800 s outer cap, and cleanup can overrun by up to about 10 s."
+    },
+    {
+      "id": "S3",
+      "classification": "scope_note",
+      "severity": "low",
+      "category": "wall-accounting",
+      "file": "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r2/execute_once.py",
+      "lines": "309-318",
+      "summary": "Post-worker validation and postflight run outside the 1790 s work cap; only elapsed < 1800 is checked. Checkpoints are about 3.9 MB, so likely seconds."
+    },
+    {
+      "id": "S4",
+      "classification": "scope_note",
+      "severity": "low",
+      "category": "rng-restore-mps",
+      "file": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/checkpoints.py",
+      "lines": "40-42, 138-142",
+      "summary": "MPS RNG restore path is the same as the parent worker, whose entry-restoration.json matched model, Adam, and RNG. Not re-run here."
+    },
+    {
+      "id": "S5",
+      "classification": "scope_note",
+      "severity": "low",
+      "category": "entry-reproduction",
+      "summary": "Entry-row reproduction on MPS for phase 204 has no 204-specific run; parent precedent is the phase-180 entry check that passed."
+    },
+    {
+      "id": "S6",
+      "classification": "scope_note",
+      "severity": "low",
+      "category": "frame-conservation",
+      "file": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/ppo.py",
+      "lines": "327-328, 354; learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r2/runner.py 854",
+      "summary": "Frame conservation holds by construction; not checked on a real 204 journal."
+    },
+    {
+      "id": "S7",
+      "classification": "scope_note",
+      "severity": "low",
+      "category": "test-coverage",
+      "file": "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r2/test_source_contract.py",
+      "summary": "Source contract checks text and ordering only; it does not execute validate_outputs or the worker, which is why B1 passed."
+    },
+    {
+      "id": "S8",
+      "classification": "scope_note",
+      "severity": "low",
+      "category": "lease-state",
+      "file": "learning/runs/v2-orchestration/state.json",
+      "summary": "active_long_campaign is None; output dir and cancel-requested are absent. Parent installs the exact lease."
+    },
+    {
+      "id": "S9",
+      "classification": "scope_note",
+      "severity": "low",
+      "category": "gate-scope",
+      "summary": "Full 13767-pin verification (about 658 MB) not run by this reviewer; parent gate."
+    }
+  ],
+  "closed_prior_findings": [
+    {
+      "source": "resume-lr-integration-r2-review-haiku-20261026-r1 F1 and r1 F1",
+      "status": "closed_by_code",
+      "evidence": "runner.py:146-149, 349-362, 369-377; no resume_lr_transition import (grep)"
+    },
+    {
+      "source": "resume-lr-integration-r2-review-haiku-20261026-r1 F2 and r1 F2",
+      "status": "closed_by_code",
+      "evidence": "runner.py:731-741, 809; resume_lr_transition.py:173-215; execute_once.py:185; cpu-restore-and-controls.json negative controls"
+    },
+    {
+      "source": "resume-lr-integration-r2-review-haiku-20261026-r1 F3 and r1 F3",
+      "status": "closed_by_registration_label",
+      "evidence": "runner.py:122-123; config bytes unchanged (see S1)"
+    }
+  ],
+  "verified": [
+    "hashes match registration, source manifest, and preparation receipt",
+    "validate_registration, validate_parent_terminal_receipt, validate_capsule_support, validate_runtime_continuity, validate_config_transition, validate_arm_binding pass on actual artifacts",
+    "config diff vs parent is only ppo.learning_rate 0.0003 -> 0.0001",
+    "parent phase-204 development file passes validator row, summary, death/cap, and flag checks",
+    "parent 72 training-metric rows pass per-update checks including validate_gradient_alignment (0 failures); optimizer steps 8224",
+    "wall constants: 1177.4321468750002 x 9216/8224 = 1319.457 s <= 1600 preregistered; trajectory and campaign cost fields distinct",
+    "parent MPS restore path (restore_learner) entry-restoration matched model, Adam, and RNG"
+  ],
+  "r1_reconciliation": {
+    "r1_receipt_sha256": "7fa65822cc20adc733c1e00f87a688c8e406c26ad21cf61e24a81e6268036e66",
+    "r1_verdict": "not_ready_for_lease_until_pre_lease_fixes",
+    "r1_blockers": ["F1", "F2"],
+    "r2_status": "F1 and F2 closed by code; F4-F8 and scope F3, F9-F12 still applicable; r1 F13 resolved by this review; B1 is r2-only and not in r1 scope"
+  },
+  "inputs_inspected_sha256": {
+    "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r2/preparation-receipt.json": "f5785c0d9b0d301855dd1d6e51a9711ce46714edf31720aee1d3b07c7b26fd0b",
+    "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r2/registration.json": "ef53c4aaf9e71b1ff93c1e03aa7871b829044b85a510d3f39a13e0380eaf623f",
+    "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r2/source-manifest.json": "64bb691a1314081cf0d7834f3a223c0f8e0ff8f8937b7030fb10e8d26e4b3916",
+    "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r2/preparation-plan.json": "01f5279f1a886e463de65654fa43d45216a4d622811f32f206da7f69dd5f94ad",
+    "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r2/preparation-findings.md": "eb97861ea676d69703f045fe34c09695636ac5785f8989b710dd6d9a8576692a",
+    "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r2/D2-retained204-lr1e4-config.json": "f858a63c324fc312f794c0423aa56db2daf60793b62990cd51fa400afe3af628",
+    "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r2/runner.py": "3d4cdcb0a5876937debe80badbe914aca8042cbc54b71b7f6a5d0b182331d4f3",
+    "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r2/execute_once.py": "f99dcaed57c27d2bc082cc609a3cb0ecb30a0d5e304836acf968d56ddb64cdcc",
+    "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r2/resume_lr_transition.py": "b3cd23ccf14f9703dfd86ef3c24bfed41ab81f166c28205d90222bc12488ed8a",
+    "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r2/cpu_restore_and_controls.py": "6ee578fc757733e84241a5b4768a2487207c6beb74497771447457f9c5fa59f1",
+    "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r2/cpu-restore-and-controls.json": "f3ea145a9ff5ae9b83557854974e46a135e441054c7ef4d6b5abc1976a827e80",
+    "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r2/test_source_contract.py": "56fcae98ab214e872636194d252fd5d5d66ad369d43fa9a5320b5f90bf161800",
+    "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r2/preflight_prepare.py": "4d20b8a9b7235d6a9f764124a0e2f9a1df6b4374d00acdb0863178eaafcaca81",
+    "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r2/preflight.log": "4e4132e4f60fc6b404760370ac4e3b77554b1e59919988ee2454e4bb39201349",
+    "learning/runs/v2/D2-best180-parent-terminal-audit-20261026-r1/retained-best-candidate-receipt.json": "7fd26ae3f50ec7517a6f0a79334735bbfe48733b86639d83f7bafc122df110cf",
+    "learning/runs/v2/D2-best180-parent-terminal-audit-20261026-r1/retained-best-selection.json": "f21b0298e58489c4089f456d976f7c5329c1c9392878d5d79b7d9be5d227d1db",
+    "learning/runs/v2/D2-best180-parent-terminal-audit-20261026-r1/audit.json": "b93cfd247aa3cfaa83236faa8b9087d5b950d0573cebe5018f06a2d76125b9d1",
+    "learning/runs/v2/D2-best180-parent-terminal-audit-20261026-r1/parent-terminal-receipt.json": "059f927d5b2d23d0ad1c1083db64bd723dc91f2a6171100566ee5212350642dc",
+    "learning/runs/v2/D2-best180-branch-luna-20261026-r1/checkpoint-000204-candidate.pt": "f1300e4e86ec89ed9cfba446c8e7f66cf29caad6a1130864edd4d6ee7859d442",
+    "learning/runs/v2/D2-best180-branch-luna-20261026-r1/development-000204.json": "4a6ff2e4615b4fe6ded781decc29858935fcdbc01f0c216f631abe02c10f5d48",
+    "learning/runs/v2/D2-best180-branch-luna-20261026-r1/execution-result.json": "c820425f1b28cd7b7a30f4dafdb1349e056846c0a2b66a2a4449882726c44e7a",
+    "learning/runs/v2/D2-best180-branch-luna-20261026-r1/entry-restoration.json": "4bf7b6bbed7f3112bab9b558e44739b1843b9ec1521bb50891ea08bc4c0099d5",
+    "learning/runs/v2/D2-best180-branch-prepare-luna-20261026-r1/execute_once.py": "see receipt.json (diffed, not hashed separately)",
+    "learning/runs/v2/resume-lr-integration-r2-review-haiku-20261026-r1/review.json": "09065902c388e5fb201319b83b840c837d1ba04c86c426e572644efb79a2d3d3",
+    "learning/runs/v2/D2-retained204-lr1e4-review-haiku-20261026-r1/receipt.json": "7fa65822cc20adc733c1e00f87a688c8e406c26ad21cf61e24a81e6268036e66",
+    "learning/runs/v2/D2-retained204-lr1e4-review-haiku-20261026-r1/review.md": "ee9bb3c7c9afd024c694f1a0fb95f7bdcc289b8f999208ce909d21d10cc96d75",
+    "learning/runs/v2/D2-retained204-lr1e4-review-haiku-20261026-r1/review.json": "c1df8c85af3d4822a8203937782c0a8dc3ba2b0f51a07f84febf308e203121ca",
+    "learning/runs/v2/milestone3-D1-curriculum-r1/checkpoint-000009-candidate.pt": "ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/checkpoints.py": "see receipt.json (read, not hashed)",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/ppo.py": "see receipt.json (read, not hashed)"
+  },
+  "claims": {
+    "lease_installed": false,
+    "preflight_run": false,
+    "worker_or_launcher_run": false,
+    "environment_or_mps_used": false,
+    "game_weight_optimizer_steps": false,
+    "checkpoint_decoded": false,
+    "training_or_performance_claim": false,
+    "source_or_frozen_inputs_modified": false,
+    "docs_or_leases_written": false,
+    "launch_authority_granted": false
+  }
+}

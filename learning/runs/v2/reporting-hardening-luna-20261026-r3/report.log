@@ -1,0 +1,4 @@
+| Designation | Checkpoint | Q1 tail mean | Q4 tail mean | Mean alive frames | Death counts (normal, kamikaze, explosion, moving, static) | Caps | Unknown | Unavailable |
+|---|---|---:|---:|---:|---|---:|---:|---:|
+| BEST REFERENCE (phase 180) | checkpoint-000180-candidate.pt | 585.6250 | 3502.5625 | 1854.468750 | 32, 11, 0, 11, 10 | 0 | 0 | 0 |
+| LATEST (phase 252) | checkpoint-000252-candidate.pt | 532.8125 | 3192.3125 | 1604.078125 | 24, 9, 3, 13, 15 | 0 | 0 | 0 |

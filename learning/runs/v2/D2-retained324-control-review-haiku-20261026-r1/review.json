@@ -1,0 +1,69 @@
+{
+  "review": "D2-retained324-control-review-haiku-20261026-r1",
+  "reviewed": "learning/runs/v2/D2-retained324-continuation-prepare-luna-20261026-r1/",
+  "registration_sha256": "8a9c29cd9f40c15619b0e82fa0b0a4d2fec49964ab5ae464cec2f1b2b7654258",
+  "verdict": "static_integrity_passes; one_medium_finding_recommended_before_launch",
+  "launch_qualification_or_acceptance_authority": false,
+  "pins": {"count": 13827, "recomputed_sha256_matches": 13827, "missing": 0, "runtime_manifest_digest_matches": true},
+  "findings": [
+    {
+      "severity": "medium",
+      "category": "lineage-label",
+      "file": "learning/runs/v2/D2-retained324-continuation-prepare-luna-20261026-r1/runner.py",
+      "line": 738,
+      "summary": "New candidate checkpoint state hardcodes parent_run_id to the retained-276 run.",
+      "trigger": "Worker saves candidate checkpoints at 324, 336, 348, 360, 372, 384 with the literal \"D2-retained276-lr3em5-20261026-r2\" (runner.py:738). Stale string left over from predecessor; adapt.py does not replace it.",
+      "consequence": "Every new candidate misattributes its parent run to the retained-276 run. No validator reads parent_run_id (grep: runner.py only; parent_adapter.py, execute_once.py, validate.py, registration_schema.py do not), so no gate fails. Correct lineage is still carried by parent_checkpoint_sha256 (c10d...) and parent_registration_sha256 (8a60...). Fix requires runner.py edit, which changes runner sha256 and registration sha256 (8a9c...) and needs re-freeze; cheap now, impossible after outputs are produced under exclusive-output rules.",
+      "recommendation": "Repair before launch (new runner sha, new registration, re-run validate.py), or accept and record explicitly that parent_run_id is a stale unvalidated label."
+    },
+    {
+      "severity": "low",
+      "category": "launch-guard",
+      "file": "learning/runs/v2/D2-retained324-continuation-prepare-luna-20261026-r1/execute_once.py",
+      "line": 297,
+      "summary": "out.mkdir(parents=True, exist_ok=True) accepts a pre-existing output directory at launch.",
+      "trigger": "Output dir exists at launch without launch-marker.json (stray or partial directory).",
+      "consequence": "Preflight does not assert output absence (actual_output_absent is only a one-time validation fact). Launch proceeds into the existing directory; per-file exclusive 'x' writes block name collisions, but unrelated stale files would be swept into artifact-manifest.json at postflight (execute_once.py:360-361).",
+      "recommendation": "Use exist_ok=False or add an explicit not out.exists() preflight need(). Fails closed before any write."
+    },
+    {
+      "severity": "low",
+      "category": "launch-runbook",
+      "file": "learning/runs/v2/D2-retained324-continuation-prepare-luna-20261026-r1/runner.py",
+      "line": 124,
+      "summary": "Launcher preflight requires process-level PYTHONPYCACHEPREFIX and dont_write_bytecode, which no frozen artifact records.",
+      "trigger": "Parent runs `python execute_once.py` without PYTHONPYCACHEPREFIX=<empty-pycache> and -B (check_import_cache runs in load_registration, execute_once.py:294 and :364).",
+      "consequence": "ValueError during preflight, before mkdir (execute_once.py:296-297). Fails closed with no output and no marker, but burns an attempt. Only the worker's env is set by the launcher (execute_once.py:325-327).",
+      "recommendation": "Record the exact launch command and environment in the parent launch runbook. No code change required."
+    },
+    {
+      "severity": "low",
+      "category": "output-inventory",
+      "file": "learning/runs/v2/D2-retained324-continuation-prepare-luna-20261026-r1/registration.json",
+      "line": 1,
+      "summary": "forbidden_outputs ['lr-transition.json'] is declared in the registration but no code path enforces it.",
+      "trigger": "An lr-transition.json appears in the output dir during a run.",
+      "consequence": "Postflight (execute_once.py:360-361) writes an artifact manifest but does not compare the output inventory to expected_outputs or forbidden_outputs, so the run would still pass. Nothing in the current code writes that file, so likelihood is low.",
+      "recommendation": "Optional: assert the output inventory in postflight. Otherwise treat forbidden_outputs as documentation only."
+    }
+  ],
+  "notes_not_findings": [
+    "runner.py:208 and parent_adapter.py:34 pass the constant COST_RECEIPT_SHA into validate_cost_anchor rather than the file hash. The file-hash binding is real: runner.py:206-207 checks sha(cost_path) against the registered pin, and runner.py:363-370 checks the resource_cost_anchor file hash. Chain verified; no defect.",
+    "Stale 'phase-300' wording in runner.py:625,629 and execute_once.py:235 messages and docstrings. Cosmetic.",
+    "Negative checks in validate.py (360 / 60 / 408) exercise only the receipt-field path in parent_adapter.validate_parent. They do not exercise validate_parent_terminal_receipt or entry-evaluation mismatch. Coverage gap, not a defect.",
+    "validate.py substitutes only the lease check (check_lease mocked). The live lease path is not exercised here and is not qualified by this review.",
+    "Worker-called runtime APIs (episode_resume_state, save_checkpoint, _cpu_copy, capture_rng, restore_learner, evaluate, ppo_update, collect_rollout, VecDodgeEnv) exist in the pinned runtime source. validate.py does not run the worker body, so call-signature correctness rests on the predecessor's live runs, since worker body changed only by constants and the parent_run_id literal."
+  ],
+  "checked_ok": [
+    "registration sha 8a9c... matches; runner 6c1b..., launcher 7215..., adapter 3558..., schema 87497... match",
+    "All 13827 pins exist and recomputed sha256 matches; runtime member digest 2cf10e... recomputed",
+    "Critical coverage present for: parent checkpoint c10d, selected receipt 76cb, completed cost 7c6f, sidecar/metadata cedb, decision, audit, full audit, producing worker, producing registration 8a60, source evaluation json/jsonl, config 1c24, native new/old, interpreter, policy, gate, inventory, 4 current sources, capsule support 4, upstream 204 receipt",
+    "Pin delta vs predecessor r5: 15 removed (r5 sources; 276-era parent evidence), 15 added (300-continuation evidence); 0 hash changes on retained paths; count unchanged at 13827",
+    "output absent, cancel absent, marker absent, cache dir empty; state.json not read",
+    "Same LR 3e-5 enforced in restore (parent_adapter.py:51, runner.py:299-306, execute_once.py:85,132-133)",
+    "Import origins checked (runner.py:314-329, 634-647; execute_once.py:320)",
+    "Real execute preflight reached before first mutation (validate.py intercepts out mkdir; execute_once.py:294 precedes :297)",
+    "Endpoint 360, local 60, cumulative 408 rejected (validate.py:28-35; parent_adapter.py:28,60)",
+    "Full audit covers [300,312,324,336,348,360]; decision endpoint360_not_selected True; parent audit status accepted_completed_iteration_and_selected_intermediate324"
+  ]
+}

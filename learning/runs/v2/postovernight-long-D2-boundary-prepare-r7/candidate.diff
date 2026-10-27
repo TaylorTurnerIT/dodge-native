@@ -1,0 +1,1383 @@
+--- /dev/null
++++ learning/runs/v2/postovernight-long-D2-boundary-prepare-r7/PARENT-NEXT.md
+@@ -0,0 +1,33 @@
++# r7 handoff: source preparation and one stdlib stage only
++
++Read `implementation-result.json`, the registered unit command, raw exit/logs, suite counts and unrun list first. Any unexpected failure ends this candidate's validation. Do not patch or repeat its stage; reconcile a distinct candidate if needed. Source ownership is released for immutable review at handoff. No production registration, freeze, lease, OS scenario, stress, startup rehearsal or training was performed by this implementation task.
++
++## Source and protocol
++
++1. Verify `source-manifest.json`, `evidence-manifest.json`, `candidate.diff`, input pins and the unchanged eight r6 parent pins. Treat the ledger state hash as contextual only. The exact `original-source/` fixture copy is retained; `r6-source/` is comparison provenance, never a fresh envelope or runtime capsule.
++2. Reconcile the source and current unit evidence. `validate_wait_reports` and `accept_observed` must remain byte-equal to r6. The learner, schedule, worker ML try body, legacy checks, forced active boundaries, fresh scandir, full endpoint bytes, config, seed and eligible D1 lineage remain unchanged. The new process helper validates raw direct observations; all preexisting process functions remain byte-equal.
++3. Parent alone publishes the exact bytes of `protocol-r6-proposal.json` as `learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r6.json`. Its hash is pinned in the controller. If the parent changes any proposed bytes, a distinct reviewed controller pin is required. The proposal derives from current external r5 with only candidate paths and explicit timestamp/reaping semantics changed; config and parent lineage are identical.
++4. Parent alone registers and executes a fresh freeze (`freeze.py`) with the alias interpreter, `-B`, explicit source identity and a fresh empty cache prefix. No old capsule, attempts, identity, classification, registration, invocation, cache or lease may be reused as current. The acyclic leaf/classification/identity/capsule/external-registration/parent-invocation order and all historical 10091/9870/9675 bindings remain required. Counts for a newly frozen r7 are to be measured, never copied from r6's B235/R37/A9998/119 files.
++5. Obtain a fresh exact-source adversarial review and reconcile it. Parent owns the order and registration of subsequent bounded validation and any acceptance. Neither this handoff nor a passing unit suite is campaign acceptance.
++
++## Runtime evidence still required
++
++Preregister fresh once-only, stop-on-first-unexpected-failure OS, contention and startup stages, with frozen source/command/env and complete raw receipts. No identical failed attempt retry. Preserve every prior failure and unrun case as historical. The OS list still contains all 15 originally planned cases, including the six historically unrun after r6's ninth failure: direct-cancel-wait, missing-worker-ACK, parent-death, surviving-descendant, normal-deadline-wedged and RSS-resource-cap. The `os_checks.py` fixture writes expectation class and expected raw exit into options before launch.
++
++Successful closure still requires both exact direct-parent waits/raw outcomes/deadlines/PIDs/parent order, positive group absence, and unchanged real `accept_observed` predicates. A failure with a live supervisor requires a worker wait whenever the worker was positively spawned. The specific blocked-worker parent crash requires registration, blocked-entry and positive live-worker/no-prior-wait milestones before injected raw 7, accepted=false, both independently absent groups and explicit unproven worker reaping. A legitimate earlier worker wait followed by later supervisor death is not globally called fabricated. Missing receipts, empty absence, absent milestones or unentered wedged loops fail.
++
++The startup cancel hook remains the actual worker Popen boundary. The new blocked-parent-crash milestone waits within the existing normal cutoff for the positive worker entry and live parent/PID census; failure to reach it fails the scenario, never silently skips it. These hooks have only static review and pure fixture-predicate evidence here, not OS proof.
++
++Register a distinct single contention stage <=120 seconds and a single startup-only rehearsal <=120 seconds if source/unit/review reconciliation permits. Retain all full B/R/A endpoint bytes and forced B plus genuine legacy75/origin/runtime/cache checks; no five-second byte watchdog or skipped boundaries. Startup's previously authorized architecture-only constructor and RNG save/restore scope does not authorize D1 decode, environment construction, inference or gradients. No performance claim follows from these source repairs.
++
++## Failure-path limits
++
++The source time is the successful waitpid observation, not an inferred exit time. Earlier peer/guard/cancel/alarm/deadline observations win; exact ties follow the existing stable candidate order and an already latched global tie remains unchanged. Main stamps a nonzero retained report before terminal drain.
++
++Mandatory inner failure publication precedes fallback/reap, guard joins, stream/gate closes and optional diagnostics. After failure ACK and nonblocking closes, the supervisor polls its exact child until the current shared deadline minus 1.0 second. The executor remains sole TERM/KILL owner. Child constructor failure is guarded and diagnostic, not risk-free. Worker-wait attempts are marked before send on normal and failure paths and never retried. Missing ACK skips extended reap and optional reap-diagnostic writes; worker write permissions remain unchanged.
++
++The first inner receipt is immutable and may honestly say worker reaping is still unproven. Later actual reports use existing IPC. Optional `inner-reap-diagnostic.json` records bounded constructor/poll/send errors under the same pool; it is not acceptance or proof of packet delivery. The executor attempts at most four bounded final pumps before constructing its failed receipt, within the existing final .25-second reserve, and derives reaping status only from validated reports. Reset diagnostics remain retained. No queued-message arrival or OS scheduling guarantee is claimed.
++
++All reserves are internal allocations of `min(previous, earliest_failure+10, T0+7210)`, never added time. Cap-truncated or uninterruptible reaping stays unproven. Cleanup completeness remains actual owned absence evidence, independent of direct reaping. Publication itself can fail or be truncated at the cap.
++
++The still-unused 7200-second D2 experiment remains parent-owned. No student/D3/B/E, failed-weight resume, same-phase resume, automatic retry, scheduler, commit, PR or deployment follows automatically.
+--- /dev/null
++++ learning/runs/v2/postovernight-long-D2-boundary-prepare-r7/finalize_evidence.py
+@@ -0,0 +1,113 @@
++"""Report-only closeout after the one registered unit stage; never repairs source."""
++from pathlib import Path
++import datetime
++import difflib
++import hashlib
++import json
++import os
++import stat
++H=Path(__file__).resolve().parent
++ROOT=H.parents[3]
++BASE=H.parent/'postovernight-long-D2-boundary-prepare-r6'
++def sha(p):
++    d=hashlib.sha256()
++    with p.open('rb') as f:
++        for raw in iter(lambda:f.read(1024*1024),b''):d.update(raw)
++    return d.hexdigest()
++def read(p):return json.loads(p.read_text())
++def save(p,v):p.write_text(json.dumps(v,sort_keys=True,indent=2,allow_nan=False)+'\n')
++raw=read(H/'unit-stage/raw-result.json')
++suite=read(H/'unit-stage/suite-result.json') if (H/'unit-stage/suite-result.json').exists() else None
++registered=read(H/'unit-stage/command.json')
++source_drift={name:dict(expected=digest,actual=sha(H/name)) for name,digest in registered['source_sha256'].items() if sha(H/name)!=digest}
++base=read(BASE/'parent-frozen-pins.json')
++end_pins={name:dict(expected=digest,actual=sha(ROOT/name)) for name,digest in base.items()}
++inputs=read(H/'input-pins.json')
++authorities=[name for name in inputs['files'] if name.startswith('learning/runs/v2-orchestration/') and name.endswith('.json') and not name.endswith('/state.json')]
++end_authorities={name:dict(expected=inputs['files'][name],actual=sha(ROOT/name)) for name in authorities}
++save(H/'end-input-verification.json',dict(parent_pins=end_pins,authorities=end_authorities,
++    all_matched=all(v['expected']==v['actual'] for v in list(end_pins.values())+list(end_authorities.values())),
++    registered_source_drift=source_drift,mutable_state_excluded=True))
++diffs=[];changes={}
++for p in sorted(list(H.glob('*.py'))+list(H.glob('*.md'))+[H/'protocol-r6-proposal.json']):
++    old=BASE/p.name
++    if p.name=='protocol-r6-proposal.json':old=ROOT/'learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r5.json'
++    before=old.read_text() if old.exists() else ''
++    after=p.read_text()
++    if before!=after:
++        changes[p.name]=dict(before_sha256=sha(old) if old.exists() else None,after_sha256=sha(p),baseline=str(old.relative_to(ROOT)) if old.exists() else None)
++        diffs.extend(difflib.unified_diff(before.splitlines(True),after.splitlines(True),fromfile=str(old.relative_to(ROOT)) if old.exists() else '/dev/null',tofile=str(p.relative_to(ROOT))))
++(H/'candidate.diff').write_text(''.join(diffs))
++save(H/'changes.json',dict(files=changes,scope='complete preparation-source/proposal diff; generated old envelopes are intentionally absent, not reused',original_source_fixture_copy_exact=read(H/'preparation-copy.json')['original_fixture_files']))
++sourcefiles=list(H.glob('*.py'))+list(H.glob('*.md'))+[H/'protocol-r6-proposal.json']+list((H/'original-source').glob('*.py'))+list((H/'r6-source').glob('*.py'))
++sources={str(p.relative_to(H)):sha(p) for p in sorted(sourcefiles)}
++save(H/'source-manifest.json',dict(schema='r7_source_manifest_v1',files=sources,excludes_itself=True,
++    provenance='r6-source is historical comparison only; original-source is the exact necessary fixture copy',
++    registration_snapshot_source_unchanged=not source_drift,owner='released;frozen_for_parent_review',source_mode='0444',
++    protocol_proposal_sha256=sha(H/'protocol-r6-proposal.json')))
++ok=raw.get('raw_exit')==0 and not raw.get('timed_out') and suite is not None and suite['successful'] and not source_drift
++result=dict(schema='dodge_v2_boundary_r7_implementation_result_v1',
++    status='implemented_targeted_stdlib_passed_pending_parent_review_and_runtime_validation' if ok else 'implemented_validation_failed_stopped_no_patch_no_retry',
++    candidate=str(H.relative_to(ROOT)),source_owner='released;frozen_for_parent_review',
++    source_manifest='source-manifest.json',source_manifest_sha256=sha(H/'source-manifest.json'),
++    evidence_manifest='evidence-manifest.json',complete_diff='candidate.diff',input_pins='input-pins.json',parent_next='PARENT-NEXT.md',
++    base_parent_frozen_pins_verified_before_copy=8,end_input_verification='end-input-verification.json',
++    changes=dict(A='retained validated direct waitpid observation descriptor in actual monitor and main before drain',
++                 B='actual first_cancel_at; separate alarm/deadline competition and stable equal-time behavior',
++                 C='mandatory-first immutable inner failure, guarded own-child fallback, ACK-gated same-pool reap, one send attempt, bounded outer drain and validated derived reaping status',
++                 D='preregistered fixture classes and positive blocked-worker/live-registration/raw7/absence milestones; successful consumers unchanged'),
++    unit=dict(stage_invocations=1,command='unit-stage/command.json',raw_result=raw,suite=suite,stdout='unit-stage/stdout.log',stderr='unit-stage/stderr.log',
++              setup_precheck='unit-stage/setup-precheck.json',source_snapshot='unit-stage/sources',
++              counts_are_methods=True,original_39_methods='retained; report fixtures updated for explicit class/full raw reports and stale-cache control made in-process to prohibit OS subprocess tests',
++              retry=False,source_patch_after_stage=False),
++    preparation=dict(max_seconds=1800,first_recorded_tool_clock_utc='2026-10-25T01:51:01Z',
++                     source_registered_at_utc=registered['started_at_utc'],
++                     timing_scope='recorded tool clock to source registration; no precision claim before first clock read',
++                     stages=['prepare_candidate.py','finish_source.py','owned source edits; retained exact final diff'],
++                     all_source_writes_owned=True,no_universal_OS_write_audit=True),
++    preserved=dict(success_validate_wait_reports_and_accept_observed_byte_equal=True,
++                   protected_learner_schedule_run_schedule_worker_ML_try_origin_helpers=True,
++                   lifecycle_failure_pool_byte_equal=True,boundary_integrity_byte_equal=True,
++                   config_sha256='2ac814d3842228017d09669364a8391344722da56ad19f41ad9030dbb930c2db',
++                   master_seed=5562873868232098305,D1_parent_sha256='ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f',
++                   normal_seconds=dict(outer=7200,worker=7140,inner=7170),failure_rule='min(previous,earliest_failure+10,T0+7210)',
++                   outer_internal_reserve_seconds=.25,inner_internal_reserve_seconds=1.,separate_RSS_MPS_limit_bytes=6442450944,
++                   forced_active_B_legacy75_origins_and_full_B_R_A_endpoints=True,noncircular_DAG_external_registration_fresh_cache_prefix_B=True),
++    historical_verdicts=dict(r4_units='30 passed;1 failure;8 unrun;obsolete helper-name assertion',
++        r5_units='1 passed;1 setup ERROR;original-source fixture omitted',
++        r6_units='39 methods passed once;historical only',
++        r6_freeze_preflight='passed;historical B235/R37/A9998/119 capsule members;not current r7 proof',
++        r6_OS='raw1;wall18.716s;8 cases passed;ninth direct-cancel-startup failed missing direct worker_wait;6 later unrun;both groups absent;mandatory failed receipt survived;actual worker Popen injection reached',
++        r6_follow_on='no stress/startup/training followed'),
++    protocol=dict(proposal='protocol-r6-proposal.json',sha256=sha(H/'protocol-r6-proposal.json'),
++        canonical_future_path='learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r6.json',published=False,production_freeze_performed=False),
++    limits=['Pure fake child/channel/clock and stdlib filesystem tests only; no actual waitpid, signal delivery, process-group absence, OS lifecycle, contention, startup, ML/native project import, checkpoint decode, environment, inference, gradient or training evidence.',
++            'Original 39 methods and all new method/subtest counts apply only to this one registered command, not OS behavior or qualification.',
++            'No claim that a final drain receives queued messages; kernel scheduling, uninterruptibility and cap truncation can leave reaping or publication unproven.',
++            'First inner receipt remains immutable and may predate actual worker reap. Optional reap diagnostics are bounded best-effort only.',
++            'No performance, campaign acceptance or teacher qualification claim. Parent owns fresh freeze, review reconciliation and newly registered OS/stress/startup stages before any experiment.'],
++    no_auto_follow_on=True,training_launched=False,experiment_authorization_consumed_by_task=False,leases_modified=False,
++    external_protocol_modified=False,original_runtime_modified=False,historical_evidence_modified=False,
++    nested_delegation=False,provider_calls=False,scheduler_commit_PR_deploy_messages=False,
++    finished_at_utc=datetime.datetime.now(datetime.timezone.utc).isoformat())
++save(H/'implementation-result.json',result)
++# Reporting validation only. Negative-test symlinks/FIFO are inventoried without opening them.
++json_results={}
++for p in sorted(H.rglob('*.json')):
++    if p.is_symlink() or not stat.S_ISREG(p.lstat().st_mode) or p.name in ('json-validation.json','evidence-manifest.json'):continue
++    try:json.loads(p.read_text());json_results[str(p.relative_to(H))]='parsed'
++    except Exception as error:json_results[str(p.relative_to(H))]=repr(error)
++save(H/'json-validation.json',dict(method='stdlib json.loads over all retained regular JSON artifacts; report-only, no candidate execution',results=json_results,
++    all_parsed=all(v=='parsed' for v in json_results.values()),excludes_itself=True,evidence_manifest_generated_last=True))
++files={};links={};special={}
++for p in sorted(H.rglob('*')):
++    name=str(p.relative_to(H));mode=p.lstat().st_mode
++    if p.name=='evidence-manifest.json' and p.parent==H:continue
++    if stat.S_ISREG(mode):files[name]=sha(p)
++    elif stat.S_ISLNK(mode):links[name]=os.readlink(p)
++    elif not stat.S_ISDIR(mode):special[name]=stat.S_IFMT(mode)
++save(H/'evidence-manifest.json',dict(schema='r7_evidence_manifest_v1',files=files,symlinks=links,special_fixture_nodes=special,excludes_itself=True,
++    source_manifest_included=True,old_attempts_capsules_envelopes_reused=False))
++json.loads((H/'evidence-manifest.json').read_text())
++for p in sourcefiles+[H/'source-manifest.json']:p.chmod(0o444)
++print(json.dumps(dict(status=result['status'],tests_run=None if suite is None else suite['tests_run'],raw_exit=raw.get('raw_exit'),source_files=len(sources),evidence_files=len(files),source_drift=source_drift,source_owner=result['source_owner']),sort_keys=True))
+--- /dev/null
++++ learning/runs/v2/postovernight-long-D2-boundary-prepare-r7/finish_source.py
+@@ -0,0 +1,98 @@
++"""Complete r7 sources before the single registered validation stage."""
++from pathlib import Path
++H=Path(__file__).resolve().parent
++def replace(name,old,new):
++    p=H/name;t=p.read_text();assert t.count(old)==1,(name,old[:100],t.count(old));p.write_text(t.replace(old,new))
++replace('long_d2_executor.py',"            first_failure_monotonic=self.pool.first,cleanup_until_monotonic=self.pool.until,", "            executor_t0_monotonic=self.t0,\n            first_failure_monotonic=self.pool.first,cleanup_until_monotonic=self.pool.until,")
++replace('long_d2.py',"        # Retain bounded diagnostics in memory/IPC where possible; never rewrite\n        # the immutable mandatory receipt or claim a delivered datagram here.",'''        # Optional bounded diagnostics follow the immutable mandatory receipt.
++        # They never create an allowance, retry a send, or establish delivery.
++        if 'failure_ack_unavailable' not in result:
++            try:
++                mandatory_failure(args.output/'inner-reap-diagnostic.json',
++                    dict(optional=True,worker_wait_send_attempted=worker_wait_attempted,
++                         worker_wait_send_status=result.get('worker_wait_send_status','prior_attempt_or_none'),
++                         worker_reap_diagnostic=result.get('worker_reap_diagnostic'),
++                         worker_reaped=child is not None and child.report is not None),
++                    min(until,life.POOL.until))
++            except BaseException:pass''')
++# Existing process primitives unchanged; additive validator explicitly allowed.
++replace('source_equality.py',"    assert (H/'processes.py').read_bytes()==(frozen/'processes.py').read_bytes()",'''    old_processes=blocks(frozen/'processes.py');new_processes=blocks(H/'processes.py')
++    assert all(new_processes[k]==v for k,v in old_processes.items())
++    assert set(new_processes)-set(old_processes)=={'validate_report'}''')
++replace('test_repairs.py',"if rc is not None:x.child=NS(poll=lambda:dict(returncode=rc),report=dict(returncode=rc))",'''if rc is not None:
++            report=dict(pid=123,reaped_by=os.getpid(),direct_child_reaped=True,
++                        returncode=rc,raw_wait_status=(-rc if rc<0 else rc<<8),observed_monotonic=99.75)
++            x.child=NS(process=NS(pid=123),poll=lambda:report,report=report)''')
++# Replace old simplistic fixture examples with explicit full reports and class.
++start=(H/'test_repairs.py').read_text().index('    def test_fixture_guards_missing_receipt_empty_owned_and_milestones(')
++end=(H/'test_repairs.py').read_text().index("\nif __name__",start)
++p=H/'test_repairs.py';t=p.read_text();t=t[:start]+'''    def test_fixture_guards_missing_receipt_empty_owned_and_milestones(self):
++        empty=dict(ownership={},accepted=False);pre=[dict(kind='ownership',ownership={},owned_spawns=[])]
++        opt=dict(resource_cap=True,expectation_class='failed_no_child')
++        self.assertTrue(validate_fixture(empty,pre,{},opt,receipt_available=True))
++        for available,events in ((False,pre),(True,[])):
++            with self.assertRaises(AssertionError):validate_fixture(empty,events,{},opt,receipt_available=available)
++        from test_r7 import fixture
++        r,events,options=fixture()
++        self.assertTrue(validate_fixture(r,events,{'worker':True,'supervisor':True},options,receipt_available=True))
++        for extra in (dict(mode='wedged'),dict(phase='inner:spawn-before-registration')):
++            with self.assertRaises(AssertionError):validate_fixture(r,events,{'worker':True,'supervisor':True},dict(options,**extra),receipt_available=True)
++        with self.assertRaises(AssertionError):validate_fixture(r,events,{},options,receipt_available=True)
++        bad=copy.deepcopy(r);bad.pop('worker_wait')
++        with self.assertRaises(AssertionError):validate_fixture(bad,events,{'worker':True,'supervisor':True},options,receipt_available=True)
++        events.append(dict(kind='wedged_entry',role='worker'))
++        self.assertTrue(validate_fixture(r,events,{'worker':True,'supervisor':True},dict(options,mode='wedged'),receipt_available=True))
++''' +t[end:];p.write_text(t)
++# Existing cache control executes toy source in-process; no OS subprocess tests.
++p=H/'test_boundary.py';t=p.read_text();start=t.index("        source=self.d/'toy.py'",t.index('def test_17_'));end=t.index('\n    def summary_fixture',start)
++t=t[:start]+'''        import importlib.machinery
++        import py_compile
++        source=self.d/'toy.py';source.write_text('value="WRONG"\\n')
++        # Patch only this fixture's cache prefix; never touch an original cache.
++        with patch.object(sys,'pycache_prefix',None):
++            py_compile.compile(str(source),doraise=True)
++            st=source.stat();source.write_text('value="RIGHT"\\n');os.utime(source,ns=(st.st_atime_ns,st.st_mtime_ns))
++            old={};exec(importlib.machinery.SourceFileLoader('toy',str(source)).get_code('toy'),old)
++        cache=self.d/'fresh';cache.mkdir()
++        with patch.object(sys,'pycache_prefix',str(cache)):
++            fresh={};exec(importlib.machinery.SourceFileLoader('toy',str(source)).get_code('toy'),fresh)
++        self.assertEqual(old['value'],'WRONG');self.assertEqual(fresh['value'],'RIGHT');self.assertFalse(any(cache.iterdir()))
++        c.save(self.d/'pyc-control.json',{'old_B_only':old['value'],'fresh_prefix':fresh['value'],'in_process_only':True})
++''' +t[end:];p.write_text(t)
++replace('os_checks.py',"    root=directory/name;root.mkdir()",'''    # Preregister from the injected scenario, before any receipt exists.
++    cls=('accepted' if expected in (0,2) else 'failed_no_child' if options.get('resource_cap')
++         else 'failed_blocked_parent_crash' if name=='parent-death' else 'failed_supervisor_alive')
++    options=dict(options,expectation_class=cls,expected_exit=expected)
++    root=directory/name;root.mkdir()''')
++# Track registration/report milestones in the existing fixture hook only.
++replace('synthetic.py',"    fired=False;writers=set();final_execution=[None];owned_spawns=[]", "    fired=False;writers=set();final_execution=[None];owned_spawns=[]\n    registered_worker=[None];worker_wait_attempted=[False]")
++replace('synthetic.py',"    real_poll=owned.Child.poll",'''    real_receive=life.Channel.receive
++    def receiving(channel,*a,**kw):
++        value,fds=real_receive(channel,*a,**kw)
++        if role=='inner' and value.get('kind')=='registered':registered_worker[0]=value['worker_pid']
++        return value,fds
++    life.Channel.receive=receiving
++    real_send=life.Channel.send
++    def sending(channel,value,*a,**kw):
++        if role=='inner' and value.get('kind')=='worker_wait':worker_wait_attempted[0]=True
++        return real_send(channel,value,*a,**kw)
++    life.Channel.send=sending
++    real_poll=owned.Child.poll''')
++replace('synthetic.py',"        if role=='inner' and child.process.args[3:4]==['worker']:trigger('during-worker')",'''        if role=='inner' and child.process.args[3:4]==['worker']:
++            if (not fired and options.get('expectation_class')=='failed_blocked_parent_crash'):
++                # Require the blocked worker's positive marker and current live
++                # parent/PID census before the deliberately injected crash.
++                by=life.POOL.deadline(life.POOL.t0+c.WORKER_SECONDS)
++                while True:
++                    life.remaining(by)
++                    path=root/'worker-events.jsonl'
++                    markers=[] if not path.exists() else [json.loads(line) for line in path.read_text().splitlines()]
++                    if any(x['kind']=='blocked_entry' and x.get('pid')==child.process.pid for x in markers):break
++                    life.ACTIVE.check();time.sleep(life.remaining(by,.01))
++                rows=owned.census(by)
++                live=any(x['pid']==child.process.pid and x['ppid']==os.getpid() for x in rows)
++                c.require(registered_worker[0]==child.process.pid and live and child.report is None and not worker_wait_attempted[0], 'Blocked crash milestone unavailable')
++                event('registered_worker_live_at_crash',worker_pid=child.process.pid,supervisor_pid=os.getpid(),
++                      registered=True,live_at_crash=True,blocked_entry=True,prior_worker_wait=False)
++            trigger('during-worker')''')
++print('fixture classes and original 39 method contracts prepared; no validation executed')
+--- learning/runs/v2/postovernight-long-D2-boundary-prepare-r6/fixture_guards.py
++++ learning/runs/v2/postovernight-long-D2-boundary-prepare-r7/fixture_guards.py
+@@ -1,25 +1,64 @@
+-"""Positive lifecycle fixture milestones. Empty dictionaries are not witnesses."""
++"""Preregistered lifecycle evidence classes; absence never implies direct reaping."""
++import math
++import os
++
++
+ def validate_fixture(receipt, events, absence, options, *, receipt_available):
+     assert receipt_available and receipt, 'mandatory receipt missing'
++    cls=options.get('expectation_class')
++    assert cls in {'accepted','failed_supervisor_alive','failed_blocked_parent_crash',
++                   'failed_with_prior_worker_reap','failed_no_child'}, 'unregistered expectation class'
++    assert receipt.get('accepted') is (cls=='accepted'), 'acceptance/class differs'
+     assert isinstance(receipt.get('ownership'),dict), 'explicit ownership inventory missing'
+     spawns=[x for x in events if x['kind']=='owned_spawn']
+     groups=receipt['ownership']
+-    if not spawns:
+-        assert not groups, 'owned group without spawn witness'
+-        assert options.get('resource_cap') is True, 'unregistered premature pre-child exit'
++    if cls=='failed_no_child':
++        assert options.get('resource_cap') is True and not spawns and groups=={}, 'pre-child ownership differs'
++        assert 'inner_wait' in receipt and 'worker_wait' in receipt and receipt['inner_wait'] is None and receipt['worker_wait'] is None, 'explicit pre-child no-wait proof missing'
+         assert any(x['kind']=='ownership' and x.get('ownership')=={} and x.get('owned_spawns')==[]
+                    for x in events), 'explicit pre-child empty spawn/ownership witness missing'
+         assert absence=={}, 'pre-child group evidence differs'
+     else:
++        assert spawns and set(groups)=={'supervisor','worker'}, 'positive owned inventory incomplete'
+         expected={x['owned_role'] for x in spawns}
+         assert set(groups)==expected==set(absence), 'positive owned inventory incomplete'
++        t0=float.fromhex(receipt['t0_monotonic_hex']) if cls=='accepted' else receipt.get('executor_t0_monotonic')
++        assert type(t0) in (int,float) and math.isfinite(t0), 'fixture clock missing'
++        def direct(role):
++            group=groups[role];pid=group['pid']
++            spawn=next((x for x in spawns if x['owned_role']==role and x['pid']==pid),None)
++            assert spawn is not None, 'spawn PID differs'
++            report=receipt.get('inner_wait' if role=='supervisor' else 'worker_wait')
++            assert report and report.get('pid')==pid and report.get('direct_child_reaped') is True, 'owned direct reap missing'
++            parent=groups['supervisor']['pid'] if role=='worker' else group['parent_at_registration']
++            assert type(report.get('reaped_by')) is int and report['reaped_by']==parent, 'direct wait parent differs'
++            raw=report.get('raw_wait_status');at=report.get('observed_monotonic')
++            assert type(raw) is int and 0<=raw<=65535 and (os.WIFEXITED(raw) or os.WIFSIGNALED(raw)), 'raw wait invalid'
++            assert type(report.get('returncode')) is int and os.waitstatus_to_exitcode(raw)==report['returncode'], 'raw wait mismatch'
++            assert type(at) in (int,float) and math.isfinite(at) and at>=max(t0,spawn['monotonic']), 'wait observation invalid'
++            if cls=='accepted':
++                cutoff=options.get('worker_seconds',8) if role=='worker' else options.get('inner_seconds',10)
++                assert at<t0+cutoff and report['returncode']==options['expected_exit'], 'normal wait raw/deadline differs'
++            else:
++                assert at<receipt['cleanup_until_monotonic'], 'failure wait deadline differs'
++            return report
+         for role in expected:
+-            pid=groups[role]['pid']
+-            assert any(x['owned_role']==role and x['pid']==pid for x in spawns), 'spawn PID differs'
+-            assert absence[role] is True, 'owned group survived/unproven'
+-            key='inner_wait' if role=='supervisor' else 'worker_wait'
+-            report=receipt.get(key)
+-            assert report and report.get('pid')==pid and report.get('direct_child_reaped') is True, 'owned direct reap missing'
++            assert groups[role]['pid']==groups[role]['pgid'] and groups[role]['new_session_verified'] is True, 'ownership identity differs'
++            assert groups[role]['group_absent'] is True and absence[role] is True, 'owned group survived/unproven'
++        inner=direct('supervisor')
++        if cls=='failed_blocked_parent_crash':
++            assert options.get('mode')=='blocked' and options.get('phase')=='inner:during-worker' and options.get('mutation')=='crash', 'wrong orphan fixture'
++            marker=next((x for x in events if x['kind']=='registered_worker_live_at_crash'),None)
++            assert marker and marker.get('worker_pid')==groups['worker']['pid'] and marker.get('supervisor_pid')==groups['supervisor']['pid'], 'positive registered/live crash milestone missing'
++            assert marker.get('registered') is True and marker.get('live_at_crash') is True and marker.get('blocked_entry') is True and marker.get('prior_worker_wait') is False, 'blocked-live/no-prior-report milestone missing'
++            assert inner['returncode']==7 and inner['raw_wait_status']==7<<8, 'deliberate inner crash not observed'
++            assert receipt.get('worker_wait') is None, 'fabricated wait in blocked-live crash fixture'
++            assert receipt.get('reaping',{}).get('worker')=={'status':'unproven','basis':'supervisor_dead_before_report'}, 'orphan reap must stay unproven'
++        else:
++            direct('worker')
++        if cls=='accepted':
++            from long_d2_executor import validate_wait_reports
++            validate_wait_reports(receipt,options['expected_exit'],options.get('outer_seconds',12))
+     if options.get('phase'):
+         assert any(x['kind']=='injection' and x['role']+':'+x['phase']==options['phase'] for x in events), 'requested injection missed'
+     if options.get('mode')=='wedged':
+--- learning/runs/v2/postovernight-long-D2-boundary-prepare-r6/long_d2.py
++++ learning/runs/v2/postovernight-long-D2-boundary-prepare-r7/long_d2.py
+@@ -31,10 +31,10 @@
+ import boundary_integrity as integrity
+ 
+ ORIGINAL_ROOT = Path('/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79')
+-PREPARE_REL = 'learning/runs/v2/postovernight-long-D2-boundary-prepare-r6'
++PREPARE_REL = 'learning/runs/v2/postovernight-long-D2-boundary-prepare-r7'
+ ROOT = Path(__file__).resolve().parents[4]
+-PROTOCOL_REL = 'learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r5.json'
+-PROTOCOL_SHA256 = '2296154b2d06ae7c43eff0dd34c0c8908d90b5e5611a9e336a65dc2e37c48379'
++PROTOCOL_REL = 'learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r6.json'
++PROTOCOL_SHA256 = '25421513899b203c39dcea7e5c0cee746ec9bc6f6360212b96548865425213fc'
+ CONFIG_SHA256 = '2ac814d3842228017d09669364a8391344722da56ad19f41ad9030dbb930c2db'
+ STATE_PATH = ORIGINAL_ROOT / 'learning/runs/v2-orchestration/state.json'
+ LIMIT = 6442450944
+@@ -1234,6 +1234,7 @@
+                     command_factory=None, guard_factory=Guard):
+     deadline=started+INNER_SECONDS
+     process=child=guard=None
++    worker_wait_attempted=False
+     stream=io.StringIO()
+     result=outcome_fields('identity_or_lease_failure')
+     try:
+@@ -1289,7 +1290,15 @@
+                 require(time.monotonic()<started+WORKER_SECONDS, 'Worker raw exit cutoff reached','wall_guard')
+                 time.sleep(life.remaining(started+WORKER_SECONDS,.02))
+             report=child.report
+-            life.CHANNEL.send(dict(kind='worker_wait',report=report,t0_monotonic_hex=started.hex()),deadline)
++            worker_wait_attempted=True  # Mark before send: even failed sends are never retried.
++            result['worker_wait_send_status']='attempted'
++            try:
++                life.CHANNEL.send(dict(kind='worker_wait',report=report,t0_monotonic_hex=started.hex()),deadline)
++            except BaseException as send_error:
++                result['worker_wait_send_status']='failed'
++                result['worker_wait_send_error']=repr(send_error)[:512]
++                raise
++            result['worker_wait_send_status']='sent'
+             require(report['observed_monotonic']<started+WORKER_SECONDS, 'Worker exit late','wall_guard')
+             require(owned.absent(process.pid,deadline), 'Worker descendant/group still live','publication_failure')
+             wr=read_json(args.output/'long-worker-result.json')
+@@ -1362,6 +1371,46 @@
+             stream.close, gate.close):
+             try: action()
+             except BaseException: pass
++        # The first inner receipt stays immutable. Later reap evidence travels
++        # only over the existing IPC, with the executor still sole signal owner.
++        if process is not None and child is None:
++            try:child=owned.Child(process)
++            except BaseException as child_error:
++                result['worker_reap_diagnostic']=('unproven: '+repr(child_error))[:512]
++        result['worker_wait_send_attempted']=worker_wait_attempted
++        if 'failure_ack_unavailable' not in result and child is not None:
++            try:
++                reap_by=min(until,life.POOL.until)-1.0
++                while child.report is None and time.monotonic()<reap_by:
++                    child.poll()
++                    if child.report is None:
++                        time.sleep(life.remaining(reap_by,.02))
++                    reap_by=min(reap_by,life.POOL.until-1.0)
++                if child.report is not None and not worker_wait_attempted:
++                    owned.validate_report(child.report,process.pid,os.getpid(),started,
++                                          time.monotonic(),before=min(until,life.POOL.until))
++                    worker_wait_attempted=True
++                    result['worker_wait_send_attempted']=True
++                    life.CHANNEL.send(dict(kind='worker_wait',report=child.report,
++                        t0_monotonic_hex=started.hex()),min(until,life.POOL.until))
++                    result['worker_wait_send_status']='sent'
++                elif child.report is None:
++                    result['worker_reap_diagnostic']='unproven: internal reap window exhausted'
++            except BaseException as reap_error:
++                result['worker_reap_diagnostic']=(('unproven: ' if child.report is None else '')+repr(reap_error))[:512]
++                if worker_wait_attempted:result['worker_wait_send_status']='failed_or_prior_attempt'
++        # Optional bounded diagnostics follow the immutable mandatory receipt.
++        # They never create an allowance, retry a send, or establish delivery.
++        if 'failure_ack_unavailable' not in result and process is not None:
++            try:
++                mandatory_failure(args.output/'inner-reap-diagnostic.json',
++                    dict(optional=True,worker_wait_send_attempted=worker_wait_attempted,
++                         worker_wait_send_status=result.get('worker_wait_send_status','prior_attempt_or_none'),
++                         worker_reap_diagnostic=result.get('worker_reap_diagnostic'),
++                         worker_wait_send_error=result.get('worker_wait_send_error'),
++                         worker_report_retained=child is not None and child.report is not None),
++                    min(until,life.POOL.until))
++            except BaseException:pass
+         try:
+             if guard is not None:
+                 for thread in (guard.thread,guard.verify_thread):
+--- learning/runs/v2/postovernight-long-D2-boundary-prepare-r6/long_d2_executor.py
++++ learning/runs/v2/postovernight-long-D2-boundary-prepare-r7/long_d2_executor.py
+@@ -216,6 +216,21 @@
+         c.require(time.monotonic()-self.guard.last_sample<=.5, 'Outer safety observation age exceeded')
+         if self.pool.until is not None:raise c.Stop('Executor watchdog failure latched')
+ 
++    def raw_inner_failure(self, report):
++        if report['returncode'] in (0,2):
++            return None
++        # This is the retained successful direct waitpid observation, not the
++        # process exit time and not this later handler's construction time.
++        owned.validate_report(report, self.child.process.pid, os.getpid(), self.t0,
++                              time.monotonic())
++        c.require(report is self.child.report, 'Inner raw report is not retained direct observation')
++        error=c.Stop('Inner raw failure','publication_failure')
++        error.first_failure_descriptor=dict(timestamp=report['observed_monotonic'],
++            kind='direct_wait_observation', outcome='publication_failure', role='outer',
++            timing_basis='successful_direct_waitpid_observation', signal=None,
++            pid=report['pid'], reaped_by=report['reaped_by'])
++        return error
++
+     def monitor(self):
+         # Bind this watchdog's stop request. A failure during normal join must
+         # not revive a retiring watchdog or inherit its requested stop.
+@@ -229,7 +244,7 @@
+                     number=self.latch.requested_signal
+                     self.forwarded.append(dict(signal=int(number),recorded_monotonic=now,
+                                                record_precedes_forward=True))
+-                    self.fail(c.Stop('Executor recorded cancellation','cancelled'),self.latch.first_at)
++                    self.fail(c.Stop('Executor recorded cancellation','cancelled'),self.latch.first_cancel_at)
+                     for record in tuple(self.groups.values()):
+                         if number==signal.SIGTERM:owned.signal_once(record,number)
+                         else:
+@@ -242,7 +257,9 @@
+                     if now>=self.t0+NORMAL_SECONDS:self.fail(c.Stop('Outer cutoff','wall_guard'),self.t0+NORMAL_SECONDS)
+                     if now-self.guard.last_sample>.5:self.fail(c.Stop('Outer sample age','resource_stop'))
+                 report=self.child.poll() if self.child is not None else None
+-                if report is not None and report['returncode'] not in (0,2):self.fail(c.Stop('Inner raw failure','publication_failure'))
++                if report is not None:
++                    error=self.raw_inner_failure(report)
++                    if error is not None:self.fail(error)
+                 if self.pool.until is not None:
+                     for record in tuple(self.groups.values()):
+                         owned.signal_once(record,signal.SIGTERM)
+@@ -257,13 +274,17 @@
+                 if self.pool.until is None:self.fail(error)
+                 elif time.monotonic()>=self.pool.until:os._exit(1)
+ 
+-    def pump(self):
+-        deadline=self.pool.until or self.t0+c.INNER_SECONDS
++    def pump(self, deadline_limit=None):
++        deadline=min(self.pool.until or self.t0+c.INNER_SECONDS,
++                     deadline_limit if deadline_limit is not None else math.inf)
++        life.remaining(deadline)
+         channels=[x for x in (self.super_channel,self.worker_channel) if x is not None and not getattr(x,'peer_closed',False)]
+-        readable,_,_=select.select([x.sock for x in channels],[],[],.005)
++        readable,_,_=select.select([x.sock for x in channels],[],[],life.remaining(deadline,.005))
+         for channel in channels:
+             if channel.sock not in readable:continue
+-            deadline=self.pool.until or self.t0+c.INNER_SECONDS
++            deadline=min(self.pool.until or self.t0+c.INNER_SECONDS,
++                         deadline_limit if deadline_limit is not None else math.inf)
++            life.remaining(deadline)
+             try:
+                 value,fds=channel.receive(deadline)
+             except ConnectionResetError as receive_error:
+@@ -294,7 +315,8 @@
+                 self.pool.fail(value['reason'],first,value.get('descriptor'),peer=True)
+                 self.latch.phase='FAILURE'
+                 channel.send(dict(kind='failure_ack',first_monotonic_hex=self.pool.first.hex(),
+-                    cleanup_until_monotonic_hex=self.pool.until.hex(),t0_monotonic_hex=self.t0.hex(),descriptor=self.pool.first_global),self.pool.until)
++                    cleanup_until_monotonic_hex=self.pool.until.hex(),t0_monotonic_hex=self.t0.hex(),descriptor=self.pool.first_global),
++                    min(self.pool.until if deadline_limit is None else self.pool.until-.25,deadline))
+             elif kind=='worker_done':
+                 c.require(channel is self.worker_channel and sender==self.groups.get('worker',{}).get('pid'), 'Worker close sender differs')
+                 self.groups['worker']['done']=True
+@@ -305,6 +327,8 @@
+                           and report['direct_child_reaped'] is True
+                           and os.waitstatus_to_exitcode(report['raw_wait_status'])==report['returncode']
+                           and self.t0<=report['observed_monotonic']<=time.monotonic(), 'Invalid direct-parent worker wait report')
++                owned.validate_report(report,worker.get('pid'),sender,self.t0,time.monotonic(),
++                                      before=self.pool.until or self.t0+c.WORKER_SECONDS)
+                 self.worker_wait=report
+             elif kind=='inner_ready':
+                 c.require(channel is self.super_channel and sender==self.child.process.pid,'Inner ready sender differs')
+@@ -362,11 +386,40 @@
+             except BaseException as cleanup_error:
+                 if len(cleanup_errors)<8:cleanup_errors.append(repr(cleanup_error))
+             time.sleep(max(0,min(.02,self.pool.until-.25-time.monotonic())))
++        # Finite best-effort drain inside the existing publication reserve.
++        # No promise that queued datagrams will arrive or be schedulable here.
++        for _ in range(4):
++            try:
++                with self.ipc_lock:
++                    life.remaining(self.pool.until-.25)
++                    self.pump(deadline_limit=self.pool.until-.25)
++            except BaseException as cleanup_error:
++                if len(cleanup_errors)<8:cleanup_errors.append(repr(cleanup_error))
++        reaping={}
++        for role,report,parent in (
++                ('supervisor',None if self.child is None else self.child.report,os.getpid()),
++                ('worker',self.worker_wait,self.groups.get('supervisor',{}).get('pid'))):
++            status='unproven' if role in self.groups else 'not_registered'
++            basis='direct_wait_report_missing'
++            if report is not None:
++                try:
++                    owned.validate_report(report,self.groups[role]['pid'],parent,self.t0,
++                                          time.monotonic(),before=self.pool.until)
++                    if role=='supervisor':
++                        c.require(report is self.child.report and report['pid']==self.child.process.pid,
++                                  'Supervisor direct observation source differs')
++                    status='direct_reaped';basis='validated_direct_parent_waitpid_report'
++                except BaseException as report_error:
++                    if len(cleanup_errors)<8:cleanup_errors.append(repr(report_error))
++            elif role=='worker' and self.child is not None and self.child.report is not None:
++                basis='supervisor_dead_before_report'
++            reaping[role]=dict(status=status,basis=basis)
+         result=dict(schema='long_d2_outer_acceptance_v2',accepted=False,
+             experiment_status='failed' if self.cleanup_complete else 'failed_partial',expected_exit_code=1,
+             error=self.pool.reason,trigger_error=repr(error),traceback=traceback.format_exc(),
++            executor_t0_monotonic=self.t0,
+             first_failure_monotonic=self.pool.first,cleanup_until_monotonic=self.pool.until,
+-            cleanup_complete=self.cleanup_complete,recovery_proven=self.recovery_proven,
++            cleanup_complete=self.cleanup_complete,recovery_proven=self.recovery_proven,reaping=reaping,
+             cleanup_errors=cleanup_errors,first_local_failure=self.pool.first_local,
+             first_global_failure=self.pool.first_global,ownership=self.groups,
+             inner_wait=None if self.child is None else self.child.report,
+@@ -447,9 +500,11 @@
+             while self.child.poll() is None:
+                 with self.ipc_lock:self.pump()
+                 self.authority(False)
++            inner=self.child.report
++            error=self.raw_inner_failure(inner)
++            if error is not None:raise error  # Preserve source time before any terminal IO/drain.
+             for _ in range(4):
+                 with self.ipc_lock:self.pump()  # Finite drain of bounded terminal records.
+-            inner=self.child.report
+             c.require(inner['returncode'] in (0,2) and inner['observed_monotonic']<self.t0+c.INNER_SECONDS,
+                       'Inner raw exit/wall invalid')
+             c.require(self.worker_wait is not None and self.worker_wait['returncode']==inner['returncode']
+--- learning/runs/v2/postovernight-long-D2-boundary-prepare-r6/os_checks.py
++++ learning/runs/v2/postovernight-long-D2-boundary-prepare-r7/os_checks.py
+@@ -16,6 +16,10 @@
+ 
+ 
+ def case(directory,name,options,expected):
++    # Preregister from the injected scenario, before any receipt exists.
++    cls=('accepted' if expected in (0,2) else 'failed_no_child' if options.get('resource_cap')
++         else 'failed_blocked_parent_crash' if name=='parent-death' else 'failed_supervisor_alive')
++    options=dict(options,expectation_class=cls,expected_exit=expected)
+     root=directory/name;root.mkdir()
+     (root/'capsule-manifest.json').write_text('{"files":{}}')
+     (root/'options.json').write_text(json.dumps(options,sort_keys=True,indent=2)+'\n')
+--- /dev/null
++++ learning/runs/v2/postovernight-long-D2-boundary-prepare-r7/prepare_candidate.py
+@@ -0,0 +1,180 @@
++"""One owned source preparation; never executes the candidate or validation."""
++from pathlib import Path
++import hashlib, json, shutil, datetime
++H=Path(__file__).resolve().parent
++ROOT=H.parents[3]
++BASE=H.parent/'postovernight-long-D2-boundary-prepare-r6'
++def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
++def save(p,v):p.write_text(json.dumps(v,sort_keys=True,indent=2,allow_nan=False)+'\n')
++def replace(p,old,new):
++    text=p.read_text()
++    assert text.count(old)==1,(p,old[:120],text.count(old))
++    p.write_text(text.replace(old,new))
++pins=json.loads((BASE/'parent-frozen-pins.json').read_text())
++assert len(pins)==8
++for n,v in pins.items():assert sha(ROOT/n)==v,(n,v)
++required={
++'learning/runs/v2-orchestration/postovernight-long-D2-boundary-review-r6-parent-reconciliation.json':'80fadbc613945121bed2e4d191ca43eace6962c6d7bea79929fed12fa1905838',
++'learning/runs/v2-orchestration/postovernight-long-D2-startup-reap-sonnet-r1-parent-reconciliation.json':'57547930fe3f0e167fb2068d21f0e61e861b458415abbcfea41045f407539b75',
++'learning/runs/v2-orchestration/postovernight-long-D2-boundary-policy-parent-reconciliation-r1.json':'95977b36b45ad1ea670a601b51bb70198d0c0f37bb76c237b6ac032e535ebe9d',
++'learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r5.json':'2296154b2d06ae7c43eff0dd34c0c8908d90b5e5611a9e336a65dc2e37c48379'}
++for n,v in required.items():assert sha(ROOT/n)==v,n
++inputs={**pins,**required}
++for n in ['docs/implementation-plan-v2.md','docs/SPEC_PRIVILEGED_VIT_RL.md','learning/runs/v2-orchestration/state.json','learning/runs/v2-orchestration/postovernight-long-D2-boundary-repair-r4-task.md','learning/runs/v2-orchestration/postovernight-long-D2-boundary-repair-r7-task.md']:
++    inputs[n]=sha(ROOT/n)
++for folder in ['postovernight-long-D2-boundary-review-r6','postovernight-long-D2-boundary-startup-reap-diagnosis-sonnet-r1']:
++    for p in (H.parent/folder).rglob('*'):
++        if p.is_file():inputs[str(p.relative_to(ROOT))]=sha(p)
++save(H/'input-pins.json',dict(schema='r7_input_pins_v1',files=inputs,base_pins_verified=8,context_only_mutable_state='learning/runs/v2-orchestration/state.json',at_utc=datetime.datetime.now(datetime.timezone.utc).isoformat()))
++(H/'r6-source').mkdir()
++for p in BASE.glob('*.py'):
++    shutil.copyfile(p,H/p.name);shutil.copyfile(p,H/'r6-source'/p.name)
++shutil.copytree(BASE/'original-source',H/'original-source')
++assert {p.name:sha(p) for p in (BASE/'original-source').iterdir()}=={p.name:sha(p) for p in (H/'original-source').iterdir()}
++# Exact current external r5, with only candidate paths and specified semantics.
++p=json.loads((ROOT/'learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r5.json').read_text())
++p['controller']=str((H/'long_d2.py').relative_to(ROOT))
++t=p['terminal_lifecycle'];t['executor']=str((H/'long_d2_executor.py').relative_to(ROOT))
++t.update(failure_observation_time='Successful direct waitpid observation time, never inferred process-exit time; retained source timestamp/PID/parent/raw coherence validated before drain. Earlier guard/latch/peer descriptors win; equal-time stable existing/source then guard then cancel then alarm then deadline, and first-global ties retain prior entry.',
++    failed_inner_reap_reserve_seconds=1.0,
++    failed_inner_direct_reaping='Mandatory immutable inner failure receipt first; after executor failure ACK and nonblocking closes, exact owned child is polled until min(current shared pool,acknowledged pool)-1.0. No signals, reset, extra allowance or ACK retry; one worker_wait send attempt marked before send on either path. Missing ACK skips extended wait.',
++    failed_outer_direct_reaping='At most four existing IPC pumps before constructing failed receipt, each bounded by current shared until-.25; invalid reports reject. No queued-message delivery guarantee. Derived reaping statuses use validated direct reports only; group absence is independent cleanup fact. Missing/cap-truncated/uninterruptible reap stays unproven; no extra IO allowance.')
++save(H/'protocol-r6-proposal.json',p)
++controller=H/'long_d2.py';executor=H/'long_d2_executor.py'
++replace(controller,"PREPARE_REL = 'learning/runs/v2/postovernight-long-D2-boundary-prepare-r6'","PREPARE_REL = 'learning/runs/v2/postovernight-long-D2-boundary-prepare-r7'")
++replace(controller,"PROTOCOL_REL = 'learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r5.json'","PROTOCOL_REL = 'learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r6.json'")
++replace(controller,"PROTOCOL_SHA256 = '2296154b2d06ae7c43eff0dd34c0c8908d90b5e5611a9e336a65dc2e37c48379'","PROTOCOL_SHA256 = '"+sha(H/'protocol-r6-proposal.json')+"'")
++replace(executor,"    def monitor(self):",'''    def raw_inner_failure(self, report):
++        if report['returncode'] in (0,2):
++            return None
++        # This is the retained successful direct waitpid observation, not the
++        # process exit time and not this later handler's construction time.
++        owned.validate_report(report, self.child.process.pid, os.getpid(), self.t0,
++                              time.monotonic())
++        c.require(report is self.child.report, 'Inner raw report is not retained direct observation')
++        error=c.Stop('Inner raw failure','publication_failure')
++        error.first_failure_descriptor=dict(timestamp=report['observed_monotonic'],
++            kind='direct_wait_observation', outcome='publication_failure', role='outer',
++            timing_basis='successful_direct_waitpid_observation', signal=None,
++            pid=report['pid'], reaped_by=report['reaped_by'])
++        return error
++
++    def monitor(self):''')
++replace(executor,"self.fail(c.Stop('Executor recorded cancellation','cancelled'),self.latch.first_at)","self.fail(c.Stop('Executor recorded cancellation','cancelled'),self.latch.first_cancel_at)")
++replace(executor,"                if report is not None and report['returncode'] not in (0,2):self.fail(c.Stop('Inner raw failure','publication_failure'))",'''                if report is not None:
++                    error=self.raw_inner_failure(report)
++                    if error is not None:self.fail(error)''')
++replace(executor,'''            for _ in range(4):
++                with self.ipc_lock:self.pump()  # Finite drain of bounded terminal records.
++            inner=self.child.report''','''            inner=self.child.report
++            error=self.raw_inner_failure(inner)
++            if error is not None:raise error  # Preserve source time before any terminal IO/drain.
++            for _ in range(4):
++                with self.ipc_lock:self.pump()  # Finite drain of bounded terminal records.''')
++replace(executor,"    def pump(self):\n        deadline=self.pool.until or self.t0+c.INNER_SECONDS",'''    def pump(self, deadline_limit=None):
++        deadline=min(self.pool.until or self.t0+c.INNER_SECONDS,
++                     deadline_limit if deadline_limit is not None else math.inf)
++        life.remaining(deadline)''')
++replace(executor,"select.select([x.sock for x in channels],[],[],.005)","select.select([x.sock for x in channels],[],[],life.remaining(deadline,.005))")
++replace(executor,"            deadline=self.pool.until or self.t0+c.INNER_SECONDS",'''            deadline=min(self.pool.until or self.t0+c.INNER_SECONDS,
++                         deadline_limit if deadline_limit is not None else math.inf)
++            life.remaining(deadline)''')
++replace(executor,"                self.worker_wait=report",'''                owned.validate_report(report,worker.get('pid'),sender,self.t0,time.monotonic(),
++                                      before=self.pool.until or self.t0+c.WORKER_SECONDS)
++                self.worker_wait=report''')
++replace(executor,"        result=dict(schema='long_d2_outer_acceptance_v2',accepted=False,",'''        # Finite best-effort drain inside the existing publication reserve.
++        # No promise that queued datagrams will arrive or be schedulable here.
++        for _ in range(4):
++            try:
++                with self.ipc_lock:
++                    life.remaining(self.pool.until-.25)
++                    self.pump(deadline_limit=self.pool.until-.25)
++            except BaseException as cleanup_error:
++                if len(cleanup_errors)<8:cleanup_errors.append(repr(cleanup_error))
++        reaping={}
++        for role,report,parent in (
++                ('supervisor',None if self.child is None else self.child.report,os.getpid()),
++                ('worker',self.worker_wait,self.groups.get('supervisor',{}).get('pid'))):
++            status='unproven' if role in self.groups else 'not_registered'
++            basis='direct_wait_report_missing'
++            if report is not None:
++                try:
++                    owned.validate_report(report,self.groups[role]['pid'],parent,self.t0,
++                                          time.monotonic(),before=self.pool.until)
++                    if role=='supervisor':
++                        c.require(report is self.child.report and report['pid']==self.child.process.pid,
++                                  'Supervisor direct observation source differs')
++                    status='direct_reaped';basis='validated_direct_parent_waitpid_report'
++                except BaseException as report_error:
++                    if len(cleanup_errors)<8:cleanup_errors.append(repr(report_error))
++            elif role=='worker' and self.child is not None and self.child.report is not None:
++                basis='supervisor_dead_before_report'
++            reaping[role]=dict(status=status,basis=basis)
++        result=dict(schema='long_d2_outer_acceptance_v2',accepted=False,''')
++replace(executor,"            cleanup_complete=self.cleanup_complete,recovery_proven=self.recovery_proven,", "            cleanup_complete=self.cleanup_complete,recovery_proven=self.recovery_proven,reaping=reaping,")
++# Own-child validation helper is additive. Existing process ownership functions stay byte equal.
++with (H/'processes.py').open('a') as f:f.write('''
++
++def validate_report(report, pid, parent, t0, now, *, before=None):
++    """Validate direct observation evidence; absence never supplies a report."""
++    import math
++    if (not isinstance(report,dict) or type(pid) is not int or pid<=1
++            or type(parent) is not int or parent<=1
++            or type(report.get('pid')) is not int or report['pid']!=pid
++            or type(report.get('reaped_by')) is not int or report['reaped_by']!=parent
++            or report.get('direct_child_reaped') is not True
++            or type(report.get('raw_wait_status')) is not int or report['raw_wait_status']<0
++            or type(report.get('returncode')) is not int):
++        raise life.Stop('Invalid direct wait report identity/status')
++    raw=report['raw_wait_status'];stamp=report.get('observed_monotonic')
++    if (not (os.WIFEXITED(raw) or os.WIFSIGNALED(raw))
++            or os.waitstatus_to_exitcode(raw)!=report['returncode']
++            or type(stamp) not in (int,float) or not math.isfinite(stamp)
++            or not t0<=stamp<=now or before is not None and stamp>=before):
++        raise life.Stop('Invalid direct wait report observation')
++    return report
++''')
++replace(controller,"    process=child=guard=None\n    stream=io.StringIO()", "    process=child=guard=None\n    worker_wait_attempted=False\n    stream=io.StringIO()")
++replace(controller,"            life.CHANNEL.send(dict(kind='worker_wait',report=report,t0_monotonic_hex=started.hex()),deadline)", "            worker_wait_attempted=True  # Mark before send: even failed sends are never retried.\n            life.CHANNEL.send(dict(kind='worker_wait',report=report,t0_monotonic_hex=started.hex()),deadline)")
++needle="""        try:
++            if guard is not None:
++                for thread in (guard.thread,guard.verify_thread):"""
++new="""        # The first inner receipt stays immutable. Later reap evidence travels
++        # only over the existing IPC, with the executor still sole signal owner.
++        if process is not None and child is None:
++            try:child=owned.Child(process)
++            except BaseException as child_error:
++                result['worker_reap_diagnostic']=repr(child_error)[:512]
++        result['worker_wait_send_attempted']=worker_wait_attempted
++        if 'failure_ack_unavailable' not in result and child is not None:
++            try:
++                reap_by=min(until,life.POOL.until)-1.0
++                while child.report is None and time.monotonic()<reap_by:
++                    child.poll()
++                    if child.report is None:
++                        time.sleep(life.remaining(reap_by,.02))
++                    reap_by=min(reap_by,life.POOL.until-1.0)
++                if child.report is not None and not worker_wait_attempted:
++                    owned.validate_report(child.report,process.pid,os.getpid(),started,
++                                          time.monotonic(),before=min(until,life.POOL.until))
++                    worker_wait_attempted=True
++                    result['worker_wait_send_attempted']=True
++                    life.CHANNEL.send(dict(kind='worker_wait',report=child.report,
++                        t0_monotonic_hex=started.hex()),min(until,life.POOL.until))
++                    result['worker_wait_send_status']='sent'
++                elif child.report is None:
++                    result['worker_reap_diagnostic']='unproven: internal reap window exhausted'
++            except BaseException as reap_error:
++                result['worker_reap_diagnostic']=repr(reap_error)[:512]
++                if worker_wait_attempted:result['worker_wait_send_status']='failed_or_prior_attempt'
++        # Retain bounded diagnostics in memory/IPC where possible; never rewrite
++        # the immutable mandatory receipt or claim a delivered datagram here.
++        try:
++            if guard is not None:
++                for thread in (guard.thread,guard.verify_thread):"""
++replace(controller,needle,new)
++# Keep fallback/send diagnostics bounded and visible to outer receipt through
++# the same existing failure notification? No second ACK or new IPC schema.
++# Diagnostic memory is returned only for pure instrumentation; immutable first receipt stays honest.
++save(H/'preparation-copy.json',dict(base=str(BASE),copied_sources={p.name:sha(p) for p in (H/'r6-source').iterdir()},original_fixture_files={p.name:sha(p) for p in (H/'original-source').iterdir()},old_envelopes_copied=False,production_freeze=False))
++print('eight parent pins and four authority pins verified; owned candidate sources copied and repaired')
+--- learning/runs/v2/postovernight-long-D2-boundary-prepare-r6/processes.py
++++ learning/runs/v2/postovernight-long-D2-boundary-prepare-r7/processes.py
+@@ -105,3 +105,23 @@
+         pgid,rss=map(int,fields)
+         if pgid in totals:totals[pgid]+=rss*1024
+     return max(totals.values(),default=0)
++
++
++def validate_report(report, pid, parent, t0, now, *, before=None):
++    """Validate direct observation evidence; absence never supplies a report."""
++    import math
++    if (not isinstance(report,dict) or type(pid) is not int or pid<=1
++            or type(parent) is not int or parent<=1
++            or type(report.get('pid')) is not int or report['pid']!=pid
++            or type(report.get('reaped_by')) is not int or report['reaped_by']!=parent
++            or report.get('direct_child_reaped') is not True
++            or type(report.get('raw_wait_status')) is not int or not 0<=report['raw_wait_status']<=65535
++            or type(report.get('returncode')) is not int):
++        raise life.Stop('Invalid direct wait report identity/status')
++    raw=report['raw_wait_status'];stamp=report.get('observed_monotonic')
++    if (not (os.WIFEXITED(raw) or os.WIFSIGNALED(raw))
++            or os.waitstatus_to_exitcode(raw)!=report['returncode']
++            or type(stamp) not in (int,float) or not math.isfinite(stamp)
++            or not t0<=stamp<=now or before is not None and stamp>=before):
++        raise life.Stop('Invalid direct wait report observation')
++    return report
+--- learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r5.json
++++ learning/runs/v2/postovernight-long-D2-boundary-prepare-r7/protocol-r6-proposal.json
+@@ -423,7 +423,7 @@
+   },
+   "config_path": "learning/runs/v2-orchestration/postovernight-long-D2-r2-config.json",
+   "config_sha256": "2ac814d3842228017d09669364a8391344722da56ad19f41ad9030dbb930c2db",
+-  "controller": "learning/runs/v2/postovernight-long-D2-boundary-prepare-r6/long_d2.py",
++  "controller": "learning/runs/v2/postovernight-long-D2-boundary-prepare-r7/long_d2.py",
+   "design": "learning/runs/v2/postovernight-long-D2-terminal-design-codex-r1/plan.json",
+   "design_sha256": "272adb81252f8d071b961f6928dbad9981b4f49b5f73ce4c8636daa3a51b8712",
+   "entry_control": "learning/runs/v2/milestone3-D2-curriculum-r1/checkpoint-000010-candidate.pt.evaluation.json",
+@@ -523,15 +523,19 @@
+     "clock_handoff_schema": "long_d2_owned_start_v1",
+     "clock_origin": "executor_T0_before_ordinary_imports",
+     "consumer_direct_reaping": "both exact parent wait reports; normal raw0/2; PIDs/PGIDs/parent chain and finite T0-relative worker/inner cutoffs; parent outer raw/wall and current byte/registration/summary checks retained",
+-    "executor": "learning/runs/v2/postovernight-long-D2-boundary-prepare-r6/long_d2_executor.py",
++    "executor": "learning/runs/v2/postovernight-long-D2-boundary-prepare-r7/long_d2_executor.py",
+     "existing_supervisor_reserve_split_seconds": {
+       "inner": 30,
+       "outer": 30
+     },
++    "failed_inner_direct_reaping": "Mandatory immutable inner failure receipt first; after executor failure ACK and nonblocking closes, exact owned child is polled until min(current shared pool,acknowledged pool)-1.0. No signals, reset, extra allowance or ACK retry; one worker_wait send attempt marked before send on either path. Missing ACK skips extended wait.",
++    "failed_inner_reap_reserve_seconds": 1.0,
++    "failed_outer_direct_reaping": "At most four existing IPC pumps before constructing failed receipt, each bounded by current shared until-.25; invalid reports reject. No queued-message delivery guarantee. Derived reaping statuses use validated direct reports only; group absence is independent cleanup fact. Missing/cap-truncated/uninterruptible reap stays unproven; no extra IO allowance.",
+     "failed_receipt_cleanup_wait_reserve_seconds": 0.25,
+     "failed_receipt_unproven_cleanup": "mandatory failed_partial receipt with cleanup_complete=false; owned cleanup continues to unchanged shared absolute deadline; never acceptance",
+     "failure_cleanup_deadline_rule": "min(first_failure_monotonic+10,T0+7210);shared_all_participants;never_reset",
+     "failure_cleanup_total_seconds": 10,
++    "failure_observation_time": "Successful direct waitpid observation time, never inferred process-exit time; retained source timestamp/PID/parent/raw coherence validated before drain. Earlier guard/latch/peer descriptors win; equal-time stable existing/source then guard then cancel then alarm then deadline, and first-global ties retain prior entry.",
+     "final_decision_policy": "all_owned_teardown_and_normal_IO_before_finite_D;no_IO_unmask_or_restore_after_D;os._exit",
+     "inner_publication_exit_deadline_seconds": 7170,
+     "internal_terminal_semantics": "provisional_internal_decision",
+--- learning/runs/v2/postovernight-long-D2-boundary-prepare-r6/run_unit_suite.py
++++ learning/runs/v2/postovernight-long-D2-boundary-prepare-r7/run_unit_suite.py
+@@ -6,13 +6,17 @@
+ import unittest
+ import test_repairs
+ import test_boundary
++import test_r7
+ 
+ def main():
+-    suite=unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromModule(module) for module in (test_repairs,test_boundary))
++    suite=unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromModule(module) for module in (test_r7,test_repairs,test_boundary))
++    planned=[test.id() for module_suite in suite for class_suite in module_suite for test in class_suite]
+     result=unittest.TextTestRunner(verbosity=2,failfast=True).run(suite)
+     forbidden=[name for name in sys.modules if name.split('.')[0] in ('torch','numpy','dodge_rl')]
+     report=dict(tests_run=result.testsRun,failures=len(result.failures),errors=len(result.errors),skipped=len(result.skipped),
+-                unexpected_successes=len(result.unexpectedSuccesses),successful=result.wasSuccessful() and not forbidden,
++                unexpected_successes=len(result.unexpectedSuccesses),planned_tests=planned,
++                failed_tests=[test.id() for test,_ in result.failures],error_tests=[test.id() for test,_ in result.errors],
++                unrun_tests=planned[result.testsRun:],successful=result.wasSuccessful() and not forbidden,
+                 forbidden_imports=forbidden,scope='real stdlib classes, synthetic clocks/files/peers; no OS lifecycle matrix, ML/native imports, or performance claim',
+                 executable_observed=sys.executable,argv=sys.argv,validation_dir=os.environ['VALIDATION_DIR'])
+     (Path(os.environ['VALIDATION_DIR']).parent/'suite-result.json').write_text(json.dumps(report,sort_keys=True,indent=2)+'\n')
+--- learning/runs/v2/postovernight-long-D2-boundary-prepare-r6/source_equality.py
++++ learning/runs/v2/postovernight-long-D2-boundary-prepare-r7/source_equality.py
+@@ -40,7 +40,9 @@
+     pins={str(c.ORIGINAL_ROOT/k):v for k,v in p['base_identity']['sources'].items()}
+     c.verify_files(pins)
+     assert len(pins)==75
+-    assert (H/'processes.py').read_bytes()==(frozen/'processes.py').read_bytes()
++    old_processes=blocks(frozen/'processes.py');new_processes=blocks(H/'processes.py')
++    assert all(new_processes[k]==v for k,v in old_processes.items())
++    assert set(new_processes)-set(old_processes)=={'validate_report'}
+     assert c.sha(c.ORIGINAL_ROOT/p['config_path'])==c.CONFIG_SHA256
+     result.update(legacy75_verified=pins,process_ownership_helper_equal=True,config_exact=True,
+                   fixed_5s_integrity_predicates=False,periodic_verifier_threads=False,
+--- learning/runs/v2/postovernight-long-D2-boundary-prepare-r6/synthetic.py
++++ learning/runs/v2/postovernight-long-D2-boundary-prepare-r7/synthetic.py
+@@ -57,6 +57,7 @@
+ 
+ def install_hooks(root,options,role):
+     fired=False;writers=set();final_execution=[None];owned_spawns=[]
++    registered_worker=[None];worker_wait_attempted=[False]
+     event_path=root/(role+'-events.jsonl')
+     def event(kind,**fields):
+         with event_path.open('a') as stream:
+@@ -204,9 +205,36 @@
+             if role=='inner' and owned_role=='worker':trigger('spawn-before-registration')
+         return result
+     subprocess.Popen=popen
++    real_receive=life.Channel.receive
++    def receiving(channel,*a,**kw):
++        value,fds=real_receive(channel,*a,**kw)
++        if role=='inner' and value.get('kind')=='registered':registered_worker[0]=value['worker_pid']
++        return value,fds
++    life.Channel.receive=receiving
++    real_send=life.Channel.send
++    def sending(channel,value,*a,**kw):
++        if role=='inner' and value.get('kind')=='worker_wait':worker_wait_attempted[0]=True
++        return real_send(channel,value,*a,**kw)
++    life.Channel.send=sending
+     real_poll=owned.Child.poll
+     def polling(child):
+-        if role=='inner' and child.process.args[3:4]==['worker']:trigger('during-worker')
++        if role=='inner' and child.process.args[3:4]==['worker']:
++            if (not fired and options.get('expectation_class')=='failed_blocked_parent_crash'):
++                # Require the blocked worker's positive marker and current live
++                # parent/PID census before the deliberately injected crash.
++                by=life.POOL.deadline(life.POOL.t0+c.WORKER_SECONDS)
++                while True:
++                    life.remaining(by)
++                    path=root/'worker-events.jsonl'
++                    markers=[] if not path.exists() else [json.loads(line) for line in path.read_text().splitlines()]
++                    if any(x['kind']=='blocked_entry' and x.get('pid')==child.process.pid for x in markers):break
++                    life.ACTIVE.check();time.sleep(life.remaining(by,.01))
++                rows=owned.census(by)
++                live=any(x['pid']==child.process.pid and x['ppid']==os.getpid() for x in rows)
++                c.require(registered_worker[0]==child.process.pid and live and child.report is None and not worker_wait_attempted[0], 'Blocked crash milestone unavailable')
++                event('registered_worker_live_at_crash',worker_pid=child.process.pid,supervisor_pid=os.getpid(),
++                      registered=True,live_at_crash=True,blocked_entry=True,prior_worker_wait=False)
++            trigger('during-worker')
+         return real_poll(child)
+     owned.Child.poll=polling
+     return trigger,event
+--- learning/runs/v2/postovernight-long-D2-boundary-prepare-r6/test_boundary.py
++++ learning/runs/v2/postovernight-long-D2-boundary-prepare-r7/test_boundary.py
+@@ -203,17 +203,19 @@
+         with self.assertRaisesRegex(c.Stop,'Unexpected legacy module origin'):c.check_module_origins(identity,self.d,{'dodge_rl.lazy':types.SimpleNamespace(__file__='/wrong/module.py')})
+ 
+     def test_17_stale_old_pyc_fresh_prefix_control(self):
++        import importlib.machinery
++        import py_compile
+         source=self.d/'toy.py';source.write_text('value="WRONG"\n')
+-        code='import py_compile,sys;py_compile.compile(sys.argv[1],doraise=True)'
+-        env=dict(os.environ);env.pop('PYTHONPYCACHEPREFIX',None)
+-        subprocess.run([sys.executable,'-B','-c',code,str(source)],env=env,check=True,capture_output=True)
+-        stat=source.stat();source.write_text('value="RIGHT"\n');os.utime(source,ns=(stat.st_atime_ns,stat.st_mtime_ns))
+-        child='import sys;sys.path.insert(0,sys.argv[1]);import toy;print(toy.value)'
+-        old=subprocess.run([sys.executable,'-B','-c',child,str(self.d)],env=env,check=True,text=True,capture_output=True)
+-        cache=self.d/'fresh';cache.mkdir();env.update(PYTHONPYCACHEPREFIX=str(cache),PYTHONDONTWRITEBYTECODE='1')
+-        fresh=subprocess.run([sys.executable,'-B','-c',child,str(self.d)],env=env,check=True,text=True,capture_output=True)
+-        self.assertEqual(old.stdout.strip(),'WRONG');self.assertEqual(fresh.stdout.strip(),'RIGHT');self.assertFalse(any(cache.iterdir()))
+-        c.save(self.d/'pyc-control.json',{'old_B_only':old.stdout.strip(),'fresh_prefix':fresh.stdout.strip(),'raw_exits':[old.returncode,fresh.returncode]})
++        # Patch only this fixture's cache prefix; never touch an original cache.
++        with patch.object(sys,'pycache_prefix',None):
++            py_compile.compile(str(source),doraise=True)
++            st=source.stat();source.write_text('value="RIGHT"\n');os.utime(source,ns=(st.st_atime_ns,st.st_mtime_ns))
++            old={};exec(importlib.machinery.SourceFileLoader('toy',str(source)).get_code('toy'),old)
++        cache=self.d/'fresh';cache.mkdir()
++        with patch.object(sys,'pycache_prefix',str(cache)):
++            fresh={};exec(importlib.machinery.SourceFileLoader('toy',str(source)).get_code('toy'),fresh)
++        self.assertEqual(old['value'],'WRONG');self.assertEqual(fresh['value'],'RIGHT');self.assertFalse(any(cache.iterdir()))
++        c.save(self.d/'pyc-control.json',{'old_B_only':old['value'],'fresh_prefix':fresh['value'],'in_process_only':True})
+ 
+     def summary_fixture(self):
+         registration={k:'a'*64 for k in ('protocol_sha256','config_sha256','identity_sha256','classification_sha256','reservation_sha256')}
+--- /dev/null
++++ learning/runs/v2/postovernight-long-D2-boundary-prepare-r7/test_r7.py
+@@ -0,0 +1,366 @@
++"""r7 actual call-path regressions. Fake children/clocks/channels, no OS lifecycle."""
++from pathlib import Path
++from types import SimpleNamespace as NS
++from unittest.mock import patch
++import ast
++import copy
++import json
++import math
++import os
++import signal
++import tempfile
++import threading
++import unittest
++import lifecycle as life
++import processes as owned
++import long_d2 as c
++import long_d2_executor as e
++from fixture_guards import validate_fixture
++from test_repairs import execution, latch, desc
++H=Path(__file__).resolve().parent
++A=Path(os.environ['VALIDATION_DIR'])
++
++
++def wait(pid=200,parent=None,at=99.75,rc=1):
++    return dict(pid=pid,reaped_by=os.getpid() if parent is None else parent,
++                observed_monotonic=at,returncode=rc,raw_wait_status=-rc if rc<0 else rc<<8,
++                direct_child_reaped=True)
++
++
++def group(pid,parent):
++    return dict(pid=pid,pgid=pid,parent_at_registration=parent,new_session_verified=True,group_absent=True)
++
++
++def fixture(cls='failed_supervisor_alive'):
++    receipt=dict(accepted=False,executor_t0_monotonic=90.,cleanup_until_monotonic=110.,
++                 ownership={'supervisor':group(200,150),'worker':group(300,200)},
++                 inner_wait=wait(200,150,102.,1),worker_wait=wait(300,200,101.,-15),
++                 reaping={'worker':dict(status='direct_reaped',basis='validated_direct_parent_waitpid_report')})
++    events=[dict(kind='owned_spawn',owned_role=role,pid=pid,monotonic=99.) for role,pid in [('supervisor',200),('worker',300)]]
++    options=dict(expectation_class=cls,expected_exit=1)
++    if cls=='failed_blocked_parent_crash':
++        options.update(mode='blocked',phase='inner:during-worker',mutation='crash')
++        receipt.update(inner_wait=wait(200,150,102.,7),worker_wait=None,
++                       reaping={'worker':dict(status='unproven',basis='supervisor_dead_before_report')})
++        events.extend([dict(kind='injection',role='inner',phase='during-worker'),
++                       dict(kind='registered_worker_live_at_crash',worker_pid=300,supervisor_pid=200,
++                            registered=True,live_at_crash=True,blocked_entry=True,prior_worker_wait=False)])
++    return receipt,events,options
++
++
++class EndRun(BaseException):pass
++
++
++class R7(unittest.TestCase):
++    def setUp(self):self.d=Path(tempfile.mkdtemp(prefix=self._testMethodName+'-',dir=A))
++
++    def monitor(self,*,alarm=None,cancel=None,guard_at=None,peer_at=None,rc=1):
++        x=execution();report=wait(rc=rc);x.child=NS(process=NS(pid=200),report=report,poll=lambda:report)
++        x.groups={'supervisor':group(200,os.getpid())};x.recovery_proven=True
++        class Once:
++            n=0
++            def wait(self,*a):self.n+=1;return self.n>1
++        x.stop=Once()
++        if alarm is not None:x.latch.first_alarm_at=x.latch.first_at=alarm
++        if cancel is not None:
++            x.latch.first_cancel_at=cancel;x.latch.first_at=min(cancel,x.latch.first_at or cancel)
++            x.latch.cancellation_requests=1;x.latch.requested_signal=signal.SIGTERM
++        if guard_at is not None:x.guard.failure=c.Stop('guard','resource_stop');x.guard.failure_at=guard_at
++        with patch.object(life,'ACTIVE',x.latch),patch.object(life.time,'monotonic',return_value=100.),patch.object(owned,'signal_once'),patch.object(owned,'absent',return_value=True):
++            if peer_at is not None:x.pool.fail('peer',peer_at,desc(peer_at,'safety_stop','peer'),peer=True)
++            x.monitor()
++        c.save(self.d/'monitor-result.json',dict(first=x.pool.first,until=x.pool.until,descriptor=x.pool.first_global))
++        return x
++
++    def test_A_monitor_retained_9975_handled_100(self):
++        x=self.monitor();self.assertEqual((x.pool.first,x.pool.until),(99.75,109.75))
++        self.assertEqual(x.pool.first_global['timing_basis'],'successful_direct_waitpid_observation')
++
++    def test_A_monitor_earlier_guard_peer_and_cancel_win(self):
++        for kwargs,outcome in [(dict(guard_at=99.5),'resource_stop'),(dict(peer_at=99.5),'safety_stop'),(dict(cancel=99.5),'cancelled')]:
++            with self.subTest(kwargs=kwargs):
++                x=self.monitor(**kwargs);self.assertEqual((x.pool.first,x.pool.until),(99.5,109.5));self.assertEqual(x.pool.first_global['outcome'],outcome)
++
++    def test_A_report_source_identity_and_time_negatives(self):
++        x=execution();report=wait();x.child=NS(process=NS(pid=200),report=report)
++        with patch.object(life.time,'monotonic',return_value=100.):
++            for key,value in [('pid',201),('reaped_by',999999),('direct_child_reaped',False),('observed_monotonic',100.1),('observed_monotonic',89.),('observed_monotonic',float('nan')),('observed_monotonic',True),('raw_wait_status',7<<8),('raw_wait_status',65536)]:
++                bad=copy.deepcopy(report);bad[key]=value;x.child.report=bad
++                with self.subTest(key=key,value=value),self.assertRaises(c.Stop):x.raw_inner_failure(bad)
++            x.child.report=report
++            with self.assertRaisesRegex(c.Stop,'not retained'):x.raw_inner_failure(dict(report))
++
++    def main_path(self,guard_at=None,peer_at=None):
++        x=execution();x.registration=dict(receipt=str(self.d/'receipt.json'),output=str(self.d/'campaign'),state_path='fake',controller='fake',pins={})
++        x.context=({},{},{},{},{},{})
++        x.stop=threading.Event();x.closed=False;x.supervisor_factory=lambda *a:['fake','-B','fake','run']
++        x.guard_factory=lambda *a:x.guard;x.guard.start=lambda:None
++        x.guard.event=NS(set=lambda:None)
++        if guard_at is not None:x.guard.failure=c.Stop('older guard','resource_stop');x.guard.failure_at=guard_at
++        x.authority=lambda *a:None
++        pumps=[];x.pump=lambda *a,**kw:pumps.append('pump')
++        x.publish_failed=lambda *a:None
++        x.watchdog=None
++        report=wait();child=NS(process=NS(pid=200),report=report,poll=lambda:report)
++        class Socket:
++            def fileno(self):return 9
++            def close(self):pass
++        class Channel:
++            sock=Socket()
++            def __init__(self,*a):pass
++            def send(self,*a):
++                if peer_at is not None:x.pool.fail('peer',peer_at,desc(peer_at,'cancelled','peer'),peer=True)
++        thread=NS(is_alive=lambda:True,join=lambda **kw:None)
++        with patch.object(life,'ACTIVE',x.latch),patch.object(life.time,'monotonic',return_value=100.),patch.object(c,'assert_lease'),patch.object(c,'sha',return_value='fixture'),patch.object(e.integrity,'verify',return_value={}),patch.object(life,'pair',side_effect=lambda:(Socket(),Socket())),patch.object(life,'Channel',Channel),patch.object(life,'start_thread'),patch.object(e.threading,'Thread',return_value=thread),patch.object(e.subprocess,'Popen',return_value=child.process),patch.object(owned,'Child',return_value=child),patch.object(owned,'verify_session',return_value=group(200,os.getpid())),patch.object(e.signal,'pthread_sigmask',return_value=set()),patch.object(life,'final_exit',side_effect=EndRun):
++            with self.assertRaises(EndRun):x.run()
++        self.assertEqual(pumps,[],'nonzero raw source must be stamped before terminal drain')
++        c.save(self.d/'main-result.json',dict(first=x.pool.first,until=x.pool.until,descriptor=x.pool.first_global,pumps=pumps))
++        return x
++
++    def test_A_actual_main_branch_9975_before_drain(self):
++        x=self.main_path();self.assertEqual((x.pool.first,x.pool.until),(99.75,109.75))
++
++    def test_A_actual_main_earlier_guard_and_ACK_win(self):
++        # Separate owned fixtures because the run path opens no real campaign.
++        for kwargs,outcome in [(dict(guard_at=99.5),'resource_stop'),(dict(peer_at=99.5),'cancelled')]:
++            x=self.main_path(**kwargs);self.assertEqual((x.pool.first,x.pool.until),(99.5,109.5));self.assertEqual(x.pool.first_global['outcome'],outcome)
++
++    def test_A_late_earlier_peer_packet_tightens_actual_pool(self):
++        x=execution();report=wait();x.child=NS(process=NS(pid=200),report=report)
++        x.groups={'supervisor':group(200,os.getpid())}
++        packet=dict(kind='failure',sender=200,t0_monotonic_hex=(90.).hex(),
++                    first_monotonic_hex=(99.5).hex(),reason='earlier peer',descriptor=desc(99.5,'resource_stop','inner'))
++        sent=[]
++        class Channel:
++            sock=object()
++            def receive(self,*a):return packet,[]
++            def send(self,value,deadline):sent.append((value,deadline))
++        x.super_channel=Channel()
++        with patch.object(life,'ACTIVE',x.latch),patch.object(life.time,'monotonic',return_value=100.),patch.object(e.select,'select',side_effect=lambda sockets,*a:(sockets,[],[])):
++            x.fail(x.raw_inner_failure(report));self.assertEqual(x.pool.until,109.75)
++            e.Execution.pump(x)
++        self.assertEqual((x.pool.first,x.pool.until),(99.5,109.5));self.assertEqual(x.pool.first_local['timestamp'],99.75)
++        self.assertEqual(sent[0][0]['cleanup_until_monotonic_hex'],(109.5).hex())
++        c.save(self.d/'late-earlier-pump.json',dict(local=x.pool.first_local,global_failure=x.pool.first_global,until=x.pool.until,ACK=sent))
++
++    def test_B_alarm_then_cancel_actual_monitor(self):
++        x=self.monitor(alarm=99.5,cancel=99.75,rc=0)
++        self.assertEqual(x.pool.first_global['kind'],'alarm');self.assertEqual(x.pool.first_global['outcome'],'wall_guard')
++        self.assertEqual((x.pool.first,x.pool.until),(99.5,109.5))
++
++    def test_B_cancel_then_alarm_and_equal_tie_stable(self):
++        for alarm,cancel in [(99.75,99.5),(99.5,99.5)]:
++            x=self.monitor(alarm=alarm,cancel=cancel,rc=0)
++            self.assertEqual(x.pool.first_global['outcome'],'cancelled');self.assertEqual(x.pool.first,cancel)
++        # Pool preserves its first global descriptor for exact ties.
++        x=self.monitor(peer_at=99.5,alarm=99.5,cancel=99.5,rc=0)
++        self.assertEqual(x.pool.first_global['role'],'peer')
++
++    def inner(self,*,ack=True,never=False,cap=None,constructor_failures=0,normal_report=False,send_error=False,earlier_ack=None,mandatory_error=False):
++        clock=[100.];events=[];packets=[];receipts=[];construct=[0];polls=[0]
++        active=latch();active.check=lambda:None
++        pool=life.FailurePool(90.)
++        if cap is not None:pool.cap=cap
++        class Guard:
++            failure=None;failure_at=None;thread=verify_thread=None;last_sample=100.;stream=None
++            event=NS(set=lambda:events.append('guard_stop'))
++            def __init__(self,*a):pass
++            def start(self):events.append('guard_start')
++            def check(self):pass
++            def full_check(self,*a):pass
++            def sample(self,**kw):pass
++        class Child:
++            def __init__(self,process):
++                construct[0]+=1;events.append('constructor')
++                if construct[0]<=constructor_failures:raise RuntimeError('constructor failed bounded')
++                self.process=process;self.report=None
++            def poll(self):
++                polls[0]+=1;events.append('poll');clock[0]+=.01
++                if not never:self.report=wait(300,200,clock[0],1)
++                return self.report
++        class Channel:
++            sock=NS(close=lambda:events.append('ipc_close'))
++            def send(self,value,deadline):
++                events.append(value['kind']);packets.append(copy.deepcopy(value))
++                if value['kind']=='register_worker' and not normal_report:raise c.Stop('startup cancel','cancelled')
++                if value['kind']=='worker_wait' and send_error:raise OSError('send failed once')
++            def receive(self,deadline,*a):
++                if packets[-1]['kind']=='register_worker':return dict(kind='registered',worker_pid=300),[]
++                events.append('ACK' if ack else 'no_ACK')
++                if not ack:raise c.Stop('missing ACK')
++                first=pool.first if earlier_ack is None else earlier_ack
++                return dict(kind='failure_ack',t0_monotonic_hex=(90.).hex(),first_monotonic_hex=first.hex(),
++                            cleanup_until_monotonic_hex=min(first+10,pool.cap).hex(),descriptor=pool.first_global if earlier_ack is None else desc(first,'resource_stop','outer')),[]
++        def mandatory(path,result,deadline):
++            events.append('mandatory' if path.name=='inner-failure.json' else 'reap_diagnostic')
++            receipts.append((path.name,copy.deepcopy(result),clock[0]))
++            if mandatory_error and path.name=='inner-failure.json':raise OSError('mandatory publication failed')
++        def sleep(value):clock[0]+=max(.001,value)
++        lease=dict(identity_sha256='id',capsule_manifest_sha256='cap')
++        args=NS(output=self.d/'campaign',state_path=self.d/'state.json',executor_pid=150)
++        p=dict(output='campaign',run_id='fake')
++        with patch.object(c,'ORIGINAL_ROOT',self.d),patch.object(c,'STATE_PATH',args.state_path),patch.object(c,'assert_lease'),patch.object(c.os,'getpid',return_value=200),patch.object(c.subprocess,'Popen',side_effect=lambda *a,**kw:(events.append('Popen') or NS(pid=300))),patch.object(owned,'Child',Child),patch.object(owned,'absent',return_value=False),patch.object(c.signal,'pthread_sigmask',return_value=set()),patch.object(life,'ACTIVE',active),patch.object(life,'POOL',pool),patch.object(life,'CHANNEL',Channel()),patch.object(life.time,'monotonic',side_effect=lambda:clock[0]),patch.object(c.time,'sleep',sleep),patch.object(c,'mandatory_failure',mandatory),patch.object(c,'optional_timing',side_effect=lambda *a:events.append('optional')):
++            code,_=c.supervise_owned(args,90.,lease,NS(fileno=lambda:9,close=lambda:events.append('gate_close')),context_provider=lambda *a,**kw:(p,{},{},{},{},lease),guard_factory=Guard)
++        self.assertEqual(code,1)
++        c.save(self.d/'inner-trace.json',dict(events=events,packets=packets,receipts=receipts,clock=clock[0],pool_first=pool.first,pool_until=pool.until,constructors=construct[0],polls=polls[0]))
++        return NS(events=events,packets=packets,receipts=receipts,clock=clock[0],pool=pool,constructors=construct[0],polls=polls[0])
++
++    def test_C_actual_inner_ACK_mandatory_before_poll_and_send(self):
++        x=self.inner();events=x.events
++        self.assertLess(events.index('ACK'),events.index('mandatory'))
++        self.assertLess(events.index('mandatory'),events.index('guard_stop'))
++        self.assertLess(events.index('gate_close'),events.index('poll'))
++        self.assertLess(events.index('poll'),events.index('worker_wait'));self.assertLess(events.index('worker_wait'),events.index('optional'))
++        initial=x.receipts[0][1];self.assertIsNone(initial['worker_wait']);self.assertFalse(initial['owned_worker_reaped'])
++        self.assertEqual(sum(p['kind']=='worker_wait' for p in x.packets),1)
++        self.assertEqual(sum(n=='inner-failure.json' for n,_,_ in x.receipts),1)
++
++    def test_C_mandatory_attempt_failure_does_not_suppress_reap(self):
++        x=self.inner(mandatory_error=True)
++        self.assertLess(x.events.index('mandatory'),x.events.index('poll'))
++        self.assertEqual(sum(p['kind']=='worker_wait' for p in x.packets),1)
++        self.assertEqual(sum(n=='inner-failure.json' for n,_,_ in x.receipts),1)
++
++    def test_C_no_ACK_skips_extended_wait_and_retry(self):
++        x=self.inner(ack=False);self.assertEqual(x.polls,0)
++        self.assertEqual([p['kind'] for p in x.packets],['register_worker','failure'])
++        self.assertIn('failure_ack_unavailable',x.receipts[0][1]);self.assertEqual(x.clock,100.)
++
++    def test_C_guarded_fallback_after_constructor_failure(self):
++        x=self.inner(constructor_failures=1);self.assertEqual(x.constructors,2);self.assertEqual(x.polls,1)
++        self.assertEqual(sum(p['kind']=='worker_wait' for p in x.packets),1)
++
++    def test_C_fallback_constructor_failure_honest_bounded_diagnostic(self):
++        x=self.inner(constructor_failures=2);self.assertEqual(x.constructors,2);self.assertEqual(x.polls,0)
++        diagnostic=next(value for name,value,_ in x.receipts if name=='inner-reap-diagnostic.json')
++        self.assertIn('constructor failed',diagnostic['worker_reap_diagnostic']);self.assertLessEqual(len(diagnostic['worker_reap_diagnostic']),512)
++        self.assertFalse(diagnostic['worker_report_retained'])
++
++    def test_C_expiry_no_fabricated_wait_same_pool(self):
++        x=self.inner(never=True);self.assertLessEqual(x.clock,109.021);self.assertGreaterEqual(x.clock,109.)
++        self.assertEqual((x.pool.first,x.pool.until),(100.,110.));self.assertFalse(any(p['kind']=='worker_wait' for p in x.packets))
++        diagnostic=next(v for n,v,_ in x.receipts if n=='inner-reap-diagnostic.json');self.assertFalse(diagnostic['worker_report_retained'])
++        self.assertIn('unproven',diagnostic['worker_reap_diagnostic'])
++
++    def test_C_cap_truncated_window_unproven_no_allowance(self):
++        x=self.inner(never=True,cap=100.5);self.assertEqual(x.pool.until,100.5);self.assertEqual(x.polls,0)
++        self.assertEqual(x.clock,100.);self.assertFalse(any(p['kind']=='worker_wait' for p in x.packets))
++
++    def test_C_earlier_ACK_tightens_inner_window(self):
++        x=self.inner(never=True,earlier_ack=99.5);self.assertEqual(x.pool.until,109.5)
++        self.assertLessEqual(x.clock,108.521);self.assertGreaterEqual(x.clock,108.5)
++
++    def test_C_surviving_descendant_no_duplicate_report(self):
++        x=self.inner(normal_report=True)
++        self.assertEqual(sum(p['kind']=='worker_wait' for p in x.packets),1)
++        self.assertEqual(x.polls,1)
++        self.assertTrue(x.receipts[0][1]['owned_worker_reaped'])
++
++    def test_C_normal_send_failure_marked_before_no_retry(self):
++        x=self.inner(normal_report=True,send_error=True)
++        self.assertEqual(sum(p['kind']=='worker_wait' for p in x.packets),1)
++        self.assertEqual(x.receipts[0][1]['worker_wait_send_status'],'failed')
++        self.assertIn('send failed once',x.receipts[0][1]['worker_wait_send_error'])
++
++    def test_C_failure_send_failure_recorded_once(self):
++        x=self.inner(send_error=True);self.assertEqual(sum(p['kind']=='worker_wait' for p in x.packets),1)
++        diagnostic=next(v for n,v,_ in x.receipts if n=='inner-reap-diagnostic.json')
++        self.assertTrue(diagnostic['worker_wait_send_attempted']);self.assertIn('send failed once',diagnostic['worker_reap_diagnostic'])
++
++    def drain(self,report=None,clock_at=101.):
++        x=execution();x.groups={'supervisor':group(200,os.getpid()),'worker':group(300,200)}
++        inner=wait(200,os.getpid(),100.5);x.child=NS(process=NS(pid=200),report=inner)
++        x.guard=None;x.cleanup_complete=True;x.recovery_proven=True
++        x.stop=NS(set=lambda:None);x.watchdog=NS(join=lambda **kw:None)
++        x.recover_registration_race=lambda *a:None
++        calls=[];queue=[] if report is None else [dict(kind='worker_wait',sender=200,report=report,t0_monotonic_hex=(90.).hex())]
++        class Channel:
++            sock=NS(close=lambda:None)
++            def receive(self,deadline):
++                calls.append(deadline)
++                if queue:return queue.pop(0),[]
++                raise ConnectionResetError(54,'retained diagnostic')
++        x.super_channel=Channel();x.pump=lambda **kw:e.Execution.pump(x,**kw)
++        captured=[]
++        with patch.object(life,'ACTIVE',x.latch),patch.object(life.time,'monotonic',return_value=clock_at),patch.object(e.select,'select',side_effect=lambda sockets,*a:(sockets,[],[])),patch.object(c,'mandatory_failure',side_effect=lambda p,r,d:captured.append(copy.deepcopy(r))):
++            x.pool.fail(c.Stop('source'),100.,desc(100.));result=x.publish_failed(self.d/'receipt.json',c.Stop('later'))
++        self.assertEqual(len(captured),1);self.assertFalse(result['accepted'])
++        c.save(self.d/'drain-result.json',dict(receipt=result,receive_deadlines=calls))
++        return result,calls
++
++    def test_C_actual_pump_final_drain_valid_report_then_reset(self):
++        r,calls=self.drain(wait(300,200,100.25))
++        self.assertEqual(r['reaping']['worker']['status'],'direct_reaped');self.assertEqual(r['reaping']['supervisor']['status'],'direct_reaped')
++        self.assertEqual(len(calls),4);self.assertTrue(all(at==109.75 for at in calls))
++        self.assertTrue(r['cleanup_errors'],'unexpected private reset diagnostic remains retained')
++
++    def test_C_actual_drain_rejects_invalid_reports(self):
++        for field,value in [('pid',999),('reaped_by',999),('observed_monotonic',float('nan')),('raw_wait_status',65536),('direct_child_reaped',False)]:
++            report=wait(300,200,100.25);report[field]=value
++            r,_=self.drain(report);self.assertIsNone(r['worker_wait']);self.assertEqual(r['reaping']['worker']['status'],'unproven')
++
++    def test_C_final_drain_stops_at_existing_reserve(self):
++        r,calls=self.drain(wait(300,200,100.25),clock_at=109.8)
++        self.assertEqual(calls,[]);self.assertEqual(r['reaping']['worker']['status'],'unproven');self.assertTrue(r['cleanup_complete'])
++
++    def test_D_alive_supervisor_missing_worker_wait_fails(self):
++        r,events,options=fixture();r['worker_wait']=None
++        with self.assertRaisesRegex(AssertionError,'direct reap missing'):validate_fixture(r,events,dict(supervisor=True,worker=True),options,receipt_available=True)
++
++    def test_D_deliberate_orphan_requires_all_positive_milestones(self):
++        r,events,options=fixture('failed_blocked_parent_crash');absence=dict(supervisor=True,worker=True)
++        self.assertTrue(validate_fixture(r,events,absence,options,receipt_available=True))
++        for bad_events,bad_absence in [(events,{}),(events,dict(supervisor=True,worker=False)),([x for x in events if x['kind']!='registered_worker_live_at_crash'],absence)]:
++            with self.assertRaises(AssertionError):validate_fixture(r,bad_events,bad_absence,options,receipt_available=True)
++        bad=copy.deepcopy(r);bad['inner_wait']=wait(200,150,102.,1)
++        with self.assertRaisesRegex(AssertionError,'crash not observed'):validate_fixture(bad,events,absence,options,receipt_available=True)
++
++    def test_D_fabricated_blocked_live_crash_wait_rejected(self):
++        r,events,options=fixture('failed_blocked_parent_crash');r['worker_wait']=wait(300,200,101.)
++        with self.assertRaisesRegex(AssertionError,'fabricated wait'):validate_fixture(r,events,dict(supervisor=True,worker=True),options,receipt_available=True)
++
++    def test_D_prior_legitimate_report_then_parent_death_is_not_globally_fabricated(self):
++        r,events,options=fixture('failed_with_prior_worker_reap');r['inner_wait']=wait(200,150,102.,7)
++        options.update(phase='inner:terminal-after',mutation='crash');events.append(dict(kind='injection',role='inner',phase='terminal-after'))
++        self.assertTrue(validate_fixture(r,events,dict(supervisor=True,worker=True),options,receipt_available=True))
++
++    def test_D_accepted_fixture_both_exact_waits(self):
++        r,events,options=fixture();r.update(accepted=True,t0_monotonic_hex=(90.).hex(),expected_exit_code=2)
++        r['inner_wait']=wait(200,150,92.,2);r['worker_wait']=wait(300,200,91.5,2)
++        for event in events:event['monotonic']=91.
++        options.update(expectation_class='accepted',expected_exit=2)
++        self.assertTrue(validate_fixture(r,events,dict(supervisor=True,worker=True),options,receipt_available=True))
++        for key,field,value in [('inner_wait','pid',201),('worker_wait','reaped_by',999),('worker_wait','observed_monotonic',98.),('worker_wait','raw_wait_status',15)]:
++            bad=copy.deepcopy(r);bad[key][field]=value
++            with self.assertRaises((AssertionError,c.Stop)):validate_fixture(bad,events,dict(supervisor=True,worker=True),options,receipt_available=True)
++
++    def test_D_accepted_missing_wait_still_rejected(self):
++        r,events,options=fixture();r.update(accepted=True,t0_monotonic_hex=(90.).hex(),expected_exit_code=2)
++        r['inner_wait']=wait(200,150,92.,2);r['worker_wait']=None
++        for event in events:event['monotonic']=91.
++        options.update(expectation_class='accepted',expected_exit=2)
++        with self.assertRaises(AssertionError):validate_fixture(r,events,dict(supervisor=True,worker=True),options,receipt_available=True)
++        self.assertFalse(e.accept_observed(r,2,3.))
++
++    def test_D_preregistered_class_and_mandatory_failure_required(self):
++        r,events,options=fixture()
++        with self.assertRaisesRegex(AssertionError,'unregistered'):validate_fixture(r,events,dict(supervisor=True,worker=True),{},receipt_available=True)
++        with self.assertRaisesRegex(AssertionError,'mandatory'):validate_fixture(r,events,dict(supervisor=True,worker=True),options,receipt_available=False)
++        r['accepted']=True
++        with self.assertRaisesRegex(AssertionError,'acceptance/class'):validate_fixture(r,events,dict(supervisor=True,worker=True),options,receipt_available=True)
++
++    def test_success_consumers_and_protected_failure_helpers_byte_equal(self):
++        from source_equality import blocks,body
++        old=blocks(H/'r6-source/long_d2_executor.py');new=blocks(H/'long_d2_executor.py')
++        for key in ('validate_wait_reports','accept_observed','validate_artifacts','checked_registration','worker_command'):
++            self.assertEqual(old[key],new[key],key)
++        before=blocks(H/'r6-source/long_d2.py');after=blocks(H/'long_d2.py')
++        for key in before:
++            if key!='supervise_owned':self.assertEqual(before[key],after[key],key)
++        self.assertEqual(body(H/'r6-source/long_d2.py'),body(H/'long_d2.py'))
++        for name in ('lifecycle.py','boundary_integrity.py'):self.assertEqual((H/name).read_bytes(),(H/'r6-source'/name).read_bytes())
++        proposed=c.read_json(H/'protocol-r6-proposal.json')
++        self.assertEqual(c.sha(H/'protocol-r6-proposal.json'),c.PROTOCOL_SHA256)
++        self.assertEqual(proposed['config_sha256'],c.CONFIG_SHA256)
++        self.assertEqual(proposed['config']['phase_settings']['run_seed'],5562873868232098305)
++        self.assertEqual(proposed['parent_checkpoint_sha256'],'ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f')
+--- learning/runs/v2/postovernight-long-D2-boundary-prepare-r6/test_repairs.py
++++ learning/runs/v2/postovernight-long-D2-boundary-prepare-r7/test_repairs.py
+@@ -131,7 +131,10 @@
+         if cancel:
+             x.latch.cancellation_requests=1;x.latch.requested_signal=signal.SIGTERM;x.latch.first_at=x.latch.first_cancel_at=99.
+         if guard:x.guard.failure=c.Stop('resource','resource_stop');x.guard.failure_at=99.
+-        if rc is not None:x.child=NS(poll=lambda:dict(returncode=rc),report=dict(returncode=rc))
++        if rc is not None:
++            report=dict(pid=123,reaped_by=os.getpid(),direct_child_reaped=True,
++                        returncode=rc,raw_wait_status=(-rc if rc<0 else rc<<8),observed_monotonic=99.75)
++            x.child=NS(process=NS(pid=123),poll=lambda:report,report=report)
+         if cutoff=='worker':x.worker_wait=None
+         else:x.worker_wait={}
+         if cutoff=='inner':x.child=None
+@@ -294,18 +297,20 @@
+         self.assertEqual(channel.last_receive_failure['errno'],errno.EIO);self.assertEqual(channel.sock.calls,1)
+ 
+     def test_fixture_guards_missing_receipt_empty_owned_and_milestones(self):
+-        empty=dict(ownership={});pre=[dict(kind='ownership',ownership={},owned_spawns=[])]
+-        self.assertTrue(validate_fixture(empty,pre,{},dict(resource_cap=True),receipt_available=True))
+-        for receipt,events,absence,options,available in [(empty,pre,{},dict(resource_cap=True),False),(empty,[],{},dict(resource_cap=True),True),(empty,pre,{},dict(mode='wedged'),True)]:
+-            with self.assertRaises(AssertionError):validate_fixture(receipt,events,absence,options,receipt_available=available)
+-        r=dict(ownership={'worker':dict(pid=300)},worker_wait=dict(pid=300,direct_child_reaped=True))
+-        events=[dict(kind='owned_spawn',owned_role='worker',pid=300,monotonic=1.)]
+-        self.assertTrue(validate_fixture(r,events,{'worker':True},{},receipt_available=True))
+-        for options in (dict(mode='wedged'),dict(phase='inner:spawn-before-registration')):
+-            with self.assertRaises(AssertionError):validate_fixture(r,events,{'worker':True},options,receipt_available=True)
+-        with self.assertRaises(AssertionError):validate_fixture(r,events,{}, {},receipt_available=True)
++        empty=dict(ownership={},accepted=False,inner_wait=None,worker_wait=None);pre=[dict(kind='ownership',ownership={},owned_spawns=[])]
++        opt=dict(resource_cap=True,expectation_class='failed_no_child')
++        self.assertTrue(validate_fixture(empty,pre,{},opt,receipt_available=True))
++        for available,events in ((False,pre),(True,[])):
++            with self.assertRaises(AssertionError):validate_fixture(empty,events,{},opt,receipt_available=available)
++        from test_r7 import fixture
++        r,events,options=fixture()
++        self.assertTrue(validate_fixture(r,events,{'worker':True,'supervisor':True},options,receipt_available=True))
++        for extra in (dict(mode='wedged'),dict(phase='inner:spawn-before-registration')):
++            with self.assertRaises(AssertionError):validate_fixture(r,events,{'worker':True,'supervisor':True},dict(options,**extra),receipt_available=True)
++        with self.assertRaises(AssertionError):validate_fixture(r,events,{},options,receipt_available=True)
+         bad=copy.deepcopy(r);bad.pop('worker_wait')
+-        with self.assertRaises(AssertionError):validate_fixture(bad,events,{'worker':True},{},receipt_available=True)
+-        events.append(dict(kind='wedged_entry',role='worker'));self.assertTrue(validate_fixture(r,events,{'worker':True},dict(mode='wedged'),receipt_available=True))
++        with self.assertRaises(AssertionError):validate_fixture(bad,events,{'worker':True,'supervisor':True},options,receipt_available=True)
++        events.append(dict(kind='wedged_entry',role='worker'))
++        self.assertTrue(validate_fixture(r,events,{'worker':True,'supervisor':True},dict(options,mode='wedged'),receipt_available=True))
+ 
+ if __name__=='__main__':unittest.main(verbosity=2,failfast=True)
+--- learning/runs/v2/postovernight-long-D2-boundary-prepare-r6/unit_stage.py
++++ learning/runs/v2/postovernight-long-D2-boundary-prepare-r7/unit_stage.py
+@@ -1,6 +1,9 @@
+ """Exactly one fail-fast stdlib stage; preserves raw output and terminal status."""
+ from pathlib import Path
+ import datetime
++import ast
++import shutil
++import sys
+ import hashlib
+ import json
+ import os
+@@ -21,8 +24,26 @@
+     save(out/'command.json',dict(argv=argv,cwd=str(ROOT),timeout_seconds=300,started_at_utc=now(),
+         env_values={k:v for k,v in env.items() if k in relevant},
+         other_env_value_sha256={k:hashlib.sha256(v.encode()).hexdigest() for k,v in env.items() if k not in relevant},
+-        interpreter_alias_preserved=True,ordered_modules=['test_repairs','test_boundary'],
++        interpreter_alias_preserved=True,ordered_modules=['test_r7','test_repairs','test_boundary'],
+         source_sha256={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in H.glob('*.py')}))
++    source=out/'sources';source.mkdir()
++    for p in list(H.glob('*.py'))+[H/'protocol-r6-proposal.json',H/'PARENT-NEXT.md']:shutil.copyfile(p,source/p.name)
++    shutil.copytree(H/'original-source',source/'original-source')
++    required=[H/name for name in ('test_r7.py','test_repairs.py','test_boundary.py','run_unit_suite.py','long_d2.py','long_d2_executor.py','lifecycle.py','processes.py','boundary_integrity.py','source_equality.py')]
++    required += [H/'original-source'/p.name for p in (H/'r6-source').glob('*.py') if (H/'original-source'/p.name).exists()]
++    required += [H/'original-source'/name for name in ('long_d2.py','boundary_integrity.py')]
++    required += [H.parent/name/'long_d2.py' for name in ('postovernight-long-D2-guard-prepare-r1','postovernight-long-D2-prepare-r4','postovernight-long-D2-boundary-prepare-r3')]
++    required += [ROOT/'learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r4.json',ROOT/alias]
++    expected_original=json.loads((H/'preparation-copy.json').read_text())['original_fixture_files']
++    fixture_exact={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in (H/'original-source').iterdir() if p.is_file()}==expected_original
++    precheck=dict(original_fixture_exact=fixture_exact,required_files={str(p):p.is_file() for p in required},argv=argv,
++                  alias_preserved=argv[0]==alias,validation_dir=str(fixtures),
++                  validation_dir_empty=not any(fixtures.iterdir()),cache_empty=not any(cache.iterdir()),
++                  no_old_envelopes=not any((H/name).exists() for name in ('capsule-final','long-identity.json','registration.json','classification.json')))
++    save(out/'setup-precheck.json',precheck)
++    if not (precheck['original_fixture_exact'] and all(precheck['required_files'].values()) and precheck['alias_preserved'] and precheck['validation_dir_empty'] and precheck['cache_empty'] and precheck['no_old_envelopes']):
++        save(out/'raw-result.json',dict(raw_exit=None,validation_attempts=0,precheck_failed=True,no_retry=True))
++        raise SystemExit(1)
+     start=time.monotonic();result={}
+     try:
+         with (out/'stdout.log').open('xb') as stdout,(out/'stderr.log').open('xb') as stderr:

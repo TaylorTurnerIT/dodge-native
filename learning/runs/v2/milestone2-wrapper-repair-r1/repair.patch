@@ -1,0 +1,52 @@
+--- before/features.rs
++++ after/features.rs
+@@ -375,7 +375,7 @@
+             let flags = RasterFlags {
+                 lethal_now: e.lethal_now,
+                 lethal_soon: e.charging,
+-                enemy: (1..=3).contains(&e.type_id),
++                enemy: (1..=2).contains(&e.type_id),
+                 powerup: (4..=6).contains(&e.type_id),
+                 player: false,
+             };
+--- before/tests.rs
++++ after/tests.rs
+@@ -436,6 +436,38 @@
+     enemies[2].x = q(132);
+     let o = obs(&mut h, view(&p, &enemies, None), &serials)?;
+     assert!(o.entity_mask.iter().all(|x| !x));
++    Ok(())
++}
++
++#[test]
++fn auxiliary_enemy_body_excludes_explosions() -> crate::Result<()> {
++    let player = PlayerState::new();
++    let enemies = [enemy(0, 8, 8, 2), enemy(1, 24, 8, 2), enemy(-1, 40, 8, 2)];
++    let serials = ids(enemies.len())?;
++    let observation = obs(
++        &mut History::default(),
++        view(&player, &enemies, None),
++        &serials,
++    )?;
++    assert_eq!(&observation.entity_types[..3], &[1, 2, 3]);
++    let auxiliary = observation.auxiliary.ok_or("missing targets")?;
++    // Each body occupies one distinct patch. Explosions remain lethal, while
++    // only normal and kamikaze bodies belong to the enemy-collision target.
++    for y in 0..16 {
++        for x in 0..16 {
++            assert_eq!(
++                auxiliary[0][y][x],
++                f32::from(y == 1 && [1, 3, 5].contains(&x))
++            );
++            assert_eq!(auxiliary[1][y][x], 0.0);
++            assert_eq!(auxiliary[2][y][x], f32::from(y == 1 && [1, 3].contains(&x)));
++            assert_eq!(auxiliary[3][y][x], 0.0);
++            assert_eq!(
++                auxiliary[4][y][x],
++                f32::from([7, 8].contains(&y) && [7, 8].contains(&x))
++            );
++        }
++    }
+     Ok(())
+ }
+ 

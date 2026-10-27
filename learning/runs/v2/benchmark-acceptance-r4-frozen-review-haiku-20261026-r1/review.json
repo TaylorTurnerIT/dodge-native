@@ -1,0 +1,49 @@
+{
+  "schema": "benchmark_acceptance_r4_frozen_source_review_v1",
+  "reviewer": "haiku-5.5",
+  "scope": "source-only; no execution, import, native, torch, MPS, game, checkpoint, lease, marker, or shared edits",
+  "verdict": "no new blocker in scoped R4 acceptance chain; source-only qualification of scoped acceptance changes; no launch clearance",
+  "reviewed_sha256": {
+    "accept_benchmark.py": "5f51cf1a3644702b72a22c5a42d717bbfdc9e6320b1108c2891702cb88ff7647",
+    "build_registration.py": "280650effba15ca1763707bbf054d081f6d4fb662da83f6a70a299243b07e8eb",
+    "execute_once.py": "6ec8ab00d01daf15f9ff7d77be24ddac9ebb67af85abc844bd34e56da72f1570",
+    "worker.py": "2b5d25d07c671671e6f9a4fb2c976b02af2cb8372ace30ad2d05544bb18a83e4",
+    "test_runner.py": "6b1c1ec9f289587c3520c962dfee65b82cebc7017bb075ecdb351cf1d922ec73",
+    "manifest.json": "7ac3e6f13990b022e3a01fc85d4ba11697156e3c3b25a370811e3ef86868d3ed",
+    "tests.log": "9fcdbe179bd2301a63b895f8cb73082910ca034c536f9a3f6241e46380078306"
+  },
+  "findings": [
+    {"id": "H-1", "severity": "high", "category": "selection-provenance", "file": "worker.py", "lines": "116-131, 203", "summary": "ranking-to-confirmation selection has no runner producer and no argmax or comparator re-derivation", "failure_scenario": "parent writes selection.json with non-argmax winner and six valid refs; validate_selection passes; confirmation runs wrong winner", "status": "open"},
+    {"id": "M-1", "severity": "medium", "category": "lease", "file": "worker.py", "lines": "65", "summary": "exact dict compare of active_inference_diagnostic against mutable live lease object", "failure_scenario": "parent updates cancel_requested or review_status during run; lease_invalid false stop", "status": "open; also execute_once.py:129,131,234,264"},
+    {"id": "M-2", "severity": "medium", "category": "test-coverage", "file": "test_runner.py", "lines": "25, 151", "summary": "fixture uses dead ledger keys; no test for active_long_campaign non-null", "failure_scenario": "regression in active_long_campaign guard passes full suite", "status": "open"},
+    {"id": "M-3", "severity": "medium", "category": "test-coverage", "file": "test_runner.py", "lines": "15-16", "summary": "tests set VERIFY_FROZEN_RUNTIME and VERIFY_PROPOSAL_CANDIDATES to False and rewrite pins", "failure_scenario": "frozen runtime and candidate-proposal pin regressions undetected", "status": "open"},
+    {"id": "M-4", "severity": "medium", "category": "import-provenance", "file": "execute_once.py", "lines": "172, 277", "summary": "from worker import validate_selection resolves via sys.path, not pinned --worker path", "failure_scenario": "worker.py in different directory than launcher; unpinned validate_selection code runs", "status": "open"},
+    {"id": "M-5", "severity": "medium", "category": "binding", "file": "build_registration.py", "lines": "21-47; execute_once.py 79-113, 316", "summary": "throughput measurement not bound to ranking run's worker, evaluator, or runtime pins", "failure_scenario": "benchmark under evaluator X, ranking under Y; budget sized from unrelated timing", "status": "open"},
+    {"id": "M-6", "severity": "medium", "category": "test-coverage", "file": "test_runner.py", "lines": "105-115", "summary": "MPS fake torch lacks mps attribute; test hits hasattr branch, not is_available branch", "failure_scenario": "regression in worker.py:94 is_available line undetected", "status": "open"},
+    {"id": "M-7", "severity": "medium", "category": "test-coverage", "file": "test_runner.py", "lines": "79-91, 215", "summary": "no test feeds make_draft output through validate_final or launcher preflight", "failure_scenario": "builder-to-launcher registration handoff regression undetected", "status": "open"},
+    {"id": "L-1", "severity": "low", "category": "toctou", "file": "accept_benchmark.py", "lines": "13-14", "summary": "hash-then-reparse of same path (also build_registration.py:26-27, execute_once.py:84-86, worker.py:126)", "failure_scenario": "file replaced between hash and parse", "status": "open"},
+    {"id": "L-2", "severity": "low", "category": "defense-in-depth", "file": "accept_benchmark.py", "lines": "15", "summary": "adapter does not check worker candidate_update 348 or cohort benchmark_dev64", "failure_scenario": "malformed worker receipt wrapped; caught only downstream", "status": "open"},
+    {"id": "L-3", "severity": "low", "category": "error-handling", "file": "build_registration.py", "lines": "31; accept_benchmark.py:23", "summary": "None or missing keys raise TypeError or KeyError, not ValueError", "failure_scenario": "malformed receipt produces non-ValueError exception", "status": "open"},
+    {"id": "L-4", "severity": "low", "category": "validation", "file": "build_registration.py", "lines": "64, 95", "summary": "validate_final requires at least one runtime_executable; worker and launcher require exactly one", "failure_scenario": "duplicate executable pin fails late at preflight", "status": "open"},
+    {"id": "L-5", "severity": "low", "category": "fail-open-residual", "file": "worker.py", "lines": "91", "summary": "driver_memory returns 0 when torch absent for any backend", "failure_scenario": "mps run whose evaluator never imports torch passes all MPS guards", "status": "open"},
+    {"id": "L-6", "severity": "low", "category": "availability", "file": "worker.py", "lines": "74, 86", "summary": "ps-based RSS with 0.2 s timeout fails worker closed under load", "failure_scenario": "slow ps kills healthy run", "status": "open"},
+    {"id": "L-7", "severity": "low", "category": "validation", "file": "execute_once.py", "lines": "153", "summary": "Path of missing pycache_prefix is current directory", "failure_scenario": "misleading preflight failure", "status": "open"},
+    {"id": "L-8", "severity": "low", "category": "cleanup-budget", "file": "execute_once.py", "lines": "287, 290", "summary": "end clamped to deadline+10 can precede now; SIGKILL with zero SIGTERM grace", "failure_scenario": "stop detected after deadline+10", "status": "open (carry M5)"},
+    {"id": "L-9", "severity": "low", "category": "test-hygiene", "file": "test_runner.py", "lines": "91", "summary": "typo restores GOLD and GOLD_SHA; GOLDEN stays patched", "failure_scenario": "later tests in same process see altered golden path", "status": "open"},
+    {"id": "L-10", "severity": "low", "category": "cleanup", "file": "accept_benchmark.py", "lines": "22-26", "summary": "failed os.link leaves tmp file; output_path unchecked", "failure_scenario": "stale tmp file in caller-chosen path", "status": "open"},
+    {"id": "L-11", "severity": "low", "category": "resource", "file": "execute_once.py", "lines": "211", "summary": "worker.log unbounded (carry)", "failure_scenario": "chatty evaluator fills disk", "status": "open"},
+    {"id": "L-12", "severity": "low", "category": "projection", "file": "build_registration.py", "lines": "68-70; execute_once.py 106-113", "summary": "128-episode benchmark projects 6144 or 4096-episode stages (carry)", "failure_scenario": "underprojection yields partial output, no resume", "status": "open"},
+    {"id": "L-13", "severity": "low", "category": "policy-note", "file": "execute_once.py", "lines": "164-169", "summary": "preflight loads ranking and confirmation manifest seed lists", "failure_scenario": "none; parent to confirm matches unopened-cohort intent", "status": "note"},
+    {"id": "L-14", "severity": "low", "category": "policy-note", "file": "worker.py", "lines": "64-68", "summary": "ledger key active_native_design present in state-after.json, not consulted by guards", "failure_scenario": "policy question for parent", "status": "note"}
+  ],
+  "resolved_or_mitigated": [
+    {"id": "B1", "status": "fixed", "evidence": "build_registration.py:80-82; test_runner.py:79-91"},
+    {"id": "B2", "status": "fixed", "evidence": "worker.py:196-200; accept_benchmark.py:23-26; build_registration.py:24; execute_once.py:83"},
+    {"id": "B3", "status": "fixed in code; fixture untested", "evidence": "worker.py:66; execute_once.py:130,234,267; state-after.json key check"},
+    {"id": "H4", "status": "fixed for mps with torch loaded", "evidence": "worker.py:94, :75"},
+    {"id": "M4", "status": "mitigated", "evidence": "execute_once.py:145, :206"}
+  ],
+  "separately_tracked_not_demanded": ["B4 no SIGTERM/SIGHUP handler (execute_once.py has no signal.signal)", "H2 active_procs unguarded at execute_once.py:243-244, 251, 255"],
+  "open_unverified": ["H3 guard cadence depends on evaluator (not reviewed)", "native, MPS, checkpoint, game behavior", "tests not re-run; tests.log does not bind to source hashes"],
+  "limits": ["source-only; nothing executed", "ledger key names read from one state file", "no launch, lease, or marker clearance"]
+}

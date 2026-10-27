@@ -1,0 +1,73 @@
+{
+  "review_id": "D2-retained300-launcher-review-haiku-20261026-r5",
+  "target": "learning/runs/v2/D2-retained300-launcher-luna-20261026-r5/execute_once.py",
+  "target_sha256": "7215ae6628c364fe74bafba68e66cb1c688000a3b7d648dba9248fc2d812310e",
+  "base": "learning/runs/v2/D2-retained276-lr3em5-prepare-luna-20261026-r2/execute_once.py",
+  "base_sha256": "fd7298a8d6a7885a341c2f5c5d1eb4c5e407654a579f15403f9f342fffc8aa2d",
+  "verdict": "no_blocking_findings",
+  "launch_qualification": false,
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "medium",
+      "classification": "new_integration_doc_mismatch",
+      "file": "learning/runs/v2/D2-retained300-launcher-luna-20261026-r5/contract-addendum.json",
+      "line": 7,
+      "launcher_lines": "execute_once.py:118-127",
+      "summary": "Addendum lists entry-restoration.json fields (learning_rate, changed_fields, parent receipt/config/checkpoint hashes) that the launcher does not check; launcher checks before_environment_or_gradients, parent_sha256, matched, and per-component matched/mismatch_paths/expected/restored hashes.",
+      "trigger": "Runner or parent builds entry-restoration.json from the addendum field list.",
+      "consequence": "Receipt that satisfies the addendum can fail the launcher after the one-shot marker; LR is enforced only via checkpoint state, not the receipt.",
+      "blocking": false
+    },
+    {
+      "id": "F2",
+      "severity": "low-medium",
+      "classification": "new",
+      "file": "learning/runs/v2/D2-retained300-launcher-luna-20261026-r5/execute_once.py",
+      "line": 128,
+      "summary": "Entry checkpoint loaded from worker-written development-000300.json with only completeness and LR checks; no phase, zero-counter, inherited-counter, parent-lineage, registration, config, or path-name binding that candidate checkpoints receive (lines 207-225).",
+      "trigger": "Entry certificate points to a different complete checkpoint at LR 3e-5.",
+      "consequence": "Entry phase/counters/lineage/registration identity unverified; partially mitigated by entry-restoration model/Adam/RNG hashes and entry evaluation row equality with predecessor.",
+      "blocking": false
+    },
+    {
+      "id": "F3",
+      "severity": "low",
+      "classification": "new_design_consistent",
+      "file": "learning/runs/v2/D2-retained300-launcher-luna-20261026-r5/execute_once.py",
+      "line": 292,
+      "summary": "Preflight (validate_identity, load_registration, deadline check) runs outside try and before marker; failures are uncaught with no execution-result or failure receipt.",
+      "trigger": "Invalid pin, stale lease, or preflight beyond 1790 s.",
+      "consequence": "Nonzero exit with traceback only; one-shot not consumed (intended). Parent must treat no marker and no result as preflight failure.",
+      "blocking": false
+    },
+    {
+      "id": "F4",
+      "severity": "low",
+      "classification": "new_test_coverage",
+      "file": "learning/runs/v2/D2-retained300-launcher-luna-20261026-r5/test_launcher_contract.py",
+      "line": 1,
+      "summary": "Fixture tests do not cover validate_outputs new branches (entry restoration, entry checkpoint, counters, cumulative), the preflight deadline branch, or load_registration-before-marker ordering.",
+      "trigger": "Regression in the new validate_outputs branches or preflight ordering.",
+      "consequence": "Regressions pass the synthetic suite. Four-test pass is synthetic only.",
+      "blocking": false
+    }
+  ],
+  "inherited_unchanged": [
+    "execute_once.py:85 hard-coded 0.00003 vs r.LEARNING_RATE elsewhere",
+    "execute_once.py:398-404 status passed with return code 1 on publication budget overrun",
+    "execute_once.py:396-397 execution-result save failure escapes finally",
+    "stop_owned 5s TERM / 5s KILL policy unchanged"
+  ],
+  "scoped_integration_dependencies": [
+    "Runner must export LEARNING_RATE, PARENT_LOCAL_UPDATES=24, PARENT_TOTAL_UPDATES=348, PHASE_START=300, PHASE_END=360, NEW_UPDATES=60, EVALUATION_UPDATES, EXPECTED_TOTAL=408, LIMITS work/total 1790/1800, selected300 parent clock constants, continuation_cumulative_counters, validate_gradient_alignment, validate_episode_journal, performance, Cancelled",
+    "Base runner has 276/324/72/384 and no LEARNING_RATE; addendum omits EXPECTED_TOTAL, NEW_UPDATES, EVALUATION_UPDATES from runner export list",
+    "R5 runner not read (excluded); r.save exclusivity and load_registration semantics verified only against base runner"
+  ],
+  "limits": [
+    "Read launcher, base launcher, addendum, manifest, test file, integration contract, evidence-map top-level keys only.",
+    "Not read: launcher-source.diff and test-results.txt contents (hashed only); parent adapter validation files; mutating R5 runner; R6 builder.",
+    "Not executed; no imports, tests, MPS, environment, training, ledger, lease, or source changes.",
+    "Known prepare_registration.py defects excluded by scope."
+  ]
+}

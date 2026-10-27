@@ -1,0 +1,9 @@
+{
+  "status": "preflight_checker_failed_before_native_execution",
+  "error": "FileNotFoundError: build-python-final-r2.log was resolved against repository root instead of the binding evidence directory",
+  "cause": "Parent checker assumed every verified-hash group used repository-relative keys; command_logs uses evidence-relative names.",
+  "source_action": "The dependent test-module registration was briefly added after the checker failure, then removed before compilation. No other source mutation or integration copy had occurred.",
+  "resolution": "Resolve each hash group using its declared base; require successful preflight before copying/registering the module.",
+  "native_runs": 0,
+  "limit_changes": false
+}

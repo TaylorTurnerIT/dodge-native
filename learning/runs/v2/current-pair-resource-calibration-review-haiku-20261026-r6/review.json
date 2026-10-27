@@ -1,0 +1,74 @@
+{
+  "schema": "current_pair_resource_calibration_frozen_review_v1",
+  "run_id": "current-pair-resource-calibration-luna-20261026-r6",
+  "reviewer": "haiku-20261026-r6 (source-only adversarial review, no execution)",
+  "target_dir": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r6",
+  "targets": {
+    "plan_sha256": "a1c49bc5674f0dc15d54d8516f9c5d399d54316ef52b3ed8f65e23b90c9acac1",
+    "source_pins_sha256": "23c50cf81ad71fb7d0f325fafa0dbd661aff065d15dd305059d42238d9e08ad6",
+    "freeze_manifest_sha256": "d2d537de5b5acccf786650bc39fd8e9580cf0d7b46de8574139da28da6d55c05",
+    "cpu_preflight_receipt_sha256": "d837ef9ed173080755718e5d4d92b5e7ba9b70bf8b9a1ab32a9ccf5b94d50825",
+    "launch_once_py_sha256": "764c33385004c686311430df312dea61af84d3494a5fcb190b555e3dcab9af92",
+    "cpu_preflight_py_sha256": "445ae4d2f6678664102f2818c554e568acc136598df03a7ac0bef5210d375904",
+    "probe_py_sha256": "b1faffbf95b388dd0b66d6772f80d003b089f155cdb76130157e70d59310cbb4",
+    "test_calibration_cpu_py_sha256": "f1bca132777da62ad5200f3d657c698084c636925b2a051d53e06abffcf96f43"
+  },
+  "verdict": "CHANGES_REQUIRED_BEFORE_PARENT_RESERVATION",
+  "checks_passed": [
+    "Pin hashes match plan, source-pins, freeze-manifest, and CPU preflight receipt values listed above.",
+    "CLI entrypoint is real: cpu_preflight.py has argparse --output and __main__ guard; launch_once.py passes --output and expects cpu-preflight-validation/cpu-preflight.json, which run() writes.",
+    "CPU preflight is spawned as lexical python -B with PYTHONDONTWRITEBYTECODE=1, owned PYTHONPYCACHEPREFIX, PYTHONPATH unset, cwd ROOT, before marker.",
+    "Marker claim (claim_once, MARKER.open('x')) occurs after CPU preflight, interpreter re-verification, reservation re-read, and check_live_state; no spawn before it.",
+    "Live state check requires active_long_campaign null and exact active_inference_diagnostic fields; state path pinned in plan and reservation.",
+    "Sample gates: startup sample bound 10s, active window = monotonic bounds of evaluate loop (sampler and probe both use time.monotonic), startup samples excluded, >=20 active samples, nonempty gaps <=1.0s, after-read ages <=1.0s, >=240 forwards, active 30-45s, positive active MPS required, startup zero allowed (probe.py validate_representative_measurements and read_latest_resource_sample).",
+    "No timer full-tree hashing: source-pins directories count is 0; sampler loop only samples RSS and MPS.",
+    "Probe work bound 90s (probe.py deadline), 45s active bound, launcher child timeout 110s with 10s cleanup inside 120s outer bound.",
+    "Historical R6 __pycache__ files are not in the launcher-relevant pin set and are preserved; no source or bytecode writes were performed by this review.",
+    "16 CPU tests in cpu-tests-r6-final3.log pass (16 ran, OK); no actual MPS, probe, reservation, marker, state, or lease written in target directory (preparation-receipt.json reports these as false/0)."
+  ],
+  "findings": [
+    {
+      "id": "R6-F1",
+      "severity": "MEDIUM",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r6/cpu_preflight.py",
+      "lines": [49, 50, 55],
+      "summary": "CPU preflight records training and requires_grad_any for each checkpoint but never asserts them, and always writes status passed.",
+      "trigger": "A checkpoint load returns a model with training=True or any parameter requires_grad=True (for example a regression in worker.load_inference_model) while the load itself does not raise.",
+      "consequence": "cpu-preflight.json still says status passed. launch_once.py:106 gates only on status == passed and mps_operations == 0, so the launcher claims the one-shot marker and spawns probe.py. probe.py later rejects the model (its strict CPU check) only after the marker is consumed. The registered gate 'strict CPU loads' is therefore not enforced where the launcher decides, and a one-shot registration is burned.",
+      "fix": "Assert not training and no requires_grad in cpu_preflight.run before writing the receipt, or have launch_once.py check strict_cpu_loads[*].training is false and requires_grad_any is false and that module_origins are present, before claim_once."
+    },
+    {
+      "id": "R6-F2",
+      "severity": "MEDIUM",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r6/probe.py",
+      "lines": [256],
+      "summary": "MPS driver cap (6 GiB) is enforced only inside guard() at evaluate boundaries; the sampler thread records MPS values without enforcing the cap, and the launcher RSS monitor does not read MPS at all.",
+      "trigger": "MPS driver allocation exceeds 6 GiB during a forward or evaluate segment that has no guard call before the launcher's 110-second child_timeout (launch_once.py child_timeout).",
+      "consequence": "The over-cap condition is not detected while it occurs. It is detected only at the next guard call, or the probe runs until the 110-second bound. The plan text says separate caps are enforced during work; enforcement is only as frequent as guard cadence. I did not verify guard cadence inside worker.evaluate, so the exposure window is unquantified. The unit test test_inflight_mps_cap_fails_on_numeric_driver_overage covers the value check only, not an in-flight overage between guards."
+    },
+    {
+      "id": "R6-F3",
+      "severity": "LOW",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r6/launch_once.py",
+      "lines": [416, 418],
+      "summary": "On a normal child exit, a surviving owned process group member raises RuntimeError without any signal or cleanup evidence.",
+      "trigger": "probe.py exits 0 while a descendant process remains in the owned PGID.",
+      "consequence": "The leftover process is not terminated by the launcher. The failure path records process_group_absent None and absence_status unknown, which is truthful, but the bounded exact-owned cleanup gate is not exercised here. probe.py spawns no children, so the trigger is narrow."
+    }
+  ],
+  "not_verified": [
+    "Actual execution of tests, CPU preflight, probe, or any MPS operation (source-only review; budget 420 seconds).",
+    "worker.evaluate guard cadence (needed to size R6-F2).",
+    "worker._default_probe MPS query semantics (only ResourceSampler and read_latest_resource_sample were read).",
+    "Live state and reservation contents (none present; reviewed only the code that checks them)."
+  ],
+  "authority": {
+    "actual_mps_operations": 0,
+    "checkpoint_writes": 0,
+    "marker_written": false,
+    "reservation_written": false,
+    "state_written": false,
+    "lease_written": false,
+    "source_or_bytecode_written_outside_review_dir": false
+  }
+}

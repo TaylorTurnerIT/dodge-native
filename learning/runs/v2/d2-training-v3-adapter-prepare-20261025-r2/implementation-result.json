@@ -1,0 +1,103 @@
+{
+  "campaign_semantics": {
+    "MPS_limit_bytes": 6442450944,
+    "RSS_limit_bytes": 6442450944,
+    "checkpoint_eligibility": "provisional normal-training candidate only after parent accepted terminal receipt; stage competence predicate separate at mean_alive_frames >= 3060; failed, cancelled, incomplete, or incomplete-weight artifacts ineligible",
+    "early_stop_on_competence_pass": false,
+    "evaluation_updates": [
+      0,
+      72
+    ],
+    "expected_final_cumulative_updates": 120,
+    "final_candidate_update": 72,
+    "finalization_seconds": 200,
+    "inherited_D1_and_pilot_updates": 48,
+    "new_D2_updates": 72,
+    "parent_checkpoint_sha256": "ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f",
+    "phase_update_indices": [
+      1,
+      72
+    ],
+    "run_seed": 810631976,
+    "total_seconds": 1800,
+    "work_seconds": 1600
+  },
+  "commands": [
+    {
+      "command": "python3 -m py_compile learning/runs/v2/d2-training-v3-adapter-prepare-20261025-r2/{adapter,worker,launcher,helper,startup_rehearsal}.py",
+      "exit": 0,
+      "wall_seconds": 0.03
+    },
+    {
+      "command": "python3 -m unittest discover -s learning/runs/v2/d2-training-v3-adapter-prepare-20261025-r2 -p 'test_*.py'",
+      "exit": 1,
+      "result": "9 passed, 3 errors; system Python 3.9 lacked project Torch/native runtime and does not support zip(strict=True)",
+      "wall_seconds": 0.05
+    },
+    {
+      "command": "python/.venv/bin/python -m unittest discover -s learning/runs/v2/d2-training-v3-adapter-prepare-20261025-r2 -p 'test_*.py'",
+      "exit": 0,
+      "result": "11 tests passed",
+      "wall_seconds": 0.8
+    },
+    {
+      "command": "python/.venv/bin/python learning/runs/v2/d2-training-v3-adapter-prepare-20261025-r2/startup_rehearsal.py",
+      "exit": 0,
+      "result": "actual accepted D1 model/Adam/RNG restore fingerprints matched; no env, gradients, or updates",
+      "wall_seconds": 0.97
+    }
+  ],
+  "failed_attempts": [
+    {
+      "attempt": "system Python 3.9 unittest discovery",
+      "errors": [
+        "adapter seed-index test uses zip(strict=True), unsupported by Python 3.9",
+        "checkpoint-schema import unavailable native extension",
+        "Torch unavailable"
+      ],
+      "exit": 1,
+      "superseded_by": "same focused suite passed under pinned Python 3.12"
+    }
+  ],
+  "no_campaign_claim": true,
+  "preparation_directory": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/d2-training-v3-adapter-prepare-20261025-r2",
+  "registration": {
+    "independent_Haiku_review": "pending parent",
+    "required_parent_issued_fields": [
+      "expected_lease",
+      "state_path",
+      "absolute_deadline_monotonic",
+      "started_monotonic",
+      "cancel_path",
+      "one_use_marker_path",
+      "terminal_receipt_path",
+      "runtime_sha256",
+      "pins",
+      "source_manifest_sha256"
+    ],
+    "spec": "registration-spec.json",
+    "status": "template/spec only; parent must issue full registration and exact runtime/source manifests",
+    "template": "registration-template.json"
+  },
+  "run_id": "D2-training-v3-20261025-r1",
+  "schema": "d2_training_v3_adapter_implementation_result_v1",
+  "source_sha256": {
+    "README.md": "56b248b9a0cb85f06318f9fef671302e587e9fa82f2ef5a3af54a43764ea4617",
+    "accepted_D1_checkpoint": "ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f",
+    "adapter.py": "bde7f66b7a9ebcc609328712a9f487ccbe24f75581758756be797b682f7e2b62",
+    "gate_predicate": "11257111602f26e49fbc71afc6a51acb79434a3717bd8d6d36d1bbf87dfb8841",
+    "helper.py": "8240aaed1dfc41b099cb29519d50a89f3c5d721bc8fcd015215aa6d119570e1e",
+    "launcher.py": "49dd0c7a831efd933baed71aaeeb6f298f3261a7f069fe932c26e9ba0943627a",
+    "policy": "bfcbee1609cec0180495c957cf4b5e0b31356f395e2a706217cc9225647d23ae",
+    "registration-spec.json": "c4b8b07e4eae9be0b9fe62bffa0c3675fc7ab6396ee180d49ca371f88c291acf",
+    "registration-template.json": "a201cf9b7b4ddbc3958ce3b04e4e6cc52b63529d0068404056abfb8ca9659ad8",
+    "startup_rehearsal.py": "16c00c217faabdda96a1fc9833b6b4131aad11f896670b145e6f1cf7a435fc09",
+    "test_adapter.py": "552539191ae34471d2a9db28fbefa8bab79c4e8e8e3a8d73a6c67e9ebcaa3c56",
+    "test_checkpoint_schema.py": "77eb0dfe1d185c0f1f9e33e6b605e254bca217469f7aa12e97ce8ac7509e946a",
+    "test_launcher.py": "435ea1dfc599a73154e856e4979007c2a620d7609fbe80c4400c4d730edc0f9f",
+    "test_torch_restore.py": "e3bf77015c0e714d4003ed089d2ae2a0bbd4e152e8c939ab4511bc8f34d00507",
+    "worker.py": "9543c4134dfacbd112368c9a4d6579b2798f1f5af8ac6f53133150be97ef69f1"
+  },
+  "status": "ready_for_parent_registration_and_independent_review",
+  "workspace": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79"
+}

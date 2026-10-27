@@ -1,0 +1,345 @@
+{
+  "schema": "expanded_eval_design_review_findings_v1",
+  "reviewer": {
+    "role": "adversarial source/design review sub-agent",
+    "provider": "opencode",
+    "model": "deepseek-v4.1-flash-free",
+    "paid_fallback": false,
+    "subagents": false,
+    "launch_authority": false,
+    "output_ownership": "absolute_own_output_only",
+    "output_dir": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/expanded-evaluation-design-review-deepseek-free-20261026-r1"
+  },
+  "parent": {
+    "proposal_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/expanded-evaluation-registration-proposal-parent-20261026-r2/proposal.json",
+    "proposal_sha256": "a1070cc5a6d6d01edfbbc04b67aadf58184a606516ee8643d6857edbaa3f1cb2",
+    "proposal_md_sha256": "7697ff943e4cf30f30595fe3b9eec6a8cb766722d9b1b1e8c03bd233e83435f6",
+    "manifest_sha256": "3f83150e3209d45b1a2d8265961334a74005cfbe9214d5328e48b2364534a952",
+    "status": "proposal_only_no_launch_lease_or_gate_authority"
+  },
+  "verdict": "Byte reconciliation, seed-range arithmetic, and the 147456000 frame bound verify. The proposal is not ready to register: the training replication lacks a seed vector, evaluation cohort, analysis unit, decision rule, and compute budget; n=3 (min 2) cannot support a confirmatory arm claim; 348 is labeled incumbent before acceptance; the seed-exposure proof is explicitly incomplete; and the confirmation is underpowered for the pilot 348-vs-324 gap. No launch authority is claimed.",
+  "verified": [
+    {
+      "item": "manifest file hashes",
+      "result": "all 4 briefed files match; parent manifest also matches",
+      "detail": "proposal.json a1070cc5..., proposal.md 7697ff94..., ranking-seed-manifest e4aafa70..., confirmation-seed-manifest a70b5f95...; parent manifest.json 3f83150e..."
+    },
+    {
+      "item": "candidate checkpoint bytes",
+      "result": "all 6 match",
+      "detail": "180 105e0f7a..., 204 f1300e4e..., 276 0b5cf72b..., 300 e2c8fbe4..., 324 c10d90ec..., 348 b95228e5..."
+    },
+    {
+      "item": "receipt/audit hashes and pins",
+      "result": "all 6 match and each receipt/audit contains the checkpoint sha256",
+      "detail": "180 7968a62b..., 204 7fd26ae3..., 276 d64d0f80..., 300 ccc73fbc..., 324 76cb1573..., 348 audit e1c32e99..."
+    },
+    {
+      "item": "348 status",
+      "result": "full audit passed; parent terminal acceptance still pending",
+      "detail": "audit status all_candidates_audited_pending_parent_terminal_acceptance; authority.terminal_acceptance=false"
+    },
+    {
+      "item": "proposed seed ranges",
+      "result": "1,024 contiguous seeds each; disjoint from B, D128, E, dev-64, and each other",
+      "detail": "ranking 0xd1000000-0xd10003ff = 3506438144-3506439167; confirmation 0xd2000000-0xd20003ff = 3523215360-3523216383"
+    },
+    {
+      "item": "147456000 frame bound",
+      "result": "correct for ranking+confirmation only",
+      "detail": "6144 + 2048 = 8192 episodes; 8192 * 18000 = 147456000"
+    },
+    {
+      "item": "host memory arithmetic",
+      "result": "2-campaign worst case fits, with caveats",
+      "detail": "48 GiB host; proposal says do_not_add_RSS_and_MPS (unified memory), giving a 12 GiB cap; even ultra-conservative disjoint sum 2*(6+6)=24 GiB; +12 GiB headroom = 36 GiB < 48 GiB; observed 348 peaks 2.10 GiB RSS / 2.29 GiB MPS"
+    },
+    {
+      "item": "partial seed exposure evidence",
+      "result": "0 collisions in covered logs, not a full proof",
+      "detail": "sibling audit 686717 records / 1608 files / 85391 distinct seeds, 0 collisions; this review's subset scan 919 files / 170972 seed tokens, 0 hits"
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "blocking",
+      "title": "Sampler RNG seeds are absent from the replication seed vector",
+      "evidence": "training_replication only lists new_environment_master_seeds=three_distinct_ids_to_freeze_before_launch and same_saved_model_Adam_RNG_before_registered_seed_transition=true; no sampler/action-RNG field exists; the only 'sampler' hit in proposal.json is resource_sampler. This is exactly the parent's open concern.",
+      "correction": "Define a frozen vector S_i = {env_master_seed_i, sampler_rng_seed_i, and any torch/numpy/python/env RNG stream used by training}; S_i distinct across i=1..3; S_i identical across arms A and B; set the sampler seed only AFTER verified model/Adam/RNG restore; record S_i in the registration, run identity, and receipt; verify the effective sampler seed at runtime; add S_i to concurrency.per_run."
+    },
+    {
+      "id": "F2",
+      "severity": "blocking",
+      "title": "Training replication has no evaluation cohort, analysis unit, decision rule, or compute budget",
+      "evidence": "training_replication keys cover arms, parent, seeds, endpoint, and minimum only; evaluation describes the 6 candidate checkpoints; budget.raw_frames_max covers 8192 episodes (ranking+confirmation) and excludes the replication.",
+      "correction": "Register (a) the replication evaluation cohort (fresh reserved block, descriptive reuse of ranking-1024, or defer to a separate registration), (b) the unit = paired training seed (n=3), (c) the estimator and interval, (d) the primary endpoint, (e) the frame budget. Add these to launch_blockers until frozen."
+    },
+    {
+      "id": "F3",
+      "severity": "blocking",
+      "title": "n=3 (minimum 2) paired training seeds cannot support a confirmatory arm claim",
+      "evidence": "Exact one-sided sign-test minimum p is 0.125 at n=3 and 0.25 at n=2 when all pairs agree; paired t at df=2 needs |t|>2.92. The proposal does not state a decision rule, so 'replication' risks being read as confirmation.",
+      "correction": "Label the replication descriptive/pilot unless seeds are increased to >=5-6 per arm. Pre-register: 3 planned complete pairs; if fewer than 3 complete pairs, report descriptively only and make no interval-based claim; do not silently fall back to 2. Never bootstrap over episodes or use 1024-seed precision as the arm-comparison unit."
+    },
+    {
+      "id": "F4",
+      "severity": "blocking",
+      "title": "348 is labeled incumbent before parent acceptance",
+      "evidence": "confirmation.incumbent_phase_update=348 and incumbent_checkpoint_sha256=b95228e5...; the 348 audit status is all_candidates_audited_pending_parent_terminal_acceptance with authority.terminal_acceptance=false; the launch blockers include selected348_parent_receipt_not_published, but the confirmation section still names 348 as incumbent; the predecessor Luna draft records current_incumbent_update=324 and 348 finalizer review pending.",
+      "correction": "Call 348 the proposed comparator pending acceptance; keep 324 as the accepted incumbent; state that if the 348 parent receipt is not published the registration is void or must be reissued against 324. The controller origin and expected component fingerprints also depend on the accepted 348 receipt."
+    },
+    {
+      "id": "F5",
+      "severity": "blocking",
+      "title": "Replication compute is not in the 147456000 frame bound",
+      "evidence": "147456000 = 8192 * 18000 covers ranking+confirmation only. Replication training is 6 runs * 3929306 = 23575836 raw frames (2 arms; 9 runs = 35363754 with the optional control). Replication evaluation at 1024 seeds is 6*1024*18000 = 110592000 max (165888000 with 3 arms). Total eval max with replication is 258048000 (313344000 with 3 arms); training+eval max is 281623836 (348707754 with 3 arms).",
+      "correction": "Either register the replication evaluation and training frames explicitly or defer the replication to a separate registration. State that 147456000 is not the campaign total. If the replication is evaluated on 1024 seeds, justify why episode-level precision is needed when the run-level n is 3; a 256-seed per-run cohort may suffice."
+    },
+    {
+      "id": "F6",
+      "severity": "blocking",
+      "title": "Seed-exposure proof is explicitly incomplete and not cited",
+      "evidence": "The sibling audit (expanded-evaluation-seed-exposure-audit-luna-20261026-r1/audit.json) scanned 686717 records / 1608 files / 85391 distinct seeds with 0 collisions, but its limits include no checkpoint binaries, no reservation registry/config union, and no parent-receipt episode-index reconciliation. The sibling reconciliation (expanded-evaluation-seed-coverage-reconcile-luna-20261026-r2/reconciliation.json) states 'complete seed identity unavailable in receipt fields' and lists missing artifacts: per-run master seed + SplitMix64 source hash, a closed construction/attempt inventory, the 348 parent receipt, and journal-to-receipt reconciliation. The launch blockers include retrospective_seed_exposure_and_future_exclusions_not_verified, but the proposal does not cite either sibling artifact.",
+      "correction": "Cite both sibling artifacts by path and hash in the proposal and manifest; require the reconciliation's minimal missing artifacts before launch; audit the derived per-episode actual_seed values and sampler draws, covering training AND evaluation exposure, completed/abandoned/in-flight; a partial collision voids the manifest (no silent seed drop). The proposal's 'training ancestry seed_ids' wording is too narrow."
+    },
+    {
+      "id": "F7",
+      "severity": "major",
+      "title": "Throughput sample is only required to be separate from confirmation, not ranking",
+      "evidence": "budget.measurement = permitted_throughput_sample_must_be_separate_from_confirmation;benchmark_seedset_and_model_frozen_first.",
+      "correction": "Require the throughput/benchmark sample to be disjoint from BOTH ranking and confirmation cohorts (use dev-64 or a third reserved block). Running the model on ranking seeds before the ranking opens the outcomes and contaminates selection."
+    },
+    {
+      "id": "F8",
+      "severity": "major",
+      "title": "Post-Adam LR controller mechanics are underspecified",
+      "evidence": "training_replication.Adam_then_LR = restore_Adam_first_then_apply_explicit_registered_controller_transition;preserve_prior_schedule_metadata. The existing linear run uses origin_cumulative_update=372, horizon=60, spec sha 7ceed85c..., and verifies model/Adam/RNG restore before env construction; per-update group LR logs run 3e-5 (u=1) to 1e-5 (u=60). 348 is at cumulative 396, u=24, LR ~2.2203e-5.",
+      "correction": "Register the new controller: origin = 348 cumulative (expected 396), u = cumulative - origin, first new update cumulative 397 -> 3e-5, last u=60 -> 1e-5; verify 348 component fingerprints (model b106e8e1..., Adam 29108e84..., RNG 831d8fa2...) in an entry-restoration record before env construction; keep the old spec as provenance only and do not restore the old scheduler as active; preserve Adam step count; log and assert per-update group LR for both arms; record the shared first-step jump from ~2.2203e-5 to 3e-5."
+    },
+    {
+      "id": "F9",
+      "severity": "major",
+      "title": "Confirmation is underpowered for the pilot 348-vs-324 gap",
+      "evidence": "Pilot dev-64 paired 348-324: mean 158.72, SD 2297.51, SE at 1024 = 71.80. One-sided 95% LB>0 requires observed > 118.11 frames (50% power); 80% MDE = 178.53; 90% MDE = 210.12; power at the pilot effect = 0.714; N for 80% = 1296, for 90% = 1795. 348's own 1024-seed mean CI half-width is ~125.10 (SD 2042.45).",
+      "correction": "State the MDE and treat a null as inconclusive, not as evidence of no difference. Either increase confirmation N to ~1300 (80%) or ~1800 (90%) for the pilot effect, or pre-register the ~118-frame threshold as the practical margin and justify it. Pre-register a minimum meaningful difference, not only LB>0."
+    },
+    {
+      "id": "F10",
+      "severity": "major",
+      "title": "If 348 wins, the one-use confirmation cohort is spent on a descriptive estimate",
+      "evidence": "confirmation.if_winner_is_incumbent = single1024seed_estimate_and_CI;no_improvement_test_against_itself_or_pointer_change; cohort_openings=1. The pilot suggests 348 is the likely ranking winner, so the expected path spends 1024 seeds and up to 36.8M frames without a confirmatory test.",
+      "correction": "Make cohort opening conditional on winner != 348, or justify the descriptive 348 estimate explicitly and state that the one-use block is spent. Label that branch descriptive, not confirmation."
+    },
+    {
+      "id": "F11",
+      "severity": "major",
+      "title": "Concurrency conflicts with the frozen single-lease guard; evaluation runs and MPS enforcement are not attributed",
+      "evidence": "concurrency.current_legacy_lease = unchanged;normal_parent_finalization_only; registry = ...no_bypass_of_frozen_singlelease_guards; initial_max_active_training_campaigns=2; operational_qualification = new_registry...review_required_before_concurrentlaunch. per_run lacks seed vector, controller spec, and eval manifest. MPS driver bytes is a recommended working set, not a hard cap.",
+      "correction": "State that the 2-campaign registry is a separately authorized lease-registry successor and this proposal does not authorize it. Include evaluation runs in the registry or serialize them against training. Require an enforcement/watchdog on MPS breach and a measured free-memory/pressure check. State the accounting basis: the proposal says do_not_add_RSS_and_MPS for unified memory (12 GiB cap); even the ultra-conservative disjoint sum (24 GiB) plus 12 GiB headroom is 36 GiB < 48 GiB, so capacity is not the blocker. Add seed vector, controller spec sha, and eval manifest sha to per_run."
+    },
+    {
+      "id": "F12",
+      "severity": "major",
+      "title": "Q1/Q4 ordering basis is missing",
+      "evidence": "evaluation.Q1 = mean_lowest256_alive_frames; Q4 = mean_highest256_alive_frames; quarter_group_size=256; no definition of what orders the 1024 episodes. The predecessor Luna draft had q1_q4_definition = means for lowest and highest quarter groups of the fixed 1024-seed cohort; not quantiles.",
+      "correction": "Define per-candidate ordering by alive frames: bottom 256 and top 256 of that candidate's 1024 episodes, caps included, not a common seed partition and not quartiles of the seed cohort; label descriptive. Alternatively define a common seed partition and justify it."
+    },
+    {
+      "id": "F13",
+      "severity": "major",
+      "title": "Ranking selection bias and multiplicity are not labeled",
+      "evidence": "ranking_metric = mean_alive_frames_all_1024_including_caps; 6 candidates; tie_break = earlier_phase_update; no claim-limit text. The confirmation is a single test, but the proposal does not say so explicitly.",
+      "correction": "State that ranking is selection-only, the winner's ranking mean is upward-biased (winner's curse), and no pairwise ranking claim is made. State that the single winner-vs-348 test on fresh seeds needs no multiplicity adjustment because it is one test, the selection is independent of the confirmation data, and the winner is frozen before the cohort opens. Future pairwise or sequential claims require a separate alpha policy."
+    },
+    {
+      "id": "F14",
+      "severity": "major",
+      "title": "Replication best-checkpoint selection can contaminate the arm comparison",
+      "evidence": "training_replication.endpoint = same60updates;best_checkpoint_selection_reported_separately. The existing 348 was selected on the 64-seed eval (audit selection_basis = mean_alive_frames_including_entry324_no_score_gate).",
+      "correction": "Pre-register the primary endpoint as the final update (60) for both arms. If a best-checkpoint analysis is reported, select on a disjoint validation block or a training-time metric, label it exploratory, and never select on the eval cohort used for the arm comparison."
+    },
+    {
+      "id": "F15",
+      "severity": "minor",
+      "title": "Candidate set is nested lineage checkpoints, not independent arms",
+      "evidence": "180 -> 204 -> 276 -> 300 -> 324 -> 348 is a single ancestry chain (204 branches from 180); the reconciliation lists the same chain. Ranking selects a checkpoint, not an independent method.",
+      "correction": "Add a claim limit: the ranking is a checkpoint-selection decision within one lineage; the confirmation is valid for that decision, not for a 'method A vs method B' claim."
+    },
+    {
+      "id": "F16",
+      "severity": "minor",
+      "title": "348's 64-seed mean is selection-biased",
+      "evidence": "348 mean 3098.125 is the max of 6 on the same dev-64 (audit proposed_best_update=348, baseline 324 mean 2939.40625). Only the fresh 1024-seed confirmation estimate is unbiased for the selected checkpoint.",
+      "correction": "Label the 64-seed 3098.125 as a selected estimate; use the confirmation estimate for reporting; do not present it as an unbiased incumbent mean."
+    },
+    {
+      "id": "F17",
+      "severity": "minor",
+      "title": "'accepted receipt' wording overreaches for 348",
+      "evidence": "proposal.md says 'Candidate checkpoint and accepted receipt byte hashes are reconciled in proposal.json'; 348 uses source_audit_path/source_audit_sha256 and integrity_status=full_candidate_audit_passed_parent_finalization_pending.",
+      "correction": "Say 'accepted receipts for 180-324 and a full audit for 348; parent acceptance pending'."
+    },
+    {
+      "id": "F18",
+      "severity": "minor",
+      "title": "Evaluation backend, determinism, and batching are underspecified",
+      "evidence": "evaluation.batching = bounded_fixed_microbatch64_envs;16chunks_same_order;CPUorMPSbackend_pinned_before_launch. No same-backend requirement across candidates/stages, no repeatability check, no env reset/independence policy.",
+      "correction": "Pin one backend for all candidates and both stages; record device and library versions; run a two-repeat determinism check on one candidate before the full ranking; specify env independence/reset and fixed chunk order."
+    },
+    {
+      "id": "F19",
+      "severity": "minor",
+      "title": "Evaluation audit fields are incomplete",
+      "evidence": "evaluation.raw_frame_conservation = required_per_episode; no terminated XOR truncated, alive<=gameplay<=cap, score identity, startup_frames==13, or unknown/unavailable death-cause handling.",
+      "correction": "Reuse the frozen 64-harness conservation/audit contract (cited in the prior seed audit) and require unknown/unavailable counts to be reported and investigated if nonzero."
+    },
+    {
+      "id": "F20",
+      "severity": "minor",
+      "title": "Bootstrap description is ambiguous",
+      "evidence": "confirmation.bootstrap: generator numpy.random.PCG64, seed 4200261026, resamples 20000, method 'linear', one_sided_lower_percentile 5.0, coverage approximate_not_exact_finite_sample.",
+      "correction": "Clarify that 'linear' means quantile interpolation (as in numpy.quantile(method='linear')), not a normal interval; record the bootstrap code hash; consider BCa for bounded/censored data or justify percentile; state whether the target is the cohort mean or a superpopulation of seeds."
+    },
+    {
+      "id": "F21",
+      "severity": "minor",
+      "title": "Wall budget anchors should be explicit",
+      "evidence": "budget.wall_limit = pending_measured_fullcap_projection_and_explicit_registration; observed 348 run 1131.14 s for 60 updates; 64-episode eval 8.76 s.",
+      "correction": "Use the observed anchors for the projection, but keep the wall limit as a separate registered budget; do not convert the 147456000 frame bound into a timing claim."
+    },
+    {
+      "id": "F22",
+      "severity": "note",
+      "title": "B/E 'unopened' label should be reconciled with the prior audit flag",
+      "evidence": "proposal.json seed_gate.B_E_outcomes_remain_unopened=true; the earlier 64-seed audit flagged that B-block baseline episode files exist on disk (hash matches qualification v2). This review did not open B/E.",
+      "correction": "Reconcile the label before relying on it; do not treat 'outcomes unopened' as 'no B-block data exists'."
+    },
+    {
+      "id": "F23",
+      "severity": "note",
+      "title": "Contiguous disjoint seed blocks are a design strength",
+      "evidence": "ranking 0xd1000000-0xd10003ff and confirmation 0xd2000000-0xd20003ff are 1024 contiguous seeds each, disjoint from B/D128/E/dev-64 and each other; sibling audit and this review's subset scan found 0 hits.",
+      "correction": "Keep the contiguous blocks (easy to audit) and install the union in the training exclusion config before any environment construction."
+    }
+  ],
+  "quantitative": {
+    "frames": {
+      "ranking_episodes": 6144,
+      "confirmation_episodes_max": 2048,
+      "total_episodes_max": 8192,
+      "raw_frame_cap": 18000,
+      "raw_frames_max": 147456000,
+      "replication_training_frames_primary": 23575836,
+      "replication_training_frames_optional_control": 35363754,
+      "replication_eval_frames_max_primary": 110592000,
+      "replication_eval_frames_max_optional_control": 165888000,
+      "total_eval_frames_max_primary": 258048000,
+      "total_eval_frames_max_optional_control": 313344000,
+      "total_training_plus_eval_frames_max_primary": 281623836,
+      "total_training_plus_eval_frames_max_optional_control": 348707754
+    },
+    "memory": {
+      "host_gib": 48.0,
+      "per_campaign_rss_gib": 6.0,
+      "per_campaign_mps_gib": 6.0,
+      "campaigns": 2,
+      "worst_case_disjoint_sum_gib": 24.0,
+      "headroom_gib": 12.0,
+      "worst_case_plus_headroom_gib": 36.0,
+      "fits_host": true,
+      "observed_348_peak_rss_gib": 2.103,
+      "observed_348_peak_mps_gib": 2.287
+    },
+    "pilot_power": {
+      "source": "dev-64 per-seed rows; paired differences vs 348; not the proposed cohorts",
+      "348_mean": 3098.125,
+      "348_sd": 2042.446,
+      "348_ci95_halfwidth_at_1024": 125.1,
+      "pairs": {
+        "348_vs_324": {
+          "mean_diff": 158.71875,
+          "sd_diff": 2297.51,
+          "se_at_1024": 71.797,
+          "lb_zero_threshold_50pct_power": 118.106,
+          "mde_80pct": 178.532,
+          "mde_90pct": 210.118,
+          "power_at_pilot_effect": 0.714,
+          "n_80pct": 1295.6,
+          "n_90pct": 1794.6
+        },
+        "348_vs_300": {
+          "mean_diff": 393.734,
+          "sd_diff": 2834.329,
+          "se_at_1024": 88.573,
+          "power_at_pilot_effect": 0.997,
+          "n_80pct": 320.4
+        },
+        "348_vs_276": {
+          "mean_diff": 614.469,
+          "sd_diff": 2988.382,
+          "se_at_1024": 93.387,
+          "power_at_pilot_effect": 0.9999996,
+          "n_80pct": 146.2
+        },
+        "348_vs_204": {
+          "mean_diff": 1176.953,
+          "sd_diff": 2234.99,
+          "se_at_1024": 69.843,
+          "power_at_pilot_effect": 1.0,
+          "n_80pct": 22.3
+        },
+        "348_vs_180": {
+          "mean_diff": 1243.656,
+          "sd_diff": 2189.349,
+          "se_at_1024": 68.417,
+          "power_at_pilot_effect": 1.0,
+          "n_80pct": 19.2
+        }
+      }
+    },
+    "replication_inference": {
+      "n2_min_one_sided_sign_test_p": 0.25,
+      "n3_min_one_sided_sign_test_p": 0.125,
+      "n4_min_one_sided_sign_test_p": 0.0625,
+      "n5_min_one_sided_sign_test_p": 0.03125,
+      "n6_min_one_sided_sign_test_p": 0.015625,
+      "n3_paired_t_df": 2,
+      "n3_paired_t_critical_95_one_sided": 2.92
+    },
+    "lr_controller": {
+      "existing_origin_cumulative_update": 372,
+      "existing_horizon": 60,
+      "existing_spec_sha256": "7ceed85c5dc277602f2f51937b4ac003e2013e2689341a963ce5d82d5b64c9e4",
+      "phase348_cumulative_update": 396,
+      "phase348_u": 24,
+      "phase348_lr": 2.2203389830508474e-05,
+      "new_origin_cumulative_update": 396,
+      "first_new_cumulative_update": 397,
+      "first_new_lr": 3e-05,
+      "last_new_lr": 1e-05
+    }
+  },
+  "claim_limits_to_add": [
+    "Ranking is a selection device; the winner's ranking mean is upward-biased; no pairwise ranking claims.",
+    "The only confirmatory test is the single winner-vs-348 comparison on fresh seeds; no multiplicity adjustment is applied now; future pairwise or sequential claims need a separate alpha policy.",
+    "The confirmation is conditional on the candidate set and on parent acceptance of 348; if 348 is not accepted, the registration is void or must be reissued against 324.",
+    "A null confirmation is inconclusive, not evidence of no difference; the MDE is ~113-154 frames at 50% power and ~170-234 at 80% power across the pilot pairs.",
+    "The training replication is descriptive/pilot at n=3 (min 2); no 95% arm claim; never use episode-level precision as the arm-comparison unit.",
+    "Without the constant 2e-5 control, no schedule-shape claim; the two arms differ in average LR (3e-5 vs 2e-5) and reset to 3e-5 from 348's ~2.2203e-5.",
+    "No qualification, holdout, stage-promotion, or B/E claim; all gates unchanged.",
+    "The 147456000 frame bound is a cap for ranking+confirmation only, not a campaign total and not a timing claim."
+  ],
+  "provenance": {
+    "provider": "opencode",
+    "model": "deepseek-v4.1-flash-free",
+    "free_tier": true,
+    "paid_fallback": false,
+    "subagents": false,
+    "launch": false,
+    "checkpoint_deserialization": false,
+    "native_or_torch_or_mps": false,
+    "b_e_outcomes_opened": false,
+    "gate_lease_state_shared_edits": false
+  }
+}

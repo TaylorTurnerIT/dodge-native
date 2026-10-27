@@ -1,0 +1,45 @@
+{
+  "findings": [
+    {
+      "consequence": "The first-global descriptor and shared cleanup deadline can start later than the retained successful waitpid observation, violating protocol terminal_lifecycle.failure_observation_time and earliest_failure+10. Exact extracted supervisor/notify/pool proofs retain a worker report at 99.75 but produce first_failure=100.0/until=110.0, instead of 99.75/109.75. Both rc=1 and raw status 9/rc=-9 discriminate. No accepted receipt, actual OS overrun, survivor, performance, or training failure is claimed.",
+      "end_line": 1306,
+      "fix_direction": "Preserve the validated abnormal worker direct-wait source timestamp through the inner failure path before later IPC/probe/file operations; keep earlier guard/latch/peer sources, existing cap, ACK/write rules, mandatory-first ordering and single worker_wait send semantics.",
+      "id": "BOUNDARY-R9-WORKER-RAW-OBSERVATION-TIME",
+      "line": 1292,
+      "mechanism": "supervise_owned takes child.report, sends worker_wait, checks absence and reads long-worker-result.json before checking the abnormal raw outcome. No source-stamped error is made from report.observed_monotonic. A missing result (normal for abrupt death) or another intervening error enters observed_failure with no descriptor, so it selects the later catch time. Execution.pump validates and retains the worker_wait but does not fail the pool for its abnormal returncode, so the outer does not recover the earlier source time.",
+      "path": "learning/runs/v2/postovernight-long-D2-boundary-prepare-r9/long_d2.py",
+      "proof_limits": "Small exact AST extractions with fake child, clock, channel and absence inputs. The signaled-worker case uses the real extracted read_json on an actually missing owned fixture file. No real signal, waitpid, process-group or ML execution.",
+      "proofs": [
+        {
+          "command": "worker-raw-proof-r4-command.json",
+          "raw_exit": 0,
+          "result": "worker-raw-proof-results.json",
+          "script": "proof_worker_raw_time_r4.py",
+          "stderr": "worker-raw-proof-r4.stderr.log",
+          "stdout": "worker-raw-proof-r4.stdout.log"
+        },
+        {
+          "command": "worker-raw-signal-proof-r2-command.json",
+          "raw_exit": 0,
+          "result": "worker-raw-signal-proof-results.json",
+          "script": "proof_worker_raw_signal_r2.py",
+          "stderr": "worker-raw-signal-proof-r2.stderr.log",
+          "stdout": "worker-raw-signal-proof-r2.stdout.log"
+        },
+        {
+          "command": "outer-worker-packet-command.json",
+          "raw_exit": 0,
+          "result": "outer-worker-packet-results.json",
+          "script": "proof_outer_worker_packet.py",
+          "stderr": "outer-worker-packet.stderr.log",
+          "stdout": "outer-worker-packet.stdout.log"
+        }
+      ],
+      "severity": "P2",
+      "title": "Retain the abnormal worker wait observation before later IPC and file IO",
+      "trigger": "Worker exits with raw returncode outside (0,2), without an earlier worker failure packet, guard, latch, or peer descriptor. Its live supervisor obtains a direct wait report before later worker_wait IPC, group probing, or result-file reading."
+    }
+  ],
+  "schema": "frozen_boundary_r9_source_review_v1",
+  "verdict": "changes_required"
+}

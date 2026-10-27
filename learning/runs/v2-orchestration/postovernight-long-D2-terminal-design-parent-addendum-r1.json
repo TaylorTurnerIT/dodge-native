@@ -1,0 +1,28 @@
+{
+  "accepted_plan_audit_corrections": [
+    {
+      "id": "PLAN-WORKER-FAILURE",
+      "reason": "Whole-worker byte identity conflicts with required first-failure timestamp acknowledgment before failure checkpoint/verification.",
+      "requirement": "Allow minimal supervision-only worker except/finally hooks to timestamp and acknowledge first failure BEFORE emergency checkpoint or verification, bound persistence by shared deadline, and stop ordinary finalization after failure. Preserve every learner/model/PPO/env/reward/control/counter operation; report exact hook diff."
+    },
+    {
+      "id": "PLAN-EARLIEST-FAILURE",
+      "reason": "A later-arriving acknowledged worker failure may predate executor initial observation.",
+      "requirement": "Always tighten first_failure=min(existing,validated_report,now) and cleanup_until=min(existing_deadline,first_failure+10,T0+7210). Never ignore an earlier report or extend/reset cleanup."
+    }
+  ],
+  "implementation_obligations": [
+    "Give worker start gate a dedicated directed endpoint; never allow unsynchronized supervisor/worker reads of one socket.",
+    "Keep outer lease/resource<=0.5s and full-pin<=5s observations active during hashing and receipt IO, using closed disk snapshots and memory-only monitors.",
+    "On macOS executor cannot waitpid a non-child worker after supervisor death; distinguish direct-child reaping from positively proven non-child group absence. Missing worker wait report forbids acceptance.",
+    "Guard deadline_origin explicitly uses shared executorT0; all normal work7170inner/7200outer,worker7140,one10sfailurepool unchanged.",
+    "Prove ownership before signaling exact supervisor/worker groups; missing or uncertain ownership is failure, never permission to signal unrelated processes.",
+    "Finite postdecision direct-signal/transient-mutation observation limits stay explicit; no atomicity claim or silent channel exclusion."
+  ],
+  "no_campaign_or_lease": true,
+  "no_learner_or_config_changes": true,
+  "protocol": "learning/runs/v2-orchestration/postovernight-long-D2-r1-protocol-r3.json",
+  "protocol_sha256": "6a7ffe59551fd12f4a6fd316c6ab626d03e92a7ec25f77dc34fce30837fa592d",
+  "registered_at_utc": "2026-10-24T18:06:27.000002+00:00",
+  "status": "required_parent_implementation_addendum"
+}

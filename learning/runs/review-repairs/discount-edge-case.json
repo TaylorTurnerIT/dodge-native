@@ -1,0 +1,25 @@
+{
+  "finding": "oversized_discount_raises_inconsistent_error",
+  "trigger": "discount=10**1000",
+  "observed_before": "OverflowError",
+  "expected_after": "ValueError",
+  "fix": "check numeric range before converting to float for finiteness",
+  "command": [
+    "learning/.venv/bin/python",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "learning/tests",
+    "-p",
+    "test_native.py",
+    "-v"
+  ],
+  "exit_code": 0,
+  "tests_passed": 8,
+  "reviewed_snapshot_before_delta": "f137a90747379b4413650c2e4c753b8719b1e66fb8c385bee4560bce8b9caf1e",
+  "source_sha256": {
+    "learning/python/dodge_learning/env.py": "7ef78928ee516fb1e6d6f80b0a1ff7f9afd1b5438a11abe5a2fe65d376cc2441",
+    "learning/tests/test_native.py": "c296a4a371f10819dacc662ec7a9eec772ba491f012058327b0c9203f7a663e8"
+  }
+}

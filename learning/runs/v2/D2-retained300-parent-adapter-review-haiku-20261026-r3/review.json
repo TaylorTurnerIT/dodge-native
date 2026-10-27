@@ -1,0 +1,73 @@
+{
+  "schema": "d2_parent_adapter_review_v1",
+  "run_scope": "D2-retained300-parent-adapter-luna-20261026-r3 (unchanged R3)",
+  "verdict": "no_blocking_defects",
+  "launch_qualification_claim": false,
+  "verified_static": {
+    "pins_match_bytes": true,
+    "selected_receipt_flags_and_literals_match": true,
+    "cost_receipt_literals_and_flags_match": true,
+    "sidecar_dict_matches": true,
+    "trajectory_baseline_5190_209660791156_matches": true,
+    "cost_before_after_match": true,
+    "module_shadowing_found": false,
+    "cpu_tests_rerun": false
+  },
+  "findings": [
+    {
+      "id": "R3-1",
+      "severity": "low",
+      "classification": "coverage-gap",
+      "path": "learning/runs/v2/D2-retained300-parent-adapter-luna-20261026-r3/test_parent_adapter.py",
+      "line": 98,
+      "trigger": "Receipt candidate_phase_update or candidate_local_update altered (not in receipt mutation loop lines 98-103)",
+      "consequence": "Validator rejects at parent_adapter.py:43-44 but no test pins it; regression would be silent in test suite"
+    },
+    {
+      "id": "R3-2",
+      "severity": "low",
+      "classification": "test-readability",
+      "path": "learning/runs/v2/D2-retained300-parent-adapter-luna-20261026-r3/test_parent_adapter.py",
+      "line": 152,
+      "trigger": "Loop over two SHAs with continue on the real SHA",
+      "consequence": "Only the zero SHA is asserted; behavior correct but misleading"
+    },
+    {
+      "id": "R3-3",
+      "severity": "low",
+      "classification": "dead-parameter",
+      "path": "learning/runs/v2/D2-retained300-parent-adapter-luna-20261026-r3/parent_adapter.py",
+      "line": 96,
+      "trigger": "validate_cost_anchor called without fingerprint argument, parameter never read",
+      "consequence": "None at runtime; misleading signature"
+    },
+    {
+      "id": "R3-4",
+      "severity": "low",
+      "classification": "authority-gap",
+      "path": "learning/runs/v2/D2-retained300-parent-adapter-luna-20261026-r3/parent_adapter.py",
+      "line": 26,
+      "trigger": "Adapter alone used as lineage gate; parent terminal receipt d64d0f80 and audit.json 046cc985 not checked",
+      "consequence": "Safe for exact pinned bytes; gap if receipt pin changes or consumer assumes full lineage check"
+    }
+  ],
+  "duplicate_validation_under_pins": [
+    "parent_adapter.py:28-34 receipt schema/status/flags",
+    "parent_adapter.py:38-42 sidecar equality",
+    "parent_adapter.py:59-62 metadata gate",
+    "parent_adapter.py:97-114 cost receipt schema/flags"
+  ],
+  "prior_review_reconciliation": {
+    "F1_field_naming": "mitigated_in_adapter; open_for_registration_code",
+    "F2_stale_sidecar": "partly_mitigated; parent_terminal_receipt_gate_absent",
+    "F3_lineage_gap": "verified_165ae5c5_is_phase276; adapter_uses_0b5cf72b",
+    "F4_budget_base": "open_runner_level; adapter_pins_5190_8621_and_state_7548_93"
+  },
+  "evidence_limits": [
+    "checkpoint not decoded; learner fingerprints and state campaign clock unverified",
+    "tests not rerun; cpu-tests.log accepted by hash only",
+    "log lacks command, interpreter, exit code, timestamp",
+    "MPS RNG not examined",
+    "R4 integration not read"
+  ]
+}

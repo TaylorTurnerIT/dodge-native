@@ -1,0 +1,84 @@
+{
+  "schema": "progressive-survival-curriculum-design-v1",
+  "status": "design_only_not_registered_not_launchable",
+  "hypothesis": "Insufficient early-horizon practice may contribute to a weak early-survival lower tail; this is unproven.",
+  "parent": {
+    "checkpoint": "D2-retained300-continuation-20261026-r1/checkpoint-000324-candidate.pt",
+    "checkpoint_sha256": "c10d90ec0e67503afef8f4d90c4968581d430ef2065117a75e81c445a04c8ddc",
+    "integrity_receipt_sha256": "76cb15733e87518cb3b473b7f8ebd847ed206351fb9f17d89b8b92e6bf853f08",
+    "acceptance": "expanded-confirmation-parent-20261026-r1/parent-acceptance.json",
+    "acceptance_sha256": "3e84979c4c8da76d0f98666a23f90eb15c1e813ca5edf1001e19daebaf4d5bbd",
+    "actual_cumulative_updates": 372,
+    "phase_updates": 324,
+    "saved_learning_rate": 0.00003,
+    "schedule": "none"
+  },
+  "comparison": {
+    "arms": ["matched_control", "progressive_curriculum"],
+    "same_starting_checkpoint": true,
+    "same_entity_transformer_architecture": true,
+    "same_reward": "score + alive_frames/100 - 5 on true death; learner reward_scale 0.1",
+    "same_learning_rate": 0.00003,
+    "learning_rate_schedule": "constant",
+    "replicas": 3,
+    "updates_per_replica": 60,
+    "training_seed_vectors": "matched across arms; exact values reserved and audited by parent before environment construction",
+    "replica_seed_vectors": "three disjoint paired vectors reserved and audited by parent",
+    "optimizer_decision_budget": "same rollout decisions and optimizer updates for every pair",
+    "rollout_decisions": 256,
+    "action_repeat": 4,
+    "training_raw_frame_cap": 18000,
+    "resource_accounting": "Report learner decisions, optimizer steps, environment raw frames, cutoff resets, and startup/replay frames separately. Equal PPO decisions do not imply equal raw-frame or reset cost; enforce a parent-approved raw-frame and wall-resource ceiling before launch. Do not silently top up either arm.",
+    "control_reuse": "Share an existing control only if source, config, parent, seeds, budget, exclusions, and evaluation fields match exactly before launch; otherwise create isolated matched control runs.",
+    "isolation": "Curriculum code, config, run outputs, and checkpoints stay under this design's successor-owned directory. No reuse of existing-control or LR-study preparation paths."
+  },
+  "curriculum": {
+    "horizon_unit": "raw gameplay frames from normal episode start; action_repeat remains 4",
+    "stages_raw_frames": [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 13000, 14000, 15000, 16000, 17000, 18000],
+    "initial_stage": 1000,
+    "mix": "At stage H>1000, assign 70% of episode slots to current target H and 30% across all earlier horizons [1000, H-1000] as evenly as possible. At H=1000, assign 100% to 1000.",
+    "assignment": "Deterministic paired stream keyed by replica, matched training-seed vector, learner-update index, slot, and per-slot episode index. Both arms log assignment keys; control gets no curriculum cutoff.",
+    "minimum_stage_exposure_updates": 10,
+    "mastery_rule": {
+      "label": "PROPOSED, not user-approved",
+      "eligible_episodes": "Current-target episodes only; minimum 200 completed target episodes after entering stage.",
+      "success": "Survive through H raw gameplay frames without true death. Practice cutoff at H is success; death on the transition reaching H is failure and takes precedence.",
+      "threshold": 0.9,
+      "stability": "Two consecutive non-overlapping windows of 100 eligible target episodes each must each meet or exceed 90% success, and minimum stage exposure must be met.",
+      "advance": "Advance one 1000-frame stage after all mastery conditions pass. At 18000, stop stage advancement.",
+      "reset": "Any failed 100-episode window resets the consecutive-window count to zero; remain at current stage and keep collecting. No automatic stage decrease.",
+      "fallback": "If mastery is not met within 60 updates, finish the registered pilot at the current stage, mark later stages untested, and do not extend budget."
+    },
+    "earlier_horizon_episodes": "Keep their success/failure counts by horizon as practice diagnostics. They do not count toward current-stage mastery. A prior-horizon success never advances stage.",
+    "stage_assignment": "Freeze assignment for each episode at normal reset. Preserve 256-decision rollouts; stage horizon changes episode experience, not rollout size."
+  },
+  "practice_cutoff_contract": {
+    "normal_start_only": true,
+    "arbitrary_frame_jumps": false,
+    "true_death": "Keep existing termination and death reward. Do not bootstrap terminal value or GAE across the death boundary.",
+    "survived_horizon": "Emit truncated=true, terminated=false, no death penalty; compute value on the actual final continuing observation before resetting that slot; bootstrap that value, stop GAE carry across reset, then start a fresh normal episode.",
+    "same_transition_death_and_horizon": "True death wins; count failure, terminated=true, truncated=false, no bootstrap.",
+    "current_api_finding": "Frozen PPO reads final observations before reset_done and GAE supports alive truncation. Native reset_done rejects active slots, and current step/reset API offers no practice-cutoff operation. Isolated native/wrapper extension is required; do not fake only Python flags.",
+    "evaluation": "Disable practice cutoffs. Every evaluation episode starts normally and runs to true death or full 18000 raw-frame cap."
+  },
+  "evaluation": {
+    "milestones_raw_frames": [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 13000, 14000, 15000, 16000, 17000, 18000],
+    "training_mastery_is_not_independent_evaluation": true,
+    "full_run_cohort": "New disjoint fresh-seed cohort(s), reserved and ancestry-audited by parent before either arm trains; use identical cohort and exclusions for both arms. No B/E cohort opens.",
+    "required_exclusion_union": "Preserve and parent-audit existing B, E, D128, D100-ranking, and D200-confirmation exclusions before environment construction; add new evaluation cohort exclusions identically to both arms.",
+    "metrics": ["milestone_success_rate_by_horizon", "worst_survival_frames", "Q1_bottom_quarter_mean_survival_frames", "mean_survival_frames", "Q4_top_quarter_mean_survival_frames", "best_survival_frames"],
+    "quartiles": "Sort full-run survival rows independently per metric; Q1 and Q4 are means of bottom and top quarters. Report sample count and paired per-seed differences.",
+    "training_counts": "Report milestone successes over eligible episodes by target horizon and stream. Training episodes are not fresh held-out evaluation. Analyze seed vector as unit; episode outcomes within seed are clustered, not independent bootstrap rows."
+  },
+  "architecture_and_ppo": {
+    "model": "Frozen OmniscientEntityTeacher entity transformer, same exact accepted checkpoint and model source for both arms",
+    "ppo": {"gamma": 0.995, "gae_lambda": 0.95, "minibatch_size": 512, "update_epochs": 4, "entropy_coefficient": 0.01, "reward_scale": 0.1},
+    "reward_shaping": "none",
+    "capacity_change": "none"
+  },
+  "gates": {
+    "before_training": ["independent design review", "parent source/ancestry pin audit", "checkpoint acceptance revalidation", "new seed reservation and exclusion audit", "matched config/seed/budget diff", "native cutoff and GAE tests", "resource calibration and caps", "parent registration and launch authorization"],
+    "source_pin_impact": "Any isolated PPO/native extension changes runtime and native source hashes and requires a new successor pin, registration, and independent review. Frozen predecessors remain unchanged.",
+    "authority": "Parent owns registration, review, resources, seeds, and acceptance. This artifact grants no launch or qualification authority."
+  }
+}

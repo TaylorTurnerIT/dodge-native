@@ -1,0 +1,24 @@
+{
+  "schema": "ipc_diagnosis_plan_v1",
+  "status": "diagnosis_only_no_source_change",
+  "findings": [
+    {"id": "F1", "claim": "Zero-length gate recvmsg and 200ms start_ack send timeout reproduced when a second process retains the shared gate endpoint during the worker ready/ack exchange (probe D2); not reproduced when the supervisor closes its copy first (D1).", "status": "reproduced_in_probe_production_link_unproven"},
+    {"id": "F2", "claim": "Empty datagram is not peer close: peer close gives one ECONNRESET then timeouts (prior probe).", "status": "supported"},
+    {"id": "F3", "claim": "Monitor runs pump first inside one broad try; persistent pump errors skip cancel/cutoff/TERM/KILL/absence/cleanup_complete/deadline duties.", "status": "certain_from_source_modeled_not_live_traced"},
+    {"id": "F4", "claim": "Fixture guard only checks that an injection event exists; r9 injection fired in latch_phase FAILURE after unrelated failure and was accepted as injection_reached.", "status": "certain_from_retained_events_and_guard_source"}
+  ],
+  "proposal": {
+    "monitor": ["order duties safety/cleanup first, pump last", "separate try per duty, retain earliest failure, bounded dedup cleanup_errors", "mark channel lost on first ECONNRESET/EDESTADDRREQ", "start_ack sent at most once; gate_acked failed on exception", "no added allowance or ACK retry"],
+    "transport_candidate": "supervisor closes gate copy immediately after Popen returns; adopt only if discriminator D1-delayed-ack reproduces and D3 does not",
+    "fixture_guard": "injection must occur in expected latch phase, with named pre-injection milestones and no earlier first_global_failure; else fixture_precondition_failed"
+  },
+  "next_discriminator": {"description": "one preregistered probe: D1 with executor registered-ack delayed 400ms past worker_ready; D3 gate closed right after Popen", "os_case_retry": false, "unproven_if_not_reproduced": true},
+  "regression_gates": [
+    "monitor with forever-raising pump still performs TERM/KILL/absence/deadline exit within pool.until",
+    "start_ack send exception yields exactly one attempt, no resend",
+    "OS fixture with late registered ack classified deterministically",
+    "negative unit test feeding r9 injection event (latch_phase FAILURE, earlier first_global) must be rejected"
+  ],
+  "preserved": ["integrity", "success consumer", "ownership", "earliest failure+10", "7200/7140/7170", "0.5s resource", "separate 6GiB caps"],
+  "no_bypass_claim": true
+}

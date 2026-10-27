@@ -1,0 +1,30 @@
+{
+  "schema": "gradient_alignment_validation_reconciliation_v1",
+  "recorded_at_utc": "2026-10-25T22:39:38.034906+00:00",
+  "evidence": "r3 disabled-repeat MPS control itself differs at Adamexp_avg by1.1641532182693481e-10; CPU1threadexactpassed; source48testspassed.",
+  "decision": "Replace separate-run exact MPS trajectory equality as the measurement acceptance test with exact within-run state equality around capture and shadow differentiation.",
+  "required_exact_invariants": [
+    "Live model bytes",
+    "Adam state and paramgroups",
+    "Existing live gradient buffers",
+    "Python/NumPy/TorchCPU/MPS RNG",
+    "Training modes",
+    "Frozen original rolloutbatch"
+  ],
+  "additional_controls": [
+    "Shadow captures pre-step weights, not post-step",
+    "No livegraph additional differentiation",
+    "Negative control that writes fixture liveweights mustbe detected",
+    "Finite correctlylabeledCPUreferencevectors",
+    "Independent frozenHaiku review"
+  ],
+  "unchanged_requirements": [
+    "Exactcheckpoint/source/runtime/registration hashes",
+    "Exactacceptedparent model/Adam/RNGrestoration",
+    "No tolerances for before/afterstatechecks",
+    "No oldcheckpointmetadataedit",
+    "Resource/time/cancel/lease/terminalgates"
+  ],
+  "limitation": "This establishes pointwise no state mutation, not bitwise identical independent MPS training trajectories. Baseline hardware/reduction nondeterminism remains disclosed. No claim probe computesnativeMPSgradients.",
+  "real_training_launched": false
+}

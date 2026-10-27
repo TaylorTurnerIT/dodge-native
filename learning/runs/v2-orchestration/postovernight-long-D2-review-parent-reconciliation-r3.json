@@ -1,0 +1,40 @@
+{
+  "accepted_blockers": [
+    {
+      "id": "SUP-001-R3",
+      "required_fix": "Keep an effective interrupting deadline owner through every normal IO, including final forced verification after outer monitor closure. No deferred-only alarm plus stopped watchdog while normal IO can block. Preserve one timer and total7200/10 bounds.",
+      "severity": "P1"
+    },
+    {
+      "id": "WORKER-ACK-001",
+      "required_fix": "Set failed state and local bound immediately; require explicit valid acknowledged shared failure deadline before any failed-worker checkpoint/index/result persistence. Missing/invalid ACK must skip persistence and exit through bounded failure path. Test actual worker except/finally AST, including successful run followed by late guard failure.",
+      "severity": "P1"
+    }
+  ],
+  "changed_protocol_fields": [
+    "controller path",
+    "executor path",
+    "registered_at_utc"
+  ],
+  "configuration_ML_budget_seed_gate_lineage_unchanged": true,
+  "evidence_API_findings_sha256": "1a8e07b003e36089d4b86b01a482ee2af395d63f26a7f5db28ff50f341db9275",
+  "explained_parent_mutable_drift": [],
+  "impact_limits": [
+    "Outer acceptance of failed/late runs was not demonstrated; compliant parent rejected raw-9 and must inspect rawexit/wall.",
+    "Both are contract defects despite successful retained synthetic matrix; missing worker ACK branch was bypassed by fake worker."
+  ],
+  "no_training_or_lease": true,
+  "previous_protocol": "learning/runs/v2-orchestration/postovernight-long-D2-r1-protocol-r3.json",
+  "previous_protocol_sha256": "6a7ffe59551fd12f4a6fd316c6ab626d03e92a7ec25f77dc34fce30837fa592d",
+  "protocol": "learning/runs/v2-orchestration/postovernight-long-D2-r1-protocol-r4.json",
+  "protocol_sha256": "66cc36ef1db959bfe4188a3e2d201f8911b3ffc64baeb1d8347be6fd376ab501",
+  "retained_provenance_limit": "One intermediate aggregate stdout log unrecoverable; retained per-case evidence and final current matrix scope independently verified.",
+  "status": "r3_rejected_two_narrow_repairs_required",
+  "supervisor_findings_sha256": "251f9164fb1fc566f8cb3b5959af0b589cc734f63d36cabb67be19c753621e1c",
+  "verified_files": {
+    "API_artifacts": 16,
+    "API_inputs": 545,
+    "review_artifacts": 1110,
+    "review_inputs": 9702
+  }
+}

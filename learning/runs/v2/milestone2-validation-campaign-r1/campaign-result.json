@@ -1,0 +1,82 @@
+{
+  "automatic_retries": 0,
+  "elapsed_seconds": 538.2088509580353,
+  "error": "ValueError('trajectory failed with exit 1')",
+  "finished_at_utc": "2026-10-24T08:27:22.583256+00:00",
+  "guards": "Cooperative sampled worker RSS and wall/cutoff guards; late observed exits are rejected, not assigned an exact OS finish time. Not a hard OS ceiling.",
+  "identity_sha256": "9139a19d0b9862fb0cdc2befd3d7fd20601f3efea5934885e83a493f4f170c19",
+  "owned_process_stop": {
+    "errors": [],
+    "exit_code": 1,
+    "kill_sent": false,
+    "owned_pgid": 26356,
+    "owned_pid": 26356,
+    "reaped": true,
+    "signal_races": [],
+    "term_sent": false
+  },
+  "phases": [
+    {
+      "at_utc": "2026-10-24T08:18:24.883281+00:00",
+      "command": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m2-integration-build-r2/release/deps/dodge_rl_env-af3e363fd4e3a01d",
+        "qualification_replay_tests::frozen_m0_full_heuristic_d2_d3",
+        "--ignored",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "elapsed_seconds": 535.52118362498,
+      "exit_code": 0,
+      "name": "native_parity",
+      "observed_peak_worker_rss_bytes": 6799360,
+      "owned_pgid": 21834,
+      "owned_pid": 21834,
+      "rss_samples": 1045,
+      "status": "passed",
+      "stdout_sha256": "a4bea68d01b7b232c473d66eb872ea4dea2f92430e787e643c82cc40280c5fb4",
+      "wall_limit_seconds": 900
+    },
+    {
+      "at_utc": "2026-10-24T08:27:21.021518+00:00",
+      "command": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/scripts/v2_validate_environment.py",
+        "_worker",
+        "--phase",
+        "trajectory",
+        "--identity",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-campaign-freeze-r3/frozen-identity.json",
+        "--identity-sha256",
+        "9139a19d0b9862fb0cdc2befd3d7fd20601f3efea5934885e83a493f4f170c19",
+        "--campaign-deadline-monotonic",
+        "451896.681221583",
+        "--phase-started-monotonic",
+        "450633.328313916",
+        "--run-id",
+        "v2-m2-validation-20261024-r1",
+        "--directory",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-validation-campaign-r1"
+      ],
+      "elapsed_seconds": 1.5609702090150677,
+      "error": "ValueError('trajectory failed with exit 1')",
+      "exit_code": 1,
+      "name": "trajectory",
+      "observed_peak_worker_rss_bytes": 29573120,
+      "owned_pgid": 26356,
+      "owned_pid": 26356,
+      "rss_samples": 2,
+      "status": "failed",
+      "stdout_sha256": "7c589beec4a606e26712628894c519e2d7d53c431c74fd578e7078e0ece1863d",
+      "wall_limit_seconds": 120
+    }
+  ],
+  "registered_plan_sha256": "de2cd54ca1925f5d9430a2a0f74b55a9f8b7ee44152af26b2e2394b1f0724b05",
+  "resource_limits_relaxed": false,
+  "rss_limit_bytes": 6442450944,
+  "rss_sample_seconds": 0.5,
+  "run_id": "v2-m2-validation-20261024-r1",
+  "started_at_utc": "2026-10-24T08:18:24.375570+00:00",
+  "status": "failed",
+  "traceback": "Traceback (most recent call last):\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/scripts/v2_validate_environment.py\", line 628, in campaign\n    require(phase[\"exit_code\"] == 0, f\"{name} failed with exit {phase['exit_code']}\")\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/scripts/v2_validate_environment.py\", line 65, in require\n    raise ValueError(message)\nValueError: trajectory failed with exit 1\n"
+}

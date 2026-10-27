@@ -1,0 +1,95 @@
+{
+  "adapter_requirements": [
+    "new adapter revision and new validation/registration identity; preserve frozen parent132 authority/checkpoint pins and parent180 authority as distinct immutable lineage",
+    "accept only reconciled parent180 terminal receipt bound to exact identity, config, evaluation, run result, checkpoint, and supervisor exit; reject absent, stale, mismatched, nonaccepted receipt",
+    "generalize parent phase/update constants from hardcoded 132 to verified parent180; represent prior continuation as history, do not assert old-to-new PPO transition occurred again",
+    "assert source checkpoint SHA and phase 180; exact restored optimizer/environment/counter state and next_episode_indices from parent receipt",
+    "same runtime capsule bytes and exact original 13724 dependency pins; do not relocate runtime; reuse external registration references only after new adapter validation",
+    "preserve original dependency-inventory keys verbatim, including lexical interpreter symlink and canonical target",
+    "new immutable output directory; generated output artifacts excluded from input pin set; hash final source/adapter only after editing"
+  ],
+  "authority_gate": {
+    "failure": "stop; no substitute authority, no inferred receipt, no launch",
+    "launch_eligible_now": false,
+    "must_precede_adapter_registration_validation_and_any_launch": true,
+    "receipt_hash": "NOT_YET_AVAILABLE",
+    "required": true,
+    "required_evidence": "completed native Haiku terminal review and reconciled parent terminal receipt for accepted update-180 checkpoint"
+  },
+  "execution_gates": [
+    "wait for accepted Haiku parent terminal receipt; then independently bind exact receipt and checkpoint before any implementation/launch",
+    "freeze new adapter constants/schema and supporting inputs; preserve baseline/runtime/source pins and 64 fixed evaluation seeds",
+    "focused tests: parent180 accepted receipt exact binding; absent/stale/mismatch receipt rejection; phase/counter continuity; next episode indices continuity; no repeated old-to-new transition claim; caps and pin-key lexical/canonical identity; output exclusion",
+    "actual no-environment-helper preflight, exact learner restore, next indices and wall counters, relevant contract/lifecycle controls, frozen Haiku review, parent reconciliation",
+    "real lease preflight confirms ownership and clear no-active-run state; exact registration SHA and frozen execution preflight; execute_once exactly once under Luna; stop on first failure, no retry/fallback/seed replacement/source edits",
+    "monitor early update intervals and cumulative work; stop at 1600s work or 1800s outer, preserve partial receipts; do not relax caps; retain 6 GiB separate RSS cap",
+    "final parent reconciliation binds update252 checkpoint, counters, evaluation, telemetry, resources, lease/worker closure; eligibility remains false absent separate gate"
+  ],
+  "inputs_sha256": {
+    "docs/SPEC_PRIVILEGED_VIT_RL.md": "02230eea7a3b36c786d3deeb31471baf8270efb09c3c1e77b7a77c7cfae240f3",
+    "docs/implementation-plan-v2.md": "a034a45408ebea580882bf931c156288100c120ef78806bb7c87dce0597445aa",
+    "learning/runs/v2-orchestration/state.json": "b738a05fee5051da0fcf178ac12c00694fdd1956fee7f502a142753f66fa3f47",
+    "learning/runs/v2/D2-gradient-alignment-20261025-r2/checkpoint-000180-candidate.pt": "105e0f7a83e154116bd9f0d5eaaf573a896886468c9038f548f5ce7e6377c7ea",
+    "learning/runs/v2/D2-gradient-alignment-20261025-r2/execution-result.json": "738638f2ec2fc72140ea2a0c82313c5ae8eb3e54cc4fddaebac0ccc008128946",
+    "learning/runs/v2/D2-gradient-alignment-20261025-r2/worker-result.json": "f9d1b9ccefba7fd95f111f6304b12767b5633acc062c74697fb4cfa3478a0903",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/execute_once.py": "3bc0b686278677070fdd1736d89ca2e092ff49aa068e45929389d79c90c3f876",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/parent-preparation-reconciliation.json": "3ef5c4ac5d81715e828d61648e2d9dac9393aea5d71ef4b551eae911901b6927",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/runner.py": "02f57b7ae60fa0bfb357ebd326f937271411dd5024e1657008c06baedfb580a6",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/validate_registration_keys.py": "288c549cd1c3a06d4fbcdfd333ce95378fa53bb292581f26c36f22d4feb05f3b",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/validation-plan.json": "d016fc0bd8db40264ef326f9f0e8397cc1e5ac011c62d3dbb74bf1cc84dcdc85",
+    "learning/runs/v2/d2-gradient-parent-terminal-audit-20261025-r2/audit.json": "a93fe6abd35e715c538522dff1bf381a52b8c60f79e30914aa7b953b4f2864af"
+  },
+  "out_of_scope": [
+    "source/runtime/checkpoint/ledger/docs/lease changes during this planning task",
+    "environment/Torchload/training/gradients/tests now",
+    "children or review polling/messages"
+  ],
+  "proposed": {
+    "checkpoint_parent_sha256": "105e0f7a83e154116bd9f0d5eaaf573a896886468c9038f548f5ce7e6377c7ea",
+    "continuation_timing": {
+      "decision": "72 fits conservative work estimate; retain hard 1600s work and 1800s outer caps",
+      "estimated_seconds": 1537.6916955968363,
+      "explicit_startup_finalization_overhead_seconds": 150,
+      "headroom_to_work_cap_seconds": 62.308304403163675,
+      "max_complete_interval_seconds": 16.759561541024595,
+      "outer_cap_seconds": 1800,
+      "reserve_multiplier": 1.15,
+      "updates": 72,
+      "work_cap_seconds": 1600
+    },
+    "cumulative_updates": 300,
+    "evaluation_seeds": "same 64 fixed seeds",
+    "from_phase_update": 180,
+    "new_updates": 72,
+    "resource_caps": {
+      "MPS_cap": "unchanged registered cap",
+      "separate_RSS_bytes": 6442450944
+    },
+    "reuse_registration_sha256": "6f4adf808789655a663800a1e4a0613192d02b0c8287d121455ea748fe043916",
+    "runtime_capsule": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime",
+    "seed": 810631976,
+    "to_phase_update": 252
+  },
+  "run_id": "D2-next-continuation-plan-luna-20261025-r1",
+  "schema": "d2_next_continuation_plan_v1",
+  "scope": "routine same-runtime D2 continuation; no algorithm change",
+  "status": "plan_only_pending_native_haiku_parent_terminal_review_and_reconciliation",
+  "telemetry": {
+    "interpretation": "CPU first-minibatch shadow cosine mean 0.01327946, median -0.00646422, 27/48 negative; weighted critic/actor ratio 2.13%; no severe raw-gradient interference evidence in samples; not live MPS/Adam evidence or causal harm proof",
+    "retain": [
+      "CPU shadow gradient alignment",
+      "critic telemetry",
+      "kill/death telemetry"
+    ]
+  },
+  "unchanged_algorithm": {
+    "forbidden": [
+      "gradient surgery",
+      "loss/reward/architecture/sampling/GAE/cap changes",
+      "new master seed or seed replacement",
+      "training on 64 abandoned episodes / 58524 frames",
+      "D3/student/B/E advancement"
+    ],
+    "ppo": "continue current PPO unchanged"
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "test_count": 35,
+  "passed": 35,
+  "failed": 0,
+  "ignored": 0,
+  "checks": [
+    {
+      "log": "01-rustfmt.log",
+      "argv": [
+        "rustfmt",
+        "--edition",
+        "2024",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-rl-env/src/geometry.rs",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-rl-env/src/raster.rs",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-math-r1/fixtures.rs"
+      ],
+      "exit_code": 0
+    },
+    {
+      "log": "02-rustfmt-check.log",
+      "argv": [
+        "rustfmt",
+        "--check",
+        "--edition",
+        "2024",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-rl-env/src/geometry.rs",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-rl-env/src/raster.rs",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-math-r1/fixtures.rs"
+      ],
+      "exit_code": 0
+    },
+    {
+      "log": "03-rustc-test-build.log",
+      "argv": [
+        "rustc",
+        "--edition",
+        "2024",
+        "--test",
+        "--deny",
+        "warnings",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-math-r1/fixtures.rs",
+        "-o",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-math-r1/fixtures-bin"
+      ],
+      "exit_code": 0
+    },
+    {
+      "log": "04-fixtures.log",
+      "argv": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-math-r1/fixtures-bin",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "exit_code": 0
+    },
+    {
+      "log": "05-clippy-driver.log",
+      "argv": [
+        "clippy-driver",
+        "--edition",
+        "2024",
+        "--test",
+        "-W",
+        "clippy::all",
+        "-D",
+        "warnings",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-math-r1/fixtures.rs",
+        "-o",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-math-r1/fixtures-clippy-bin"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "contract_sha256": "79e953f20487bb442888fe40cee5f43226ae2cfc7ef0b9ef0fc3a377db4e01aa",
+  "implementation_sha256": {
+    "crates/dodge-rl-env/src/geometry.rs": "5b04907b9d87b336b685922ac0c7f235174e347e5a5308b1ebb1645c6014c171",
+    "crates/dodge-rl-env/src/raster.rs": "a48c80a0a549e76e7e77bdd79ef2aa0b6171669d761770c6b33b3ea0921a6927"
+  },
+  "boundary": "Standalone fixtures and Clippy only; no workspace or runtime renderer checks."
+}

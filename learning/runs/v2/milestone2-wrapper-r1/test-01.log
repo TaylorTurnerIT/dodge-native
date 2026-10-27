@@ -1,0 +1,44 @@
+   Compiling either v1.19.0
+   Compiling crossbeam-utils v0.8.23
+   Compiling crossbeam-epoch v0.9.21
+   Compiling crossbeam-deque v0.8.8
+   Compiling rayon-core v1.13.0
+   Compiling rayon v1.12.0
+   Compiling dodge-rl-env v0.1.0 (/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-rl-env)
+error: method `test_observer` is never used
+   --> crates/dodge-rl-env/src/env.rs:319:19
+    |
+308 | impl VecDodgeEnv {
+    | ---------------- method in this implementation
+...
+319 |     pub(crate) fn test_observer(&mut self, slot: usize, observer: Box<dyn FnMut(&NativeGame)+Send>) { self.slots[slot].raw_observer...
+    |                   ^^^^^^^^^^^^^
+    |
+    = note: `-D dead-code` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[expect(dead_code)]` or `#[allow(dead_code)]`
+
+error: variants `Random` and `Neutral` are never constructed
+ --> crates/dodge-rl-env/src/../tests/support/m0_policy.rs:8:5
+  |
+7 | pub enum PolicyKind {
+  |          ---------- variants in this enum
+8 |     Random,
+  |     ^^^^^^
+9 |     Neutral,
+  |     ^^^^^^^
+  |
+  = note: `PolicyKind` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+error: associated items `ALL` and `name` are never used
+  --> crates/dodge-rl-env/src/../tests/support/m0_policy.rs:14:15
+   |
+13 | impl PolicyKind {
+   | --------------- associated items in this implementation
+14 |     pub const ALL: [Self; 3] = [Self::Random, Self::Neutral, Self::AabbDodger];
+   |               ^^^
+15 |
+16 |     pub const fn name(self) -> &'static str {
+   |                  ^^^^
+
+error: could not compile `dodge-rl-env` (lib test) due to 3 previous errors
+warning: build failed, waiting for other jobs to finish...

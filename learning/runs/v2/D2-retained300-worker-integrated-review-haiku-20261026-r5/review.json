@@ -1,0 +1,27 @@
+{
+  "verdict": "no_blocker",
+  "scope": "frozen worker runner.py + registration compatibility; static read/hash only",
+  "blockers": [],
+  "findings": [
+    {"severity": "low", "file": "learning/runs/v2/D2-retained300-continuation-freeze-20261026-r5/runner.py", "line": 155, "category": "inherited-limitation", "summary": "planned_seconds 1750 is a constant only; runtime enforces work 1790 and total 1800", "trigger": "Guard.check uses LIMITS work_seconds and total_seconds only", "consequence": "planned allowance not a runtime cap; hard caps bound run"},
+    {"severity": "low", "file": "learning/runs/v2/D2-retained300-continuation-freeze-20261026-r5/runner.py", "line": 314, "category": "clarity", "summary": "validate_runtime_continuity compares runtime dir to itself", "trigger": "old_root == new_root == runtime_root", "consequence": "binding is member_sha256 vs current bytes, which is correct; wording misleading"},
+    {"severity": "low", "file": "learning/runs/v2/D2-retained300-continuation-freeze-20261026-r5/runner.py", "line": 769, "category": "by-design", "summary": "campaign clock jumps from saved 7548.9 to new baseline 8621.34", "trigger": "saved selected300 campaign clock vs completed-cost after-value (includes discarded 36-update branch)", "consequence": "intentional per cost receipt semantics; not a bug"},
+    {"severity": "low", "file": "learning/runs/v2/D2-retained300-continuation-freeze-20261026-r5/runner.py", "line": 720, "category": "naming", "summary": "new inherited_counters = 348 vs receipt inherited_counters = 324", "trigger": "inherited = parent cumulative_counters", "consequence": "field semantics shift across checkpoint generations; document"},
+    {"severity": "low", "file": "learning/runs/v2/D2-retained300-continuation-freeze-20261026-r5/runner.py", "line": 785, "category": "inherited-limitation", "summary": "entry evaluation requires exact row equality with source evaluation", "trigger": "any nondeterminism in deterministic eval", "consequence": "run fails before training; inherited from 276 design"}
+  ],
+  "checks_passed": [
+    "hashes runner/execute_once/parent_adapter/registration_schema/registration match stated",
+    "old 913-line runner diffed; restore has no LR override; no lr-transition",
+    "restore model/Adam/RNG fingerprints before env/gradients",
+    "inherited cumulative 348 + 60 = 408",
+    "six evaluations 300..360; entry eval compared to source evaluation",
+    "progress passed to ppo_update",
+    "clocks derived from selected receipt and cost receipt; match cost semantics",
+    "score gate not regressed; progress_passed recorded only",
+    "guard deadline 1790 work / 1800 total, cancel and lease checks",
+    "registration limits, resource_estimate, expected_outputs, parent aliases match runner",
+    "pins 13827; runner/launcher/adapter/schema/config/native/policy/gate/inventory/capsule pins verified",
+    "seed 4200000000 outside excluded ranges"
+  ],
+  "not_checked": ["launcher internals (interface only)", "all 13827 pin hashes", "reconciliation json", "observer instantiation diff", "runtime execution"]
+}

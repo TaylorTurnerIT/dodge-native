@@ -1,0 +1,292 @@
+--- a/learning/scripts/v2_validate_environment.py
++++ b/learning/scripts/v2_validate_environment.py
+@@ -130,8 +130,11 @@
+     print(json.dumps({"identity": str(args.output), "sha256": sha256(args.output)}))
+ 
+ 
+-def check_identity(path: Path, check_runtime: bool = False) -> dict:
+-    identity = json.loads(path.read_text())
++def check_identity(path: Path, expected_identity_hash: str, check_runtime: bool = False) -> dict:
++    # Hash the exact bytes we parse, against the original leased document.
++    document = path.read_bytes()
++    require(hashlib.sha256(document).hexdigest() == expected_identity_hash, "Frozen identity document changed")
++    identity = json.loads(document)
+     require(identity["version"] == "m2_validation_identity_v1", "Unknown frozen identity")
+     require(identity["plan_sha256"] == sha256(PLAN_PATH), "Plan changed after freeze")
+     require(identity["source_sha256"] == source_inventory(), "Rust/Python/harness source inventory changed after freeze")
+@@ -140,7 +143,19 @@
+     require(sha256(Path(identity["runtime"]["extension_path"])) == identity["runtime"]["extension_sha256"], "Installed extension changed")
+     if check_runtime:
+         require(runtime_identity() == identity["runtime"], "Worker imports a different runtime or extension")
++    require(sha256(path) == expected_identity_hash, "Frozen identity document changed during verification")
+     return identity
++
++
++def assert_campaign_guard(run_id: str, identity_hash: str, plan: dict, deadline: float,
++                          phase_started: float | None = None, stage: dict | None = None) -> None:
++    """Reject late observations cooperatively; polling cannot establish an exact OS exit time."""
++    assert_lease(run_id, identity_hash)
++    now = time.monotonic()
++    require(now < deadline, "Campaign wall guard expired")
++    require(utc_now() < datetime.fromisoformat(plan["cutoff_utc"].replace("Z", "+00:00")), "Overnight cutoff reached")
++    if stage is not None and phase_started is not None:
++        require(now - phase_started < stage["wall_seconds"], f"{stage['name']} wall guard expired")
+ 
+ 
+ def current_rss_bytes(pid: int) -> int:
+@@ -469,119 +484,199 @@
+ 
+ 
+ def worker(args) -> None:
+-    plan = read_plan()
+-    identity_hash = sha256(args.identity)
+-    assert_lease(args.run_id, identity_hash)
+-    check_identity(args.identity, check_runtime=True)
+-    np = importlib.import_module("numpy")
+-    Env = importlib.import_module("dodge_rl").VecDodgeEnv
+-    funcs = {"trajectory": worker_trajectory, "memory": worker_memory, "throughput": worker_throughput}
+     started = time.monotonic()
++    identity_hash = args.identity_sha256
+     try:
++        plan = read_plan()
++        stage = next(stage for stage in plan["stages"] if stage["name"] == args.phase)
++        def guard():
++            assert_campaign_guard(args.run_id, identity_hash, plan, args.campaign_deadline_monotonic,
++                                  args.phase_started_monotonic, stage)
++        guard()
++        check_identity(args.identity, identity_hash, check_runtime=True)
++        guard()
++        np = importlib.import_module("numpy")
++        Env = importlib.import_module("dodge_rl").VecDodgeEnv
++        guard()
++        funcs = {"trajectory": worker_trajectory, "memory": worker_memory, "throughput": worker_throughput}
+         result = funcs[args.phase](np, Env, plan, args.directory)
++        guard()
++        check_identity(args.identity, identity_hash, check_runtime=True)
++        guard()
+         result.update({"phase": args.phase, "at_utc": stamp(), "elapsed_seconds": time.monotonic() - started, "observed_peak_self_rss_bytes": peak_rss_bytes(), "identity_sha256": identity_hash})
+         require(result["observed_peak_self_rss_bytes"] <= plan["observed_worker_peak_rss_limit_bytes"], "Final observed peak RSS exceeded")
++        guard()
+         save_new(args.directory / (args.phase + "-result.json"), result)
++        guard()
+     except BaseException as error:
+-        save_new(args.directory / (args.phase + "-failure.json"), {"status": "failed", "phase": args.phase, "at_utc": stamp(), "elapsed_seconds": time.monotonic() - started, "error": repr(error), "traceback": traceback.format_exc(), "observed_peak_self_rss_bytes": peak_rss_bytes()})
++        save_new(args.directory / (args.phase + "-failure.json"), {"status": "failed", "phase": args.phase, "at_utc": stamp(), "elapsed_seconds": time.monotonic() - started, "error": repr(error), "traceback": traceback.format_exc(), "observed_peak_self_rss_bytes": peak_rss_bytes(), "identity_sha256": identity_hash})
+         raise
+ 
+ 
+ def stop_owned(process: subprocess.Popen) -> dict:
+-    result = {"owned_pid": process.pid, "owned_pgid": process.pid, "term_sent": False, "kill_sent": False}
+-    if process.poll() is None:
++    """Signal only the session leader's owned group; retain every cleanup failure."""
++    result = {"owned_pid": process.pid, "owned_pgid": process.pid, "term_sent": False,
++              "kill_sent": False, "errors": [], "signal_races": [], "reaped": False}
++
++    def poll():
+         try:
+-            os.killpg(process.pid, signal.SIGTERM)
+-            result["term_sent"] = True
+-            process.wait(timeout=2)
+-        except subprocess.TimeoutExpired:
+-            os.killpg(process.pid, signal.SIGKILL)
+-            result["kill_sent"] = True
+-            process.wait(timeout=5)
+-        except ProcessLookupError:
+-            pass
++            return process.poll()
++        except Exception as error:
++            result["errors"].append({"operation": "poll", "error": repr(error)})
++            return None
++
++    def send(sig, label):
++        try:
++            os.killpg(process.pid, sig)
++            result[label + "_sent"] = True
++        except ProcessLookupError as error:
++            result["signal_races"].append({"signal": label, "error": repr(error)})
++        except Exception as error:
++            result["errors"].append({"operation": label, "error": repr(error)})
++
++    def wait(timeout):
++        try:
++            result["exit_code"] = process.wait(timeout=timeout)
++            result["reaped"] = True
++            return True
++        except subprocess.TimeoutExpired as error:
++            result["errors"].append({"operation": "wait", "timeout_seconds": timeout, "error": repr(error)})
++        except Exception as error:
++            result["errors"].append({"operation": "wait", "error": repr(error)})
++        return False
++
++    if poll() is None:
++        send(signal.SIGTERM, "term")
++        if not wait(2):
++            if poll() is None:
++                send(signal.SIGKILL, "kill")
++            wait(5)
++    else:
++        wait(0)
++    code = poll()
++    result["exit_code"] = code if code is not None else result.get("exit_code")
++    result["reaped"] = result["reaped"] or code is not None
+     return result
+ 
+ 
+ def campaign(args) -> None:
++    started = time.monotonic()
+     plan = read_plan()
+     assert_cutoff_budget(utc_now(), plan)
+-    identity = check_identity(args.identity)
+-    identity_hash = sha256(args.identity)
+-    assert_lease(args.run_id, identity_hash)
++    # This anchor is captured once and must match the sole parent lease. Workers
++    # receive it explicitly; no later identity read can replace it.
++    identity_hash = hashlib.sha256(args.identity.read_bytes()).hexdigest()
++    deadline = started + plan["campaign_wall_seconds"]
+     args.output.mkdir(parents=True, exist_ok=False)
+-    save_new(args.output / "registered-plan.json", plan)
+-    save_new(args.output / "identity.json", identity)
+-    started = time.monotonic()
+-    deadline = started + plan["campaign_wall_seconds"]
+     phases = []
+-    overall = {"run_id": args.run_id, "started_at_utc": stamp(), "status": "running", "identity_sha256": identity_hash, "registered_plan_sha256": sha256(PLAN_PATH), "rss_sample_seconds": plan["supervisor_rss_sample_seconds"], "rss_limit_bytes": plan["observed_worker_peak_rss_limit_bytes"], "guards": "Cooperative sampled worker RSS and wall/cutoff guards; not a hard OS ceiling.", "phases": phases}
+-    save_new(args.output / "campaign-start.json", overall)
+-    active = None
++    overall = {"run_id": args.run_id, "started_at_utc": stamp(), "status": "running", "identity_sha256": identity_hash, "registered_plan_sha256": sha256(PLAN_PATH), "rss_sample_seconds": plan["supervisor_rss_sample_seconds"], "rss_limit_bytes": plan["observed_worker_peak_rss_limit_bytes"], "guards": "Cooperative sampled worker RSS and wall/cutoff guards; late observed exits are rejected, not assigned an exact OS finish time. Not a hard OS ceiling.", "phases": phases}
++    active = phase = stage = phase_started = log = None
++
++    def guard():
++        assert_campaign_guard(args.run_id, identity_hash, plan, deadline, phase_started, stage)
++
++    def verify_identity():
++        guard()
++        value = check_identity(args.identity, identity_hash)
++        guard()
++        return value
++
+     try:
++        identity = verify_identity()
++        save_new(args.output / "registered-plan.json", plan)
++        save_new(args.output / "identity.json", identity)
++        save_new(args.output / "campaign-start.json", overall)
++        guard()
+         for stage in plan["stages"]:
+-            assert_lease(args.run_id, identity_hash)
+-            check_identity(args.identity)
++            phase_started = time.monotonic()
+             name = stage["name"]
+             phase = {"name": name, "at_utc": stamp(), "wall_limit_seconds": stage["wall_seconds"], "status": "running"}
++            phases.append(phase)
++            verify_identity()
+             if name == "native_parity":
+                 command = [identity["native_test_binary"], NATIVE_TEST, "--ignored", "--exact", "--nocapture", "--test-threads=1"]
+             else:
+-                command = [sys.executable, str(Path(__file__).resolve()), "_worker", "--phase", name, "--identity", str(args.identity.resolve()), "--run-id", args.run_id, "--directory", str(args.output.resolve())]
++                command = [sys.executable, str(Path(__file__).resolve()), "_worker", "--phase", name, "--identity", str(args.identity.resolve()), "--identity-sha256", identity_hash, "--campaign-deadline-monotonic", str(deadline), "--phase-started-monotonic", str(phase_started), "--run-id", args.run_id, "--directory", str(args.output.resolve())]
+             phase["command"] = command
+             save_new(args.output / (name + "-command.json"), phase)
+             log = args.output / (name + ".stdout.log")
+             with log.open("xb") as stdout, (args.output / (name + ".rss.jsonl")).open("x") as rss_stream:
+-                phase_started = time.monotonic()
++                guard()
+                 active = subprocess.Popen(command, cwd=ROOT, stdout=stdout, stderr=subprocess.STDOUT, start_new_session=True)
+                 phase.update({"owned_pid": active.pid, "owned_pgid": active.pid, "observed_peak_worker_rss_bytes": None, "rss_samples": 0})
+                 save_new(args.output / (name + "-launch.json"), phase)
++                guard()
+                 while active.poll() is None:
+-                    assert_lease(args.run_id, identity_hash)
+-                    require(time.monotonic() < deadline, "Campaign wall guard expired")
+-                    require(time.monotonic() - phase_started <= stage["wall_seconds"], f"{name} wall guard expired")
+-                    require(utc_now() < datetime.fromisoformat(plan["cutoff_utc"].replace("Z", "+00:00")), "Overnight cutoff reached")
++                    guard()
+                     try:
+                         rss = current_rss_bytes(active.pid)
+                     except ValueError:
+                         if active.poll() is not None:
+                             break
+                         raise
++                    guard()
+                     phase["observed_peak_worker_rss_bytes"] = max(phase["observed_peak_worker_rss_bytes"] or 0, rss)
+                     phase["rss_samples"] += 1
+                     event(rss_stream, {"at_utc": stamp(), "wall_seconds": time.monotonic() - phase_started, "pid": active.pid, "rss_bytes": rss})
+                     require(rss <= plan["observed_worker_peak_rss_limit_bytes"], f"{name} sampled RSS guard exceeded")
+                     time.sleep(plan["supervisor_rss_sample_seconds"])
+-                phase.update({"exit_code": active.wait(), "elapsed_seconds": time.monotonic() - phase_started, "stdout_sha256": sha256(log)})
++                phase["exit_code"] = active.wait(timeout=5)
++                guard()
++                phase.update({"elapsed_seconds": time.monotonic() - phase_started, "stdout_sha256": sha256(log)})
++                guard()
+                 require(phase["exit_code"] == 0, f"{name} failed with exit {phase['exit_code']}")
++            guard()
+             if name == "native_parity":
+                 require(phase["rss_samples"] > 0, "Native run completed without any retained RSS sample")
+                 result = parse_native_output(log)
++                guard()
+                 save_new(args.output / "native-parity-audit.json", result)
+             else:
+                 result_path = args.output / (name + "-result.json")
+                 result = json.loads(result_path.read_text())
++                guard()
+                 require(result["status"] == "passed" and result["identity_sha256"] == identity_hash, "Worker result/identity failed")
+                 require(result["observed_peak_self_rss_bytes"] <= plan["observed_worker_peak_rss_limit_bytes"], "Worker final peak RSS failed")
+                 phase["worker_result_sha256"] = sha256(result_path)
++            verify_identity()
+             phase["status"] = "passed"
+-            phases.append(phase)
+             save_new(args.output / (name + "-receipt.json"), phase)
+-            active = None
+-        check_identity(args.identity)
++            guard()
++            active = phase = stage = phase_started = log = None
++        verify_identity()
++        # Hash potentially large evidence before the final success boundary.
++        hashes = {str(path.relative_to(args.output)): sha256(path) for path in sorted(args.output.rglob("*")) if path.is_file()}
++        verify_identity()
++        guard()
+         overall["status"] = "passed"
+     except BaseException as error:
+         overall.update({"status": "failed", "error": repr(error), "traceback": traceback.format_exc()})
+         if active is not None:
+-            overall["owned_process_stop"] = stop_owned(active)
+-            phase.update({"status": "failed", "exit_code": active.returncode, "elapsed_seconds": time.monotonic() - phase_started, "stdout_sha256": sha256(log)})
+-            phases.append(phase)
+-            save_new(args.output / (phase["name"] + "-receipt.json"), phase)
++            try:
++                overall["owned_process_stop"] = stop_owned(active)
++            except Exception as cleanup_error:
++                overall["owned_process_stop"] = {"owned_pid": active.pid, "owned_pgid": active.pid, "errors": [{"operation": "stop_owned", "error": repr(cleanup_error)}]}
++        if phase is not None:
++            phase.update({"status": "failed", "error": repr(error), "elapsed_seconds": time.monotonic() - phase_started})
++            if active is not None:
++                phase["exit_code"] = active.returncode
++            if log is not None and log.exists():
++                try:
++                    phase["stdout_sha256"] = sha256(log)
++                except Exception as receipt_error:
++                    phase["stdout_hash_error"] = repr(receipt_error)
++            receipt = args.output / (phase["name"] + "-receipt.json")
++            if receipt.exists():
++                receipt = args.output / (phase["name"] + "-supervisor-failure.json")
++            save_new(receipt, phase)
+         raise
+     finally:
+         overall.update({"finished_at_utc": stamp(), "elapsed_seconds": time.monotonic() - started, "automatic_retries": 0, "resource_limits_relaxed": False})
+         save_new(args.output / "campaign-result.json", overall)
+-        hashes = {str(path.relative_to(args.output)): sha256(path) for path in sorted(args.output.rglob("*")) if path.is_file()}
++        if overall["status"] != "passed":
++            hashes = {str(path.relative_to(args.output)): sha256(path) for path in sorted(args.output.rglob("*")) if path.is_file()}
++        else:
++            hashes["campaign-result.json"] = sha256(args.output / "campaign-result.json")
+         save_new(args.output / "artifact-sha256.json", hashes)
+ 
+ 
+@@ -602,6 +697,9 @@
+     internal = sub.add_parser("_worker", help=argparse.SUPPRESS)
+     internal.add_argument("--phase", choices=("trajectory", "memory", "throughput"), required=True)
+     internal.add_argument("--identity", type=Path, required=True)
++    internal.add_argument("--identity-sha256", required=True)
++    internal.add_argument("--campaign-deadline-monotonic", type=float, required=True)
++    internal.add_argument("--phase-started-monotonic", type=float, required=True)
+     internal.add_argument("--run-id", required=True)
+     internal.add_argument("--directory", type=Path, required=True)
+     args = parser.parse_args()

@@ -1,0 +1,539 @@
+{
+  "authoritative_manifest": {
+    "path": "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/source-hashes.json",
+    "sha256": "8b31a2598dd849c6d89ad817092bdc2d64c33da6fa588dad80ce699ef7f5a555"
+  },
+  "blockers": [
+    {
+      "basis": "Static control-flow and Python object/value binding only. No reviewed code, synthetic case, signal, child, or test executed.",
+      "blocking": true,
+      "consequence": "The deferred handler updates the nonlocal reason and received list but does not update result.stop_reason or result.status. A complete outer receipt can therefore persist stop_reason=null and accepted_pending_parent_postflight (with a handled signal), while line 244 subsequently raises probe failed: supervisor_signal:<signal>; partial receipt preserved. A signal after JSON serialization can also be absent from the persisted handled_signals list. Claimed-run receipt and terminal supervisor outcome disagree.",
+      "id": "R1",
+      "locations": [
+        {
+          "lines": [
+            161,
+            168
+          ],
+          "path": "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/supervisor_cli.py"
+        },
+        {
+          "lines": [
+            239,
+            244
+          ],
+          "path": "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/supervisor_cli.py"
+        },
+        {
+          "lines": [
+            8,
+            13
+          ],
+          "path": "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/supervisor_cli.py"
+        },
+        {
+          "lines": [
+            80,
+            94
+          ],
+          "path": "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/test_failure_controls.py"
+        },
+        {
+          "lines": [
+            146,
+            147
+          ],
+          "path": "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/test_failure_controls.py"
+        }
+      ],
+      "required_resolution": "Use a consistent finalization boundary for handled-signal policy, persisted verdict, and terminal outcome; cover a first signal on the otherwise successful receipt-publication path. No broad watchdog or publication architecture change is required.",
+      "severity": "P2",
+      "title": "First signal during outer receipt publication leaves a stale pending-acceptance verdict",
+      "trigger": "A normally successful worker has exited 0, all 19 postflight checks and inventory pass, and line 239 builds result with reason=None. The first handled SIGTERM/SIGHUP/SIGINT arrives after result construction but before exclusive_json serializes it, for example during its parent-directory mkdir at line 9."
+    }
+  ],
+  "created_at_utc": "2026-10-27T01:17:30.662815+00:00",
+  "current_preflight": "would reject exact lease absent before claim; not executed",
+  "diff_matches_current_buffers": [
+    "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/build_registration.py",
+    "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/finalize_preparation.py",
+    "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/supervisor_cli.py",
+    "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/test_campaign.py",
+    "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/test_failure_controls.py",
+    "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/test_probe.py",
+    "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/worker_cli.py",
+    "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/README.md"
+  ],
+  "evidence_limits": [
+    "Static review plus inspection of preexisting synthetic artifacts; no runtime qualification or actual references.",
+    "No hard total watchdog for blocking filesystem/hash/fsync/finalization.",
+    "Startup imports precede first MPS heartbeat.",
+    "Exclusive final JSON writes may be partial.",
+    "No package-byte pinning; runtime_root is metadata.",
+    "No launch or qualification authority."
+  ],
+  "lease_fields_at_observation": {
+    "active_inference": null,
+    "active_inference_diagnostic": null,
+    "active_long": null,
+    "active_long_campaign": null
+  },
+  "live_filesystem_observations": {
+    "cancel_path": {
+      "exists": false,
+      "path": "learning/runs/v2/confirmed324-rng-reference-parent-20261026-r2/CANCEL"
+    },
+    "learning/runs/v2/confirmed324-probe-r4-parent-validation-20261026-r1/empty-pycache": {
+      "entries": [],
+      "exists": true,
+      "is_dir": true
+    },
+    "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/empty-pycache": {
+      "entries": [],
+      "exists": true,
+      "is_dir": true
+    },
+    "learning/runs/v2/confirmed324-rng-reference-parent-20261026-r2/empty-pycache": {
+      "entries": [],
+      "exists": true,
+      "is_dir": true
+    },
+    "one_shot_marker": {
+      "exists": false,
+      "path": "learning/runs/v2/confirmed324-rng-reference-parent-20261026-r2/one-shot.claimed"
+    },
+    "output_dir": {
+      "exists": false,
+      "path": "learning/runs/v2/confirmed324-rng-reference-parent-20261026-r2/outputs"
+    }
+  },
+  "parent_exact_source_copy_matches": {
+    "build_registration.py": true,
+    "fake_runtime.py": true,
+    "finalize_preparation.py": true,
+    "probe.py": true,
+    "supervisor_cli.py": true,
+    "test_campaign.py": true,
+    "test_failure_controls.py": true,
+    "test_probe.py": true,
+    "worker_cli.py": true
+  },
+  "parent_synthetic_evidence": {
+    "actual_reference_or_MPS_proof": false,
+    "coverage_gap": "No first handled signal during otherwise successful outer receipt publication.",
+    "reported_controls": 33,
+    "reported_exit_code": 0,
+    "reported_seconds": 15.972,
+    "review_reran_tests": false,
+    "selected_retained_receipts": [
+      {
+        "failed_checks": [
+          "committed_output"
+        ],
+        "path": "learning/runs/v2/confirmed324-probe-r4-parent-validation-20261026-r1/test-tmp/signals-1px8qtak/out/outer-receipt.json",
+        "process_group_absent": true,
+        "raw_worker_exit_code": -9,
+        "sha256": "77d963598a0afe36bcb8ad0b688120bebfa045680d2cdb1fc81d167eb5161d58",
+        "status": "partial_failure_preserved"
+      },
+      {
+        "failed_checks": [
+          "marker",
+          "committed_output"
+        ],
+        "path": "learning/runs/v2/confirmed324-probe-r4-parent-validation-20261026-r1/test-tmp/claim-write-cddiyalw/out/outer-receipt.json",
+        "process_group_absent": true,
+        "raw_worker_exit_code": null,
+        "sha256": "47cc57264f20d1dc4701f988e28798dec909b094d6529f7f95d5f78a97ea667e",
+        "status": "partial_failure_preserved"
+      },
+      {
+        "failed_checks": [
+          "committed_output"
+        ],
+        "path": "learning/runs/v2/confirmed324-probe-r4-parent-validation-20261026-r1/test-tmp/claim-fsync-4re02tjb/out/outer-receipt.json",
+        "process_group_absent": true,
+        "raw_worker_exit_code": null,
+        "sha256": "14fa6486b0c26fd07e089f45567f2054bed88391c6b71dac1cb24808402a494f",
+        "status": "partial_failure_preserved"
+      },
+      {
+        "failed_checks": [
+          "input:checkpoint",
+          "committed_output"
+        ],
+        "path": "learning/runs/v2/confirmed324-probe-r4-parent-validation-20261026-r1/test-tmp/malformed-x0drsfmp/out/outer-receipt.json",
+        "process_group_absent": true,
+        "raw_worker_exit_code": -9,
+        "sha256": "069744a04bfc08c8344d31a89ca77cfee175b314024fb16ec34ea999c3ee6cec",
+        "status": "partial_failure_preserved"
+      },
+      {
+        "failed_checks": [
+          "source:fingerprint",
+          "cleanup_source",
+          "input:checkpoint"
+        ],
+        "path": "learning/runs/v2/confirmed324-probe-r4-parent-validation-20261026-r1/test-tmp/post-integrity-ag82ej2_/out/outer-receipt.json",
+        "process_group_absent": true,
+        "raw_worker_exit_code": 0,
+        "sha256": "6ee3ac1397f49076019f774a383315bdacb8a6052d33b559df966bc6edd70a23",
+        "status": "partial_failure_preserved"
+      },
+      {
+        "failed_checks": [],
+        "path": "learning/runs/v2/confirmed324-probe-r4-parent-validation-20261026-r1/test-tmp/inventory-nbfijzsh/out/outer-receipt.json",
+        "process_group_absent": true,
+        "raw_worker_exit_code": 0,
+        "sha256": "1b9213631ff18a6956cd8b06d54528305703b2ef593b4abfa995a9b16343b600",
+        "status": "partial_failure_preserved"
+      },
+      {
+        "failed_checks": [
+          "committed_output"
+        ],
+        "path": "learning/runs/v2/confirmed324-probe-r4-parent-validation-20261026-r1/test-tmp/final-mps-mfikj0fn/out/outer-receipt.json",
+        "process_group_absent": true,
+        "raw_worker_exit_code": 1,
+        "sha256": "dba81fdbbb324ed312e7a4b302b1028a891f27489ba04ae695191a4d3c1e3e59",
+        "status": "partial_failure_preserved"
+      },
+      {
+        "failed_checks": [
+          "cache"
+        ],
+        "path": "learning/runs/v2/confirmed324-probe-r4-parent-validation-20261026-r1/test-tmp/post-cache-file-4vsqmlmz/out/outer-receipt.json",
+        "process_group_absent": true,
+        "raw_worker_exit_code": 0,
+        "sha256": "4468e856bc3da1abbbe4405194580a1f162f2bb9fe4a1c2ee74fe588e8652e96",
+        "status": "partial_failure_preserved"
+      }
+    ]
+  },
+  "preservation": {
+    "enumerated_read_set_equal_before_after_output_construction": true,
+    "scope": "Enumerated hashes only; no repository-wide or concurrent-state immutability claim."
+  },
+  "prior_findings": {
+    "F1": "original repeated-interrupt cleanup defect closed; separate R1 remains",
+    "F2": "closed_source",
+    "F3": "closed_source",
+    "F4": "closed_source",
+    "F5": "closed_source"
+  },
+  "registered_limits": {
+    "MPS_driver_bytes": 6442450944,
+    "RSS_bytes": 6442450944,
+    "cleanup_seconds": 10,
+    "guard_poll_seconds": 0.2,
+    "heartbeat_stale_seconds": 2.0,
+    "outer_seconds": 55,
+    "startup_grace_seconds": 12,
+    "work_seconds": 45
+  },
+  "registration": {
+    "path": "learning/runs/v2/confirmed324-rng-reference-parent-20261026-r2/registration-final.json",
+    "sha256": "34b35307a9559ca2a7f74f0ca4567c3d30590af4e285b6295e21bbc8ae898895"
+  },
+  "result": "blocked",
+  "review_md_sha256": "0c6881abfdbfe27e46a3df5cf72ed751a1db3d37f843861fb09a1fcbbe7c8459",
+  "review_scope": {
+    "Torch_NumPy_native_MPS_imports_or_calls": 0,
+    "bytecode_disabled": true,
+    "checkpoint_deserializations": 0,
+    "launches": 0,
+    "lease_or_marker_changes": 0,
+    "model_environment_training_evaluation": 0,
+    "process_inspections_or_children": 0,
+    "repairs": 0,
+    "stdlib_read_hash_ast_json_only": true,
+    "subdelegations": 0,
+    "target_imports": 0,
+    "tests_executed": 0,
+    "writes_only": "learning/runs/v2/confirmed324-probe-r4-frozen-review-sol-20261026-r2"
+  },
+  "role": "review_sub_agent",
+  "schema": "confirmed324_probe_r4_frozen_source_review_v1",
+  "source_and_artifact_hashes": [
+    {
+      "bytes": 3940531,
+      "path": "learning/runs/v2/D2-retained300-continuation-20261026-r1/checkpoint-000324-candidate.pt",
+      "sha256": "c10d90ec0e67503afef8f4d90c4968581d430ef2065117a75e81c445a04c8ddc"
+    },
+    {
+      "bytes": 6913,
+      "path": "learning/runs/v2/D2-retained300-parent-terminal-audit-20261026-r1/retained-best-candidate-receipt.json",
+      "sha256": "76cb15733e87518cb3b473b7f8ebd847ed206351fb9f17d89b8b92e6bf853f08"
+    },
+    {
+      "bytes": 31559,
+      "path": "learning/runs/v2/confirmation-proof-binding-parent-repair-20261026-r4/execute_once.py",
+      "sha256": "4a5d084359ee48fe5351c96e0ec4455fdcd95a428a17bbcf59d0653f6922de98"
+    },
+    {
+      "bytes": 18972,
+      "path": "learning/runs/v2/confirmed324-probe-r3-frozen-registration-review-sol-20261026-r1/receipt.json",
+      "sha256": "8463393d275b7e539bf7b2fd75a76d01c9d9a8d16719826ea7e5132aa61498b3"
+    },
+    {
+      "bytes": 6407,
+      "path": "learning/runs/v2/confirmed324-probe-r3-frozen-registration-review-sol-20261026-r1/review.md",
+      "sha256": "f2b604104332353197e9ae1a9e008975e9c8d89e280f524a2be14b834275a50a"
+    },
+    {
+      "bytes": 3287,
+      "path": "learning/runs/v2/confirmed324-probe-r4-parent-validation-20261026-r1/build_registration.py",
+      "sha256": "5435aedb0cec681224851beb6676c9def6311980973835e95ce8f70eebcbdd1a"
+    },
+    {
+      "bytes": 527,
+      "path": "learning/runs/v2/confirmed324-probe-r4-parent-validation-20261026-r1/fake_runtime.py",
+      "sha256": "14a8c39b2cfed17b73aa0fb73aa7cde9dcb4b3b325107fd36c67602e64d7a435"
+    },
+    {
+      "bytes": 10406,
+      "path": "learning/runs/v2/confirmed324-probe-r4-parent-validation-20261026-r1/finalize_preparation.py",
+      "sha256": "bcaa4b276b55ff280258676080cf73ffd302552c5378e9ce0242892138ff4e0d"
+    },
+    {
+      "bytes": 6906,
+      "path": "learning/runs/v2/confirmed324-probe-r4-parent-validation-20261026-r1/probe.py",
+      "sha256": "3a8ca22bd4c3c15da41ec4d0919ac5e314edd2d89ff15eca82fc140fb493eca6"
+    },
+    {
+      "bytes": 841,
+      "path": "learning/runs/v2/confirmed324-probe-r4-parent-validation-20261026-r1/receipt.json",
+      "sha256": "00feca9e6ce4453ad84a33babb1b9d0edfe2b00253975a8f0d05cd6cbd321815"
+    },
+    {
+      "bytes": 19685,
+      "path": "learning/runs/v2/confirmed324-probe-r4-parent-validation-20261026-r1/supervisor_cli.py",
+      "sha256": "1d5b460cfc033d416b395b19a658e6c0f7f4ef49e996407e9c7d728d768b5b74"
+    },
+    {
+      "bytes": 3190,
+      "path": "learning/runs/v2/confirmed324-probe-r4-parent-validation-20261026-r1/test-tmp/claim-fsync-4re02tjb/out/outer-receipt.json",
+      "sha256": "14fa6486b0c26fd07e089f45567f2054bed88391c6b71dac1cb24808402a494f"
+    },
+    {
+      "bytes": 3280,
+      "path": "learning/runs/v2/confirmed324-probe-r4-parent-validation-20261026-r1/test-tmp/claim-write-cddiyalw/out/outer-receipt.json",
+      "sha256": "47cc57264f20d1dc4701f988e28798dec909b094d6529f7f95d5f78a97ea667e"
+    },
+    {
+      "bytes": 3308,
+      "path": "learning/runs/v2/confirmed324-probe-r4-parent-validation-20261026-r1/test-tmp/final-mps-mfikj0fn/out/outer-receipt.json",
+      "sha256": "dba81fdbbb324ed312e7a4b302b1028a891f27489ba04ae695191a4d3c1e3e59"
+    },
+    {
+      "bytes": 4486,
+      "path": "learning/runs/v2/confirmed324-probe-r4-parent-validation-20261026-r1/test-tmp/inventory-nbfijzsh/out/outer-receipt.json",
+      "sha256": "1b9213631ff18a6956cd8b06d54528305703b2ef593b4abfa995a9b16343b600"
+    },
+    {
+      "bytes": 3552,
+      "path": "learning/runs/v2/confirmed324-probe-r4-parent-validation-20261026-r1/test-tmp/malformed-x0drsfmp/out/outer-receipt.json",
+      "sha256": "069744a04bfc08c8344d31a89ca77cfee175b314024fb16ec34ea999c3ee6cec"
+    },
+    {
+      "bytes": 4660,
+      "path": "learning/runs/v2/confirmed324-probe-r4-parent-validation-20261026-r1/test-tmp/post-cache-file-4vsqmlmz/out/outer-receipt.json",
+      "sha256": "4468e856bc3da1abbbe4405194580a1f162f2bb9fe4a1c2ee74fe588e8652e96"
+    },
+    {
+      "bytes": 4931,
+      "path": "learning/runs/v2/confirmed324-probe-r4-parent-validation-20261026-r1/test-tmp/post-integrity-ag82ej2_/out/outer-receipt.json",
+      "sha256": "6ee3ac1397f49076019f774a383315bdacb8a6052d33b559df966bc6edd70a23"
+    },
+    {
+      "bytes": 3426,
+      "path": "learning/runs/v2/confirmed324-probe-r4-parent-validation-20261026-r1/test-tmp/signals-1px8qtak/out/outer-receipt.json",
+      "sha256": "77d963598a0afe36bcb8ad0b688120bebfa045680d2cdb1fc81d167eb5161d58"
+    },
+    {
+      "bytes": 5734,
+      "path": "learning/runs/v2/confirmed324-probe-r4-parent-validation-20261026-r1/test_campaign.py",
+      "sha256": "0eebdb0f1432f96a24e5f19becbeb3389df7e432af7a275ee8636fb680674c30"
+    },
+    {
+      "bytes": 19814,
+      "path": "learning/runs/v2/confirmed324-probe-r4-parent-validation-20261026-r1/test_failure_controls.py",
+      "sha256": "4c11d470caeb7635ac18fe37b7ba2341fc2c437b55d291b53f9fa5383825caa8"
+    },
+    {
+      "bytes": 4147,
+      "path": "learning/runs/v2/confirmed324-probe-r4-parent-validation-20261026-r1/test_probe.py",
+      "sha256": "6f08cdbbaaa63382e3340277282744a3051af5be184f806e6f59c2edc1fac0d6"
+    },
+    {
+      "bytes": 4411,
+      "path": "learning/runs/v2/confirmed324-probe-r4-parent-validation-20261026-r1/tests.log",
+      "sha256": "ceb2db8ce8b2c4fb3c151db4cb6fde4e65855975588e2e880f4abbc070c2de32"
+    },
+    {
+      "bytes": 9650,
+      "path": "learning/runs/v2/confirmed324-probe-r4-parent-validation-20261026-r1/worker_cli.py",
+      "sha256": "9d016e7ba3e9ab416c2f12e3b823c9a8b140523c77874781ad433f77b9f118dc"
+    },
+    {
+      "bytes": 4711,
+      "path": "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/README.md",
+      "sha256": "9d68f5dc5bd1307af5eb04620273a609f4d3825ab4cbb172ead9dc3679dc4ab8"
+    },
+    {
+      "bytes": 3287,
+      "path": "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/build_registration.py",
+      "sha256": "5435aedb0cec681224851beb6676c9def6311980973835e95ce8f70eebcbdd1a"
+    },
+    {
+      "bytes": 82028,
+      "path": "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/exact-diff.patch",
+      "sha256": "94de41c2d1460031dfc379211e2fe83710059b063f2ff02692da9f7dfddec55f"
+    },
+    {
+      "bytes": 527,
+      "path": "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/fake_runtime.py",
+      "sha256": "14a8c39b2cfed17b73aa0fb73aa7cde9dcb4b3b325107fd36c67602e64d7a435"
+    },
+    {
+      "bytes": 10406,
+      "path": "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/finalize_preparation.py",
+      "sha256": "bcaa4b276b55ff280258676080cf73ffd302552c5378e9ce0242892138ff4e0d"
+    },
+    {
+      "bytes": 11578,
+      "path": "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/preservation-after.json",
+      "sha256": "611da4295e2964a3570dc7c97148b53b6a965aae708524341eb8cb00b496f335"
+    },
+    {
+      "bytes": 7561,
+      "path": "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/preservation-before.json",
+      "sha256": "3738bd18e69e8df30c57dd880462dcd4c41c69a5fd606577ec33c6596836bf5c"
+    },
+    {
+      "bytes": 6906,
+      "path": "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/probe.py",
+      "sha256": "3a8ca22bd4c3c15da41ec4d0919ac5e314edd2d89ff15eca82fc140fb493eca6"
+    },
+    {
+      "bytes": 14467,
+      "path": "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/receipt.json",
+      "sha256": "538095630aa9bc64bd62aa0e596cb226d87e6e4f164ddc9d58bc342b6fa416c7"
+    },
+    {
+      "bytes": 3681,
+      "path": "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/source-hashes.json",
+      "sha256": "8b31a2598dd849c6d89ad817092bdc2d64c33da6fa588dad80ce699ef7f5a555"
+    },
+    {
+      "bytes": 19685,
+      "path": "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/supervisor_cli.py",
+      "sha256": "1d5b460cfc033d416b395b19a658e6c0f7f4ef49e996407e9c7d728d768b5b74"
+    },
+    {
+      "bytes": 11419,
+      "path": "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/synthetic-receipt-index.json",
+      "sha256": "67e2648b557f19f11582f40ea8281768345a725cf3f9ab92ec23743ab72d6350"
+    },
+    {
+      "bytes": 6012,
+      "path": "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/test-results.json",
+      "sha256": "12ab9b11442009f8420bafc53b26749d4f4ab69a83bfd1420238577518c94df1"
+    },
+    {
+      "bytes": 5734,
+      "path": "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/test_campaign.py",
+      "sha256": "0eebdb0f1432f96a24e5f19becbeb3389df7e432af7a275ee8636fb680674c30"
+    },
+    {
+      "bytes": 19814,
+      "path": "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/test_failure_controls.py",
+      "sha256": "4c11d470caeb7635ac18fe37b7ba2341fc2c437b55d291b53f9fa5383825caa8"
+    },
+    {
+      "bytes": 4147,
+      "path": "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/test_probe.py",
+      "sha256": "6f08cdbbaaa63382e3340277282744a3051af5be184f806e6f59c2edc1fac0d6"
+    },
+    {
+      "bytes": 4633,
+      "path": "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/tests-initial.log",
+      "sha256": "746d741d438c9b950dc5bc0c622363b0cea5d7ae95e75b1f7eb8011f1bd4f5f7"
+    },
+    {
+      "bytes": 4411,
+      "path": "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/tests.log",
+      "sha256": "fbe968774810e728d732cb0731ba4605fb6d22c8557149cfa3048cf11e858016"
+    },
+    {
+      "bytes": 9650,
+      "path": "learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/worker_cli.py",
+      "sha256": "9d016e7ba3e9ab416c2f12e3b823c9a8b140523c77874781ad433f77b9f118dc"
+    },
+    {
+      "bytes": 2317,
+      "path": "learning/runs/v2/confirmed324-probe-venv-source-repair-luna-20261026-r3/README.md",
+      "sha256": "45cbc0e460d286e5f404eef3830dc55b0e6fadf54d86d6d9098eb9bdd7e4574e"
+    },
+    {
+      "bytes": 3111,
+      "path": "learning/runs/v2/confirmed324-probe-venv-source-repair-luna-20261026-r3/build_registration.py",
+      "sha256": "f88ac6bbc27e1d3b05bca5dbc663114733ec88220fcbc8515a323c7a4caf7bb5"
+    },
+    {
+      "bytes": 14529,
+      "path": "learning/runs/v2/confirmed324-probe-venv-source-repair-luna-20261026-r3/supervisor_cli.py",
+      "sha256": "c19a6e1ef77c1b573c0fb262797111ce517c77462246c0da9a44bd5730e5e815"
+    },
+    {
+      "bytes": 5664,
+      "path": "learning/runs/v2/confirmed324-probe-venv-source-repair-luna-20261026-r3/test_campaign.py",
+      "sha256": "ea8a72344f8df47e21d83f282cad0de4844f2312fcf6f1c4aeacd1277da71184"
+    },
+    {
+      "bytes": 4030,
+      "path": "learning/runs/v2/confirmed324-probe-venv-source-repair-luna-20261026-r3/test_probe.py",
+      "sha256": "dd81a97ba9ef647e84b69aaa35aa5ddbcd340716f68b60115ebf38494f340931"
+    },
+    {
+      "bytes": 8631,
+      "path": "learning/runs/v2/confirmed324-probe-venv-source-repair-luna-20261026-r3/worker_cli.py",
+      "sha256": "a2c1f9a3bea7e436f43792d73b0ee5f54c23cd240977cacf26389e52f63df1c5"
+    },
+    {
+      "bytes": 21925,
+      "path": "learning/runs/v2/confirmed324-rng-reference-parent-20261026-r2/registration-final.json",
+      "sha256": "34b35307a9559ca2a7f74f0ca4567c3d30590af4e285b6295e21bbc8ae898895"
+    },
+    {
+      "bytes": 15758,
+      "path": "learning/runs/v2/confirmed324-seed-vectors-parent-20261026-r1/seed-vectors.json",
+      "sha256": "33ada951394fd3ce674955d43de1919b1cd3c2192e066722e33d5b49549c070b"
+    },
+    {
+      "bytes": 2410,
+      "path": "learning/runs/v2/confirmed324-transition-parent-repair-20261026-r3/fingerprints.py",
+      "sha256": "6ef9cf3f08fe800f54230801a921a2f5c82e47e5013ef3087ead6499d2533d61"
+    },
+    {
+      "bytes": 4369,
+      "path": "learning/runs/v2/expanded-confirmation-parent-20261026-r1/parent-acceptance.json",
+      "sha256": "3e84979c4c8da76d0f98666a23f90eb15c1e813ca5edf1001e19daebaf4d5bbd"
+    },
+    {
+      "bytes": 568657,
+      "path": "learning/runs/v2-orchestration/state.json",
+      "sha256": "052291af3717c3f4ddec9878a240df9a30d49257d2f3006f23ead4e62c1251cb"
+    },
+    {
+      "bytes": 18084144,
+      "path": "python/.venv/bin/python",
+      "sha256": "8dcafa7835e861e88a8f8ac7e61effbf5a987f32b0ec47bb1f3c9987caf9216d"
+    },
+    {
+      "bytes": 174,
+      "path": "python/.venv/pyvenv.cfg",
+      "sha256": "dd42ba3998396f04c5f714362c7f997d975f31e91c2846344406d83b2569a03c"
+    }
+  ]
+}

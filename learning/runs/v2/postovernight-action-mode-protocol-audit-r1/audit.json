@@ -1,0 +1,70 @@
+{
+  "artifacts": {
+    "attempt1-failure.txt": "5a1b0dfd4d99d55334c0cb32027e57a5e97b11bcd5341b1a8b9337e75a398688",
+    "audit_protocol.py": "468e1fcab1088fcdf617b62c425e641bc2b525691c93089ddb47bd633d08afef",
+    "audit_protocol_r2.py": "48729b6ab7caeb7538c9d00bf22896f316d984d9179612357a53858accbbef46",
+    "raw-checks.json": "6e136fda3bba4f19b06c68f9b60d4ed6a3cf905aa0f05ff0431a22b6523d3126"
+  },
+  "checker_correction": {
+    "corrected_script": "audit_protocol_r2.py",
+    "initial_failure": "audit_protocol.py line37 incorrectly asserted seed order in completion-order JSONL; AssertionError preserved in attempt1-failure.txt. No campaign/model code ran.",
+    "original_script_retained": true
+  },
+  "execution_authorized_by_this_audit": false,
+  "finished_at_utc": "2026-10-24T14:56:04.319796+00:00",
+  "protocol": "learning/runs/v2-orchestration/postovernight-action-mode-r1-protocol.json",
+  "protocol_sha256": "4e8ee5fb6141f9112e16190f2436f43f6c9127fcedbf51e3b3696523f47fe8db",
+  "qualifications": [
+    {
+      "evidence": "python/dodge_rl/dev_eval.py:105-115; saved development JSONL controls",
+      "finding": "Saved JSONL control rows are in episode completion order. The protocol correctly requires exact per-seed field comparison, not positional JSONL comparison. Index or sort by unique episode_index/seed, verify the mapping and all nine original fields. Preserve exact raw score/alive/gameplay/boundary/objective values.",
+      "id": "control_row_order",
+      "severity": "implementation_requirement"
+    },
+    {
+      "evidence": "protocol sampling/order; python/dodge_rl/dev_eval.py:83-95",
+      "finding": "The chosen stochastic experiment is one global MPS Categorical draw over sorted active episode indices at each decision, with seeds reset once after each model load. Its trajectories are specific to this batched draw schedule; do not reseed per step, reinterpret controller seeds as game seeds, or substitute per-slot/CPU sampling. Log actual distribution/action provenance. Primary/secondary checkpoint results remain separate.",
+      "id": "mps_draw_order",
+      "severity": "scope_qualification"
+    },
+    {
+      "evidence": "protocol statistics",
+      "finding": "The registered design correctly averages three sampled repetitions within each game seed and resamples64paired-seed clusters. The primary phase104/practical margins100alive/1score and mixed-inconclusive outcome fix the prior two-SE error. Result CIs are exploratory diagnostic seed-cohort uncertainty, not qualification or proof that entropy changes are necessary. No automatic training.",
+      "id": "paired_cluster_interpretation",
+      "severity": "scope_qualification"
+    },
+    {
+      "evidence": "protocol wall_budget_seconds/cleanup/logging; saved phase96 control18960entry/73586phase96 rawframes",
+      "finding": "768episodes fits the registered3*(argmax+3sampled)*64count. Earlier inference timing makes600seconds plausible but does not measure new tracing/hash-guard overhead or future sampled tails. Absolute registered workload ceiling is13,824,000rawframes/3,456,000decision trace rows. Stream without retaining trajectories, include import/load/evaluation/statistics in the600second budget, and retain partial failure without retries or limit relaxation. Up to10seconds cleanup is separate, not extra inference time.",
+      "id": "bounded_feasibility",
+      "severity": "execution_qualification"
+    },
+    {
+      "evidence": "crates/dodge-rl-env/src/env.rs:179-217,221-248; protocol logging",
+      "finding": "First-observed pattern time comes from K4 post-decision observations, so label it as first observed decision-boundary visibility, not exact raw activation. Terminal diagnostic counts establish context only. Leave killer/collision cause unknown; no reconstructed killer or pattern-death percentage decision.",
+      "id": "pattern_time_and_death_context",
+      "severity": "execution_qualification"
+    },
+    {
+      "evidence": "protocol checkpoints/controls/safety; python/dodge_rl/checkpoints.py:129-135; python/dodge_rl/dev_eval.py:63-116",
+      "finding": "Entry and phase96 have pinned saved controls; phase104hasnone. Keep original64independentB1/batched-alive layout, model.eval/no_grad,float32MPS,K4, direct Dseeds and cap18000; stop before sampling if either control differs. Exact hash-pinned complete failed-run checkpoints are diagnostic-only; load model state without optimizer/RNG restore, training transition validation changes, or checkpoint writes. Full tag/progress/runtime checks remain frozen-runner review/worker responsibilities.",
+      "id": "replay_and_checkpoint_scope",
+      "severity": "execution_qualification"
+    }
+  ],
+  "scope": "Read-only protocol/source/retained-data audit; no unstable runner inspection, Torch, model/native inference, tests, gameplay, training, scheduler or project mutation. Only new own audit files were written.",
+  "status": "no_protocol_blockers_with_execution_review_qualifications",
+  "verified": {
+    "checkpoint_hashes": 3,
+    "checkpoints": 3,
+    "evaluation_groups": 12,
+    "expected_episodes": 768,
+    "foundation_source_hashes": 75,
+    "game_seeds": 64,
+    "historical_control_fields": 9,
+    "historical_control_hashes": 2,
+    "historical_control_rows_per_evaluation": 64,
+    "protected_hashes_unchanged": true,
+    "sampled_controller_replicates": 3
+  }
+}

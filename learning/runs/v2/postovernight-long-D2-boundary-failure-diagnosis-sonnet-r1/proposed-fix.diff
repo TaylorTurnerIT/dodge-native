@@ -1,0 +1,71 @@
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r3/lifecycle.py	2026-10-24 19:57:23
++++ patched-candidate/lifecycle.py	2026-10-24 20:08:02
+@@ -221,6 +221,9 @@
+     if POOL is None:
+         raise Stop('Failure without owned cleanup pool')
+     now = time.monotonic()
++    descriptor = getattr(error, 'first_failure_descriptor', None)
++    if at is None and descriptor is not None:
++        at = descriptor.get('timestamp')  # already-observed failure keeps its own time
+     candidates = [now] if at is None else [now, at]
+     if ACTIVE is not None:
+         if ACTIVE.first_at is not None:candidates.append(ACTIVE.first_at)
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r3/long_d2.py	2026-10-24 19:57:23
++++ patched-candidate/long_d2.py	2026-10-24 20:08:02
+@@ -925,17 +925,10 @@
+     record_primary_failure(result, error)
+     permission['failed'] = True
+     permission['acknowledged_until'] = None
+-    now = time.monotonic()
+-    candidates = [now]
+-    if guard is not None and guard.failure_at is not None:
+-        candidates.append(guard.failure_at)
+     if life.ACTIVE is not None:
+-        if life.ACTIVE.first_at is not None:
+-            candidates.append(life.ACTIVE.first_at)
+-        if now >= life.ACTIVE.deadline:
+-            candidates.append(life.ACTIVE.deadline)
+         life.ACTIVE.phase = 'FAILURE'
+-    local_until = life.POOL.fail(error, min(candidates))
++    # primary_error's descriptor already holds the earliest guard/latch/deadline/catch time.
++    local_until = life.POOL.fail(error)
+     if learner is not None:
+         learner.api.absolute_deadline = local_until
+     if permission.get('ack_failed'):
+--- /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r3/long_d2_executor.py	2026-10-24 19:57:23
++++ patched-candidate/long_d2_executor.py	2026-10-24 20:08:02
+@@ -191,6 +191,7 @@
+         self.ipc_lock=threading.RLock()
+ 
+     def fail(self,error,at=None):
++        if not isinstance(error,BaseException):error=c.Stop(str(error),'safety_stop')
+         now=time.monotonic()
+         candidates=[now] if at is None else [now,at]
+         if self.latch.first_at is not None:candidates.append(self.latch.first_at)
+@@ -227,7 +228,7 @@
+                     number=self.latch.requested_signal
+                     self.forwarded.append(dict(signal=int(number),recorded_monotonic=now,
+                                                record_precedes_forward=True))
+-                    self.fail('Executor recorded cancellation',self.latch.first_at)
++                    self.fail(c.Stop('Executor recorded cancellation','cancelled'),self.latch.first_at)
+                     for record in tuple(self.groups.values()):
+                         if number==signal.SIGTERM:owned.signal_once(record,number)
+                         else:
+@@ -235,12 +236,12 @@
+                             except ProcessLookupError:pass
+                 if self.guard.failure is not None:self.fail(self.guard.failure,self.guard.failure_at)
+                 if self.pool.until is None:
+-                    if now>=self.t0+c.WORKER_SECONDS and self.worker_wait is None:self.fail('Worker cutoff',self.t0+c.WORKER_SECONDS)
+-                    if now>=self.t0+c.INNER_SECONDS and (self.child is None or self.child.report is None):self.fail('Inner cutoff',self.t0+c.INNER_SECONDS)
+-                    if now>=self.t0+NORMAL_SECONDS:self.fail('Outer cutoff',self.t0+NORMAL_SECONDS)
+-                    if now-self.guard.last_sample>.5:self.fail('Outer sample age')
++                    if now>=self.t0+c.WORKER_SECONDS and self.worker_wait is None:self.fail(c.Stop('Worker cutoff','wall_guard'),self.t0+c.WORKER_SECONDS)
++                    if now>=self.t0+c.INNER_SECONDS and (self.child is None or self.child.report is None):self.fail(c.Stop('Inner cutoff','wall_guard'),self.t0+c.INNER_SECONDS)
++                    if now>=self.t0+NORMAL_SECONDS:self.fail(c.Stop('Outer cutoff','wall_guard'),self.t0+NORMAL_SECONDS)
++                    if now-self.guard.last_sample>.5:self.fail(c.Stop('Outer sample age','resource_stop'))
+                 report=self.child.poll() if self.child is not None else None
+-                if report is not None and report['returncode'] not in (0,2):self.fail('Inner raw failure')
++                if report is not None and report['returncode'] not in (0,2):self.fail(c.Stop('Inner raw failure','publication_failure'))
+                 if self.pool.until is not None:
+                     for record in tuple(self.groups.values()):
+                         owned.signal_once(record,signal.SIGTERM)

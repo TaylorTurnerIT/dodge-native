@@ -1,0 +1,85 @@
+{
+  "schema": "d2_training_v3_parent_plan_v2",
+  "created_at_utc": "2026-10-25T19:58:16.288010+00:00",
+  "authority": "Latest user: Stop pausing. Use Luna and Claude Haiku implementation/review. Fix blockers and keep going. Parent treats this as authorization for supported bounded preparation and execution; child design-only scope restricts child actions, not existing user authority.",
+  "run_id": "D2-training-v3-20261025-r1",
+  "max_updates": 72,
+  "evaluation_updates": [
+    0,
+    72
+  ],
+  "work_seconds": 1600,
+  "total_seconds": 1800,
+  "rss_limit_bytes": 6442450944,
+  "mps_limit_bytes": 6442450944,
+  "budget_basis": {
+    "current_same_D2_run_source": "critic-diagnostic-D2-20261025-r2 training-metrics.jsonl",
+    "update_deltas_count": 46,
+    "mean_update_wall_seconds": 16.24405785961046,
+    "max_update_wall_seconds": 17.172875917050987,
+    "p95_update_wall_seconds": 16.901342208031565,
+    "exclusions": "First update includes startup/baseline;update25 includes mid-run evaluation.",
+    "72times_observed_max_seconds": 1236.447066027671,
+    "15percent_slowdown_of_observed_max_seconds": 1421.9141259318217,
+    "baseline_and_final_evaluation_allowance_seconds": 150,
+    "planning_total_work_seconds": 1571.9141259318217,
+    "work_bound_seconds": 1600,
+    "finalization_reserve_seconds": 200,
+    "absolute_total_seconds": 1800,
+    "evaluation_limit": "Baseline exactD1 currently mean295.25; reserve150s for entry plus final 64x18000cap evaluation, versus observed final48 evaluation/finalization4.28s. Ceiling remains guarded even if estimate misses; no guarantee or cap relaxation."
+  },
+  "fresh_u32_training_seed": 810631976,
+  "seed_draws": 1,
+  "seed_excluded_ranges": [
+    [
+      2952790016,
+      2952791015
+    ],
+    [
+      3489660928,
+      3489661055
+    ],
+    [
+      3758096384,
+      3758097383
+    ]
+  ],
+  "parent_checkpoint": "learning/runs/v2/milestone3-D1-curriculum-r1/checkpoint-000009-candidate.pt",
+  "parent_checkpoint_sha256": "ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f",
+  "policy": "docs/teacher-qualification-v3.json",
+  "score_in_gate": false,
+  "reward_and_learner_settings": "unchanged",
+  "source_policy": "New isolated prospective adapter from audited r3; no historical validators/configs/metadata edits. All failed and diagnostic checkpoints remain ineligible.",
+  "normal_checkpoint_contract": "New schema only. Save exact model/Adam/RNG, actual counters, current/next episode seed indices, run_seed, abandoned episodes and registration hashes at complete update boundaries. Do not flip old diagnostic eligibility. Training continuation is provisional until exact parent terminal acceptance; stage progression is a separate v3 survival predicate. Any future resume requires separately frozen/validated registration, cumulative consumed wall anchor and exact lineage; no resume implementation required in first campaign.",
+  "campaign_success": "Completed registered80 updates, finite valid metrics, full final evaluation, raw0 exits, resource/deadline/postflight/ownership checks. A below3060 competence score is reported separately from normal completion; no automatic D3 or B/E opening.",
+  "actual_failure": "Retain partial artifacts; failure/cancel/timeout/incomplete/interrupted checkpoints cannot parent future training. No unchanged broken rerun.",
+  "telemetry": "Add authoritative phase_update to completed/reset episode records. Preserve direct critic pre/post measurements, death counts and Q1/Q4/mean.",
+  "parent_adjustments_to_luna_plan": [
+    "Reject request for another user go: latest user explicitly authorized continuation, child design does not revoke it.",
+    "Increase48 to80updates to advance measured learning, with conservative measured budget.",
+    "Use narrow new prospective adapter rather than large old-runner migration.",
+    "Separate normal iteration completion from competence advancement without changing any historical verdict or eligibility."
+  ],
+  "input_drift": [
+    {
+      "path": "docs/v2-critic-diagnostic-2026-10-25.md",
+      "reviewed_sha256": "583416bb515a55f670adcaeea06a6eb1f96f8f3a3544fa1e072c719cb7093716",
+      "current_sha256": "9d10e7f558e2605166833d01c588c40ad40c6174f5d20a4ce2fcdafb296cb13b",
+      "reason": "Parent updated live project report with independently audited completed results while design read it. No immutable source/run input drift."
+    }
+  ],
+  "execution_status": "not_launched;requires_tests_freeze_Haiku_review_parent_reconciliation",
+  "new_D2_updates_this_campaign": 72,
+  "D2_update_index_base": 0,
+  "inherited_cumulative_updates_before_D2": 48,
+  "inherited_D1_phase_updates": 32,
+  "expected_total_updates_after_campaign": 120,
+  "candidate_selection": "Final D2 update72 only; intermediate checkpoint files cannot be selected as parent-authoritative candidate.",
+  "early_stop_on_competence_pass": false,
+  "reserve_policy": "1600s work +200s finalize=1800s total. New prospective adapter does not inherit oldv1 600s reserve or end-on-pass rules.",
+  "policy_sha256": "bfcbee1609cec0180495c957cf4b5e0b31356f395e2a706217cc9225647d23ae",
+  "gate_predicate": "python/dodge_rl/survival_gate.py",
+  "gate_predicate_sha256": "11257111602f26e49fbc71afc6a51acb79434a3717bd8d6d36d1bbf87dfb8841",
+  "prior_plan": "parent-plan.json",
+  "revision_reason": "Haiku budget concern: lower72newD2updates and entry/final-only evaluation. Parent corrects reviewer mistaken cumulative-time accounting and source protocol interpretation. No source mutation during active Luna ownership."
+}

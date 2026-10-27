@@ -1,0 +1,443 @@
+--- r11-source/test_r12.py
++++ r12/test_r12.py
+@@ -0,0 +1,440 @@
++"""Actual CPython scheduling and exact r12 source-delta checks.
++
++Signals are modeled by calling the unchanged ProcessLatch.handle directly.
++No OS signal delivery, timer installation, lifecycle/stress or ML run occurs.
++Reader threads use real stdlib threading and real interval operations.
++"""
++from pathlib import Path
++from contextlib import contextmanager
++from unittest.mock import patch
++import ast
++import hashlib
++import json
++import math
++import os
++import signal
++import sys
++import tempfile
++import threading
++import time
++import unittest
++import lifecycle as life
++import long_d2 as c
++import long_d2_executor as e
++
++H = Path(__file__).resolve().parent
++BASE = H / 'r11-source'
++A = Path(os.environ['VALIDATION_DIR'])
++SCHEDULING_HELPERS = {'restore_boundary_switch_interval', 'boundary_switch_interval'}
++
++
++def controller_without_r12_delta(text):
++    """Exact byte projection; no AST normalization of protected source bodies."""
++    lines = text.splitlines(True)
++    for node in sorted((n for n in ast.parse(text).body
++                        if isinstance(n, ast.FunctionDef) and n.name in SCHEDULING_HELPERS),
++                       key=lambda n: n.lineno, reverse=True):
++        first = min([node.lineno] + [n.lineno for n in node.decorator_list])
++        # Each added helper owns its following two blank lines.
++        del lines[first - 1:node.end_lineno + 2]
++    value = ''.join(lines)
++    value = value.replace('BOUNDARY_SWITCH_INTERVAL = 0.0001\n', '')
++    value = value.replace('postovernight-long-D2-boundary-prepare-r12',
++                          'postovernight-long-D2-boundary-prepare-r11')
++    value = value.replace('postovernight-long-D2-r2-protocol-r9.json',
++                          'postovernight-long-D2-r2-protocol-r8.json')
++    value = value.replace(c.PROTOCOL_SHA256,
++                          'fe11c08159bdb9ca1f03cb0fb96ffd133ad144d107b2a854d19fc49159aa2db2')
++    wrapped = '                with boundary_switch_interval():\n                    observation = self.verify()\n'
++    if value.count(wrapped) != 1:
++        raise AssertionError('Exactly one wrapped callback required')
++    return value.replace(wrapped, '                observation = self.verify()\n')
++
++
++class OtherBaseException(BaseException):
++    pass
++
++
++class R12(unittest.TestCase):
++    def setUp(self):
++        self.d = Path(tempfile.mkdtemp(prefix=self._testMethodName + '-', dir=A))
++        self.original = sys.getswitchinterval()
++        self.addCleanup(self.restore_test_interval)
++
++    def restore_test_interval(self):
++        # Independent fixture cleanup: midpoint of the observed microsecond bin.
++        # Test intervals are small positive integer microseconds, never huge floats.
++        ticks = round(self.original / 1e-6)
++        sys.setswitchinterval((ticks + .5) / 1e6)
++        self.assertEqual(sys.getswitchinterval(), self.original)
++
++    def save(self, name, value):
++        with (self.d / (name + '.json')).open('x') as stream:
++            json.dump(value, stream, indent=2, sort_keys=True, allow_nan=False)
++            stream.write('\n')
++
++    def guard(self, callback):
++        return c.Guard(time.monotonic() + 10, lambda: None, callback, None,
++                       rss=lambda: 1, peak=lambda: 1)
++
++    def test_01_success_scoped_and_outside_unchanged(self):
++        sys.setswitchinterval(.005)
++        before = sys.getswitchinterval()
++        with c.boundary_switch_interval():
++            inside = sys.getswitchinterval()
++            self.assertGreater(inside, 0)
++            self.assertLessEqual(inside, c.BOUNDARY_SWITCH_INTERVAL)
++        self.assertEqual(sys.getswitchinterval(), before)
++        self.save('success', dict(before=before, inside=inside, after=sys.getswitchinterval()))
++
++    def test_02_Stop_preserves_same_exception_and_interval(self):
++        error = c.Stop('callback cancellation', 'cancelled')
++        with self.assertRaises(c.Stop) as raised:
++            with c.boundary_switch_interval():
++                raise error
++        self.assertIs(raised.exception, error)
++        self.assertEqual(sys.getswitchinterval(), self.original)
++
++    def test_03_other_BaseException_KeyboardInterrupt_GeneratorExit(self):
++        for error in (OtherBaseException('base'), KeyboardInterrupt('keyboard'), GeneratorExit('generator')):
++            with self.subTest(kind=type(error).__name__):
++                with self.assertRaises(type(error)) as raised:
++                    with c.boundary_switch_interval():
++                        raise error
++                self.assertIs(raised.exception, error)
++                self.assertEqual(sys.getswitchinterval(), self.original)
++
++    def test_04_setter_raises_after_install_restores_without_callback(self):
++        real = sys.setswitchinterval
++        error = OtherBaseException('injected after install')
++        entered = []
++        def setting(value):
++            real(value)
++            if value == c.BOUNDARY_SWITCH_INTERVAL:
++                raise error
++        with patch.object(sys, 'setswitchinterval', setting):
++            with self.assertRaises(OtherBaseException) as raised:
++                with c.boundary_switch_interval():
++                    entered.append(True)
++        self.assertIs(raised.exception, error)
++        self.assertEqual(entered, [])
++        self.assertEqual(sys.getswitchinterval(), self.original)
++
++    def cleanup_interruption(self, *, after_set=False, callback_error=None):
++        real = sys.setswitchinterval
++        sys.setswitchinterval(.005)
++        original = sys.getswitchinterval()
++        latch = life.ProcessLatch()
++        latch.deadline = time.monotonic() + 10
++        first = [True]
++        calls = []
++        def setting(value):
++            calls.append(value)
++            if value == original and first[0]:
++                first[0] = False
++                if after_set:
++                    real(value)
++                # Model precisely the existing signal handler's raised Stop.
++                latch.handle(signal.SIGTERM, None)
++            real(value)
++        with patch.object(sys, 'setswitchinterval', setting):
++            with self.assertRaisesRegex(c.Stop, 'Cancellation latched') as raised:
++                with c.boundary_switch_interval():
++                    if callback_error is not None:
++                        raise callback_error
++        self.assertEqual(raised.exception.outcome, 'cancelled')
++        self.assertEqual(sys.getswitchinterval(), original)
++        self.assertEqual(latch.cancellation_requests, 1)
++        self.assertEqual(latch.phase, 'FAILURE')
++        self.assertEqual(calls.count(original), 1 if after_set else 2)
++        if callback_error is not None:
++            self.assertIs(raised.exception.__context__, callback_error)
++        self.save('modeled-signal', dict(actual_OS_signal=False, after_set=after_set,
++            calls=calls, restored=original, cancellation_requests=latch.cancellation_requests))
++
++    def test_05_one_modeled_signal_before_first_cleanup_set_outer_recovers(self):
++        self.cleanup_interruption()
++
++    def test_06_one_modeled_signal_after_first_cleanup_set_propagates(self):
++        self.cleanup_interruption(after_set=True)
++
++    def test_07_callback_error_and_one_cleanup_signal_both_retained(self):
++        self.cleanup_interruption(callback_error=OtherBaseException('callback base error'))
++
++    def test_08_nested_nondefault_exact_LIFO_restoration(self):
++        sys.setswitchinterval(.002731)
++        original = sys.getswitchinterval()
++        with c.boundary_switch_interval():
++            outer = sys.getswitchinterval()
++            with c.boundary_switch_interval():
++                self.assertEqual(sys.getswitchinterval(), outer)
++            self.assertEqual(sys.getswitchinterval(), outer)
++        self.assertEqual(sys.getswitchinterval(), original)
++        self.save('nested', dict(original=original, outer=outer, final=sys.getswitchinterval()))
++
++    def test_09_already_short_intervals_never_lengthened_or_truncated(self):
++        for interval in (.000001, .000017, .00005, .000099, .0001):
++            with self.subTest(interval=interval):
++                sys.setswitchinterval(interval)
++                observed = sys.getswitchinterval()
++                with c.boundary_switch_interval():
++                    self.assertEqual(sys.getswitchinterval(), observed)
++                    with c.boundary_switch_interval():
++                        self.assertEqual(sys.getswitchinterval(), observed)
++                self.assertEqual(sys.getswitchinterval(), observed)
++
++    def test_10_quantization_negative_control_and_actual_restoration_helper(self):
++        sys.setswitchinterval(.0001)
++        saved = sys.getswitchinterval()
++        sys.setswitchinterval(saved)
++        truncated = sys.getswitchinterval()
++        self.assertNotEqual(truncated, saved, 'Registered CPython negative control must expose truncation')
++        c.restore_boundary_switch_interval(saved)
++        self.assertEqual(sys.getswitchinterval(), saved)
++        rows = []
++        for interval in (.000001, .000017, .000099, .0001, .000731, .002731, .005, .02):
++            sys.setswitchinterval(interval)
++            observed = sys.getswitchinterval()
++            sys.setswitchinterval(.000002)
++            c.restore_boundary_switch_interval(observed)
++            self.assertEqual(sys.getswitchinterval(), observed)
++            rows.append(dict(requested=interval, observed=observed, restored=sys.getswitchinterval()))
++        self.save('quantization', dict(saved=saved, blind_restore=truncated, rows=rows))
++
++    def test_11_simultaneous_reader_observes_callback_and_after(self):
++        entered, read, finished = threading.Event(), threading.Event(), threading.Event()
++        observations, errors = [], []
++        def reader():
++            try:
++                if not entered.wait(2):
++                    raise AssertionError('callback entry not observed')
++                observations.append(sys.getswitchinterval())
++                read.set()
++                if not finished.wait(2):
++                    raise AssertionError('callback completion not observed')
++                observations.append(sys.getswitchinterval())
++            except BaseException as error:
++                errors.append(repr(error))
++                read.set()
++        thread = threading.Thread(target=reader, name='r12-interval-reader')
++        thread.start()
++        def callback():
++            entered.set()
++            self.assertTrue(read.wait(2))
++            self.assertFalse(errors)
++            return 'one callback'
++        try:
++            guard = self.guard(callback)
++            guard.full_check(True)
++        finally:
++            entered.set()
++            finished.set()
++            thread.join(3)
++        self.assertFalse(thread.is_alive())
++        self.assertEqual(errors, [])
++        self.assertEqual(len(observations), 2)
++        self.assertLessEqual(observations[0], c.BOUNDARY_SWITCH_INTERVAL)
++        self.assertEqual(observations[1], self.original)
++        self.save('reader', dict(observations=observations, thread_absent=True, actual_stdlib_thread=True))
++
++    def test_12_actual_Guard_calls_original_callback_once_under_only_verify_lock(self):
++        calls = []
++        marker = {'sentinel': 'actual callback return'}
++        def callback():
++            self.assertTrue(guard.verify_lock._is_owned())
++            self.assertFalse(guard.lock._is_owned())
++            self.assertLessEqual(sys.getswitchinterval(), c.BOUNDARY_SWITCH_INTERVAL)
++            calls.append(True)
++            return marker
++        guard = self.guard(callback)
++        self.assertIs(guard.verify, callback)
++        guard.full_check(True)
++        self.assertEqual(calls, [True])
++        self.assertIs(guard.boundaries[0]['observation'], marker)
++        self.assertEqual(guard.boundaries[0]['verdict'], 'passed')
++        self.assertEqual(sys.getswitchinterval(), self.original)
++        self.assertIsNone(c.VERIFY_LOCAL.stats)
++
++    def test_13_Guard_Stop_stays_fatal_and_interval_restored(self):
++        error = c.Stop('integrity mismatch', 'identity_or_lease_failure')
++        calls = []
++        def callback():
++            calls.append(True)
++            raise error
++        guard = self.guard(callback)
++        with self.assertRaises(c.Stop) as raised:
++            guard.full_check(True)
++        self.assertIs(raised.exception, error)
++        self.assertIs(guard.failure, error)
++        with self.assertRaises(c.Stop) as sticky:
++            guard.full_check(True)
++        self.assertIs(sticky.exception, error)
++        self.assertEqual(calls, [True])
++        self.assertEqual(guard.boundaries[0]['verdict'], 'failed')
++        self.assertEqual(sys.getswitchinterval(), self.original)
++
++    def test_14_Guard_other_BaseException_propagates_latches_Stop_and_restores(self):
++        error = OtherBaseException('integrity callback base exception')
++        guard = self.guard(lambda: (_ for _ in ()).throw(error))
++        with self.assertRaises(OtherBaseException) as raised:
++            guard.full_check(True)
++        self.assertIs(raised.exception, error)
++        self.assertIsInstance(guard.failure, c.Stop)
++        with self.assertRaises(c.Stop):
++            guard.check()
++        self.assertEqual(guard.boundaries[0]['verdict'], 'failed')
++        self.assertNotIn('observation', guard.boundaries[0])
++        self.assertEqual(sys.getswitchinterval(), self.original)
++
++    def test_15_cleanup_exception_cannot_publish_Guard_success(self):
++        real = sys.setswitchinterval
++        calls, injected = [], []
++        error = c.Stop('modeled cleanup interruption', 'cancelled')
++        def setting(value):
++            if value == self.original and not injected:
++                injected.append(True)
++                raise error
++            real(value)
++        guard = self.guard(lambda: calls.append(True))
++        with patch.object(sys, 'setswitchinterval', setting):
++            with self.assertRaises(c.Stop) as raised:
++                guard.full_check(True)
++        self.assertIs(raised.exception, error)
++        self.assertIs(guard.failure, error)
++        self.assertEqual(calls, [True])
++        self.assertEqual(guard.boundaries[0]['verdict'], 'failed')
++        self.assertNotIn('observation', guard.boundaries[0])
++        self.assertEqual(sys.getswitchinterval(), self.original)
++
++    def test_16_nonmain_helper_rejected_before_setter_or_callback(self):
++        errors, callbacks, setters = [], [], []
++        real = sys.setswitchinterval
++        def setting(value):
++            setters.append(value)
++            real(value)
++        def entry():
++            try:
++                with c.boundary_switch_interval():
++                    callbacks.append(True)
++            except BaseException as error:
++                errors.append(error)
++        with patch.object(sys, 'setswitchinterval', setting):
++            thread = threading.Thread(target=entry)
++            thread.start()
++            thread.join(3)
++        self.assertFalse(thread.is_alive())
++        self.assertEqual(len(errors), 1)
++        self.assertIsInstance(errors[0], c.Stop)
++        self.assertIn('main-thread ownership', str(errors[0]))
++        self.assertEqual(callbacks, [])
++        self.assertEqual(setters, [])
++        self.assertEqual(sys.getswitchinterval(), self.original)
++
++    def test_17_nonmain_Guard_forced_failure_and_safety_only_sampler_supported(self):
++        callbacks, errors = [], []
++        guard = self.guard(lambda: callbacks.append(True))
++        def entry():
++            try:
++                guard.sample(full=False)
++                guard.full_check(True)
++            except BaseException as error:
++                errors.append(error)
++        thread = threading.Thread(target=entry)
++        thread.start()
++        thread.join(3)
++        self.assertFalse(thread.is_alive())
++        self.assertEqual(len(errors), 1)
++        self.assertIs(guard.failure, errors[0])
++        self.assertEqual(callbacks, [])
++        self.assertIsNotNone(guard.last_sample)
++        self.assertEqual(guard.boundaries[0]['verdict'], 'failed')
++        self.assertEqual(sys.getswitchinterval(), self.original)
++
++    def test_18_independent_Guards_same_main_thread_restore_outer_then_original(self):
++        values = []
++        inner = self.guard(lambda: values.append(('inner', sys.getswitchinterval())))
++        def outer_callback():
++            outer = sys.getswitchinterval()
++            values.append(('outer', outer))
++            inner.full_check(True)
++            self.assertEqual(sys.getswitchinterval(), outer)
++        outer = self.guard(outer_callback)
++        outer.full_check(True)
++        self.assertEqual(values[0][1], values[1][1])
++        self.assertEqual([x[0] for x in values], ['outer', 'inner'])
++        self.assertEqual(sys.getswitchinterval(), self.original)
++
++    def test_19_exact_candidate_delta_and_protected_bytes(self):
++        current = (H / 'long_d2.py').read_text()
++        original = (BASE / 'long_d2.py').read_text()
++        self.assertEqual(controller_without_r12_delta(current), original)
++        for name in ('long_d2_executor.py', 'lifecycle.py', 'processes.py', 'boundary_integrity.py',
++                     'freeze.py', 'source_equality.py', 'synthetic.py', 'os_checks.py',
++                     'stress.py', 'fixture_guards.py', 'fixture_preconditions.py',
++                     'test_r11.py', 'test_r10.py', 'test_r7.py', 'test_repairs.py', 'test_boundary.py'):
++            self.assertEqual((H / name).read_bytes(), (BASE / name).read_bytes(), name)
++        old_blocks = {n.name: ast.get_source_segment(original, n) for n in ast.parse(original).body
++                      if isinstance(n, (ast.ClassDef, ast.FunctionDef))}
++        new_blocks = {n.name: ast.get_source_segment(current, n) for n in ast.parse(current).body
++                      if isinstance(n, (ast.ClassDef, ast.FunctionDef))}
++        self.assertEqual(set(new_blocks) - set(old_blocks), SCHEDULING_HELPERS)
++        self.assertEqual([name for name in old_blocks if old_blocks[name] != new_blocks[name]], ['Guard'])
++        def methods(text):
++            guard = next(n for n in ast.parse(text).body if isinstance(n, ast.ClassDef) and n.name == 'Guard')
++            return {n.name: ast.get_source_segment(text, n) for n in guard.body if isinstance(n, ast.FunctionDef)}
++        before, after = methods(original), methods(current)
++        self.assertEqual(set(before), set(after))
++        self.assertEqual([name for name in before if before[name] != after[name]], ['full_check'])
++        self.save('exact-delta', dict(controller_projection_byte_equal=True,
++            changed_existing_top_level_blocks=['Guard'], changed_Guard_methods=['full_check'],
++            added_helpers=sorted(SCHEDULING_HELPERS), existing_test_sources_byte_equal=True))
++
++    def test_20_protocol_proposal_only_allowed_fields_and_exact_hash(self):
++        old = json.loads((BASE / 'protocol-r8-proposal.json').read_text())
++        proposed = json.loads((H / 'protocol-r9-proposal.json').read_text())
++        declaration = proposed.pop('boundary_scheduling')
++        proposed['registered_at_utc'] = old['registered_at_utc']
++        normalized = json.loads(json.dumps(proposed).replace(
++            'postovernight-long-D2-boundary-prepare-r12/', 'postovernight-long-D2-boundary-prepare-r11/'))
++        self.assertEqual(normalized, old)
++        self.assertEqual(declaration['interval_seconds'], .0001)
++        self.assertIs(declaration['process_global'], True)
++        self.assertEqual(hashlib.sha256((H / 'protocol-r9-proposal.json').read_bytes()).hexdigest(), c.PROTOCOL_SHA256)
++        self.assertTrue(c.PREPARE_REL.endswith('prepare-r12'))
++        self.assertTrue(c.PROTOCOL_REL.endswith('protocol-r9.json'))
++        self.assertFalse((c.ORIGINAL_ROOT / c.PROTOCOL_REL).exists(), 'Parent owns external publication')
++        self.assertFalse(any((H / name).exists() for name in
++            ('classification.json', 'long-identity.json', 'registration.json', 'capsule-final', 'required-lease.json')))
++
++    def test_21_registered_setter_assumption_and_unchanged_monitor_call_sites(self):
++        protocol = json.loads((BASE / 'protocol-r8-proposal.json').read_text())
++        paths = [BASE / name for name in ('long_d2.py','long_d2_executor.py','lifecycle.py','processes.py','boundary_integrity.py')]
++        paths += [c.ORIGINAL_ROOT / name for name in protocol['base_identity']['sources'] if name.endswith('.py')]
++        for path in paths:
++            self.assertNotIn('setswitchinterval', path.read_text(), str(path))
++        source = (H / 'long_d2.py').read_text()
++        tree = ast.parse(source)
++        guard = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'Guard')
++        start = next(n for n in guard.body if isinstance(n, ast.FunctionDef) and n.name == 'start')
++        monitor = next(n for n in start.body if isinstance(n, ast.FunctionDef) and n.name == 'monitor')
++        self.assertIn('self.sample(full=False)', ast.get_source_segment(source, monitor))
++        self.assertNotIn('full_check', ast.get_source_segment(source, monitor))
++        self.save('ownership', dict(enforced='main-thread scheduling helper entry',
++            registered_source_setters=0, scanned_paths=[str(p) for p in paths],
++            assumption='No cooperating or external concurrent setter during callback; arbitrary third-party/native setters are not proven absent.',
++            per_Guard_lock_is_not_process_global=True))
++
++    def test_22_safety_only_and_nonforced_work_never_sets_interval(self):
++        callbacks, setters = [], []
++        real = sys.setswitchinterval
++        def setting(value):
++            setters.append(value)
++            real(value)
++        guard = self.guard(lambda: callbacks.append(True))
++        with patch.object(sys, 'setswitchinterval', setting):
++            guard.check()
++            guard.sample(full=False)
++            guard.full_check(False)
++        self.assertEqual(callbacks, [])
++        self.assertEqual(setters, [])
++        self.assertEqual(sys.getswitchinterval(), self.original)

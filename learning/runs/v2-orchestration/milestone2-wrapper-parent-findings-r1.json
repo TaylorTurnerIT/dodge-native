@@ -1,0 +1,18 @@
+{
+  "reviewed_source_manifest_sha256": "f69c7805cd1fbc847d41e75d540159ac5deb5f711156f544ce8803e7ccb31046",
+  "status": "parent_source_finding_pending_repair_and_frozen_review_reconciliation",
+  "findings": [
+    {
+      "id": "aux_enemy_body_excludes_explosion",
+      "severity": "P2",
+      "path": "crates/dodge-rl-env/src/features.rs",
+      "line": 378,
+      "trigger": "An admitted type-3 kamikaze explosion paints auxiliary channel 2 because enemy uses the inclusive range 1..=3.",
+      "consequence": "The enemy-body target labels explosions as bodies capable of enemy collision scoring, contradicting the supplied target semantics.",
+      "authority": "docs/SPEC_PRIVILEGED_VIT_RL.md:166 explicitly limits channel 2 to Normal and Kamikaze enemies; channel 0 separately includes explosions.",
+      "required_repair": "Limit enemy-body channel to type IDs 1 and 2; retain explosion lethal-now occupancy and all existing geometry. Add a focused fixture with spatially separate normal enemy, kamikaze, and explosion, checking exact independent channels.",
+      "source_edited": false
+    }
+  ],
+  "deferred_pretraining_requirement": "Implement configurable additional D/E seed exclusions before episode construction, preserving B default and recording exclusions in run identity. This is an explicitly planned binding-stage extension, not a defect against the frozen wrapper-r1 brief."
+}

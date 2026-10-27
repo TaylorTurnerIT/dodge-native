@@ -1,0 +1,1769 @@
+{
+  "controls_pending_runtime": [
+    "capture torch CPU/MPS generator state fingerprints after reseed (torch.get_rng_state / torch.mps.get_rng_state)",
+    "assert the post-restore, pre-reseed RNG fingerprint equals the parent receipt value",
+    "assert model and Adam fingerprints are unchanged across the reseed",
+    "record the first torch.randperm(16384) and first Categorical.sample outputs for the first update; not predictable without torch",
+    "assert a scratch numpy RandomState control for numpy_global_seed",
+    "real MPS state digests remain pending; separately verified real-runtime preflight must bind each digest to this vector_sha256 and seed vector before use",
+    "expected real CPU/MPS post-seed state digests: pending/notrun; no digest is asserted by this preparation"
+  ],
+  "derivation": {
+    "bounds": {
+      "action_sampler_torch_mps_seed": {
+        "api": "torch.mps.manual_seed",
+        "max": 9223372036854775807,
+        "min": 1
+      },
+      "constructor_init_seed": {
+        "api": "seed_initialization calls numpy.random.seed; u32 before model construction",
+        "max": 4294967295,
+        "min": 1
+      },
+      "env_master_seed": {
+        "api": "u64 run_seed at VecDodgeEnv construction",
+        "max": 18446744073709551615,
+        "min": 1
+      },
+      "numpy_global_seed": {
+        "api": "numpy.random.seed",
+        "max": 4294967295,
+        "min": 0
+      },
+      "python_random_seed": {
+        "api": "random.seed",
+        "max": 9223372036854775807,
+        "min": 1
+      },
+      "torch_cpu_global_seed": {
+        "api": "torch.manual_seed / torch.set_rng_state",
+        "max": 9223372036854775807,
+        "min": 1
+      }
+    },
+    "canonical_json": "sort_keys=True,separators=(',',':'),ensure_ascii=True",
+    "domain": "D2-LAYERB-RNG-VECTOR-V1",
+    "field_rule": "env_master_seed,torch_cpu_global_seed,action_sampler_torch_mps_seed,python_random_seed take the first 8 token bytes as a big-endian integer; 63-bit streams mask to 2**63-1; numpy_global_seed and constructor_init_seed take the first 4 bytes; an out-of-bounds or reserved candidate increments attempt",
+    "prior_master_seeds_rejected": [
+      810631976,
+      3192039780,
+      3791628417,
+      4200000000,
+      4200000001,
+      5562881586070242562
+    ],
+    "reserved_ranges": [
+      {
+        "high": 2952791015,
+        "low": 2952790016,
+        "name": "B"
+      },
+      {
+        "high": 3489661055,
+        "low": 3489660928,
+        "name": "D128"
+      },
+      {
+        "high": 3758097383,
+        "low": 3758096384,
+        "name": "E"
+      },
+      {
+        "high": 3506439167,
+        "low": 3506438144,
+        "name": "D1_new"
+      },
+      {
+        "high": 3523217407,
+        "low": 3523215360,
+        "name": "D2_new"
+      }
+    ],
+    "token_rule": "token=SHA256(DOMAIN|study=STUDY_ID|replica=i|stream=name|attempt=n)",
+    "vector_sha256_rule": "SHA256(canonical_json({study_id,replica,seeds}))"
+  },
+  "proposal_scope": {
+    "authority": "none; seeds are not reserved, no launch, no gate or protocol mutation",
+    "claim_limit": "descriptive only; n=3 exploratory pairs; no .05 confirmatory claim",
+    "not_applied": [
+      "training exclusion union B/E/D128/D1_new/D2_new is not installed",
+      "no runner or registration binds these vectors",
+      "no checkpoint or RNG reseed has been executed"
+    ],
+    "pairing": "identical vector across arms, distinct vector across replicas",
+    "planned_arms": [
+      "A_constant_3e-5",
+      "B_linear_3e-5_to_1e-5_over_60"
+    ],
+    "planned_pairs": 3,
+    "runtime_helper_binding": "not performed; r2 helper source only"
+  },
+  "real_state_preflight": {
+    "binding_required": [
+      "vector_sha256",
+      "complete_seed_vector",
+      "torch_version",
+      "preflight_receipt_sha256"
+    ],
+    "claim_limit": "No actual torch/MPS digest captured; fake tests do not satisfy this gate.",
+    "expected_cpu_rng_state_sha256": null,
+    "expected_mps_rng_state_sha256": null,
+    "status": "pending_notrun"
+  },
+  "schema": "d2_layerb_proposed_rng_seed_vectors_v2",
+  "status": "successor_metadata_only_proposed_not_reserved_not_applied",
+  "streams": {
+    "action_sampler_torch_mps_seed": {
+      "consumed_by": [
+        "Categorical.sample() on [64,9] logits"
+      ],
+      "distinct_across_replicas": true,
+      "owner": "process-wide torch MPS default generator",
+      "paired_identical_across_arms": true,
+      "role": "action sampling when the policy is on MPS",
+      "state": "active only when the pinned backend is mps"
+    },
+    "constructor_init_seed": {
+      "consumed_by": [
+        "nn.init.orthogonal_ actor/critic heads",
+        "pytorch default trunk init"
+      ],
+      "distinct_across_replicas": true,
+      "owner": "python learner bootstrap (train_teacher.seed_initialization)",
+      "paired_identical_across_arms": true,
+      "role": "seeds Python/NumPy/torch-CPU before model construction",
+      "state": "consumed then overwritten by verified restore; retained only so the pre-restore phase is identical across arms"
+    },
+    "env_master_seed": {
+      "consumed_by": [
+        "training_seed_normalized(run_seed, slot, episode)"
+      ],
+      "distinct_across_replicas": true,
+      "owner": "native environment (Rust), per environment construction",
+      "paired_identical_across_arms": true,
+      "role": "training namespace master seed for the 64-slot stream",
+      "state": "immutable per run; episode seeds are pure function outputs"
+    },
+    "numpy_global_seed": {
+      "consumed_by": [],
+      "distinct_across_replicas": true,
+      "owner": "numpy global RandomState",
+      "paired_identical_across_arms": true,
+      "role": "captured and restored by checkpoints.capture_rng/restore_rng",
+      "state": "dormant in the pinned runtime; np.random is never drawn from"
+    },
+    "numpy_owned_generator": {
+      "consumed_by": [],
+      "distinct_across_replicas": null,
+      "owner": "none in the pinned runtime",
+      "paired_identical_across_arms": null,
+      "role": "not implemented; capture_rng accepts an optional generator but make_state never captures one",
+      "state": "absent; do not claim an independent NumPy stream"
+    },
+    "python_random_seed": {
+      "consumed_by": [],
+      "distinct_across_replicas": true,
+      "owner": "python random module global state",
+      "paired_identical_across_arms": true,
+      "role": "captured and restored by checkpoints.capture_rng/restore_rng",
+      "state": "dormant in the pinned runtime; no random.* call exists"
+    },
+    "torch_cpu_global_seed": {
+      "consumed_by": [
+        "torch.randperm(16384, device='cpu') once per epoch",
+        "Categorical.sample only if the model runs on CPU"
+      ],
+      "distinct_across_replicas": true,
+      "owner": "process-wide torch CPU default generator",
+      "paired_identical_across_arms": true,
+      "role": "minibatch shuffle and any CPU-side torch draw",
+      "state": "single shared generator; no independent minibatch stream exists"
+    }
+  },
+  "study_id": "expanded-D2-training-replication-layerb-20261026-r1",
+  "successor_corrections": {
+    "exclusion_union_applies_to": "future separately registered training only; not installed and not applied",
+    "exclusions_source": "expanded-eval-parent-integration-20261026-r1/prospective-training-exclusions.json",
+    "master_seed_collision_check": "no current vector collision with 5562881586070242562 or 4200000001",
+    "prior_master_seeds_rejected_additional": [
+      5562881586070242562,
+      4200000001
+    ],
+    "runtime_helper_binding": "not performed",
+    "seed_binding": "explicit fields required; no initialization_seed default; no seed reservation or application"
+  },
+  "vectors": [
+    {
+      "derivation_attempts": {
+        "action_sampler_torch_mps_seed": 0,
+        "constructor_init_seed": 0,
+        "env_master_seed": 0,
+        "numpy_global_seed": 0,
+        "python_random_seed": 0,
+        "torch_cpu_global_seed": 0
+      },
+      "env_control": {
+        "all_slots_actual_seed_sha256": "c3f4d39f7e20966e563a5f0fc7a2a251dfa5300fcfee75549e7227f371808894",
+        "distinct_actual_seeds": 64,
+        "episode_controls": [
+          {
+            "episode_index": 282,
+            "first_actual_seed": 3960649771,
+            "rejection_counter": 0,
+            "slot": 0
+          },
+          {
+            "episode_index": 289,
+            "first_actual_seed": 1417037313,
+            "rejection_counter": 0,
+            "slot": 1
+          },
+          {
+            "episode_index": 286,
+            "first_actual_seed": 1079650161,
+            "rejection_counter": 0,
+            "slot": 2
+          },
+          {
+            "episode_index": 291,
+            "first_actual_seed": 223564391,
+            "rejection_counter": 0,
+            "slot": 3
+          },
+          {
+            "episode_index": 305,
+            "first_actual_seed": 1099350674,
+            "rejection_counter": 0,
+            "slot": 4
+          },
+          {
+            "episode_index": 279,
+            "first_actual_seed": 123408738,
+            "rejection_counter": 0,
+            "slot": 5
+          },
+          {
+            "episode_index": 308,
+            "first_actual_seed": 1839537794,
+            "rejection_counter": 0,
+            "slot": 6
+          },
+          {
+            "episode_index": 300,
+            "first_actual_seed": 1041233956,
+            "rejection_counter": 0,
+            "slot": 7
+          },
+          {
+            "episode_index": 320,
+            "first_actual_seed": 2926562294,
+            "rejection_counter": 0,
+            "slot": 8
+          },
+          {
+            "episode_index": 296,
+            "first_actual_seed": 654512179,
+            "rejection_counter": 0,
+            "slot": 9
+          },
+          {
+            "episode_index": 300,
+            "first_actual_seed": 337432481,
+            "rejection_counter": 0,
+            "slot": 10
+          },
+          {
+            "episode_index": 304,
+            "first_actual_seed": 3521352363,
+            "rejection_counter": 0,
+            "slot": 11
+          },
+          {
+            "episode_index": 288,
+            "first_actual_seed": 3429061759,
+            "rejection_counter": 0,
+            "slot": 12
+          },
+          {
+            "episode_index": 303,
+            "first_actual_seed": 4216460079,
+            "rejection_counter": 0,
+            "slot": 13
+          },
+          {
+            "episode_index": 298,
+            "first_actual_seed": 1761660685,
+            "rejection_counter": 0,
+            "slot": 14
+          },
+          {
+            "episode_index": 301,
+            "first_actual_seed": 3257473478,
+            "rejection_counter": 0,
+            "slot": 15
+          },
+          {
+            "episode_index": 305,
+            "first_actual_seed": 3667708585,
+            "rejection_counter": 0,
+            "slot": 16
+          },
+          {
+            "episode_index": 308,
+            "first_actual_seed": 2845932955,
+            "rejection_counter": 0,
+            "slot": 17
+          },
+          {
+            "episode_index": 297,
+            "first_actual_seed": 4159844537,
+            "rejection_counter": 0,
+            "slot": 18
+          },
+          {
+            "episode_index": 283,
+            "first_actual_seed": 3929199136,
+            "rejection_counter": 0,
+            "slot": 19
+          },
+          {
+            "episode_index": 301,
+            "first_actual_seed": 619152978,
+            "rejection_counter": 0,
+            "slot": 20
+          },
+          {
+            "episode_index": 293,
+            "first_actual_seed": 614022420,
+            "rejection_counter": 0,
+            "slot": 21
+          },
+          {
+            "episode_index": 275,
+            "first_actual_seed": 3353178486,
+            "rejection_counter": 0,
+            "slot": 22
+          },
+          {
+            "episode_index": 298,
+            "first_actual_seed": 4168094041,
+            "rejection_counter": 0,
+            "slot": 23
+          },
+          {
+            "episode_index": 285,
+            "first_actual_seed": 3602609206,
+            "rejection_counter": 0,
+            "slot": 24
+          },
+          {
+            "episode_index": 310,
+            "first_actual_seed": 199188365,
+            "rejection_counter": 0,
+            "slot": 25
+          },
+          {
+            "episode_index": 296,
+            "first_actual_seed": 2333634127,
+            "rejection_counter": 0,
+            "slot": 26
+          },
+          {
+            "episode_index": 300,
+            "first_actual_seed": 1861387673,
+            "rejection_counter": 0,
+            "slot": 27
+          },
+          {
+            "episode_index": 277,
+            "first_actual_seed": 98737442,
+            "rejection_counter": 0,
+            "slot": 28
+          },
+          {
+            "episode_index": 288,
+            "first_actual_seed": 1036839992,
+            "rejection_counter": 0,
+            "slot": 29
+          },
+          {
+            "episode_index": 291,
+            "first_actual_seed": 480259516,
+            "rejection_counter": 0,
+            "slot": 30
+          },
+          {
+            "episode_index": 298,
+            "first_actual_seed": 1175493182,
+            "rejection_counter": 0,
+            "slot": 31
+          },
+          {
+            "episode_index": 304,
+            "first_actual_seed": 2446764361,
+            "rejection_counter": 0,
+            "slot": 32
+          },
+          {
+            "episode_index": 305,
+            "first_actual_seed": 301294923,
+            "rejection_counter": 0,
+            "slot": 33
+          },
+          {
+            "episode_index": 311,
+            "first_actual_seed": 2441640373,
+            "rejection_counter": 0,
+            "slot": 34
+          },
+          {
+            "episode_index": 284,
+            "first_actual_seed": 3084656354,
+            "rejection_counter": 0,
+            "slot": 35
+          },
+          {
+            "episode_index": 288,
+            "first_actual_seed": 1320793503,
+            "rejection_counter": 0,
+            "slot": 36
+          },
+          {
+            "episode_index": 288,
+            "first_actual_seed": 3551311920,
+            "rejection_counter": 0,
+            "slot": 37
+          },
+          {
+            "episode_index": 298,
+            "first_actual_seed": 3099382120,
+            "rejection_counter": 0,
+            "slot": 38
+          },
+          {
+            "episode_index": 287,
+            "first_actual_seed": 3455604631,
+            "rejection_counter": 0,
+            "slot": 39
+          },
+          {
+            "episode_index": 301,
+            "first_actual_seed": 2780133428,
+            "rejection_counter": 0,
+            "slot": 40
+          },
+          {
+            "episode_index": 309,
+            "first_actual_seed": 949026582,
+            "rejection_counter": 0,
+            "slot": 41
+          },
+          {
+            "episode_index": 296,
+            "first_actual_seed": 1562951248,
+            "rejection_counter": 0,
+            "slot": 42
+          },
+          {
+            "episode_index": 286,
+            "first_actual_seed": 3486719317,
+            "rejection_counter": 0,
+            "slot": 43
+          },
+          {
+            "episode_index": 293,
+            "first_actual_seed": 490159680,
+            "rejection_counter": 0,
+            "slot": 44
+          },
+          {
+            "episode_index": 291,
+            "first_actual_seed": 4070926956,
+            "rejection_counter": 0,
+            "slot": 45
+          },
+          {
+            "episode_index": 274,
+            "first_actual_seed": 4071088700,
+            "rejection_counter": 0,
+            "slot": 46
+          },
+          {
+            "episode_index": 302,
+            "first_actual_seed": 3809607449,
+            "rejection_counter": 0,
+            "slot": 47
+          },
+          {
+            "episode_index": 306,
+            "first_actual_seed": 4129033394,
+            "rejection_counter": 0,
+            "slot": 48
+          },
+          {
+            "episode_index": 283,
+            "first_actual_seed": 3036047179,
+            "rejection_counter": 0,
+            "slot": 49
+          },
+          {
+            "episode_index": 296,
+            "first_actual_seed": 1833405875,
+            "rejection_counter": 0,
+            "slot": 50
+          },
+          {
+            "episode_index": 309,
+            "first_actual_seed": 519202196,
+            "rejection_counter": 0,
+            "slot": 51
+          },
+          {
+            "episode_index": 301,
+            "first_actual_seed": 2584780236,
+            "rejection_counter": 0,
+            "slot": 52
+          },
+          {
+            "episode_index": 304,
+            "first_actual_seed": 294567953,
+            "rejection_counter": 0,
+            "slot": 53
+          },
+          {
+            "episode_index": 293,
+            "first_actual_seed": 3414873190,
+            "rejection_counter": 0,
+            "slot": 54
+          },
+          {
+            "episode_index": 309,
+            "first_actual_seed": 450500609,
+            "rejection_counter": 0,
+            "slot": 55
+          },
+          {
+            "episode_index": 291,
+            "first_actual_seed": 3876883720,
+            "rejection_counter": 0,
+            "slot": 56
+          },
+          {
+            "episode_index": 298,
+            "first_actual_seed": 4185169774,
+            "rejection_counter": 0,
+            "slot": 57
+          },
+          {
+            "episode_index": 305,
+            "first_actual_seed": 3952677081,
+            "rejection_counter": 0,
+            "slot": 58
+          },
+          {
+            "episode_index": 300,
+            "first_actual_seed": 828402095,
+            "rejection_counter": 0,
+            "slot": 59
+          },
+          {
+            "episode_index": 273,
+            "first_actual_seed": 1986583410,
+            "rejection_counter": 0,
+            "slot": 60
+          },
+          {
+            "episode_index": 300,
+            "first_actual_seed": 852484387,
+            "rejection_counter": 0,
+            "slot": 61
+          },
+          {
+            "episode_index": 290,
+            "first_actual_seed": 1503848351,
+            "rejection_counter": 0,
+            "slot": 62
+          },
+          {
+            "episode_index": 322,
+            "first_actual_seed": 3417447323,
+            "rejection_counter": 0,
+            "slot": 63
+          }
+        ],
+        "episode_indices": [
+          282,
+          289,
+          286,
+          291,
+          305,
+          279,
+          308,
+          300,
+          320,
+          296,
+          300,
+          304,
+          288,
+          303,
+          298,
+          301,
+          305,
+          308,
+          297,
+          283,
+          301,
+          293,
+          275,
+          298,
+          285,
+          310,
+          296,
+          300,
+          277,
+          288,
+          291,
+          298,
+          304,
+          305,
+          311,
+          284,
+          288,
+          288,
+          298,
+          287,
+          301,
+          309,
+          296,
+          286,
+          293,
+          291,
+          274,
+          302,
+          306,
+          283,
+          296,
+          309,
+          301,
+          304,
+          293,
+          309,
+          291,
+          298,
+          305,
+          300,
+          273,
+          300,
+          290,
+          322
+        ],
+        "exclusion_union_candidate_check": "all 64 first actual seeds checked against exact five-range union",
+        "exclusion_union_ranges": [
+          {
+            "high": 2952791015,
+            "low": 2952790016,
+            "name": "B"
+          },
+          {
+            "high": 3489661055,
+            "low": 3489660928,
+            "name": "D128"
+          },
+          {
+            "high": 3758097383,
+            "low": 3758096384,
+            "name": "E"
+          },
+          {
+            "high": 3506439167,
+            "low": 3506438144,
+            "name": "D1_new"
+          },
+          {
+            "high": 3523217407,
+            "low": 3523215360,
+            "name": "D2_new"
+          }
+        ],
+        "exclusion_union_sha256": "2f7ab24de6bf9eaf89e918d1b73790e1895630c03348598a10f43baec7681df2",
+        "first_slot_actual_seeds": [
+          3960649771,
+          1417037313,
+          1079650161,
+          223564391
+        ],
+        "kind": "splitmix64_slot_stream_first_episode",
+        "rejection_counters_sha256": "ca0101ae4bf3b31bd300f93f576d862c57e98cb85d8ff6db4078eea404b88a9a",
+        "reserved_hits": 0,
+        "source": "crates/dodge-rl-env/src/seed.rs training_seed_normalized",
+        "zero_actual_seeds": 0
+      },
+      "python_control": {
+        "first_getrandbits64": 1786493790060949876,
+        "first_random_float_repr": "0.46117655533954616",
+        "kind": "scratch_instance_stdlib",
+        "note": "Computed with random.Random(seed) so the global stream is untouched.",
+        "post_seed_state_sha256": "5520e759cc951230a1887245cb227038495554a8e4daa32ae7aaf6f5f6e601e3",
+        "stream": "python_random_seed"
+      },
+      "replica": 1,
+      "seeds": {
+        "action_sampler_torch_mps_seed": 8255390458005185857,
+        "constructor_init_seed": 3917617846,
+        "env_master_seed": 6341453824149129831,
+        "numpy_global_seed": 2781058238,
+        "python_random_seed": 5688562681954791714,
+        "torch_cpu_global_seed": 5067376632470299089
+      },
+      "vector_sha256": "b947179030548e2c1b269ca317954e228b3f8a64b3214465dc2d30073ae3c838"
+    },
+    {
+      "derivation_attempts": {
+        "action_sampler_torch_mps_seed": 0,
+        "constructor_init_seed": 0,
+        "env_master_seed": 0,
+        "numpy_global_seed": 0,
+        "python_random_seed": 0,
+        "torch_cpu_global_seed": 0
+      },
+      "env_control": {
+        "all_slots_actual_seed_sha256": "8ca0f4b26482801f2d978bc2c732deab7419f037262839f62870d28328813b1b",
+        "distinct_actual_seeds": 64,
+        "episode_controls": [
+          {
+            "episode_index": 282,
+            "first_actual_seed": 4253022496,
+            "rejection_counter": 0,
+            "slot": 0
+          },
+          {
+            "episode_index": 289,
+            "first_actual_seed": 3887242490,
+            "rejection_counter": 0,
+            "slot": 1
+          },
+          {
+            "episode_index": 286,
+            "first_actual_seed": 58901420,
+            "rejection_counter": 0,
+            "slot": 2
+          },
+          {
+            "episode_index": 291,
+            "first_actual_seed": 2779924862,
+            "rejection_counter": 0,
+            "slot": 3
+          },
+          {
+            "episode_index": 305,
+            "first_actual_seed": 4061555598,
+            "rejection_counter": 0,
+            "slot": 4
+          },
+          {
+            "episode_index": 279,
+            "first_actual_seed": 1586117006,
+            "rejection_counter": 0,
+            "slot": 5
+          },
+          {
+            "episode_index": 308,
+            "first_actual_seed": 1664848800,
+            "rejection_counter": 0,
+            "slot": 6
+          },
+          {
+            "episode_index": 300,
+            "first_actual_seed": 2370154424,
+            "rejection_counter": 0,
+            "slot": 7
+          },
+          {
+            "episode_index": 320,
+            "first_actual_seed": 433904769,
+            "rejection_counter": 0,
+            "slot": 8
+          },
+          {
+            "episode_index": 296,
+            "first_actual_seed": 1260140920,
+            "rejection_counter": 0,
+            "slot": 9
+          },
+          {
+            "episode_index": 300,
+            "first_actual_seed": 3628219748,
+            "rejection_counter": 0,
+            "slot": 10
+          },
+          {
+            "episode_index": 304,
+            "first_actual_seed": 198030895,
+            "rejection_counter": 0,
+            "slot": 11
+          },
+          {
+            "episode_index": 288,
+            "first_actual_seed": 3106676617,
+            "rejection_counter": 0,
+            "slot": 12
+          },
+          {
+            "episode_index": 303,
+            "first_actual_seed": 2992408925,
+            "rejection_counter": 0,
+            "slot": 13
+          },
+          {
+            "episode_index": 298,
+            "first_actual_seed": 1432500978,
+            "rejection_counter": 0,
+            "slot": 14
+          },
+          {
+            "episode_index": 301,
+            "first_actual_seed": 630067071,
+            "rejection_counter": 0,
+            "slot": 15
+          },
+          {
+            "episode_index": 305,
+            "first_actual_seed": 3871161151,
+            "rejection_counter": 0,
+            "slot": 16
+          },
+          {
+            "episode_index": 308,
+            "first_actual_seed": 2608057472,
+            "rejection_counter": 0,
+            "slot": 17
+          },
+          {
+            "episode_index": 297,
+            "first_actual_seed": 3650263852,
+            "rejection_counter": 0,
+            "slot": 18
+          },
+          {
+            "episode_index": 283,
+            "first_actual_seed": 3025001734,
+            "rejection_counter": 0,
+            "slot": 19
+          },
+          {
+            "episode_index": 301,
+            "first_actual_seed": 1916493715,
+            "rejection_counter": 0,
+            "slot": 20
+          },
+          {
+            "episode_index": 293,
+            "first_actual_seed": 3067833216,
+            "rejection_counter": 0,
+            "slot": 21
+          },
+          {
+            "episode_index": 275,
+            "first_actual_seed": 3344874196,
+            "rejection_counter": 0,
+            "slot": 22
+          },
+          {
+            "episode_index": 298,
+            "first_actual_seed": 251174729,
+            "rejection_counter": 0,
+            "slot": 23
+          },
+          {
+            "episode_index": 285,
+            "first_actual_seed": 2813826814,
+            "rejection_counter": 0,
+            "slot": 24
+          },
+          {
+            "episode_index": 310,
+            "first_actual_seed": 2007546053,
+            "rejection_counter": 0,
+            "slot": 25
+          },
+          {
+            "episode_index": 296,
+            "first_actual_seed": 2927497286,
+            "rejection_counter": 0,
+            "slot": 26
+          },
+          {
+            "episode_index": 300,
+            "first_actual_seed": 2605354875,
+            "rejection_counter": 0,
+            "slot": 27
+          },
+          {
+            "episode_index": 277,
+            "first_actual_seed": 3973895394,
+            "rejection_counter": 0,
+            "slot": 28
+          },
+          {
+            "episode_index": 288,
+            "first_actual_seed": 1145584078,
+            "rejection_counter": 0,
+            "slot": 29
+          },
+          {
+            "episode_index": 291,
+            "first_actual_seed": 616551225,
+            "rejection_counter": 0,
+            "slot": 30
+          },
+          {
+            "episode_index": 298,
+            "first_actual_seed": 2360581940,
+            "rejection_counter": 0,
+            "slot": 31
+          },
+          {
+            "episode_index": 304,
+            "first_actual_seed": 853963851,
+            "rejection_counter": 0,
+            "slot": 32
+          },
+          {
+            "episode_index": 305,
+            "first_actual_seed": 1138394896,
+            "rejection_counter": 0,
+            "slot": 33
+          },
+          {
+            "episode_index": 311,
+            "first_actual_seed": 2846905498,
+            "rejection_counter": 0,
+            "slot": 34
+          },
+          {
+            "episode_index": 284,
+            "first_actual_seed": 2089887164,
+            "rejection_counter": 0,
+            "slot": 35
+          },
+          {
+            "episode_index": 288,
+            "first_actual_seed": 2857043730,
+            "rejection_counter": 0,
+            "slot": 36
+          },
+          {
+            "episode_index": 288,
+            "first_actual_seed": 2509501553,
+            "rejection_counter": 0,
+            "slot": 37
+          },
+          {
+            "episode_index": 298,
+            "first_actual_seed": 2649193161,
+            "rejection_counter": 0,
+            "slot": 38
+          },
+          {
+            "episode_index": 287,
+            "first_actual_seed": 922986442,
+            "rejection_counter": 0,
+            "slot": 39
+          },
+          {
+            "episode_index": 301,
+            "first_actual_seed": 3313107533,
+            "rejection_counter": 0,
+            "slot": 40
+          },
+          {
+            "episode_index": 309,
+            "first_actual_seed": 2124049930,
+            "rejection_counter": 0,
+            "slot": 41
+          },
+          {
+            "episode_index": 296,
+            "first_actual_seed": 3578896208,
+            "rejection_counter": 0,
+            "slot": 42
+          },
+          {
+            "episode_index": 286,
+            "first_actual_seed": 2023063631,
+            "rejection_counter": 0,
+            "slot": 43
+          },
+          {
+            "episode_index": 293,
+            "first_actual_seed": 3143276280,
+            "rejection_counter": 0,
+            "slot": 44
+          },
+          {
+            "episode_index": 291,
+            "first_actual_seed": 1212261484,
+            "rejection_counter": 0,
+            "slot": 45
+          },
+          {
+            "episode_index": 274,
+            "first_actual_seed": 3626185925,
+            "rejection_counter": 0,
+            "slot": 46
+          },
+          {
+            "episode_index": 302,
+            "first_actual_seed": 3119811343,
+            "rejection_counter": 0,
+            "slot": 47
+          },
+          {
+            "episode_index": 306,
+            "first_actual_seed": 3126677096,
+            "rejection_counter": 0,
+            "slot": 48
+          },
+          {
+            "episode_index": 283,
+            "first_actual_seed": 3149502571,
+            "rejection_counter": 0,
+            "slot": 49
+          },
+          {
+            "episode_index": 296,
+            "first_actual_seed": 1312978623,
+            "rejection_counter": 0,
+            "slot": 50
+          },
+          {
+            "episode_index": 309,
+            "first_actual_seed": 2402597647,
+            "rejection_counter": 0,
+            "slot": 51
+          },
+          {
+            "episode_index": 301,
+            "first_actual_seed": 3859543096,
+            "rejection_counter": 0,
+            "slot": 52
+          },
+          {
+            "episode_index": 304,
+            "first_actual_seed": 3076870800,
+            "rejection_counter": 0,
+            "slot": 53
+          },
+          {
+            "episode_index": 293,
+            "first_actual_seed": 738342236,
+            "rejection_counter": 0,
+            "slot": 54
+          },
+          {
+            "episode_index": 309,
+            "first_actual_seed": 1658875310,
+            "rejection_counter": 0,
+            "slot": 55
+          },
+          {
+            "episode_index": 291,
+            "first_actual_seed": 4101705242,
+            "rejection_counter": 0,
+            "slot": 56
+          },
+          {
+            "episode_index": 298,
+            "first_actual_seed": 1667418245,
+            "rejection_counter": 0,
+            "slot": 57
+          },
+          {
+            "episode_index": 305,
+            "first_actual_seed": 435050425,
+            "rejection_counter": 0,
+            "slot": 58
+          },
+          {
+            "episode_index": 300,
+            "first_actual_seed": 1987865564,
+            "rejection_counter": 0,
+            "slot": 59
+          },
+          {
+            "episode_index": 273,
+            "first_actual_seed": 2573850887,
+            "rejection_counter": 0,
+            "slot": 60
+          },
+          {
+            "episode_index": 300,
+            "first_actual_seed": 3040179229,
+            "rejection_counter": 0,
+            "slot": 61
+          },
+          {
+            "episode_index": 290,
+            "first_actual_seed": 2270207093,
+            "rejection_counter": 0,
+            "slot": 62
+          },
+          {
+            "episode_index": 322,
+            "first_actual_seed": 2618437380,
+            "rejection_counter": 0,
+            "slot": 63
+          }
+        ],
+        "episode_indices": [
+          282,
+          289,
+          286,
+          291,
+          305,
+          279,
+          308,
+          300,
+          320,
+          296,
+          300,
+          304,
+          288,
+          303,
+          298,
+          301,
+          305,
+          308,
+          297,
+          283,
+          301,
+          293,
+          275,
+          298,
+          285,
+          310,
+          296,
+          300,
+          277,
+          288,
+          291,
+          298,
+          304,
+          305,
+          311,
+          284,
+          288,
+          288,
+          298,
+          287,
+          301,
+          309,
+          296,
+          286,
+          293,
+          291,
+          274,
+          302,
+          306,
+          283,
+          296,
+          309,
+          301,
+          304,
+          293,
+          309,
+          291,
+          298,
+          305,
+          300,
+          273,
+          300,
+          290,
+          322
+        ],
+        "exclusion_union_candidate_check": "all 64 first actual seeds checked against exact five-range union",
+        "exclusion_union_ranges": [
+          {
+            "high": 2952791015,
+            "low": 2952790016,
+            "name": "B"
+          },
+          {
+            "high": 3489661055,
+            "low": 3489660928,
+            "name": "D128"
+          },
+          {
+            "high": 3758097383,
+            "low": 3758096384,
+            "name": "E"
+          },
+          {
+            "high": 3506439167,
+            "low": 3506438144,
+            "name": "D1_new"
+          },
+          {
+            "high": 3523217407,
+            "low": 3523215360,
+            "name": "D2_new"
+          }
+        ],
+        "exclusion_union_sha256": "2f7ab24de6bf9eaf89e918d1b73790e1895630c03348598a10f43baec7681df2",
+        "first_slot_actual_seeds": [
+          4253022496,
+          3887242490,
+          58901420,
+          2779924862
+        ],
+        "kind": "splitmix64_slot_stream_first_episode",
+        "rejection_counters_sha256": "ca0101ae4bf3b31bd300f93f576d862c57e98cb85d8ff6db4078eea404b88a9a",
+        "reserved_hits": 0,
+        "source": "crates/dodge-rl-env/src/seed.rs training_seed_normalized",
+        "zero_actual_seeds": 0
+      },
+      "python_control": {
+        "first_getrandbits64": 12469840339477468242,
+        "first_random_float_repr": "0.6293821464202541",
+        "kind": "scratch_instance_stdlib",
+        "note": "Computed with random.Random(seed) so the global stream is untouched.",
+        "post_seed_state_sha256": "0529f79d441699519ec3cf0a55307a24c8cc1bb8d232a51cb64a98e9502e1e5a",
+        "stream": "python_random_seed"
+      },
+      "replica": 2,
+      "seeds": {
+        "action_sampler_torch_mps_seed": 2014223016979908082,
+        "constructor_init_seed": 926977497,
+        "env_master_seed": 12312454464013200898,
+        "numpy_global_seed": 707065709,
+        "python_random_seed": 784214229967482698,
+        "torch_cpu_global_seed": 6978366105873999230
+      },
+      "vector_sha256": "d38cdfdb9b3ce7437bdc683bae7cfcb2589682bc780491252096bcb88f58f9c5"
+    },
+    {
+      "derivation_attempts": {
+        "action_sampler_torch_mps_seed": 0,
+        "constructor_init_seed": 0,
+        "env_master_seed": 0,
+        "numpy_global_seed": 0,
+        "python_random_seed": 0,
+        "torch_cpu_global_seed": 0
+      },
+      "env_control": {
+        "all_slots_actual_seed_sha256": "f24d1f2e50f088b6baf0560af678ac67bda5819725dbf6f69d3bb93956c9036e",
+        "distinct_actual_seeds": 64,
+        "episode_controls": [
+          {
+            "episode_index": 282,
+            "first_actual_seed": 4048268227,
+            "rejection_counter": 0,
+            "slot": 0
+          },
+          {
+            "episode_index": 289,
+            "first_actual_seed": 681833185,
+            "rejection_counter": 0,
+            "slot": 1
+          },
+          {
+            "episode_index": 286,
+            "first_actual_seed": 2848945354,
+            "rejection_counter": 0,
+            "slot": 2
+          },
+          {
+            "episode_index": 291,
+            "first_actual_seed": 3962004534,
+            "rejection_counter": 0,
+            "slot": 3
+          },
+          {
+            "episode_index": 305,
+            "first_actual_seed": 872884371,
+            "rejection_counter": 0,
+            "slot": 4
+          },
+          {
+            "episode_index": 279,
+            "first_actual_seed": 971539162,
+            "rejection_counter": 0,
+            "slot": 5
+          },
+          {
+            "episode_index": 308,
+            "first_actual_seed": 2823752037,
+            "rejection_counter": 0,
+            "slot": 6
+          },
+          {
+            "episode_index": 300,
+            "first_actual_seed": 2100817286,
+            "rejection_counter": 0,
+            "slot": 7
+          },
+          {
+            "episode_index": 320,
+            "first_actual_seed": 8970680,
+            "rejection_counter": 0,
+            "slot": 8
+          },
+          {
+            "episode_index": 296,
+            "first_actual_seed": 3500848953,
+            "rejection_counter": 0,
+            "slot": 9
+          },
+          {
+            "episode_index": 300,
+            "first_actual_seed": 1663376419,
+            "rejection_counter": 0,
+            "slot": 10
+          },
+          {
+            "episode_index": 304,
+            "first_actual_seed": 1062975380,
+            "rejection_counter": 0,
+            "slot": 11
+          },
+          {
+            "episode_index": 288,
+            "first_actual_seed": 609826981,
+            "rejection_counter": 0,
+            "slot": 12
+          },
+          {
+            "episode_index": 303,
+            "first_actual_seed": 2907162064,
+            "rejection_counter": 0,
+            "slot": 13
+          },
+          {
+            "episode_index": 298,
+            "first_actual_seed": 985689330,
+            "rejection_counter": 0,
+            "slot": 14
+          },
+          {
+            "episode_index": 301,
+            "first_actual_seed": 551983117,
+            "rejection_counter": 0,
+            "slot": 15
+          },
+          {
+            "episode_index": 305,
+            "first_actual_seed": 4171080025,
+            "rejection_counter": 0,
+            "slot": 16
+          },
+          {
+            "episode_index": 308,
+            "first_actual_seed": 3530888496,
+            "rejection_counter": 0,
+            "slot": 17
+          },
+          {
+            "episode_index": 297,
+            "first_actual_seed": 3954728846,
+            "rejection_counter": 0,
+            "slot": 18
+          },
+          {
+            "episode_index": 283,
+            "first_actual_seed": 2282721543,
+            "rejection_counter": 0,
+            "slot": 19
+          },
+          {
+            "episode_index": 301,
+            "first_actual_seed": 310410847,
+            "rejection_counter": 0,
+            "slot": 20
+          },
+          {
+            "episode_index": 293,
+            "first_actual_seed": 346833575,
+            "rejection_counter": 0,
+            "slot": 21
+          },
+          {
+            "episode_index": 275,
+            "first_actual_seed": 2989491190,
+            "rejection_counter": 0,
+            "slot": 22
+          },
+          {
+            "episode_index": 298,
+            "first_actual_seed": 684367172,
+            "rejection_counter": 0,
+            "slot": 23
+          },
+          {
+            "episode_index": 285,
+            "first_actual_seed": 4120542716,
+            "rejection_counter": 0,
+            "slot": 24
+          },
+          {
+            "episode_index": 310,
+            "first_actual_seed": 647969586,
+            "rejection_counter": 0,
+            "slot": 25
+          },
+          {
+            "episode_index": 296,
+            "first_actual_seed": 1711156840,
+            "rejection_counter": 0,
+            "slot": 26
+          },
+          {
+            "episode_index": 300,
+            "first_actual_seed": 742888670,
+            "rejection_counter": 0,
+            "slot": 27
+          },
+          {
+            "episode_index": 277,
+            "first_actual_seed": 2422675486,
+            "rejection_counter": 0,
+            "slot": 28
+          },
+          {
+            "episode_index": 288,
+            "first_actual_seed": 2078631812,
+            "rejection_counter": 0,
+            "slot": 29
+          },
+          {
+            "episode_index": 291,
+            "first_actual_seed": 860682545,
+            "rejection_counter": 0,
+            "slot": 30
+          },
+          {
+            "episode_index": 298,
+            "first_actual_seed": 4015251098,
+            "rejection_counter": 0,
+            "slot": 31
+          },
+          {
+            "episode_index": 304,
+            "first_actual_seed": 1513336278,
+            "rejection_counter": 0,
+            "slot": 32
+          },
+          {
+            "episode_index": 305,
+            "first_actual_seed": 3034878041,
+            "rejection_counter": 0,
+            "slot": 33
+          },
+          {
+            "episode_index": 311,
+            "first_actual_seed": 837038946,
+            "rejection_counter": 0,
+            "slot": 34
+          },
+          {
+            "episode_index": 284,
+            "first_actual_seed": 986316754,
+            "rejection_counter": 0,
+            "slot": 35
+          },
+          {
+            "episode_index": 288,
+            "first_actual_seed": 2512012093,
+            "rejection_counter": 0,
+            "slot": 36
+          },
+          {
+            "episode_index": 288,
+            "first_actual_seed": 4146918719,
+            "rejection_counter": 0,
+            "slot": 37
+          },
+          {
+            "episode_index": 298,
+            "first_actual_seed": 571232581,
+            "rejection_counter": 0,
+            "slot": 38
+          },
+          {
+            "episode_index": 287,
+            "first_actual_seed": 899538658,
+            "rejection_counter": 0,
+            "slot": 39
+          },
+          {
+            "episode_index": 301,
+            "first_actual_seed": 3261842981,
+            "rejection_counter": 0,
+            "slot": 40
+          },
+          {
+            "episode_index": 309,
+            "first_actual_seed": 623300161,
+            "rejection_counter": 0,
+            "slot": 41
+          },
+          {
+            "episode_index": 296,
+            "first_actual_seed": 264969816,
+            "rejection_counter": 0,
+            "slot": 42
+          },
+          {
+            "episode_index": 286,
+            "first_actual_seed": 213487052,
+            "rejection_counter": 0,
+            "slot": 43
+          },
+          {
+            "episode_index": 293,
+            "first_actual_seed": 4231253536,
+            "rejection_counter": 0,
+            "slot": 44
+          },
+          {
+            "episode_index": 291,
+            "first_actual_seed": 1920665375,
+            "rejection_counter": 0,
+            "slot": 45
+          },
+          {
+            "episode_index": 274,
+            "first_actual_seed": 487852617,
+            "rejection_counter": 0,
+            "slot": 46
+          },
+          {
+            "episode_index": 302,
+            "first_actual_seed": 1024136395,
+            "rejection_counter": 0,
+            "slot": 47
+          },
+          {
+            "episode_index": 306,
+            "first_actual_seed": 1120413311,
+            "rejection_counter": 0,
+            "slot": 48
+          },
+          {
+            "episode_index": 283,
+            "first_actual_seed": 2763645865,
+            "rejection_counter": 0,
+            "slot": 49
+          },
+          {
+            "episode_index": 296,
+            "first_actual_seed": 3610902828,
+            "rejection_counter": 0,
+            "slot": 50
+          },
+          {
+            "episode_index": 309,
+            "first_actual_seed": 2335716822,
+            "rejection_counter": 0,
+            "slot": 51
+          },
+          {
+            "episode_index": 301,
+            "first_actual_seed": 694038626,
+            "rejection_counter": 0,
+            "slot": 52
+          },
+          {
+            "episode_index": 304,
+            "first_actual_seed": 394573368,
+            "rejection_counter": 0,
+            "slot": 53
+          },
+          {
+            "episode_index": 293,
+            "first_actual_seed": 2262568319,
+            "rejection_counter": 0,
+            "slot": 54
+          },
+          {
+            "episode_index": 309,
+            "first_actual_seed": 832382071,
+            "rejection_counter": 0,
+            "slot": 55
+          },
+          {
+            "episode_index": 291,
+            "first_actual_seed": 2606109526,
+            "rejection_counter": 0,
+            "slot": 56
+          },
+          {
+            "episode_index": 298,
+            "first_actual_seed": 4094740464,
+            "rejection_counter": 0,
+            "slot": 57
+          },
+          {
+            "episode_index": 305,
+            "first_actual_seed": 737525896,
+            "rejection_counter": 0,
+            "slot": 58
+          },
+          {
+            "episode_index": 300,
+            "first_actual_seed": 273488351,
+            "rejection_counter": 0,
+            "slot": 59
+          },
+          {
+            "episode_index": 273,
+            "first_actual_seed": 1874819760,
+            "rejection_counter": 0,
+            "slot": 60
+          },
+          {
+            "episode_index": 300,
+            "first_actual_seed": 2219843240,
+            "rejection_counter": 0,
+            "slot": 61
+          },
+          {
+            "episode_index": 290,
+            "first_actual_seed": 598318483,
+            "rejection_counter": 0,
+            "slot": 62
+          },
+          {
+            "episode_index": 322,
+            "first_actual_seed": 3392202809,
+            "rejection_counter": 0,
+            "slot": 63
+          }
+        ],
+        "episode_indices": [
+          282,
+          289,
+          286,
+          291,
+          305,
+          279,
+          308,
+          300,
+          320,
+          296,
+          300,
+          304,
+          288,
+          303,
+          298,
+          301,
+          305,
+          308,
+          297,
+          283,
+          301,
+          293,
+          275,
+          298,
+          285,
+          310,
+          296,
+          300,
+          277,
+          288,
+          291,
+          298,
+          304,
+          305,
+          311,
+          284,
+          288,
+          288,
+          298,
+          287,
+          301,
+          309,
+          296,
+          286,
+          293,
+          291,
+          274,
+          302,
+          306,
+          283,
+          296,
+          309,
+          301,
+          304,
+          293,
+          309,
+          291,
+          298,
+          305,
+          300,
+          273,
+          300,
+          290,
+          322
+        ],
+        "exclusion_union_candidate_check": "all 64 first actual seeds checked against exact five-range union",
+        "exclusion_union_ranges": [
+          {
+            "high": 2952791015,
+            "low": 2952790016,
+            "name": "B"
+          },
+          {
+            "high": 3489661055,
+            "low": 3489660928,
+            "name": "D128"
+          },
+          {
+            "high": 3758097383,
+            "low": 3758096384,
+            "name": "E"
+          },
+          {
+            "high": 3506439167,
+            "low": 3506438144,
+            "name": "D1_new"
+          },
+          {
+            "high": 3523217407,
+            "low": 3523215360,
+            "name": "D2_new"
+          }
+        ],
+        "exclusion_union_sha256": "2f7ab24de6bf9eaf89e918d1b73790e1895630c03348598a10f43baec7681df2",
+        "first_slot_actual_seeds": [
+          4048268227,
+          681833185,
+          2848945354,
+          3962004534
+        ],
+        "kind": "splitmix64_slot_stream_first_episode",
+        "rejection_counters_sha256": "ca0101ae4bf3b31bd300f93f576d862c57e98cb85d8ff6db4078eea404b88a9a",
+        "reserved_hits": 0,
+        "source": "crates/dodge-rl-env/src/seed.rs training_seed_normalized",
+        "zero_actual_seeds": 0
+      },
+      "python_control": {
+        "first_getrandbits64": 11328512633047025714,
+        "first_random_float_repr": "0.060111485687561195",
+        "kind": "scratch_instance_stdlib",
+        "note": "Computed with random.Random(seed) so the global stream is untouched.",
+        "post_seed_state_sha256": "364f5dee15920ed780ea3fd1a6050768e673d8beb6e79c50b818c03681c5d7af",
+        "stream": "python_random_seed"
+      },
+      "replica": 3,
+      "seeds": {
+        "action_sampler_torch_mps_seed": 5029084674687519350,
+        "constructor_init_seed": 16489749,
+        "env_master_seed": 12504964076835590278,
+        "numpy_global_seed": 3214285863,
+        "python_random_seed": 7263135491696025241,
+        "torch_cpu_global_seed": 6400185594956142826
+      },
+      "vector_sha256": "546194b86086bb4cff4d6ac9efbd8e03dfbafdeb221d9387327e0ad04f431254"
+    }
+  ]
+}

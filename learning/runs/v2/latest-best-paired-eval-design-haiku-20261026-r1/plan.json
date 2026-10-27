@@ -1,0 +1,162 @@
+{
+  "schema": "v2_best180_latest252_paired_eval_plan_v1",
+  "status": "planned_not_implemented",
+  "inference_only": true,
+  "gradients": false,
+  "optimizer_instantiation": false,
+  "checkpoint_writes": 0,
+  "training_eligibility_changed": false,
+  "B_E_qualification_seeds_opened": false,
+  "held_out_qualification_claim": false,
+  "d3_student": false,
+  "checkpoints": [
+    {"role": "best_observed_reference", "label": "best180", "path": "learning/runs/v2/D2-continuation-20261025-r2/checkpoint-000180-candidate.pt", "sha256": "3173d293dc3309afcdeaec5d386807be40b27c0f024f67c23221d067d2b2cca8", "dev_record": "learning/runs/v2/D2-continuation-20261025-r2/development-000180.jsonl", "dev_record_sha256": "33e7859274c65cbefb627e595006e4c64650a653ccace1e059bc9e46a8df76f1"},
+    {"role": "latest_provisional", "label": "latest252", "path": "learning/runs/v2/D2-continuation-20261025-r2/checkpoint-000252-candidate.pt", "sha256": "cbdc65d0f3b2e32644ba64ada80093f20c7a6bceb8730f2eecac7a188504254b", "dev_record": "learning/runs/v2/D2-continuation-20261025-r2/development-000252.jsonl", "dev_record_sha256": "dd02551520977ceb26cddec7a7d9437265d3fbfd58917a79bbc52cc1f5929d36"}
+  ],
+  "parent_selection_note": "Not choosing a training parent or rolling back. 252 stays training_eligible false; 180 stays accepted reference.",
+  "receipts": {
+    "latest252_parent_terminal_receipt": {"path": "learning/runs/v2/d2-continuation252-parent-terminal-audit-20261026-r1/parent-terminal-receipt.json", "sha256": "25f2744d39e2c48e48333088c78855af1ad3b65f1053f576d70f9ac38b5d4096"},
+    "best180_parent_terminal_receipt": {"path": "learning/runs/v2/d2-gradient-parent-terminal-audit-20261025-r2/parent-terminal-receipt.json", "sha256": "7968a62b6e601fab971e4145dbaebfa1995c8f696e6df442ab70fc0435b74903"},
+    "latest252_audit": {"path": "learning/runs/v2/d2-continuation252-parent-terminal-audit-20261026-r1/audit.json", "sha256": "08eb63b4c6d199bfb44e3abdafd1d773ab921de3687c04641c6df596ad7313b2"},
+    "canonical_performance_correction": {"path": "learning/runs/v2/d2-continuation252-parent-terminal-audit-20261026-r1/canonical-performance-correction.json", "sha256": "22ea28a115382abca1fa45a2023bd92132c6c0e7a99767db8a090663747e33a0"}
+  },
+  "prior_regression_study": {
+    "analysis": {"path": "learning/runs/v2/D2-252-regression-analysis-haiku-20261026-r1/analysis.json", "sha256": "a8f6abaa638ec4070b639ce80a027d798d25810f6aff6364dcdb0edc33e7f43d"},
+    "receipt": {"path": "learning/runs/v2/D2-252-regression-analysis-haiku-20261026-r1/receipt.json", "sha256": "b5fb90eee7be67a4c22454ce558ba8867ba5f97d131669bb784da2e973f4afa5"}
+  },
+  "canonical_definition": "Per mode, per-seed alive frames sorted ascending over 64 seeds; Q1 = mean of first 16, Q4 = mean of last 16, mean = mean of all 64. Not inclusive percentiles.",
+  "canonical_values_to_reproduce": {
+    "best180_argmax_dev": {"Q1": 585.625, "Q4": 3502.5625, "mean": 1854.46875},
+    "latest252_argmax_dev": {"Q1": 532.8125, "Q4": 3192.3125, "mean": 1604.078125}
+  },
+  "protocol_base": {
+    "reused_protocol": {"path": "learning/runs/v2-orchestration/postovernight-action-mode-r3-protocol.json", "sha256": "90e3ae1cc8ba253e2e64a708f9b66ed59762e85668a15197d04d9265180ea741"},
+    "reused_runner": {"path": "learning/runs/v2/postovernight-action-mode-prepare-r3/runner.py", "sha256": "8c4be28db13db8df2c4fb647ea10fdd815ef6612139dc497b04b4b6915f9e329", "policy": "copy into new prepare dir; do not edit prior dir"},
+    "reused_campaign_evidence": {"path": "learning/runs/v2/postovernight-action-mode-campaign-r1/run-result.json", "sha256": "4e49bb98dece0ae8004ee94407cd70b2cd245f6ac3d928420867c89a77dd5c8e", "status": "complete", "episodes": 768, "wall_seconds": 47.673861957970075, "note": "phase104 only; not 180 or 252"}
+  },
+  "cohort": {
+    "choice": "reuse existing 64 development seeds 3489660928..3489660991 (no new seeds)",
+    "seed_count": 64,
+    "first_seed": 3489660928,
+    "last_seed": 3489660991,
+    "why": "fastest, matches both dev records and campaign-r1 paired controls, no new seed reservation needed",
+    "dev_use_caveat": "these seeds are already used for checkpoint dev observation, so they are diagnostic only; not held-out qualification",
+    "future_training_constraint": "any future training-selection or checkpoint decision that reads this diagnostic must exclude these 64 seeds from selection or mark them diagnostic-only; no implicit exclusion added to config here",
+    "fresh_cohort_alternative": "not chosen for r1. Would need a declared new seed range and reservation decision; seeds.py reserves test seeds for frozen recipe. Parent decides if needed."
+  },
+  "episodes": {
+    "per_checkpoint_argmax": 64,
+    "per_checkpoint_sampled": 192,
+    "per_checkpoint_sampled_replicates": 3,
+    "total_episodes": 512,
+    "argmax_control_rule": "argmax rows must match saved dev JSONL per-seed fields field-for-field: episode_index, seed, score_raw_fixed, score, alive_frames, gameplay_frames, terminated, truncated, objective_return. Mismatch stops the whole run with no retry."
+  },
+  "game": {
+    "stage": "D2",
+    "difficulty": 2,
+    "action_repeat": 4,
+    "patterns_enabled": true,
+    "powerups_enabled": true,
+    "render_pixels": false,
+    "environment_layout": "64_independent_B1_envs; batched_policy_over_alive; no_reset",
+    "raw_frame_cap_per_episode": 18000,
+    "cap_policy": "episodes hitting cap are reported as censored; cap count must be 0 for the primary table, else flagged"
+  },
+  "action_rng": {
+    "argmax": "deterministic; no RNG draws; one run per checkpoint-seed",
+    "sampled": "torch.distributions.Categorical(logits=model_logits).sample(), device mps, float32",
+    "controller_seeds": [64001, 64002, 64003],
+    "seed_reset": "torch.manual_seed and torch.mps.manual_seed once before each checkpoint x replicate evaluation, after checkpoint load",
+    "draw_order": "sorted active episode indices; one batched draw per policy step (same as r3)",
+    "per_seed_sampled_value": "mean of 3 replicate values for that seed"
+  },
+  "resources": {
+    "device": "mps",
+    "torch_threads": 4,
+    "wall_budget_seconds": 600,
+    "cleanup_reserve_seconds": 10,
+    "host_rss_limit_bytes": 6442450944,
+    "mps_driver_limit_bytes": 6442450944,
+    "measured_prior_timing": {
+      "campaign_r1_768_episodes_seconds": 47.673861957970075,
+      "dev_180_argmax_64_episodes_seconds": 10.123696166090667,
+      "dev_252_argmax_64_episodes_seconds": 5.81374550005421,
+      "dev_180_raw_frames": 118750,
+      "dev_252_raw_frames": 102725
+    },
+    "expected_wall_seconds": "about 40-90 for 512 episodes, scaled from campaign-r1 (47.7 s for 768 episodes); well inside 600",
+    "worst_case_raw_frames": 9216000,
+    "worst_case_raw_frames_basis": "512 episodes x 18000 cap"
+  },
+  "outputs": {
+    "proposed_run_dir": "learning/runs/v2/postovernight-best180-latest252-paired-action-mode-r1",
+    "files": ["protocol.json", "evaluations.jsonl", "episodes.jsonl", "paired-summary.json", "run-result.json", "artifact-manifest.json", "receipt.json"],
+    "no_writes_to": ["checkpoints", "optimizer state", "learning/runs/v2 prior run dirs", "source", "ledger", "lease"]
+  },
+  "output_schema": {
+    "per_checkpoint_mode": {
+      "checkpoint": "best180|latest252",
+      "mode": "argmax|sampled_mean3",
+      "per_seed_alive_frames": "64 values",
+      "mean_alive_frames": "float",
+      "Q1_sorted_bottom16_mean": "float",
+      "Q4_sorted_top16_mean": "float",
+      "mean_score": "float",
+      "deaths_by_cause": "normal_enemy, kamikaze_enemy, kamikaze_explosion, moving_pattern_rect, static_pattern_rect, unknown, unavailable",
+      "caps_hit": "int"
+    },
+    "paired_contrasts": [
+      {"id": "C1_env_seed_checkpoint_argmax", "definition": "latest252_argmax - best180_argmax per seed"},
+      {"id": "C2_action_mode_best180", "definition": "sampled_mean3 - argmax per seed, checkpoint best180"},
+      {"id": "C3_action_mode_latest252", "definition": "sampled_mean3 - argmax per seed, checkpoint latest252"},
+      {"id": "C4_interaction", "definition": "C3 - C2 per seed"},
+      {"id": "C5_checkpoint_sampled", "definition": "latest252_sampled_mean3 - best180_sampled_mean3 per seed"}
+    ],
+    "per_contrast_fields": ["mean_diff", "median_diff", "bootstrap_95_ci", "improved_worsened_tied", "Q1_Q4_mean_diffs_canonical"],
+    "replicate_noise_floor": "per seed SD across 3 controller replicates, reported as median and max, per checkpoint"
+  },
+  "statistics": {
+    "unit": "64 paired game-seed clusters",
+    "bootstrap": {"draws": 10000, "seed": 764002, "method": "percentile; resample seed indices once, reuse across all metrics", "conditional_on": "fixed checkpoint pair and environment-seed sampling; not training-replicate uncertainty"},
+    "practical_margins": {"mean_alive_frames": 100, "mean_score": 1}
+  },
+  "decision_rules": {
+    "scope": "exploratory diagnostics; not qualification; no training eligibility change",
+    "env_seed_difference": "C1 CI excludes 0 and |mean| >= 100 frames: argmax checkpoint difference is real on this cohort. CI inside (-100,100): practically similar. Otherwise inconclusive.",
+    "action_mode_sensitivity": "C2 or C3 CI excludes 0 with |mean| >= 100: sampled vs argmax matters for that checkpoint. CI inside (-100,100): insensitive.",
+    "interaction": "C4 CI excludes 0 with |mean| >= 100: action-mode sensitivity differs between checkpoints.",
+    "report_all": "all contrasts reported regardless of outcome; no multiple-comparison claim beyond stated CIs"
+  },
+  "theories": {
+    "T1_env_seed_variation": {
+      "claim": "the 180 to 252 argmax gap is finite-seed noise",
+      "predicts": "C1 CI includes 0; replicate noise floor comparable to C1 width",
+      "weakened_by": "C1 CI excludes 0 with |mean| >= 100, or C1 median and mean disagree in sign with narrow CI, or the 252 argmax gap is larger than the sampled replicate noise floor",
+      "supported_by": "C1 CI inside (-100,100) or straddles 0 with width > 100 frames"
+    },
+    "T2_action_mode_sensitivity": {
+      "claim": "the 180 to 252 gap depends on argmax versus sampled action selection",
+      "predicts": "C4 CI excludes 0, or C5 sign or size changes between argmax and sampled",
+      "weakened_by": "C4 CI includes 0, or C5 has same sign and similar size as C1 in both modes",
+      "supported_by": "C4 CI excludes 0, or C1 CI includes 0 while C5 CI excludes 0"
+    }
+  },
+  "expected_limits": [
+    "64 seeds give wide CIs; a null result is likely and is not evidence of equivalence unless CI is inside the practical margin",
+    "bootstrap does not cover training-replicate variance; one checkpoint per arm",
+    "dev seeds are reused; no held-out claim",
+    "sampled values depend on controller seeds and draw order; 3 replicates is a small noise sample"
+  ],
+  "weakening_rules_to_report": "If C1 and C4 both have CIs including 0, the data does not separate T1 from T2 on this cohort; report that outcome as inconclusive, not as a win for either theory.",
+  "budget_justification": "Smallest useful design: two checkpoints, 64 existing seeds, 4 action evaluations per seed-checkpoint (1 argmax + 3 sampled). 512 episodes sit below campaign-r1's measured 768-episode run at 47.7 s, so 600 s cap and 10 s cleanup reserve are generous; RSS and MPS caps stay at 6 GiB each per protocol.",
+  "design_choices_for_parent": [
+    "Reuse 64 dev seeds instead of fresh seeds; parent may override with a declared fresh range plus reservation",
+    "Controller seeds 64001-64003 reused from r3 for comparability",
+    "Per-episode raw frame cap 18000 kept from r3; censoring reported, not hidden"
+  ],
+  "not_done": [
+    "no harness implementation or run",
+    "no model, checkpoint, optimizer, source, ledger, or lease edits",
+    "no Torch load, environment step, gradient, or child work"
+  ]
+}

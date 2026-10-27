@@ -1,0 +1,248 @@
+def provisional(result):
+    return dict(authoritative=False, acceptance_authority='outer-executor-receipt',
+                internal_decision=('complete_pending_outer_acceptance' if result_code(result) in (0,2) else 'failed'))
+
+
+def publish_terminal(output, result, started, deadline, stable, *, authority):
+    require(stable,'Owned worker group absence unproven','publication_failure')
+    result.update(provisional(result), terminal_status_authority='outer-executor-receipt',
+                  completion_requires_terminal_receipt=True,
+                  wall_timing_scope='provisional lower bound; parent observes outer raw exit and wall')
+    authority(True)
+    replace_json(output/'long-run-result.json', result)
+    authority(True)
+    artifacts={}
+    for path in sorted(output.rglob('*')):
+        require(not path.is_symlink() and path.resolve().is_relative_to(output), 'Escaped/symlink output')
+        if path.is_file():
+            require(path.name not in ('artifact-manifest.json','finalization-result.json')
+                    and not path.name.startswith('.'), 'Existing or pending publication')
+            authority(False)
+            artifacts[str(path.relative_to(output))]=sha(path)
+            authority(False)
+    replace_json(output/'artifact-manifest.json',artifacts)
+    authority(True)
+    receipt={**outcome_fields(result['outcome'],True),**provisional(result),
+             'artifact_manifest_sha256':sha(output/'artifact-manifest.json'),
+             'run_result_sha256':artifacts['long-run-result.json'],
+             'absolute_deadline_monotonic':deadline,'stable_owned_group':True,
+             'wall_seconds_lower_bound':time.monotonic()-started}
+    authority(False)
+    replace_json(output/'finalization-result.json',receipt)
+    authority(True)
+    return result_code(result)
+
+
+def owned_handoff(args):
+    require(args.executor_pid is not None and args.executor_pid==os.getppid(), 'Executor parent required')
+    require(os.getsid(0)==os.getpid()==os.getpgrp(), 'Supervisor new session required')
+    channel=life.Channel.inherited(args.executor_fd)
+    value,fds=channel.receive(LAUNCH_MONOTONIC+1,args.executor_pid)
+    require(value.get('kind')=='start' and len(fds)==1, 'Private directed worker endpoint required')
+    t0=float.fromhex(value['t0_monotonic_hex'])
+    require(math.isfinite(t0) and t0<=LAUNCH_MONOTONIC<=time.monotonic(), 'Shared executor clock invalid')
+    require(value.get('clock_schema')=='long_d2_owned_start_v1'
+            and value.get('executor_pid')==args.executor_pid
+            and value.get('protocol_sha256')==PROTOCOL_SHA256, 'Owned handoff identity/schema differs')
+    life.POOL=life.FailurePool(t0)
+    life.CHANNEL=channel
+    latch=life.ProcessLatch();latch.install(t0+INNER_SECONDS)
+    signal.pthread_sigmask(signal.SIG_UNBLOCK,life.OWNED)
+    return t0,value,socket.socket(fileno=fds[0])
+
+
+def worker_gate(args):
+    require(args.supervisor_pid==os.getppid() and args.supervisor_pid>1
+            and os.getsid(0)==os.getpid()==os.getpgrp(), 'Worker ownership/session differs')
+    require(args.started is not None and math.isfinite(args.started)
+            and args.started<=LAUNCH_MONOTONIC<args.started+WORKER_SECONDS, 'Invalid inherited worker clock')
+    channel=life.Channel.inherited(args.executor_fd)
+    life.POOL=life.FailurePool(args.started);life.CHANNEL=channel
+    latch=life.ProcessLatch();latch.install(args.started+WORKER_SECONDS)
+    channel.send(dict(kind='worker_ready',supervisor_pid=args.supervisor_pid,
+                      executor_pid=args.executor_pid,t0_monotonic_hex=args.started.hex(),
+                      protocol_sha256=PROTOCOL_SHA256),args.started+WORKER_SECONDS)
+    value,fds=channel.receive(args.started+WORKER_SECONDS,args.executor_pid)
+    require(not fds and value.get('kind')=='start_ack' and value.get('worker_pid')==os.getpid()
+            and value.get('t0_monotonic_hex')==args.started.hex()
+            and value.get('protocol_sha256')==PROTOCOL_SHA256, 'Worker start ACK differs')
+    context=capsule_context(ROOT)
+    require(value.get('identity_sha256')==context[-1]['identity_sha256']
+            and value.get('capsule_manifest_sha256')==context[-1]['capsule_manifest_sha256'],
+            'Worker gate frozen identity differs')
+    signal.pthread_sigmask(signal.SIG_UNBLOCK,life.OWNED)
+    return context
+
+
+def supervise_owned(args, started, handoff, gate, *, context_provider=capsule_context,
+                    command_factory=None, guard_factory=Guard):
+    deadline=started+INNER_SECONDS
+    process=child=guard=None
+    stream=io.StringIO()
+    result=outcome_fields('identity_or_lease_failure')
+    try:
+        p,config,base,identity,pins,lease=context_provider(ROOT)
+        require(handoff['identity_sha256']==lease['identity_sha256']
+                and handoff['capsule_manifest_sha256']==lease['capsule_manifest_sha256'], 'Supervisor identity handoff differs')
+        require(args.output.resolve()==ORIGINAL_ROOT/p['output']
+                and args.state_path.resolve()==STATE_PATH, 'Noncanonical output/lease')
+        assert_lease(args.state_path,lease)
+        args.output.mkdir(parents=False,exist_ok=False)
+        def lease_check():
+            assert_lease(args.state_path,lease)
+        def verify():
+            verify_files(pins)
+            assert_readonly_capsule(ROOT,read_json(ROOT/'capsule-manifest.json'))
+            if 'legacy_module_origins' in identity:
+                check_module_origins(identity,ROOT)
+        guard=guard_factory(deadline,lease_check,verify,stream)
+        guard.start()
+        def authority(force=False):
+            life.ACTIVE.check()
+            guard.check()
+            lease_check()
+            if force:
+                guard.full_check(True)
+            guard.sample(full=False)
+            life.ACTIVE.check()
+            lease_check()
+            require(time.monotonic()-guard.last_full<=5, 'Final full-pin observation age exceeded')
+            require(time.monotonic()-guard.last_sample<=.5, 'Final resource observation age exceeded','resource_stop')
+        command=([sys.executable,'-B',str(Path(__file__).resolve()),'worker',
+                  '--output',str(args.output),'--state-path',str(args.state_path),
+                  '--started',str(started),'--supervisor-pid',str(os.getpid()),
+                  '--executor-fd',str(gate.fileno()),'--executor-pid',str(args.executor_pid)]
+                 if command_factory is None else command_factory(args,started,gate.fileno()))
+        result.update(run_id=p['run_id'],protocol_sha256=PROTOCOL_SHA256,required_lease=lease,
+                      command=command,supervisor_started_monotonic=started,
+                      absolute_deadline_monotonic=deadline,worker_deadline_monotonic=started+WORKER_SECONDS)
+        with (args.output/'worker.stdout.log').open('x') as stdout, (args.output/'worker.stderr.log').open('x') as stderr:
+            mask=signal.pthread_sigmask(signal.SIG_BLOCK,life.OWNED)
+            try:
+                require(not os.environ.get('PYTORCH_ENABLE_MPS_FALLBACK'), 'MPS fallback forbidden')
+                process=subprocess.Popen(command,stdout=stdout,stderr=stderr,cwd=ROOT,
+                    env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1'),start_new_session=True,pass_fds=(gate.fileno(),))
+                child=owned.Child(process)
+                life.CHANNEL.send(dict(kind='register_worker',worker_pid=process.pid,worker_pgid=process.pid,
+                    command=command,t0_monotonic_hex=started.hex()),deadline)
+                ack,fds=life.CHANNEL.receive(deadline,args.executor_pid)
+                require(not fds and ack.get('kind')=='registered' and ack.get('worker_pid')==process.pid,
+                        'Worker registration ACK missing')
+                gate.close()
+            finally:
+                signal.pthread_sigmask(signal.SIG_SETMASK,mask)
+            guard.rss=lambda:(max(sampled_rss(os.getpid()),sampled_rss(process.pid))
+                              if child.report is None else sampled_rss(os.getpid()))
+            while child.poll() is None:
+                authority(False)
+                require(time.monotonic()<started+WORKER_SECONDS, 'Worker raw exit cutoff reached','wall_guard')
+                time.sleep(life.remaining(started+WORKER_SECONDS,.02))
+            report=child.report
+            life.CHANNEL.send(dict(kind='worker_wait',report=report,t0_monotonic_hex=started.hex()),deadline)
+            require(report['observed_monotonic']<started+WORKER_SECONDS, 'Worker exit late','wall_guard')
+            require(owned.absent(process.pid,deadline), 'Worker descendant/group still live','publication_failure')
+            wr=read_json(args.output/'long-worker-result.json')
+            code=result_code(wr)
+            require(report['returncode']==code and code in (0,2), 'Worker raw/outcome failure','publication_failure')
+            require(wr['expected_exit_code']==code and wr['teacher_qualified'] is False
+                    and wr['training_parent_eligible'] is False, 'Worker outcome/qualification invalid')
+            result.update(outcome_fields(wr['outcome'],True),worker_result=wr,worker_exit_code=code,
+                          worker_wait_report=report,owned_process_stop=dict(reaped=True,group_empty=True,
+                            owned_pid=process.pid,owned_pgid=process.pid,termination_owner='executor',errors=[]))
+        authority(True)
+        with guard.lock:
+            snapshot=stream.getvalue()
+            guard.stream=None
+        with (args.output/'supervisor-guard.jsonl').open('x') as snapshot_file:
+            snapshot_file.write(snapshot)
+        authority(True)
+        result['supervisor_observation_log_scope']='closed prepublication snapshot; later monitor memory-only'
+        code=publish_terminal(args.output,result,started,deadline,True,authority=authority)
+        authority(True)
+        life.ACTIVE()
+        guard.close()
+        guard.stream=None
+        stream.close()
+        authority(False)
+        terminal=read_json(args.output/'finalization-result.json')
+        terminal.update(supervisor_resources_final=guard.receipt(),owned_guard_handles_absent=True,
+                        owned_writers_absent=True,final_authority_check_after_monitor_and_stream_close=True,
+                        inherited_consumed_wall_scope='D1 historical context only; long budget uses executor T0')
+        replace_json(args.output/'finalization-result.json',terminal)
+        authority(False)
+        life.CHANNEL.send(dict(kind='inner_ready',t0_monotonic_hex=started.hex(),expected_exit_code=code,
+                               owned_guard_handles_absent=True,owned_writers_absent=True),deadline)
+        life.CHANNEL.sock.close()
+        authority(False)
+        return code,guard
+    except BaseException as error:
+        # No ordinary verification or artifact hash after first failure.
+        try:
+            at=guard.failure_at if guard is not None else None
+            until=life.notify_failure(error,at)
+        except BaseException as notify_error:
+            until=life.POOL.fail(error)
+            result['failure_ack_unavailable']=repr(notify_error)
+        life.ACTIVE.phase='FAILURE'
+        result.update(outcome_fields(failure_outcome(error)),**provisional(outcome_fields('failed')),
+                      error=repr(error),first_failure_monotonic=life.POOL.first,
+                      cleanup_until_monotonic=until)
+        try:
+            life.remaining(until)
+            if guard is not None:
+                guard.event.set()
+                for thread in (guard.thread,guard.verify_thread):
+                    if thread is not None:
+                        thread.join(timeout=life.remaining(until,.5))
+                result['owned_guard_handles_absent']=all(t is None or not t.is_alive() for t in (guard.thread,guard.verify_thread))
+                guard.stream=None
+            stream.close()
+            gate.close()
+            life.remaining(until)
+            if args.output.is_dir():
+                replace_json(args.output/'inner-failure.json',result)
+            life.remaining(until)
+            life.CHANNEL.sock.close()
+        except BaseException:
+            pass  # Partial failure evidence is not acceptance.
+        return 1,guard
+
+
+def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('command',choices=('preflight','run','worker'))
+    parser.add_argument('--output',type=Path)
+    parser.add_argument('--state-path',type=Path,default=STATE_PATH)
+    parser.add_argument('--started',type=float,help=argparse.SUPPRESS)
+    parser.add_argument('--supervisor-pid',type=int,help=argparse.SUPPRESS)
+    parser.add_argument('--executor-fd',type=int,help=argparse.SUPPRESS)
+    parser.add_argument('--executor-pid',type=int,help=argparse.SUPPRESS)
+    args=parser.parse_args()
+    if args.command=='preflight':
+        require(args.output is None,'Pure preflight creates no output')
+        print(json.dumps(pure_preflight(ROOT),indent=2,sort_keys=True))
+        return
+    require(args.output is not None,'Registered output required')
+    if args.command=='run':
+        require(args.started is None and args.supervisor_pid is None,'Executor owns shared T0')
+        t0,handoff,gate=owned_handoff(args)
+        code,guard=supervise_owned(args,t0,handoff,gate)
+        deadline=life.POOL.until if code==1 and life.POOL.until is not None else t0+INNER_SECONDS
+        life.final_exit(code,life.ACTIVE,deadline,lambda:guard is not None and guard.failure is not None)
+    else:
+        context=worker_gate(args)
+        try:
+            require(args.output.resolve()==ORIGINAL_ROOT/context[0]['output'] and args.state_path.resolve()==STATE_PATH,
+                    'Noncanonical worker output/lease')
+            code=worker(args,context)
+        except BaseException as error:
+            try:life.notify_failure(error)
+            except BaseException:pass
+            code=1
+        life.CHANNEL.sock.close()
+        deadline=life.POOL.until if code==1 and life.POOL.until is not None else args.started+WORKER_SECONDS
+        life.final_exit(code,life.ACTIVE,deadline)
+
+
+if __name__=='__main__':
+    main()

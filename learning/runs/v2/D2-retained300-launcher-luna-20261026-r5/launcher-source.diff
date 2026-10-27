@@ -1,0 +1,97 @@
+--- D2-retained276-lr3em5-prepare-luna-20261026-r2/execute_once.py
++++ D2-retained300-launcher-luna-20261026-r5/execute_once.py
+@@ -107,24 +107,30 @@
+     r.need(worker["peak_rss_bytes"] <= r.LIMITS["RSS_bytes"]
+            and worker["peak_mps_driver_bytes"] <= r.LIMITS["MPS_bytes"], "Worker exceeded resources")
+     out = Path(reg["output"])
+-    transition = r.read(out / "lr-transition.json")
+-    entry_restore = r.read(out / "entry-restoration.json")
+-    r.need(transition.get("parent_checkpoint_sha256") == r.PARENT_SHA
+-           and transition.get("parent_receipt_sha256") == r.PARENT_RECEIPT_SHA
+-           and transition.get("parent_config_sha256") == r.PARENT_CONFIG_SHA
+-           and transition.get("arm_config_sha256") == r.CONFIG_SHA
+-           and transition.get("helper_sha256") == reg["lr_transition_helper_sha256"]
+-           and transition.get("parent_optimizer_fingerprint") == entry_restore["components"]["Adam"]["restored_sha256"]
+-           and transition.get("effective_lr") == 0.00003
+-           and transition.get("changed_fields") == ["optimizer.param_groups[*].lr"]
+-           and transition.get("non_lr_fields_changed") == []
+-           and transition.get("actual_group_lr_delta")
+-           and all(change == {"index":index,"before":0.0001,"after":0.00003}
+-                   for index,change in enumerate(transition["actual_group_lr_delta"])),
+-           "Registered parent-to-arm learning-rate transition receipt differs")
+     r.check_import_cache(reg)
+     sys.path.insert(0, reg["runtime_root"])
+     from dodge_rl import checkpoints as ckpt
++    parent_state = ckpt.load_checkpoint(Path(reg["parent"]["path"]), expected_sha256=r.PARENT_SHA)
++    r.need(parent_state["phase_update"] == r.PHASE_START
++           and parent_state["local_update"] == r.PARENT_LOCAL_UPDATES
++           and parent_state["cumulative_counters"]["updates"] == r.PARENT_TOTAL_UPDATES,
++           "Selected entry parent update and inherited counters differ")
++    entry_restore = r.read(out / "entry-restoration.json")
++    r.need(entry_restore.get("before_environment_or_gradients") is True
++           and entry_restore.get("parent_sha256") == r.PARENT_SHA
++           and entry_restore.get("matched") == {"model": True, "Adam": True, "RNG": True},
++           "Entry model/Adam/RNG restoration receipt differs")
++    for component in ("model", "Adam", "RNG"):
++        record = entry_restore.get("components", {}).get(component, {})
++        r.need(record.get("matched") is True and record.get("mismatch_paths") == []
++               and record.get("expected_sha256") == record.get("restored_sha256"),
++               "Entry component restoration differs: " + component)
++    entry_certificate = r.read(out / f"development-{r.PHASE_START:06d}.json")
++    entry_state = ckpt.load_checkpoint(out / entry_certificate["checkpoint"],
++                                       expected_sha256=entry_certificate["checkpoint_sha256"])
++    ckpt.require_complete_update(entry_state)
++    r.assert_saved_optimizer_lr(parent_state, r.LEARNING_RATE)
++    r.assert_saved_optimizer_lr(entry_state, r.LEARNING_RATE)
+     metrics = [json.loads(line) for line in (out / "training-metrics.jsonl").read_text().splitlines()]
+     r.need([row["phase_update"] for row in metrics] == list(range(r.PHASE_START + 1, r.PHASE_END + 1)), "Update journal incomplete")
+     steps = 0
+@@ -164,7 +170,6 @@
+                and math.isclose(old, direct, rel_tol=1e-6, abs_tol=1e-6)), "Legacy EV differs")
+     r.need(worker["counters"] == metrics[-1]["counters"], "Terminal counters differ")
+     journal = [json.loads(line) for line in (out / "training-episodes.jsonl").read_text().splitlines()]
+-    parent_state = ckpt.load_checkpoint(Path(reg["parent"]["path"]), expected_sha256=r.PARENT_SHA)
+     parent_abandoned = [row for row in journal if row["kind"] == "abandoned_parent_episode"]
+     r.need(len(parent_abandoned) == 64
+            and sorted(row["info"]["slot"] for row in parent_abandoned) == list(range(64))
+@@ -211,7 +216,8 @@
+         expected_local = update - r.PHASE_START
+         expected_counters = expected_checkpoint_counters(update, metrics)
+         validate_terminal_candidate_binding(embedded, update, expected_counters)
+-        r.need(len(embedded["next_episode_indices"]) == 64
++        r.need(embedded["inherited_counters"] == parent_state["cumulative_counters"]
++               and len(embedded["next_episode_indices"]) == 64
+                and all(type(index) is int and index >= 0 for index in embedded["next_episode_indices"])
+                and embedded["registration_sha256"] == registration_sha
+                and embedded["parent_checkpoint_sha256"] == r.PARENT_SHA
+@@ -226,7 +232,7 @@
+     predecessor = r.read(reg["parent"]["source_evaluation_path"])["evaluation"]
+     entry_rows = sorted(entry["rows"], key=lambda item: item["seed"])
+     predecessor_rows = sorted(predecessor["rows"], key=lambda item: item["seed"])
+-    r.need(entry_rows == predecessor_rows, "Entry evaluation differs from selected phase-276 candidate receipt")
++    r.need(entry_rows == predecessor_rows, "Entry evaluation differs from selected phase-300 candidate receipt")
+     final = out / f"checkpoint-{r.PHASE_END:06d}-candidate.pt"
+     # File digest and registration digest are distinct authorities.
+     final_certificate = r.read(out / f"development-{r.PHASE_END:06d}.json")
+@@ -282,10 +288,11 @@
+ def execute(registration, registration_sha, *, clock=time.monotonic, popen=subprocess.Popen,
+             sleep=time.sleep):
+     started = clock()
+-    # Shape validation precedes trusting the output path. The exclusive marker
+-    # precedes verified registration loading; no subprocess starts before checks.
++    # Validate identity and every pinned source/lease before any output mutation.
+     reg = r.read(registration)
+     registration_schema.validate_identity(reg)
++    reg, _ = r.load_registration(registration, registration_sha)
++    r.need(clock() - started < r.LIMITS["work_seconds"], "Preflight deadline exhausted")
+     out = Path(reg["output"])
+     out.mkdir(parents=True, exist_ok=True)
+     r.save(out / "launch-marker.json", {"registration_sha256": registration_sha,
+@@ -310,7 +317,6 @@
+     for n in previous:
+         signal.signal(n, handle)
+     try:
+-        reg, _ = r.load_registration(registration, registration_sha)
+         r.need(Path(reg["launcher_path"]).resolve() == Path(__file__).resolve(), "Launcher origin differs")
+         r.need(signal_event is None and clock() - started < r.LIMITS["work_seconds"], "Cancelled or preflight expired")
+         command = [reg["interpreter"], "-B", reg["runner_path"], "--registration", str(registration),

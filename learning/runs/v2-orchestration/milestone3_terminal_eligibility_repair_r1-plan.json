@@ -1,0 +1,18 @@
+{
+  "status": "accepted_with_source_qualifications",
+  "accepted_design": "terminal_run_result_plus_worker_result_artifact_consistency_and_parent_lease_hash_anchor;required_before_curriculum_transition",
+  "source_checks": [
+    "check_frozen returns exactly JSON-loaded frozen dict;checkpoint embeds same Experiment.identity;compare copied identity/config semantically",
+    "anchor carries raw source lease identity/config hashes;do not confuse canonical semantic hashes",
+    "no config/protocol schema change;new anchor lives in parent lease;no checkpoint/certificate rewrite"
+  ],
+  "qualifications": [
+    "Prepare next config/identity first, then final terminal receipt audit and matching target lease;lease cannot precede target hashes.",
+    "Current finally calls cancellation.defer; a first signal during finalization may be recorded without raising. Ensure any recorded cancellation yields nonzero supervisor exit even if passed receipt was already published;parent observed exit0 is mandatory.",
+    "An artifact index is consistency evidence, not authorization. Parent independently pins terminal receipt and supervisor exit0 before next lease."
+  ],
+  "no_scope_change": "no architecture/PPO/native/reward/gate/protocol/seed/budget change;allsamephase_resume remainsdisabled",
+  "implementation_budget_seconds": 1200,
+  "receipt_reserve_seconds": 600,
+  "reconciled_at_utc": "2026-10-24T10:45:30.499800+00:00"
+}

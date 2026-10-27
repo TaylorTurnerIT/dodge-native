@@ -1,0 +1,101 @@
+{
+  "schema": "selection_r3_frozen_review_v1",
+  "reviewer": "haiku-20261026-r1",
+  "scope": "source-only; no imports, execution, Torch, MPS, native, checkpoint, ranking or confirmation outputs read",
+  "verdict": "no blocker in pure adapter source; integration proposal blocked until ranking_proof is nested under provenance",
+  "reviewed_sha256": {
+    "selection-cap-proof-repair-luna-20261026-r3/selection.py": "d35614e5f3d65836f0b3943622701322297bc201a0d07a2e547f5bd2a2b64e66",
+    "selection-cap-proof-repair-luna-20261026-r3/test_selection.py": "836f8a9c222510012968fdfe2140e8a31b4b572722ae312691552dffb8fcc4f1",
+    "selection-cap-proof-repair-luna-20261026-r3/receipt.json": "9dbe9b8d5dd77fdd1b3549fc9e1efc4d70888d6b2b7782a4f60429c092ccda9e",
+    "selection-cap-proof-repair-luna-20261026-r3/diff.patch": "b4d8f4369c0f541c78c800e71947ca563215c4fd6a6223595c18915b1b702ccb",
+    "selection-cap-proof-repair-luna-20261026-r3/README.md": "191236065d3bce7a457e99d73dc3cdc89b675bc62816485e42bdac0c6bcdc526",
+    "selection-cap-proof-repair-luna-20261026-r3/integration-patch-proposal.md": "6167438de6c93a4b6bef936b261c7b601ae22a4f5f97cfd0ea1c43baad806a94",
+    "selection-cap-proof-repair-luna-20261026-r3/tests.log": "8d025e7ab9d7e059dd29f7cff2319e366bd9131ef52539cff7a05abbadc6cc71",
+    "expanded-evaluator-publication-repair-parent-20261026-r4/expanded_eval.py": "a3439c33152b082471cd9f9a36ef4bb03783b9544ae7c1e3fe1878e607b128aa",
+    "selection-r3-parent-validation-20261026-r1/receipt.json": "6581ae81deee5cb578755489c90e4deff7c23039ae4b0aefaacfbc5e1ea1dcc1",
+    "expanded-runner-integrated-parent-20261026-r5/execute_once.py": "b1020bd112dd79ae2c8486424907001292be64e8e81224aad68b38dd044a775c",
+    "expanded-runner-integrated-parent-20261026-r5/worker.py": "2b5d25d07c671671e6f9a4fb2c976b02af2cb8372ace30ad2d05544bb18a83e4",
+    "expanded-runner-integrated-parent-20261026-r5/build_registration.py": "280650effba15ca1763707bbf054d081f6d4fb662da83f6a70a299243b07e8eb",
+    "expanded-runner-integrated-parent-20261026-r5/test_runner.py": "6b1c1ec9f289587c3520c962dfee65b82cebc7017bb075ecdb351cf1d922ec73",
+    "expanded-evaluation-registration-proposal-parent-20261026-r5/ranking-seed-manifest.json": "e4aafa70226a5191f926f07961025e829466373bcfab30303af5f3a862f9f3ed",
+    "selection-r2-frozen-review-haiku-20261026-r1/review.md": "e83b4e9163171ce2c9b7b635de51850ce280a19a54c0307aa4e053cbbab51483"
+  },
+  "carry_forward": {
+    "R2-H1_cap_rows_rejected": "closed",
+    "R2-M1_record_lacks_outer_summary_binding": "closed",
+    "R2-T1_fixtures_not_evaluator_shaped": "closed_for_shape_coverage_thin",
+    "R2-L1_missing_shared_row_rules": "closed",
+    "R2-L2_non_atomic_write": "closed_with_caveat_A-2",
+    "R2-B1_worker_unwired": "open"
+  },
+  "findings": [
+    {
+      "id": "P-1",
+      "severity": "High",
+      "scope": "integration-patch-proposal.md",
+      "location": "integration-patch-proposal.md:7-8",
+      "summary": "Proposal adds top-level ranking_proof key that evaluator and preflight reject; must nest under provenance.",
+      "evidence": ["expanded_eval.py:130", "execute_once.py:64-66"],
+      "trigger": "Parent adds ranking_proof at registration root as written.",
+      "consequence": "Confirmation registration fails preflight. Fail closed; no confirmation starts.",
+      "fix": "Nest under provenance.ranking_proof; update build_registration.py:82; worker/validator shape-checks nested object."
+    },
+    {
+      "id": "A-1",
+      "severity": "Medium",
+      "scope": "selection.py / test_selection.py",
+      "location": "test_selection.py:14-42,107-205; selection.py:31-34,91-111,152-159,208-215,230-231",
+      "summary": "Untested branches: unavailable/unknown death causes, contact count, startup/score/objective identities, caps and death-cause count mismatch, summary-embedded result mismatch, missing artifacts, float-typed ints. Two test names overstate coverage.",
+      "trigger": "Regression in any listed branch.",
+      "consequence": "Real evaluator output with unavailable/unknown causes or summary/result mismatch is unverified.",
+      "fix": "Parametrized mutation table with expected message per branch."
+    },
+    {
+      "id": "A-2",
+      "severity": "Low",
+      "scope": "selection.py",
+      "location": "selection.py:274-281",
+      "summary": "Dir fsync failure after os.link raises while selection.json exists.",
+      "trigger": "Directory fsync I/O error after link.",
+      "consequence": "Retry raises FileExistsError (fail closed); operator may misread state.",
+      "fix": "Document or check output existence before re-raising."
+    },
+    {
+      "id": "A-3",
+      "severity": "Low",
+      "scope": "evidence",
+      "location": "selection-cap-proof-repair-luna-20261026-r3/receipt.json (python 3.9.6); selection-r3-parent-validation-20261026-r1/receipt.json",
+      "summary": "Python 3.12 parent validation claim not recorded in parent receipt; R3 receipt records 3.9.6.",
+      "trigger": "Audit of interpreter used for synthetic tests.",
+      "consequence": "Interpreter claim not evidenced by file.",
+      "fix": "Record interpreter version in parent validation receipt."
+    },
+    {
+      "id": "DEP-1",
+      "severity": "Note",
+      "scope": "dependency",
+      "location": "selection.py:193; test_runner.py:70",
+      "summary": "Producer requires outer candidate_update == 348 for ranking; only reviewed launch convention uses 348.",
+      "trigger": "Ranking launched with another candidate_update.",
+      "consequence": "Fail closed.",
+      "fix": "Confirm real ranking launch uses --candidate-update 348."
+    },
+    {
+      "id": "B-1",
+      "severity": "Boundary",
+      "scope": "worker.py",
+      "location": "expanded-runner-integrated-parent-20261026-r5/worker.py:116-132",
+      "summary": "Confirmation worker does not call validate_selection_record; still open.",
+      "trigger": "Confirmation use before parent-reviewed worker revision.",
+      "consequence": "Unchecked selection record accepted by worker.",
+      "fix": "Parent-reviewed worker and registration revision before confirmation use."
+    }
+  ],
+  "limits": [
+    "Static reading only; no tests run, no code executed.",
+    "patch dry-run and reconstruction in temp dir for selection.py only; test_selection.py reconstruction hash not checked.",
+    "No actual ranking, confirmation, candidate, summary, outer receipt, or checkpoint outputs read.",
+    "execute_once.py, worker.py, build_registration.py, test_runner.py read for keys and branches, not audited.",
+    "Real ranking launch command not reviewed."
+  ]
+}

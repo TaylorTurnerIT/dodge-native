@@ -1,0 +1,85 @@
+{
+  "schema": "current_pair_resource_calibration_receipt_v1",
+  "status": "failed_before_representative_worker_load",
+  "launch_eligible": false,
+  "run_id": "paired-current-checkpoints-resource-calibration-20261026-r1",
+  "client_request_id": "dodge-v2-current-pair-calibration-and-prepare-luna-20261026-r5",
+  "authorization": "One hardware probe only. No retry. Parent must clear the reservation after terminal probe audit.",
+  "reservation": {
+    "kind": "paired_resource_calibration",
+    "active_long_campaign": null,
+    "aggregate_RSS_limit_bytes": 6442450944,
+    "MPS_driver_limit_bytes": 6442450944,
+    "outer_limit_seconds": 120,
+    "work_limit_seconds": 90,
+    "cancel_requested": false,
+    "verified_before_and_after": true
+  },
+  "attempt": {
+    "exclusive_probe_launch_count": 1,
+    "preflight_failures_before_probe_spawn": 1,
+    "preflight_failure_sha256": "23d8d137522a1fd72d91b820777b2d349598270791becb68f3cb846bece1bd13",
+    "raw_exit_code": 1,
+    "observed_outer_seconds": 1.6739395409822464,
+    "within_120_seconds": true,
+    "work_seconds": null,
+    "work_seconds_reason": "Probe failed during CPU receipt binding before inference work timer began.",
+    "error": "ValueError: Selected candidate and completed-iteration authority differ",
+    "failure_location": "CPU selected-candidate authority binding; prior to model construction, model.to(mps), or teacher inference",
+    "mps_teacher_inference_calls": 0,
+    "game_environment_or_episodes": 0,
+    "training_gradients_optimizer_checkpoint_writes": 0
+  },
+  "sampler": {
+    "implementation": "Frozen R4 ResourceSampler and resource reader",
+    "resource_sampler_sha256": "4eb869418cb5b6606505b13f0932c6a6631b838b8cb1dfe7aad18566908cde3b",
+    "resource_reader_source_sha256": "ebf51e8ef30a0119a164d9d3e91632af216a1549f5fd16dcabd4acb544521f3c",
+    "period_seconds": 0.25,
+    "freshness_gate_seconds": 1.0,
+    "startup_gate_seconds": 10.0,
+    "sample_count": 1,
+    "single_sample": {"monotonic": 602111.524627083, "rss_bytes": 226263040,
+                       "mps_driver_bytes": 475136},
+    "first_complete_sample_delay_seconds": null,
+    "interarrival_gaps_seconds": null,
+    "after_read_freshness_ages_seconds": null,
+    "sampler_error": null,
+    "sampler_thread_at_probe_exception": "alive",
+    "sampler_thread_after_process_exit": "process exited; thread lifecycle ended with owning process",
+    "process_and_group_after_exit": "PID 35699 absent; process group 35699 absent"
+  },
+  "limits": {
+    "freshness_seconds_unchanged": 1.0,
+    "startup_seconds_unchanged": 10.0,
+    "rss_limit_bytes": 6442450944,
+    "mps_driver_limit_bytes": 6442450944,
+    "rss_and_mps_caps_separate": true,
+    "observed_single_sample_within_limits": true,
+    "cap_qualification": "No representative load occurred; one startup sample does not qualify either cap under worker load."
+  },
+  "source_hashes": {
+    "probe_sha256_pre_post": "498656520a1dfb479cd23d5c8f4e97d9c70f155d61764bd81fde43c87d97f6ce",
+    "launcher_sha256_pre_post": "2b16f61ed630b7e8f986c319b0de2652c3bccbc93433df9f6ea869d6390ed64e",
+    "r4_sampler_source_sha256_pre_post": "4eb869418cb5b6606505b13f0932c6a6631b838b8cb1dfe7aad18566908cde3b",
+    "r4_reader_source_sha256_pre_post": "ebf51e8ef30a0119a164d9d3e91632af216a1549f5fd16dcabd4acb544521f3c",
+    "interpreter_sha256_pre_post": "8dcafa7835e861e88a8f8ac7e61effbf5a987f32b0ec47bb1f3c9987caf9216d",
+    "checkpoint_sha256_pre_post": "f1300e4e86ec89ed9cfba446c8e7f66cf29caad6a1130864edd4d6ee7859d442",
+    "r5_worker_sha256_at_receipt_creation": "c3a48abbfa98c0a6e24704493db030dfd112528ac6ad62bb04ce337e8b19c58f",
+    "r5_worker_sha256_at_probe_time": null,
+    "r5_worker_hash_gap": "Not captured by the single-launch hash envelope. The error location and raw traceback are retained in probe.stderr.log."
+  },
+  "checkpoint": {
+    "path": "learning/runs/v2/D2-best180-branch-luna-20261026-r1/checkpoint-000204-candidate.pt",
+    "sha256": "f1300e4e86ec89ed9cfba446c8e7f66cf29caad6a1130864edd4d6ee7859d442",
+    "cpu_checkpoint_load_completed": true,
+    "strict_model_state_load_completed": false
+  },
+  "retained_evidence": {
+    "launch_marker_sha256": "f4d6b77f7fcbc6feed3d03e58d76326f74933497c0a9f6e760d1d070e718c377",
+    "launch_result_sha256": "87b2d8214bfc27224e3aedfd2b8440ac3106f7cfd80c1dc43872f12a2de7d434",
+    "probe_result_sha256": "e1656d0f516996e5709797824a5b0b21b21790c5bb76db001f1dcef77777e171",
+    "stderr_sha256": "5397cff6f3fe836e3d92450a0dc45e2945a13aa69bad5186e8e6710a5040d98f",
+    "resource_log_sha256": "bd78a3a2a8efa10471eb25711a542346eed10ad6cb7b49de364dbfb6a7c1c640"
+  },
+  "decision": "Refuse the paired campaign under this calibration. Do not retry. A separately justified correction and reviewed successor calibration are required; parent alone clears the current reservation."
+}

@@ -1,0 +1,34 @@
+def fingerprint(value):
+    """Device-independent typed tree digest; does not consume RNG."""
+    h = hashlib.sha256()
+    def field(tag, payload=b""):
+        tag = tag.encode("utf-8")
+        h.update(len(tag).to_bytes(8, "big")); h.update(tag)
+        h.update(len(payload).to_bytes(8, "big")); h.update(payload)
+    def visit(v):
+        if hasattr(v, "detach"):
+            v = v.detach().cpu().contiguous().numpy()
+        if hasattr(v, "dtype") and hasattr(v, "tobytes"):
+            field("array", (str(v.dtype) + repr(tuple(v.shape))).encode())
+            field("array-bytes", v.tobytes()); return
+        if isinstance(v, Mapping):
+            field("mapping", len(v).to_bytes(8, "big"))
+            for k in sorted(v, key=lambda key: (type(key).__name__, repr(key))):
+                field("entry")
+                visit(k); visit(v[k])
+            field("end-mapping")
+        elif isinstance(v, list):
+            field("list", len(v).to_bytes(8, "big"))
+            for item in v:
+                visit(item)
+            field("end-list")
+        elif isinstance(v, tuple):
+            field("tuple", len(v).to_bytes(8, "big"))
+            for item in v:
+                visit(item)
+            field("end-tuple")
+        else:
+            field("scalar:" + type(v).__module__ + "." + type(v).__qualname__, repr(v).encode())
+    visit(value)
+    return h.hexdigest()
+

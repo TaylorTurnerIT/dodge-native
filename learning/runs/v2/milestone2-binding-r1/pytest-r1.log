@@ -1,0 +1,58 @@
+.............................................................F
+=================================== FAILURES ===================================
+_ test_real_death_terminal_features_retained_pixels_reward_identity_and_reset __
+
+    def test_real_death_terminal_features_retained_pixels_reward_identity_and_reset():
+        env = VecDodgeEnv(seeds_by_slot=[[B[0], B[1]]], render_pixels=True, auxiliary_targets=True)
+        score_sum = 0
+        alive_sum = 0
+        reward_sum = 0.0
+        death_count = 0
+        previous = env.observations()
+        for _ in range(4500):
+            result = env.step([0])
+            score = int(result['score_delta_raw_fixed'][0])
+            alive = int(result['alive_raw_frames'][0])
+            death = bool(result['terminated'][0])
+            expected = score / 65536 + 0.01 * alive - 5 * death
+            np.testing.assert_allclose(result['rewards'][0], expected, atol=3e-7, rtol=1e-7)
+            score_sum += score
+            alive_sum += alive
+            reward_sum += float(result['rewards'][0])
+            death_count += death
+            info = result['info'][0]
+            assert info['score_delta_sum_raw_fixed'] == score_sum
+            assert info['alive_frames'] == alive_sum
+            assert info['objective_return'] == score_sum / 65536 + alive_sum / 100 - 5 * death_count
+            if death:
+                assert not result['truncated'][0]
+                assert not info['bootstrap']
+                assert not result['observations']['pixel_valid'][0]
+                assert not result['observations']['pixel_aux_pair_valid'][0]
+                np.testing.assert_array_equal(result['observations']['pixels'], previous['pixels'])
+                assert info['gameplay_frames'] - info['alive_frames'] == 1
+                break
+            previous = result['observations']
+        else:
+            pytest.fail('fixed neutral trajectory did not die before the fixed cap')
+        assert death_count == 1
+        assert abs(reward_sum - info['objective_return']) < 2e-4
+        final_feats = result['observations']['global_feats'].copy()
+        before = env.episode_info()
+        with pytest.raises(ValueError, match='SlotEnded'):
+            env.step([0])
+        assert env.episode_info() == before
+        reset = env.reset_done([0])
+        assert reset['info'][0]['seed']['actual_seed'] == B[1]
+        assert reset['info'][0]['gameplay_frames'] == 0
+        assert reset['observations']['pixel_aux_pair_valid'][0]
+>       assert not np.array_equal(final_feats, reset['observations']['global_feats'])
+E       assert not True
+E        +  where True = <function array_equal at 0x1094d2e70>(array([[[0.        , 0.        , 0.        , 0.        , 1.        ,\n         1.        , 0.33333334, 0.5       , 0.        , 0.        ,\n         0.50406504, 0.49593496, 0.50406504, 0.49593496]]], dtype=float32), array([[[0.        , 0.        , 0.        , 0.        , 1.        ,\n         1.        , 0.33333334, 0.5       , 0.        , 0.        ,\n         0.50406504, 0.49593496, 0.50406504, 0.49593496]]], dtype=float32))
+E        +    where <function array_equal at 0x1094d2e70> = np.array_equal
+
+python/tests/test_env.py:384: AssertionError
+=========================== short test summary info ============================
+FAILED python/tests/test_env.py::test_real_death_terminal_features_retained_pixels_reward_identity_and_reset
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 61 passed in 0.23s

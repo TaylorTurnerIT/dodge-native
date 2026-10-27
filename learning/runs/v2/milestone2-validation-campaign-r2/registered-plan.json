@@ -1,0 +1,122 @@
+{
+  "action_rng": "numpy.PCG64",
+  "action_rng_seed": 1295144513,
+  "automatic_retries": 0,
+  "campaign_wall_seconds": 1800,
+  "cutoff_utc": "2026-10-24T13:00:00Z",
+  "effective_reserved_ranges": [
+    [
+      2952790016,
+      2952791015
+    ],
+    [
+      3489660928,
+      3489661055
+    ],
+    [
+      3758096384,
+      3758097383
+    ]
+  ],
+  "memory_coverage_limit": "Random short episodes stress allocations and resets; full M0 parity separately exercises long mature-pattern episodes.",
+  "observed_worker_peak_rss_limit_bytes": 6442450944,
+  "receipt_reserve_seconds": 600,
+  "review_gate": "Parent integrates templates, compiles and freezes real binding/test identities, obtains read-only review, then owns single campaign lease.",
+  "sequential_stop_first_failure": true,
+  "stages": [
+    {
+      "action_repeat": 4,
+      "difficulties": [
+        2,
+        3
+      ],
+      "episodes_per_difficulty": 1000,
+      "name": "native_parity",
+      "policy": "nearest_lethal_aabb_safe_powerup",
+      "raw_frame_cap": 18000,
+      "seed_base": 2952790016,
+      "startup_frames_excluded": 13,
+      "test": "qualification_replay_tests::frozen_m0_full_heuristic_d2_d3",
+      "theme": [
+        12,
+        1
+      ],
+      "wall_seconds": 900
+    },
+    {
+      "auxiliary": true,
+      "default_cap_case": {
+        "batch_size": 9,
+        "decisions": 400,
+        "raw_frame_cap": 18000
+      },
+      "name": "trajectory",
+      "pixels": true,
+      "ragged_cap_case": {
+        "batch_size": 5,
+        "decisions": 40,
+        "raw_frame_cap": 17
+      },
+      "thread_chunk_pairs": [
+        [
+          1,
+          1
+        ],
+        [
+          4,
+          3
+        ]
+      ],
+      "wall_seconds": 120
+    },
+    {
+      "action_repeat": 4,
+      "auxiliary_targets": true,
+      "batch_size": 8,
+      "chunk_size": 2,
+      "difficulty": 2,
+      "interpretation": "Empirical sampled plateau and resource checks, not a mathematical proof of zero leaks.",
+      "measured_step_calls": 100000,
+      "name": "memory",
+      "num_threads": 4,
+      "patterns_enabled": true,
+      "plateau_first_last_sample_fraction": 0.1,
+      "plateau_median_growth_max_bytes": 67108864,
+      "powerups_enabled": true,
+      "raw_frame_cap": 18000,
+      "render_pixels": true,
+      "sample_every_step_calls": 1000,
+      "wall_seconds": 600,
+      "warmup_step_calls": 5000
+    },
+    {
+      "auxiliary_targets": false,
+      "batch_size": 32,
+      "measured_step_calls": 2000,
+      "name": "throughput",
+      "per_config_wall_seconds": 60,
+      "render_modes": [
+        false,
+        true
+      ],
+      "same_seed_and_action_schedule": true,
+      "thread_chunk_pairs": [
+        [
+          1,
+          1
+        ],
+        [
+          4,
+          8
+        ]
+      ],
+      "throughput_costs": "Public Python API including featurization, returned arrays, explicit resets and limited audit checksums/counting. Constructor/warmup excluded. Native parity snapshot work excluded.",
+      "wall_seconds": 120,
+      "warmup_step_calls": 200
+    }
+  ],
+  "status": "preregistered_draft_not_executed",
+  "supervisor_rss_sample_seconds": 0.5,
+  "training_run_seed": 5562594895196603457,
+  "version": "m2_validation_campaign_v1"
+}

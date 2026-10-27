@@ -1,0 +1,128 @@
+{
+  "schema": "frozen_guard_adversarial_review_v1",
+  "verdict": "rejected_known_blockers_remain_and_one_new_reporting_defect",
+  "candidate_accepted_for_training": false,
+  "known_findings": [
+    {
+      "id": "CONTENTION-STRICT-BOUND",
+      "new": false,
+      "severity": "P1_launch_blocker",
+      "status": "confirmed_retained_failure",
+      "path": "learning/runs/v2/postovernight-long-D2-guard-prepare-r1/long_d2.py",
+      "line": 498,
+      "trigger": "Exactly one frozen stdlib CPU/GIL contention stress; nonforced trigger remains 2 seconds.",
+      "consequence": "Registered conservative previous-successful-start to current-pass-end interval exceeds strict 5 seconds. Candidate cannot launch under its unchanged gate; Guard correctly rejects.",
+      "evidence": [
+        "learning/runs/v2/postovernight-long-D2-guard-prepare-r1/attempts/stress-01/stress-result.json",
+        "learning/runs/v2/postovernight-long-D2-guard-prepare-r1/attempts/stress-01/command-result.json",
+        "learning/runs/v2/postovernight-long-D2-guard-prepare-r1/attempts/stress-01/verification-timing.jsonl"
+      ],
+      "measurements": {
+        "total_rows": 2,
+        "forced_rows": 1,
+        "background_rows": 1,
+        "successful_rows": 1,
+        "background_duration_seconds": 3.43187987501733,
+        "background_thread_CPU_seconds": 0.445844625,
+        "full_pin_component_wall_seconds": 3.3824263749993406,
+        "full_pin_component_CPU_seconds": 0.396416792,
+        "previous_start_to_current_end_seconds": 5.4591844999813475,
+        "stress_body_elapsed_seconds": 5.460060416022316,
+        "whole_registered_command_elapsed_seconds": 6.838045417040121,
+        "whole_registered_command_raw_exit": 1,
+        "workload_max_seconds": 120
+      },
+      "limitations": "Retained run inspected only; no retry. Disclosed static runtime/native metadata substitutes are not ML equivalence or a population/p99.9 guarantee."
+    },
+    {
+      "id": "DEFERRED-CANCEL-PRIMARY",
+      "new": false,
+      "severity": "P2_reporting",
+      "status": "confirmed_source_and_retained_pure_helper_diagnostic",
+      "path": "learning/runs/v2/postovernight-long-D2-guard-prepare-r1/long_d2.py",
+      "line": 866,
+      "end_line": 870,
+      "trigger": "ProcessLatch.DEFER records first direct cancellation at 1.0; Guard records later failure at 2.0; primary_error receives that later Guard error.",
+      "consequence": "primary_error returns the error argument instead of synthesizing the prior cancelled outcome. record_primary_failure freezes safety_stop; subsequent cancellation becomes secondary. Rejection remains intact, but first-failure reporting is wrong.",
+      "evidence": [
+        "learning/runs/v2/postovernight-long-D2-guard-prepare-r1/attempts/postfreeze-ordering-01/raw.log",
+        "learning/runs/v2/postovernight-long-D2-guard-prepare-r1/attempts/postfreeze-ordering-01/command-result.json",
+        "learning/runs/v2/postovernight-long-D2-guard-prepare-r1/attempts/deferred_cancel_probe.py"
+      ],
+      "expected_outcome": "cancelled",
+      "actual_outcome": "safety_stop",
+      "raw_exit": 1,
+      "limitations": "Existing diagnostic is pure helper execution, not an actual delivered-signal or whole-campaign demonstration."
+    }
+  ],
+  "new_findings": [
+    {
+      "id": "TIMING-FAILURE-SUPPRESSES-RECEIPT",
+      "new": true,
+      "severity": "P2_reporting",
+      "status": "confirmed_source_extracted_discriminators",
+      "path": "learning/runs/v2/postovernight-long-D2-guard-prepare-r1/long_d2_executor.py",
+      "line": 458,
+      "end_line": 465,
+      "trigger": "A normal timing write creates outer-verification.jsonl and then fails, or final HASH_OBSERVER is installed and the normal Guard deadline expires while failure cleanup still has time.",
+      "consequence": "Failure handling runs mandatory persist_timing before c.replace_json(receipt_path,result). Exclusive open on the retained timing path raises FileExistsError; alternatively sha invokes the still-normal-deadline observer and raises again. The broad exception swallow skips failed receipt publication, leaving any earlier accepted:true receipt unchanged. Raw exit 1 still rejects; this is reporting loss, not an acceptance bypass.",
+      "related_sources": [
+        {
+          "path": "learning/runs/v2/postovernight-long-D2-guard-prepare-r1/long_d2.py",
+          "line": 527,
+          "reason": "exclusive timing file creation"
+        },
+        {
+          "path": "learning/runs/v2/postovernight-long-D2-guard-prepare-r1/long_d2.py",
+          "line": 534,
+          "reason": "timing hash inherits global HASH_OBSERVER"
+        },
+        {
+          "path": "learning/runs/v2/postovernight-long-D2-guard-prepare-r1/long_d2_executor.py",
+          "line": 421,
+          "reason": "final observer calls Guard.check against normal deadline"
+        },
+        {
+          "path": "learning/runs/v2/postovernight-long-D2-guard-prepare-r1/long_d2.py",
+          "line": 1295,
+          "reason": "same ordering can suppress inner-failure.json; source inspection only"
+        }
+      ],
+      "evidence": [
+        "discriminate-v3.py",
+        "controller-executed-v3.ast.txt",
+        "executor-failure-executed-v3.ast.txt",
+        "discriminator-result-v3.json",
+        "acceptance-discriminator.json"
+      ],
+      "reproduction": "The recorded command runs discriminate-v3.py once in fresh owned fixture paths; exact extracted failure-publication AST performs zero c.replace_json calls in both injected cases. Both retain accepted:true and lack timing manifests. No-telemetry control writes accepted:false with no swallowed exception. Existing fixture directories intentionally prevent destructive reruns.",
+      "limitations": "2 injected stdlib paths and 1 control in final corrected fixture; no real alarm, thread, process, ML, campaign, or acceptance bypass executed. First fixture lacked Guard.event; v2 control had a downstream remaining() signature stub mismatch. Both are retained; v3 fixes only fixtures and has clean control completion."
+    }
+  ],
+  "scoped_evidence_consistency": "Hashes, retained provenance, final counts, and corrected timing evidence agree in inspected scope; functional findings do not invalidate the retained failure evidence.",
+  "candidate_preparation_counts_separate": {
+    "final_unit_methods": 87,
+    "OS_lifecycle_executions": 62,
+    "latch_subprocesses_nested_inside_one_unit_method": 6,
+    "failed_contention_stress_attempts": 1,
+    "postfreeze_ordering_diagnostic_attempts": 1,
+    "historical_40_R4_controls_transferred": 0
+  },
+  "review_execution_counts_separate": {
+    "candidate_test_suites_rerun": 0,
+    "contention_stress_rerun": 0,
+    "historical_OS_matrix_rerun": 0,
+    "failure_publication_fixture_commands": 3,
+    "final_corrected_failure_publication_cases": 2,
+    "final_corrected_no_telemetry_controls": 1,
+    "pure_acceptance_predicate_command": 1
+  },
+  "limitations": [
+    "Read-only static and retained evidence review with small stdlib source-extracted discriminators only.",
+    "No Torch, NumPy, native/project learner imports, inference, training, checkpoint decoding, lease/scheduler changes, provider calls, delegation, commits, PRs, deployment, or external messages.",
+    "No runtime/performance/ML qualification; no whole-process reproduction of new defect.",
+    "Mutable parent state snapshot is contextual bookkeeping, not a frozen input or source-mutation finding.",
+    "No claims about OS-wide writes or universal process absence.",
+    "Inner/outer timing evidence remains outside closed campaign inventory and requires independent parent inventory."
+  ]
+}

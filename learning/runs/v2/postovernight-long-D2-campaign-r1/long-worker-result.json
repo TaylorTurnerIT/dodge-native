@@ -1,0 +1,103 @@
+{
+  "B_E_student_D3_opened": false,
+  "D3_parent_candidate_pending_separate_parent_audit": false,
+  "actual_import_origins": {},
+  "automatic_retries": 0,
+  "cancellation_requests": 1,
+  "cancellation_signal": "SIGTERM",
+  "checkpoint_identity_semantic_sha256": "994222eb9ed8c9a96ca494132e6bd70c5a328404f656109077c147527ae25842",
+  "config_document_sha256": "2ac814d3842228017d09669364a8391344722da56ad19f41ad9030dbb930c2db",
+  "counters": {
+    "actual_optimizer_steps_including_partial": 12672,
+    "cumulative": {
+      "checkpoint_index": 17,
+      "environment_decisions": 1635328,
+      "optimizer_steps": 12672,
+      "phase_updates": 51,
+      "raw_frames": 6528304,
+      "updates": 99
+    },
+    "inherited": {
+      "checkpoint_index": 9,
+      "environment_decisions": 786432,
+      "optimizer_steps": 6144,
+      "phase_updates": 32,
+      "raw_frames": 3139552,
+      "updates": 48
+    },
+    "partial_optimizer_steps": 0,
+    "phase": {
+      "environment_decisions": 848896,
+      "optimizer_steps": 6528,
+      "raw_frames": 3388752,
+      "updates": 51
+    },
+    "phase_updates": 51
+  },
+  "error": "Stop('Cancellation latched')",
+  "expected_exit_code": 1,
+  "experiment_status": "failed",
+  "failure_checkpoint": {
+    "actual_Adam_parameter_step_values": [
+      12672.0
+    ],
+    "checkpoint": "checkpoint-000017-failure.pt",
+    "complete_update": true,
+    "counters": {
+      "actual_optimizer_steps_including_partial": 12672,
+      "cumulative": {
+        "checkpoint_index": 17,
+        "environment_decisions": 1635328,
+        "optimizer_steps": 12672,
+        "phase_updates": 51,
+        "raw_frames": 6528304,
+        "updates": 99
+      },
+      "inherited": {
+        "checkpoint_index": 9,
+        "environment_decisions": 786432,
+        "optimizer_steps": 6144,
+        "phase_updates": 32,
+        "raw_frames": 3139552,
+        "updates": 48
+      },
+      "partial_optimizer_steps": 0,
+      "phase": {
+        "environment_decisions": 848896,
+        "optimizer_steps": 6528,
+        "raw_frames": 3388752,
+        "updates": 51
+      },
+      "phase_updates": 51
+    },
+    "evaluated": false,
+    "progression_gate_passed": false,
+    "sha256": "ec1796cd698254f7c96c490d3d699442555215b0a2a586edc3b72de48c67f8ca",
+    "tag": "failure",
+    "training_parent_eligible": false,
+    "update_progress": {}
+  },
+  "final_verification_error": "Stop('Full input verification gap exceeded 5s')",
+  "identity_document_sha256": "abd50a467ae9827699648c5509954f96f357725fc50cc33aa15e03bd89884340",
+  "inherited_consumed_wall_scope": "D1 historical context only; long budget uses supervisor T0",
+  "outcome": "cancelled",
+  "progression_gate_passed": false,
+  "protocol_sha256": "66cc36ef1db959bfe4188a3e2d201f8911b3ffc64baeb1d8347be6fd376ab501",
+  "run_id": "v2-m3-long-D2-20261024-r1",
+  "same_phase_resume": false,
+  "teacher_qualified": false,
+  "traceback": "Traceback (most recent call last):\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-prepare-r4/capsule-final/learning/runs/v2/postovernight-long-D2-prepare-r4/long_d2.py\", line 902, in worker\n    result=run_schedule(learner,guard,schedule)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-prepare-r4/capsule-final/learning/runs/v2/postovernight-long-D2-prepare-r4/long_d2.py\", line 764, in run_schedule\n    learner.update_once()\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-prepare-r4/capsule-final/learning/runs/v2/postovernight-long-D2-prepare-r4/long_d2.py\", line 694, in update_once\n    collection = a.collect_rollout(self.model,self.env,self.config['rollout_steps'],'mps',\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/dodge_rl/ppo.py\", line 339, in collect_rollout\n    _guard(check_guard)\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/dodge_rl/ppo.py\", line 50, in _guard\n    check_guard()\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-prepare-r4/capsule-final/learning/runs/v2/postovernight-long-D2-prepare-r4/long_d2.py\", line 452, in check\n    raise self.failure\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-prepare-r4/capsule-final/learning/runs/v2/postovernight-long-D2-prepare-r4/long_d2.py\", line 507, in monitor\n    require(self.clock()-self.last_full <= 5, 'Full input verification gap exceeded 5s')\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-prepare-r4/capsule-final/learning/runs/v2/postovernight-long-D2-prepare-r4/long_d2.py\", line 59, in require\n    raise Stop(message, outcome)\nlifecycle.Stop: Full input verification gap exceeded 5s\n",
+  "training_parent_eligible": false,
+  "worker_resources": {
+    "last_full_verification_monotonic": 491748.428956583,
+    "last_sample_monotonic": 491753.302113083,
+    "latched_failure": "Stop('Full input verification gap exceeded 5s')",
+    "maximum_full_input_gap_seconds": 5.005385208001826,
+    "maximum_mps_driver_bytes": 2459009024,
+    "maximum_rss_bytes": 1001635840,
+    "maximum_sample_gap_seconds": 0.2500741249532439,
+    "maximum_self_peak_rss_bytes": 1001701376
+  },
+  "worker_result_write_and_process_exit_not_timed": true,
+  "worker_wall_seconds_lower_bound": 1066.5407690840075
+}

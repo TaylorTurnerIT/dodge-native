@@ -1,0 +1,27 @@
+{
+  "schema": "calibration_R6_parent_source_review_reconciliation_v1",
+  "status": "passed_for_one_bounded_registered_probe_after_parent_source_reconciliation",
+  "at_utc": "2026-10-26T06:24:04.695748+00:00",
+  "raw_reviewer_verdict_preserved": "CHANGES_REQUIRED_BEFORE_PARENT_RESERVATION",
+  "raw_review_sha256": "d750d2edc06874dd46603e69e6433b66cc153fcd28e785defac7cab330c2f5a9",
+  "raw_review_receipt_sha256": "473431816271f1d81cc2700242fc64938a328d8e03e9e30a2a9493d4fc580713",
+  "plan_sha256": "a1c49bc5674f0dc15d54d8516f9c5d399d54316ef52b3ed8f65e23b90c9acac1",
+  "review_source_manifest_sha256": "a4d7191dca6eef9b6a58e944d676382757784380317f11d0881819c7a7c17fb5",
+  "parent_CPU_validation_sha256": "e1042300d4006cbc26c71d6a8403796c345252404cc806850a794a3835511d58",
+  "findings": {
+    "R6-F1": {
+      "disposition": "Not reproducible under frozen loader; no duplicate assertion required.",
+      "evidence": "Pinned historical worker.py249-281 constructs the exact teacher, loads only state_dict, calls requires_grad_(False), model.eval(), and asserts no parameter requires gradients before returning. CPU preflight invokes this loader; checkpoint cannot choose training mode. Actual CPU receipts also show training:false and requires_grad_any:false. Probe repeats both checks."
+    },
+    "R6-F2": {
+      "disposition": "Accept cooperative sampled cap semantics; reject claimed unbounded guard absence for the registered evaluator.",
+      "evidence": "Pinned worker.evaluate checks before each64constructor and before/within/after everyforward:136guards per8forward pass, independently reproduced by parent. Probe checks MPS cap before model load, at each guard on <=1second-fresh samples, and across every recorded sample at final acceptance. ResourceSampler samples every0.25seconds.",
+      "limitation": "Not OS enforcement or a hard bound during a stalled native operation. Outer timeout remains bounded and terminal acceptance rejects all observed over-cap samples."
+    },
+    "R6-F3": {
+      "disposition": "Low generic descendant-cleanup limitation retained; not a trigger in registered no-descendant probe.",
+      "evidence": "Probe and worker.evaluate spawn no subprocesses; model uses eager Torch and sampler thread. CPU preflight subprocess is reaped before dedicated probe spawn. Actual acceptance requires empty owned process group, independently checked by parent. Unexpected descendants prohibit acceptance and require exact-owned parent cleanup."
+    }
+  },
+  "authority": "Parent acceptance of frozen source for exactly one bounded local measurement; no runtime or performance qualification is claimed."
+}

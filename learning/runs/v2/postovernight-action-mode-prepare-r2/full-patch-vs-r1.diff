@@ -1,0 +1,587 @@
+--- learning/runs/v2/postovernight-action-mode-prepare-r1/runner.py
++++ learning/runs/v2/postovernight-action-mode-prepare-r2/runner.py
+@@ -29,8 +29,8 @@
+ 
+ ORIGINAL_ROOT = Path('/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79')
+ ROOT = Path(__file__).resolve().parents[4]
+-PROTOCOL_REL = 'learning/runs/v2-orchestration/postovernight-action-mode-r1-protocol.json'
+-PROTOCOL_SHA256 = '4e8ee5fb6141f9112e16190f2436f43f6c9127fcedbf51e3b3696523f47fe8db'
++PROTOCOL_REL = 'learning/runs/v2-orchestration/postovernight-action-mode-r2-protocol.json'
++PROTOCOL_SHA256 = '910f2b9fc4c36d1f9565618b0ac8d79b182f1faafec2224b61d65fda926e5de5'
+ STATE_PATH = ORIGINAL_ROOT / 'learning/runs/v2-orchestration/state.json'
+ SEEDS = tuple(range(3489660928, 3489660992))
+ CONTROLLER_SEEDS = (64001, 64002, 64003)
+@@ -673,6 +673,86 @@
+     return 0 if result['status'] == 'complete' else 1
+ 
+ 
++def publish_terminal(output, result, started, deadline, stable):
++    """Publish after group absence; a terminal receipt binds the nonrecursive manifest.
++
++    Wall observations are lower bounds through the named stage, never a claim to
++    time this receipt's own write or process exit. The post-write deadline check
++    can revoke publication; the parent also measures actual process exit/wall.
++    """
++    manifest = output / 'artifact-manifest.json'
++    terminal = output / 'finalization-result.json'
++    stages = result.setdefault('finalization_stages', [])
++
++    def check(stage):
++        elapsed = time.monotonic() - started
++        stages.append({'stage': stage, 'wall_seconds': elapsed})
++        if started + elapsed >= deadline:
++            result['deadline_expired'] = True
++            raise Stop(f'600-second diagnostic deadline reached during {stage}')
++
++    def replace(path, value):
++        pending = path.with_name('.' + path.name + '.pending')
++        save(pending, value)
++        os.replace(pending, path)
++
++    result.update(terminal_status_authority='finalization-result.json',
++                  completion_requires_terminal_receipt=True,
++                  wall_timing_scope='lower bound through receipt preparation; excludes its own write and process exit')
++    with cancellation_signals() as defer:
++        try:
++            require(stable, 'Owned leader/group absence unproven; mutable artifacts were not hashed')
++            check('closed_streams')
++            result['prepublication_wall_seconds'] = time.monotonic() - started
++            replace(output / 'run-result.json', result)
++            check('run_result_publication')
++            artifacts = {}
++            for path in sorted(output.rglob('*')):
++                if path.is_file() and path not in (manifest, terminal):
++                    check('before_artifact_hash:' + str(path.relative_to(output)))
++                    artifacts[str(path.relative_to(output))] = sha(path)
++                    check('after_artifact_hash:' + str(path.relative_to(output)))
++            replace(manifest, artifacts)
++            check('manifest_publication')
++            manifest_hash = sha(manifest)
++            check('manifest_hash')
++            receipt = {'status': result['status'], 'partial': result['status'] != 'complete',
++                       'artifact_manifest_sha256': manifest_hash,
++                       'run_result_sha256': artifacts['run-result.json'],
++                       'actual_total_wall_seconds': time.monotonic() - started,
++                       'wall_timing_scope': result['wall_timing_scope'],
++                       'finalization_stages': stages,
++                       'absolute_deadline_monotonic': deadline,
++                       'cleanup_seconds': result['cleanup_seconds']}
++            replace(terminal, receipt)
++            check('terminal_receipt_publication')
++            return 0 if result['status'] == 'complete' else 1
++        except BaseException as error:
++            defer()
++            # Revoke any candidate success before changing the result it hashed.
++            # No stale manifest remains valid after a late write/deadline failure.
++            manifest.unlink(missing_ok=True)
++            terminal.unlink(missing_ok=True)
++            # Preserve a partially written publication without treating it as a
++            # terminal receipt, then write the authoritative failure receipt.
++            for path in (output / 'run-result.json', manifest, terminal):
++                pending = path.with_name('.' + path.name + '.pending')
++                if pending.exists():
++                    os.replace(pending, path.with_name('.' + path.name + '.failed-publication'))
++            result.update(status='failed', partial=True, publication_error=repr(error),
++                          actual_total_wall_seconds=time.monotonic() - started)
++            save(output / 'artifact-manifest-unavailable.json',
++                 {'stable': False, 'reason': repr(error), 'partial_outputs_retained': True})
++            replace(output / 'run-result.json', result)
++            replace(terminal, {'status': 'failed', 'partial': True,
++                    'artifact_manifest_available': False, 'error': repr(error),
++                    'actual_total_wall_seconds': time.monotonic() - started,
++                    'wall_timing_scope': result['wall_timing_scope'],
++                    'failure_receipt_persistence_may_exceed_deadline': True,
++                    'finalization_stages': stages, 'cleanup_seconds': result['cleanup_seconds']})
++            return 1
++
++
+ def supervise(args):
+     result = baseline_result()
+     process = guard = None
+@@ -743,12 +823,24 @@
+                     result['owned_process_stop'] = {'reaped': process.poll() is not None,
+                                                     'group_empty': False, 'error': repr(error)}
+             result['cleanup_seconds'] = time.monotonic() - execution_end
++            if result['cleanup_seconds'] > 10:
++                result.update(status='failed', partial=True, cleanup_reserve_exceeded=True)
++            # Cleanup never shifts the absolute deadline for normal finalization.
++            result['finalization_stages'] = []
++            def final_bound(stage):
++                at = time.monotonic()
++                result['finalization_stages'].append({'stage': stage, 'wall_seconds': at - started})
++                if at >= deadline:
++                    result['deadline_expired'] = True
++                    raise Stop(f'600-second diagnostic deadline reached during {stage}')
+             result['inference_budget_elapsed_seconds'] = min(execution_end - started, 600)
+             result['actual_execution_wall_seconds'] = execution_end - started
+             if guard is not None:
+                 try:
+                     guard.close()
++                    final_bound('guard_close')
+                     verify()
++                    final_bound('final_verification')
+                 except BaseException as error:
+                     result.update(status='failed', partial=True, final_verification_error=repr(error))
+                 result['supervisor_resources'] = guard.receipt()
+@@ -756,7 +848,7 @@
+                     or not result['owned_process_stop'].get('group_empty', False)
+                     or result['owned_process_stop'].get('errors')):
+                 result.update(status='failed', partial=True, cleanup_failure=True)
+-            if execution_end >= deadline:
++            if time.monotonic() >= deadline:
+                 result.update(status='failed', partial=True, deadline_expired=True)
+             # A timed-out/killed worker may still have produced a failure receipt.
+             if process is not None and process.poll() is not None and 'worker_result' not in result:
+@@ -768,7 +860,15 @@
+                     result['worker_counts_unavailable'] = True
+             if guard is not None and guard.failure is not None:
+                 result.update(status='failed', partial=True, guard_failure=guard.failure)
+-            if result.get('worker_counts_unavailable') and process.poll() is not None:
++            stop = result.get('owned_process_stop', {})
++            stable = process is None or (process.poll() is not None
++                    and stop.get('reaped') is True and stop.get('group_empty') is True
++                    and not stop.get('errors') and not stop.get('error'))
++            if not stable:
++                result.update(status='failed', partial=True, cleanup_failure=True)
++            if result.get('worker_counts_unavailable') and time.monotonic() >= deadline:
++                result['postdeadline_log_counting_skipped'] = True
++            if result.get('worker_counts_unavailable') and stable and time.monotonic() < deadline:
+                 for filename, key in (('episodes.jsonl', 'episodes_completed'),
+                                       ('decisions.jsonl', 'decisions_logged'),
+                                       ('evaluations.jsonl', 'evaluations_completed')):
+@@ -777,6 +877,10 @@
+                     if path.exists():
+                         with path.open() as records:
+                             for line in records:
++                                if time.monotonic() >= deadline:
++                                    result.update(status='failed', partial=True, deadline_expired=True,
++                                                  partial_log_counts=True)
++                                    break
+                                 try:
+                                     record = json.loads(line)
+                                     if filename != 'evaluations.jsonl' or record.get('event') == 'evaluation_complete':
+@@ -791,16 +895,9 @@
+                         'episodes_completed', 'evaluations_completed', 'control_matches'):
+                 if 'worker_result' in result and key in result['worker_result']:
+                     result[key] = result['worker_result'][key]
+-            result['actual_total_wall_seconds'] = time.monotonic() - started
+-            save(args.output / 'run-result.json', result)
+-    # Include closed streams and retained partial logs; never hash mutable logs as inputs.
+-    if process is not None and process.poll() is None:
+-        save(args.output / 'artifact-manifest-unavailable.json',
+-             {'stable': False, 'reason': 'Owned worker has not exited; mutable logs were not hashed'})
+-        return 1
+-    save(args.output / 'artifact-manifest.json', {str(x.relative_to(args.output)): sha(x)
+-         for x in sorted(args.output.rglob('*')) if x.is_file()})
+-    return 0 if result['status'] == 'complete' else 1
++    # Streams are closed before hashing. Only a positively empty, reaped owned
++    # group can supply stable artifacts, including when its leader exited early.
++    return publish_terminal(args.output, result, started, deadline, stable)
+ 
+ 
+ def main():
+--- learning/runs/v2/postovernight-action-mode-prepare-r1/prepare_receipts.py
++++ learning/runs/v2/postovernight-action-mode-prepare-r2/prepare_receipts.py
+@@ -12,7 +12,7 @@
+ 
+ HERE = Path(__file__).resolve().parent
+ ROOT = HERE.parents[3]
+-PROTOCOL = ROOT / 'learning/runs/v2-orchestration/postovernight-action-mode-r1-protocol.json'
++PROTOCOL = ROOT / 'learning/runs/v2-orchestration/postovernight-action-mode-r2-protocol.json'
+ 
+ def sha(p):
+     return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+@@ -33,7 +33,7 @@
+     files[item['path']] = item['sha256']
+     if item['control']:
+         files[item['control']] = item['control_sha256']
+-for name in ('runner.py', 'test_harness.py', 'prepare_receipts.py'):
++for name in ('runner.py', 'test_harness.py', 'test_finalization.py', 'prepare_receipts.py'):
+     files[str((HERE / name).relative_to(ROOT))] = sha(HERE / name)
+ for name, digest in files.items():
+     assert sha(ROOT / name) == digest, name
+@@ -43,24 +43,88 @@
+     assert sha(name) == digest, name
+     initial[name] = digest
+ 
++source_hashes = {name: sha(HERE / name) for name in
++                 ('runner.py', 'test_harness.py', 'test_finalization.py', 'prepare_receipts.py')}
+ command = [str(ROOT / 'python/.venv/bin/python'), '-B', str(HERE / 'test_harness.py')]
+-source_hashes = {name: sha(HERE / name) for name in ('runner.py', 'test_harness.py', 'prepare_receipts.py')}
++commands = [command, [command[0], '-B', str(HERE / 'test_finalization.py')]]
+ test_start = time.monotonic()
++rounds = []
+ with (HERE / 'tests-final.log').open('x') as stream:
+-    completed = subprocess.run(command, cwd=ROOT, stdout=stream, stderr=subprocess.STDOUT,
+-                               env=dict(os.environ, PYTHONDONTWRITEBYTECODE='1'), timeout=60)
++    for test_command in commands:
++        completed = subprocess.run(test_command, cwd=ROOT, stdout=stream, stderr=subprocess.STDOUT,
++                                   env=dict(os.environ, PYTHONDONTWRITEBYTECODE='1'), timeout=60)
++        rounds.append({'command': test_command, 'exit_code': completed.returncode})
++        assert completed.returncode == 0, 'Final synthetic validation failed; log retained'
+ test_wall = time.monotonic() - test_start
+ log = (HERE / 'tests-final.log').read_text()
+-match = re.search(r'Ran (\d+) tests in ([0-9.]+)s', log)
+-receipt = {'command': command, 'cwd': str(ROOT), 'exit_code': completed.returncode,
++matches = re.findall(r'Ran (\d+) tests in ([0-9.]+)s', log)
++receipt = {'commands': rounds, 'cwd': str(ROOT), 'exit_code': 0,
+            'execution_source_sha256': source_hashes,
+-           'test_count': int(match[1]) if match else None,
+-           'reported_seconds': float(match[2]) if match else None,
++           'test_count': sum(int(m[0]) for m in matches),
++           'reported_seconds': sum(float(m[1]) for m in matches),
+            'wall_seconds': test_wall, 'log_sha256': sha(HERE / 'tests-final.log'),
+-           'scope': 'Standalone synthetic/pure CPU tests, fake tiny policies/environments, mocked probes, fixture leases, real bounded dummy subprocesses. Dodge imports are forbidden by an import guard. No actual teacher/native/model/MPS inference, no production campaign, no training.',
++           'original_regressions': 44, 'new_finalization_regressions': 20,
++           'scope': 'Standalone synthetic/pure CPU tests, fake tiny policies/environments, mocked probes, fixture leases, real bounded dummy subprocesses. Dodge imports are forbidden by an import guard. New finalization cases call actual supervise with fake worker/clock/guard and real fixture persistence. No actual teacher/native/model/MPS inference, no production campaign, no training.',
+            'historical_test_counts_used': False}
+ write(HERE / 'test-receipt.json', receipt)
+-assert completed.returncode == 0 and receipt['test_count'] == 44, 'Final synthetic validation failed'
++assert receipt['test_count'] == 64
++
++frozen = ROOT / 'learning/runs/v2/postovernight-action-mode-prepare-r1/source-snapshot/learning/runs/v2/postovernight-action-mode-prepare-r1/runner.py'
++assert sha(frozen) == '6159ba14637274a56b5324bb195b6f02ef35de5a6e760ee78d628aa95b991e2d'
++archive = HERE / 'negative-control-source'
++archive.mkdir()
++for name in ('runner.py', 'test_harness.py', 'prepare_receipts.py'):
++    source = frozen.with_name(name)
++    shutil.copyfile(source, archive / name)
++    (archive / name).chmod(0o444)
++selected = [
++ 'test_late_guard_close_fails', 'test_late_final_verification_fails',
++ 'test_late_output_hash_fails', 'test_late_serialization_fails',
++ 'test_late_manifest_publication_fails',
++ 'test_reaped_nonempty_group_suppresses_manifest',
++ 'test_reaped_missing_group_proof_suppresses_manifest',
++ 'test_reaped_group_probe_error_suppresses_manifest',
++ 'test_reaped_group_probe_errors_suppress_manifest',
++ 'test_unreaped_leader_suppresses_manifest',
++ 'test_cleanup_reserve_cannot_buy_normal_finalization',
++ 'test_cleanup_over_10_seconds_fails_even_before_deadline']
++negative_command = [command[0], '-B', str(HERE / 'test_finalization.py')] + [
++    'FinalizationTests.' + name for name in selected]
++with (HERE / 'negative-controls.log').open('x') as stream:
++    negative = subprocess.run(negative_command, cwd=ROOT, stdout=stream, stderr=subprocess.STDOUT,
++        env=dict(os.environ, PYTHONDONTWRITEBYTECODE='1', FINALIZATION_RUNNER=str(frozen)), timeout=60)
++negative_log = (HERE / 'negative-controls.log').read_text()
++assert negative.returncode == 1 and 'FAILED (failures=12)' in negative_log
++assert 'ERROR:' not in negative_log and negative_log.count('AssertionError:') == 12
++negative_receipt = {'command': negative_command, 'cwd': str(ROOT),
++    'environment': {'PYTHONDONTWRITEBYTECODE': '1', 'FINALIZATION_RUNNER': str(frozen)},
++    'exit_code': negative.returncode, 'semantic_assertion_failures': 12, 'errors': 0,
++    'selected_tests': selected, 'target_sha256': sha(frozen),
++    'test_source_sha256': source_hashes['test_finalization.py'],
++    'log_sha256': sha(HERE / 'negative-controls.log'),
++    'archive_files': {name: sha(archive / name) for name in ('runner.py', 'test_harness.py', 'prepare_receipts.py')},
++    'fixture_isolation': 'Same fixture, actual supervise, exact frozen r1 imported unmodified; fixture protocol/lease paths and hashes injected equally for r1/r2. No API/import/protocol path failures count as evidence.'}
++write(HERE / 'negative-control-receipt.json', negative_receipt)
++write(HERE / 'test-manifest.json', {'version': 'r2_finalization_test_manifest_v1',
++    'execution_source_sha256': source_hashes, 'positive_test_count': 64,
++    'original_regressions': 44, 'new_finalization_regressions': 20,
++    'negative_control_semantic_assertion_failures': 12,
++    'commands': commands, 'negative_command': negative_command,
++    'test_receipt_sha256': sha(HERE / 'test-receipt.json'),
++    'negative_receipt_sha256': sha(HERE / 'negative-control-receipt.json')})
++files[str((HERE / 'test-manifest.json').relative_to(ROOT))] = sha(HERE / 'test-manifest.json')
++protected = json.loads((HERE / 'protected-before.json').read_text())
++for name, digest in protected.items():
++    assert sha(ROOT / name) == digest, f'Protected r1 evidence changed: {name}'
++write(HERE / 'protected-after.json', {'files': protected, 'verified_count': len(protected),
++      'all_byte_identical': True})
++old_protocol = json.loads((ROOT / 'learning/runs/v2-orchestration/postovernight-action-mode-r1-protocol.json').read_text())
++changed = {key: {'r1': old_protocol.get(key), 'r2': p.get(key)} for key in set(old_protocol) | set(p)
++           if old_protocol.get(key) != p.get(key)}
++assert set(changed) <= {'version', 'runner', 'protocol_revision', 'supersedes_protocol'}
++write(HERE / 'protocol-revision-diff.json', {'changed_fields': changed,
++      'experimental_settings_unchanged': True})
++
+ for name, digest in initial.items():
+     assert sha(name) == digest, f'Input changed during preparation: {name}'
+ 
+@@ -96,8 +160,18 @@
+     'protocol_modified': False, 'source_snapshot': str(snapshot),
+     'capsule_manifest_sha256': capsule_hash, 'parent_acceptance': 'pending',
+     'test_receipt': str(HERE / 'test-receipt.json'), 'new_tests_passed': receipt['test_count'],
+-    'test_scope': receipt['scope'], 'test_command': command,
++    'test_scope': receipt['scope'], 'test_commands': commands,
+     'test_source_hashes': source_hashes,
++    'accepted_findings_repaired': ['R1-F1', 'R1-F2'],
++    'counter_repair': 'None; original worker counter-copy loop preserved and success/partial counts tested.',
++    'original_regressions_passed': 44, 'new_finalization_regressions_passed': 20,
++    'negative_control_semantic_assertion_failures': 12,
++    'negative_control_receipt': str(HERE / 'negative-control-receipt.json'),
++    'full_patch_vs_r1': str(HERE / 'full-patch-vs-r1.diff'),
++    'protected_r1_evidence_count': len(protected), 'protected_r1_evidence_byte_identical': True,
++    'protocol_revision_experiment_settings_unchanged': True,
++    'terminal_publication': 'finalization-result.json is authoritative and binds the nonrecursive artifact manifest and run-result hash. Success requires exit 0; all normal stages use the original absolute deadline. Late failure removes candidate success manifest/terminal before publishing failed partial receipts. Unproven groups never hash mutable outputs.',
++    'timing_scope': 'run-result prepublication_wall_seconds ends before its write. Authoritative finalization-result actual_total_wall_seconds includes result serialization, all artifact hashing, manifest publication/hash, and receipt preparation. It is explicitly a lower bound excluding its own write/process exit; a post-write check revokes late success. Parent observes actual process exit/wall. Cleanup is separately measured and cannot shift deadline.',
+     'diagnostic_campaign_launched': False, 'campaign_output_exists': False,
+     'actual_teacher_forwards': 0, 'actual_native_environments': 0,
+     'actual_mps_inference_calls': 0, 'training_updates': 0, 'checkpoint_files_written': 0,
+@@ -117,7 +191,7 @@
+         'Run the capsule copy with python/.venv/bin/python. The legacy learning/.venv is never used. CLI requires --protocol and --output; --state-path defaults to the original production ledger.',
+         'All capsule files and ancestor directories are mode 0444/0555. Runtime input verification includes original 75 pins and capsule copies, protocol, identity, three checkpoints, two controls, own helper source, interpreter and foundation binary/receipt pins. The mutable ledger and campaign logs are not hashed as inputs.',
+         'The supervisor starts one new-session worker. The separate diagnostic guard checks the new lease and has no overnight cutoff or training-receipt dependency. Existing supervision.Guard/check_budget are unchanged.',
+-        'The 600 seconds begin at supervisor module startup and include imports, loads, evaluations, logging, controls, analysis and worker receipts. The watchdog samples every 0.25 seconds, fails closed above a 0.5-second sample gap, and checks each inference/step boundary.',
++        'The 600 seconds begin at supervisor module startup and include imports, loads, evaluations, logging, controls, analysis, worker receipts and all normal finalization. The watchdog samples every 0.25 seconds, fails closed above a 0.5-second sample gap, and checks each inference/step boundary.',
+         'Cleanup sends signals only to the owned new-session group and reaps its leader, with a separate bounded reserve. Final stable artifact hashing occurs after worker exit. No retry/fallback is available.',
+         'Only exact complete failed-run diagnostic weights are read with weights_only=True and the prior narrow NumPy safe globals. No optimizer, RNG or episode restoration and no eligibility calls occur.',
+         'Exact original entry and phase96 controls gate all sampled episodes. Phase104 is a new baseline. Exact sorted active B1 batching, direct D seeds, K4, caps and endpoint rows are preserved.',
+@@ -129,12 +203,15 @@
+         'The tests validate fake CPU policies/environments and fixture supervisors. They do not establish that logging and inference will fit 600 seconds. A timeout must remain a retained failed diagnostic without retries.',
+         'Memory guards are sampled RSS/MPS plus process self peak, not hard OS allocation limits. Missed sample cadence is a failure. A temporary identity change between samples cannot be ruled out by hash sampling.',
+         'The pinned runtime identity covers the registered interpreter hash, Torch/NumPy versions, platform and native extension hash; it is not a byte inventory of every installed dependency/shared library.',
+-        'Earlier development test logs retain two 36-test cleanup failures and later passing rounds. Only the final 44-test receipt is validation of the delivered execution source hashes. The first cleanup failure exposed a process-group disappearance/readiness race; readiness-aware dummy tests and retained probe failures now cover it.',
++        'All r1 development failures and receipts remain byte-identical. All r2 development logs remain. Final validation reruns all 44 original cases plus 20 finalization cases on the delivered source hashes; 12 selected cases fail by semantic assertions against exact frozen r1.',
+         'If worker termination/reaping cannot be established, the run remains failed and no stable artifact manifest is claimed. Partial decision/evaluation logs remain available; exact inference counts can be unknown if a worker was killed before its receipt.'
+     ],
+     'preparation_finished_at_utc': datetime.now(timezone.utc).isoformat(),
+     'receipt_script_wall_seconds': time.monotonic() - started,
+     'preparation_budget_about_seconds': 900,
++    'checkpoint_input_snapshot_copies': 3,
++    'checkpoint_files_written_count_scope': 'Zero learner checkpoint creation/reserialization. Three byte-identical read-only checkpoint input copies in candidate capsule.',
++    'children_launched': 0, 'external_messages': 0,
+     'automatic_campaign_retries': 0
+ }
+ assert not (ROOT / p['output']).exists()
+--- /dev/null
++++ learning/runs/v2/postovernight-action-mode-prepare-r2/test_finalization.py
+@@ -0,0 +1,238 @@
++"""Discriminating finalization tests; same fixtures run exact frozen r1 or r2.
++
++Only the real supervisor orchestration executes. Worker, clock, guard and owned
++cleanup are bounded synthetic fixtures; no native/model/MPS imports occur.
++"""
++import argparse
++from contextlib import ExitStack
++import hashlib
++import importlib.util
++import json
++import os
++from pathlib import Path
++from types import SimpleNamespace
++import tempfile
++import unittest
++from unittest.mock import patch
++
++HERE = Path(__file__).resolve().parent
++TARGET = Path(os.environ.get('FINALIZATION_RUNNER', str(HERE / 'runner.py'))).resolve()
++spec = importlib.util.spec_from_file_location('finalization_target', TARGET)
++r = importlib.util.module_from_spec(spec)
++spec.loader.exec_module(r)
++
++COUNTS = {'inference_calls': 113, 'native_step_calls': 991, 'environments_created': 768,
++          'decisions_logged': 303, 'episodes_completed': 768, 'evaluations_completed': 12,
++          'control_matches': {'entry': {'matched': True}, 'phase96': {'matched': True}}}
++
++
++class FinalizationTests(unittest.TestCase):
++    def fixture(self, *, delay_stage=None, delay=1, worker_end=599.8,
++                cleanup=0, stop_update=None, worker_status='complete', save_error=False):
++        clock = [0.0]
++        with tempfile.TemporaryDirectory(dir=HERE) as td:
++            base = Path(td)
++            root, original = base / 'capsule', base / 'original'
++            root.mkdir(); original.mkdir()
++            dummy = root / 'dummy.py'
++            dummy.write_text('# synthetic worker identity only\n')
++            digest = r.sha(dummy)
++            (root / 'capsule-manifest.json').write_text(json.dumps({'files': {'dummy.py': digest}}))
++            p = {'run_id': 'fixture_only', 'output': 'fixture_campaign', 'runner': 'dummy.py'}
++            state = base / 'fixture-state.json'
++            state.write_text(json.dumps({'active_long_campaign': {
++                'kind': 'M3_action_mode_diagnostic', 'authorization': 'new_postovernight_inference_only',
++                'run_id': 'fixture_only', 'protocol_sha256': r.PROTOCOL_SHA256,
++                'harness_sha256': digest,
++                'frozen_capsule_manifest_sha256': r.sha(root / 'capsule-manifest.json'),
++                'frozen_capsule_path': str(root)}}))
++            output = original / p['output']
++            args = argparse.Namespace(protocol=base / 'fixture-protocol.json', output=output, state_path=state)
++            def advance(stage):
++                if delay_stage == stage:
++                    clock[0] += delay
++            class Guard:
++                failure = None
++                def __init__(self, deadline, verify, stream):
++                    self.deadline = deadline
++                def start(self): pass
++                def check(self):
++                    r.require(clock[0] < self.deadline, '600-second diagnostic deadline reached (fixture)')
++                def sample(self): self.check()
++                def close(self): advance('guard_close')
++                def receipt(self): return {'latched_failure': None}
++            class Process:
++                pid = 987654321
++                returncode = 0 if worker_status == 'complete' else 1
++                def poll(self): return self.returncode
++            def spawn(*a, **kw):
++                wr = dict(r.baseline_result(), **COUNTS, status=worker_status)
++                if worker_status != 'complete':
++                    wr.update(episodes_completed=17, evaluations_completed=0, inference_calls=8)
++                (output / 'worker-result.json').write_text(json.dumps(wr))
++                (output / 'decisions.jsonl').write_text('{"fixture":true}\n')
++                clock[0] = worker_end
++                return Process()
++            def stop(process):
++                clock[0] += cleanup
++                return dict({'reaped': True, 'group_empty': True, 'errors': []}, **(stop_update or {}))
++            calls = [0]
++            real_verify, real_sha, real_save = r.verify_files, r.sha, r.save
++            def verify(pins):
++                calls[0] += 1
++                real_verify(pins)
++                if calls[0] == 2: advance('final_verification')
++            def sha(path):
++                value = real_sha(path)
++                if Path(path).parent == output and Path(path).name == 'decisions.jsonl':
++                    advance('output_hash')
++                if Path(path).name == 'artifact-manifest.json': advance('manifest_hash')
++                return value
++            saved = []
++            def save(path, value):
++                name = Path(path).name.lstrip('.').removesuffix('.pending')
++                saved.append(name)
++                real_save(path, value)
++                stage = {'run-result.json': 'serialization', 'artifact-manifest.json': 'manifest_publication',
++                         'finalization-result.json': 'terminal_publication'}.get(name)
++                if saved.count(name) == 1:
++                    advance(stage)
++                    if (save_error is True and name == 'artifact-manifest.json') or save_error == name:
++                        raise OSError('fixture late manifest publication failure')
++            with ExitStack() as stack:
++                patches = {'ROOT': root, 'ORIGINAL_ROOT': original, '__file__': str(dummy),
++                    'LAUNCH_MONOTONIC': 0.0, 'registered_protocol': lambda path: p,
++                    'assert_readonly_capsule': lambda manifest: None,
++                    'input_pins': lambda *a: ({str(dummy): digest}, {}),
++                    'DiagnosticGuard': Guard, 'stop_owned': stop, 'verify_files': verify,
++                    'sha': sha, 'save': save,
++                    'time': SimpleNamespace(monotonic=lambda: clock[0], sleep=lambda seconds: None)}
++                for name, value in patches.items(): stack.enter_context(patch.object(r, name, value))
++                stack.enter_context(patch.object(r.subprocess, 'Popen', side_effect=spawn))
++                code = r.supervise(args)
++            result = json.loads((output / 'run-result.json').read_text())
++            stable = output / 'artifact-manifest.json'
++            manifest = json.loads(stable.read_text()) if stable.exists() else None
++            if manifest is not None:
++                self.assertEqual(manifest['run-result.json'], real_sha(output / 'run-result.json'))
++                for name, digest in manifest.items(): self.assertEqual(real_sha(output / name), digest)
++            terminal = output / 'finalization-result.json'
++            terminal = json.loads(terminal.read_text()) if terminal.exists() else None
++            if terminal and manifest is not None:
++                self.assertEqual(terminal['artifact_manifest_sha256'], real_sha(stable))
++                self.assertEqual(terminal['status'], result['status'])
++            return code, result, manifest, terminal, clock[0], (output / 'artifact-manifest-unavailable.json').exists()
++
++    def assert_late_failed(self, stage):
++        code, result, manifest, terminal, wall, unavailable = self.fixture(delay_stage=stage)
++        self.assertEqual(code, 1, f'{stage}: late finalization must fail, observed wall={wall}')
++        self.assertEqual(result['status'], 'failed')
++        self.assertTrue(result['partial'])
++        self.assertGreaterEqual(result['actual_total_wall_seconds'], 600)
++        self.assertTrue(result['deadline_expired'])
++        self.assertIsNone(manifest, 'Late failure must revoke the stale stable manifest')
++        self.assertTrue(unavailable)
++        self.assertEqual(terminal['status'], 'failed')
++        self.assertEqual(result['episodes_completed'], 768)
++
++    def test_late_guard_close_fails(self): self.assert_late_failed('guard_close')
++    def test_late_final_verification_fails(self): self.assert_late_failed('final_verification')
++    def test_late_output_hash_fails(self): self.assert_late_failed('output_hash')
++    def test_late_serialization_fails(self): self.assert_late_failed('serialization')
++    def test_late_manifest_publication_fails(self): self.assert_late_failed('manifest_publication')
++    def test_late_manifest_hash_fails(self): self.assert_late_failed('manifest_hash')
++    def test_late_terminal_publication_fails(self): self.assert_late_failed('terminal_publication')
++
++    def test_reaped_nonempty_group_suppresses_manifest(self):
++        self.assert_unproven({'group_empty': False})
++
++    def test_reaped_missing_group_proof_suppresses_manifest(self):
++        self.assert_unproven({'group_empty': None})
++
++    def test_unreaped_leader_suppresses_manifest(self):
++        self.assert_unproven({'reaped': False})
++
++    def test_reaped_group_probe_errors_suppress_manifest(self):
++        self.assert_unproven({'errors': ['fixture group probe error']})
++
++    def test_reaped_group_probe_error_suppresses_manifest(self):
++        self.assert_unproven({'error': 'fixture group probe error'})
++
++    def assert_unproven(self, update):
++        code, result, manifest, terminal, wall, unavailable = self.fixture(stop_update=update, worker_end=10)
++        self.assertEqual(code, 1)
++        self.assertEqual(result['status'], 'failed')
++        self.assertIsNone(manifest, 'Reaped leader cannot prove its descendants stopped writing')
++        self.assertTrue(unavailable)
++        self.assertEqual(terminal['status'], 'failed')
++
++    def test_bounded_success_has_consistent_manifest_and_worker_counts(self):
++        code, result, manifest, terminal, wall, unavailable = self.fixture(
++            worker_end=598, cleanup=.1, delay_stage='output_hash', delay=.2)
++        self.assertEqual(code, 0)
++        self.assertEqual(result['status'], 'complete')
++        self.assertFalse(result['partial'])
++        self.assertIsNotNone(manifest)
++        self.assertFalse(unavailable)
++        self.assertLess(terminal['actual_total_wall_seconds'], 600)
++        self.assertGreaterEqual(terminal['actual_total_wall_seconds'], 598.3)
++        self.assertEqual(terminal['status'], 'complete')
++        self.assertTrue(result['completion_requires_terminal_receipt'])
++        for name, value in COUNTS.items(): self.assertEqual(result[name], value)
++
++    def test_partial_worker_counts_preserved(self):
++        code, result, manifest, terminal, wall, unavailable = self.fixture(worker_status='failed', worker_end=10)
++        self.assertEqual(code, 1)
++        self.assertEqual(result['episodes_completed'], 17)
++        self.assertEqual(result['inference_calls'], 8)
++        self.assertEqual(result['evaluations_completed'], 0)
++        self.assertEqual(terminal['status'], 'failed')
++
++    def test_cleanup_reserve_cannot_buy_normal_finalization(self):
++        code, result, manifest, terminal, wall, unavailable = self.fixture(worker_end=599, cleanup=9)
++        self.assertEqual(code, 1)
++        self.assertEqual(result['cleanup_seconds'], 9)
++        self.assertEqual(result['actual_execution_wall_seconds'], 599)
++        self.assertGreaterEqual(result['actual_total_wall_seconds'], 608)
++        self.assertTrue(result['deadline_expired'])
++        self.assertIsNone(manifest)
++
++    def test_cleanup_over_10_seconds_fails_even_before_deadline(self):
++        code, result, manifest, terminal, wall, unavailable = self.fixture(worker_end=10, cleanup=10.1)
++        self.assertEqual(code, 1)
++        self.assertTrue(result['cleanup_reserve_exceeded'])
++
++    def test_worker_crossing_deadline_cannot_use_cleanup_reserve(self):
++        code, result, manifest, terminal, wall, unavailable = self.fixture(worker_end=600.1, cleanup=1)
++        self.assertEqual(code, 1)
++        self.assertTrue(result['deadline_expired'])
++        self.assertEqual(result['actual_execution_wall_seconds'], 600.1)
++
++    def test_late_run_result_exception_retains_failed_terminal(self):
++        code, result, manifest, terminal, wall, unavailable = self.fixture(
++            worker_end=10, save_error='run-result.json')
++        self.assertEqual(code, 1)
++        self.assertEqual(result['status'], 'failed')
++        self.assertIsNone(manifest)
++        self.assertEqual(terminal['status'], 'failed')
++
++    def test_late_terminal_exception_revokes_manifest(self):
++        code, result, manifest, terminal, wall, unavailable = self.fixture(
++            worker_end=10, save_error='finalization-result.json')
++        self.assertEqual(code, 1)
++        self.assertEqual(result['status'], 'failed')
++        self.assertIsNone(manifest)
++        self.assertEqual(terminal['status'], 'failed')
++
++    def test_late_publication_exception_revokes_success(self):
++        code, result, manifest, terminal, wall, unavailable = self.fixture(worker_end=10, save_error=True)
++        self.assertEqual(code, 1)
++        self.assertIsNone(manifest)
++        self.assertTrue(unavailable)
++        self.assertEqual(result['status'], 'failed')
++        self.assertEqual(terminal['status'], 'failed')
++
++
++if __name__ == '__main__':
++    print(json.dumps({'target': str(TARGET), 'sha256': hashlib.sha256(TARGET.read_bytes()).hexdigest()}), flush=True)
++    unittest.main(verbosity=2)

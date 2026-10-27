@@ -1,0 +1,94 @@
+--- r2/audit_candidates.py
++++ r3/audit_candidates.py
+@@ -27,6 +27,7 @@
+ OBSERVER_DIR = None
+ OBSERVER_SOURCE = None
+ OBSERVER_SHA = None
++OBSERVER_SOURCE_SHA256 = "f271b2641b995fc34a90cebe420657953cb16ce9038886edc2fd74c184ccacad"
+ OBSERVER_INSTANTIATION_SHA = "56d547b6ccd96df759740d1573fc1de44319094fe0d3ff8296ae75aa3dbbf166"
+ OBSERVER_INSTANTIATION_PATH = ROOT / "learning/runs/v2/D2-retained324-linear-execution-observer-parent-20261026-r1/instantiation.json"
+ VENV_SITE = ROOT / "python/.venv/lib/python3.12/site-packages"
+@@ -528,13 +529,19 @@
+           "Raw-frame conservation differs (excluding parent abandoned)")
+ 
+ 
+-def validate_observer_instantiation(record):
++def validate_observer_instantiation(record, registration):
++    """Bind the immutable prelaunch record through its exact registration and observer pins."""
++    registration_run_id = registration.get("run_id")
++    check(registration_run_id == RUN_ID, "Pinned registration run identity differs")
++    check(OBSERVER_SHA == OBSERVER_SOURCE_SHA256, "Observer source digest differs from independent pin")
++    record_run_id_matches = "run_id" not in record or record.get("run_id") == registration_run_id
+     check(record.get("schema") == "retained324_linear_lr_observer_instantiation_v1"
++          and record.get("registration_path") == str(REG_PATH.resolve())
++          and record.get("registration_sha256") == REG_SHA
+           and record.get("observer_sha256") == OBSERVER_SHA
+-          and record.get("registration_sha256") == REG_SHA
+-          and record.get("run_id") == RUN_ID
++          and record_run_id_matches
+           and record.get("actual_launches") == 0 and record.get("one_shot_marker_absent") is True,
+-          "Observer instantiation identity or no-launch declaration differs")
++          "Observer instantiation registration, observer, schema, identity, or no-launch declaration differs")
+     return True
+ 
+ 
+@@ -681,7 +688,7 @@
+         check(instantiation_sha == OBSERVER_INSTANTIATION_SHA
+               and instantiation_path.resolve() == OBSERVER_INSTANTIATION_PATH.resolve(),
+               "Observer instantiation digest or path differs")
+-        validate_observer_instantiation(instantiation)
++        validate_observer_instantiation(instantiation, reg)
+         tracked[str(instantiation_path)] = instantiation_sha
+         targets = UPDATES
+ 
+--- r2/test_source_contract.py
++++ r3/test_source_contract.py
+@@ -2,6 +2,8 @@
+ from __future__ import annotations
+ 
+ import ast
++import copy
++import json
+ from pathlib import Path
+ import unittest
+ 
+@@ -31,11 +33,38 @@
+         self.assertNotIn("differs from arm LR", source)
+ 
+     def test_actual_registration_and_source_manifest_contract(self):
+-        import json
+         reg = json.loads(auditor.REG_PATH.read_bytes())
+         auditor.validate_actual_package(reg, auditor.REGISTRATION_SHA256)
+         self.assertEqual(reg["runtime_sha256"], "2cf10e9f056f41b39dc17845192e9adf553a5f699546d4f5dcea764a23e36b31")
+         self.assertEqual(reg["latest_resource_cost_anchor"]["sha256"], auditor.CAMPAIGN_COST_BASELINE_SHA)
++
++    def test_actual_immutable_observer_instantiation_and_rejections(self):
++        registration = json.loads(auditor.REG_PATH.read_bytes())
++        record = json.loads(auditor.OBSERVER_INSTANTIATION_PATH.read_bytes())
++        previous_observer_sha = auditor.OBSERVER_SHA
++        auditor.OBSERVER_SHA = auditor.OBSERVER_SOURCE_SHA256
++        self.assertNotIn("run_id", record)
++        try:
++            self.assertTrue(auditor.validate_observer_instantiation(record, registration))
++
++            mutations = {
++                "registration_path": lambda item: item.update(registration_path="/wrong/registration.json"),
++                "registration_sha256": lambda item: item.update(registration_sha256="0" * 64),
++                "observer_sha256": lambda item: item.update(observer_sha256="0" * 64),
++                "schema": lambda item: item.update(schema="wrong_schema"),
++                "actual_launches": lambda item: item.update(actual_launches=1),
++                "one_shot_marker_absent": lambda item: item.update(one_shot_marker_absent=False),
++                "run_id": lambda item: item.update(run_id="wrong-run"),
++                "null_run_id": lambda item: item.update(run_id=None),
++            }
++            for name, mutate in mutations.items():
++                with self.subTest(field=name):
++                    altered = copy.deepcopy(record)
++                    mutate(altered)
++                    with self.assertRaises(auditor.AuditError):
++                        auditor.validate_observer_instantiation(altered, registration)
++        finally:
++            auditor.OBSERVER_SHA = previous_observer_sha
+ 
+     def test_full_audit_has_no_direct_cli_authority(self):
+         source = (OWN / "audit_candidates.py").read_text()

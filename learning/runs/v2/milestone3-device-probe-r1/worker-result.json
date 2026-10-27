@@ -1,0 +1,93 @@
+{
+  "B_opened": false,
+  "config_sha256": "aa14a822cd8d1cd559d385501c65a93ad828897f1125d071bb90f2d9f06b28b5",
+  "devices_excluded_from_speed_selection_for_unequal_update_work": [],
+  "elapsed_seconds": 58.756846499978565,
+  "frozen_rollout": "probe-rollout.pt",
+  "frozen_rollout_collection_wall_seconds": 4.311834624968469,
+  "frozen_rollout_sha256": "918ec54c08ec13d342e2e33b8e418392cf355b02f2ba31a01ccbdee25661de18",
+  "identity_sha256": "82ad7e95ed3b1a780a826b44d603e2ef2cecc5c1e4057f6ceec4e0ebc3b92267",
+  "initial_checkpoint": "checkpoint-000001-probe_diagnostic.pt",
+  "initial_checkpoint_sha256": "e7e8ddf835b95b45d3b358c336594f75148b9c5ab73bccdb33539aaccee78f81",
+  "maximum_MPS_driver_bytes": 2348630016,
+  "maximum_observed_RSS_bytes": 1764065280,
+  "measurements": [
+    {
+      "checkpoint": "probe-cpu-updated.pt",
+      "checkpoint_sha256": "23ce12225f7339a1d1f25e2be233670f0975c7cc7d94e7d4e7c78fa365f07b7e",
+      "device": "cpu",
+      "inference_wall_seconds": 1.8746349589782767,
+      "measured_inference_plus_update_seconds": 36.23541183397174,
+      "metrics": {
+        "actor_grad_norm": 0.43394927715417,
+        "approx_kl": 0.00951632064243313,
+        "clip_fraction": 0.0626068115234375,
+        "critic_grad_norm": 0.4775880992092425,
+        "early_stop_kl": false,
+        "entropy": 2.189344411715865,
+        "epoch_approx_kls": [
+          0.008125756226945668,
+          0.008407031447859481,
+          0.009015379997435957,
+          0.00951632064243313
+        ],
+        "epochs_completed": 4,
+        "explained_variance": 0.2769770389989502,
+        "finite": true,
+        "grad_norm": 0.8496991968713701,
+        "head_gradient_metrics_available": true,
+        "loss": -0.01067953336314531,
+        "optimizer_steps": 128,
+        "policy_loss": -0.00421597836248111,
+        "transitions": 16384,
+        "trunk_grad_norm": 0.3872447014146019,
+        "value_loss": 0.03085977674345486,
+        "value_loss_formula": "0.5 * mean((new_value - GAE_return) ** 2)"
+      },
+      "optimizer_steps": 128,
+      "status": "completed",
+      "update_wall_seconds": 34.36077687499346
+    },
+    {
+      "checkpoint": "probe-mps-updated.pt",
+      "checkpoint_sha256": "4d4b465aea817ac475c658b82ca73fd99dc7185c906df65eac46bf41ffb77711",
+      "device": "mps",
+      "inference_wall_seconds": 1.8027087500086054,
+      "measured_inference_plus_update_seconds": 16.450672375038266,
+      "metrics": {
+        "actor_grad_norm": 0.4339493211591616,
+        "approx_kl": 0.009516315360087901,
+        "clip_fraction": 0.0626068115234375,
+        "critic_grad_norm": 0.47758818135480396,
+        "early_stop_kl": false,
+        "entropy": 2.189344370737672,
+        "epoch_approx_kls": [
+          0.008125754160573706,
+          0.008407023939071223,
+          0.009015373303554952,
+          0.009516315360087901
+        ],
+        "epochs_completed": 4,
+        "explained_variance": 0.2769770389989502,
+        "finite": true,
+        "grad_norm": 0.8496993967564777,
+        "head_gradient_metrics_available": true,
+        "loss": -0.01067953632446006,
+        "optimizer_steps": 128,
+        "policy_loss": -0.004215981269226177,
+        "transitions": 16384,
+        "trunk_grad_norm": 0.38724488459411077,
+        "value_loss": 0.03085977627779357,
+        "value_loss_formula": "0.5 * mean((new_value - GAE_return) ** 2)"
+      },
+      "optimizer_steps": 128,
+      "status": "completed",
+      "update_wall_seconds": 14.64796362502966
+    }
+  ],
+  "phase": "probe",
+  "selected_device": "mps",
+  "status": "passed",
+  "timing_scope": "Same starting weights and real frozen rollout; completed inference and PPO update, collection wall reported separately. Not a closed-loop training SPS estimate.",
+  "weights_discarded_from_training": true
+}

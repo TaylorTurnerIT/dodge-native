@@ -1,0 +1,8 @@
+{
+  "command": "python3 -B learning/runs/v2/postovernight-long-D2-guard-review-r1/check_acceptance.py; python3 - <<\"PY\"\nimport json\nfrom pathlib import Path\nh=Path(\"learning/runs/v2/postovernight-long-D2-guard-prepare-r1/attempts/matrix-01-cases\")\nr=json.loads((h/\"summary.json\").read_text())\nprint(\"non-injection rows:\",[(Path(x[\"argv\"][-1]).name,x[\"expected\"]) for x in r[\"results\"] if not x[\"injection_reached\"]])\nprint(\"missing expected injections:\",[Path(x[\"argv\"][-1]).name for x in r[\"results\"] if json.loads((Path(x[\"argv\"][-1])/\"options.json\").read_text()).get(\"phase\") and not x[\"injection_reached\"]])\nPY",
+  "cwd": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79",
+  "exit_code": 0,
+  "elapsed_seconds": 0.06650029099999999,
+  "finished_utc": "2026-10-24T23:07:05.848438+00:00",
+  "log": "command-022.log"
+}

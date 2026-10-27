@@ -1,0 +1,546 @@
+{
+  "python/dodge_rl/checkpoints.py": [
+    {
+      "line": 22,
+      "name": "capture_rng",
+      "signature": "capture_rng(device: str | torch.device='cpu', numpy_generator=None)"
+    },
+    {
+      "line": 31,
+      "name": "restore_rng",
+      "signature": "restore_rng(state: dict, device: str | torch.device='cpu', numpy_generator=None)"
+    },
+    {
+      "line": 45,
+      "name": "_cpu_copy",
+      "signature": "_cpu_copy(value)"
+    },
+    {
+      "line": 57,
+      "name": "episode_resume_state",
+      "signature": "episode_resume_state(env, batch_size: int)"
+    },
+    {
+      "line": 72,
+      "name": "make_state",
+      "signature": "make_state(model, optimizer, identity: dict, counters: dict, *, env=None, tag: str='periodic', progress=None, device='cpu', parent_sha256=None)"
+    },
+    {
+      "line": 84,
+      "name": "save_checkpoint",
+      "signature": "save_checkpoint(path: Path, state: dict)"
+    },
+    {
+      "line": 112,
+      "name": "load_checkpoint",
+      "signature": "load_checkpoint(path: Path, expected_identity: dict | None=None, expected_sha256: str | None=None)"
+    },
+    {
+      "line": 129,
+      "name": "require_complete_update",
+      "signature": "require_complete_update(state: dict)"
+    },
+    {
+      "line": 138,
+      "name": "restore_learner",
+      "signature": "restore_learner(state: dict, model, optimizer, device='cpu')"
+    },
+    {
+      "line": 145,
+      "name": "evaluation_path",
+      "signature": "evaluation_path(checkpoint_path: Path)"
+    },
+    {
+      "line": 149,
+      "name": "validate_terminal_receipt",
+      "signature": "validate_terminal_receipt(run_dir: Path, anchor: dict)"
+    },
+    {
+      "line": 216,
+      "name": "validate_transition",
+      "signature": "validate_transition(parent_path: Path, target_identity: dict, *, terminal_anchor: dict)"
+    }
+  ],
+  "python/dodge_rl/dev_eval.py": [
+    {
+      "line": 13,
+      "name": "development_seeds",
+      "signature": "development_seeds()"
+    },
+    {
+      "line": 19,
+      "name": "require_development_seed",
+      "signature": "require_development_seed(seed: int)"
+    },
+    {
+      "line": 23,
+      "name": "development_environment_config",
+      "signature": "development_environment_config(seed: int, stage: str)"
+    },
+    {
+      "line": 35,
+      "name": "_guard",
+      "signature": "_guard(callback)"
+    },
+    {
+      "line": 40,
+      "name": "summarize",
+      "signature": "summarize(rows: list[dict], stage: str, elapsed: float)"
+    },
+    {
+      "line": 64,
+      "name": "evaluate",
+      "signature": "evaluate(model, stage: str, device='cpu', *, check_guard=None, env_factory=None, episode_stream=None)"
+    },
+    {
+      "line": 125,
+      "name": "pilot_improved",
+      "signature": "pilot_improved(before: dict, after: dict)"
+    },
+    {
+      "line": 135,
+      "name": "progress_passed",
+      "signature": "progress_passed(phase: str, evaluations: dict[str, dict])"
+    },
+    {
+      "line": 151,
+      "name": "validate_summary",
+      "signature": "validate_summary(result: dict)"
+    }
+  ],
+  "python/dodge_rl/identity.py": [
+    {
+      "line": 28,
+      "name": "require",
+      "signature": "require(condition: bool, message: str)"
+    },
+    {
+      "line": 33,
+      "name": "canonical_bytes",
+      "signature": "canonical_bytes(value)"
+    },
+    {
+      "line": 37,
+      "name": "identity_hash",
+      "signature": "identity_hash(value)"
+    },
+    {
+      "line": 41,
+      "name": "file_hash",
+      "signature": "file_hash(path: Path)"
+    },
+    {
+      "line": 49,
+      "name": "read_protocol",
+      "signature": "read_protocol(root: Path=ROOT)"
+    },
+    {
+      "line": 57,
+      "name": "default_config",
+      "signature": "default_config(phase: str, device: str='cpu', parent_sha256: str | None=None)"
+    },
+    {
+      "line": 88,
+      "name": "validate_config",
+      "signature": "validate_config(config: dict)"
+    },
+    {
+      "line": 95,
+      "name": "source_inventory",
+      "signature": "source_inventory(root: Path=ROOT)"
+    },
+    {
+      "line": 115,
+      "name": "foundation_identity",
+      "signature": "foundation_identity(root: Path=ROOT)"
+    },
+    {
+      "line": 142,
+      "name": "_architecture_description",
+      "signature": "_architecture_description()"
+    },
+    {
+      "line": 151,
+      "name": "build_identity",
+      "signature": "build_identity(config: dict, root: Path=ROOT)"
+    },
+    {
+      "line": 177,
+      "name": "check_same_run",
+      "signature": "check_same_run(saved: dict, current: dict)"
+    },
+    {
+      "line": 181,
+      "name": "check_frozen",
+      "signature": "check_frozen(identity_path: Path, expected_document_hash: str, config: dict, root: Path=ROOT)"
+    },
+    {
+      "line": 191,
+      "name": "training_env_config",
+      "signature": "training_env_config(config: dict, initial_episode_indices=None)"
+    },
+    {
+      "line": 208,
+      "name": "verify_training_env",
+      "signature": "verify_training_env(env, config: dict, initial_episode_indices=None)"
+    }
+  ],
+  "python/dodge_rl/ppo.py": [
+    {
+      "line": 43,
+      "name": "_require",
+      "signature": "_require(condition: bool, message: str)"
+    },
+    {
+      "line": 48,
+      "name": "_guard",
+      "signature": "_guard(check_guard: Guard)"
+    },
+    {
+      "line": 53,
+      "name": "_finite",
+      "signature": "_finite(value: Tensor, name: str)"
+    },
+    {
+      "line": 59,
+      "methods": [
+        {
+          "line": 73,
+          "name": "__post_init__",
+          "signature": "__post_init__(self)"
+        },
+        {
+          "line": 90,
+          "name": "description",
+          "signature": "description(self)"
+        }
+      ],
+      "name": "PPOConfig"
+    },
+    {
+      "line": 107,
+      "methods": [
+        {
+          "line": 125,
+          "name": "shape",
+          "signature": "shape(self)"
+        },
+        {
+          "line": 129,
+          "name": "transitions",
+          "signature": "transitions(self)"
+        }
+      ],
+      "name": "RolloutBatch"
+    },
+    {
+      "line": 134,
+      "methods": [],
+      "name": "RolloutCollection"
+    },
+    {
+      "line": 143,
+      "name": "compute_gae",
+      "signature": "compute_gae(rewards: Tensor, values: Tensor, next_values: Tensor, terminated: Tensor, truncated: Tensor, gamma: float=0.995, gae_lambda: float=0.95)"
+    },
+    {
+      "line": 177,
+      "name": "_observation_tensors",
+      "signature": "_observation_tensors(observation: Mapping[str, Any], batch_size: int | None=None)"
+    },
+    {
+      "line": 193,
+      "name": "_model_output",
+      "signature": "_model_output(model: nn.Module, observation: dict[str, Tensor], device: torch.device)"
+    },
+    {
+      "line": 203,
+      "name": "_integer_vector",
+      "signature": "_integer_vector(value: Any, batch_size: int, name: str)"
+    },
+    {
+      "line": 209,
+      "name": "_boolean_vector",
+      "signature": "_boolean_vector(value: Any, batch_size: int, name: str)"
+    },
+    {
+      "line": 215,
+      "name": "_audit_episode",
+      "signature": "_audit_episode(info: Mapping[str, Any], cap: int)"
+    },
+    {
+      "line": 234,
+      "name": "_audit_step",
+      "signature": "_audit_step(result: Mapping[str, Any], batch_size: int, cap: int)"
+    },
+    {
+      "line": 261,
+      "name": "collect_rollout",
+      "signature": "collect_rollout(model: nn.Module, env: Any, rollout_steps: int, device: str | torch.device, *, observation: Mapping[str, Any] | None=None, config: PPOConfig | None=None, check_guard: Guard=None)"
+    },
+    {
+      "line": 370,
+      "name": "_validate_batch",
+      "signature": "_validate_batch(batch: RolloutBatch)"
+    },
+    {
+      "line": 396,
+      "name": "_gradient_norm",
+      "signature": "_gradient_norm(parameters: list[nn.Parameter])"
+    },
+    {
+      "line": 403,
+      "name": "ppo_update",
+      "signature": "ppo_update(model: nn.Module, optimizer: torch.optim.Optimizer, batch: RolloutBatch, config: PPOConfig, *, check_guard: Guard=None, progress: dict[str, Any] | None=None)"
+    }
+  ],
+  "python/dodge_rl/supervision.py": [
+    {
+      "line": 25,
+      "methods": [],
+      "name": "GuardStop"
+    },
+    {
+      "line": 29,
+      "methods": [
+        {
+          "line": 32,
+          "name": "__init__",
+          "signature": "__init__(self, signal_number: int)"
+        }
+      ],
+      "name": "SignalCancellation"
+    },
+    {
+      "line": 37,
+      "methods": [
+        {
+          "line": 38,
+          "name": "__init__",
+          "signature": "__init__(self)"
+        },
+        {
+          "line": 43,
+          "name": "defer",
+          "signature": "defer(self)"
+        },
+        {
+          "line": 47,
+          "name": "resume",
+          "signature": "resume(self)"
+        },
+        {
+          "line": 56,
+          "name": "handle",
+          "signature": "handle(self, signal_number, _frame)"
+        }
+      ],
+      "name": "_CancellationSignals"
+    },
+    {
+      "line": 68,
+      "name": "cancellation_signals",
+      "signature": "cancellation_signals()"
+    },
+    {
+      "line": 89,
+      "name": "utc_now",
+      "signature": "utc_now()"
+    },
+    {
+      "line": 93,
+      "name": "check_budget",
+      "signature": "check_budget(now: datetime, seconds: int)"
+    },
+    {
+      "line": 99,
+      "name": "current_rss_bytes",
+      "signature": "current_rss_bytes(pid: int)"
+    },
+    {
+      "line": 106,
+      "name": "peak_rss_bytes",
+      "signature": "peak_rss_bytes()"
+    },
+    {
+      "line": 111,
+      "name": "assert_lease",
+      "signature": "assert_lease(run_id: str, identity_sha256: str, config_sha256: str, state_path: Path=STATE_PATH, *, phase=None, expected_parent_receipt=_UNSET)"
+    },
+    {
+      "line": 136,
+      "name": "emit",
+      "signature": "emit(stream, record: dict)"
+    },
+    {
+      "line": 141,
+      "methods": [
+        {
+          "line": 142,
+          "name": "__init__",
+          "signature": "__init__(self, *, deadline: float, run_id: str, identity_sha256: str, config_sha256: str, stream, identity_check=None, mps=False, state_path: Path=STATE_PATH, sample_seconds=0.5, phase=None, expected_parent_receipt=_UNSET)"
+        },
+        {
+          "line": 156,
+          "name": "check",
+          "signature": "check(self, force=False)"
+        }
+      ],
+      "name": "Guard"
+    },
+    {
+      "line": 189,
+      "name": "stop_owned",
+      "signature": "stop_owned(process: subprocess.Popen)"
+    }
+  ],
+  "python/dodge_rl/train_teacher.py": [
+    {
+      "line": 37,
+      "name": "save_json",
+      "signature": "save_json(path: Path, value)"
+    },
+    {
+      "line": 43,
+      "name": "read_config",
+      "signature": "read_config(path: Path, expected_hash: str | None=None)"
+    },
+    {
+      "line": 50,
+      "name": "verify_inputs",
+      "signature": "verify_inputs(args, config: dict)"
+    },
+    {
+      "line": 63,
+      "name": "synchronize",
+      "signature": "synchronize(device)"
+    },
+    {
+      "line": 68,
+      "name": "seed_initialization",
+      "signature": "seed_initialization(seed: int)"
+    },
+    {
+      "line": 74,
+      "name": "make_optimizer",
+      "signature": "make_optimizer(model, config: dict)"
+    },
+    {
+      "line": 79,
+      "name": "require_raw_diagnostics",
+      "signature": "require_raw_diagnostics(batch)"
+    },
+    {
+      "line": 84,
+      "name": "remaining_phase_budget",
+      "signature": "remaining_phase_budget(config: dict, resume_state: dict | None)"
+    },
+    {
+      "line": 93,
+      "name": "choose_probe_device",
+      "signature": "choose_probe_device(measurements: list[dict])"
+    },
+    {
+      "line": 106,
+      "methods": [
+        {
+          "line": 109,
+          "name": "__init__",
+          "signature": "__init__(self, inner, counters, stream)"
+        },
+        {
+          "line": 112,
+          "name": "__getattr__",
+          "signature": "__getattr__(self, name)"
+        },
+        {
+          "line": 115,
+          "name": "step",
+          "signature": "step(self, actions)"
+        },
+        {
+          "line": 125,
+          "name": "reset_done",
+          "signature": "reset_done(self, indices)"
+        }
+      ],
+      "name": "TrainingEnvLog"
+    },
+    {
+      "line": 131,
+      "methods": [
+        {
+          "line": 132,
+          "name": "__init__",
+          "signature": "__init__(self, args, config: dict, identity: dict, guard: Guard)"
+        },
+        {
+          "line": 191,
+          "name": "close",
+          "signature": "close(self)"
+        },
+        {
+          "line": 195,
+          "name": "make_environment",
+          "signature": "make_environment(self, initial_episode_indices=None)"
+        },
+        {
+          "line": 205,
+          "name": "checkpoint",
+          "signature": "checkpoint(self, tag: str)"
+        },
+        {
+          "line": 227,
+          "name": "evaluate_checkpoint",
+          "signature": "evaluate_checkpoint(self, path: Path, digest: str, *, pilot_before=None)"
+        },
+        {
+          "line": 260,
+          "name": "update_once",
+          "signature": "update_once(self)"
+        },
+        {
+          "line": 288,
+          "name": "pilot",
+          "signature": "pilot(self)"
+        },
+        {
+          "line": 318,
+          "name": "stage",
+          "signature": "stage(self)"
+        },
+        {
+          "line": 337,
+          "name": "probe",
+          "signature": "probe(self)"
+        }
+      ],
+      "name": "Experiment"
+    },
+    {
+      "line": 421,
+      "name": "worker",
+      "signature": "worker(args)"
+    },
+    {
+      "line": 427,
+      "name": "_run_worker",
+      "signature": "_run_worker(args, cancellation)"
+    },
+    {
+      "line": 496,
+      "name": "run_supervised",
+      "signature": "run_supervised(args)"
+    },
+    {
+      "line": 502,
+      "name": "_run_supervised",
+      "signature": "_run_supervised(args, cancellation)"
+    },
+    {
+      "line": 607,
+      "name": "main",
+      "signature": "main()"
+    }
+  ]
+}

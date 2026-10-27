@@ -1,0 +1,74 @@
+{
+  "schema": "boundary_failure_path_diagnosis_v1",
+  "reviewer": "Sonnet 5.5 readonly diagnosis child",
+  "scope": "failure-path evidence and first-failure/cleanup reporting for frozen r3; P2 reporting only",
+  "frozen_source_modified": false,
+  "findings": [
+    {
+      "id": "F1",
+      "status": "CONFIRMED_source_and_pure_reproduction",
+      "severity": "high_for_P2_reporting_not_P1_acceptance",
+      "summary": "Execution.monitor passes plain str reasons to Execution.fail; observed_failure then assigns first_failure_descriptor on the str, raises AttributeError, and the monitor's cleanup block (group signaling, group_absent, cleanup_complete) is skipped on every 20 ms iteration.",
+      "sites": [
+        "long_d2_executor.py:243 'Inner raw failure' (fires for any inner raw exit not in (0,2) while the pool is open or already failed)",
+        "long_d2_executor.py:238-241 'Worker cutoff', 'Inner cutoff', 'Outer cutoff', 'Outer sample age'",
+        "long_d2_executor.py:230 'Executor recorded cancellation' (masked only when a latch candidate is earlier than catch time)",
+        "long_d2.py:837-857 observed_failure: primary.first_failure_descriptor = descriptor"
+      ],
+      "reproduction": "discriminator_monitor.py (real Execution.monitor/fail/FailurePool, stub guard and preset child report, no process launched): inner raw 0 and 2 -> cleanup_complete true, 0 swallowed exceptions; inner raw 1 and 7 -> cleanup_complete false, 42-43 swallowed AttributeError in 1.0 s; on first observation pool.reason is replaced by \"'str' object has no attribute 'first_failure_descriptor'\"",
+      "runtime_consequence": "Main failure handler waits for cleanup_complete (long_d2_executor.py:459-464), which only the monitor sets. It never becomes true, remaining(pool.until) raises Stop at the shared 10 s cap, the broad except at :485 swallows it, and failure_publication (:478) is never reached: no execution/acceptance-receipt.json, no outer-verification.jsonl, no ownership witness. Exit is still 1 so acceptance stays closed.",
+      "observed_in_OS_cases": "inner-failure-with-timing-error, inner-final-alarm, direct-cancel-startup, direct-cancel-wait, normal-deadline-wedged: outer final_exit 10.0006-10.0025 s after first failure, receipt_available false, execution/ missing or only inner-verification.jsonl.",
+      "why_other_failure_cases_passed": "parent-death, missing-worker-ACK, surviving-descendant used outer_seconds=2; their receipts appeared at 2.07/2.05/5.46 s, after the outer lifetime deadline passed, when observed_failure picks the Stop('Absolute wall deadline') candidate (settable) instead of the str. outer-failure and post-gate cases have inner raw 0. The fixtures therefore masked F1."
+    },
+    {
+      "id": "F2",
+      "status": "CONFIRMED_pure_reproduction_chain_beyond_pool_is_source_derived",
+      "severity": "high_for_P2_reporting",
+      "summary": "r3's descriptor-default repair covers only calls that omit `at`. worker_failure (long_d2.py:938) and notify_failure(error) without `at` (lifecycle.py:228; called at long_d2.py:1374) still pass an explicit fresh `now` for an error that already carries first_failure_descriptor, so FailurePool.fail raises 'Failure descriptor timestamp differs' for every ordinary worker exception whose evidence is its own catch.",
+      "reproduction": "discriminator_timestamp.py: real worker_failure(RuntimeError) and worker_failure(Stop) both raise Stop('Failure descriptor timestamp differs'); notify_failure(error_with_descriptor) with no at raises the same; notify_failure(error, descriptor.timestamp) [long_d2.py:1316] and pool.fail(error) [r3 default] pass; explicit-conflict pool.fail(error, later_now) still correctly rejects.",
+      "source_derived_consequence": "In worker(), worker_failure runs inside `except BaseException` (:1062/1085/1090/1128). It sets permission failed=True/acknowledged_until=None before raising, so no later worker write is permitted; long-worker-result.json is never saved; the Stop propagates out of worker(); main() (:1374) calls notify_failure on the new Stop, which sends an ACK with reason 'Failure descriptor timestamp differs' and the later catch time. This matches the r2 attempt08 signature (missing worker result plus 'Failure descriptor timestamp differs') and was not removed by r3.",
+      "not_exercised_by_retained_tests": "test_10b covers FailurePool.fail only. synthetic.py fake_worker bypasses c.worker/worker_failure entirely, so none of the 15 OS cases touches this path."
+    },
+    {
+      "id": "F3",
+      "status": "CONFIRMED_source_only_not_exercised",
+      "severity": "medium",
+      "summary": "Failed-receipt publication is gated on cleanup_complete. The wait loop (long_d2_executor.py:459-464) exits only when cleanup_complete is true or remaining(pool.until) raises; the raise is swallowed at :485 with no publication. The receipt field cleanup_complete is therefore always true when written, and any cleanup stall (F1, a group not provably absent, a wedged ps census) yields no failed receipt instead of one with cleanup_complete=false.",
+      "proposal": "Bound the wait at pool.until - 0.5 (same convention as kill_at) so a mandatory receipt with the true cleanup_complete is still published inside the unchanged 10 s cap."
+    },
+    {
+      "id": "F4",
+      "status": "CONFIRMED_test_gap",
+      "summary": "Vacuous witness checks and mislabeled fixtures. os_checks.case builds `absent` only from a written receipt or an 'ownership' event emitted when a receipt is written, then asserts all(absent.values()) which is True for {}. Five expected-1 cases passed with no receipt. direct-cancel-startup's hook fires on the first inner subprocess.Popen, which is the guard's `ps` sample 2.5 ms after the inner timer arm (live_owned_threads [], no worker log, no worker-events), not the worker spawn. normal-deadline-wedged's worker died in worker_gate with 'Truncated owned IPC packet' ~4 ms after arming and never entered its wedged loop."
+    },
+    {
+      "id": "O1",
+      "status": "OPEN_not_explained",
+      "summary": "Worker-side 'Truncated owned IPC packet' in worker_gate (lifecycle.py:192) in normal-deadline-wedged. Raw length/flags/errno were not retained. Same message the parent reports for r2 attempt08. Retained evidence does not determine whether the datagram was empty, MSG_TRUNC or MSG_CTRUNC. No cause is claimed."
+    },
+    {
+      "id": "A1",
+      "status": "NO_FINDING",
+      "summary": "P1 acceptance: stale accepted receipt plus raw 1, failed receipt plus raw 0/1, empty receipt plus raw 1 and raw-2 without parent digests all return False from frozen accept_observed (discriminator_acceptance.py). Mandatory-before-optional ordering in failure_publication is intact in code and test_12; it is unreachable only because of F1/F3."
+    }
+  ],
+  "per_case": {
+    "inner-failure-with-timing-error": {"inner_existed": true, "worker_existed": true, "supervisor_pid": 84524, "worker_pid_pgid": 84533, "worker_proof": "supervisor waitpid raw status 512 rc 2 at 510108.007181625 plus owned_process_stop group_empty true (killpg probe)", "supervisor_group_proof": "none positive; harness saw executor raw 1 only", "receipt": false, "classification": "functional reporting loss (F1); not expected early startup"},
+    "inner-final-alarm": {"inner_existed": true, "worker_existed": true, "supervisor_pid": 85463, "worker_pid_pgid": 85472, "worker_proof": "supervisor waitpid raw status 512 rc 2 at 510124.391844166 plus owned_process_stop group_empty true", "supervisor_group_proof": "none positive", "receipt": false, "classification": "functional reporting loss (F1)"},
+    "direct-cancel-startup": {"inner_existed": true, "worker_existed": false, "worker_proof": "absence only: campaign holds only inner-failure.json; no worker.stdout/stderr (opened with 'x' before Popen), no worker-events.jsonl, no register_worker", "supervisor_group_proof": "none positive", "receipt": false, "classification": "expected: no worker could exist; receipt loss is F1; fixture label wrong (F4)"},
+    "direct-cancel-wait": {"inner_existed": true, "worker_existed": true, "worker_pid_pgid": "not retained", "worker_proof": "worker.stderr.log shows uncaught Stop 'Worker ownership/session differs' in worker_gate (interpreter exit); no PID, wait report or group probe retained", "supervisor_group_proof": "none positive", "receipt": false, "classification": "functional reporting loss (F1); worker death inferred, not positively witnessed"},
+    "normal-deadline-wedged": {"inner_existed": true, "worker_existed": true, "worker_pid_pgid": "not retained", "worker_proof": "worker.stderr.log shows Stop 'Truncated owned IPC packet' in worker_gate; never reached wedged loop", "supervisor_group_proof": "none positive", "receipt": false, "classification": "functional reporting loss (F1) plus ineffective fixture and open O1"},
+    "RSS-resource-cap": {"inner_existed": false, "worker_existed": false, "worker_proof": "receipt: ownership {}, inner_wait null, worker_wait null, events []; no campaign dir, no inner/worker events; traceback ends in guard.start -> sample before child creation", "receipt": true, "classification": "expected early no-child; receipt correct (cleanup_complete true 7 ms after first failure); empty witness legitimately vacuous but should be asserted explicitly"}
+  },
+  "no_additional_confirmed_finding_on": [
+    "FailurePool minimum/10 s cap semantics: patched copy leaves pool formula untouched and explicit conflicts still reject",
+    "Execution.fail with Stop reasons: descriptor and explicit at consistent, including cutoff times",
+    "stale accepted receipt plus raw 1 acceptance"
+  ],
+  "limits": [
+    "No OS re-execution. F1/F2 are source-extracted pure reproductions with real frozen classes; the in-OS correlation is timing (first failure + 10.00 s) and missing files, not a live trace of the monitor.",
+    "Supervisor-group absence and worker PID/PGID are not positively witnessed for the five starved cases except the two worker reap records quoted.",
+    "Executor-side IPC raw bytes were not retained, so O1 stays open.",
+    "The patched copy proves only the discriminators; it is not a review of the whole boundary design or of OS behavior after the patch."
+  ]
+}

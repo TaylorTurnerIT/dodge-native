@@ -1,0 +1,52 @@
+{
+  "schema": "D2_performance_duration_comparison_v1",
+  "created_at_utc": "2026-10-25T20:28:00.345443+00:00",
+  "rows": [
+    {
+      "cohort": "Earlier D2 run at48newD2updates",
+      "checkpoint": "checkpoint-000016-long_evaluated.pt",
+      "new_D2_updates": 48,
+      "performance": {
+        "Q1": 525.125,
+        "Q4": 1481.5,
+        "mean": 848.328125
+      }
+    },
+    {
+      "cohort": "Earlier D2 best at320newD2updates",
+      "checkpoint": "checkpoint-000050-long_evaluated.pt",
+      "new_D2_updates": 320,
+      "performance": {
+        "Q1": 648.25,
+        "Q4": 4508.8125,
+        "mean": 2240.0
+      }
+    },
+    {
+      "cohort": "Fresh diagnostic at48newD2updates",
+      "checkpoint": "diagnostic-000048.pt",
+      "new_D2_updates": 48,
+      "performance": {
+        "Q1": 521.0625,
+        "Q4": 2401.1875,
+        "mean": 1101.9375
+      }
+    }
+  ],
+  "matched48update_mean_change_fraction": 0.2989519827602085,
+  "evaluation_seeds_match": true,
+  "fresh_diagnostic_restarted_from_acceptedD1": true,
+  "old_best_training_parent_eligible": false,
+  "explanation": "Recent diagnostic measured a different model restarted from accepted D1 for direct critic instrumentation; it did not continue earlier320update D2best. Current2401.1875isQ4, not mean.",
+  "limitations": [
+    "Training seed streams differ; matched duration comparison is descriptive, not a controlled causal ablation.",
+    "Earlier best was selected from repeated development evaluations; not heldout qualification."
+  ],
+  "input_sha256": {
+    "learning/runs/v2/postovernight-long-D2-campaign-r2/checkpoint-000016-long_evaluated.pt.long-evaluation.json": "6c81b249b7cec88f1a5db7a186c38ce3d6aacdfa07b7c121d1b2a0c0b1fb70c4",
+    "learning/runs/v2/postovernight-long-D2-campaign-r2/checkpoint-000050-long_evaluated.pt.long-evaluation.json": "fa6b78893668c2d7f66244bf76ce50856f1aacc95f75c10a119e58bb4282b0ee",
+    "learning/runs/v2/postovernight-long-D2-campaign-r2/training-metrics.jsonl": "c81cc153a0f7ef6704350b56266b3bafb7503a15623ce7a1fd009d9d6d1afc23",
+    "learning/runs/v2/critic-diagnostic-D2-20261025-r2/development-000048.json": "e5cf2480ef8435899fa512e2a8b425107a8cefe99c1165f0b9c205a5089a02be",
+    "learning/runs/v2/critic-diagnostic-D2-20261025-r2/entry-restoration.json": "024a5660bc95d50035b24e5c11be1872373f74d674439d3da7766a5559659eab"
+  }
+}

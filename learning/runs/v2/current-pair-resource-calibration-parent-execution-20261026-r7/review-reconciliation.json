@@ -1,0 +1,54 @@
+{
+  "active_window_seconds": [
+    30,
+    45
+  ],
+  "cleanup_seconds_included": 10,
+  "findings": [
+    {
+      "disposition": "not_reproduced_source_order",
+      "evidence": "probe.py:226 verifies pins before ResourceSampler.start at232. Second verification at250 follows sampler but is an additional gate.",
+      "id": 1
+    },
+    {
+      "disposition": "not_reproduced_source_order",
+      "evidence": "launch_once.py:341-342 polls worker immediately after ps and returns before measured.returncode at343.",
+      "id": 2
+    },
+    {
+      "disposition": "accepted_low_evidence_limitation",
+      "evidence": "Pre-try probe exceptions retain launcher stderr and failed child receipt; no probe-result.json is guaranteed. Parent will not infer success without full outputs.",
+      "id": 3
+    },
+    {
+      "disposition": "accepted_low_defense_in_depth",
+      "evidence": "Pinned CPU preflight and probe both strict-load CPU checkpoint modes; parent17-check replay passed. Launcher status check alone is narrower.",
+      "id": 4
+    },
+    {
+      "disposition": "resolved_from_explicit_plan",
+      "evidence": "limits.aggregate_owned_current_rss_bytes and success_gates.aggregate_owned_current_rss_bytes_max explicitly cap launcher+worker at6GiB; mps_driver_bytes independently6GiB. Worker highwater retained separately.",
+      "id": 5
+    }
+  ],
+  "metadata_limitations": [
+    "Plan cpu_preflight_evidence_sha256 is stale archival preparation evidence; new independently hashed parent CPU validation is launch evidence. No historical metadata edited."
+  ],
+  "mps_forwards_min": 240,
+  "outer_seconds_max": 120,
+  "parent_CPU_tests_passed": 17,
+  "parent_CPU_validation": "learning/runs/v2/current-pair-resource-calibration-parent-validation-20261026-r7/validation.json",
+  "parent_CPU_validation_sha256": "953748c650e26a8582a8a0d23e2a64e0fa4c84cba7b11d52e832afcf83e8e56b",
+  "pins_verified": 60,
+  "real_game_episodes": 0,
+  "review_json_sha256": "7569312447fc52f5207428fb58dc93070ba8249e43169647ed76d56687702342",
+  "review_md_sha256": "1913f9ea127e8a71c5c04cd5aeca789a086b8963deb71723753930d020bc168a",
+  "review_receipt_sha256": "e510b90cb759470cdbcf559fc1bff81f4d17d2c399dbb1d06f0b7292c5acd6e7",
+  "review_source_manifest_sha256": "77a722de1978ed5de8ae8a50da9c1e70b0d3f4196aba6ab0b2cc7cf4796ed0bf",
+  "schema": "calibration_r7_parent_review_reconciliation_v1",
+  "source_review_verdict": "findings_no_blocker_static",
+  "source_unchanged": true,
+  "status": "accepted_for_one_bounded_probe_not_runtime_qualification",
+  "training": false,
+  "work_seconds_max": 90
+}

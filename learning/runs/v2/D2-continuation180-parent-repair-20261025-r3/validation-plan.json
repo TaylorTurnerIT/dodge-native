@@ -1,0 +1,53 @@
+{
+  "budget_seconds": 600,
+  "cwd": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-continuation180-parent-repair-20261025-r3",
+  "freeze_order": "All source edits complete before source hashes and registration are written. Generated outputs excluded from inputs.",
+  "schema": "D2_continuation180_parent_repair_plan_v1",
+  "scope": "Fresh preparation candidate. Fix synthetic native/runtime path mismatch and production helper local48 versus phase180 confusion; no training or runtime changes.",
+  "steps": [
+    {
+      "args": [
+        "validate_registration_keys.py"
+      ],
+      "budget_seconds": 60,
+      "id": "pin_audit"
+    },
+    {
+      "args": [
+        "test_torch_restore.py"
+      ],
+      "budget_seconds": 180,
+      "id": "actual_parent_restore"
+    },
+    {
+      "args": [
+        "-m",
+        "unittest",
+        "-v",
+        "test_continuation_contract",
+        "test_launcher_lifecycle",
+        "test_capsule_support",
+        "test_outputs"
+      ],
+      "budget_seconds": 120,
+      "id": "contracts"
+    },
+    {
+      "args": [
+        "compare_smoke.py"
+      ],
+      "budget_seconds": 60,
+      "id": "protocol_smoke"
+    },
+    {
+      "args": [
+        "preflight_prepare.py",
+        "<registration>",
+        "<registration_sha256>"
+      ],
+      "budget_seconds": 120,
+      "id": "full_preflight"
+    }
+  ],
+  "stop_policy": "Stop first failed registered stage, retain logs and candidate; no retries/edits."
+}

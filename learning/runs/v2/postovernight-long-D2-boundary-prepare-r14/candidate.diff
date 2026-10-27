@@ -1,0 +1,1977 @@
+--- r12-source/current_delta.py
++++ r14/current_delta.py
+@@ -0,0 +1,180 @@
++"""Strict current-candidate (r14) delta against exact historical controllers.
++
++Byte projection only: every removed or replaced string is listed explicitly,
++must occur the stated number of times, and no protected body is normalized
++by AST or blanket Guard/full_check exclusion.
++"""
++import ast
++
++SCHEDULING_HELPERS = ('restore_boundary_switch_interval', 'boundary_switch_interval')
++R11_SHA = 'fe11c08159bdb9ca1f03cb0fb96ffd133ad144d107b2a854d19fc49159aa2db2'
++R12_SHA = '22110a3cb52c36c86934ce02bb0b5c82e2041dc1a00e39a11bb80dd23697d115'
++
++WRAP_R14 = ('            callback_error = None\n'
++            '            try:\n'
++            '                with boundary_switch_interval():\n'
++            '                    try:\n'
++            '                        observation = self.verify()\n'
++            '                    except BaseException as error:\n'
++            '                        # Latch at the actual callback catch, before interval\n'
++            '                        # cleanup can raise a later error that replaces it.\n'
++            '                        callback_error = error\n'
++            '                        self.failure_at = self.failure_at or self.clock()\n'
++            "                        self.failure = self.failure or (error if isinstance(error, Stop) else Stop(repr(error)))\n"
++            '                        raise\n')
++WRAP_R12 = ('            try:\n'
++            '                with boundary_switch_interval():\n'
++            '                    observation = self.verify()\n')
++WRAP_R11 = ('            try:\n'
++            '                observation = self.verify()\n')
++PROPAGATE_R14 = ('                if callback_error is not None and error is not callback_error:\n'
++                 '                    # Later cleanup failure stays represented and fatal, but\n'
++                 '                    # the original callback failure remains primary.\n'
++                 "                    row.update(verdict='failed', error=repr(callback_error), cleanup_error=repr(error))\n"
++                 '                    raise callback_error from error\n')
++
++
++def _once(value, old, new):
++    if value.count(old) != 1:
++        raise AssertionError('Exactly one allowed delta occurrence required: ' + old[:60])
++    return value.replace(old, new)
++
++
++def _drop_helpers(text):
++    lines = text.splitlines(True)
++    found = []
++    for node in sorted((n for n in ast.parse(text).body
++                        if isinstance(n, ast.FunctionDef) and n.name in SCHEDULING_HELPERS),
++                       key=lambda n: n.lineno, reverse=True):
++        first = min([node.lineno] + [n.lineno for n in node.decorator_list])
++        found.append(node.name)
++        del lines[first - 1:node.end_lineno + 2]  # Each helper owns two following blanks.
++    if sorted(found) != sorted(SCHEDULING_HELPERS):
++        raise AssertionError('Exactly the two scheduling helpers required')
++    return ''.join(lines)
++
++
++def project_to_r12(text):
++    """Remove only the r14 first-callback-failure additions and mechanical constants."""
++    value = _once(text, WRAP_R14, WRAP_R12)
++    value = _once(value, PROPAGATE_R14, '')
++    value = _once(value, 'postovernight-long-D2-boundary-prepare-r14', 'postovernight-long-D2-boundary-prepare-r12')
++    value = _once(value, 'postovernight-long-D2-r2-protocol-r10.json', 'postovernight-long-D2-r2-protocol-r9.json')
++    return value
++
++
++def project_to_r11(text):
++    """Strict controller projection to exact r11, from the r14 candidate."""
++    value = project_to_r12(text)
++    value = _drop_helpers(value)
++    value = _once(value, 'BOUNDARY_SWITCH_INTERVAL = 0.0001\n', '')
++    value = _once(value, WRAP_R12, WRAP_R11)
++    value = _once(value, 'postovernight-long-D2-boundary-prepare-r12', 'postovernight-long-D2-boundary-prepare-r11')
++    value = _once(value, 'postovernight-long-D2-r2-protocol-r9.json', 'postovernight-long-D2-r2-protocol-r8.json')
++    return value
++
++
++def project_to_r11_with_sha(text, current_sha, r12_sha=R12_SHA):
++    """Same as project_to_r11 with the three-step protocol hash mapping."""
++    value = _once(text, current_sha, r12_sha)
++    value = project_to_r11(value)
++    return _once(value, r12_sha, R11_SHA)
++
++
++def guard_text_without_full_check(text):
++    lines = text.splitlines(True)
++    guard = next(n for n in ast.parse(text).body if isinstance(n, ast.ClassDef) and n.name == 'Guard')
++    method = next(n for n in guard.body if isinstance(n, ast.FunctionDef) and n.name == 'full_check')
++    return ''.join(lines[guard.lineno - 1:method.lineno - 1] + lines[method.end_lineno:guard.end_lineno])
++
++
++def blocks_equal_except_scheduling_delta(old, new, extra_excluded=(), exact_additions=True):
++    """Compare top-level blocks. Guard compares byte-for-byte except full_check;
++    the two scheduling helpers must be added. exact_additions=True also forbids
++    any other addition (the original exact-dict assertion); False keeps the
++    original old-keys-only loops of the r9/r6 tests. full_check itself is
++    covered by the strict whole-controller byte projection in test_r14."""
++    added = set(new) - set(old)
++    if not set(SCHEDULING_HELPERS) <= added or (exact_additions and added != set(SCHEDULING_HELPERS)):
++        raise AssertionError('Unexpected block additions: %r' % sorted(added))
++    for name in old:
++        if name in extra_excluded:
++            continue
++        if name == 'Guard':
++            if guard_text_without_full_check(old[name]) != guard_text_without_full_check(new[name]):
++                raise AssertionError('Guard methods other than full_check differ')
++        elif old[name] != new[name]:
++            raise AssertionError('Protected block differs: ' + name)
++    return sorted(set(SCHEDULING_HELPERS))
++
++
++RUNTIME_CONTROLLER = ('long_d2.py', 'long_d2_executor.py', 'lifecycle.py', 'processes.py', 'boundary_integrity.py')
++TOOLING = ('freeze.py', 'source_equality.py', 'synthetic.py', 'os_checks.py', 'stress.py', 'rehearsal.py',
++           'fixture_guards.py', 'fixture_preconditions.py', 'parent_command.py', 'model_r11.py',
++           'current_delta.py', 'run_unit_suite.py', 'unit_stage.py', 'prepare_r14.py', 'finalize_r14.py',
++           'write_diffs_r14.py')
++ALLOWED_RUNTIME_SETTER_SCOPES = {'long_d2.py': set(SCHEDULING_HELPERS)}
++
++
++def classify_python(controller_names, identity_python):
++    """Explicit classes: runtime (launched import closure), test (test evidence),
++    tooling (preparation/validation scripts never launched by production).
++    Unclassified or doubly-classified Python is an error, never silently omitted."""
++    classes = {}
++    def put(path, kind):
++        if path in classes:
++            raise AssertionError('Doubly classified: ' + path)
++        classes[path] = kind
++    for name in controller_names:
++        if name in RUNTIME_CONTROLLER:
++            put(name, 'runtime')
++        elif name.startswith('test_') or name == 'conftest.py':
++            put(name, 'test')
++        elif name in TOOLING:
++            put(name, 'tooling')
++        else:
++            raise AssertionError('Unclassified controller Python: ' + name)
++    for name in identity_python:
++        if name.startswith('python/dodge_rl/'):
++            put(name, 'runtime')
++        elif name.startswith('python/tests/'):
++            put(name, 'test')
++        else:
++            raise AssertionError('Unclassified identity Python: ' + name)
++    return classes
++
++
++def _setter_sites(path, text):
++    tree = ast.parse(text)
++    sites = []
++    def visit(node, scope):
++        for child in ast.iter_child_nodes(node):
++            inner = scope + [child.name] if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) else scope
++            hit = ((isinstance(child, ast.Attribute) and child.attr == 'setswitchinterval')
++                   or (isinstance(child, ast.Name) and child.id == 'setswitchinterval')
++                   or (isinstance(child, ast.Constant) and child.value == 'setswitchinterval')
++                   or (isinstance(child, ast.alias) and child.name == 'setswitchinterval'))
++            if hit:
++                sites.append(dict(path=path, scope='.'.join(scope), line=getattr(child, 'lineno', None)))
++            visit(child, inner)
++    visit(tree, [])
++    return sites
++
++
++def scan_setters(sources, classes):
++    """sources: {path: text}; classes: {path: kind}. Returns separated reports.
++    Competing runtime setters are runtime sites outside the registered helpers.
++    This is a bounded registered-source scan, not a whole-program absence claim."""
++    if set(sources) != set(classes):
++        raise AssertionError('Classification must cover exactly the scanned sources')
++    report = dict(runtime_allowed=[], runtime_competing=[], test=[], tooling=[])
++    for path in sorted(sources):
++        for site in _setter_sites(path, sources[path]):
++            kind = classes[path]
++            if kind == 'runtime':
++                allowed = ALLOWED_RUNTIME_SETTER_SCOPES.get(path, set())
++                top = site['scope'].split('.')[0]
++                report['runtime_allowed' if top in allowed else 'runtime_competing'].append(site)
++            else:
++                report[kind].append(site)
++    return report
+--- r12-source/finalize_r14.py
++++ r14/finalize_r14.py
+@@ -0,0 +1,135 @@
++"""Post-stage publication: diffs, projection report, receipts, manifests.
++Runs once after the single registered stage; never edits source; never reruns tests."""
++from pathlib import Path
++import datetime, difflib, hashlib, json, subprocess, sys, time
++
++H = Path(__file__).resolve().parent
++ROOT = H.parents[3]
++sys.path.insert(0, str(H))
++import current_delta as delta  # stdlib only; never imports the candidate
++
++def sha(path):
++    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
++
++def save(name, value):
++    with (H / name).open('x') as stream:
++        json.dump(value, stream, indent=2, sort_keys=True, allow_nan=False)
++        stream.write('\n')
++
++def utc():
++    return datetime.datetime.now(datetime.timezone.utc).isoformat()
++
++def inventory():
++    paths = list(H.glob('*.py')) + [H/'protocol-r10-proposal.json', H/'protocol-r9-proposal.json', H/'protocol-r8-proposal.json']
++    for name in ('original-source', 'r6-source', 'r9-source', 'r10-source', 'r11-source', 'r12-source'):
++        paths.extend(p for p in (H/name).rglob('*') if p.is_file())
++    paths += [H/'retained-r9-injection.json', H/'preparation-copy.json']
++    return {str(p.relative_to(H)): dict(sha256=sha(p), bytes=p.stat().st_size) for p in sorted(set(paths))}
++
++def udiff(old, new, label_old, label_new):
++    return ''.join(difflib.unified_diff(old.read_text().splitlines(True) if old.exists() else [],
++        new.read_text().splitlines(True), fromfile=label_old, tofile=label_new))
++
++def main():
++    started = json.loads((H / 'start.json').read_text())
++    stage = H / 'unit-stage'
++    raw = json.loads((stage / 'raw-result.json').read_text())
++    suite_path = stage / 'suite-result.json'
++    suite = json.loads(suite_path.read_text()) if suite_path.exists() else None
++    frozen = json.loads((H / 'source-manifest.json').read_text())['files']
++    source_unchanged = frozen == inventory()
++    (H / 'diffs').mkdir()
++    combined = []
++    changed = []
++    for path in sorted(p for p in H.iterdir() if p.is_file() and p.suffix in ('.py', '.json') and p.name not in
++                       ('start.json',)):
++        old = H/'r12-source'/path.name
++        text = udiff(old, path, 'r12-source/' + path.name, 'r14/' + path.name)
++        if path.name.startswith(('input-manifest', 'base-source', 'source-manifest', 'state.', 'implementation', 'completion', 'evidence', 'json-validation', 'test-receipt', 'byte-projection', 'finalize', 'prepare_', 'current_delta', 'run_unit_suite', 'unit_stage')):
++            continue
++        if text:
++            (H / 'diffs' / (path.name + '.diff')).write_text(text)
++            combined.append(text)
++            changed.append(path.name)
++    for name in ('current_delta.py', 'run_unit_suite.py', 'unit_stage.py', 'test_r14.py', 'protocol-r10-proposal.json', 'prepare_r14.py', 'finalize_r14.py'):
++        old = H/'r12-source'/name if (H/'r12-source'/name).exists() else Path('/nonexistent')
++        text = udiff(old, H/name, 'r12-source/' + name, 'r14/' + name)
++        (H / 'diffs' / (name + '.diff')).write_text(text)
++        if name not in changed:
++            combined.append(text); changed.append(name)
++    (H / 'candidate.diff').write_text(''.join(combined))
++    (H / 'diffs' / 'protocol-r10-vs-r9.diff').write_text(udiff(H/'r12-source/protocol-r9-proposal.json', H/'protocol-r10-proposal.json', 'protocol-r9-proposal.json', 'protocol-r10-proposal.json'))
++    (H / 'diffs' / 'long_d2.py.vs-r11.diff').write_text(udiff(H/'r11-source/long_d2.py', H/'long_d2.py', 'r11-source/long_d2.py', 'r14/long_d2.py'))
++    projection = dict(schema='r14_byte_projection_v1',
++        projected_r14_to_r11_equals_exact_r11=delta.project_to_r11_with_sha((H/'long_d2.py').read_text(), json.loads((H/'protocol-r10-proposal.json').read_text()) and hashlib.sha256((H/'protocol-r10-proposal.json').read_bytes()).hexdigest()) == (H/'r11-source/long_d2.py').read_text(),
++        allowed_transformations=['remove two scheduling helper functions with two trailing blanks', 'remove BOUNDARY_SWITCH_INTERVAL line',
++            'replace wrapped callback with exact r11 callback', 'remove exact r14 early-catch block', 'remove exact r14 masked-cleanup propagation block',
++            'replace three mechanical constants (prepare path r14->r11, protocol path r10->r8, protocol sha)'],
++        no_ast_normalization=True, no_blanket_Guard_exclusion=True,
++        other_controller_files_byte_equal_r11={n: (H/n).read_bytes() == (H/'r11-source'/n).read_bytes() for n in
++            ('long_d2_executor.py', 'lifecycle.py', 'processes.py', 'boundary_integrity.py', 'freeze.py', 'source_equality.py', 'fixture_guards.py', 'fixture_preconditions.py', 'os_checks.py', 'synthetic.py', 'stress.py', 'rehearsal.py', 'parent_command.py', 'model_r11.py')},
++        migrated_static_tests=['test_r11.R11.test_C01_exact_success_consumers_transport_inner_fixtures_and_old91', 'test_r11.R11.test_C02_protocol_only_candidate_paths_and_qualified_semantics', 'test_r10.R10.test_exact_r9_transport_success_consumers_protected_blocks', 'test_r7.R7.test_success_consumers_and_protected_failure_helpers_byte_equal'])
++    save('byte-projection-report.json', projection)
++    rows = suite['per_test_results'] if suite else []
++    receipt = dict(schema='r14_test_receipt_v1', command=json.loads((stage/'command.json').read_text()),
++        raw_exit=raw.get('raw_exit'), timed_out=raw.get('timed_out'), wrapper_elapsed_seconds=raw.get('elapsed_seconds'),
++        validation_attempts=raw.get('validation_attempts'), no_retry=True, wrapper_error=raw.get('setup_or_wrapper_error'),
++        suite=None if suite is None else {k: suite[k] for k in ('tests_run', 'failures', 'errors', 'skipped', 'unexpected_successes', 'successful', 'forbidden_imports', 'existing_method_count', 'new_method_count', 'failed_tests', 'error_tests', 'executable_observed', 'argv')},
++        executed=[dict(test=r['test'], status=r['status'], elapsed_seconds=r['elapsed_seconds'], source_binding=r['source_binding']) for r in rows],
++        unrun=None if suite is None else suite['unrun_tests'],
++        failure_detail=[r for r in rows if r['status'] != 'passed'],
++        source_inventory_unchanged_through_stage=raw.get('source_inventory_unchanged'), source_unchanged_at_finalize=source_unchanged)
++    save('test-receipt.json', receipt)
++    passed = bool(suite and suite['successful'] and raw.get('raw_exit') == 0 and not raw.get('timed_out') and source_unchanged)
++    elapsed = time.time() - started['start_epoch']
++    r13 = ROOT / 'learning/runs/v2/postovernight-long-D2-boundary-prepare-r13'
++    result = dict(schema='r14_implementation_result_v1', status='passed' if passed else 'failed',
++        candidate=str(H), base='frozen r12 (r13 produced no code/tests)',
++        source_manifest_sha256=sha(H/'source-manifest.json'), source_members=len(frozen),
++        candidate_diff=dict(path='candidate.diff', sha256=sha(H/'candidate.diff')), changed_files=sorted(changed),
++        protocol_r10_proposal=dict(path='protocol-r10-proposal.json', sha256=sha(H/'protocol-r10-proposal.json'), pinned_in_controller=True, external_publication=False),
++        tests=dict(registered=None if suite is None else suite['tests_run'], raw_exit=raw.get('raw_exit'), executed_rows=len(rows),
++                   unrun=None if suite is None else len(suite['unrun_tests'])),
++        production_semantic_change='Guard.full_check early callback catch before interval cleanup; masked-cleanup propagation retains original callback exception with cleanup as cause',
++        retained_r13_setup_failure_sha256=sha(r13/'setup-failure.json') if (r13/'setup-failure.json').exists() else None,
++        routine_read_only_discovery_errors=[], campaign_retries=0,
++        scope_deviations=[], actual_elapsed_seconds_through_result=elapsed, budget_seconds=1800,
++        frozen_source_handoff=True, modeled_signals_only=True, training_authorization_7200s_unused_parent_held=True)
++    save('implementation-result.json', result)
++    (H/'PARENT-NEXT.md').write_text(parent_next(result, receipt, projection))
++    validation = []
++    cache = H / 'json-validation-pycache'
++    cache.mkdir()
++    for path in sorted(H.rglob('*.json')):
++        if cache in path.parents or 'unit-stage/sources' in str(path) or 'unit-stage/fixtures' in str(path) or any(x in path.parts for x in ('original-source','r6-source','r9-source','r10-source','r11-source','r12-source')):
++            continue
++        proc = subprocess.run(['learning/.venv/bin/python', '-B', '-m', 'json.tool', str(path)], cwd=ROOT,
++            capture_output=True, env=dict(PYTHONDONTWRITEBYTECODE='1', PYTHONPYCACHEPREFIX=str(cache), PATH='/usr/bin:/bin'))
++        validation.append(dict(path=str(path.relative_to(H)), returncode=proc.returncode))
++    save('json-validation.json', dict(validated=len(validation), all_ok=all(v['returncode'] == 0 for v in validation), files=validation))
++    excluded = ('evidence-manifest.json', 'completion-receipt.json')
++    files = {str(p.relative_to(H)): dict(sha256=sha(p), bytes=p.stat().st_size) for p in sorted(H.rglob('*'))
++             if p.is_file() and p.name not in excluded and cache not in p.parents}
++    save('evidence-manifest.json', dict(schema='r14_evidence_manifest_v1', acyclic=True, excludes=list(excluded), logs_closed=True, files=files))
++    done = time.time() - started['start_epoch']
++    save('completion-receipt.json', dict(schema='r14_completion_v1', completed_at_utc=utc(), actual_elapsed_seconds=done,
++        budget_seconds=1800, in_budget=done <= 1800, evidence_manifest_sha256=sha(H/'evidence-manifest.json'),
++        implementation_result_sha256=sha(H/'implementation-result.json'), status=result['status'],
++        exactly_one_test_invocation=raw.get('validation_attempts') == 1, no_patch_or_retry=True, source_frozen=source_unchanged))
++    print(json.dumps(dict(status=result['status'], elapsed=done, evidence_files=len(files))))
++
++def parent_next(result, receipt, projection):
++    suite = receipt['suite'] or {}
++    return f"""# r14 {result['status']} source-only handoff
++
++Source is frozen and ownership released. Base is exact frozen r12; r13 produced no code or tests. One stdlib stage ran: raw exit {receipt['raw_exit']}, wrapper wall {receipt['wrapper_elapsed_seconds']}s, tests run {suite.get('tests_run')}, failures {suite.get('failures')}, errors {suite.get('errors')}, skips {suite.get('skipped')}, unrun {None if receipt['unrun'] is None else len(receipt['unrun'])}.
++
++Production change: `Guard.full_check` now latches the callback exception and its actual catch timestamp inside the interval context, before cleanup can raise. If cleanup masks it, the original callback exception is re-raised with the cleanup error as `__cause__`; the cleanup error is recorded as `cleanup_error` and remains latched by the process latch. Unchanged: observed_failure, primary_error, worker_failure, FailurePool, executor, lifecycle, processes, boundary_integrity, all fixtures and consumers.
++
++Tests: all 112 inherited methods ran against the current candidate. Four named static methods migrated their expectations (see byte-projection-report.json and diffs); the other 108 bodies are byte-identical. No historical-target rebinding. Signals are modeled (ProcessLatch.handle with a fake clock), not OS signals. Mechanical constants: `prepare-r14`/protocol-r10; `protocol-r10-proposal.json` derives from exact r12 protocol-r9 bytes. No external publication.
++
++Parent owns publication of protocol-r10, fresh identity/classification/capsule/registration, independent frozen review, OS/stress/startup validation and the single unused 7200-second training authorization. Setter scan is a bounded registered-source scan, not a whole-program claim; main-thread ownership is cooperation, not enforcement.
++"""
++
++if __name__ == '__main__':
++    main()
+--- r12-source/long_d2.py
++++ r14/long_d2.py
+@@ -31,10 +31,10 @@
+ import boundary_integrity as integrity
+ 
+ ORIGINAL_ROOT = Path('/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79')
+-PREPARE_REL = 'learning/runs/v2/postovernight-long-D2-boundary-prepare-r12'
++PREPARE_REL = 'learning/runs/v2/postovernight-long-D2-boundary-prepare-r14'
+ ROOT = Path(__file__).resolve().parents[4]
+-PROTOCOL_REL = 'learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r9.json'
+-PROTOCOL_SHA256 = '22110a3cb52c36c86934ce02bb0b5c82e2041dc1a00e39a11bb80dd23697d115'
++PROTOCOL_REL = 'learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r10.json'
++PROTOCOL_SHA256 = 'ff160f8faec7c4d9b165e09db38fc3831e20e3f6609f1a82b63df42a307979ec'
+ CONFIG_SHA256 = '2ac814d3842228017d09669364a8391344722da56ad19f41ad9030dbb930c2db'
+ STATE_PATH = ORIGINAL_ROOT / 'learning/runs/v2-orchestration/state.json'
+ LIMIT = 6442450944
+@@ -551,13 +551,27 @@
+             cpu = time.thread_time()
+             stats = dict(files=0, bytes=0, components={})
+             VERIFY_LOCAL.stats = stats
++            callback_error = None
+             try:
+                 with boundary_switch_interval():
+-                    observation = self.verify()
++                    try:
++                        observation = self.verify()
++                    except BaseException as error:
++                        # Latch at the actual callback catch, before interval
++                        # cleanup can raise a later error that replaces it.
++                        callback_error = error
++                        self.failure_at = self.failure_at or self.clock()
++                        self.failure = self.failure or (error if isinstance(error, Stop) else Stop(repr(error)))
++                        raise
+                 self.last_full = at
+                 self.check()
+                 row.update(verdict='passed', observation=observation)
+             except BaseException as error:
++                if callback_error is not None and error is not callback_error:
++                    # Later cleanup failure stays represented and fatal, but
++                    # the original callback failure remains primary.
++                    row.update(verdict='failed', error=repr(callback_error), cleanup_error=repr(error))
++                    raise callback_error from error
+                 row.update(verdict='failed', error=repr(error))
+                 self.failure_at = self.failure_at or self.clock()
+                 self.failure = self.failure or (error if isinstance(error, Stop) else Stop(repr(error)))
+--- r12-source/prepare_r14.py
++++ r14/prepare_r14.py
+@@ -0,0 +1,78 @@
++"""Read-only r12 verification and owned r14 source-only copy. Routine read
++inspection errors are retained separately; hash mismatch stops without patch."""
++from pathlib import Path
++import datetime, hashlib, json, shutil
++
++H = Path(__file__).resolve().parent
++ROOT = H.parents[3]
++R12 = H.with_name('postovernight-long-D2-boundary-prepare-r12')
++SKIP_CURRENT = {'test_r12.py', 'prepare_r12.py', 'finalize_r12.py', 'run_unit_suite.py', 'unit_stage.py'}
++
++def sha(path):
++    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
++
++def save(name, value):
++    with (H / name).open('x') as stream:
++        json.dump(value, stream, indent=2, sort_keys=True, allow_nan=False)
++        stream.write('\n')
++
++def main():
++    try:
++        source = json.loads((R12 / 'source-manifest.json').read_text())['files']
++        bad = [n for n, v in source.items() if sha(R12 / n) != v['sha256'] or (R12 / n).stat().st_size != v['bytes']]
++        if bad or len(source) != 229:
++            raise RuntimeError('r12 source hash mismatch: %r count=%d' % (bad[:5], len(source)))
++        inputs = json.loads((R12 / 'input-manifest.json').read_text())['files']
++        bad_in = [n for n, v in inputs.items() if sha(n) != v['sha256']]
++        if bad_in or len(inputs) != 215:
++            raise RuntimeError('r12 input hash mismatch: %r count=%d' % (bad_in[:5], len(inputs)))
++        evidence = json.loads((R12 / 'evidence-manifest.json').read_text())['files']
++        bad_ev = [n for n, v in evidence.items() if sha(R12 / n) != v['sha256']]
++        if bad_ev:
++            raise RuntimeError('r12 evidence hash mismatch: %r' % (bad_ev[:5],))
++        authority = ROOT / 'learning/runs/v2-orchestration'
++        extra = {}
++        for name in ('postovernight-long-D2-boundary-repair-r14-task.md', 'postovernight-long-D2-boundary-repair-r13-task.md',
++                     'postovernight-long-D2-boundary-repair-r12-task.md', 'postovernight-long-D2-r13-parent-reconciliation.json',
++                     'postovernight-long-D2-r12-parent-reconciliation.json'):
++            extra[str(authority / name)] = sha(authority / name)
++        probe = ROOT / 'learning/runs/v2/postovernight-long-D2-switchinterval-probe-r1'
++        for name in ('probe_once.py', 'run_once.py', 'plan.json', 'command.json', 'wrapper-result.json',
++                     'output/result.json', 'parent-reconciliation.json', 'parent-evidence-manifest.json'):
++            extra[str(probe / name)] = sha(probe / name)
++        chron = ROOT / 'learning/runs/v2/postovernight-long-D2-r12-chronology-proof-r1'
++        for path in sorted(chron.rglob('*')):
++            if path.is_file():
++                extra[str(path)] = sha(path)
++        state = (authority / 'state.json').read_bytes()
++        (H / 'state.context.snapshot.json').write_bytes(state)
++        # Current files: every top-level r12 source member except r12-specific scripts.
++        r12snap = H / 'r12-source'
++        r12snap.mkdir()
++        copies = {}
++        for name in source:
++            if '/' in name:
++                continue
++            shutil.copyfile(R12 / name, r12snap / name)
++            if name not in SKIP_CURRENT:
++                shutil.copyfile(R12 / name, H / name)
++                copies[name] = sha(H / name)
++        for name in ('original-source', 'r6-source', 'r9-source', 'r10-source', 'r11-source'):
++            shutil.copytree(R12 / name, H / name)
++            shutil.copytree(R12 / name, r12snap / name)
++        save('base-source-manifest.json', dict(schema='r14_base_v1', base=str(R12), base_candidate='frozen r12',
++            r12_source_members_verified=len(source), r12_input_members_verified=len(inputs),
++            r12_evidence_members_verified=len(evidence), current_top_level_copies=copies,
++            skipped_r12_specific_current=sorted(SKIP_CURRENT), r12_snapshot=str(r12snap),
++            retained_fixture_directories=['original-source', 'r6-source', 'r9-source', 'r10-source', 'r11-source']))
++        save('input-manifest.json', dict(schema='r14_inputs_v1', r12_inputs=inputs, additional_inputs=extra,
++            r12_source_members=len(source), r12_input_members=len(inputs), r12_evidence_members=len(evidence),
++            additional_input_count=len(extra), mutable_context_snapshot='state.context.snapshot.json',
++            read_without_execution=True))
++        print(json.dumps(dict(status='prepared', source=len(source), inputs=len(inputs), evidence=len(evidence), extra=len(extra))))
++    except BaseException as error:
++        save('setup-failure.json', dict(error=repr(error), no_retry=True))
++        raise
++
++if __name__ == '__main__':
++    main()
+--- r12-source/protocol-r10-proposal.json
++++ r14/protocol-r10-proposal.json
+@@ -0,0 +1,573 @@
++{
++  "api_audit": "learning/runs/v2/postovernight-long-D2-api-audit-r1/audit.json",
++  "api_audit_sha256": "f09d8eb99b527cf7e11e8d772a5bd3fa7d36f3fddc830083aad9170226c92b37",
++  "authorization": "postovernight_user_go_guard_repair_and_long_D2_7200s_r2",
++  "base_config_path": "learning/runs/v2/milestone3-D2-freeze-r1/D2-config.json",
++  "base_config_sha256": "2d8eb5626d0debdf5416d0b89610d78ddd56011c3238a82fec72efabe1bd7fe3",
++  "base_identity": {
++    "architecture": {
++      "activation": "gelu",
++      "actor_head": [
++        128,
++        128,
++        9
++      ],
++      "attention": "full_self_attention",
++      "average_attn_weights": true,
++      "class": "OmniscientEntityTeacher",
++      "critic_head": [
++        128,
++        128,
++        1
++      ],
++      "dropout": 0.0,
++      "entity_embedding": [
++        16,
++        128,
++        128
++      ],
++      "entity_mask_true_means_valid": true,
++      "entity_position_embeddings": false,
++      "entity_shape": [
++        80,
++        16
++      ],
++      "entity_type_vocab_size": 9,
++      "entity_valid_types": [
++        1,
++        2,
++        3,
++        4,
++        5,
++        6,
++        7,
++        8
++      ],
++      "ffn_dim": 256,
++      "global_embedding": [
++        14,
++        128
++      ],
++      "global_shape": [
++        1,
++        14
++      ],
++      "head_initialization": {
++        "actor_final_gain": 0.01,
++        "critic_final_gain": 1.0,
++        "hidden_gain": 1.4142135623730951,
++        "method": "orthogonal_weights_zero_biases"
++      },
++      "layernorm_eps": 1e-05,
++      "model_dim": 128,
++      "need_weights": true,
++      "normalization": "pre_norm_plus_final_layernorm",
++      "num_heads": 4,
++      "num_layers": 2,
++      "parameter_count": 321290,
++      "token_count": 81,
++      "trunk_initialization": "pytorch_default",
++      "version": "omniscient_entity_teacher_full_attention_v1"
++    },
++    "config": {
++      "action_repeat": 4,
++      "auxiliary_targets": false,
++      "batch_size": 64,
++      "chunk_size": 8,
++      "contract_sha256": "a1051d82527a9aec1f7967ff8ab217c30263240e032991aeff7b993fd975ba47",
++      "development_layout": "64_independent_B1_envs;one_seed_each;batch_policy_over_alive_envs;no_reset_or_filler",
++      "device": "mps",
++      "dtype": "float32",
++      "excluded_seed_ranges": [
++        [
++          2952790016,
++          2952791015
++        ],
++        [
++          3489660928,
++          3489661055
++        ],
++        [
++          3758096384,
++          3758097383
++        ]
++      ],
++      "num_threads": 4,
++      "parent_checkpoint_sha256": "ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f",
++      "phase": "D2",
++      "phase_settings": {
++        "budget_seconds": 1800,
++        "difficulty": 2,
++        "initialization": "transition_from_successful_D1",
++        "patterns_enabled": true,
++        "run_seed": 5562881586070242562
++      },
++      "powerups_enabled": true,
++      "ppo": {
++        "adam_eps": 1e-05,
++        "clip_coef": 0.2,
++        "ent_coef": 0.01,
++        "gae_lambda": 0.95,
++        "gamma": 0.995,
++        "learning_rate": 0.0003,
++        "max_grad_norm": 0.5,
++        "minibatch_size": 512,
++        "reward_scale": 0.1,
++        "target_kl": 0.03,
++        "update_epochs": 4,
++        "vf_coef": 0.5
++      },
++      "probe_devices": [],
++      "protocol_sha256": "9e0d82028011f83e0cf6ddaef5f5e118591158d8a557f6698c82c150d5a69bab",
++      "qualification_sha256": "e091f8a2fad0a307d289a6d306112606b15df8f8aa0f3a75707ac7cfb2cee803",
++      "render_pixels": false,
++      "rollout_steps": 256,
++      "running_normalization": false,
++      "sampling_backend": "torch_global_mps",
++      "training_raw_frame_cap": 18000,
++      "version": "teacher_registered_config_v1"
++    },
++    "config_sha256": "3cfd4f945ff366aa0fa9b1404e6bfb36cb85af8a97ebf9ac7d3a0d0c91487329",
++    "effective_excluded_seed_ranges": [
++      [
++        2952790016,
++        2952791015
++      ],
++      [
++        3489660928,
++        3489661055
++      ],
++      [
++        3758096384,
++        3758097383
++      ]
++    ],
++    "foundation": {
++      "acceptance_sha256": "15384c4296dfd1e577746a896c0ef3c3d2de01400948155fc2daa766e8e0f006",
++      "binary_and_receipt_sha256": {
++        "/Users/taylor/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/bin/python3.12": "8dcafa7835e861e88a8f8ac7e61effbf5a987f32b0ec47bb1f3c9987caf9216d",
++        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m2-integration-build-r2/release/deps/dodge_rl_env-af3e363fd4e3a01d": "b59ce1806ec67cd8ca0766601bfca61e8e7b979780ee8561edce0f0af82d5973",
++        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone2-campaign-freeze-r4/reconciled-build-receipt.json": "0fd8379ee8ce7f7900453f37a590427bd58cbeb7dc6e46d3dc1c4c7dfa2ce731"
++      },
++      "extension_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/dodge_rl/_native.cpython-312-darwin.so",
++      "extension_sha256": "967c7249acd52339d1818dcbe94e63ee734aea914c3497eb59a7e945a6e95583",
++      "identity_sha256": "eb72ae7efec29f6def72940715ad6ff09e43d09140f0c348f095bdbbf2727448",
++      "native_inputs": {
++        ".cargo/config.toml": "6ccc6fe87a01199a87210f687271e21b5b57984f92e58d01cc0649aedc23a23c",
++        "Cargo.lock": "71f583c7fd42558fa9c87e26cf010f40fff131aedf70a0405be21dcb09aa7219",
++        "Cargo.toml": "7f837074b9d42f0531b2dd9268a0854a3fa2a98ffbafe8bba31789557feb154f",
++        "assets/dodge.p8": "7453a9658fd32577385ad72672a54ad84ff70567fadbde75ba6634aa5cc684a3",
++        "crates/dodge-core/Cargo.toml": "93ec079346a6c846cb8816989c56fc4ebd1a240fc083cbc7ac85609aae326d9b",
++        "crates/dodge-core/build.rs": "d430c56f6d13bbbbbb01c336587dd85570529133624fb00f2bd2f03096e347ce",
++        "crates/dodge-core/examples/headless_profile.rs": "a53ffd29b1541b40893b6c0f5b51978291771b6bf5c2eae975c8b1dd0b833e7d",
++        "crates/dodge-core/src/action.rs": "3bc9e8f4f73380c7176e1584630c036fcffe58173185e2285c530e25cc072e94",
++        "crates/dodge-core/src/config.rs": "70a04b58804c15821e0b6536ac6b806405d61ea07c1a7ac0898eec8c225c62bd",
++        "crates/dodge-core/src/enemy_rows.rs": "0535c311ad1f2c5faec77a063d9f3adfd8530ebc333dd2cb996a0e8483d4a30b",
++        "crates/dodge-core/src/error.rs": "f151767dc3297a41878e62033013aadd4c7f0dad15e5753cbea5e41371051d12",
++        "crates/dodge-core/src/fixed.rs": "feb6e551df787bf98da2a054b68b1515385c522728709e1b6f209d851737b557",
++        "crates/dodge-core/src/game.rs": "e781973c0390fde26342ec24113abdbfa3a8e9ef98844d41cf33c1977ecdccbd",
++        "crates/dodge-core/src/headless.rs": "e2cab9d281b81bcf4e50e7e7bcdec6e6172776a75459302348d0f86a2905a600",
++        "crates/dodge-core/src/headless_tests.rs": "1dff4888fbbdd5c634bb33205f29b7943ead2d555bb52ae19a73fd10b2305b7e",
++        "crates/dodge-core/src/input.rs": "d7f16d311cbf9b68a60033bbba6cbe22aba2edf159b4c6d9d624b1ad40410014",
++        "crates/dodge-core/src/lib.rs": "ecd23d6fbafb2da7b1ffe708eade2f0c39374f41b20ee1fecea04515510f0920",
++        "crates/dodge-core/src/lifecycle.rs": "5ea52dc32ab0a28509775119ed39d6669631ee1c27a4670c7413386c7068aed6",
++        "crates/dodge-core/src/observation_tests.rs": "7bda3328cf8c1dfdfee14c5eedd7a4dcfc89562131ec731cb3daf7a7393f0cb1",
++        "crates/dodge-core/src/patterns.rs": "d478af5f7867dbd6b4808f600e8c627b46f88fe3cd8c65a85f1a53c69276d7ac",
++        "crates/dodge-core/src/rng.rs": "6e5bfcf9d241332fcae2357f5dd420829ed8e8d19330803a5062c817a771b050",
++        "crates/dodge-core/src/snapshot.rs": "c63d89617eedc830e1a58abb8f700f55df0720a60b13c54fb7626c4af036c447",
++        "crates/dodge-core/src/state.rs": "51887e9809c53b77b95b38144ea4099a8ea9bcda6ca5ad9d967f74df96e8e566",
++        "crates/dodge-native-runner/Cargo.toml": "9ce7345a30b4eb35edd85896380d2673de28372887da824585cd69ababf3f09b",
++        "crates/dodge-native-runner/src/main.rs": "9802e2ce6982ca75001376fbb632f144411583308e378ba8c2f0b9d96e0292ac",
++        "crates/dodge-rl-env/Cargo.toml": "d344f7dd8b44f5558a694222460aa03f2dc8fc7f0593603f0861c27604031aeb",
++        "crates/dodge-rl-env/src/config.rs": "49d631bed0bd99fc195de102508a84730381d891c5c55be7c9ed81f48f8d7ac6",
++        "crates/dodge-rl-env/src/env.rs": "d4a9182720beb2d8cf77f9ad5b2f859db2aa479ebcd610d691a3f7bf61afd17a",
++        "crates/dodge-rl-env/src/features.rs": "78d72ee29fdcf2c0828e26d0a4265b50809f4c9899183332a4c48fb326dc006c",
++        "crates/dodge-rl-env/src/geometry.rs": "5b04907b9d87b336b685922ac0c7f235174e347e5a5308b1ebb1645c6014c171",
++        "crates/dodge-rl-env/src/lib.rs": "7c4b73d1f37990524dcad2a77038987da9e87540e90ce5023927dffec4d13b1c",
++        "crates/dodge-rl-env/src/python.rs": "3b5f8c388b33721f47050e2a99606ad2f34debbf74ca763b50fb5590f1d428ff",
++        "crates/dodge-rl-env/src/qualification_replay_tests.rs": "c8730ff4f9f77098cd01b5985ad8b7577e0ef5d9be55a57422c192e1c5fbc29d",
++        "crates/dodge-rl-env/src/raster.rs": "a48c80a0a549e76e7e77bdd79ef2aa0b6171669d761770c6b33b3ea0921a6927",
++        "crates/dodge-rl-env/src/seed.rs": "239cb9d88a61fff7d63c3c13c80e4552caafe814729160f8fb2948d3c1498832",
++        "crates/dodge-rl-env/src/seed_extension_tests.rs": "abe564cdef23107f2e4e35ed314d0264862cba2f8c6674a34c3df470a2c0626b",
++        "crates/dodge-rl-env/src/seed_reservation_tests.rs": "2efd1a93f62c80d3fa7ec1c40934716a7f46e659d5979add70deaf929cd7098e",
++        "crates/dodge-rl-env/src/tests.rs": "84eb459c7ec761e0de21e79e0556598b737e82a5d76edf408a98970cd35fcdfd",
++        "crates/dodge-rl-env/tests/primitives.rs": "588bc397427f992f8ddf75b8b2811f59bc4f570ea316876f55db30a6de4c80fd",
++        "crates/dodge-rl-env/tests/support/m0_expected.rs": "4615b8249f33640f70f8e38c47cd05fa3c437fa0dd4d497d904352e60ad4dc3f",
++        "crates/dodge-rl-env/tests/support/m0_policy.rs": "eeae605299b1018437a54df66f4eabf6e6d4defc20334c1baf93692900601b85",
++        "crates/dodge-rl-env/tests/support/qualification_expected.rs": "ad03726da0c294498750d8b56c27861b2e1c233b44eab326496b3aff2c8f0938",
++        "crates/dodge-rl-env/tests/support/wire_fixture.rs": "a25d4e7114fe76080e3051cb1391f2239089174aae2e849572ef819af28cd556",
++        "crates/dodge-viewer/Cargo.toml": "2265692c0df6c5422ad80cc29cdb00df7cbf8d006748bfe58f2654f83e3e659f",
++        "crates/dodge-viewer/src/lib.rs": "904060a629e4bcf4050666a6d19c22b4a428055f336f4f83a44794aa2aecadc2",
++        "crates/dodge-viewer/src/main.rs": "3326a2d418788c1a879e5ab076f72c6bf9953a7e46e9bca5b1553b05b395c8eb",
++        "python/dodge_rl/__init__.py": "2bf56a8151b512d78a228d604fdac67c529c8ebfd3fa233c71c2dd4f882b44dc",
++        "python/pyproject.toml": "77aba0bf695d802ef90662a2bf08c46090377f88ecd85d3da24421a762438698",
++        "python/requirements-local-mac.txt": "a02ffb8e053dfc7a6d3e7a0d1333e0907982a944593ef1cd4572353cbb71f34a",
++        "rust-toolchain.toml": "6c81c3c6bddc472074c879c21b48558154247502ef96ccc10b2e0971ef688e72"
++      }
++    },
++    "observation_schema_version": "dodge_global14_entity80x16_v2_r2",
++    "ppo": {
++      "adam_eps": 1e-05,
++      "advantage_normalization": "per_minibatch_population_std_plus_1e-8",
++      "approximate_kl": "mean(exp(logratio) - 1 - logratio)",
++      "clip_coef": 0.2,
++      "ent_coef": 0.01,
++      "episode_objective_abs_tolerance": 1e-09,
++      "gae_lambda": 0.95,
++      "gamma": 0.995,
++      "kl_stop": "full_rollout_at_epoch_end; stop_additional_epochs",
++      "learning_rate": 0.0003,
++      "max_grad_norm": 0.5,
++      "minibatch_size": 512,
++      "raw_step_reward_abs_tolerance": 1e-05,
++      "reward_scale": 0.1,
++      "rollout_storage": "independently_owned_CPU_tensors",
++      "running_observation_or_reward_normalization": false,
++      "target_kl": 0.03,
++      "total_loss": "policy_loss + vf_coef * value_loss - ent_coef * entropy",
++      "update_epochs": 4,
++      "value_clipping": false,
++      "value_loss": "0.5 * mean((new_value - GAE_return) ** 2)",
++      "vf_coef": 0.5
++    },
++    "reward_version": "score_plus_0.01_alive_minus_5_termination_v1",
++    "runtime": {
++      "interpreter": "/Users/taylor/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/bin/python3.12",
++      "interpreter_sha256": "8dcafa7835e861e88a8f8ac7e61effbf5a987f32b0ec47bb1f3c9987caf9216d",
++      "machine": "arm64",
++      "mps_available": true,
++      "numpy": "2.5.4",
++      "platform": "macOS-27.0.1-arm64-arm-64bit",
++      "python": "3.12.15 (main, Oct  1 2026, 20:49:34) [Clang 22.1.3 ]",
++      "torch": "2.14.1"
++    },
++    "seed_exclusion_version": "mandatory_b_plus_inclusive_union_rehash_v1",
++    "seed_stream_version": "dodge_slot_splitmix64_high32_reject_v1",
++    "sources": {
++      ".cargo/config.toml": "6ccc6fe87a01199a87210f687271e21b5b57984f92e58d01cc0649aedc23a23c",
++      "Cargo.lock": "71f583c7fd42558fa9c87e26cf010f40fff131aedf70a0405be21dcb09aa7219",
++      "Cargo.toml": "7f837074b9d42f0531b2dd9268a0854a3fa2a98ffbafe8bba31789557feb154f",
++      "assets/dodge.p8": "7453a9658fd32577385ad72672a54ad84ff70567fadbde75ba6634aa5cc684a3",
++      "crates/dodge-core/Cargo.toml": "93ec079346a6c846cb8816989c56fc4ebd1a240fc083cbc7ac85609aae326d9b",
++      "crates/dodge-core/build.rs": "d430c56f6d13bbbbbb01c336587dd85570529133624fb00f2bd2f03096e347ce",
++      "crates/dodge-core/examples/headless_profile.rs": "a53ffd29b1541b40893b6c0f5b51978291771b6bf5c2eae975c8b1dd0b833e7d",
++      "crates/dodge-core/src/action.rs": "3bc9e8f4f73380c7176e1584630c036fcffe58173185e2285c530e25cc072e94",
++      "crates/dodge-core/src/config.rs": "70a04b58804c15821e0b6536ac6b806405d61ea07c1a7ac0898eec8c225c62bd",
++      "crates/dodge-core/src/enemy_rows.rs": "0535c311ad1f2c5faec77a063d9f3adfd8530ebc333dd2cb996a0e8483d4a30b",
++      "crates/dodge-core/src/error.rs": "f151767dc3297a41878e62033013aadd4c7f0dad15e5753cbea5e41371051d12",
++      "crates/dodge-core/src/fixed.rs": "feb6e551df787bf98da2a054b68b1515385c522728709e1b6f209d851737b557",
++      "crates/dodge-core/src/game.rs": "e781973c0390fde26342ec24113abdbfa3a8e9ef98844d41cf33c1977ecdccbd",
++      "crates/dodge-core/src/headless.rs": "e2cab9d281b81bcf4e50e7e7bcdec6e6172776a75459302348d0f86a2905a600",
++      "crates/dodge-core/src/headless_tests.rs": "1dff4888fbbdd5c634bb33205f29b7943ead2d555bb52ae19a73fd10b2305b7e",
++      "crates/dodge-core/src/input.rs": "d7f16d311cbf9b68a60033bbba6cbe22aba2edf159b4c6d9d624b1ad40410014",
++      "crates/dodge-core/src/lib.rs": "ecd23d6fbafb2da7b1ffe708eade2f0c39374f41b20ee1fecea04515510f0920",
++      "crates/dodge-core/src/lifecycle.rs": "5ea52dc32ab0a28509775119ed39d6669631ee1c27a4670c7413386c7068aed6",
++      "crates/dodge-core/src/observation_tests.rs": "7bda3328cf8c1dfdfee14c5eedd7a4dcfc89562131ec731cb3daf7a7393f0cb1",
++      "crates/dodge-core/src/patterns.rs": "d478af5f7867dbd6b4808f600e8c627b46f88fe3cd8c65a85f1a53c69276d7ac",
++      "crates/dodge-core/src/rng.rs": "6e5bfcf9d241332fcae2357f5dd420829ed8e8d19330803a5062c817a771b050",
++      "crates/dodge-core/src/snapshot.rs": "c63d89617eedc830e1a58abb8f700f55df0720a60b13c54fb7626c4af036c447",
++      "crates/dodge-core/src/state.rs": "51887e9809c53b77b95b38144ea4099a8ea9bcda6ca5ad9d967f74df96e8e566",
++      "crates/dodge-native-runner/Cargo.toml": "9ce7345a30b4eb35edd85896380d2673de28372887da824585cd69ababf3f09b",
++      "crates/dodge-native-runner/src/main.rs": "9802e2ce6982ca75001376fbb632f144411583308e378ba8c2f0b9d96e0292ac",
++      "crates/dodge-rl-env/Cargo.toml": "d344f7dd8b44f5558a694222460aa03f2dc8fc7f0593603f0861c27604031aeb",
++      "crates/dodge-rl-env/src/config.rs": "49d631bed0bd99fc195de102508a84730381d891c5c55be7c9ed81f48f8d7ac6",
++      "crates/dodge-rl-env/src/env.rs": "d4a9182720beb2d8cf77f9ad5b2f859db2aa479ebcd610d691a3f7bf61afd17a",
++      "crates/dodge-rl-env/src/features.rs": "78d72ee29fdcf2c0828e26d0a4265b50809f4c9899183332a4c48fb326dc006c",
++      "crates/dodge-rl-env/src/geometry.rs": "5b04907b9d87b336b685922ac0c7f235174e347e5a5308b1ebb1645c6014c171",
++      "crates/dodge-rl-env/src/lib.rs": "7c4b73d1f37990524dcad2a77038987da9e87540e90ce5023927dffec4d13b1c",
++      "crates/dodge-rl-env/src/python.rs": "3b5f8c388b33721f47050e2a99606ad2f34debbf74ca763b50fb5590f1d428ff",
++      "crates/dodge-rl-env/src/qualification_replay_tests.rs": "c8730ff4f9f77098cd01b5985ad8b7577e0ef5d9be55a57422c192e1c5fbc29d",
++      "crates/dodge-rl-env/src/raster.rs": "a48c80a0a549e76e7e77bdd79ef2aa0b6171669d761770c6b33b3ea0921a6927",
++      "crates/dodge-rl-env/src/seed.rs": "239cb9d88a61fff7d63c3c13c80e4552caafe814729160f8fb2948d3c1498832",
++      "crates/dodge-rl-env/src/seed_extension_tests.rs": "abe564cdef23107f2e4e35ed314d0264862cba2f8c6674a34c3df470a2c0626b",
++      "crates/dodge-rl-env/src/seed_reservation_tests.rs": "2efd1a93f62c80d3fa7ec1c40934716a7f46e659d5979add70deaf929cd7098e",
++      "crates/dodge-rl-env/src/tests.rs": "84eb459c7ec761e0de21e79e0556598b737e82a5d76edf408a98970cd35fcdfd",
++      "crates/dodge-rl-env/tests/primitives.rs": "588bc397427f992f8ddf75b8b2811f59bc4f570ea316876f55db30a6de4c80fd",
++      "crates/dodge-rl-env/tests/support/m0_expected.rs": "4615b8249f33640f70f8e38c47cd05fa3c437fa0dd4d497d904352e60ad4dc3f",
++      "crates/dodge-rl-env/tests/support/m0_policy.rs": "eeae605299b1018437a54df66f4eabf6e6d4defc20334c1baf93692900601b85",
++      "crates/dodge-rl-env/tests/support/qualification_expected.rs": "ad03726da0c294498750d8b56c27861b2e1c233b44eab326496b3aff2c8f0938",
++      "crates/dodge-rl-env/tests/support/wire_fixture.rs": "a25d4e7114fe76080e3051cb1391f2239089174aae2e849572ef819af28cd556",
++      "crates/dodge-viewer/Cargo.toml": "2265692c0df6c5422ad80cc29cdb00df7cbf8d006748bfe58f2654f83e3e659f",
++      "crates/dodge-viewer/src/lib.rs": "904060a629e4bcf4050666a6d19c22b4a428055f336f4f83a44794aa2aecadc2",
++      "crates/dodge-viewer/src/main.rs": "3326a2d418788c1a879e5ab076f72c6bf9953a7e46e9bca5b1553b05b395c8eb",
++      "docs/SPEC_PRIVILEGED_VIT_RL.md": "02230eea7a3b36c786d3deeb31471baf8270efb09c3c1e77b7a77c7cfae240f3",
++      "docs/implementation-plan-v2.md": "a034a45408ebea580882bf931c156288100c120ef78806bb7c87dce0597445aa",
++      "docs/teacher-qualification-v2.json": "e091f8a2fad0a307d289a6d306112606b15df8f8aa0f3a75707ac7cfb2cee803",
++      "docs/v2-environment-contract.md": "79e953f20487bb442888fe40cee5f43226ae2cfc7ef0b9ef0fc3a377db4e01aa",
++      "docs/v2-m3-component-contract.md": "a1051d82527a9aec1f7967ff8ab217c30263240e032991aeff7b993fd975ba47",
++      "docs/v2-m3-run-protocol.json": "9e0d82028011f83e0cf6ddaef5f5e118591158d8a557f6698c82c150d5a69bab",
++      "docs/v2-teacher-training-plan.md": "36e1c5aef5fdcc4f5863d9adfef505ee3f4163ba4fbaf5ed2bb1ef282dac9338",
++      "python/dodge_rl/__init__.py": "2bf56a8151b512d78a228d604fdac67c529c8ebfd3fa233c71c2dd4f882b44dc",
++      "python/dodge_rl/_native.cpython-312-darwin.so": "967c7249acd52339d1818dcbe94e63ee734aea914c3497eb59a7e945a6e95583",
++      "python/dodge_rl/checkpoints.py": "807141943a742c6e9fdd34274c191b3c318134cc7fb0c1c6256874cadee1cbc3",
++      "python/dodge_rl/dev_eval.py": "5ba01250bb68b75340e8ef35968ad88027103c334ae8f38e2ab83ec7676097b7",
++      "python/dodge_rl/identity.py": "50775b2e7c30e53757dd3134d11613f716733cee8e6a96cc18b62e8ff2a4a053",
++      "python/dodge_rl/models/__init__.py": "b28b2623443e31d9e9cb81350f89e9fb7d285abe3e2a74c007be8e4cfff432dc",
++      "python/dodge_rl/models/teacher.py": "e4d7f597a2824c2b0d4ba261dddc9d7d1ee1d5592c2fc966a44c54b5ec417e35",
++      "python/dodge_rl/ppo.py": "533055b0832b87f3eccd6d005437583c074b525fc5f1d002e0e84e06b4239a58",
++      "python/dodge_rl/supervision.py": "45a5714d70d956371442cc3b5ebd1d56d5c498658296afa7e9c9d4c13f2a9b70",
++      "python/dodge_rl/train_teacher.py": "1d134bfb221ff52139e1243c9e4f9c3063432942a3274c567b71db4d7669c0cf",
++      "python/pyproject.toml": "77aba0bf695d802ef90662a2bf08c46090377f88ecd85d3da24421a762438698",
++      "python/requirements-local-mac.txt": "a02ffb8e053dfc7a6d3e7a0d1333e0907982a944593ef1cd4572353cbb71f34a",
++      "python/tests/test_checkpoints.py": "150d9156d8cbdfac3f3b5e301f12a0e2a7c8a6b503f23464125234cda16aab40",
++      "python/tests/test_env.py": "dd1a8e653988e3870a5a7b01b03a0664536d4b14f3d00a6a36328d31cb8b6c4e",
++      "python/tests/test_ppo.py": "948c0a89388a10aaebb55e11950a0a97f323fb23ea2d0c7bf63556f3234da642",
++      "python/tests/test_runtime_repair.py": "16217691daff15742dbf551d953cc500dd713542a41a5fb6392cb6aea8beae1e",
++      "python/tests/test_runtime_repair_signals.py": "f6d702924f49238a400281e837cf57aaa617fcd363106dd445ac7a260dba34be",
++      "python/tests/test_teacher.py": "d37f96a8ecb49b7bd1895e80299f90f299d808543887900af31b642676db6d03",
++      "python/tests/test_teacher_runner.py": "15f2aaed105733d93701eeba442b86b52c64e8f8a6518e7c1d70838edf73ec06",
++      "python/tests/test_terminal_eligibility.py": "377013687de88cfe597af5a5086b5e53c5c297b0cf5784f9e34bcca24c33ce9a",
++      "python/tests/test_terminal_runtime.py": "2a31994728c7c76dbe3ed230c309b1ea735c1744e5b5e85fbe9d8bc19279a52d",
++      "rust-toolchain.toml": "6c81c3c6bddc472074c879c21b48558154247502ef96ccc10b2e0971ef688e72"
++    },
++    "version": "teacher_semantic_identity_v1"
++  },
++  "base_identity_path": "learning/runs/v2/milestone3-D2-freeze-r1/D2-frozen-identity.json",
++  "base_identity_sha256": "56dcf1ba848c2e2acdca967ce8ed5bca9457551659421a9070c2f7c5ba2bc14f",
++  "boundary_scheduling": {
++    "interval_seconds": 0.0001,
++    "ownership": "Registered callbacks run on the main thread; enforce main-thread entry across Guard instances. Cooperating registered code has no competing interval setter. An individual verify_lock does not serialize arbitrary setters.",
++    "permissions": "No new check, cadence, interval of verification, deadline, acceptance, signal, timer or training permission.",
++    "process_global": true,
++    "restoration": "Restore the exact original observed CPython interval, correcting microsecond truncation, on success and BaseException; outer cleanup recovers one asynchronous exception interrupting first cleanup. Repeated asynchronous interruptions are not guaranteed recoverable.",
++    "scope": "Only the forced Guard.full_check verification callback under existing verify_lock; cap at 100us and retain any already shorter interval."
++  },
++  "budget_seconds": 7200,
++  "checkpoint_policy": {
++    "container": "teacher_checkpoint_v1",
++    "gatepass_can_only_be_candidate_for_separate_future_parent_audit": true,
++    "immutable": true,
++    "legacy_eligibility": false,
++    "new_identity_required": true,
++    "same_phase_resume": false,
++    "training_parent_eligible": false
++  },
++  "checkpoint_tags": [
++    "long_evaluated",
++    "long_periodic",
++    "long_closure_unevaluated",
++    "interrupted_mid_update",
++    "timeout",
++    "failure"
++  ],
++  "cleanup_reserve_seconds": 10,
++  "config": {
++    "action_repeat": 4,
++    "auxiliary_targets": false,
++    "base_config_sha256": "2d8eb5626d0debdf5416d0b89610d78ddd56011c3238a82fec72efabe1bd7fe3",
++    "batch_size": 64,
++    "chunk_size": 8,
++    "contract_sha256": "a1051d82527a9aec1f7967ff8ab217c30263240e032991aeff7b993fd975ba47",
++    "development_layout": "64_independent_B1_envs;one_seed_each;batch_policy_over_alive_envs;no_reset_or_filler",
++    "device": "mps",
++    "dtype": "float32",
++    "evaluation_stage": "D2",
++    "excluded_seed_ranges": [
++      [
++        2952790016,
++        2952791015
++      ],
++      [
++        3489660928,
++        3489661055
++      ],
++      [
++        3758096384,
++        3758097383
++      ]
++    ],
++    "long_settings": {
++      "block_admission": "remaining_worker >= 16*U + E + 2*C + F",
++      "checkpoint_reserve_seconds": 15.0,
++      "evaluate_at_entry": true,
++      "evaluate_every_completed_updates": 16,
++      "evaluation_reserve_floor_seconds": 150.0,
++      "evaluation_reserve_multiplier": 3.0,
++      "futility_stop": false,
++      "in_block_admission": "remaining_worker >= remaining_updates*U + E + remaining_checkpoints*C + F; else save long_closure_unevaluated without off-cadence eval",
++      "off_cadence_evaluation": false,
++      "periodic_checkpoint_every_completed_updates": 8,
++      "pre_evaluation_admission": "remaining_worker >= C + E + F",
++      "reserve_growth": "nondecreasing",
++      "supervisor_finalization_reserve_seconds": 60,
++      "update_reserve_floor_seconds": 25.0,
++      "update_reserve_multiplier": 1.25,
++      "worker_finalization_reserve_seconds": 30
++    },
++    "num_threads": 4,
++    "parent_checkpoint_sha256": "ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f",
++    "phase": "long_D2",
++    "phase_settings": {
++      "budget_seconds": 7200,
++      "difficulty": 2,
++      "initialization": "transition_from_successful_D1_long_protocol_r1",
++      "patterns_enabled": true,
++      "run_seed": 5562873868232098305
++    },
++    "powerups_enabled": true,
++    "ppo": {
++      "adam_eps": 1e-05,
++      "clip_coef": 0.2,
++      "ent_coef": 0.01,
++      "gae_lambda": 0.95,
++      "gamma": 0.995,
++      "learning_rate": 0.0003,
++      "max_grad_norm": 0.5,
++      "minibatch_size": 512,
++      "reward_scale": 0.1,
++      "target_kl": 0.03,
++      "update_epochs": 4,
++      "vf_coef": 0.5
++    },
++    "probe_devices": [],
++    "protocol_sha256": "9e0d82028011f83e0cf6ddaef5f5e118591158d8a557f6698c82c150d5a69bab",
++    "qualification_sha256": "e091f8a2fad0a307d289a6d306112606b15df8f8aa0f3a75707ac7cfb2cee803",
++    "render_pixels": false,
++    "rollout_steps": 256,
++    "running_normalization": false,
++    "sampling_backend": "torch_global_mps",
++    "training_raw_frame_cap": 18000,
++    "version": "teacher_long_D2_config_v1"
++  },
++  "config_path": "learning/runs/v2-orchestration/postovernight-long-D2-r2-config.json",
++  "config_sha256": "2ac814d3842228017d09669364a8391344722da56ad19f41ad9030dbb930c2db",
++  "controller": "learning/runs/v2/postovernight-long-D2-boundary-prepare-r14/long_d2.py",
++  "design": "learning/runs/v2/postovernight-long-D2-terminal-design-codex-r1/plan.json",
++  "design_sha256": "272adb81252f8d071b961f6928dbad9981b4f49b5f73ce4c8636daa3a51b8712",
++  "entry_control": "learning/runs/v2/milestone3-D2-curriculum-r1/checkpoint-000010-candidate.pt.evaluation.json",
++  "entry_control_sha256": "d52919c5e260d3eab31573aa0ef671b0cf03e70fe3aabe23ff96a830bd24b0cc",
++  "entry_restoration": "Exact model/Adam/Python+NumPy+CPU+MPS RNG equality with D1parent beforeenvironment;fresh64zero-indexenvsnewseed;captureRNG before/afterentrycheckpoint+eval unchanged;64rowsfield-equalcontrolbeforefirstgradient",
++  "environment_construction": "Exact known old D2 env fields, but explicit newrunseed. Can derive unchanged training_env_config(baseD2,[0]*64), replace only run_seed then validate exactnewkwargs; verify_training_env unchanged. Never pass longconfig to legacy config validator.",
++  "evaluation": {
++    "action_mode": "deterministic_argmax",
++    "episodes": 64,
++    "mean_alive_frames_gate": 3060,
++    "mean_score_gate": 50,
++    "original_eval_function": "dodge_rl.dev_eval.evaluate",
++    "raw_frame_cap": 18000,
++    "seeds_first": 3489660928,
++    "seeds_last": 3489660991,
++    "stage": "D2"
++  },
++  "first_callback_failure_chronology": {
++    "cleanup": "A later restoration cancellation or error remains latched, represented as secondary evidence and fatal; it can never replace the original callback failure or publish success. Cleanup-only failure remains fatal.",
++    "permissions": "No new check, cadence, clock origin, exception-construction timestamp, event bus, allowance, handler, timer, mask, ACK or training permission. observed_failure and FailurePool selection are unchanged.",
++    "scope": "Guard.full_check only; the original verification-callback exception, its actual catch timestamp and any valid earlier first_failure_descriptor are latched at the inner catch before the scheduling helper restores the interval."
++  },
++  "guard": {
++    "all_normal_finalization_before_seconds": 7200,
++    "deadline_origin": "executor_T0_before_ordinary_imports_shared_by_worker_inner_and_outer",
++    "failure_cleanup_only_after_deadline": true,
++    "fixed_integrity_revisit_limit_seconds": null,
++    "full_hash_at_update_and_eval_boundaries": true,
++    "lease_check_max_seconds": 0.5,
++    "periodic_integrity_hashing": false,
++    "resource_sample_max_seconds": 0.5,
++    "rss_and_mps_separate": true,
++    "worker_deadline_seconds": 7140
++  },
++  "guard_diagnosis": "learning/runs/v2-orchestration/postovernight-long-D2-final-audit-r1/parent-reconciliation.json",
++  "guard_diagnosis_sha256": "59e8558340ea856d8c0f8637457bb20db1da4396cabff379aa6bd6fae40ae7b6",
++  "guard_repair_plan": "learning/runs/v2-orchestration/postovernight-long-D2-r2-parent-timestamp-repair-plan-r3.json",
++  "guard_repair_plan_sha256": "511c439cf663d2c66e7fedc605b67b02482b9f7c575178926eb697d3176ae14f",
++  "identity_envelope": "new noncircular boundary_integrity identity binds exact unchanged config/baseidentity/D1anchor/newprotocol+controller+classification/native/archive roots and launch policy; legacy75validators unchanged",
++  "integrity_policy": {
++    "classification": "disjointBactiveboundary,Rruntime,Aarchive;allprior10091bindingsretained;MmutablecontrolandOoutputsseparate",
++    "design": "learning/runs/v2/postovernight-long-D2-integrity-policy-design-codex-r1/plan.json",
++    "design_sha256": "5ef2e5af3e64fca1426135228990a46215d2d30289faf4901c467365624c435e",
++    "diagnostic_timing_optional": true,
++    "endpoint_provenance": "outer actual-member fullB/R/A verification before spawn and before successful acceptance; no manifest-only cached verdict",
++    "failure_reporting": "mandatory failed receipt attempted independently before optional telemetry; compact firstlocal/global descriptors; rawexit/wall authoritative",
++    "integrity_guarantee_delta": {
++      "operational_assumption": "Cooperating parent/tasks reserve actual original source/runtime/input paths against writers. This is not malicious-same-user isolation or proof of transient write absence. Persistent changes fail next declared boundary; transient change/revert can be missed.",
++      "preserved": "Full declared B/R/A bytes/membership pre/post; fresh active B bytes/membership and faithful original runtime identity/origins at all existing forced worker boundaries; source metadata/config/seed/checkpoint bindings; independent safety/lease/cancellation/deadline/resource controls.",
++      "removed": "No fixed five-second byte-revisit, periodic archival hashing or fixed mutation-detection latency. Old failures remain failed under their original protocol."
++    },
++    "mandatory_compact_integrity_summary": true,
++    "native_cache_search_path_policy": "new explicit bounded native manifest, original project path/mirror validation, canonical registered search paths and fresh empty PYTHONPYCACHEPREFIX plus-B",
++    "new_acceptance_schema": "long_d2_outer_acceptance_v2",
++    "no_writer_reservation_required": true,
++    "parent_reconciliation": "learning/runs/v2-orchestration/postovernight-long-D2-boundary-policy-parent-reconciliation-r1.json",
++    "parent_reconciliation_sha256": "95977b36b45ad1ea670a601b51bb70198d0c0f37bb76c237b6ac032e535ebe9d",
++    "policy_id": "declared_boundary_verification_with_full_preflight_and_postflight",
++    "supervisor_boundaries": "existing authority(True) publication/launch barriers for active B; safety-only authority(False)",
++    "version": "boundary_active_and_endpoint_provenance_v1",
++    "worker_boundaries": "all existing force=True startup/init/update/checkpoint/eval/closure plus final live-runtime legacy/origin checks; pre-import byte subset"
++  },
++  "mps_driver_limit_bytes": 6442450944,
++  "no_auto_D3_B_E_student": true,
++  "no_learner_hyperparameter_reward_or_gate_changes": true,
++  "no_retry_or_cpu_fallback": true,
++  "outcomes": {
++    "exit0": "complete_D2_progress_gate_passed",
++    "exit1": "failed;partial_or_safety_resource_identity_cancel_wall_publication_error",
++    "exit2": "complete_budget_closed_below_gate;not_passed"
++  },
++  "output": "learning/runs/v2/postovernight-long-D2-campaign-r2",
++  "parent_audit": "learning/runs/v2/milestone3-D1-parent-audit-r1/audit.json",
++  "parent_audit_sha256": "b0816410dbe1e6672ee44f0e339731b9342f932084e5eda13923967b690b3c08",
++  "parent_checkpoint": "learning/runs/v2/milestone3-D1-curriculum-r1/checkpoint-000009-candidate.pt",
++  "parent_checkpoint_sha256": "ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f",
++  "parent_terminal_receipt": {
++    "checkpoint_sha256": "ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f",
++    "config_sha256": "624c491ce59881e232ff25750a5a13e312b08bfdea39cc4c86bd17149a19f789",
++    "evaluation_sha256": "17b253b9d32e70b875bca8b496348e313568a82b3e8f431fa4a905bf720ccad7",
++    "identity_sha256": "7df70937ae7ced6f993277dae2d02f22c6ffee4a0ddfa0fcb26ef8388e6f1e63",
++    "phase": "D1",
++    "run_id": "v2-m3-D1-20261024-r1",
++    "run_result_sha256": "3475d2b86c935e219c4729a13f448330b2bb2c395617ed07381cb79c00a7aa18",
++    "supervisor_exit_code": 0
++  },
++  "parent_validation": "Call unchanged check_frozen on originalbaseD2config/root and validate_transition(D1parent, exactoldD2identity, anchor) only as historicalproof. Newexactlongconfig/controller/leaseauthorizes7200 separately. No failedD2parent, no resume.",
++  "r11_qualified_repairs": {
++    "endpoint_isolation": "Stable supervisor then worker readiness order. Unexpected receive, packet validation and ACK-send errors remain fatal and source-stamped per endpoint before continuing to an already-readable sibling once under current absolute deadline. Retain valid earlier peer failure and ACK once; recompute deadline after each peer. No retry, transport change, blanket close relaxation, reaping from retirement, or recovery/start ACK after failed normal operation. Existing final drain remains until-.25; bounded deduplicated monitor diagnostics at most eight.",
++    "staged_owned_escalation": "Worker TERM immediate and KILL at current min(first+5,until-.5); supervisor TERM immediate. At that original eligibility, supervisor KILL requires validated actual worker_wait or matching actual direct-reaped supervisor leader; otherwise eligible until-.5. child None and absent worker registration prove neither. Recompute each tick; gate exception fallback uses original eligibility. One reason and actual signal-attempt timestamp per role; cooperative scheduling, no exact signal-at-L guarantee."
++  },
++  "registered_at_utc": "2026-10-25T04:23:22.772558+00:00",
++  "rss_limit_bytes": 6442450944,
++  "run_id": "v2-m3-long-D2-20261024-r2",
++  "runtime_import_policy": {
++    "controller": "read_only_frozen_capsule",
++    "legacy_package": "original_project_python_directory_exact75hashes;moduleoriginsmustmatch",
++    "reason": "Full unchanged legacy check_frozen includes original native extension path. Import original byte-pinned package explicitly, verify every loaded dodge_rl module origin/hash plus readonly capsule mirror, and preserve actual origins in new identity. Do not rewrite historical paths, strip mismatches or monkeypatch validators."
++  },
++  "single_use": true,
++  "terminal_lifecycle": {
++    "acceptance_authority": "outer-executor-receipt-plus-observed-outer-raw-exit-and-wall",
++    "acceptance_receipt": "learning/runs/v2/postovernight-long-D2-execution-r2/acceptance-receipt.json",
++    "cancellation_policy": "direct_delivered_or_pending_requests_latched_before_D;executor_records_before_forward;strict_lease_until_outer_D;post_scan_direct_signal_observation_limit_explicit",
++    "cleanup_owner": "executor",
++    "clock_handoff_schema": "long_d2_owned_start_v1",
++    "clock_origin": "executor_T0_before_ordinary_imports",
++    "consumer_direct_reaping": "both exact parent wait reports; normal raw0/2; PIDs/PGIDs/parent chain and finite T0-relative worker/inner cutoffs; parent outer raw/wall and current byte/registration/summary checks retained",
++    "executor": "learning/runs/v2/postovernight-long-D2-boundary-prepare-r14/long_d2_executor.py",
++    "existing_supervisor_reserve_split_seconds": {
++      "inner": 30,
++      "outer": 30
++    },
++    "failed_inner_direct_reaping": "Mandatory immutable inner failure receipt first; after executor failure ACK and nonblocking closes, exact owned child is polled until min(current shared pool,acknowledged pool)-1.0. No signals, reset, extra allowance or ACK retry; one worker_wait send attempt marked before send on either path. Missing ACK skips extended wait.",
++    "failed_inner_reap_reserve_seconds": 1.0,
++    "failed_outer_direct_reaping": "At most four existing IPC pumps before constructing failed receipt, each bounded by current shared until-.25; invalid reports reject. No queued-message delivery guarantee. Derived reaping statuses use validated direct reports only; group absence is independent cleanup fact. Missing/cap-truncated/uninterruptible reap stays unproven; no extra IO allowance.",
++    "failed_receipt_cleanup_wait_reserve_seconds": 0.25,
++    "failed_receipt_unproven_cleanup": "mandatory failed_partial receipt with cleanup_complete=false; owned cleanup continues to unchanged shared absolute deadline; never acceptance",
++    "failure_cleanup_deadline_rule": "min(first_failure_monotonic+10,T0+7210);shared_all_participants;never_reset",
++    "failure_cleanup_total_seconds": 10,
++    "failure_observation_time": "Successful direct waitpid observation time, never inferred process-exit time; retained source timestamp/PID/parent/raw coherence validated before drain. Earlier guard/latch/peer descriptors win; equal-time stable existing/source then guard then cancel then alarm then deadline, and first-global ties retain prior entry.",
++    "final_decision_policy": "all_owned_teardown_and_normal_IO_before_finite_D;no_IO_unmask_or_restore_after_D;os._exit",
++    "inner_publication_exit_deadline_seconds": 7170,
++    "internal_terminal_semantics": "provisional_internal_decision",
++    "outer_receipt_exit_deadline_seconds": 7200,
++    "owned_groups": "track_supervisor_and_separate_single_worker_new_session_groups;positive_absence_before_hash",
++    "owned_thread_policy": "exact_Guard_verifier_writer_handles_absent;do_not_assert_all_runtime_threads_absent",
++    "r10_proven_failure_semantics": {
++      "abnormal_worker_wait": "Validate successful direct waitpid observation before IPC/group/result IO; physical exit time unknown. Propagate source timestamp through supervisor failure and validated outer worker_wait; late earlier evidence tightens the same pool.",
++      "fixture_preconditions": "Preregister phase and named positive milestones independently of receipt; NORMAL/DEFER entry rejects any earlier global failure. Record pre-mutation pool/phase/milestones; explicit fixture_precondition_failed cannot count as injection.",
++      "monitor_duties": "Cancellation, latch, guard, cutoffs, direct reap, per-group TERM/KILL/absence and cleanup run independently; IPC last; absolute deadline outside fallible duties. Bounded deduplicated diagnostics preserve earlier sources.",
++      "start_ack": "Separate boolean attempted/acked/failed; mark attempt before send; acked true only after successful send. No resend; failed send latches failure. Channel loss proves neither reap nor absence."
++    },
++    "schema": "long_d2_terminal_lifecycle_v3",
++    "signal_policy": "process_lifetime_SIGINT_SIGTERM_SIGALRM_latch;one_nonzero_alarm_arm;no_production_restore",
++    "worker_deadline_seconds": 7140
++  },
++  "version": "postovernight_long_D2_boundary_protocol_v1"
++}
+--- r12-source/run_unit_suite.py
++++ r14/run_unit_suite.py
+@@ -1,22 +1,18 @@
+-"""One fail-fast suite: unchanged 112 methods plus actual r12 scheduling tests.
++"""One fail-fast suite: 112 current inherited methods plus r14 adapted/new tests.
+ 
+-Four inherited static methods assert the *absence* of the now-authorized r12
+-delta and hard-code protocol r8. Their exact assertions run against the exact
+-r11-source snapshot with only three historical registration constants bound.
+-All other inherited methods run against r12. test_r12 independently checks the
+-entire r12 delta byte-for-byte, including every protected block and consumer.
+-No implementation behavior or consumer is patched for the historical methods.
++All inherited methods run directly against the CURRENT candidate and current
++constants. Four named static methods have explicitly migrated expectations in
++their test sources; no historical-target rebinding, patching of production
++constants or mocks of the candidate is used.
+ """
+ from pathlib import Path
+-from contextlib import ExitStack, contextmanager
+-from unittest.mock import patch
+ import json
+ import os
+ import sys
+ import time
+ import unittest
+ import long_d2 as c
+-import test_r12
++import test_r14
+ import test_r11
+ import test_r10
+ import test_r7
+@@ -24,13 +20,13 @@
+ import test_boundary
+ 
+ H = Path(__file__).resolve().parent
+-MODULES = (test_r12, test_r11, test_r10, test_r7, test_repairs, test_boundary)
+-HISTORICAL_STATIC = {
++MODULES = (test_r14, test_r11, test_r10, test_r7, test_repairs, test_boundary)
++MIGRATED_STATIC = (
+     'test_r11.R11.test_C01_exact_success_consumers_transport_inner_fixtures_and_old91',
+     'test_r11.R11.test_C02_protocol_only_candidate_paths_and_qualified_semantics',
+     'test_r10.R10.test_exact_r9_transport_success_consumers_protected_blocks',
+     'test_r7.R7.test_success_consumers_and_protected_failure_helpers_byte_equal',
+-}
++)
+ 
+ 
+ def flatten(suite):
+@@ -39,31 +35,6 @@
+             yield from flatten(item)
+         else:
+             yield item
+-
+-
+-@contextmanager
+-def source_binding(test):
+-    with ExitStack() as stack:
+-        if test.id() in HISTORICAL_STATIC:
+-            module = sys.modules[test.__class__.__module__]
+-            stack.enter_context(patch.object(module, 'H', H / 'r11-source'))
+-            stack.enter_context(patch.object(c, 'PREPARE_REL',
+-                'learning/runs/v2/postovernight-long-D2-boundary-prepare-r11'))
+-            stack.enter_context(patch.object(c, 'PROTOCOL_REL',
+-                'learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r8.json'))
+-            stack.enter_context(patch.object(c, 'PROTOCOL_SHA256',
+-                'fe11c08159bdb9ca1f03cb0fb96ffd133ad144d107b2a854d19fc49159aa2db2'))
+-        yield
+-
+-
+-class BoundSuite(unittest.TestSuite):
+-    def run(self, result, debug=False):
+-        for test in self:
+-            if result.shouldStop:
+-                break
+-            with source_binding(test):
+-                test(result)
+-        return result
+ 
+ 
+ class RecordedResult(unittest.TextTestResult):
+@@ -79,7 +50,7 @@
+     def row(self, test, status, detail=None):
+         self.rows.append(dict(test=test.id(), status=status, detail=detail,
+             elapsed_seconds=time.perf_counter() - self.started,
+-            source_binding='exact_r11_historical_static' if test.id() in HISTORICAL_STATIC else 'r12_candidate'))
++            source_binding='r14_current_candidate_migrated_static' if test.id() in MIGRATED_STATIC else 'r14_current_candidate'))
+ 
+     def addSuccess(self, test):
+         self.row(test, 'passed')
+@@ -101,17 +72,16 @@
+ def main():
+     tests = [test for module in MODULES for test in flatten(unittest.defaultTestLoader.loadTestsFromModule(module))]
+     planned = [test.id() for test in tests]
+-    result = unittest.TextTestRunner(verbosity=2, failfast=True, resultclass=RecordedResult).run(BoundSuite(tests))
++    result = unittest.TextTestRunner(verbosity=2, failfast=True, resultclass=RecordedResult).run(unittest.TestSuite(tests))
+     forbidden = [name for name in sys.modules if name.split('.')[0] in ('torch', 'numpy', 'dodge_rl')]
+     report = dict(tests_run=result.testsRun, failures=len(result.failures), errors=len(result.errors),
+         skipped=len(result.skipped), unexpected_successes=len(result.unexpectedSuccesses),
+         planned_tests=planned, per_test_results=result.rows,
+         failed_tests=[test.id() for test, _ in result.failures], error_tests=[test.id() for test, _ in result.errors],
+         unrun_tests=planned[result.testsRun:], successful=result.wasSuccessful() and not forbidden,
+-        forbidden_imports=forbidden, existing_method_count=sum(not name.startswith('test_r12.') for name in planned),
+-        new_method_count=sum(name.startswith('test_r12.') for name in planned),
+-        historical_static_methods=sorted(HISTORICAL_STATIC),
+-        historical_static_boundary='These four exact old assertions check the exact r11 source snapshot; r12 test_19/test_20 replace their candidate static coverage without normalizing protected bytes.',
++        forbidden_imports=forbidden, existing_method_count=sum(not name.startswith('test_r14.') for name in planned),
++        new_method_count=sum(name.startswith('test_r14.') for name in planned),
++        migrated_static_methods=list(MIGRATED_STATIC), historical_target_rebinding=False,
+         modeled_signals=True, actual_OS_signals=False, actual_interval_operations=True,
+         actual_reader_thread=True, no_lifecycle_stress_startup_or_ML_campaign=True,
+         executable_observed=sys.executable, argv=sys.argv, validation_dir=os.environ['VALIDATION_DIR'])
+--- r12-source/test_r10.py
++++ r14/test_r10.py
+@@ -353,12 +353,13 @@
+         from source_equality import blocks,body
+         for name in ('lifecycle.py','processes.py','boundary_integrity.py','freeze.py'):
+             self.assertEqual((H/name).read_bytes(),(H/'r9-source'/name).read_bytes(),name)
++        from current_delta import blocks_equal_except_scheduling_delta,SCHEDULING_HELPERS
+         old=blocks(H/'r9-source/long_d2.py');new=blocks(H/'long_d2.py')
+-        for name in old:
+-            if name!='supervise_owned':self.assertEqual(old[name],new[name],name)
++        self.assertEqual(blocks_equal_except_scheduling_delta(old,new,('supervise_owned',),False),sorted(SCHEDULING_HELPERS))
+         self.assertEqual(body(H/'r9-source/long_d2.py'),body(H/'long_d2.py'))
+         old=blocks(H/'r9-source/long_d2_executor.py');new=blocks(H/'long_d2_executor.py')
+         for name in ('validate_wait_reports','accept_observed','validate_artifacts','checked_registration','worker_command'):
+             self.assertEqual(old[name],new[name],name)
+-        self.assertEqual(c.sha(H/'protocol-r8-proposal.json'),c.PROTOCOL_SHA256)
++        self.assertEqual(c.sha(H/'protocol-r10-proposal.json'),c.PROTOCOL_SHA256)
++        self.assertEqual(c.sha(H/'protocol-r8-proposal.json'),'fe11c08159bdb9ca1f03cb0fb96ffd133ad144d107b2a854d19fc49159aa2db2')
+         self.assertIn("'gate_acked'] is True",(H/'long_d2_executor.py').read_text())
+--- r12-source/test_r11.py
++++ r14/test_r11.py
+@@ -297,8 +297,9 @@
+         from source_equality import blocks,body
+         for name in ('lifecycle.py','processes.py','boundary_integrity.py','freeze.py','fixture_guards.py','fixture_preconditions.py','os_checks.py','synthetic.py'):
+             self.assertEqual((H/name).read_bytes(),(H/'r10-source'/name).read_bytes(),name)
++        from current_delta import blocks_equal_except_scheduling_delta,SCHEDULING_HELPERS
+         old=blocks(H/'r10-source/long_d2.py');new=blocks(H/'long_d2.py')
+-        self.assertEqual(old,new);self.assertEqual(body(H/'long_d2.py'),body(H/'r10-source/long_d2.py'))
++        self.assertEqual(blocks_equal_except_scheduling_delta(old,new),sorted(SCHEDULING_HELPERS));self.assertEqual(body(H/'long_d2.py'),body(H/'r10-source/long_d2.py'))
+         old=blocks(H/'r10-source/long_d2_executor.py');new=blocks(H/'long_d2_executor.py')
+         for key in old:
+             if key!='Execution':self.assertEqual(old[key],new[key],key)
+@@ -311,11 +312,12 @@
+             now=[n.name for n in ast.walk(ast.parse((H/name).read_text())) if isinstance(n,ast.FunctionDef) and n.name.startswith('test_')]
+             self.assertEqual(prior,now);old_methods.extend(prior)
+         self.assertEqual(len(old_methods),91)
+-        self.assertEqual(c.sha(H/'protocol-r8-proposal.json'),c.PROTOCOL_SHA256)
++        self.assertEqual(c.sha(H/'protocol-r10-proposal.json'),c.PROTOCOL_SHA256)
++        self.assertEqual(c.sha(H/'protocol-r8-proposal.json'),'fe11c08159bdb9ca1f03cb0fb96ffd133ad144d107b2a854d19fc49159aa2db2')
+ 
+     def test_C02_protocol_only_candidate_paths_and_qualified_semantics(self):
+         original=json.loads((H/'r10-source/protocol-r7-proposal.json').read_text())
+         proposed=json.loads((H/'protocol-r8-proposal.json').read_text());proposed.pop('r11_qualified_repairs')
+         normalized=json.loads(json.dumps(proposed).replace('postovernight-long-D2-boundary-prepare-r11','postovernight-long-D2-boundary-prepare-r10').replace('postovernight-long-D2-r2-protocol-r8.json','postovernight-long-D2-r2-protocol-r7.json'))
+         self.assertEqual(original,normalized)
+-        self.assertIn('r11',c.PREPARE_REL);self.assertTrue(c.PROTOCOL_REL.endswith('protocol-r8.json'))
++        self.assertTrue(c.PREPARE_REL.endswith('prepare-r14'));self.assertTrue(c.PROTOCOL_REL.endswith('protocol-r10.json'))
+--- r12-source/test_r14.py
++++ r14/test_r14.py
+@@ -0,0 +1,673 @@
++"""Actual CPython scheduling, first-callback-failure chronology and exact r14 deltas.
++
++Signals are modeled by calling the unchanged ProcessLatch.handle directly.
++No OS signal delivery, timer installation, lifecycle/stress or ML run occurs.
++Reader threads use real stdlib threading and real interval operations.
++"""
++from pathlib import Path
++from contextlib import contextmanager
++from unittest.mock import patch
++import ast
++import hashlib
++import json
++import math
++import os
++import signal
++import sys
++import tempfile
++import threading
++import time
++import unittest
++import lifecycle as life
++import long_d2 as c
++import long_d2_executor as e
++import current_delta as delta
++import importlib.util
++from types import SimpleNamespace
++
++H = Path(__file__).resolve().parent
++BASE = H / 'r11-source'
++R12 = H / 'r12-source'
++A = Path(os.environ['VALIDATION_DIR'])
++SCHEDULING_HELPERS = set(delta.SCHEDULING_HELPERS)
++
++
++class OtherBaseException(BaseException):
++    pass
++
++
++class R14(unittest.TestCase):
++    def setUp(self):
++        self.d = Path(tempfile.mkdtemp(prefix=self._testMethodName + '-', dir=A))
++        self.original = sys.getswitchinterval()
++        self.addCleanup(self.restore_test_interval)
++
++    def restore_test_interval(self):
++        # Independent fixture cleanup: midpoint of the observed microsecond bin.
++        # Test intervals are small positive integer microseconds, never huge floats.
++        ticks = round(self.original / 1e-6)
++        sys.setswitchinterval((ticks + .5) / 1e6)
++        self.assertEqual(sys.getswitchinterval(), self.original)
++
++    def save(self, name, value):
++        with (self.d / (name + '.json')).open('x') as stream:
++            json.dump(value, stream, indent=2, sort_keys=True, allow_nan=False)
++            stream.write('\n')
++
++    def guard(self, callback):
++        return c.Guard(time.monotonic() + 10, lambda: None, callback, None,
++                       rss=lambda: 1, peak=lambda: 1)
++
++    def test_01_success_scoped_and_outside_unchanged(self):
++        sys.setswitchinterval(.005)
++        before = sys.getswitchinterval()
++        with c.boundary_switch_interval():
++            inside = sys.getswitchinterval()
++            self.assertGreater(inside, 0)
++            self.assertLessEqual(inside, c.BOUNDARY_SWITCH_INTERVAL)
++        self.assertEqual(sys.getswitchinterval(), before)
++        self.save('success', dict(before=before, inside=inside, after=sys.getswitchinterval()))
++
++    def test_02_Stop_preserves_same_exception_and_interval(self):
++        error = c.Stop('callback cancellation', 'cancelled')
++        with self.assertRaises(c.Stop) as raised:
++            with c.boundary_switch_interval():
++                raise error
++        self.assertIs(raised.exception, error)
++        self.assertEqual(sys.getswitchinterval(), self.original)
++
++    def test_03_other_BaseException_KeyboardInterrupt_GeneratorExit(self):
++        for error in (OtherBaseException('base'), KeyboardInterrupt('keyboard'), GeneratorExit('generator')):
++            with self.subTest(kind=type(error).__name__):
++                with self.assertRaises(type(error)) as raised:
++                    with c.boundary_switch_interval():
++                        raise error
++                self.assertIs(raised.exception, error)
++                self.assertEqual(sys.getswitchinterval(), self.original)
++
++    def test_04_setter_raises_after_install_restores_without_callback(self):
++        real = sys.setswitchinterval
++        error = OtherBaseException('injected after install')
++        entered = []
++        def setting(value):
++            real(value)
++            if value == c.BOUNDARY_SWITCH_INTERVAL:
++                raise error
++        with patch.object(sys, 'setswitchinterval', setting):
++            with self.assertRaises(OtherBaseException) as raised:
++                with c.boundary_switch_interval():
++                    entered.append(True)
++        self.assertIs(raised.exception, error)
++        self.assertEqual(entered, [])
++        self.assertEqual(sys.getswitchinterval(), self.original)
++
++    def cleanup_interruption(self, *, after_set=False, callback_error=None):
++        real = sys.setswitchinterval
++        sys.setswitchinterval(.005)
++        original = sys.getswitchinterval()
++        latch = life.ProcessLatch()
++        latch.deadline = time.monotonic() + 10
++        first = [True]
++        calls = []
++        def setting(value):
++            calls.append(value)
++            if value == original and first[0]:
++                first[0] = False
++                if after_set:
++                    real(value)
++                # Model precisely the existing signal handler's raised Stop.
++                latch.handle(signal.SIGTERM, None)
++            real(value)
++        with patch.object(sys, 'setswitchinterval', setting):
++            with self.assertRaisesRegex(c.Stop, 'Cancellation latched') as raised:
++                with c.boundary_switch_interval():
++                    if callback_error is not None:
++                        raise callback_error
++        self.assertEqual(raised.exception.outcome, 'cancelled')
++        self.assertEqual(sys.getswitchinterval(), original)
++        self.assertEqual(latch.cancellation_requests, 1)
++        self.assertEqual(latch.phase, 'FAILURE')
++        self.assertEqual(calls.count(original), 1 if after_set else 2)
++        if callback_error is not None:
++            self.assertIs(raised.exception.__context__, callback_error)
++        self.save('modeled-signal', dict(actual_OS_signal=False, after_set=after_set,
++            calls=calls, restored=original, cancellation_requests=latch.cancellation_requests))
++
++    def test_05_one_modeled_signal_before_first_cleanup_set_outer_recovers(self):
++        self.cleanup_interruption()
++
++    def test_06_one_modeled_signal_after_first_cleanup_set_propagates(self):
++        self.cleanup_interruption(after_set=True)
++
++    def test_07_callback_error_and_one_cleanup_signal_both_retained(self):
++        self.cleanup_interruption(callback_error=OtherBaseException('callback base error'))
++        # Corrected primary chronology: through actual Guard and unchanged reporting.
++        error = OtherBaseException('callback base error through Guard')
++        x = self.scenario(callback_error=error)
++        self.assertIs(x.raised, error)
++        self.assertIsInstance(x.raised.__cause__, c.Stop)
++        self.assertEqual(x.descriptor['timestamp'], 100.)
++        self.assertEqual(x.until, 110.)
++
++    def test_08_nested_nondefault_exact_LIFO_restoration(self):
++        sys.setswitchinterval(.002731)
++        original = sys.getswitchinterval()
++        with c.boundary_switch_interval():
++            outer = sys.getswitchinterval()
++            with c.boundary_switch_interval():
++                self.assertEqual(sys.getswitchinterval(), outer)
++            self.assertEqual(sys.getswitchinterval(), outer)
++        self.assertEqual(sys.getswitchinterval(), original)
++        self.save('nested', dict(original=original, outer=outer, final=sys.getswitchinterval()))
++
++    def test_09_already_short_intervals_never_lengthened_or_truncated(self):
++        for interval in (.000001, .000017, .00005, .000099, .0001):
++            with self.subTest(interval=interval):
++                sys.setswitchinterval(interval)
++                observed = sys.getswitchinterval()
++                with c.boundary_switch_interval():
++                    self.assertEqual(sys.getswitchinterval(), observed)
++                    with c.boundary_switch_interval():
++                        self.assertEqual(sys.getswitchinterval(), observed)
++                self.assertEqual(sys.getswitchinterval(), observed)
++
++    def test_10_quantization_negative_control_and_actual_restoration_helper(self):
++        sys.setswitchinterval(.0001)
++        saved = sys.getswitchinterval()
++        sys.setswitchinterval(saved)
++        truncated = sys.getswitchinterval()
++        self.assertNotEqual(truncated, saved, 'Registered CPython negative control must expose truncation')
++        c.restore_boundary_switch_interval(saved)
++        self.assertEqual(sys.getswitchinterval(), saved)
++        rows = []
++        for interval in (.000001, .000017, .000099, .0001, .000731, .002731, .005, .02):
++            sys.setswitchinterval(interval)
++            observed = sys.getswitchinterval()
++            sys.setswitchinterval(.000002)
++            c.restore_boundary_switch_interval(observed)
++            self.assertEqual(sys.getswitchinterval(), observed)
++            rows.append(dict(requested=interval, observed=observed, restored=sys.getswitchinterval()))
++        self.save('quantization', dict(saved=saved, blind_restore=truncated, rows=rows))
++
++    def test_11_simultaneous_reader_observes_callback_and_after(self):
++        entered, read, finished = threading.Event(), threading.Event(), threading.Event()
++        observations, errors = [], []
++        def reader():
++            try:
++                if not entered.wait(2):
++                    raise AssertionError('callback entry not observed')
++                observations.append(sys.getswitchinterval())
++                read.set()
++                if not finished.wait(2):
++                    raise AssertionError('callback completion not observed')
++                observations.append(sys.getswitchinterval())
++            except BaseException as error:
++                errors.append(repr(error))
++                read.set()
++        thread = threading.Thread(target=reader, name='r14-interval-reader')
++        thread.start()
++        def callback():
++            entered.set()
++            self.assertTrue(read.wait(2))
++            self.assertFalse(errors)
++            return 'one callback'
++        try:
++            guard = self.guard(callback)
++            guard.full_check(True)
++        finally:
++            entered.set()
++            finished.set()
++            thread.join(3)
++        self.assertFalse(thread.is_alive())
++        self.assertEqual(errors, [])
++        self.assertEqual(len(observations), 2)
++        self.assertLessEqual(observations[0], c.BOUNDARY_SWITCH_INTERVAL)
++        self.assertEqual(observations[1], self.original)
++        self.save('reader', dict(observations=observations, thread_absent=True, actual_stdlib_thread=True))
++
++    def test_12_actual_Guard_calls_original_callback_once_under_only_verify_lock(self):
++        calls = []
++        marker = {'sentinel': 'actual callback return'}
++        def callback():
++            self.assertTrue(guard.verify_lock._is_owned())
++            self.assertFalse(guard.lock._is_owned())
++            self.assertLessEqual(sys.getswitchinterval(), c.BOUNDARY_SWITCH_INTERVAL)
++            calls.append(True)
++            return marker
++        guard = self.guard(callback)
++        self.assertIs(guard.verify, callback)
++        guard.full_check(True)
++        self.assertEqual(calls, [True])
++        self.assertIs(guard.boundaries[0]['observation'], marker)
++        self.assertEqual(guard.boundaries[0]['verdict'], 'passed')
++        self.assertEqual(sys.getswitchinterval(), self.original)
++        self.assertIsNone(c.VERIFY_LOCAL.stats)
++
++    def test_13_Guard_Stop_stays_fatal_and_interval_restored(self):
++        error = c.Stop('integrity mismatch', 'identity_or_lease_failure')
++        calls = []
++        def callback():
++            calls.append(True)
++            raise error
++        guard = self.guard(callback)
++        with self.assertRaises(c.Stop) as raised:
++            guard.full_check(True)
++        self.assertIs(raised.exception, error)
++        self.assertIs(guard.failure, error)
++        with self.assertRaises(c.Stop) as sticky:
++            guard.full_check(True)
++        self.assertIs(sticky.exception, error)
++        self.assertEqual(calls, [True])
++        self.assertEqual(guard.boundaries[0]['verdict'], 'failed')
++        self.assertEqual(sys.getswitchinterval(), self.original)
++
++    def test_14_Guard_other_BaseException_propagates_latches_Stop_and_restores(self):
++        error = OtherBaseException('integrity callback base exception')
++        guard = self.guard(lambda: (_ for _ in ()).throw(error))
++        with self.assertRaises(OtherBaseException) as raised:
++            guard.full_check(True)
++        self.assertIs(raised.exception, error)
++        self.assertIsInstance(guard.failure, c.Stop)
++        with self.assertRaises(c.Stop):
++            guard.check()
++        self.assertEqual(guard.boundaries[0]['verdict'], 'failed')
++        self.assertNotIn('observation', guard.boundaries[0])
++        self.assertEqual(sys.getswitchinterval(), self.original)
++
++    def test_15_cleanup_exception_cannot_publish_Guard_success(self):
++        real = sys.setswitchinterval
++        calls, injected = [], []
++        error = c.Stop('modeled cleanup interruption', 'cancelled')
++        def setting(value):
++            if value == self.original and not injected:
++                injected.append(True)
++                raise error
++            real(value)
++        guard = self.guard(lambda: calls.append(True))
++        with patch.object(sys, 'setswitchinterval', setting):
++            with self.assertRaises(c.Stop) as raised:
++                guard.full_check(True)
++        self.assertIs(raised.exception, error)
++        self.assertIs(guard.failure, error)
++        self.assertEqual(calls, [True])
++        self.assertEqual(guard.boundaries[0]['verdict'], 'failed')
++        self.assertNotIn('observation', guard.boundaries[0])
++        self.assertEqual(sys.getswitchinterval(), self.original)
++
++    def test_16_nonmain_helper_rejected_before_setter_or_callback(self):
++        errors, callbacks, setters = [], [], []
++        real = sys.setswitchinterval
++        def setting(value):
++            setters.append(value)
++            real(value)
++        def entry():
++            try:
++                with c.boundary_switch_interval():
++                    callbacks.append(True)
++            except BaseException as error:
++                errors.append(error)
++        with patch.object(sys, 'setswitchinterval', setting):
++            thread = threading.Thread(target=entry)
++            thread.start()
++            thread.join(3)
++        self.assertFalse(thread.is_alive())
++        self.assertEqual(len(errors), 1)
++        self.assertIsInstance(errors[0], c.Stop)
++        self.assertIn('main-thread ownership', str(errors[0]))
++        self.assertEqual(callbacks, [])
++        self.assertEqual(setters, [])
++        self.assertEqual(sys.getswitchinterval(), self.original)
++
++    def test_17_nonmain_Guard_forced_failure_and_safety_only_sampler_supported(self):
++        callbacks, errors = [], []
++        guard = self.guard(lambda: callbacks.append(True))
++        def entry():
++            try:
++                guard.sample(full=False)
++                guard.full_check(True)
++            except BaseException as error:
++                errors.append(error)
++        thread = threading.Thread(target=entry)
++        thread.start()
++        thread.join(3)
++        self.assertFalse(thread.is_alive())
++        self.assertEqual(len(errors), 1)
++        self.assertIs(guard.failure, errors[0])
++        self.assertEqual(callbacks, [])
++        self.assertIsNotNone(guard.last_sample)
++        self.assertEqual(guard.boundaries[0]['verdict'], 'failed')
++        self.assertEqual(sys.getswitchinterval(), self.original)
++
++    def test_18_independent_Guards_same_main_thread_restore_outer_then_original(self):
++        values = []
++        inner = self.guard(lambda: values.append(('inner', sys.getswitchinterval())))
++        def outer_callback():
++            outer = sys.getswitchinterval()
++            values.append(('outer', outer))
++            inner.full_check(True)
++            self.assertEqual(sys.getswitchinterval(), outer)
++        outer = self.guard(outer_callback)
++        outer.full_check(True)
++        self.assertEqual(values[0][1], values[1][1])
++        self.assertEqual([x[0] for x in values], ['outer', 'inner'])
++        self.assertEqual(sys.getswitchinterval(), self.original)
++
++
++    def test_19_strict_byte_projection_delta_vs_r11_and_r12_and_protected_bytes(self):
++        current = (H / 'long_d2.py').read_text()
++        original = (BASE / 'long_d2.py').read_text()
++        previous = (R12 / 'long_d2.py').read_text()
++        # Whole-controller strict projection: only listed strings/helpers are removed.
++        self.assertEqual(delta.project_to_r11_with_sha(current, c.PROTOCOL_SHA256), original)
++        self.assertEqual(delta.project_to_r12(current).replace(c.PROTOCOL_SHA256, delta.R12_SHA), previous)
++        for name in ('long_d2_executor.py', 'lifecycle.py', 'processes.py', 'boundary_integrity.py',
++                     'freeze.py', 'source_equality.py', 'synthetic.py', 'os_checks.py',
++                     'stress.py', 'fixture_guards.py', 'fixture_preconditions.py',
++                     'parent_command.py', 'rehearsal.py', 'model_r11.py'):
++            self.assertEqual((H / name).read_bytes(), (BASE / name).read_bytes(), name + ' r11')
++            self.assertEqual((H / name).read_bytes(), (R12 / name).read_bytes(), name + ' r12')
++        old_blocks = {n.name: ast.get_source_segment(original, n) for n in ast.parse(original).body
++                      if isinstance(n, (ast.ClassDef, ast.FunctionDef))}
++        new_blocks = {n.name: ast.get_source_segment(current, n) for n in ast.parse(current).body
++                      if isinstance(n, (ast.ClassDef, ast.FunctionDef))}
++        self.assertEqual(set(new_blocks) - set(old_blocks), SCHEDULING_HELPERS)
++        self.assertEqual([name for name in old_blocks if old_blocks[name] != new_blocks[name]], ['Guard'])
++        def methods(text):
++            guard = next(n for n in ast.parse(text).body if isinstance(n, ast.ClassDef) and n.name == 'Guard')
++            return {n.name: ast.get_source_segment(text, n) for n in guard.body if isinstance(n, ast.FunctionDef)}
++        before, after = methods(original), methods(current)
++        self.assertEqual(set(before), set(after))
++        self.assertEqual([name for name in before if before[name] != after[name]], ['full_check'])
++        for name in ('observed_failure', 'primary_error', 'worker_failure', 'record_primary_failure'):
++            self.assertEqual(old_blocks[name], new_blocks[name], name)
++        self.save('exact-delta', dict(controller_projection_to_r11_byte_equal=True,
++            controller_projection_to_r12_byte_equal=True, changed_existing_top_level_blocks=['Guard'],
++            changed_Guard_methods=['full_check'], added_helpers=sorted(SCHEDULING_HELPERS),
++            r14_additions='early callback catch + masked-cleanup propagation in Guard.full_check only'))
++
++    def test_20_protocol_r10_chain_from_exact_r9_and_r8_and_current_bindings(self):
++        r8 = json.loads((BASE / 'protocol-r8-proposal.json').read_text())
++        raw9 = (R12 / 'protocol-r9-proposal.json').read_bytes()
++        self.assertEqual(hashlib.sha256(raw9).hexdigest(), delta.R12_SHA)
++        self.assertEqual(raw9, (H / 'protocol-r9-proposal.json').read_bytes())
++        r9 = json.loads(raw9)
++        r10 = json.loads((H / 'protocol-r10-proposal.json').read_text())
++        chronology = r10.pop('first_callback_failure_chronology')
++        self.assertEqual(r10.pop('registered_at_utc') > r9['registered_at_utc'], True)
++        normalized = json.loads(json.dumps(r10).replace('prepare-r14/', 'prepare-r12/'))
++        r9_cmp = dict(r9)
++        r9_cmp.pop('registered_at_utc')
++        self.assertEqual(normalized, r9_cmp)
++        # r8 -> r9 allowed delta, retained as historical chain.
++        r9_chain = dict(r9)
++        declaration = r9_chain.pop('boundary_scheduling')
++        r9_chain['registered_at_utc'] = r8['registered_at_utc']
++        self.assertEqual(json.loads(json.dumps(r9_chain).replace('prepare-r12/', 'prepare-r11/')), r8)
++        self.assertEqual(declaration['interval_seconds'], .0001)
++        self.assertIn('original verification-callback exception', chronology['scope'])
++        self.assertEqual(hashlib.sha256((H / 'protocol-r10-proposal.json').read_bytes()).hexdigest(), c.PROTOCOL_SHA256)
++        self.assertTrue(c.PREPARE_REL.endswith('prepare-r14'))
++        self.assertTrue(c.PROTOCOL_REL.endswith('protocol-r10.json'))
++        self.assertEqual(c.CONFIG_SHA256, r10['config_sha256'])
++        self.assertEqual(r10['config']['phase_settings']['run_seed'], 5562873868232098305)
++        self.assertEqual(r10['parent_checkpoint_sha256'],
++                         'ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f')
++        self.assertFalse((c.ORIGINAL_ROOT / c.PROTOCOL_REL).exists(), 'Parent owns external publication')
++        self.assertFalse(any((H / name).exists() for name in
++            ('classification.json', 'long-identity.json', 'registration.json', 'capsule-final', 'required-lease.json')))
++
++    def scan_sources(self):
++        protocol = json.loads((BASE / 'protocol-r8-proposal.json').read_text())
++        pins = {n: d for n, d in protocol['base_identity']['sources'].items() if n.endswith('.py')}
++        identity = {}
++        for name, digest in pins.items():
++            data = (c.ORIGINAL_ROOT / name).read_bytes()
++            self.assertEqual(hashlib.sha256(data).hexdigest(), digest, name)
++            identity[name] = data.decode()
++        controller = {p.name: p.read_text() for p in sorted(H.glob('*.py'))}
++        return controller, identity
++
++    def test_21_runtime_vs_test_setter_scan_classifies_and_reports_helpers(self):
++        controller, identity = self.scan_sources()
++        classes = delta.classify_python(controller, identity)
++        sources = dict(controller)
++        sources.update(identity)
++        self.assertEqual(set(classes), set(sources))
++        kinds = {k: sorted(n for n in classes if classes[n] == k) for k in ('runtime', 'test', 'tooling')}
++        self.assertEqual(kinds['runtime'], sorted(list(delta.RUNTIME_CONTROLLER) +
++            [n for n in identity if n.startswith('python/dodge_rl/')]))
++        self.assertEqual(len([n for n in identity if n.startswith('python/dodge_rl/')]), 9)
++        self.assertEqual(len([n for n in identity if n.startswith('python/tests/')]), 9)
++        report = delta.scan_setters(sources, classes)
++        self.assertEqual(report['runtime_competing'], [])
++        self.assertTrue(report['runtime_allowed'])
++        self.assertEqual({s['path'] for s in report['runtime_allowed']}, {'long_d2.py'})
++        self.assertTrue(all(s['scope'].split('.')[0] in SCHEDULING_HELPERS for s in report['runtime_allowed']))
++        env_sites = [s for s in report['test'] if s['path'] == 'python/tests/test_env.py']
++        self.assertGreaterEqual(len(env_sites), 2, 'Known setter-using GIL witness test helper must be reported')
++        self.assertTrue(all(s['path'].startswith(('python/tests/', 'test_')) for s in report['test']))
++        source = (H / 'long_d2.py').read_text()
++        guard = next(n for n in ast.parse(source).body if isinstance(n, ast.ClassDef) and n.name == 'Guard')
++        start = next(n for n in guard.body if isinstance(n, ast.FunctionDef) and n.name == 'start')
++        monitor = next(n for n in start.body if isinstance(n, ast.FunctionDef) and n.name == 'monitor')
++        self.assertIn('self.sample(full=False)', ast.get_source_segment(source, monitor))
++        self.assertNotIn('full_check', ast.get_source_segment(source, monitor))
++        self.save('setter-scan', dict(runtime_allowed=report['runtime_allowed'],
++            runtime_competing=report['runtime_competing'], test_helper_sites=report['test'],
++            tooling_sites=report['tooling'], classes=kinds,
++            test_env_sha256=hashlib.sha256(identity['python/tests/test_env.py'].encode()).hexdigest(),
++            identity_python_hash_verified=len(identity),
++            scope='Bounded registered controller and registered identity Python only; no whole-program, third-party or native absence claim.',
++            ownership='Main-thread cooperation, not enforcement against hostile setters.'))
++
++    def injected_report(self, path, kind, text='\nimport sys\nsys.setswitchinterval(1)\n'):
++        controller, identity = self.scan_sources()
++        classes = delta.classify_python(controller, identity)
++        sources = dict(controller)
++        sources.update(identity)
++        sources[path] = sources.get(path, '') + text
++        classes[path] = kind
++        return delta.scan_setters(sources, classes)
++
++    def test_22_injected_setter_in_runtime_source_is_rejected_but_test_source_is_only_reported(self):
++        for path in ('python/dodge_rl/injected_runtime.py', 'lifecycle.py', 'processes.py', 'long_d2_executor.py'):
++            with self.subTest(runtime=path):
++                report = self.injected_report(path, 'runtime')
++                self.assertEqual([s['path'] for s in report['runtime_competing']], [path])
++        outside = self.injected_report('long_d2.py', 'runtime', '\ndef competing_setter():\n    import sys\n    sys.setswitchinterval(1)\n')
++        self.assertEqual([s['scope'] for s in outside['runtime_competing']], ['competing_setter'])
++        dynamic = self.injected_report('python/dodge_rl/dynamic.py', 'runtime', "\nimport sys\ngetattr(sys, 'setswitchinterval')(1)\n")
++        self.assertEqual([s['path'] for s in dynamic['runtime_competing']], ['python/dodge_rl/dynamic.py'])
++        for path in ('python/tests/test_injected.py', 'test_injected_controller.py'):
++            with self.subTest(test=path):
++                report = self.injected_report(path, 'test')
++                self.assertEqual(report['runtime_competing'], [])
++                self.assertIn(path, [s['path'] for s in report['test']])
++
++    def test_23_classification_coverage_has_no_arbitrary_omission_or_double_class(self):
++        controller, identity = self.scan_sources()
++        classes = delta.classify_python(controller, identity)
++        sources = dict(controller)
++        sources.update(identity)
++        with self.assertRaises(AssertionError):
++            delta.classify_python(list(controller) + ['mystery_unclassified.py'], identity)
++        with self.assertRaises(AssertionError):
++            delta.classify_python(controller, list(identity) + ['elsewhere/other.py'])
++        with self.assertRaises(AssertionError):
++            delta.classify_python(list(controller) + ['long_d2.py'], identity)
++        omitted = dict(classes)
++        omitted.pop('lifecycle.py')
++        with self.assertRaises(AssertionError):
++            delta.scan_setters(sources, omitted)
++        unscanned = dict(sources)
++        unscanned.pop('lifecycle.py')
++        with self.assertRaises(AssertionError):
++            delta.scan_setters(unscanned, classes)
++
++    def test_24_safety_only_and_nonforced_work_never_sets_interval(self):
++        callbacks, setters = [], []
++        real = sys.setswitchinterval
++        def setting(value):
++            setters.append(value)
++            real(value)
++        guard = self.guard(lambda: callbacks.append(True))
++        with patch.object(sys, 'setswitchinterval', setting):
++            guard.check()
++            guard.sample(full=False)
++            guard.full_check(False)
++        self.assertEqual(callbacks, [])
++        self.assertEqual(setters, [])
++        self.assertEqual(sys.getswitchinterval(), self.original)
++
++    def scenario(self, module=None, *, callback_error=None, callback_at=100., cleanup_signal=signal.SIGTERM,
++                 cleanup_at=101., pre_latch=None, in_callback=None, peer=None):
++        """Actual Guard + unchanged observed_failure + FailurePool, fake clock.
++        Signals are modeled by calling ProcessLatch.handle directly (no OS signal)."""
++        m = module or c
++        sys.setswitchinterval(.002731)
++        original = sys.getswitchinterval()
++        now = [95.]
++        fake = lambda: now[0]
++        latch = life.ProcessLatch()
++        latch.deadline = 200.
++        pool = life.FailurePool(90.)
++        calls, first, real = [], [True], sys.setswitchinterval
++        def callback():
++            calls.append(sys.getswitchinterval())
++            if in_callback is not None:
++                in_callback(guard)
++            now[0] = callback_at
++            if callback_error is not None:
++                raise callback_error
++            return 'one observation'
++        def setting(value):
++            if value == original and first[0] and cleanup_at is not None:
++                first[0] = False
++                now[0] = cleanup_at
++                latch.handle(cleanup_signal, None)
++            real(value)
++        guard = m.Guard(200., lambda: None, callback, None, clock=fake, rss=lambda: 1, peak=lambda: 1)
++        with patch.object(time, 'monotonic', fake), patch.object(life, 'ACTIVE', latch), \
++                patch.object(sys, 'setswitchinterval', setting):
++            if pre_latch is not None:
++                now[0] = 97.
++                latch.record(pre_latch)
++                now[0] = 95.
++            if peer is not None:
++                now[0] = peer['timestamp']
++                pool.fail(c.Stop('earlier peer failure', 'resource_stop'), peer['timestamp'], dict(peer), peer=True)
++                now[0] = 95.
++            with self.assertRaises(BaseException) as raised:
++                guard.full_check(True)
++            primary, descriptor = m.observed_failure(raised.exception, guard, 'worker')
++            until = pool.fail(primary, descriptor['timestamp'], descriptor)
++        self.assertEqual(sys.getswitchinterval(), original)
++        self.assertEqual(len(calls), 1, 'No duplicate callback')
++        self.assertLessEqual(calls[0], c.BOUNDARY_SWITCH_INTERVAL)
++        self.assertEqual(guard.boundaries[0]['verdict'], 'failed')
++        self.assertNotIn('observation', guard.boundaries[0])
++        return SimpleNamespace(raised=raised.exception, guard=guard, latch=latch, pool=pool, primary=primary,
++                               descriptor=descriptor, until=until, original=original, calls=calls)
++
++    def test_25_callback_Stop_at_100_over_restore_cancellation_at_101(self):
++        error = c.Stop('callback integrity failure', 'identity_or_lease_failure')
++        x = self.scenario(callback_error=error)
++        self.assertIs(x.raised, error)
++        self.assertIsInstance(x.raised.__cause__, c.Stop)
++        self.assertEqual(str(x.raised.__cause__), 'Cancellation latched')
++        self.assertIs(x.guard.failure, error)
++        self.assertEqual(x.guard.failure_at, 100.)
++        self.assertIs(x.primary, error)
++        self.assertEqual((x.descriptor['timestamp'], x.descriptor['kind']), (100., 'safety_monitor'))
++        self.assertEqual((x.pool.first, x.until), (100., 110.), 'Cleanup deadline 110, not 111')
++        # Later cancellation still latched and represented, never success.
++        self.assertEqual((x.latch.first_cancel_at, x.latch.cancellation_requests), (101., 1))
++        self.assertIn('Cancellation latched', x.guard.boundaries[0]['cleanup_error'])
++        self.assertIn('callback integrity failure', x.guard.boundaries[0]['error'])
++        self.assertIn('Cancellation latched', x.guard.timings[0]['cleanup_error'])
++        with self.assertRaises(c.Stop):
++            x.guard.check()
++        self.save('stop-100-cancel-101', dict(descriptor=x.descriptor, until=x.until, modeled_signal=True))
++
++    def test_26_non_Stop_BaseException_callback_keeps_source_100(self):
++        error = OtherBaseException('callback non-Stop')
++        x = self.scenario(callback_error=error)
++        self.assertIs(x.raised, error)
++        self.assertIs(x.raised.__cause__.__class__, c.Stop)
++        self.assertIsInstance(x.guard.failure, c.Stop)
++        self.assertEqual(x.guard.failure_at, 100.)
++        self.assertEqual((x.descriptor['timestamp'], x.descriptor['kind']), (100., 'safety_monitor'))
++        self.assertEqual((x.pool.first, x.until), (100., 110.))
++        self.assertEqual((x.latch.first_cancel_at, x.latch.cancellation_requests), (101., 1))
++
++    def test_27_callback_with_earlier_valid_descriptor_retains_it(self):
++        error = c.Stop('callback with earlier descriptor', 'identity_or_lease_failure')
++        earlier = dict(timestamp=96., kind='peer_failure_observed', outcome='identity_or_lease_failure',
++                       role='peer', timing_basis='peer_catch_observation', signal=None)
++        error.first_failure_descriptor = dict(earlier)
++        x = self.scenario(callback_error=error)
++        self.assertIs(x.raised, error)
++        self.assertIs(x.primary, error)
++        self.assertEqual(x.descriptor, earlier)
++        self.assertEqual((x.pool.first, x.until), (96., 106.))
++        self.assertEqual(x.guard.failure_at, 100.)
++        self.assertEqual(x.latch.first_cancel_at, 101.)
++
++    def test_28_earlier_cancel_alarm_guard_and_peer_still_win(self):
++        error = c.Stop('callback after earlier failure', 'identity_or_lease_failure')
++        cancel = self.scenario(callback_error=error, pre_latch=signal.SIGTERM)
++        self.assertEqual((cancel.descriptor['kind'], cancel.descriptor['timestamp'], cancel.until), ('cancel', 97., 107.))
++        self.assertIs(cancel.raised, error)
++        error = c.Stop('callback after earlier alarm', 'identity_or_lease_failure')
++        alarm = self.scenario(callback_error=error, pre_latch=signal.SIGALRM)
++        self.assertEqual((alarm.descriptor['kind'], alarm.descriptor['timestamp'], alarm.until), ('alarm', 97., 107.))
++        error = c.Stop('callback after earlier guard failure', 'identity_or_lease_failure')
++        def earlier_guard(guard):
++            guard.failure, guard.failure_at = c.Stop('earlier resource stop', 'resource_stop'), 98.
++        guard = self.scenario(callback_error=error, in_callback=earlier_guard)
++        self.assertEqual((guard.descriptor['kind'], guard.descriptor['timestamp'], guard.until), ('safety_monitor', 98., 108.))
++        self.assertEqual(guard.guard.failure_at, 98.)
++        self.assertEqual(str(guard.primary), 'earlier resource stop')
++        error = c.Stop('callback after earlier peer', 'identity_or_lease_failure')
++        peer = dict(timestamp=96., kind='peer_failure', outcome='resource_stop', role='peer',
++                    timing_basis='peer_observation', signal=None)
++        result = self.scenario(callback_error=error, peer=peer)
++        self.assertEqual(result.pool.first_global, peer)
++        self.assertEqual((result.pool.first, result.until), (96., 106.))
++        self.assertIs(result.raised, error)
++
++    def test_29_cleanup_only_failure_stays_fatal_and_never_success(self):
++        for number, kind in ((signal.SIGTERM, 'cancel'), (signal.SIGALRM, 'alarm')):
++            with self.subTest(signal=int(number)):
++                x = self.scenario(cleanup_signal=number)
++                self.assertIsInstance(x.raised, c.Stop)
++                self.assertIs(x.guard.failure, x.raised)
++                self.assertEqual(x.guard.failure_at, 101.)
++                self.assertEqual(x.descriptor['timestamp'], 101.)
++                self.assertEqual(x.guard.boundaries[0]['error'], repr(x.raised))
++                self.assertNotIn('cleanup_error', x.guard.boundaries[0])
++                with self.assertRaises(c.Stop):
++                    x.guard.check()
++
++    def test_30_later_alarm_during_restore_also_keeps_callback_primary(self):
++        error = c.Stop('callback before alarm', 'identity_or_lease_failure')
++        x = self.scenario(callback_error=error, cleanup_signal=signal.SIGALRM)
++        self.assertIs(x.raised, error)
++        self.assertEqual(str(x.raised.__cause__), 'Lifetime wall alarm')
++        self.assertEqual((x.descriptor['timestamp'], x.descriptor['kind'], x.until), (100., 'safety_monitor', 110.))
++        self.assertEqual(x.latch.first_alarm_at, 101.)
++
++    def test_31_source_intact_r12_negative_control_demonstrates_original_bug(self):
++        spec = importlib.util.spec_from_file_location('long_d2_r12_negative_control', R12 / 'long_d2.py')
++        old = importlib.util.module_from_spec(spec)
++        spec.loader.exec_module(old)
++        self.assertEqual(old.PREPARE_REL.rsplit('-', 1)[1], 'r12')
++        error = c.Stop('callback integrity failure', 'identity_or_lease_failure')
++        x = self.scenario(old, callback_error=error)
++        self.assertIsNot(x.raised, error, 'r12 propagates the later cleanup error')
++        self.assertEqual(str(x.raised), 'Cancellation latched')
++        self.assertIs(x.raised.__context__, error, 'Original survives only in exception context')
++        self.assertEqual((x.guard.failure_at, x.descriptor['timestamp'], x.descriptor['kind']), (101., 101., 'safety_monitor'))
++        self.assertEqual(x.until, 111.)
++        self.save('r12-negative-control', dict(bug_reproduced=True, source='r12-source/long_d2.py',
++            descriptor=x.descriptor, until=x.until, modeled_signal=True, suite_not_rerun=True))
+--- r12-source/test_r7.py
++++ r14/test_r7.py
+@@ -373,13 +373,14 @@
+         old=blocks(H/'r6-source/long_d2_executor.py');new=blocks(H/'long_d2_executor.py')
+         for key in ('validate_wait_reports','accept_observed','validate_artifacts','checked_registration','worker_command'):
+             self.assertEqual(old[key],new[key],key)
++        from current_delta import blocks_equal_except_scheduling_delta,SCHEDULING_HELPERS
+         before=blocks(H/'r6-source/long_d2.py');after=blocks(H/'long_d2.py')
+-        for key in before:
+-            if key!='supervise_owned':self.assertEqual(before[key],after[key],key)
++        self.assertEqual(blocks_equal_except_scheduling_delta(before,after,('supervise_owned',),False),sorted(SCHEDULING_HELPERS))
+         self.assertEqual(body(H/'r6-source/long_d2.py'),body(H/'long_d2.py'))
+         for name in ('lifecycle.py','boundary_integrity.py'):self.assertEqual((H/name).read_bytes(),(H/'r6-source'/name).read_bytes())
+-        proposed=c.read_json(H/'protocol-r8-proposal.json')
+-        self.assertEqual(c.sha(H/'protocol-r8-proposal.json'),c.PROTOCOL_SHA256)
++        proposed=c.read_json(H/'protocol-r10-proposal.json')
++        self.assertEqual(c.sha(H/'protocol-r10-proposal.json'),c.PROTOCOL_SHA256)
++        self.assertEqual(c.sha(H/'protocol-r8-proposal.json'),'fe11c08159bdb9ca1f03cb0fb96ffd133ad144d107b2a854d19fc49159aa2db2')
+         self.assertEqual(proposed['config_sha256'],c.CONFIG_SHA256)
+         self.assertEqual(proposed['config']['phase_settings']['run_seed'],5562873868232098305)
+         self.assertEqual(proposed['parent_checkpoint_sha256'],'ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f')
+--- r12-source/unit_stage.py
++++ r14/unit_stage.py
+@@ -11,7 +11,7 @@
+ 
+ H = Path(__file__).resolve().parent
+ ROOT = H.parents[3]
+-MODULES = ('test_r12', 'test_r11', 'test_r10', 'test_r7', 'test_repairs', 'test_boundary')
++MODULES = ('test_r14', 'test_r11', 'test_r10', 'test_r7', 'test_repairs', 'test_boundary')
+ 
+ def now():
+     return datetime.datetime.now(datetime.timezone.utc).isoformat()
+@@ -25,8 +25,8 @@
+         stream.write('\n')
+ 
+ def inventory():
+-    paths = list(H.glob('*.py')) + [H/'protocol-r9-proposal.json', H/'protocol-r8-proposal.json']
+-    for name in ('original-source', 'r6-source', 'r9-source', 'r10-source', 'r11-source'):
++    paths = list(H.glob('*.py')) + [H/'protocol-r10-proposal.json', H/'protocol-r9-proposal.json', H/'protocol-r8-proposal.json']
++    for name in ('original-source', 'r6-source', 'r9-source', 'r10-source', 'r11-source', 'r12-source'):
+         paths.extend(path for path in (H/name).rglob('*') if path.is_file())
+     paths += [H/'retained-r9-injection.json', H/'preparation-copy.json']
+     return {str(path.relative_to(H)):dict(sha256=sha(path), bytes=path.stat().st_size) for path in sorted(set(paths))}
+@@ -50,7 +50,7 @@
+         for path in H.glob('*.py'):
+             compile(path.read_text(), str(path), 'exec')  # Parse only; no candidate import.
+         source = inventory()
+-        save(H/'source-manifest.json', dict(schema='r12_source_manifest_v1', files=source,
++        save(H/'source-manifest.json', dict(schema='r14_source_manifest_v1', files=source,
+             frozen_before_test=True, production_capsule=False))
+         source_snapshot = out/'sources'
+         source_snapshot.mkdir()
+@@ -60,7 +60,7 @@
+             shutil.copyfile(H/name, target)
+         original = json.loads((H/'preparation-copy.json').read_text())['original_fixture_files']
+         observed = {path.name:sha(path) for path in (H/'original-source').iterdir() if path.is_file()}
+-        existing = [name for name in planned if not name.startswith('test_r12.')]
++        existing = [name for name in planned if not name.startswith('test_r14.')]
+         expected = []
+         for module in MODULES[1:]:
+             tree = ast.parse((H/'r11-source'/(module+'.py')).read_text())
+@@ -68,15 +68,46 @@
+                 if isinstance(cls, ast.ClassDef):
+                     expected.extend(module+'.'+cls.name+'.'+node.name for node in cls.body
+                         if isinstance(node, ast.FunctionDef) and node.name.startswith('test_'))
+-        inputs = json.loads((H/'input-manifest.json').read_text())['files']
++        manifest = json.loads((H/'input-manifest.json').read_text())
++        inputs = dict(manifest['r12_inputs'], **{k:dict(sha256=v) for k,v in manifest['additional_inputs'].items()})
+         input_match = {name:sha(Path(name)) == value['sha256'] for name,value in inputs.items()}
+-        checks = dict(existing_methods_exact=existing == expected and len(existing) == 112,
++        migrated = {'test_r11': ['test_C01_exact_success_consumers_transport_inner_fixtures_and_old91','test_C02_protocol_only_candidate_paths_and_qualified_semantics'],
++                    'test_r10': ['test_exact_r9_transport_success_consumers_protected_blocks'],
++                    'test_r7': ['test_success_consumers_and_protected_failure_helpers_byte_equal']}
++        def method_texts(path):
++            text = path.read_text(); tree = ast.parse(text); lines = text.splitlines(True); found = {}
++            for cls in tree.body:
++                if isinstance(cls, ast.ClassDef):
++                    for node in cls.body:
++                        if isinstance(node, ast.FunctionDef) and node.name.startswith('test_'):
++                            found[cls.name+'.'+node.name] = ''.join(lines[node.lineno-1:node.end_lineno])
++            return text, lines, found
++        migrated_ok = True; changed_methods = []; unchanged_count = 0
++        for module in MODULES[1:]:
++            now_text, now_lines, now = method_texts(H/(module+'.py'))
++            old_text, old_lines, old = method_texts(H/'r12-source'/(module+'.py'))
++            migrated_ok &= list(now) == list(old)
++            for key in now:
++                if now[key] == old[key]: unchanged_count += 1
++                else: changed_methods.append(module+'.'+key)
++            def strip(text, lines, found, names):
++                out = text
++                for key in names: out = out.replace(found[key], '', 1)
++                return out
++            names = [k for k in now if k.split('.')[1] in migrated.get(module, [])]
++            migrated_ok &= strip(now_text, now_lines, now, names) == strip(old_text, old_lines, old, names)
++            if module not in migrated:
++                migrated_ok &= now_text == old_text
++        expected_changed = sorted(m+'.'+('R11' if m=='test_r11' else 'R10' if m=='test_r10' else 'R7')+'.'+n for m, ns in migrated.items() for n in ns)
++        migrated_ok &= sorted(changed_methods) == expected_changed and unchanged_count == 108
++        checks = dict(changed_inherited_methods=sorted(changed_methods), unchanged_inherited_methods=unchanged_count,
++            existing_methods_exact=existing == expected and len(existing) == 112,
+             new_methods=len(planned)-len(existing), unique_names=len(planned)==len(set(planned)),
+             original_fixture_exact=original == observed, input_bindings_all_match=all(input_match.values()),
+             cache_empty=not any(cache.iterdir()), fixtures_empty=not any(fixtures.iterdir()),
+             no_current_old_envelopes=not any((H/name).exists() for name in
+                 ('classification.json','long-identity.json','registration.json','capsule-final','required-lease.json')),
+-            existing_test_sources_exact=all((H/(name+'.py')).read_bytes()==(H/'r11-source'/(name+'.py')).read_bytes() for name in MODULES[1:]),
++            existing_test_sources_exact=migrated_ok,
+             planned_tests=planned, input_rechecks=input_match)
+         save(out/'setup-precheck.json', checks)
+         if not (checks['existing_methods_exact'] and checks['new_methods'] > 0 and checks['unique_names']
+@@ -93,7 +124,7 @@
+             environment={key:env[key] for key in ('VALIDATION_DIR','PYTHONDONTWRITEBYTECODE','PYTHONPYCACHEPREFIX')},
+             other_environment_sha256={key:hashlib.sha256(value.encode()).hexdigest() for key,value in env.items()
+                 if key not in ('VALIDATION_DIR','PYTHONDONTWRITEBYTECODE','PYTHONPYCACHEPREFIX')},
+-            historical_static_binding='Four unchanged inherited static methods use exact r11 snapshot and registration constants; all 108 inherited behavioral/source-invariant methods use r12; new exact-delta tests cover r12.'))
++            migrated_static_methods='Four named inherited static methods have explicitly migrated expectations and run against the current r14 candidate; 108 inherited method bodies byte-identical to r12/r11; no historical-target rebinding.'))
+         started = time.monotonic()
+         result.update(validation_attempts=1, started_at_utc=now())
+         with (out/'stdout.log').open('xb') as stdout, (out/'stderr.log').open('xb') as stderr:

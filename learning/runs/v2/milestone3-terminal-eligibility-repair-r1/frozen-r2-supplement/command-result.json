@@ -1,0 +1,33 @@
+{
+  "argv": [
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+    "-B",
+    "-c",
+    "\nimport hashlib, importlib.util, pathlib, sys\nimport dodge_rl\nsource_root=pathlib.Path(sys.argv[1])\nfor name in ('supervision','checkpoints','train_teacher'):\n    path=source_root/'python/dodge_rl'/(name+'.py')\n    spec=importlib.util.spec_from_file_location('dodge_rl.'+name,path)\n    module=importlib.util.module_from_spec(spec)\n    sys.modules[spec.name]=module\n    setattr(dodge_rl,name,module)\n    spec.loader.exec_module(module)\n    print('EXECUTED_SOURCE',name,str(path),hashlib.sha256(path.read_bytes()).hexdigest(),flush=True)\nimport pytest\nraise SystemExit(pytest.main(sys.argv[2:]))\n",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m3-runtime-review-r2",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--basetemp",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone3-terminal-eligibility-repair-r1/frozen-r2-supplement/fixtures",
+    "--tb=short",
+    "--junitxml",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone3-terminal-eligibility-repair-r1/frozen-r2-supplement/junit.xml",
+    "python/tests/test_terminal_eligibility.py::test_terminal_valid_registered_stage_source_remains_eligible",
+    "python/tests/test_terminal_eligibility.py::test_terminal_manifest_consistency_does_not_replace_missing_parent_authority"
+  ],
+  "cwd": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79",
+  "duration_seconds": 2.2192311670514755,
+  "environment": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONPATH": "python"
+  },
+  "executed_source": {
+    "executed:/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m3-runtime-review-r2/python/dodge_rl/checkpoints.py": "cd2edd7edfd2c1a4f3f6444e27889f339afbe2d8916b73bb3894bd95ddcc7e12",
+    "executed:/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m3-runtime-review-r2/python/dodge_rl/supervision.py": "f2b476b27717a34c8f26c55e22598fe75330848beba33d5bd0906f146ecb0c9a",
+    "executed:/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m3-runtime-review-r2/python/dodge_rl/train_teacher.py": "16e96905712039b2c6c00047a2c2a982f3c991a6eeecf6ec14f0ca7c1958969f"
+  },
+  "exit_status": 1,
+  "source_unchanged_during_test": true,
+  "started_at_utc": "2026-10-24T10:53:27.561680+00:00"
+}

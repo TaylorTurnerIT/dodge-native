@@ -1,0 +1,71 @@
+{
+  "findings": [
+    {
+      "consequence": "The first-global descriptor and shared cleanup deadline start later than the available source observation. The proof extends the pool from 109.75 to 110.0 for a failure observed at 99.75 and handled at 100.0. This breaks the earliest-observation plus 10-second contract; no normal acceptance bypass or measured OS deadline overrun is claimed.",
+      "end_line": 245,
+      "fix_direction": "Carry the direct report observed_monotonic into the actual raw-failure descriptor in both watchdog and main paths; keep minimum-of-earlier failures and existing absolute cap.",
+      "id": "BOUNDARY-R6-RAW-OBSERVATION-TIME",
+      "line": 245,
+      "mechanism": "processes.Child.poll records observed_monotonic at the successful waitpid (processes.py:70). Execution.monitor discards that source time and calls self.fail(Stop(...)) without at; observed_failure therefore stamps the later monitor catch time. The main run path at lines 447-454 also turns the retained nonzero report into an unstamped require failure.",
+      "path": "learning/runs/v2/postovernight-long-D2-boundary-prepare-r6/long_d2_executor.py",
+      "proof": {
+        "case": "retained_raw_failure",
+        "control": "explicit_source_control retains 99.75 and until 109.75 using the same real fail entry",
+        "limit": "Exact extracted monitor/fail/observed_failure/FailurePool with deterministic clock and fake retained Child report, group probes and signal sink; no OS operations.",
+        "raw_exit": 0,
+        "results": "monitor-proof-r2-results.json",
+        "script": "proof_monitor_r2.py",
+        "stderr": "proof-monitor-r2.stderr.log",
+        "stdout": "proof-monitor-r2.stdout.log"
+      },
+      "severity": "P2",
+      "title": "Retain the direct raw-failure observation time",
+      "trigger": "Child.poll already retained a nonzero inner wait report, then the watchdog handles that same report on a later tick, with no earlier pool/guard/latch failure."
+    },
+    {
+      "consequence": "The earlier wall_guard/alarm is permanently relabeled cancelled at a time when cancellation had not happened. In the proof alarm_at=99.5 and cancel_at=99.75 produce first-global outcome cancelled at 99.5; using first_cancel_at selects the true wall_guard/alarm at 99.5. Cleanup cap stays bounded and raw failure remains ineligible.",
+      "end_line": 232,
+      "fix_direction": "Pass first_cancel_at for a cancellation source and let observed_failure compare the separate actual alarm/deadline candidates.",
+      "id": "BOUNDARY-R6-ALARM-CANCEL-SOURCE",
+      "line": 232,
+      "mechanism": "ProcessLatch.first_at belongs to the first signal of any kind. The monitor passes that value for a newly constructed cancelled Stop. Execution.fail creates an existing cancelled descriptor at the earlier alarm time, and observed_failure selects it before the equal-time true alarm candidate.",
+      "path": "learning/runs/v2/postovernight-long-D2-boundary-prepare-r6/long_d2_executor.py",
+      "proof": {
+        "case": "alarm_then_cancel_actual_monitor",
+        "control": "correct_cancel_source_control",
+        "limit": "Exact extracted monitor and descriptor selection with synthetic latch observations; no actual signal delivery or OS finalization run.",
+        "raw_exit": 0,
+        "results": "monitor-proof-r2-results.json",
+        "script": "proof_monitor_r2.py",
+        "stderr": "proof-monitor-r2.stderr.log",
+        "stdout": "proof-monitor-r2.stdout.log"
+      },
+      "severity": "P2",
+      "title": "Use the cancellation observation time for the cancellation descriptor",
+      "trigger": "An early directly delivered SIGALRM is latched during deferred finalization, followed by SIGINT/SIGTERM before the watchdog handles cancellation; no earlier pool entry exists and the normal registered deadline has not elapsed."
+    },
+    {
+      "consequence": "The repaired startup-cancellation lifecycle requirement cannot obtain the required positive direct-parent worker reap/raw-status witness. The exact fixture predicate rejects the source path with \"owned direct reap missing\" even when supplied positive group absence. Failure receipt remains honest (cleanup_complete=false, owned_worker_reaped=false); no surviving process or acceptance bypass is demonstrated.",
+      "end_line": 1376,
+      "fix_direction": "After the mandatory partial receipt attempt, preserve the direct-parent child/IPC authority and perform bounded direct reaping/reporting while the executor remains sole group signal owner; use the same shared deadline. Preserve mandatory-before-optional ordering. Deliberate parent death needs separate honest orphan evidence policy, not fabricated direct reaping.",
+      "id": "BOUNDARY-R6-STARTUP-DIRECT-REAP",
+      "line": 1365,
+      "mechanism": "The exception branch publishes an honest failed_partial receipt, closes handles/joins guard threads, optionally persists timing, closes the supervisor IPC endpoint and returns 1. It never polls or waits on its already-owned worker after the failure. main then calls final_exit. The executor can terminate/probe a registered or recovered worker group, but is not that worker direct parent and cannot recreate its missing worker_wait report.",
+      "path": "learning/runs/v2/postovernight-long-D2-boundary-prepare-r6/long_d2.py",
+      "proof": {
+        "limit": "Exact extracted supervise_owned and validate_fixture; synthetic Popen/Child/clock/ACK/IO/Guard. No OS lifecycle matrix, startup rehearsal, real direct wait, or actual group absence test.",
+        "observation": "worker_Popen_returned; Child_created; register_worker failure; mandatory receipt attempted before closure/optional; no Child_poll or worker_wait; return 1; fixture rejects",
+        "raw_exit": 0,
+        "results": "startup-reap-proof-results.json",
+        "script": "proof_startup_reap.py",
+        "stderr": "proof-startup-reap.stderr.log",
+        "stdout": "proof-startup-reap.stdout.log"
+      },
+      "severity": "P2",
+      "title": "Retain the live supervisor long enough to report its worker reap after startup cancellation",
+      "trigger": "Cancellation or another exception reaches supervise_owned after worker Popen/Child construction but before normal child.poll obtains a wait report. This excludes the deliberate supervisor-crash/orphan case."
+    }
+  ],
+  "schema": "frozen_boundary_r6_source_review_v1",
+  "verdict": "changes_required"
+}

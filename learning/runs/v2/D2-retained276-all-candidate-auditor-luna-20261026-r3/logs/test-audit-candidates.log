@@ -1,0 +1,794 @@
+test_frozen_launcher_binds_audited_runner (test_audit_candidates.BytecodeAndLauncherControls) ... ERROR
+test_pinned_source_digest_mismatch_rejected (test_audit_candidates.BytecodeAndLauncherControls) ... ok
+test_prefix_is_registered_empty_directory (test_audit_candidates.BytecodeAndLauncherControls) ... ERROR
+test_certificate_competence_flip_rejected (test_audit_candidates.CertificateNegativeControls) ... ERROR
+test_certificate_death_cause_drift_rejected (test_audit_candidates.CertificateNegativeControls) ... ERROR
+test_certificate_jsonl_row_drift_rejected (test_audit_candidates.CertificateNegativeControls) ... ERROR
+test_certificate_objective_drift_rejected (test_audit_candidates.CertificateNegativeControls) ... ERROR
+test_certificate_seed_cohort_drift_rejected (test_audit_candidates.CertificateNegativeControls) ... ERROR
+test_certificate_training_eligible_rejected (test_audit_candidates.CertificateNegativeControls) ... ERROR
+test_entry_jsonl_drift_against_parent_rejected (test_audit_candidates.CertificateNegativeControls) ... ok
+test_entry_row_drift_against_parent_rejected (test_audit_candidates.CertificateNegativeControls) ... ok
+test_sidecar_eligibility_drift_rejected (test_audit_candidates.CertificateNegativeControls) ... ERROR
+test_adam_moment_drift_rejected (test_audit_candidates.EntryNegativeControls) ... ERROR
+test_cumulative_base_drift_rejected (test_audit_candidates.EntryNegativeControls) ... ERROR
+test_effective_lr_fingerprint_drift_rejected (test_audit_candidates.EntryNegativeControls) ... ERROR
+test_effective_lr_mutation_flag_rejected (test_audit_candidates.EntryNegativeControls) ... ERROR
+test_entry_nonzero_raw_frames_rejected (test_audit_candidates.EntryNegativeControls) ... ERROR
+test_entry_restoration_forged_match_rejected (test_audit_candidates.EntryNegativeControls) ... ERROR
+test_identity_hash_forgery_rejected (test_audit_candidates.EntryNegativeControls) ... ERROR
+test_identity_parent_receipt_drift_rejected (test_audit_candidates.EntryNegativeControls) ... ERROR
+test_identity_phase_window_drift_rejected (test_audit_candidates.EntryNegativeControls) ... ERROR
+test_integer_lr_rejected (test_audit_candidates.EntryNegativeControls) ... ERROR
+test_model_drift_rejected (test_audit_candidates.EntryNegativeControls) ... ERROR
+test_nonfinite_adam_tensor_rejected (test_audit_candidates.EntryNegativeControls) ... ERROR
+test_nonfinite_model_tensor_rejected (test_audit_candidates.EntryNegativeControls) ... ERROR
+test_nonzero_entry_counters_rejected (test_audit_candidates.EntryNegativeControls) ... ERROR
+test_parent_3352_baseline_rejected (test_audit_candidates.EntryNegativeControls) ... ERROR
+test_parent_identity_drift_rejected (test_audit_candidates.EntryNegativeControls) ... ERROR
+test_run_seed_drift_rejected (test_audit_candidates.EntryNegativeControls) ... ERROR
+test_wall_formula_drift_rejected (test_audit_candidates.EntryNegativeControls) ... ERROR
+test_wrong_saved_group_lr_rejected (test_audit_candidates.EntryNegativeControls) ... ERROR
+test_later_candidate_counter_drift_rejected (test_audit_candidates.LaterCandidateControls) ... ERROR
+test_later_candidate_counters_and_cumulative_pass (test_audit_candidates.LaterCandidateControls) ... ERROR
+test_later_candidate_cumulative_base_drift_rejected (test_audit_candidates.LaterCandidateControls) ... ERROR
+test_later_candidate_entry_only_fields_not_reused (test_audit_candidates.LaterCandidateControls) ... ERROR
+test_later_candidate_missing_metric_row_rejected (test_audit_candidates.LaterCandidateControls) ... ERROR
+test_later_candidate_progress_drift_rejected (test_audit_candidates.LaterCandidateControls) ... ERROR
+test_later_candidate_wall_formula_drift_rejected (test_audit_candidates.LaterCandidateControls) ... ERROR
+test_selection_ignores_latest_endpoint_when_retained_is_higher (test_audit_candidates.LaterCandidateControls) ... ok
+test_accepted_prior_metrics_match_frozen_ppo_schema (test_audit_candidates.PositiveControls) ... ERROR
+test_choose_best_strict_and_tie_keeps_earlier (test_audit_candidates.PositiveControls) ... ok
+test_constants_bind_frozen_runner (test_audit_candidates.PositiveControls) ... ERROR
+test_cumulative_composition_from_accepted_parent (test_audit_candidates.PositiveControls) ... ERROR
+test_effective_lr_record_matches_parent_without_mutation (test_audit_candidates.PositiveControls) ... ERROR
+test_parent_276_evaluation_is_the_entry_baseline (test_audit_candidates.PositiveControls) ... ok
+test_partial_journal_tail_prefix_mode_only (test_audit_candidates.PositiveControls) ... ok
+test_real_parent_276_certificate_passes_validator (test_audit_candidates.PositiveControls) ... ERROR
+test_real_parent_endpoint_accepted_by_frozen_validator (test_audit_candidates.PositiveControls) ... ERROR
+test_registration_and_outputs_bound (test_audit_candidates.PositiveControls) ... ERROR
+test_retained_best_is_monotone_not_latest_endpoint (test_audit_candidates.PositiveControls) ... ok
+test_retained_best_tie_with_baseline_keeps_entry (test_audit_candidates.PositiveControls) ... ok
+test_synthetic_entry_state_passes_identity_saved_lr_and_entry_checks (test_audit_candidates.PositiveControls) ... ERROR
+test_module_outside_runtime_rejected (test_audit_candidates.RuntimeOriginNegativeControls) ... ERROR
+test_unpinned_runtime_member_rejected (test_audit_candidates.RuntimeOriginNegativeControls) ... ERROR
+test_wrong_native_digest_rejected (test_audit_candidates.RuntimeOriginNegativeControls) ... ERROR
+
+======================================================================
+ERROR: test_frozen_launcher_binds_audited_runner (test_audit_candidates.BytecodeAndLauncherControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 426, in test_frozen_launcher_binds_audited_runner
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 23, in ctx
+    ckpt, survival_gate, identity_hash = a.import_runtime(reg)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 153, in import_runtime
+    import dodge_rl
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/__init__.py", line 3, in <module>
+    from ._native import VecDodgeEnv
+ModuleNotFoundError: No module named 'dodge_rl._native'
+
+======================================================================
+ERROR: test_prefix_is_registered_empty_directory (test_audit_candidates.BytecodeAndLauncherControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 422, in test_prefix_is_registered_empty_directory
+    self.assertEqual(str(a.PREP / "empty-pycache"), ctx()["reg"]["import_policy"]["pycache_prefix"])
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_certificate_competence_flip_rejected (test_audit_candidates.CertificateNegativeControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 351, in test_certificate_competence_flip_rejected
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_certificate_death_cause_drift_rejected (test_audit_candidates.CertificateNegativeControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 376, in test_certificate_death_cause_drift_rejected
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_certificate_jsonl_row_drift_rejected (test_audit_candidates.CertificateNegativeControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 337, in test_certificate_jsonl_row_drift_rejected
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_certificate_objective_drift_rejected (test_audit_candidates.CertificateNegativeControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 366, in test_certificate_objective_drift_rejected
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_certificate_seed_cohort_drift_rejected (test_audit_candidates.CertificateNegativeControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 358, in test_certificate_seed_cohort_drift_rejected
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_certificate_training_eligible_rejected (test_audit_candidates.CertificateNegativeControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 344, in test_certificate_training_eligible_rejected
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_sidecar_eligibility_drift_rejected (test_audit_candidates.CertificateNegativeControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 383, in test_sidecar_eligibility_drift_rejected
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_adam_moment_drift_rejected (test_audit_candidates.EntryNegativeControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 265, in test_adam_moment_drift_rejected
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_cumulative_base_drift_rejected (test_audit_candidates.EntryNegativeControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 233, in test_cumulative_base_drift_rejected
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_effective_lr_fingerprint_drift_rejected (test_audit_candidates.EntryNegativeControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 314, in test_effective_lr_fingerprint_drift_rejected
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_effective_lr_mutation_flag_rejected (test_audit_candidates.EntryNegativeControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 304, in test_effective_lr_mutation_flag_rejected
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_entry_nonzero_raw_frames_rejected (test_audit_candidates.EntryNegativeControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 227, in test_entry_nonzero_raw_frames_rejected
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_entry_restoration_forged_match_rejected (test_audit_candidates.EntryNegativeControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 297, in test_entry_restoration_forged_match_rejected
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_identity_hash_forgery_rejected (test_audit_candidates.EntryNegativeControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 195, in test_identity_hash_forgery_rejected
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_identity_parent_receipt_drift_rejected (test_audit_candidates.EntryNegativeControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 201, in test_identity_parent_receipt_drift_rejected
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_identity_phase_window_drift_rejected (test_audit_candidates.EntryNegativeControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 208, in test_identity_phase_window_drift_rejected
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_integer_lr_rejected (test_audit_candidates.EntryNegativeControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 258, in test_integer_lr_rejected
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_model_drift_rejected (test_audit_candidates.EntryNegativeControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 273, in test_model_drift_rejected
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_nonfinite_adam_tensor_rejected (test_audit_candidates.EntryNegativeControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 289, in test_nonfinite_adam_tensor_rejected
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_nonfinite_model_tensor_rejected (test_audit_candidates.EntryNegativeControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 281, in test_nonfinite_model_tensor_rejected
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_nonzero_entry_counters_rejected (test_audit_candidates.EntryNegativeControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 221, in test_nonzero_entry_counters_rejected
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_parent_3352_baseline_rejected (test_audit_candidates.EntryNegativeControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 245, in test_parent_3352_baseline_rejected
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_parent_identity_drift_rejected (test_audit_candidates.EntryNegativeControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 215, in test_parent_identity_drift_rejected
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_run_seed_drift_rejected (test_audit_candidates.EntryNegativeControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 189, in test_run_seed_drift_rejected
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_wall_formula_drift_rejected (test_audit_candidates.EntryNegativeControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 239, in test_wall_formula_drift_rejected
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_wrong_saved_group_lr_rejected (test_audit_candidates.EntryNegativeControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 251, in test_wrong_saved_group_lr_rejected
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_later_candidate_counter_drift_rejected (test_audit_candidates.LaterCandidateControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 475, in test_later_candidate_counter_drift_rejected
+    c2, state = later_candidate(ctx())
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_later_candidate_counters_and_cumulative_pass (test_audit_candidates.LaterCandidateControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 464, in test_later_candidate_counters_and_cumulative_pass
+    c2, state = later_candidate(ctx())
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_later_candidate_cumulative_base_drift_rejected (test_audit_candidates.LaterCandidateControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 487, in test_later_candidate_cumulative_base_drift_rejected
+    c2, state = later_candidate(ctx())
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_later_candidate_entry_only_fields_not_reused (test_audit_candidates.LaterCandidateControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 499, in test_later_candidate_entry_only_fields_not_reused
+    c2, state = later_candidate(ctx())
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_later_candidate_missing_metric_row_rejected (test_audit_candidates.LaterCandidateControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 469, in test_later_candidate_missing_metric_row_rejected
+    c2, state = later_candidate(ctx())
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_later_candidate_progress_drift_rejected (test_audit_candidates.LaterCandidateControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 481, in test_later_candidate_progress_drift_rejected
+    c2, state = later_candidate(ctx())
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_later_candidate_wall_formula_drift_rejected (test_audit_candidates.LaterCandidateControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 493, in test_later_candidate_wall_formula_drift_rejected
+    c2, state = later_candidate(ctx())
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_accepted_prior_metrics_match_frozen_ppo_schema (test_audit_candidates.PositiveControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 107, in test_accepted_prior_metrics_match_frozen_ppo_schema
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_constants_bind_frozen_runner (test_audit_candidates.PositiveControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 79, in test_constants_bind_frozen_runner
+    runner = ctx()["runner"]
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_cumulative_composition_from_accepted_parent (test_audit_candidates.PositiveControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 163, in test_cumulative_composition_from_accepted_parent
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_effective_lr_record_matches_parent_without_mutation (test_audit_candidates.PositiveControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 172, in test_effective_lr_record_matches_parent_without_mutation
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_real_parent_276_certificate_passes_validator (test_audit_candidates.PositiveControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 123, in test_real_parent_276_certificate_passes_validator
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_real_parent_endpoint_accepted_by_frozen_validator (test_audit_candidates.PositiveControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 101, in test_real_parent_endpoint_accepted_by_frozen_validator
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_registration_and_outputs_bound (test_audit_candidates.PositiveControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 94, in test_registration_and_outputs_bound
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_synthetic_entry_state_passes_identity_saved_lr_and_entry_checks (test_audit_candidates.PositiveControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 131, in test_synthetic_entry_state_passes_identity_saved_lr_and_entry_checks
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_module_outside_runtime_rejected (test_audit_candidates.RuntimeOriginNegativeControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 392, in test_module_outside_runtime_rejected
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_unpinned_runtime_member_rejected (test_audit_candidates.RuntimeOriginNegativeControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 400, in test_unpinned_runtime_member_rejected
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+======================================================================
+ERROR: test_wrong_native_digest_rejected (test_audit_candidates.RuntimeOriginNegativeControls)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 412, in test_wrong_native_digest_rejected
+    c = ctx()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_audit_candidates.py", line 22, in ctx
+    runner, reg, config = a.load_frozen(enforce_lease=False)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 135, in load_frozen
+    bind_environment()
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 126, in bind_environment
+    check(name not in sys.modules, f"Module cache already contains {name}")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/audit_candidates.py", line 74, in check
+    raise AuditError(message)
+audit_candidates.AuditError: Module cache already contains runner
+
+----------------------------------------------------------------------
+Ran 55 tests in 1.595s
+
+FAILED (errors=46)

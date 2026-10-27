@@ -1,0 +1,1173 @@
+--- learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/__init__.py
++++ learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/successor/__init__.py
+@@ -1,5 +1 @@
+-"""Owned-batch Dodge v2 environment, backed by the native Rust engine."""
+-
+-from ._native import VecDodgeEnv
+-
+-__all__ = ["VecDodgeEnv"]
++"""Preparation-only Python successor. Importing this package loads no native engine."""
+--- learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/ppo.py
++++ learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/successor/ppo.py
+@@ -262,6 +262,7 @@
+     model: nn.Module, env: Any, rollout_steps: int, device: str | torch.device,
+     *, observation: Mapping[str, Any] | None = None,
+     config: PPOConfig | None = None, check_guard: Guard = None,
++    boundary_adapter: Any = None,
+ ) -> RolloutCollection:
+     """Collect one fixed on-policy buffer; failures never imply environment rollback."""
+     config = PPOConfig() if config is None else config
+@@ -314,8 +315,14 @@
+                 storage["old_log_probs"][step].copy_(policy.log_prob(actions).cpu())
+                 storage["values"][step].copy_(output.values.cpu())
+                 _guard(check_guard)
++                if boundary_adapter is not None:
++                    boundary_adapter.before_step(episode_info, step)
+                 result = env.step(actions.detach().cpu().numpy().copy())
+-                _guard(check_guard)
++                if boundary_adapter is not None:
++                    boundary_adapter.observe_returned_step(result)
++                _guard(check_guard)
++                if boundary_adapter is not None:
++                    boundary_adapter.reconcile(result, episode_info, step)
+                 audited = _audit_step(result, batch_size, cap)
+                 for index, info in enumerate(result["info"]):
+                     previous = episode_info[index]
+@@ -327,6 +334,8 @@
+                              and info["gameplay_frames"] == previous["gameplay_frames"]
+                              + int(audited["elapsed_raw_frames"][index]),
+                              "Cumulative episode score/alive/frame counters differ from executed steps")
++                if boundary_adapter is not None:
++                    boundary_adapter.record_step(result, episode_info, step)
+                 episode_info = copy.deepcopy(result["info"])
+                 for name, array in audited.items():
+                     storage[name][step].copy_(torch.as_tensor(array))
+@@ -344,6 +353,8 @@
+                     ended_info = {index: copy.deepcopy(episode_info[index]) for index in ended}
+                     _guard(check_guard)
+                     reset = env.reset_done(ended)
++                    if boundary_adapter is not None:
++                        boundary_adapter.observe_returned_reset(ended, reset)
+                     _guard(check_guard)
+                     _require(len(reset["info"]) == len(ended), "Reset metadata is incomplete")
+                     for index, info in zip(ended, reset["info"], strict=True):
+@@ -355,6 +366,8 @@
+                                  and not info["terminated"] and not info["truncated"],
+                                  "Reset did not clear episode counters and boundary flags")
+                         episode_info[index] = copy.deepcopy(info)
++                    if boundary_adapter is not None:
++                        boundary_adapter.record_reset(ended, reset["info"], step)
+                     reset_info.append({"rollout_step": step, "indices": ended,
+                                        "info": copy.deepcopy(reset["info"])})
+                     current = env.observations()
+--- learning/runs/v2/progressive1000-curriculum-replica-parent-20261026-r3/test_scheduler_reference.py
++++ learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/tests/test_scheduler_reference.py
+@@ -106,7 +106,7 @@
+     def test_hash_isolation_no_rng_imports_or_calls(self):
+         import ast
+         from pathlib import Path
+-        tree = ast.parse(Path(__file__).with_name("scheduler_reference.py").read_text())
++        tree = ast.parse((Path(__file__).resolve().parents[1] / "successor/scheduler_reference.py").read_text())
+         imports = set()
+         for node in ast.walk(tree):
+             if isinstance(node, ast.Import):
+--- /dev/null
++++ learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/successor/curriculum.py
+@@ -0,0 +1,406 @@
++"""Preparation-only native cutoff integration; no native import or runner CLI.
++
++The only supported update entry point is PreparedUpdates.update_once(). It owns
++collection, PPO, and the post-PPO scheduler boundary as one consumed operation.
++An exception poisons the instance: partial environment/optimizer work is never
++silently replayed. Telemetry remains external to RolloutBatch/model inputs.
++"""
++from __future__ import annotations
++
++import copy
++from dataclasses import asdict, dataclass
++from collections.abc import Mapping
++
++import numpy as np
++import torch
++
++from . import ppo
++from .scheduler_reference import Completion, Scheduler
++
++# Required historical exclusions are a floor, not a freshness assertion. The
++# parent's future exhaustive union must be explicitly injected before creation.
++HISTORICAL_RANGES = tuple(sorted(((0xB0000000, 0xB00003E7),
++    (0xD0000000, 0xD000007F), (0xE0000000, 0xE00003E7),
++    (3506438144, 3506439167), (3523215360, 3523217407))))
++PINNED_PPO = ppo.PPOConfig(learning_rate=3e-5)
++
++
++def require(condition, message):
++    if not condition:
++        raise ValueError(message)
++
++
++def validate_seed_union(ranges):
++    """Validate an explicit canonical inclusive union, without reserving seeds.
++
++    Call this before future environment construction. Validation proves shape
++    and historical coverage only; parent ancestry/cohort review is still needed.
++    This successor helper does not modify the frozen five-range validator.
++    """
++    require(isinstance(ranges, (list, tuple)) and bool(ranges),
++            "explicit parent-owned seed union required")
++    normalized = []
++    for row in ranges:
++        require(isinstance(row, (list, tuple)) and len(row) == 2,
++                "seed union rows must be integer pairs")
++        low, high = row
++        require(type(low) is int and type(high) is int
++                and 0 <= low <= high <= 2**32 - 1, "invalid seed union bounds")
++        normalized.append((low, high))
++    normalized = tuple(normalized)
++    require(normalized == tuple(sorted(normalized)), "seed union must be sorted")
++    require(all(left[1] + 1 < right[0]
++                for left, right in zip(normalized, normalized[1:])),
++            "seed union must be disjoint and merged")
++    require(normalized != ((0, 2**32 - 1),), "seed union exhausts u32")
++    require(all(any(low <= a and high >= b for low, high in normalized)
++                for a, b in HISTORICAL_RANGES), "historical exclusions missing")
++    return normalized
++
++
++def equal(left, right):
++    """Exact recursive comparison, including all diagnostic/observation fields."""
++    if isinstance(left, np.ndarray) or isinstance(right, np.ndarray):
++        return (isinstance(left, np.ndarray) and isinstance(right, np.ndarray)
++                and left.dtype == right.dtype and left.shape == right.shape
++                and np.array_equal(left, right))
++    if isinstance(left, Mapping) and isinstance(right, Mapping):
++        return left.keys() == right.keys() and all(equal(left[k], right[k]) for k in left)
++    if isinstance(left, (tuple, list)) and isinstance(right, (tuple, list)):
++        return len(left) == len(right) and all(equal(a, b) for a, b in zip(left, right))
++    return type(left) is type(right) and left == right
++
++
++@dataclass(frozen=True)
++class Assignment:
++    generation: int | None
++    horizon: int
++    ordinal: int | None
++
++
++class CurriculumAdapter:
++    """Persistent per-run assignments and external raw-frame telemetry.
++
++    Construct once against normal-start episodes, retain across rollouts.
++    Control uses this same collector/adapter with enabled=False and no Scheduler.
++    The native method is mandatory for live practice boundaries; there is no
++    flag-only fallback. All post-call checks are fail-closed, not rollback.
++    """
++    def __init__(self, env, *, enabled, digest, replica, exclusion_ranges):
++        require(type(enabled) is bool, "enabled must be boolean")
++        require(type(replica) is int and 1 <= replica <= 3, "replica must be integer1..3")
++        self.replica = replica
++        self.arm = "progressive_curriculum" if enabled else "matched_control"
++        self.exclusions = validate_seed_union(exclusion_ranges)
++        self.env, self.enabled = env, enabled
++        self.scheduler = Scheduler(digest) if enabled else None
++        self.completed_updates = 0
++        self.pending_update = None
++        self.rows = []
++        self.assignments = {}
++        self.assignment_events, self.completions, self.boundaries = [], [], []
++        self.intervals, self.update_exposure = {}, {}
++        self.gameplay_frames = self.reset_startup_frames = 0
++        self.observed_native_frames = 0
++        self.observed_native_steps = 0
++        self.returned_reset_startup_frames = 0
++        self.returned_resets = []
++        self.expected_reset = []
++        self.last_infos = None
++        self.reset_count = 0
++        metadata = env.batch_info()
++        self.batch_size = metadata["batch_size"]
++        require(type(self.batch_size) is int and 1 <= self.batch_size <= 64,
++                "preparation adapter supports slots 1..64")
++        require(metadata["action_repeat"] == 4 and metadata["raw_frame_cap"] == 18000,
++                "requires action_repeat4 and ordinary cap18000")
++        require(metadata["seed_mode"]["mode"] == "training", "training stream required")
++        require(tuple(tuple(row) for row in metadata["effective_excluded_seed_ranges"])
++                == self.exclusions, "environment seed union differs from explicit union")
++        infos = env.episode_info()
++        require(len(infos) == self.batch_size, "initial episode metadata incomplete")
++        for slot, info in enumerate(infos):
++            self._validate_active(info, slot)
++            require(info["gameplay_frames"] == info["alive_frames"] == 0,
++                    "initial assignments require normal starts at frame0")
++            self._assign(slot, info, 0, -1)
++        self.initial_startup_frames = 13 * self.batch_size
++        self.last_decision = -1
++
++    def _seed(self, info):
++        seed = info["seed"]["actual_seed"]
++        require(type(seed) is int and 0 <= seed <= 2**32 - 1
++                and not any(low <= seed <= high for low, high in self.exclusions),
++                "episode seed collides with explicit union")
++
++    def _validate_active(self, info, slot):
++        ppo._audit_episode(info, 18000)
++        self._seed(info)
++        require(info["seed"]["slot"] == slot and not info["terminated"]
++                and not info["truncated"], "active slot identity/boundary differs")
++        require(type(info["gameplay_frames"]) is int
++                and info["gameplay_frames"] % 4 == 0, "misaligned live episode")
++
++    def _assign(self, slot, info, update, decision):
++        if self.enabled:
++            generation, horizon, ordinal = self.scheduler.assign()
++            assignment = Assignment(generation, horizon, ordinal)
++        else:
++            assignment = Assignment(None, 18000, None)
++        self.assignments[slot] = assignment
++        self.assignment_events.append({"update": update, "decision": decision,
++            "slot": slot, **asdict(assignment), "seed": copy.deepcopy(info["seed"]),
++            "block": None if assignment.ordinal is None else assignment.ordinal // 100,
++            "position": None if assignment.ordinal is None else assignment.ordinal % 100,
++            "vector_hash": None if self.scheduler is None else self.scheduler.digest})
++
++    def begin_update(self, update):
++        require(self.pending_update is None, "previous collection has no successful PPO finish")
++        require(type(update) is int and update == self.completed_updates + 1 and update <= 60,
++                "global updates must complete once in order1..60")
++        self.pending_update = update
++        self.rows = []
++        self.last_decision = -1
++
++    def before_step(self, previous, decision):
++        require(self.pending_update is not None and decision == self.last_decision + 1
++                and 0 <= decision < 256, "decision order differs")
++        require(not self.expected_reset, "combined ended-slot reset still pending")
++        require(len(previous) == self.batch_size, "previous metadata incomplete")
++        for slot, info in enumerate(previous):
++            self._validate_active(info, slot)
++            horizon = self.assignments[slot].horizon
++            require(info["gameplay_frames"] + 4 <= horizon,
++                    "practice horizon overshoot/misalignment before simulation")
++
++    def observe_returned_step(self, result):
++        """Count returned native work before a post-step guard/audit can fail.
++
++        This counter is deliberately unaudited until record_step succeeds.
++        Native exceptions with no returned result need future native receipts.
++        """
++        self.observed_native_frames += sum(int(value) for value in result["elapsed_raw_frames"])
++        self.observed_native_steps += 1
++
++    def observe_returned_reset(self, indices, reset):
++        """Retain startup work even when a later reset guard/audit fails."""
++        self.returned_reset_startup_frames += sum(int(info["startup_frames"]) for info in reset["info"])
++        self.returned_resets.append({"update": self.pending_update,
++            "decision": self.last_decision, "indices": list(indices),
++            "info": copy.deepcopy(reset["info"])})
++
++    def reconcile(self, result, previous, decision):
++        """After actual step, before audit/storage/value/reset; replace only cutoffs."""
++        require(self.pending_update is not None and decision == self.last_decision + 1,
++                "reconcile outside active ordered collection")
++        # Boundary prevalidation only; the inherited reward/episode/step audit
++        # runs after native cutoff and reconciliation, before buffer storage.
++        audited = {name: ppo._integer_vector(result[name], self.batch_size, name)
++                   for name in ("elapsed_raw_frames", "alive_raw_frames", "score_delta_raw_fixed")}
++        flags = {name: ppo._boolean_vector(result[name], self.batch_size, name)
++                 for name in ("terminated", "truncated")}
++        require(len(result["info"]) == self.batch_size, "step metadata incomplete")
++        selected = []
++        for slot, info in enumerate(result["info"]):
++            self._seed(info)
++            require(info["terminated"] == bool(flags["terminated"][slot])
++                    and info["truncated"] == bool(flags["truncated"][slot])
++                    and not (info["terminated"] and info["truncated"]),
++                    "unreconciled native boundary flags differ")
++            old = previous[slot]
++            require(info["seed"] == old["seed"], "step slot identity changed")
++            require(info["gameplay_frames"] == old["gameplay_frames"]
++                    + int(audited["elapsed_raw_frames"][slot])
++                    and info["alive_frames"] == old["alive_frames"]
++                    + int(audited["alive_raw_frames"][slot])
++                    and info["score_raw_fixed"] == old["score_raw_fixed"]
++                    + int(audited["score_delta_raw_fixed"][slot]),
++                    "step cumulative counters differ")
++            horizon = self.assignments[slot].horizon
++            require(info["gameplay_frames"] <= horizon, "practice horizon overshoot")
++            if info["terminated"] or info["truncated"]:
++                require(not info["truncated"] or info["gameplay_frames"] == 18000,
++                        "unexpected preexisting native truncation")
++                continue  # Death (including death on H) and ordinary cap win.
++            require(info["gameplay_frames"] % 4 == 0, "misaligned live step")
++            if self.enabled and horizon < 18000 and info["gameplay_frames"] == horizon:
++                selected.append(slot)
++        if not selected:
++            return
++        before = copy.deepcopy(result)
++        require(equal(self.env.episode_info(), before["info"]),
++                "step info differs from current native episodes")
++        native_infos = self.env.truncate_practice(
++            selected, [self.assignments[slot].horizon for slot in selected])
++        require(isinstance(native_infos, list) and len(native_infos) == len(selected),
++                "native cutoff returned incomplete owned EpisodeInfo list")
++        expected_infos = copy.deepcopy(before["info"])
++        for slot, info in zip(selected, native_infos, strict=True):
++            expected = copy.deepcopy(before["info"][slot])
++            expected["truncated"] = True
++            expected["terminated"] = False
++            require(equal(info, expected), "native cutoff changed EpisodeInfo beyond boundary flag")
++            expected_infos[slot] = expected
++        require(equal(self.env.episode_info(), expected_infos),
++                "native cutoff mutated other slots or returned inconsistent episode_info")
++        require(equal(self.env.observations(), before["observations"]),
++                "native cutoff changed final observation/history payload")
++        require(equal(result, before), "native cutoff mutated owned step result")
++        # No mutation until native result and preservation checks have succeeded.
++        result["truncated"] = result["truncated"].copy()
++        result["info"] = list(result["info"])
++        for slot, info in zip(selected, native_infos, strict=True):
++            result["truncated"][slot] = True
++            result["info"][slot] = copy.deepcopy(info)
++
++    def record_step(self, result, previous, decision):
++        """Record executed frames and frozen completion tags after collector audit."""
++        generation = None if self.scheduler is None else self.scheduler.generation
++        for slot, info in enumerate(result["info"]):
++            assignment = self.assignments[slot]
++            old, new = previous[slot]["gameplay_frames"], info["gameplay_frames"]
++            self.gameplay_frames += new - old  # Includes the fatal frame.
++            exposure_key = (self.pending_update, assignment.generation, assignment.horizon, generation)
++            self.update_exposure[exposure_key] = self.update_exposure.get(exposure_key, 0) + new - old
++            for low in range(0, new, 1000):
++                high = low + 1000
++                frames = max(0, min(new, high) - max(old, low))
++                if not frames:
++                    continue
++                key = (assignment.generation, assignment.horizon, generation, low, high)
++                row = self.intervals.setdefault(key, dict(executed_gameplay_frames=0,
++                    interval_entries=0, boundary_reaches=0, alive_through=0))
++                row["executed_gameplay_frames"] += frames
++                row["interval_entries"] += int(old <= low < new)
++                row["boundary_reaches"] += int(old < high <= new)
++                row["alive_through"] += int(previous[slot]["alive_frames"] < high <= info["alive_frames"])
++            if info["terminated"] or info["truncated"]:
++                success = info["alive_frames"] >= assignment.horizon
++                self.completions.append({"update": self.pending_update, "decision": decision,
++                    "slot": slot, **asdict(assignment), "success": success,
++                    "scheduler_generation": generation, "native_info": copy.deepcopy(info)})
++                if self.enabled:
++                    self.rows.append(Completion(decision, slot, assignment.generation,
++                                                assignment.horizon, success))
++        self.expected_reset = [slot for slot, info in enumerate(result["info"])
++                               if info["terminated"] or info["truncated"]]
++        self.last_infos = copy.deepcopy(result["info"])
++        self.last_decision = decision
++
++    def record_reset(self, indices, infos, decision):
++        require(indices == self.expected_reset, "reset differs from complete ended-slot set")
++        require(indices == sorted(set(indices)) and len(indices) == len(infos),
++                "subset resets require complete stable slot order")
++        expected = copy.deepcopy(self.last_infos)
++        for slot, info in zip(indices, infos, strict=True):
++            expected[slot] = copy.deepcopy(info)
++        require(equal(self.env.episode_info(), expected),
++                "subset reset changed unselected episode identity/counters")
++        for slot, info in zip(indices, infos, strict=True):
++            self._validate_active(info, slot)
++            self._assign(slot, info, self.pending_update, decision)
++            self.reset_count += 1
++            self.reset_startup_frames += info["startup_frames"]
++        self.expected_reset = []
++
++    def _finish_after_ppo(self):
++        """Private to PreparedUpdates: collection alone never advances mastery."""
++        require(self.pending_update is not None and self.last_decision == 255
++                and not self.expected_reset,
++                "finish requires all256 decisions and successful PPO")
++        update = self.pending_update
++        boundary = (self.scheduler.finish_update(update, self.rows) if self.enabled else
++                    {"completed_update": update, "promoted": False,
++                     "generation_after_boundary": None})
++        self.boundaries.append(copy.deepcopy(boundary))
++        self.completed_updates = update
++        self.pending_update = None
++        return boundary
++
++    def snapshot(self):
++        """No stepping/draining; preserve terminal or failed in-flight exposure."""
++        return {"preparation_only": True, "replica": self.replica, "arm": self.arm,
++            "completed_updates": self.completed_updates,
++            "pending_update": self.pending_update,
++            "returned_native_gameplay_frames_unaudited": self.observed_native_frames,
++            "returned_native_vector_steps": self.observed_native_steps,
++            "returned_work_not_accepted_by_audit": self.observed_native_frames - self.gameplay_frames,
++            "gameplay_frames_including_fatal": self.gameplay_frames,
++            "initial_construction_startup_frames": self.initial_startup_frames,
++            "normal_reset_count": self.reset_count,
++            "returned_reset_startup_frames_unaudited": self.returned_reset_startup_frames,
++            "returned_resets": copy.deepcopy(self.returned_resets),
++            "reset_startup_frames": self.reset_startup_frames,
++            "raw_frames_total_including_returned_unaudited_work": (self.observed_native_frames
++                + self.initial_startup_frames + self.returned_reset_startup_frames),
++            "accepted_raw_frames_total": self.gameplay_frames + self.initial_startup_frames + self.reset_startup_frames,
++            "assignments": copy.deepcopy(self.assignment_events),
++            "completions": copy.deepcopy(self.completions),
++            "boundaries": copy.deepcopy(self.boundaries),
++            "interval_exposure": [{"generation": key[0], "horizon": key[1],
++                "scheduler_generation": key[2], "low": key[3], "high": key[4], **row}
++                for key, row in self.intervals.items()],
++            "update_exposure": [{"update": key[0], "generation": key[1],
++                "horizon": key[2], "scheduler_generation": key[3], "raw_frames": frames}
++                for key, frames in self.update_exposure.items()],
++            "in_flight": [{"slot": slot, **asdict(self.assignments[slot]),
++                "native_info": copy.deepcopy(info)}
++                for slot, info in enumerate(self.env.episode_info())
++                if not info["terminated"] and not info["truncated"]],
++            "scheduler": None if self.scheduler is None else asdict(self.scheduler)}
++
++
++class PreparedUpdates:
++    """Bounded CPU source prototype, not a registered runner or identity gate.
++
++    update_once() is the complete call contract. Never call collect_rollout and
++    finish separately in a future runner. Keep this instance for all60 updates.
++    A failed collection/PPO/boundary consumes the session and preserves telemetry.
++    No checkpoint restore/save, evaluator, environment construction, or seeds are
++    implemented here. Future integration must bind and qualify all those gates.
++    """
++    def __init__(self, model, optimizer, adapter, *, config=PINNED_PPO):
++        require(asdict(config) == asdict(PINNED_PPO), "full pinned PPO config required")
++        require(adapter.batch_size == 64, "shared runner contract requires64 slots")
++        require(all(parameter.device.type == "cpu" for parameter in model.parameters()),
++                "source prototype supports synthetic CPU only")
++        self.model, self.optimizer, self.adapter = model, optimizer, adapter
++        self.config, self.observation = config, None
++        self.state = "ready"
++        self.actual_optimizer_steps = 0
++        self.metrics = []
++        self.progress = {}
++        self._optimizer_contract()
++
++    def _optimizer_contract(self):
++        require(bool(self.optimizer.param_groups) and all(
++            group["lr"] == self.config.learning_rate and group["eps"] == self.config.adam_eps
++            for group in self.optimizer.param_groups), "constant Adam LR/epsilon differs")
++
++    def snapshot(self):
++        return {"state": self.state, "completed_optimizer_steps": self.actual_optimizer_steps,
++                "last_update_progress": copy.deepcopy(self.progress),
++                "metrics": copy.deepcopy(self.metrics), "environment": self.adapter.snapshot()}
++
++    def update_once(self, *, check_guard=None):
++        require(self.state == "ready", "update session consumed or failed")
++        require(self.adapter.completed_updates < 60, "terminal global60; no drain or update61")
++        self.state = "in_update"
++        try:
++            self._optimizer_contract()
++            self.adapter.begin_update(self.adapter.completed_updates + 1)
++            collection = ppo.collect_rollout(self.model, self.adapter.env, 256, "cpu",
++                observation=self.observation, config=self.config, check_guard=check_guard,
++                boundary_adapter=self.adapter)
++            self.observation = collection.observations
++            metrics = ppo.ppo_update(self.model, self.optimizer, collection.batch,
++                self.config, check_guard=check_guard, progress=self.progress)
++            self._optimizer_contract()
++            boundary = self.adapter._finish_after_ppo()
++            self.actual_optimizer_steps += metrics["optimizer_steps"]
++            self.metrics.append(copy.deepcopy(metrics))
++            self.state = "ready"
++            return collection, metrics, boundary
++        except BaseException:
++            self.state = "failed"
++            raise
+--- /dev/null
++++ learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/tests/fakes.py
+@@ -0,0 +1,130 @@
++"""Tiny synthetic fixtures only. No native/model/checkpoint imports or study seeds."""
++import copy
++from types import SimpleNamespace
++
++import numpy as np
++import torch
++from torch import nn
++
++from successor.curriculum import HISTORICAL_RANGES
++
++
++def info(slot, episode=0, frame=0, *, terminated=False, truncated=False):
++    alive = frame - int(terminated)
++    return {"seed": {"slot": slot, "episode": episode, "counter": 0,
++                     "actual_seed": 100 + slot + 64 * episode, "evaluation": False},
++        "startup_frames": 13, "gameplay_frames": frame, "alive_frames": alive,
++        "score_raw_fixed": 0, "score": 0.0, "score_delta_sum_raw_fixed": 0,
++        "objective_return": alive / 100 - 5 * terminated,
++        "terminated": terminated, "truncated": truncated, "bootstrap": not terminated,
++        "death_cause": "synthetic" if terminated else None,
++        "fatal_gameplay_frame": frame if terminated else None,
++        "death_observed_lethal_contacts": {"synthetic": 1} if terminated else None,
++        "diagnostics": {"raw_history_samples": frame + 1}}
++
++
++class FakeEnv:
++    """Owned-return fake; native API tests here establish fixture behavior only."""
++    def __init__(self, count=4, deaths=None):
++        self.infos = [info(slot) for slot in range(count)]
++        self.deaths = deaths or {}
++        self.cutoffs, self.resets, self.actions = [], [], []
++        self.corruption = None
++        self.step_calls = 0
++
++    def batch_info(self):
++        return {"batch_size": len(self.infos), "action_repeat": 4,
++                "raw_frame_cap": 18000, "seed_mode": {"mode": "training"},
++                "effective_excluded_seed_ranges": list(HISTORICAL_RANGES)}
++
++    def episode_info(self):
++        return copy.deepcopy(self.infos)
++
++    def observations(self):
++        n = len(self.infos)
++        result = {"global_feats": np.zeros((n, 1, 14), np.float32),
++            "entity_feats": np.zeros((n, 80, 16), np.float32),
++            "entity_types": np.zeros((n, 80), np.int64),
++            "entity_mask": np.ones((n, 80), np.bool_)}
++        for slot, row in enumerate(self.infos):
++            # Distinct final and reset tags expose bootstrap leakage.
++            result["global_feats"][slot, 0, 0] = row["gameplay_frames"] / 1000 + 10 * row["seed"]["episode"]
++            result["global_feats"][slot, 0, 1] = row["diagnostics"]["raw_history_samples"]
++        return result
++
++    def step(self, actions):
++        self.step_calls += 1
++        self.actions.append(np.asarray(actions).copy())
++        elapsed, alive = [], []
++        for slot, old in enumerate(self.infos):
++            assert not old["terminated"] and not old["truncated"]
++            frame = old["gameplay_frames"] + 4
++            death_frame = self.deaths.get((slot, old["seed"]["episode"]))
++            death = death_frame is not None and old["gameplay_frames"] < death_frame <= frame
++            if death:
++                frame = death_frame
++            dt = frame - old["gameplay_frames"]
++            elapsed.append(dt)
++            alive.append(dt - death)
++            self.infos[slot] = info(slot, old["seed"]["episode"], frame,
++                                    terminated=death, truncated=frame == 18000 and not death)
++        result = {"observations": self.observations(), "info": self.episode_info(),
++            "elapsed_raw_frames": np.array(elapsed, np.int64),
++            "alive_raw_frames": np.array(alive, np.int64),
++            "score_delta_raw_fixed": np.zeros(len(self.infos), np.int64),
++            "terminated": np.array([row["terminated"] for row in self.infos], np.bool_),
++            "truncated": np.array([row["truncated"] for row in self.infos], np.bool_)}
++        result["rewards"] = (result["alive_raw_frames"] / 100 - 5 * result["terminated"]).astype(np.float32)
++        self.last_result = result
++        return result
++
++    def truncate_practice(self, indices, horizons):
++        assert len(indices) == len(horizons) and len(indices) == len(set(indices))
++        for slot, horizon in zip(indices, horizons):
++            assert type(slot) is int and 0 <= slot < len(self.infos)
++            assert type(horizon) is int and 0 < horizon < 18000 and horizon % 1000 == 0
++            row = self.infos[slot]
++            assert not row["terminated"] and not row["truncated"]
++            assert row["gameplay_frames"] == horizon and horizon % 4 == 0
++        self.cutoffs.append((list(indices), list(horizons)))
++        for slot in indices:
++            self.infos[slot]["truncated"] = True
++        if self.corruption == "reward":
++            self.infos[indices[0]]["objective_return"] += 1
++        elif self.corruption == "other_slot":
++            self.infos[(indices[0] + 1) % len(self.infos)]["seed"]["counter"] += 1
++        elif self.corruption == "history":
++            self.infos[indices[0]]["diagnostics"]["raw_history_samples"] += 1
++        elif self.corruption == "step_payload":
++            self.last_result["rewards"][0] += 1
++        rows = [copy.deepcopy(self.infos[slot]) for slot in indices]
++        if self.corruption == "order":
++            rows.reverse()
++        if self.corruption == "short":
++            rows.pop()
++        return rows
++
++    def reset_done(self, indices):
++        assert indices == sorted(set(indices))
++        assert all(self.infos[slot]["terminated"] or self.infos[slot]["truncated"] for slot in indices)
++        self.resets.append(list(indices))
++        for slot in indices:
++            self.infos[slot] = info(slot, self.infos[slot]["seed"]["episode"] + 1)
++        return {"observations": self.observations(),
++                "info": [copy.deepcopy(self.infos[slot]) for slot in indices]}
++
++
++class TinyNet(nn.Module):
++    def __init__(self):
++        super().__init__()
++        self.actor_head = nn.Linear(1, 9)
++        self.critic_head = nn.Linear(1, 1)
++        with torch.no_grad():
++            self.actor_head.weight.zero_()
++            self.actor_head.bias.zero_()
++            self.critic_head.weight.fill_(1)
++            self.critic_head.bias.zero_()
++
++    def forward(self, global_feats, entity_feats, entity_types, entity_mask):
++        value = global_feats[:, 0, :1]
++        return SimpleNamespace(logits=self.actor_head(value), values=self.critic_head(value).squeeze(-1))
+--- /dev/null
++++ learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/tests/test_collector.py
+@@ -0,0 +1,416 @@
++"""Bounded CPU unit tests. Artificial fixtures and RNG states are not study seeds."""
++import copy
++from dataclasses import asdict, fields
++import importlib.util
++import hashlib
++from pathlib import Path
++import sys
++import unittest
++from unittest.mock import patch
++
++import numpy as np
++import torch
++
++from successor import ppo
++from successor.curriculum import (Assignment, CurriculumAdapter, HISTORICAL_RANGES,
++    PINNED_PPO, PreparedUpdates, equal, validate_seed_union)
++from successor.scheduler_reference import Completion
++from fakes import FakeEnv, TinyNet, info
++
++EVIDENCE = {}
++DIGEST = "a" * 64  # Synthetic hash fixture, no actual vector/seeds.
++
++
++def adapter(env, enabled=True):
++    return CurriculumAdapter(env, enabled=enabled, digest=DIGEST, replica=1,
++                             exclusion_ranges=HISTORICAL_RANGES)
++
++
++def collect(env, boundary, steps, model=None, observation=None):
++    model = TinyNet() if model is None else model
++    return ppo.collect_rollout(model, env, steps, "cpu", config=PINNED_PPO,
++                              boundary_adapter=boundary, observation=observation)
++
++
++def scalar_gae(rewards, values, next_values, terminated, truncated, gamma, lam):
++    """Independent Python-float scalar recurrence, slot by slot."""
++    out = [[0.0 for _ in rewards[0]] for _ in rewards]
++    for slot in range(len(rewards[0])):
++        later = 0.0
++        for t in reversed(range(len(rewards))):
++            bootstrap_value = 0.0 if terminated[t][slot] else next_values[t][slot]
++            residual = rewards[t][slot] + gamma * bootstrap_value - values[t][slot]
++            later = residual if terminated[t][slot] or truncated[t][slot] else residual + gamma * lam * later
++            out[t][slot] = later
++    return out
++
++
++class BoundaryTests(unittest.TestCase):
++    def test_mixed_death_cutoff_continuing_cap_final_values_and_one_reset(self):
++        env = FakeEnv(4, deaths={(0, 0): 1000})
++        boundary = adapter(env)
++        # Artificial cross-rollout state: all episodes still have normal-start
++        # histories in this fake. This is not native runtime/parity evidence.
++        env.infos = [info(0, frame=996), info(1, frame=996),
++                     info(2, frame=996), info(3, frame=17996)]
++        boundary.assignments[2] = Assignment(1, 2000, 2)
++        boundary.assignments[3] = Assignment(17, 18000, 3)
++        boundary.begin_update(1)
++        result = collect(env, boundary, 1)
++        self.assertEqual(env.cutoffs, [([1], [1000])])
++        self.assertEqual(env.resets, [[0, 1, 3]])
++        self.assertEqual(result.batch.terminated.tolist(), [[True, False, False, False]])
++        self.assertEqual(result.batch.truncated.tolist(), [[False, True, False, True]])
++        self.assertEqual(result.batch.next_values.tolist(), [[0.0, 1.0, 1.0, 18.0]])
++        self.assertEqual([row["seed"]["episode"] for row in env.infos], [1, 1, 0, 1])
++        self.assertEqual(result.batch.alive_raw_frames.tolist(), [[3, 4, 4, 4]])
++        self.assertAlmostEqual(result.batch.raw_rewards[0, 0].item(), -4.97, places=5)
++        self.assertEqual([r["success"] for r in boundary.completions], [False, True, True])
++        self.assertEqual([r["slot"] for r in boundary.completions], [0, 1, 3])
++        self.assertTrue(all("generation" not in row for row in result.completed_episodes))
++        self.assertEqual(boundary.scheduler.update, 0)
++        EVIDENCE["mixed_boundary"] = {"terminated": result.batch.terminated.tolist(),
++            "truncated": result.batch.truncated.tolist(), "next_values": result.batch.next_values.tolist(),
++            "native_cutoff_requests": env.cutoffs, "combined_resets": env.resets,
++            "episode_indices_after_reset": [row["seed"]["episode"] for row in env.infos]}
++        # Native owned final results remain valid after reset and later stepping.
++        saved = result.batch.next_values.clone()
++        env.step(np.zeros(4, np.int64))
++        self.assertTrue(torch.equal(saved, result.batch.next_values))
++
++    def test_scalar_gae_oracle_and_no_next_episode_leak(self):
++        env = FakeEnv(4, deaths={(0, 0): 1000})
++        boundary = adapter(env)
++        env.infos = [info(slot, frame=996) for slot in range(3)] + [info(3, frame=17996)]
++        boundary.assignments[2] = Assignment(1, 2000, 2)
++        boundary.assignments[3] = Assignment(17, 18000, 3)
++        boundary.begin_update(1)
++        batch = collect(env, boundary, 3).batch
++        args = [getattr(batch, name).double() if name not in ("terminated", "truncated")
++                else getattr(batch, name) for name in
++                ("rewards", "values", "next_values", "terminated", "truncated")]
++        advantages, returns = ppo.compute_gae(*args, PINNED_PPO.gamma, PINNED_PPO.gae_lambda)
++        expected = torch.tensor(scalar_gae(*[x.tolist() for x in args],
++            PINNED_PPO.gamma, PINNED_PPO.gae_lambda), dtype=torch.float64)
++        torch.testing.assert_close(advantages, expected, rtol=0, atol=1e-12)
++        torch.testing.assert_close(returns, expected + batch.values.double(), rtol=0, atol=1e-12)
++        self.assertAlmostEqual(advantages[0, 1].item(), args[0][0, 1].item()
++                               + .995 * 1.0 - args[1][0, 1].item())
++        self.assertAlmostEqual(advantages[0, 0].item(), args[0][0, 0].item() - args[1][0, 0].item())
++
++    def test_decision255_boundary_and_cross_rollout_episode_persistence(self):
++        env = FakeEnv(2, deaths={(0, 0): 24})
++        boundary = adapter(env)
++        boundary.begin_update(1)
++        first = collect(env, boundary, 256)
++        self.assertIn((255, 0), [(r["decision"], r["slot"]) for r in boundary.completions])
++        self.assertEqual(env.cutoffs, [([1], [1000]), ([0], [1000])])
++        self.assertEqual(env.infos[1]["gameplay_frames"], 24)
++        self.assertEqual(env.infos[0]["gameplay_frames"], 0)
++        self.assertEqual(boundary.assignments[1].ordinal, 3)
++        # Emulate the private post-PPO boundary only in this collector unit test.
++        boundary._finish_after_ppo()
++        boundary.begin_update(2)
++        second = collect(env, boundary, 256, observation=first.observations)
++        self.assertEqual(second.batch.shape, (256, 2))
++        self.assertIn((243, 1), [(r["decision"], r["slot"]) for r in boundary.completions if r["update"] == 2])
++        self.assertEqual(env.infos[0]["seed"]["episode"], 3)
++        self.assertEqual(env.infos[1]["seed"]["episode"], 2)
++        self.assertEqual(boundary.scheduler.update, 1)
++        self.assertEqual([row["ordinal"] for row in boundary.assignment_events], list(range(7)))
++        snap = boundary.snapshot()
++        self.assertEqual(snap["gameplay_frames_including_fatal"], 512 * 2 * 4)
++        self.assertEqual(snap["initial_construction_startup_frames"], 26)
++        self.assertEqual(snap["reset_startup_frames"], 5 * 13)
++        self.assertEqual(sum(r["executed_gameplay_frames"] for r in snap["interval_exposure"]), 4096)
++        self.assertEqual(sum(r["raw_frames"] for r in snap["update_exposure"]), 4096)
++        self.assertEqual(len(snap["in_flight"]), 2)
++
++    def test_true_death_precedence_at_hminus1_h_and_no_hplus1_simulation(self):
++        for fatal_frame in (999, 1000, 1001):
++            with self.subTest(fatal_frame=fatal_frame):
++                env = FakeEnv(1, deaths={(0, 0): fatal_frame})
++                boundary = adapter(env)
++                env.infos = [info(0, frame=996)]
++                boundary.begin_update(1)
++                result = collect(env, boundary, 1)
++                death = fatal_frame <= 1000
++                self.assertEqual(result.batch.terminated.item(), death)
++                self.assertEqual(result.batch.truncated.item(), not death)
++                self.assertEqual(env.cutoffs, [] if death else [([0], [1000])])
++                self.assertEqual(result.completed_episodes[0]["gameplay_frames"], min(fatal_frame, 1000))
++                self.assertEqual(result.completed_episodes[0]["death_cause"], "synthetic" if death else None)
++
++    def test_overshoot_and_misalignment_reject_before_extra_simulation(self):
++        for frame in (997, 1000, 1004):
++            with self.subTest(frame=frame):
++                env = FakeEnv(1)
++                boundary = adapter(env)
++                env.infos = [info(0, frame=frame)]
++                boundary.begin_update(1)
++                with self.assertRaises(ValueError):
++                    collect(env, boundary, 1)
++                self.assertEqual(env.step_calls, 0)
++                self.assertEqual(env.cutoffs, [])
++                self.assertEqual(env.resets, [])
++
++    def test_corrupt_native_return_fails_closed_without_reset_or_fake_flags(self):
++        for corruption in ("reward", "other_slot", "history", "step_payload", "order", "short"):
++            with self.subTest(corruption=corruption):
++                env = FakeEnv(2)
++                boundary = adapter(env)
++                env.infos = [info(slot, frame=996) for slot in range(2)]
++                env.corruption = corruption
++                boundary.begin_update(1)
++                with self.assertRaises(ValueError):
++                    collect(env, boundary, 1)
++                self.assertEqual(env.resets, [])
++                self.assertEqual(boundary.scheduler.update, 0)
++                self.assertFalse(env.last_result["truncated"].any())
++
++    def test_missing_native_method_never_falls_back_to_flags(self):
++        env = FakeEnv(1)
++        boundary = adapter(env)
++        env.infos = [info(0, frame=996)]
++        env.truncate_practice = None
++        boundary.begin_update(1)
++        with self.assertRaises(TypeError):
++            collect(env, boundary, 1)
++        self.assertFalse(env.last_result["truncated"].any())
++        self.assertEqual(env.resets, [])
++
++    def test_native_cutoff_precedes_inherited_audit_and_final_storage(self):
++        env = FakeEnv(1)
++        boundary = adapter(env)
++        env.infos = [info(0, frame=996)]
++        boundary.begin_update(1)
++        original = ppo._audit_step
++        audited_flags = []
++        def observe(result, *args):
++            self.assertEqual(env.cutoffs, [([0], [1000])])
++            audited_flags.append(result["truncated"].tolist())
++            return original(result, *args)
++        with patch.object(ppo, "_audit_step", side_effect=observe):
++            batch = collect(env, boundary, 1).batch
++        self.assertEqual(audited_flags, [[True]])
++        self.assertTrue(batch.truncated.item())
++
++    def test_post_step_guard_failure_keeps_returned_frame_cost(self):
++        env = FakeEnv(1)
++        boundary = adapter(env)
++        boundary.begin_update(1)
++        def guard():
++            if env.step_calls:
++                raise RuntimeError("synthetic post-step guard")
++        with self.assertRaisesRegex(RuntimeError, "synthetic post-step guard"):
++            ppo.collect_rollout(TinyNet(), env, 1, "cpu", config=PINNED_PPO,
++                               boundary_adapter=boundary, check_guard=guard)
++        snap = boundary.snapshot()
++        self.assertEqual(snap["returned_native_gameplay_frames_unaudited"], 4)
++        self.assertEqual(snap["returned_work_not_accepted_by_audit"], 4)
++        self.assertEqual(snap["raw_frames_total_including_returned_unaudited_work"], 17)
++        self.assertEqual(snap["accepted_raw_frames_total"], 13)
++        self.assertEqual(boundary.scheduler.update, 0)
++
++    def test_post_reset_guard_failure_keeps_startup_cost_without_assignment(self):
++        env = FakeEnv(1)
++        boundary = adapter(env)
++        env.infos = [info(0, frame=996)]
++        boundary.begin_update(1)
++        def guard():
++            if env.resets:
++                raise RuntimeError("synthetic post-reset guard")
++        with self.assertRaisesRegex(RuntimeError, "synthetic post-reset guard"):
++            ppo.collect_rollout(TinyNet(), env, 1, "cpu", config=PINNED_PPO,
++                               boundary_adapter=boundary, check_guard=guard)
++        snap = boundary.snapshot()
++        self.assertEqual(snap["returned_reset_startup_frames_unaudited"], 13)
++        self.assertEqual(snap["reset_startup_frames"], 0)
++        self.assertEqual(snap["raw_frames_total_including_returned_unaudited_work"], 30)
++        self.assertEqual(snap["normal_reset_count"], 0)
++        self.assertEqual(len(snap["assignments"]), 1)
++        self.assertEqual(boundary.scheduler.update, 0)
++
++    def test_control_matches_frozen_collector_all_buffers_and_rng(self):
++        frozen_path = Path(__file__).resolve().parents[2] / 'D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/ppo.py'
++        spec = importlib.util.spec_from_file_location("frozen_ppo_cpu_source_only", frozen_path)
++        frozen = importlib.util.module_from_spec(spec)
++        sys.modules[spec.name] = frozen
++        spec.loader.exec_module(frozen)
++        env1, env2 = FakeEnv(4, deaths={(0, 0): 1000}), FakeEnv(4, deaths={(0, 0): 1000})
++        model1, model2 = TinyNet(), TinyNet()
++        model2.load_state_dict(model1.state_dict())
++        boundary = adapter(env2, False)
++        boundary.begin_update(1)
++        state = torch.random.get_rng_state()
++        left = frozen.collect_rollout(model1, env1, 256, "cpu", config=frozen.PPOConfig(learning_rate=3e-5))
++        after = torch.random.get_rng_state()
++        torch.random.set_rng_state(state)
++        right = collect(env2, boundary, 256, model2)
++        self.assertTrue(torch.equal(after, torch.random.get_rng_state()))
++        buffer_hashes = {}
++        for field in fields(ppo.RolloutBatch):
++            l, r = getattr(left.batch, field.name), getattr(right.batch, field.name)
++            self.assertTrue(l is None and r is None or torch.equal(l, r), field.name)
++            if r is not None:
++                buffer_hashes[field.name] = hashlib.sha256(r.numpy().tobytes()).hexdigest()
++        self.assertTrue(equal(left.observations, right.observations))
++        self.assertTrue(equal(left.completed_episodes, right.completed_episodes))
++        self.assertTrue(equal(left.reset_info, right.reset_info))
++        self.assertEqual(env1.resets, env2.resets)
++        self.assertEqual(env2.cutoffs, [])
++        self.assertIsNone(boundary.scheduler)
++        EVIDENCE["disabled_control_vs_frozen_source"] = {"all_buffers_exact": True,
++            "buffer_hashes": buffer_hashes, "post_collection_rng_exact": True,
++            "observations_completions_resets_exact": True, "practice_calls": len(env2.cutoffs),
++            "transitions": right.batch.transitions, "limits": "synthetic CPU fixtures only; no native parity"}
++        self.assertTrue(all("generation" not in asdict(right.batch) for _ in (0,)))
++
++    def test_promotion_after_old_generation_reset_and_old_inflight_no_credit(self):
++        env = FakeEnv(2)
++        boundary = adapter(env)
++        scheduler = boundary.scheduler
++        for update in range(1, 10):
++            scheduler.finish_update(update, [Completion(i // 64, i % 64, 0, 1000, True)
++                for i in range(200)] if update == 1 else [])
++        boundary.completed_updates = 9
++        boundary.begin_update(10)
++        collect(env, boundary, 256)
++        self.assertEqual(scheduler.generation, 0)
++        assignments = copy.deepcopy(boundary.assignments)
++        self.assertTrue(boundary._finish_after_ppo()["promoted"])
++        self.assertEqual(boundary.assignments, assignments)
++        self.assertTrue(all(row.generation == 0 for row in assignments.values()))
++        boundary.begin_update(11)
++        collect(env, boundary, 256)
++        self.assertTrue(all(row.generation == 1 for row in boundary.assignments.values()))
++        self.assertTrue(all(row["generation"] == 0 for row in boundary.completions if row["update"] == 11))
++        boundary._finish_after_ppo()
++        self.assertEqual(scheduler.target_episodes, 0)
++        self.assertEqual(scheduler.stage_updates, 1)
++        self.assertEqual([row["ordinal"] for row in boundary.assignment_events[-2:]], [0, 1])
++        EVIDENCE["old_generation"] = {"promotion_boundary": 10, "old_inflight_frozen": True,
++            "old_completions_new_mastery_credit": scheduler.target_episodes,
++            "new_stage_completed_updates": scheduler.stage_updates}
++
++    def test_exposure_fatal_boundary_reach_without_alive_success_and_partial_stop(self):
++        env = FakeEnv(2, deaths={(0, 0): 1000})
++        boundary = adapter(env)
++        boundary.begin_update(1)
++        collect(env, boundary, 256)
++        snap = boundary.snapshot()
++        interval = snap["interval_exposure"][0]
++        self.assertEqual(interval["executed_gameplay_frames"], 2048)
++        self.assertEqual(interval["boundary_reaches"], 2)
++        self.assertEqual(interval["alive_through"], 1)
++        self.assertEqual(interval["interval_entries"], 4)
++        self.assertEqual([row["native_info"]["gameplay_frames"] for row in snap["in_flight"]], [24, 24])
++        self.assertEqual(snap["completed_updates"], 0)
++        self.assertEqual(snap["pending_update"], 1)
++        EVIDENCE["raw_frame_cost_and_partial_stop"] = {key: snap[key] for key in (
++            "gameplay_frames_including_fatal", "initial_construction_startup_frames",
++            "reset_startup_frames", "normal_reset_count",
++            "raw_frames_total_including_returned_unaudited_work", "accepted_raw_frames_total",
++            "interval_exposure", "update_exposure", "completed_updates", "pending_update")}
++
++
++class UnionAndUpdateTests(unittest.TestCase):
++    def test_explicit_future_union_strict_validation_without_five_range_change(self):
++        expanded = tuple(sorted((*HISTORICAL_RANGES, (10, 20))))
++        self.assertEqual(validate_seed_union(expanded), expanded)
++        for bad in (None, (), ((0, 2**32-1),), HISTORICAL_RANGES[::-1],
++                    HISTORICAL_RANGES[:-1], tuple(sorted((*HISTORICAL_RANGES, (True, 2)))),
++                    tuple(sorted((*HISTORICAL_RANGES, (0, 100), (50, 200))))):
++            with self.subTest(bad=bad), self.assertRaises(ValueError):
++                validate_seed_union(bad)
++        env = FakeEnv(1)
++        with self.assertRaisesRegex(ValueError, "union differs"):
++            CurriculumAdapter(env, enabled=True, digest=DIGEST, replica=1, exclusion_ranges=expanded)
++        env.infos[0]["seed"]["actual_seed"] = HISTORICAL_RANGES[0][0]
++        with self.assertRaises(ValueError):
++            adapter(env)
++
++    def test_wrapper_real_cpu_ppo_then_finish_fixed64x256(self):
++        env, model = FakeEnv(64), TinyNet()
++        boundary = adapter(env)
++        optimizer = torch.optim.Adam(model.parameters(), lr=3e-5, eps=1e-5)
++        runner = PreparedUpdates(model, optimizer, boundary)
++        collection, metrics, result = runner.update_once()
++        self.assertEqual(collection.batch.shape, (256, 64))
++        self.assertEqual(result["completed_update"], 1)
++        self.assertEqual(boundary.scheduler.update, 1)
++        self.assertEqual(boundary.scheduler.stage_updates, 1)
++        self.assertEqual(runner.actual_optimizer_steps, metrics["optimizer_steps"])
++        self.assertEqual(metrics["optimizer_steps"], 32 * metrics["epochs_completed"])
++        self.assertLessEqual(metrics["optimizer_steps"], 128)
++        self.assertTrue(all(group["lr"] == 3e-5 for group in optimizer.param_groups))
++        self.assertEqual(env.cutoffs, [(list(range(64)), [1000] * 64)])
++        EVIDENCE["wrapper_one_synthetic_update"] = {"shape": list(collection.batch.shape),
++            "transitions": metrics["transitions"], "actual_optimizer_steps": metrics["optimizer_steps"],
++            "epochs_completed": metrics["epochs_completed"], "boundary": result,
++            "global_completed_updates": boundary.completed_updates, "constant_lr": 3e-5}
++        with self.assertRaises(ValueError):
++            boundary._finish_after_ppo()
++
++    def test_failed_ppo_does_not_charge_or_promote_and_session_cannot_retry(self):
++        env, model = FakeEnv(64), TinyNet()
++        boundary = adapter(env)
++        runner = PreparedUpdates(model, torch.optim.Adam(model.parameters(), lr=3e-5, eps=1e-5), boundary)
++        with patch.object(ppo, "ppo_update", side_effect=RuntimeError("synthetic PPO failure")):
++            with self.assertRaisesRegex(RuntimeError, "synthetic PPO failure"):
++                runner.update_once()
++        self.assertEqual(boundary.scheduler.update, 0)
++        self.assertEqual(boundary.scheduler.stage_updates, 0)
++        self.assertEqual(boundary.pending_update, 1)
++        self.assertEqual(runner.state, "failed")
++        self.assertEqual(len(boundary.completions), 64)
++        before = env.step_calls
++        with self.assertRaises(ValueError):
++            runner.update_once()
++        self.assertEqual(env.step_calls, before)
++
++    def test_no_update61_no_drain_and_full_config_required(self):
++        env, model = FakeEnv(64), TinyNet()
++        boundary = adapter(env, False)
++        optimizer = torch.optim.Adam(model.parameters(), lr=3e-5, eps=1e-5)
++        runner = PreparedUpdates(model, optimizer, boundary)
++        boundary.completed_updates = 60
++        before = boundary.snapshot()
++        with self.assertRaisesRegex(ValueError, "terminal global60"):
++            runner.update_once()
++        self.assertEqual(env.step_calls, 0)
++        self.assertEqual(boundary.snapshot(), before)
++        for config in (ppo.PPOConfig(), ppo.PPOConfig(learning_rate=3e-5, target_kl=.1)):
++            with self.assertRaisesRegex(ValueError, "full pinned PPO"):
++                PreparedUpdates(model, optimizer, adapter(FakeEnv(64)), config=config)
++
++    def test_actual_optimizer_steps_vary_under_unchanged_kl(self):
++        env, model = FakeEnv(2), TinyNet()
++        batch = ppo.collect_rollout(model, env, 4, "cpu", config=PINNED_PPO).batch
++        # Synthetic stale-policy batch forces inherited epoch-end KL stopping;
++        # settings remain identical. No actual policy/checkpoint is used.
++        stale = copy.deepcopy(batch)
++        stale.old_log_probs -= 1
++        metrics = []
++        for candidate_batch in (batch, stale):
++            candidate = copy.deepcopy(model)
++            optimizer = torch.optim.Adam(candidate.parameters(), lr=3e-5, eps=1e-5)
++            progress = {}
++            result = ppo.ppo_update(candidate, optimizer, candidate_batch, PINNED_PPO, progress=progress)
++            metrics.append(result)
++            self.assertEqual(result["optimizer_steps"], result["epochs_completed"])
++            self.assertEqual(progress["optimizer_steps"], result["optimizer_steps"])
++            self.assertTrue(progress["complete"])
++        self.assertEqual([row["optimizer_steps"] for row in metrics], [4, 1])
++        self.assertEqual([row["early_stop_kl"] for row in metrics], [False, True])
++        self.assertEqual(asdict(PINNED_PPO)["target_kl"], .03)
++        EVIDENCE["unchanged_kl_variable_steps"] = {"target_kl": .03, "learning_rate": 3e-5,
++            "actual_optimizer_steps": [row["optimizer_steps"] for row in metrics],
++            "epochs_completed": [row["epochs_completed"] for row in metrics],
++            "early_stop_kl": [row["early_stop_kl"] for row in metrics],
++            "no_topup": True, "fixture": "eight transitions, ordinary vs synthetic stale logprobs"}
++
++
++if __name__ == "__main__":
++    torch.set_num_threads(1)
++    unittest.main(verbosity=2, failfast=True)
+--- /dev/null
++++ learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/run_tests.py
+@@ -0,0 +1,27 @@
++"""Bounded synthetic CPU test entry point; fail fast, no campaign/launch API."""
++from pathlib import Path
++import json
++import sys
++import unittest
++
++import torch
++
++root = Path(__file__).resolve().parent
++sys.path[:0] = [str(root), str(root / "tests"), str(root / "successor")]
++torch.set_num_threads(1)
++print("Scope: synthetic CPU unit tests; no native/checkpoint/MPS/study seeds.", flush=True)
++print("Python:", sys.version, flush=True)
++print("Torch:", torch.__version__, "threads:", torch.get_num_threads(), flush=True)
++result = unittest.TextTestRunner(verbosity=2, failfast=True).run(
++    unittest.defaultTestLoader.discover(str(root / "tests")))
++for name in sys.modules:
++    if name == "dodge_rl" or name.startswith("dodge_rl.") or name == "_native":
++        raise RuntimeError("forbidden runtime/native import: " + name)
++if result.wasSuccessful():
++    from test_collector import EVIDENCE
++    (root / "logs/fake-controls.json").write_text(json.dumps({
++        "scope": "synthetic CPU preparation only, never native/runtime qualification",
++        "tests_run": result.testsRun, "controls": EVIDENCE}, indent=2, sort_keys=True) + "\n")
++print("Native/checkpoint runtime imports: none", flush=True)
++print("CUDA initialized:", torch.cuda.is_initialized(), flush=True)
++raise SystemExit(not result.wasSuccessful())
+--- /dev/null
++++ learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/shared-config-contract.json
+@@ -0,0 +1,45 @@
++{
++  "arm_parameter": {
++    "matched_control": {
++      "enabled": false
++    },
++    "progressive_curriculum": {
++      "enabled": true
++    }
++  },
++  "not_full_runtime_config": true,
++  "remaining_bindings": [
++    "successor native/runtime/model/evaluator/dependency identity",
++    "accepted324 authenticated model/Adam/RNG restore and preserved slot indices",
++    "parent-owned seed vectors, exhaustive ancestry/future exclusions and shared1024 cohort",
++    "resource calibration and one-shot registration"
++  ],
++  "replicas": [
++    1,
++    2,
++    3
++  ],
++  "shared_contract": {
++    "action_repeat": 4,
++    "batch_size": 64,
++    "global_completed_updates": 60,
++    "learning_rate_schedule": "none",
++    "ordinary_gameplay_cap": 18000,
++    "ppo": {
++      "adam_eps": 1e-05,
++      "clip_coef": 0.2,
++      "ent_coef": 0.01,
++      "gae_lambda": 0.95,
++      "gamma": 0.995,
++      "learning_rate": 3e-05,
++      "max_grad_norm": 0.5,
++      "minibatch_size": 512,
++      "reward_scale": 0.1,
++      "target_kl": 0.03,
++      "update_epochs": 4,
++      "vf_coef": 0.5
++    },
++    "rollout_decisions_per_slot": 256
++  },
++  "status": "source_preparation_only_not_registered_not_launchable"
++}
+--- /dev/null
++++ learning/runs/v2/progressive1000-collector-prepare-sol-20261026-r1/README.md
+@@ -0,0 +1,58 @@
++# Progressive1000 collector preparation
++
++Preparation only. No native build/import, real checkpoint read, MPS, study seed reservation, training/evaluation campaign, qualification, registration, or launch occurred. Accepted parent324/cumulative372 SHA is a supplied pin, not reverified checkpoint evidence here.
++
++The owned successor copies accepted Python PPO and its optional diagnostics. Only collector hooks differ; reward, GAE, PPO loss, buffers, and epoch-end KL logic remain unchanged. The reviewed scheduler is byte-identical (`a467b7219a9cd801fa3b403a6af112fc693ec3d14c9d311e8845632ef61d844b`). [Exact diff](accepted-to-successor.diff), [source checks](logs/source-checks.json), [manifest](source-manifest.json), and [receipt](receipt.json) record scope and pins.
++
++## Call contract
++
++Keep one `CurriculumAdapter` and one `PreparedUpdates` instance across rollouts. Before future environment construction, validate the explicitly supplied parent-owned exclusion union with `validate_seed_union`; shape/historical coverage does not establish freshness. Both arms use identical successor code and [shared settings](shared-config-contract.json), differing only in `enabled`. The full runner configuration and source identity remain unimplemented gates.
++
++```python
++adapter = CurriculumAdapter(
++    existing_normal_start_env,
++    enabled=enabled,
++    digest=reviewed_full_vector_hash,
++    replica=replica,                       # integer 1..3
++    exclusion_ranges=parent_owned_union,
++)
++updates = PreparedUpdates(existing_cpu_fake_model, existing_adam, adapter)
++collection, metrics, boundary = updates.update_once()
++```
++
++This is a CPU source prototype, not a real-run recipe. `update_once()` owns all256 decisions, PPO, and exactly one successful post-PPO scheduler finish. Collection alone cannot promote through this entry point. Failure consumes the instance; no implicit retry, rollback, top-up, or update61. At update60 it stops without an episode drain. Direct collector hooks/private finish calls exist for synthetic unit tests; future runners must use the wrapper. Model/optimizer/environment creation, restore, evaluator, CLI, and registration are deliberately external.
++
++Initial assignments use ascending slots. Each normal reset freezes generation, horizon, ordinal/block/position, digest, and seed identity outside model tensors. Ended slots record `(update, decision, slot)` before one combined sorted subset reset. Promotion happens after PPO success, so resets in that rollout and existing in-flight episodes keep the old generation. Control has no mastery scheduler or practice calls.
++
++The adapter checks alignment before simulation. After each actual step it selects only alive, non-ended slots exactly at H<18000, calls `truncate_practice(indices, horizons)`, and checks complete returned EpisodeInfo, all slot identities/counters, unchanged step payload and final observations. It then replaces only selected info/truncation masks before inherited audit, storage, final-value computation, and reset. True death wins, including death on H; H18000 uses the ordinary cap. There is no Python flag-only fallback or `reset_all`. Hidden native history preservation still needs native proof.
++
++`snapshot()` exposes replica/arm-tagged assignments, completions, scheduler boundaries, actual interval and update exposure, initial construction/reset startup13 costs, fatal-inclusive gameplay frames, and unfinished episodes without stepping. Returned unaudited work remains separate when a guard/audit fails. `PreparedUpdates.snapshot()` also retains successful metrics and partial PPO progress. This is in-memory telemetry plumbing; durable streaming, native exception costs without returned results, wall/memory/cleanup enforcement, and evaluation cost accounting remain integration gates. Scheduler state and exposure distinguish entered, exposed, mastered, and untested stages; no promise of reaching18000.
++
++## Synthetic evidence
++
++[Final test log](logs/tests-attempt-03.log): **39 tests passed** on project Python3.12.15/Torch2.14.1 CPU, one Torch thread. [Fake controls](logs/fake-controls.json) retain measured fixture outputs. The suite covers mixed death/cutoff/continuing/cap, independent scalar GAE, tagged final-before-reset values, death H-1/H/H+1, decision255 and cross-rollout episodes, one subset reset/seed increment, corruption/missing native API rejection, old-generation promotion, fatal-inclusive exposure, failed-work costs, wrapper ordering/failure/global60, strict injected union, and all21 reviewed scheduler tests.
++
++Disabled control matches frozen-source collection exactly for all15 buffer tensors, observations, completions, resets, and post-collection RNG on identical fake inputs. Synthetic eight-transition PPO fixtures retain target_kl0.03 and report actual4 versus1 optimizer steps without top-ups. One64x256 fake-net/fake-env update reports16384 transitions and128 actual Adam steps. These are unit tests, not a training campaign or runtime parity proof.
++
++[First failure](logs/tests-attempt-01.log) remains intact: relocated scheduler test referenced the wrong owned sibling path; the import guard also misidentified `torch._native`. Only owned harness paths/guard were corrected. [Second run](logs/tests-attempt-02.log) passed36 tests. Final run added explicit ordering and failed-work-cost checks. Frozen sources/tests were not edited.
++
++To reproduce in a **writable successor copy**, keep all outputs/cache inside that copy, precreate an empty `empty-pycache`, and run:
++
++```sh
++OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 \
++PYTHONDONTWRITEBYTECODE=1 PYTHONPYCACHEPREFIX="$PWD/empty-pycache" \
++/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python -B run_tests.py
++```
++
++The suite writes `logs/fake-controls.json`; preserve existing receipts/logs when using a new successor. No bytecode or pytest cache was created here.
++
++## Remaining gates
++
++- Integrate the independent native lane and build a single successor binary for both arms. Prove whole-request atomic rejection, ownership, poison/overflow handling, history/counters/reward conservation, exact H1000/H2000 and ordinary18000 behavior, death ties, seed increments, and thread/chunk layouts. The fake API is only a fixture.
++- Prove cutoff-disabled accepted/native/runtime parity on separately authorized fixed seeds/actions. Neither current Rust source nor fake equality proves accepted binary correspondence.
++- Bind full successor runtime/model/PPO/native/dependencies/config/evaluator hashes. Adapt only successor identity/evaluator validation; preserve full normal starts, sampled action semantics, terminal60 endpoint rules, cohort accounting, death/milestone/quartile metrics, and per-replica regressions.
++- Authenticate accepted324 model/full Adam/RNG restoration, accepted slot indices, paired replica1..3 vector forks, independent measured CPU/MPS references, and durable one-shot claim. No checkpoint was opened here.
++- Parent must provide exhaustive consumed-seed ancestry, exact future union and1024 shared cohort before construction. This helper does not weaken the frozen exact-five-range validator and does not certify the supplied union complete.
++- Complete durable telemetry, native failure receipts, train/eval/aggregate wall/raw-frame/startup/memory/cleanup calibration and enforcement, resource limits, review, identity, registration, and parent launch authority. All remain unqualified.
++
++Only this directory was written. Existing dirty workspace state was left alone. Files and directories are frozen read-only after packaging; listed input before/after hashes establish scoped source integrity, not an exhaustive concurrent-workspace audit.

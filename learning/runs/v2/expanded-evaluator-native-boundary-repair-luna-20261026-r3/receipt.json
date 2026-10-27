@@ -1,0 +1,54 @@
+{
+  "schema": "expanded_evaluator_native_boundary_repair_luna_r3_v1",
+  "status": "prepared_source_only",
+  "ownership": "OWN_OUTPUT_ONLY",
+  "output_directory": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/expanded-evaluator-native-boundary-repair-luna-20261026-r3",
+  "predecessor": {
+    "directory": "learning/runs/v2/expanded-evaluator-implementation-parent-20261026-r2",
+    "expanded_eval.py_sha256": "22acdb5222b962cd176d3ea0889fdf170e9e9a502a6b10a218c3331cfa4474f6",
+    "tests/test_expanded_eval.py_sha256": "76577002c5787e4a98783910bfc5f4a278202903e966be0105251482160810fd",
+    "r2_parent_validation_receipt_sha256": "42745064a68a0f4869cafb45d279367498f7bf6ce6d30b380e8d51e62204cec9"
+  },
+  "review_evidence": {
+    "review": "learning/runs/v2/expanded-evaluator-r2-review-haiku-20261026-r1/review.md",
+    "review_sha256": "0ede8afdecddaadd5dfe06d83e2699567283b2859c499fa8ae9989ee5c6a2f3d",
+    "review_receipt": "not supplied in predecessor review directory"
+  },
+  "interface_contract": {
+    "path": "learning/runs/v2/expanded-eval-parent-integration-20261026-r1/interface-contract.json",
+    "sha256": "9d0facf0a480f80e3dccd535e463a39524cf29689734619d9b2179889b6e1e99",
+    "production_api": "evaluate_registered(*,registration_path,registration_sha256,candidate_update,cohort_name,output_path,check_guard)->dict",
+    "allowed_optional_parent_sections": ["provenance", "benchmark_measurement", "observer"],
+    "allowed_optional_limits": ["startup_grace_seconds", "ranking_projected_work_seconds", "confirmation_projected_work_seconds", "projection_multiplier"]
+  },
+  "changes": [
+    "Convert protocol excluded_seed_ranges list pairs to tuples before native constructor boundary.",
+    "Add strict fake binding regression: predecessor-shaped list pairs raise TypeError; converted tuple pairs pass.",
+    "Reject missing output_dir before evaluation work.",
+    "Use already validated chosen manifest SHA in result instead of rereading manifest after evaluation.",
+    "Preserve predecessor stable local episode IDs and staggered-death test."
+  ],
+  "source_sha256": {
+    "expanded_eval.py": "d8dadbfec213a93f11b79ceeeb02a6dea7584878b5efc1c05d4628954ac371e7",
+    "tests/test_expanded_eval.py": "a80c26eb2de5b5629fa989813293fad3646d8e15bda5005dca8d3fed4b277e41",
+    "diff.patch": "2f7bc34f094aa3bf92450311e4796f5270229e602b0b16105e04b1e147b9d015",
+    "test.log": "513753e45c0d72fb5304dab556d796ad177f028c7db055f7a8c49d0bd5b022b8"
+  },
+  "validation": {
+    "command": "PYTHONPYCACHEPREFIX=\"$PWD/empty-pycache\" /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python -B -m unittest discover -s tests -v",
+    "result": "13 tests passed",
+    "environment": "project Python 3.12 environment; CPU fake policy and environment only",
+    "native_import_or_constructor": false,
+    "checkpoint_load": false,
+    "MPS": false,
+    "real_games_or_training": false,
+    "lease_launcher_marker_or_claim": false
+  },
+  "limits": [
+    "Source preparation and synthetic CPU tests do not establish native binary/source identity, actual PyO3 acceptance, runtime qualification, backend determinism, resource budget, or launch authority.",
+    "No review receipt.json existed alongside the supplied review.md; source-only review content is preserved by path and hash.",
+    "The first system-Python test attempt stopped at import because system Python 3.9 lacks NumPy; final validation used project Python 3.12."
+  ],
+  "actual_runtime_executed": false,
+  "launch_authority": false
+}

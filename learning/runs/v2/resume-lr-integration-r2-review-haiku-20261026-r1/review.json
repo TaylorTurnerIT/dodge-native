@@ -1,0 +1,83 @@
+{
+  "schema": "resume_lr_integration_r2_review_v1",
+  "target": "learning/runs/v2/resume-lr-integration-haiku-20261026-r2/",
+  "target_receipt_sha256": "cc369bc84942d796f8516187ea623dadaf2e87c9f8cda37efc3cd1f6e660415a",
+  "verdict": "no_blocking_defect_in_lr_only_transition_closure",
+  "readiness_scope": "CPU-tested integration template and diff; not registered; not launched; arm not chosen; old parent/run constants are known scope; MPS sampling RNG restore not exercised; 620-frame figure illustrative only; no causal or training-replicate power claim",
+  "findings": [
+    {
+      "id": 1,
+      "severity": "medium",
+      "category": "integrity-binding",
+      "file": "learning/runs/v2/resume-lr-integration-haiku-20261026-r2/arm-adapter.diff",
+      "lines": "7-9, 58-60; launcher execute_once.py:250 in D2-gradient-capsule-parent-freeze-20261025-r5",
+      "summary": "Runner imports resume_lr_transition at module top level, but the transition module is not in the critical pin set or any registration path/pin binding.",
+      "impact": "Transition module code executes at process start, before load_registration verifies any pin. A swapped or drifted module runs unverified.",
+      "fix": "Add transition module path to registration, to critical set, and to pin binding; verify its sha before import or under a verified loader."
+    },
+    {
+      "id": 2,
+      "severity": "low",
+      "category": "evidence-strength",
+      "file": "learning/runs/v2/resume-lr-integration-haiku-20261026-r2/proposed-adapter/resume_lr_transition.py",
+      "lines": "181, 190; proposed-adapter/runner.py 611-618 and 662-663 vs 674-676",
+      "summary": "excluding-LR before fingerprint is computed after override over shared live tensors; non_lr_fields_changed is hard-coded []; publication assertion checks live optimizer, not the captured state['optimizer'] that is saved.",
+      "impact": "Record and assertion do not independently prove moment/state unchanged in the override window or the bytes saved. Override only writes group lr, so the claim is likely true but unproven by the record.",
+      "fix": "Digest excluding-LR view before override and store it; compute non_lr_fields_changed; also assert state['optimizer'] param_groups lr equals ARM_LR before save."
+    },
+    {
+      "id": 3,
+      "severity": "low",
+      "category": "provenance-label",
+      "file": "learning/runs/v2/resume-lr-integration-haiku-20261026-r2/draft-arm-config-lr1e-4.json",
+      "lines": "parent_checkpoint_sha256 field; arm-adapter.diff:18 comment only",
+      "summary": "Archival parent_checkpoint_sha256 ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f is unlabeled in the config JSON; actual parent authority is 105e0f7a83e154116bd9f0d5eaaf573a896886468c9038f548f5ce7e6377c7ea via external pin.",
+      "impact": "A reader of the arm config alone gets a wrong parent checkpoint. Runner does not read the field (authority is PARENT_SHA).",
+      "fix": "Label the field as archival in the arm registration; do not change config bytes (one-variable diff preserved)."
+    }
+  ],
+  "verified_closed": [
+    "restore equality (proposed runner :607) before override (:612) before environment construction",
+    "parent Adam built at PPO lr 0.0003 (:596) then load_state_dict; override requires per-group 0.0003 before one write to 0.0001",
+    "validate_arm_binding and validate_config_transition run in load_registration before optimizer creation",
+    "guarded_update asserts LR before and after every ppo_update call",
+    "single save_checkpoint call site (runner :675) carries publication assertion",
+    "ppo.py has no learning_rate write; update cannot reset LR",
+    "launcher uses -B not -I; sibling import not suppressed",
+    "arm-adapter.diff applies cleanly to frozen parent runner; output sha equals proposed-adapter/runner.py",
+    "unit-tests.log ends '39 passed' with 39 PASSED lines",
+    "normalized config diff: only ppo.learning_rate 0.0003 -> 0.0001",
+    "design.md RNG caveat (44-45) and power note (50-52) labeled accurately"
+  ],
+  "inputs_inspected_sha256": {
+    "learning/runs/v2/resume-lr-integration-haiku-20261026-r2/receipt.json": "cc369bc84942d796f8516187ea623dadaf2e87c9f8cda37efc3cd1f6e660415a",
+    "learning/runs/v2/resume-lr-integration-haiku-20261026-r2/arm-adapter.diff": "d3f196eb4b8a9f2cbd89e29226f5ffd11dc2ff29aca8155d9e4b8fc2f3c7b780",
+    "learning/runs/v2/resume-lr-integration-haiku-20261026-r2/proposed-adapter/resume_lr_transition.py": "397bb0b952fa1919188af9713627dfff6096b0036d71e1582fd2135e9761d9c5",
+    "learning/runs/v2/resume-lr-integration-haiku-20261026-r2/proposed-adapter/runner.py": "70e04ca9fb7e46e8cf193afae386af451a6741a92a8a837b2801dec60fe08f18",
+    "learning/runs/v2/resume-lr-integration-haiku-20261026-r2/test_resume_lr_transition.py": "cd56a1d9843d7a0da2597851071816b70b415968e980013e5cdee4d872280cc2",
+    "learning/runs/v2/resume-lr-integration-haiku-20261026-r2/draft-arm-config-lr1e-4.json": "f858a63c324fc312f794c0423aa56db2daf60793b62990cd51fa400afe3af628",
+    "learning/runs/v2/resume-lr-integration-haiku-20261026-r2/cpu-real-parent-transition-record.json": "55a7e331472e59c2a8a4e645462d78aa3ec60c74a26911f47839807df2a1e2bc",
+    "learning/runs/v2/resume-lr-integration-haiku-20261026-r2/design.md": "85aa975a21cc8930eeefdaaf08183736e60dfb2d948e41c10fe6ed2f0ca4d807",
+    "learning/runs/v2/resume-lr-integration-haiku-20261026-r2/unit-tests.log": "ccb4dff033c576ee99098d4a5096d4024400a1fd8c1203d8261f498d0a2c65eb",
+    "learning/runs/v2/D2-best180-branch-prepare-luna-20261026-r1/runner.py": "8807b5200f10d6d8ba5414a793a1e44ebb34479744744992ef4f5adf0513637b",
+    "learning/runs/v2/milestone3-D2-freeze-r1/D2-config.json": "2d8eb5626d0debdf5416d0b89610d78ddd56011c3238a82fec72efabe1bd7fe3",
+    "learning/runs/v2/D2-gradient-alignment-20261025-r2/checkpoint-000180-candidate.pt": "105e0f7a83e154116bd9f0d5eaaf573a896886468c9038f548f5ce7e6377c7ea",
+    "learning/runs/v2/d2-gradient-parent-terminal-audit-20261025-r2/parent-terminal-receipt.json": "7968a62b6e601fab971e4145dbaebfa1995c8f696e6df442ab70fc0435b74903",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/registration-proposed.json": "6f4adf808789655a663800a1e4a0613192d02b0c8287d121455ea748fe043916",
+    "learning/runs/v2/resume-lr-frozen-review-haiku-20261026-r1/review.json": "fb776cc01764eeaacaf4af51d43efe78824fa6ecffabc9743dec28cc643b1e41"
+  },
+  "outputs": [
+    "learning/runs/v2/resume-lr-integration-r2-review-haiku-20261026-r1/review.md",
+    "learning/runs/v2/resume-lr-integration-r2-review-haiku-20261026-r1/review.json",
+    "learning/runs/v2/resume-lr-integration-r2-review-haiku-20261026-r1/receipt.json"
+  ],
+  "claims": {
+    "arm_registered": false,
+    "arm_launched": false,
+    "source_or_frozen_inputs_modified": false,
+    "checkpoint_or_state_lease_docs_written": false,
+    "environment_or_mps_used": false,
+    "game_weight_optimizer_steps": false,
+    "training_or_performance_claim": false
+  }
+}

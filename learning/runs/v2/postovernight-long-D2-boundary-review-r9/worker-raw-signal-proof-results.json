@@ -1,0 +1,256 @@
+{
+  "verdict": "source_timestamp_dropped",
+  "raw_inner_code": 1,
+  "worker_report": {
+    "pid": 300,
+    "reaped_by": 27738,
+    "direct_child_reaped": true,
+    "raw_wait_status": 9,
+    "returncode": -9,
+    "observed_monotonic": 99.75
+  },
+  "first_failure": 100.0,
+  "cleanup_until": 110.0,
+  "descriptor": {
+    "timestamp": 100.0,
+    "kind": "exception_observed",
+    "outcome": "safety_stop",
+    "role": "inner",
+    "timing_basis": "catch_observation_not_construction",
+    "signal": null
+  },
+  "expected_first": 99.75,
+  "expected_until": 109.75,
+  "control_first": 99.75,
+  "control_until": 109.75,
+  "events": [
+    {
+      "kind": "register_worker",
+      "time": 99.75
+    },
+    {
+      "kind": "direct_wait_observed",
+      "time": 99.75
+    },
+    {
+      "kind": "worker_wait",
+      "time": 99.75
+    },
+    {
+      "kind": "positive_absence_synthetic",
+      "time": 100.0
+    },
+    {
+      "kind": "failure",
+      "time": 100.0
+    }
+  ],
+  "packets": [
+    {
+      "kind": "register_worker",
+      "worker_pid": 300,
+      "worker_pgid": 300,
+      "command": [
+        "synthetic-python",
+        "-B",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-review-r9/snapshot/long_d2.py",
+        "worker",
+        "--output",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-review-r9/worker-raw-signal-fixture-r2",
+        "--state-path",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-review-r9/state.json",
+        "--started",
+        "90.0",
+        "--supervisor-pid",
+        "27738",
+        "--executor-fd",
+        "9",
+        "--executor-pid",
+        "200"
+      ],
+      "t0_monotonic_hex": "0x1.6800000000000p+6"
+    },
+    {
+      "kind": "worker_wait",
+      "report": {
+        "pid": 300,
+        "reaped_by": 27738,
+        "direct_child_reaped": true,
+        "raw_wait_status": 9,
+        "returncode": -9,
+        "observed_monotonic": 99.75
+      },
+      "t0_monotonic_hex": "0x1.6800000000000p+6"
+    },
+    {
+      "kind": "failure",
+      "first_monotonic_hex": "0x1.9000000000000p+6",
+      "t0_monotonic_hex": "0x1.6800000000000p+6",
+      "reason": "[Errno 2] No such file or directory: '/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-review-r9/worker-raw-signal-fixture-r2/long-worker-result.json'",
+      "descriptor": {
+        "timestamp": 100.0,
+        "kind": "exception_observed",
+        "outcome": "safety_stop",
+        "role": "inner",
+        "timing_basis": "catch_observation_not_construction",
+        "signal": null
+      }
+    }
+  ],
+  "receipts": [
+    [
+      "inner-failure.json",
+      {
+        "experiment_status": "failed_partial",
+        "outcome": "safety_stop",
+        "progression_gate_passed": false,
+        "teacher_qualified": false,
+        "training_parent_eligible": false,
+        "D3_parent_candidate_pending_separate_parent_audit": false,
+        "B_E_student_D3_opened": false,
+        "automatic_retries": 0,
+        "same_phase_resume": false,
+        "expected_exit_code": 1,
+        "run_id": "synthetic",
+        "protocol_sha256": "synthetic",
+        "required_lease": {
+          "identity_sha256": "id",
+          "capsule_manifest_sha256": "cap"
+        },
+        "command": [
+          "synthetic-python",
+          "-B",
+          "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-review-r9/snapshot/long_d2.py",
+          "worker",
+          "--output",
+          "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-review-r9/worker-raw-signal-fixture-r2",
+          "--state-path",
+          "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-review-r9/state.json",
+          "--started",
+          "90.0",
+          "--supervisor-pid",
+          "27738",
+          "--executor-fd",
+          "9",
+          "--executor-pid",
+          "200"
+        ],
+        "supervisor_started_monotonic": 90.0,
+        "absolute_deadline_monotonic": 7260.0,
+        "worker_deadline_monotonic": 7230.0,
+        "worker_wait_send_status": "sent",
+        "authoritative": false,
+        "acceptance_authority": "outer-executor-receipt",
+        "internal_decision": "failed",
+        "error": "FileNotFoundError(2, 'No such file or directory')",
+        "first_failure_monotonic": 100.0,
+        "cleanup_until_monotonic": 110.0,
+        "first_local_failure": {
+          "timestamp": 100.0,
+          "kind": "exception_observed",
+          "outcome": "safety_stop",
+          "role": "inner",
+          "timing_basis": "catch_observation_not_construction",
+          "signal": null
+        },
+        "first_global_failure": {
+          "timestamp": 100.0,
+          "kind": "exception_observed",
+          "outcome": "safety_stop",
+          "role": "inner",
+          "timing_basis": "catch_observation_not_construction",
+          "signal": null
+        },
+        "cleanup_complete": false,
+        "owned_guard_handles_absent": false,
+        "owned_worker_reaped": true,
+        "worker_wait": {
+          "pid": 300,
+          "reaped_by": 27738,
+          "direct_child_reaped": true,
+          "raw_wait_status": 9,
+          "returncode": -9,
+          "observed_monotonic": 99.75
+        }
+      }
+    ],
+    [
+      "inner-reap-diagnostic.json",
+      {
+        "optional": true,
+        "worker_wait_send_attempted": true,
+        "worker_wait_send_status": "sent",
+        "worker_reap_diagnostic": null,
+        "worker_wait_send_error": null,
+        "worker_report_retained": true
+      }
+    ]
+  ],
+  "extracted": {
+    "lifecycle.py": [
+      {
+        "name": "Stop",
+        "line": 23,
+        "end_line": 26
+      },
+      {
+        "name": "remaining",
+        "line": 29,
+        "end_line": 33
+      },
+      {
+        "name": "FailurePool",
+        "line": 36,
+        "end_line": 70
+      },
+      {
+        "name": "notify_failure",
+        "line": 243,
+        "end_line": 280
+      }
+    ],
+    "long_d2.py": [
+      {
+        "name": "require",
+        "line": 59,
+        "end_line": 61
+      },
+      {
+        "name": "read_json",
+        "line": 93,
+        "end_line": 102
+      },
+      {
+        "name": "outcome_fields",
+        "line": 338,
+        "end_line": 344
+      },
+      {
+        "name": "result_code",
+        "line": 347,
+        "end_line": 353
+      },
+      {
+        "name": "failure_outcome",
+        "line": 356,
+        "end_line": 361
+      },
+      {
+        "name": "observed_failure",
+        "line": 863,
+        "end_line": 886
+      },
+      {
+        "name": "provisional",
+        "line": 1157,
+        "end_line": 1159
+      },
+      {
+        "name": "supervise_owned",
+        "line": 1233,
+        "end_line": 1425
+      }
+    ]
+  },
+  "limits": "Exact supervise_owned/observed_failure/notify_failure/FailurePool; synthetic child/channel/clock/absence. No OS, ML, native, training, or acceptance evidence."
+}

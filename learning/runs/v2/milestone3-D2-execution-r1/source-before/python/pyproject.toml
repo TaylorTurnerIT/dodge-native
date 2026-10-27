@@ -1,0 +1,18 @@
+[build-system]
+requires = ["maturin>=1.15,<2"]
+build-backend = "maturin"
+
+[project]
+name = "dodge-rl"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = ["numpy>=2"]
+
+[tool.maturin]
+manifest-path = "../crates/dodge-rl-env/Cargo.toml"
+python-source = "."
+module-name = "dodge_rl._native"
+features = ["extension-module"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,26 @@
+{
+  "schema": "parent_independent_heartbeat_worker_repair_v1",
+  "status": "8stdlib_fake_tests_pass;source_review_pending",
+  "changes": [
+    "Finally stop sampler on import/inference/publication exceptions.",
+    "Treat partially imported torch as bounded startup.",
+    "Continue monotonically from initial heartbeat sequence.",
+    "Validate final MPS reading and cap before publication.",
+    "Fix racy source-test sequence snapshot after stopping sampler."
+  ],
+  "test_count": 8,
+  "test_exit": 0,
+  "source_sha256": {
+    "worker.py": "7fa452dc0f3152d131e8244e97b9b786ca995d9763f99e422bc0c4db06e77b6c",
+    "test_heartbeat.py": "9d2b95d21f5d15872b0c30982a2313630c25e4de099e2e3964e169c773ec7874",
+    "test_worker_lifecycle.py": "d1dc82c114770bb891270bf7afbe13b7613481b52be245c73ab01d10b043d159",
+    "worker.diff": "ce59b69fdaa37e6a81db6c9e822b3a0d0dec1ab161091ad0c8efa2c574f559b3",
+    "tests.log": "429cc6a2cd429ca0c4b5f91340df0ca29db1396ceb9687512d55e6d47691192a",
+    "tests-first-attempt.log": "bccab0d012f5f0ce138d9721ebafb49c7773ffef219e9724ffd14055a2a9d0b4"
+  },
+  "limits": [
+    "No Torch/native/MPS/checkpoint deserialization or real games.",
+    "Sampler thread cannot run while another thread holds GIL indefinitely; outer stale-heartbeat monitor remains failclosed.",
+    "No final runner merge/lease/marker/launch."
+  ]
+}

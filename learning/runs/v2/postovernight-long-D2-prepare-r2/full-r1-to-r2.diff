@@ -1,0 +1,1435 @@
+--- learning/runs/v2/postovernight-long-D2-prepare-r1/finalize_preparation.py
++++ learning/runs/v2/postovernight-long-D2-prepare-r2/finalize_preparation.py
+@@ -1,102 +1,158 @@
+ #!/usr/bin/env python3
+-"""Preparation receipts, invoked only after every redirected log is closed.
++"""Finalize r2 receipts after every redirected log closes; stdlib only.
+ 
+-This command is stdlib-only. It creates no lease or campaign. The final artifact
+-manifest excludes only itself; implementation-result is written before it and
+-never mutated afterward. Console output is deliberately absent.
++No output file is redirected to this directory while inventory is captured.
++Identity and capsule exclude receipts that would create hash cycles. Historical
++attempts remain in the preparation inventory, never the active source inventory.
+ """
+ from pathlib import Path
++from datetime import datetime, timezone
+ import ast
+-from datetime import datetime,timezone
+ import difflib
+ import json
+ import re
+-import sys
+ import long_d2 as c
+ 
+ HERE=Path(__file__).resolve().parent
+ ROOT=c.ORIGINAL_ROOT
++R1=HERE.parent/'postovernight-long-D2-prepare-r1'
++ACTIVE=sorted(p.name for p in HERE.glob('*.py'))+['README.md']
++
++
++def nodes(path):
++    source=path.read_text();lines=source.splitlines(True)
++    return {n.name:''.join(lines[min([n.lineno]+[d.lineno for d in n.decorator_list])-1:n.end_lineno])
++            for n in ast.parse(source).body if isinstance(n,(ast.FunctionDef,ast.ClassDef))}
+ 
+ 
+ def main():
+     protected=c.read_json(HERE/'protected-before.json')
+-    after={k:c.sha(ROOT/k) for k in protected}
++    after={name:c.sha(ROOT/name) for name in protected}
++    changes=[name for name in protected if protected[name]!=after[name]]
+     c.save(HERE/'protected-after.json',after)
+-    changed=[k for k in protected if protected[k]!=after[k]]
+-    c.require(not changed,'Protected inputs changed: '+repr(changed))
+-    freeze=c.read_json(HERE/'freeze-receipt.json')
+-    preflight=c.pure_preflight(HERE/'capsule')
+-    c.require(preflight==freeze,'Frozen preflight receipt differs')
+-    testlog=HERE/'tests-final.log'
+-    text=testlog.read_text()
+-    m=re.search(r'Ran (\d+) tests in ([\d.]+)s\n\nOK\s*$',text)
+-    c.require(m is not None,'Final synthetic tests did not pass')
+-    negatives=c.read_json(HERE/'negative-control-receipt-r4.json')
+-    c.require(negatives['all_killed'] and negatives['base_controller_sha256']==c.sha(HERE/'long_d2.py'),
+-              'Negative controls do not match final controller')
+-    source_manifest={str(x.relative_to(HERE)):c.sha(x) for x in sorted(HERE.rglob('*.py'))
+-                     if 'capsule' not in x.relative_to(HERE).parts}
+-    c.save(HERE/'source-manifest.json',source_manifest)
+-    c.save(HERE/'test-receipt.json',dict(version='long_D2_synthetic_test_receipt_v1',
+-        positive_test_methods=int(m.group(1)),positive_test_seconds=float(m.group(2)),
+-        subtests_not_counted_as_separate_test_methods=True,
+-        command=[str(ROOT/'learning/.venv/bin/python'),'-B','-m','unittest','discover','-s',str(HERE),
+-                 '-p','test_long_d2.py','-v'],log_sha256=c.sha(testlog),
+-        test_source_sha256=c.sha(HERE/'test_long_d2.py'),controller_sha256=c.sha(HERE/'long_d2.py'),
+-        negative_controls=negatives['count'],all_negative_controls_assertion_failures=True,
+-        actual_supervisor_stdlib_fake_worker=True,fake_clocks=True,
+-        actual_teacher_native_MPS_gameplay_or_gradient_updates=False,
+-        historical312_or72_results_reused=False))
+-    reference=ROOT/'learning/runs/v2/postovernight-action-mode-prepare-r3/runner.py'
+-    patch=''.join(difflib.unified_diff(reference.read_text().splitlines(True),
+-                    (HERE/'long_d2.py').read_text().splitlines(True),
+-                    fromfile=str(reference.relative_to(ROOT)),tofile=str((HERE/'long_d2.py').relative_to(ROOT))))
+-    (HERE/'full-patch-vs-diagnostic-r3.diff').write_text(patch)
+-    # Exact copied reference functions are proven from source, never imported.
+-    def functions(path):
+-        source=path.read_text();lines=source.splitlines()
+-        return {n.name:'\n'.join(lines[min([n.lineno]+[d.lineno for d in n.decorator_list])-1:n.end_lineno])
+-                for n in ast.parse(source).body if isinstance(n,ast.FunctionDef)}
+-    old,new=functions(reference),functions(HERE/'long_d2.py')
+-    reused=['cancellation_signals','stop_owned','sampled_rss','self_peak']
+-    c.require(all(old[name]==new[name] for name in reused),'Copied reference helper changed')
+-    ledger_before=c.read_json(HERE/'ledger-observation-before.json')
+-    ledger_after=c.read_json(ROOT/'learning/runs/v2-orchestration/state.json')
+-    c.save(HERE/'ledger-observation-after.json',ledger_after)
+-    result=dict(version='long_D2_implementation_result_v1',status='prepared_for_parent_frozen_review_only',
+-        completed_at_utc=datetime.now(timezone.utc).isoformat(),owned_directory=str(HERE),
+-        actual_training_or_gameplay_launched=False,actual_ML_native_imports_or_checkpoint_deserialization=False,
+-        active_lease_created=False,ledger_written=False,scheduler_changed=False,children_created=False,
+-        source_inputs_unchanged=75,protected_files_unchanged=len(protected),protected_changes=changed,
+-        parent_ledger_changes_outside_child_scope=ledger_before!=ledger_after,
+-        positive_test_methods=int(m.group(1)),negative_controls=negatives['count'],
+-        all_negative_controls_assertion_failures=True,
++    c.require(not changes,'Protected bytes changed: '+repr(changes))
++    p=c.registered_protocol(ROOT/c.PROTOCOL_REL)
++    before=c.read_json(ROOT/'learning/runs/v2-orchestration/postovernight-long-D2-r1-protocol.json')
++    protocol_changes=[k for k in sorted(set(before)|set(p)) if before.get(k)!=p.get(k)]
++    c.require(protocol_changes==['controller','registered_at_utc'],'Parent protocol changed experiment semantics')
++    c.save(HERE/'protocol-diff.json',dict(changed_fields=protocol_changes,
++           before={k:before[k] for k in protocol_changes},after={k:p[k] for k in protocol_changes},
++           config_raw_sha256=c.CONFIG_SHA256,config_raw_hash_unchanged=True))
++    reconcile=c.read_json(ROOT/'learning/runs/v2-orchestration/postovernight-long-D2-review-parent-reconciliation-r1.json')
++    for kind in ('learner','supervisor'):
++        c.require(c.sha(HERE.parent/('postovernight-long-D2-'+kind+'-review-r1')/'findings.json')==
++                  reconcile[kind+'_findings_sha256'],'Parent review binding changed')
++    ledger=c.read_json(ROOT/'learning/runs/v2-orchestration/state.json')
++    c.require(ledger['active_long_campaign'] is None,'Preparation must not activate a lease')
++    c.require(not (ROOT/p['output']).exists(),'Production campaign output must not exist')
++    c.save(HERE/'ledger-observation-after.json',ledger)
++    preflight=c.pure_preflight(HERE/'capsule-final');freeze=c.read_json(HERE/'freeze-receipt.json')
++    c.require(preflight==freeze,'Frozen preflight differs')
++    c.require(len(freeze['required_lease'])==15 and set(freeze['required_lease'])==c.LEASE_KEYS,'Lease is not strict 15 fields')
++    log=HERE/'tests-final-r6.log';match=re.search(r'Ran (\d+) tests in ([\d.]+)s\n\nOK\s*$',log.read_text())
++    c.require(match is not None,'Final tests did not pass')
++    negatives=c.read_json(HERE/'negative-control-receipt-final5.json')
++    regression=c.read_json(HERE/'r1-regression-control-receipt-final5.json')
++    c.require(negatives['all_killed'] and negatives['count']==14 and
++              negatives['base_controller_sha256']==c.sha(HERE/'long_d2.py'),'Final 14 controls mismatch')
++    c.require(c.read_json(HERE/'preclosure-regression-control-receipt.json')['killed'],'Pre-closure control survived')
++    c.require(regression['all_killed'] and regression['count']==3,'Exact r1 controls did not all fail by assertion')
++    observations=[]
++    for path in sorted((HERE/'publication-final-evidence-r6').glob('*/scenario/observation.json')):
++        v=c.read_json(path)
++        c.require(v['actual_guard'] and v['actual_supervise'] and not v['ML_imports'] and
++                  v['owned_group_positively_absent'] and v['manifest_still_matches'],'Probe scope/stability failed')
++        c.require(all(not x['open_output_writers'] for x in v['artifact_hash_writer_checks']),'Open output writer was hashed')
++        if v['mutation']!='none':
++            c.require(v['return_code']==1 and v['terminal']['experiment_status']=='failed' and
++                      not v['manifest_available'],'Mutation retained complete authority')
++        else:
++            c.require(v['return_code'] in (0,2) and v['manifest_available'],'Positive delayed probe failed')
++            r=v['terminal']['supervisor_resources_final']
++            c.require(r['maximum_sample_gap_seconds']<=.5 and r['maximum_full_input_gap_seconds']<=5,'Interval relaxed')
++        observations.append(dict(path=str(path.relative_to(HERE)),sha256=c.sha(path),phase=v['phase'],
++             mutation=v['mutation'],mode=v['mode'],return_code=v['return_code'],
++             manifest_available=v['manifest_available'],controller_sha256=v['controller_sha256']))
++    c.require(len(observations)==66,'Fresh actual-Guard OS probe count differs')
++    c.save(HERE/'publication-probe-receipt.json',dict(count=len(observations),cases=observations,
++         all_owned_groups_positively_absent=True,no_open_manifest_bound_writers=True,
++         resource_max_seconds=.5,full_input_max_seconds=5,real_SIGINT_and_SIGTERM_subprocesses=True))
++    old,new=nodes(R1/'long_d2.py'),nodes(HERE/'long_d2.py')
++    changed=[name for name in old if old[name]!=new.get(name)]
++    c.require(set(changed)=={'capsule_context','cancellation_signals','Guard','absolute_alarm','publish_terminal','supervise','worker'},
++              'Unrelated top-level code changed: '+repr(changed))
++    expected_worker=old['worker'].replace('                  worker_wall_seconds_lower_bound=',
++        "                  inherited_consumed_wall_scope='D1 historical context only; long budget uses supervisor T0',\n                  worker_wall_seconds_lower_bound=")
++    c.require(new['worker']==expected_worker,'Worker changed beyond receipt scope label')
++    c.require(new['Learner']==old['Learner'] and new['run_schedule']==old['run_schedule'] and
++              new['Schedule']==old['Schedule'],'Learner/schedule source changed')
++    c.save(HERE/'non-supervision-source-comparison.json',dict(
++         r1_controller_sha256=c.sha(R1/'long_d2.py'),r2_controller_sha256=c.sha(HERE/'long_d2.py'),
++         changed_top_level_nodes=changed,added_top_level_nodes=sorted(set(new)-set(old)),
++         byte_identical_nodes=sorted(name for name in old if name in new and old[name]==new[name]),
++         Learner_and_schedule_byte_identical=True,
++         capsule_context_binding_change='Pin the original new identity document to its readonly capsule digest without a self-hash cycle',worker_only_change='historical consumed_wall_seconds receipt scope label',
++         original_legacy_inputs_verified=75,
++         guard_dependency='Shared worker/supervisor Guard separates resource sampling from full hashes to enforce existing intervals; no ML call-site or limit changes'))
++    patch=''
++    for name in ACTIVE:
++        original=(R1/name).read_text() if (R1/name).exists() else ''
++        patch+=''.join(difflib.unified_diff(original.splitlines(True),(HERE/name).read_text().splitlines(True),
++                  fromfile=str((R1/name).relative_to(ROOT)),tofile=str((HERE/name).relative_to(ROOT))))
++    (HERE/'full-r1-to-r2.diff').write_text(patch)
++    sources={name:c.sha(HERE/name) for name in ACTIVE}
++    c.save(HERE/'source-manifest.json',sources)
++    c.save(HERE/'test-receipt.json',dict(positive_test_methods=int(match[1]),
++        original_synthetic_methods=70,new_publication_methods=13,positive_test_seconds=float(match[2]),
++        subtests_not_separate_methods=True,actual_guard_OS_publication_probes=len(observations),
++        command=[str(ROOT/'learning/.venv/bin/python'),'-B','-m','unittest','discover','-s',str(HERE),'-p','test*.py','-v'],
++        environment=dict(PYTHONDONTWRITEBYTECODE='1',TMPDIR=str(HERE/'tmp'),
++                         LONG_D2_PROBE_EVIDENCE=str(HERE/'publication-final-evidence-r6')),
++        log_sha256=c.sha(log),source_manifest_sha256=c.sha(HERE/'source-manifest.json'),
++        negative_controls=14,exact_r1_regression_controls=3,all_controls_AssertionError_not_API_errors=True,
++        actual_ML_native_teacher_deserialization_inference_gameplay_gradient=False))
++    result=dict(version='long_D2_supervisor_repair_implementation_result_v2',
++        status='prepared_for_fresh_parent_frozen_review_only',completed_at_utc=datetime.now(timezone.utc).isoformat(),
++        owned_directory=str(HERE),accepted_blockers_repaired=['SUP-001/P1','SUP-002/P2'],
++        production_campaign_launched=False,production_campaign_output_created=False,active_lease_created=False,
++        ML_native_inference_gameplay_teacher_deserialization_gradient=False,children_or_installs_or_external_messages=False,
++        parent_protocol_config_ledger_docs_edited=False,protected_files_unchanged=len(protected),protected_changes=changes,
++        protected_before_sha256=c.sha(HERE/'protected-before.json'),protected_after_sha256=c.sha(HERE/'protected-after.json'),
++        original_legacy_inputs_unchanged=75,learner_and_schedule_byte_identical=True,
++        positive_test_methods=int(match[1]),actual_guard_OS_publication_probes=len(observations),
++        inherited_negative_controls=14,exact_r1_regression_controls=3,all_negative_controls_assertion_failures=True,
++        protocol_sha256=c.PROTOCOL_SHA256,config_document_sha256=c.CONFIG_SHA256,
++        controller_sha256=c.sha(HERE/'long_d2.py'),
++        active_source_before={name:c.sha(R1/name) if (R1/name).exists() else None for name in ACTIVE},
++        active_source_after=sources,source_manifest_sha256=c.sha(HERE/'source-manifest.json'),
++        test_receipt_sha256=c.sha(HERE/'test-receipt.json'),
++        source_before_after='source-manifest.json and protected-before.json/protected-after.json',
+         frozen_identity_document_sha256=freeze['identity_document_sha256'],
+         checkpoint_identity_semantic_sha256=freeze['checkpoint_identity_semantic_sha256'],
+-        capsule_manifest_sha256=freeze['capsule_manifest_sha256'],
+-        controller_sha256=c.sha(HERE/'long_d2.py'),protocol_sha256=c.PROTOCOL_SHA256,
+-        config_document_sha256=c.CONFIG_SHA256,source_manifest_sha256=c.sha(HERE/'source-manifest.json'),
+-        test_receipt_sha256=c.sha(HERE/'test-receipt.json'),
++        capsule_manifest_sha256=freeze['capsule_manifest_sha256'],capsule_path=str(HERE/'capsule-final'),
+         required_lease='required-lease.json',exact_invocation='invocation.json',
+-        pure_preflight='pure-preflight-cli.json',capsule_path=str(HERE/'capsule'),
+-        reference_runner_sha256=c.sha(reference),reference_functions_copied_byte_identically=reused,
+-        full_patch='full-patch-vs-diagnostic-r3.diff',full_patch_sha256=c.sha(HERE/'full-patch-vs-diagnostic-r3.diff'),
+-        artifact_inventory='artifact-manifest-final.json',inventory_captured_after_redirected_stdout_closed=True,
+-        limitations=[
+-          'No actual teacher/native/MPS runtime, parent tensor restore, gameplay, PPO or campaign validation occurred.',
+-          'Legacy check_frozen and validate_transition are executed unchanged only in the real owned worker; preparation verified their input bytes and synthetic rejection paths.',
+-          'OS/MPS throughput, memory growth and entry determinism remain unverified until the separately reviewed one-shot run.',
+-          'Cooperative resource sampling can be delayed by blocked native/MPS calls; the independent supervisor enforces its absolute deadline.',
+-          'Terminal wall observations exclude their own write and process exit; the parent must observe actual exit/wall.',
+-          'Early development attempts retained logs; their source reconstructions are explicitly labeled, not claimed as contemporaneous snapshots.'
+-        ])
++        strict_lease_fields=15,full_diff='full-r1-to-r2.diff',full_diff_sha256=c.sha(HERE/'full-r1-to-r2.diff'),
++        source_comparison='non-supervision-source-comparison.json',test_receipt='test-receipt.json',
++        publication_probe_receipt='publication-probe-receipt.json',
++        retained_synthetic_alarm_failure='attempts/final-r4-process-exit.json',
++        retained_preclosure_control='preclosure-regression-control-receipt.json',
++        negative_control_receipts=['negative-control-receipt-final5.json','r1-regression-control-receipt-final5.json'],
++        pure_preflight='pure-preflight-final.json',artifact_inventory='artifact-manifest-final.json',
++        final_snapshot_after_all_redirected_logs_closed=True,
++        inherited_consumed_wall_seconds='D1 historical context only; never the new supervisor T0 budget',
++        prior_capsule_and_logs='Original-only hash-pinned references; never copied into new execution capsule',
++        limitations=['No actual Torch/native/MPS, parent tensor/Adam/RNG restoration, entry equality, gameplay, inference or training validation.',
++                    'Actual MPS restoration and entry equality remain mandatory future runtime gates.',
++                    'Parent must perform a fresh frozen review before creating the exact lease and launching once.',
++                    'Parent must observe actual raw exit and wall time; terminal timing excludes its own write and process exit.',
++                    'Original D1 is the only eligible parent; all failed D2 weights remain ineligible, with no resume.',
++                    'Bootstrap convenience-API failure and all synthetic/negative-control attempts remain retained.'])
+     c.save(HERE/'implementation-result.json',result)
+-    inventory={str(x.relative_to(HERE)):c.sha(x) for x in sorted(HERE.rglob('*'))
+-               if x.is_file() and x.name!='artifact-manifest-final.json'}
+-    c.save(HERE/'artifact-manifest-final.json',dict(version='long_D2_preparation_artifacts_v1',files=inventory,
+-              excludes=['artifact-manifest-final.json'],all_redirected_logs_closed=True))
+-    for relative,digest in inventory.items():
+-        c.require(c.sha(HERE/relative)==digest,'Final inventory drift: '+relative)
++    inventory={str(path.relative_to(HERE)):c.sha(path) for path in sorted(HERE.rglob('*'))
++               if path.is_file() and path!=HERE/'artifact-manifest-final.json'}
++    c.save(HERE/'artifact-manifest-final.json',dict(files=inventory,excludes=['artifact-manifest-final.json'],
++           all_redirected_logs_closed=True,identity_excludes_its_document_and_manifest=True))
++    for name,digest in inventory.items():c.require(c.sha(HERE/name)==digest,'Final inventory drift: '+name)
+ 
+ 
+ if __name__=='__main__':main()
+--- learning/runs/v2/postovernight-long-D2-prepare-r1/freeze.py
++++ learning/runs/v2/postovernight-long-D2-prepare-r2/freeze.py
+@@ -48,6 +48,20 @@
+                    ROOT/'learning/runs/v2/postovernight-long-D2-api-audit-r1'):
+         for path in folder.rglob('*'):
+             if path.is_file():files[str(path.relative_to(ROOT))]=controller.sha(path)
++    # Keep the complete rejected preparation and both independent reviews as
++    # original-only immutable references. Never copy the old capsule or logs
++    # into the new execution capsule and never relabel historical evidence.
++    references={}
++    for name in ('postovernight-long-D2-prepare-r1',
++                 'postovernight-long-D2-supervisor-review-r1',
++                 'postovernight-long-D2-learner-review-r1'):
++        for path in sorted((ROOT/'learning/runs/v2'/name).rglob('*')):
++            if path.is_file():references[str(path)]=controller.sha(path)
++    reconciliation='learning/runs/v2-orchestration/postovernight-long-D2-review-parent-reconciliation-r1.json'
++    files[reconciliation]=controller.sha(ROOT/reconciliation)
++    old_protocol='learning/runs/v2-orchestration/postovernight-long-D2-r1-protocol.json'
++    files[old_protocol]=controller.sha(ROOT/old_protocol)
++    pins.update(references)
+     pins.update({str(ROOT/k):v for k,v in files.items()})
+     pins.update(p['base_identity']['foundation']['binary_and_receipt_sha256'])
+     runtime=p['base_identity']['runtime']
+@@ -61,7 +75,7 @@
+     for name,key in [('run-result.json','run_result_sha256'),
+                      ('checkpoint-000009-candidate.pt.evaluation.json','evaluation_sha256')]:
+         controller.require(controller.sha(run/name)==anchor[key],'D1 exact terminal anchor differs')
+-    sources={str(path.relative_to(ROOT)):controller.sha(path) for path in sorted(OUT.rglob('*.py'))
++    sources={str(path.relative_to(ROOT)):controller.sha(path) for path in sorted(OUT.glob('*.py'))
+              if not {'capsule','__pycache__'}.intersection(path.relative_to(OUT).parts)}
+     controller.require(controller.PREPARE_REL+'/long_d2.py' in sources,'Controller absent')
+     return dict(version='teacher_long_D2_identity_v1',config=config,
+@@ -71,7 +85,9 @@
+                 parent_checkpoint_sha256=p['parent_checkpoint_sha256'],parent_terminal_receipt=anchor,
+                 parent_terminal_receipt_semantic_sha256=controller.semantic_hash(anchor),
+                 protocol_sha256=controller.PROTOCOL_SHA256,controller_sources=sources,
+-                original_input_pins=pins,runtime_import_policy=p['runtime_import_policy'],
++                original_input_pins=pins,original_only_historical_reference_pins=references,
++                controller_source_scope='all active root helper/test Python files; retained attempts and mutants are historical evidence only',
++                runtime_import_policy=p['runtime_import_policy'],
+                 legacy_module_origins={str(ROOT/k):dict(sha256=v,mirror=k)
+                     for k,v in p['base_identity']['sources'].items() if k.startswith('python/dodge_rl/')},
+                 hash_semantics=dict(config_sha256='raw registered config document bytes',
+@@ -86,10 +102,12 @@
+     identity=make_identity()
+     identity_path=OUT/'long-identity.json'
+     controller.save(identity_path,identity)
+-    capsule=OUT/'capsule'
++    capsule=OUT/'capsule-final'
+     capsule.mkdir(exist_ok=False)
+     files={}
+     for original,digest in identity['original_input_pins'].items():
++        if original in identity['original_only_historical_reference_pins']:
++            continue
+         source=Path(original)
+         mirror=(source.relative_to(ROOT) if source.is_relative_to(ROOT)
+                 else Path('external')/digest/source.name)
+--- learning/runs/v2/postovernight-long-D2-prepare-r1/long_d2.py
++++ learning/runs/v2/postovernight-long-D2-prepare-r2/long_d2.py
+@@ -13,6 +13,7 @@
+ import copy
+ from contextlib import contextmanager, ExitStack
+ import hashlib
++import io
+ import json
+ import math
+ import os
+@@ -25,10 +26,10 @@
+ import traceback
+ 
+ ORIGINAL_ROOT = Path('/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79')
+-PREPARE_REL = 'learning/runs/v2/postovernight-long-D2-prepare-r1'
++PREPARE_REL = 'learning/runs/v2/postovernight-long-D2-prepare-r2'
+ ROOT = Path(__file__).resolve().parents[4]
+-PROTOCOL_REL = 'learning/runs/v2-orchestration/postovernight-long-D2-r1-protocol.json'
+-PROTOCOL_SHA256 = '119e3daba7c8112f4a7a30d467f57ed9d4cd6fb3b14da4252a60e45722e8039b'
++PROTOCOL_REL = 'learning/runs/v2-orchestration/postovernight-long-D2-r1-protocol-r2.json'
++PROTOCOL_SHA256 = 'f662a4aba18e144098faeb01d398b67f489aea7549a9ebe4a5959f993e1cff09'
+ CONFIG_SHA256 = '2ac814d3842228017d09669364a8391344722da56ad19f41ad9030dbb930c2db'
+ STATE_PATH = ORIGINAL_ROOT / 'learning/runs/v2-orchestration/state.json'
+ LIMIT = 6442450944
+@@ -221,6 +222,9 @@
+     pins.update(identity['original_input_pins'])
+     pins.update(sources)
+     pins[str(manifest_path)] = sha(manifest_path)
++    # Bind the preparation identity copy as well as its execution-capsule copy.
++    # The expected digest comes from the capsule, avoiding identity self-hashing.
++    pins[str(ORIGINAL_ROOT / PREPARE_REL / 'long-identity.json')] = sha(identity_path)
+     verify_files(pins)
+     require(sha(ORIGINAL_ROOT / p['base_identity_path']) == p['base_identity_sha256']
+             and sha(ORIGINAL_ROOT / p['base_config_path']) == p['base_config_sha256'],
+@@ -396,8 +400,17 @@
+     return int(n if sys.platform == 'darwin' else n * 1024)
+ 
+ 
++_ACTIVE_CANCELLATION = None
++
++
+ @contextmanager
+ def cancellation_signals():
++    # Nested publication borrows the outer latch. It must never restore the
++    # process handlers or reset request counts while the supervisor still owns IO.
++    global _ACTIVE_CANCELLATION
++    if _ACTIVE_CANCELLATION is not None:
++        yield _ACTIVE_CANCELLATION
++        return
+     previous, cancelling = {}, [False]
+     def defer():
+         cancelling[0] = True
+@@ -414,10 +427,42 @@
+         for sig in (signal.SIGINT, signal.SIGTERM):
+             previous[sig] = signal.getsignal(sig)
+             signal.signal(sig, handle)
++        _ACTIVE_CANCELLATION = defer
+         yield defer
+     finally:
+-        for sig, handler in previous.items():
+-            signal.signal(sig, handler)
++        # Restore both handlers under one signal mask. Requests arriving during
++        # restoration are consumed into the same latch before unmasking, rather
++        # than being delivered to a restored SIG_DFL handler.
++        mask=signal.pthread_sigmask(signal.SIG_BLOCK,set(previous))
++        try:
++            for sig, handler in previous.items():
++                signal.signal(sig, handler)
++            pending=signal.sigpending() & set(previous)
++            while pending:
++                number=signal.sigwait(pending)
++                defer()
++                handle(number,None)
++                pending=signal.sigpending() & set(previous)
++            # The supervisor's final authority callback runs after handler
++            # restoration, while this same latch still owns pending requests.
++            final_check=getattr(defer,'after_handler_restore',None)
++            if final_check is not None:
++                final_check(True)
++                while True:
++                    pending=signal.sigpending() & set(previous)
++                    while pending:
++                        number=signal.sigwait(pending)
++                        defer()
++                        handle(number,None)
++                        pending=signal.sigpending() & set(previous)
++                    final_check(False)
++                    # Resource probes in the final check can also receive a
++                    # masked signal. Drain it before restoring the signal mask.
++                    if not (signal.sigpending() & set(previous)):
++                        break
++        finally:
++            _ACTIVE_CANCELLATION = None
++            signal.pthread_sigmask(signal.SIG_SETMASK,mask)
+ 
+ 
+ def stop_owned(process):
+@@ -480,11 +525,12 @@
+ 
+ 
+ class Guard:
+-    """Latched new authority/resources, independent of unchanged legacy Guard.
+-
+-    Background lease/RSS/MPS sampling continues during ordinary worker calls.
+-    Native/MPS calls can block; the independent supervisor bounds that worker.
+-    Full byte pins run at boundaries and at most four seconds between checks.
++    """Independent resource/lease and full-byte monitors, with latched failures.
++
++    Full verification never holds the resource lock. Slow byte IO therefore
++    cannot suppress <=0.5s observations. Full checks retain the <=5s bound,
++    including verification duration. Supervisor observations use memory only;
++    its one disk snapshot is closed before any artifact hashing starts.
+     """
+     def __init__(self, deadline, lease_check, verify, stream, *, clock=time.monotonic,
+                  rss=lambda: sampled_rss(os.getpid()), peak=self_peak, mps=lambda: 0):
+@@ -495,8 +541,9 @@
+         self.last_sample = self.last_full = None
+         self.maximum_sample_gap = self.maximum_full_gap = 0.0
+         self.lock = threading.RLock()
++        self.verify_lock = threading.RLock()
+         self.event = threading.Event()
+-        self.thread = None
++        self.thread = self.verify_thread = None
+ 
+     def check(self, force=False):
+         if self.failure is not None:
+@@ -505,7 +552,25 @@
+         if force:
+             self.sample(force=True)
+ 
+-    def sample(self, force=False):
++    def full_check(self, force=False):
++        with self.verify_lock:
++            self.check()
++            at = self.clock()
++            if not force and self.last_full is not None and at - self.last_full < 4:
++                return
++            gap = 0 if self.last_full is None else at - self.last_full
++            require(gap <= 5, 'Full input verification gap exceeded 5s')
++            self.verify()
++            end = self.clock()
++            # Use consecutive verification starts and include this check's IO.
++            # This conservatively bounds every pinned byte's revisit interval.
++            gap = max(gap, end-at if self.last_full is None else end-self.last_full)
++            self.maximum_full_gap = max(self.maximum_full_gap, gap)
++            require(gap <= 5, 'Full input verification gap exceeded 5s')
++            self.last_full = at
++            self.check()
++
++    def sample(self, force=False, *, full=True):
+         with self.lock:
+             self.check()
+             at = self.clock()
+@@ -519,35 +584,47 @@
+             self.maximum_peak = max(self.maximum_peak, peak)
+             self.maximum_mps = max(self.maximum_mps, mps)
+             self.last_sample = at
+-            emit(self.stream, dict(monotonic=at, rss_bytes=rss, self_peak_rss_bytes=peak,
+-                                   mps_driver_bytes=mps, sample_gap_seconds=gap, pid=os.getpid()))
++            if self.stream is not None:
++                emit(self.stream, dict(monotonic=at, rss_bytes=rss, self_peak_rss_bytes=peak,
++                                       mps_driver_bytes=mps, sample_gap_seconds=gap, pid=os.getpid()))
+             require(max(rss,peak) <= LIMIT and mps <= LIMIT, 'RSS or MPS resource limit exceeded', 'resource_stop')
+-            if force or self.last_full is None or at - self.last_full >= 4:
+-                full_gap = 0 if self.last_full is None else at - self.last_full
+-                self.maximum_full_gap = max(self.maximum_full_gap, full_gap)
+-                require(full_gap <= 5, 'Full input verification gap exceeded 5s')
+-                self.verify()
+-                self.last_full = at
+-            self.check()
++            require(self.clock()-at <= 0.5, 'Resource probe exceeded 0.5s', 'resource_stop')
++        if full:
++            self.full_check(force)
++        self.check()
+ 
+     def start(self):
+-        self.sample(force=True)
++        # Start resource sampling before full hashes; byte IO never blocks it.
++        self.sample(full=False)
+         def monitor():
+-            while not self.event.wait(0.1):
++            while not self.event.wait(0.05):
+                 try:
+-                    if self.clock() - self.last_sample >= 0.2:
+-                        self.sample()
++                    if self.clock() - self.last_sample >= 0.15:
++                        self.sample(full=False)
++                    if self.last_full is not None:
++                        require(self.clock()-self.last_full <= 5, 'Full input verification gap exceeded 5s')
+                 except BaseException as error:
+                     self.failure = error if isinstance(error, Stop) else Stop(repr(error))
+                     return
+         self.thread = threading.Thread(target=monitor, daemon=True, name='long-D2-guard')
+         self.thread.start()
++        self.full_check(force=True)
++        def verify_monitor():
++            while not self.event.wait(0.05):
++                try:
++                    self.full_check()
++                except BaseException as error:
++                    self.failure = error if isinstance(error, Stop) else Stop(repr(error))
++                    return
++        self.verify_thread = threading.Thread(target=verify_monitor, daemon=True, name='long-D2-inputs')
++        self.verify_thread.start()
+ 
+     def close(self):
+         self.event.set()
+-        if self.thread is not None:
+-            self.thread.join(timeout=0.5)
+-            require(not self.thread.is_alive(), 'Guard sampler did not stop')
++        for thread in (self.verify_thread, self.thread):
++            if thread is not None:
++                thread.join(timeout=0.5)
++                require(not thread.is_alive(), 'Guard sampler did not stop')
+         self.check()
+ 
+     def receipt(self):
+@@ -555,6 +632,7 @@
+                     maximum_mps_driver_bytes=self.maximum_mps,
+                     maximum_sample_gap_seconds=self.maximum_sample_gap,
+                     maximum_full_input_gap_seconds=self.maximum_full_gap,
++                    last_sample_monotonic=self.last_sample, last_full_verification_monotonic=self.last_full,
+                     latched_failure=None if self.failure is None else repr(self.failure))
+ 
+ 
+@@ -568,12 +646,21 @@
+     def expired(number, frame):
+         raise Stop('Supervisor absolute 7200s alarm', 'wall_guard')
+     old = signal.signal(signal.SIGALRM, expired)
+-    signal.setitimer(signal.ITIMER_REAL, max(0.000001, deadline-time.monotonic()))
+     try:
++        signal.setitimer(signal.ITIMER_REAL, max(0.000001, deadline-time.monotonic()))
+         yield
+     finally:
+-        signal.setitimer(signal.ITIMER_REAL, 0)
+-        signal.signal(signal.SIGALRM, old)
++        mask=signal.pthread_sigmask(signal.SIG_BLOCK,{signal.SIGALRM})
++        try:
++            signal.setitimer(signal.ITIMER_REAL, 0)
++            pending=signal.SIGALRM in signal.sigpending()
++            if pending:
++                signal.sigwait({signal.SIGALRM})
++            signal.signal(signal.SIGALRM, old)
++        finally:
++            signal.pthread_sigmask(signal.SIG_SETMASK,mask)
++        if pending:
++            raise Stop('Supervisor alarm pending during restoration','wall_guard')
+ 
+ 
+ def counter_report(counters, inherited, progress):
+@@ -913,6 +1000,7 @@
+                   config_document_sha256=CONFIG_SHA256,identity_document_sha256=lease['identity_sha256'],
+                   checkpoint_identity_semantic_sha256=semantic_hash(identity),
+                   actual_import_origins=check_module_origins(identity,ROOT),
++                  inherited_consumed_wall_scope='D1 historical context only; long budget uses supervisor T0',
+                   worker_wall_seconds_lower_bound=time.monotonic()-args.started,
+                   worker_result_write_and_process_exit_not_timed=True)
+     if time.monotonic()>=args.started+BUDGET:
+@@ -921,7 +1009,33 @@
+     return result_code(result) if time.monotonic()<args.started+BUDGET else 1
+ 
+ 
+-def publish_terminal(output,result,started,deadline,stable,*,clock=time.monotonic):
++def revoke_terminal(output,result,started,stable,error,*,clock=time.monotonic):
++    manifest=output/'artifact-manifest.json'
++    terminal=output/'finalization-result.json'
++    run=output/'long-run-result.json'
++    result.setdefault('wall_timing_scope','lower bound before terminal own write and process exit')
++    manifest.unlink(missing_ok=True)
++    terminal.unlink(missing_ok=True)
++    for path in (run,manifest,terminal):
++        pending=path.with_name('.'+path.name+'.pending')
++        if pending.exists():
++            os.replace(pending,path.with_name('.'+path.name+'.failed-publication'))
++    result.update(outcome_fields(failure_outcome(error) if isinstance(error,Stop) else 'publication_failure'),
++                  publication_error=repr(error),actual_wall_seconds_lower_bound=clock()-started)
++    # No mutable output is hashed, even to decorate a failure receipt.
++    replace_json(output/'artifact-manifest-unavailable.json',dict(stable=False,reason=repr(error),
++                 partial_outputs_retained=True,artifacts_not_hashed=True))
++    replace_json(run,result)
++    replace_json(terminal,dict(**outcome_fields(result['outcome']),artifact_manifest_available=False,
++                 stable_owned_group=stable,error=repr(error),
++                 wall_seconds_lower_bound=clock()-started,
++                 wall_timing_scope=result['wall_timing_scope'],
++                 failure_receipt_persistence_may_exceed_deadline=True,
++                 cleanup_seconds=result.get('cleanup_seconds'),
++                 run_result_binding_unavailable=True))
++
++
++def publish_terminal(output,result,started,deadline,stable,*,clock=time.monotonic,authority=lambda force=False:None):
+     """Hash only closed/reaped artifacts. No success survives late writes/cancel.
+ 
+     Failure-only persistence can exceed the deadline; it grants no inference,
+@@ -937,26 +1051,12 @@
+     def check(stage):
+         stages.append(dict(stage=stage,wall_seconds=clock()-started))
+         require(clock()<deadline,'7200s deadline reached during '+stage,'wall_guard')
++        authority(force=stage in ('before_terminal_authority','terminal_receipt_publication'))
++        if cancel.cancellation_requests:
++            raise Stop('Cancellation latched during terminal publication','cancelled')
++        require(clock()<deadline,'7200s deadline reached during '+stage,'wall_guard')
+     def revoke(error):
+-        manifest.unlink(missing_ok=True)
+-        terminal.unlink(missing_ok=True)
+-        for path in (run,manifest,terminal):
+-            pending=path.with_name('.'+path.name+'.pending')
+-            if pending.exists():
+-                os.replace(pending,path.with_name('.'+path.name+'.failed-publication'))
+-        result.update(outcome_fields(failure_outcome(error) if isinstance(error,Stop) else 'publication_failure'),
+-                      publication_error=repr(error),actual_wall_seconds_lower_bound=clock()-started)
+-        # No mutable output is hashed, even to decorate a failure receipt.
+-        replace_json(output/'artifact-manifest-unavailable.json',dict(stable=False,reason=repr(error),
+-                     partial_outputs_retained=True,artifacts_not_hashed=True))
+-        replace_json(run,result)
+-        replace_json(terminal,dict(**outcome_fields(result['outcome']),artifact_manifest_available=False,
+-                     stable_owned_group=stable,error=repr(error),
+-                     wall_seconds_lower_bound=clock()-started,
+-                     wall_timing_scope=result['wall_timing_scope'],
+-                     failure_receipt_persistence_may_exceed_deadline=True,
+-                     cleanup_seconds=result.get('cleanup_seconds'),
+-                     run_result_binding_unavailable=True))
++        revoke_terminal(output,result,started,stable,error,clock=clock)
+     with cancellation_signals() as cancel:
+         try:
+             require(stable,'Owned leader/group absence unproven; artifacts were not hashed','publication_failure')
+@@ -973,6 +1073,7 @@
+             check('manifest_publication')
+             manifest_hash=sha(manifest)
+             check('manifest_hash')
++            check('before_terminal_authority')
+             receipt=dict(**outcome_fields(result['outcome'],result['experiment_status']=='complete'),
+                      artifact_manifest_sha256=manifest_hash,run_result_sha256=artifacts[run.name],
+                      wall_seconds_lower_bound=clock()-started,wall_timing_scope=result['wall_timing_scope'],
+@@ -992,7 +1093,7 @@
+     return result_code(result)
+ 
+ 
+-def supervise(args,*,context_provider=capsule_context,command_factory=None,
++def _supervise(args,cancel,*,context_provider=capsule_context,command_factory=None,
+               guard_factory=Guard,alarm_factory=absolute_alarm,started=None):
+     """Injection points are Python-only synthetic fixtures; CLI exposes none."""
+     started=LAUNCH_MONOTONIC if started is None else started
+@@ -1013,79 +1114,107 @@
+     def verify():
+         verify_files(pins)
+         assert_readonly_capsule(ROOT,read_json(ROOT/'capsule-manifest.json'))
+-    with cancellation_signals() as cancel:
+-        with (args.output/'supervisor-guard.jsonl').open('x') as stream:
++        if 'legacy_module_origins' in identity:
++            check_module_origins(identity,ROOT)
++    stream=io.StringIO()
++    try:
++        try:
++            with alarm_factory(deadline):
++                guard=guard_factory(deadline,lease_check,verify,stream)
++                guard.start()
++                command=([sys.executable,'-B',str(Path(__file__).resolve()),'worker',
++                          '--output',str(args.output),'--state-path',str(args.state_path),
++                          '--started',str(started),'--supervisor-pid',str(os.getpid())]
++                         if command_factory is None else command_factory(args,context_provider(ROOT)))
++                result.update(run_id=p['run_id'],protocol_sha256=PROTOCOL_SHA256,required_lease=lease,
++                              command=command,supervisor_started_monotonic=started,
++                              absolute_deadline_monotonic=deadline,worker_deadline_monotonic=started+WORKER_SECONDS)
++                with (args.output/'worker.stdout.log').open('x') as stdout, \
++                     (args.output/'worker.stderr.log').open('x') as stderr:
++                    blocked=signal.pthread_sigmask(signal.SIG_BLOCK,{signal.SIGINT,signal.SIGTERM,signal.SIGALRM})
++                    try:
++                        require(not os.environ.get('PYTORCH_ENABLE_MPS_FALLBACK'),'MPS fallback forbidden')
++                        process=subprocess.Popen(command,stdout=stdout,stderr=stderr,cwd=ROOT,
++                            env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1'),start_new_session=True)
++                    finally:
++                        signal.pthread_sigmask(signal.SIG_SETMASK,blocked)
++                    guard.rss=lambda:(max(sampled_rss(os.getpid()),sampled_rss(process.pid))
++                                      if process.poll() is None else sampled_rss(os.getpid()))
++                    while process.poll() is None:
++                        guard.check()
++                        time.sleep(min(0.025,max(0,deadline-time.monotonic())))
++                    guard.check()
++                    wr=read_json(args.output/'long-worker-result.json')
++                    result['worker_exit_code']=process.returncode
++                    result['worker_result']=wr
++                    code=result_code(wr)
++                    failure=(wr.get('outcome','safety_stop') if wr.get('experiment_status')=='failed'
++                             else 'publication_failure')
++                    require(process.returncode==code and code in (0,2),'Worker failed; no retry',failure)
++                    require(wr.get('expected_exit_code')==code,'Worker outcome/exit mismatch','publication_failure')
++                    require(wr.get('teacher_qualified') is False and wr.get('training_parent_eligible') is False,
++                            'Worker claimed forbidden qualification/eligibility','publication_failure')
++                    result.update(outcome_fields(wr['outcome'],True))
++                    guard.sample(force=True)
++        except BaseException as error:
++            result.update(outcome_fields(failure_outcome(error)),error=repr(error),traceback=traceback.format_exc())
++        finally:
++            cancel()
++            cleanup_start=time.monotonic()
++            if process is not None:
++                try:
++                    result['owned_process_stop']=stop_owned(process)
++                except BaseException as error:
++                    result['owned_process_stop']=dict(reaped=process.poll() is not None,group_empty=False,error=repr(error))
++            result['cleanup_seconds']=time.monotonic()-cleanup_start
++            stop=result.get('owned_process_stop',{})
++            stable=process is None or (process.poll() is not None and stop.get('reaped') is True
++                    and stop.get('group_empty') is True and not stop.get('errors') and not stop.get('error'))
++            if not stable or result['cleanup_seconds']>CLEANUP_SECONDS:
++                result.update(outcome_fields('publication_failure'),cleanup_failure=True)
+             try:
++                if guard:
++                    result['supervisor_resources_before_publication']=guard.receipt()
++                require(time.monotonic()<deadline,'Deadline crossed during guard close','wall_guard')
+                 with alarm_factory(deadline):
+-                    guard=guard_factory(deadline,lease_check,verify,stream)
+-                    guard.start()
+-                    command=([sys.executable,'-B',str(Path(__file__).resolve()),'worker',
+-                              '--output',str(args.output),'--state-path',str(args.state_path),
+-                              '--started',str(started),'--supervisor-pid',str(os.getpid())]
+-                             if command_factory is None else command_factory(args,context_provider(ROOT)))
+-                    result.update(run_id=p['run_id'],protocol_sha256=PROTOCOL_SHA256,required_lease=lease,
+-                                  command=command,supervisor_started_monotonic=started,
+-                                  absolute_deadline_monotonic=deadline,worker_deadline_monotonic=started+WORKER_SECONDS)
+-                    with (args.output/'worker.stdout.log').open('x') as stdout, \
+-                         (args.output/'worker.stderr.log').open('x') as stderr:
+-                        blocked=signal.pthread_sigmask(signal.SIG_BLOCK,{signal.SIGINT,signal.SIGTERM,signal.SIGALRM})
+-                        try:
+-                            require(not os.environ.get('PYTORCH_ENABLE_MPS_FALLBACK'),'MPS fallback forbidden')
+-                            process=subprocess.Popen(command,stdout=stdout,stderr=stderr,cwd=ROOT,
+-                                env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1'),start_new_session=True)
+-                        finally:
+-                            signal.pthread_sigmask(signal.SIG_SETMASK,blocked)
+-                        guard.rss=lambda:(max(sampled_rss(os.getpid()),sampled_rss(process.pid))
+-                                          if process.poll() is None else sampled_rss(os.getpid()))
+-                        while process.poll() is None:
+-                            guard.check()
+-                            time.sleep(min(0.025,max(0,deadline-time.monotonic())))
+-                        guard.check()
+-                        wr=read_json(args.output/'long-worker-result.json')
+-                        result['worker_exit_code']=process.returncode
+-                        result['worker_result']=wr
+-                        code=result_code(wr)
+-                        failure=(wr.get('outcome','safety_stop') if wr.get('experiment_status')=='failed'
+-                                 else 'publication_failure')
+-                        require(process.returncode==code and code in (0,2),'Worker failed; no retry',failure)
+-                        require(wr.get('expected_exit_code')==code,'Worker outcome/exit mismatch','publication_failure')
+-                        require(wr.get('teacher_qualified') is False and wr.get('training_parent_eligible') is False,
+-                                'Worker claimed forbidden qualification/eligibility','publication_failure')
+-                        result.update(outcome_fields(wr['outcome'],True))
+-                        guard.sample(force=True)
++                    lease_check()
++                    verify()
++                require(time.monotonic()<deadline,'Deadline crossed during final verification','wall_guard')
+             except BaseException as error:
+-                result.update(outcome_fields(failure_outcome(error)),error=repr(error),traceback=traceback.format_exc())
+-            finally:
+-                cancel()
+-                cleanup_start=time.monotonic()
+-                if process is not None:
+-                    try:
+-                        result['owned_process_stop']=stop_owned(process)
+-                    except BaseException as error:
+-                        result['owned_process_stop']=dict(reaped=process.poll() is not None,group_empty=False,error=repr(error))
+-                result['cleanup_seconds']=time.monotonic()-cleanup_start
+-                stop=result.get('owned_process_stop',{})
+-                stable=process is None or (process.poll() is not None and stop.get('reaped') is True
+-                        and stop.get('group_empty') is True and not stop.get('errors') and not stop.get('error'))
+-                if not stable or result['cleanup_seconds']>CLEANUP_SECONDS:
+-                    result.update(outcome_fields('publication_failure'),cleanup_failure=True)
++                result.update(outcome_fields(failure_outcome(error)),final_verification_error=repr(error))
++            if process is not None and process.poll() is not None and 'worker_result' not in result:
+                 try:
+-                    if guard:
+-                        guard.close()
+-                        result['supervisor_resources']=guard.receipt()
+-                    require(time.monotonic()<deadline,'Deadline crossed during guard close','wall_guard')
+-                    with alarm_factory(deadline):
+-                        lease_check()
+-                        verify()
+-                    require(time.monotonic()<deadline,'Deadline crossed during final verification','wall_guard')
+-                except BaseException as error:
+-                    result.update(outcome_fields(failure_outcome(error)),final_verification_error=repr(error))
+-                if process is not None and process.poll() is not None and 'worker_result' not in result:
+-                    try:
+-                        result['worker_result']=read_json(args.output/'long-worker-result.json')
+-                    except (FileNotFoundError,ValueError):
+-                        result['worker_result_unavailable']=True
+-        # Supervisor stream and worker redirected streams are closed here.
++                    result['worker_result']=read_json(args.output/'long-worker-result.json')
++                except (FileNotFoundError,ValueError):
++                    result['worker_result_unavailable']=True
++        # This disk snapshot has no live writer. All later samples remain in
++        # memory and are explicitly excluded from the stable artifact inventory.
++        with alarm_factory(deadline):
++            with (args.output/'supervisor-guard.jsonl').open('x') as snapshot:
++                if guard is not None and hasattr(guard,'lock'):
++                    with guard.lock:
++                        text=stream.getvalue()
++                else:
++                    text=stream.getvalue()
++                snapshot.write(text)
++            require(time.monotonic()<deadline,'Deadline crossed during observation snapshot','wall_guard')
++        result['supervisor_observation_log_scope']='closed prepublication snapshot; later monitor is memory-only'
++    except BaseException as error:
++        result.update(outcome_fields(failure_outcome(error)),snapshot_error=repr(error))
++    def authority(force=False):
++        if cancel.cancellation_requests:
++            raise Stop('Cancellation latched through final authority decision','cancelled')
++        require(time.monotonic()<deadline,'Deadline crossed during final authority decision','wall_guard')
++        lease_check()
++        if guard is not None:
++            guard.sample(force=force)
++        elif force:
++            verify()
++        # Full hashing/probes may have allowed a request; recheck on return.
++        lease_check()
++        if cancel.cancellation_requests:
++            raise Stop('Cancellation latched through final authority decision','cancelled')
++        require(time.monotonic()<deadline,'Deadline crossed during final authority decision','wall_guard')
+     if cancel.cancellation_requests:
+         result.update(outcome_fields('cancelled'),cancellation_requests=cancel.cancellation_requests,
+                       cancellation_signal=signal.Signals(cancel.requested_signal).name)
+@@ -1094,18 +1223,98 @@
+     try:
+         if time.monotonic() < deadline:
+             with alarm_factory(deadline):
+-                code=publish_terminal(args.output,result,started,deadline,stable)
++                code=publish_terminal(args.output,result,started,deadline,stable,authority=authority)
+         else:
+-            code=publish_terminal(args.output,result,started,deadline,stable)
++            code=publish_terminal(args.output,result,started,deadline,stable,authority=authority)
+     except BaseException as error:
+         # An alarm can arrive as the publication context exits. Re-enter the
+         # failure/revocation path after its one-shot alarm has been disarmed.
+         result.update(outcome_fields(failure_outcome(error)),publication_context_error=repr(error))
+-        code=publish_terminal(args.output,result,started,deadline,False)
+-    if time.monotonic() >= deadline and result['experiment_status']=='complete':
+-        result.update(outcome_fields('wall_guard'),late_publication_return=True)
+-        code=publish_terminal(args.output,result,started,deadline,False)
++        revoke_terminal(args.output,result,started,False,error)
++        code=1
++    closed=False
++    try:
++        with alarm_factory(deadline):
++            authority(force=True)
++            if guard is not None:
++                guard.close()
++                guard.stream=None
++            closed=True
++            stream.close()
++        # Publication alarm restoration, guard joins and stream closure all
++        # precede this full check. No background writer owns an output file.
++        with absolute_alarm(deadline):
++            authority(force=True)
++            receipt=read_json(args.output/'finalization-result.json')
++            receipt.update(supervisor_resources_final=guard.receipt() if guard else {},
++                           observation_log_scope=result['supervisor_observation_log_scope'],
++                           inherited_consumed_wall_scope='D1 historical context only; long budget uses supervisor T0',
++                           final_authority_check_after_monitor_and_stream_close=True)
++            replace_json(args.output/'finalization-result.json',receipt)
++            authority(force=True)  # Revalidate after our last terminal write.
++        # No normal writes or contexts remain. This checks lease/resources and
++        # every deferred request after the last alarm restored its handler.
++        authority(force=False)
++    except BaseException as error:
++        cancel()
++        result.update(publication_context_error=repr(error))
++        revoke_terminal(args.output,result,started,stable,error)
++        code=1
++    finally:
++        if not closed:
++            # Failure-only shutdown; never hashes a buffer while its monitor runs.
++            if guard is not None:
++                try:
++                    guard.close()
++                except BaseException as error:
++                    result['monitor_close_error']=repr(error)
++                guard.stream=None
++            stream.close()
++    if cancel.cancellation_requests:
++        result.update(cancellation_requests=cancel.cancellation_requests,
++                      cancellation_signal=signal.Signals(cancel.requested_signal).name)
++        revoke_terminal(args.output,result,started,stable,Stop('Final cancellation latch','cancelled'))
++        code=1
++    if time.monotonic()>=deadline and code!=1:
++        revoke_terminal(args.output,result,started,stable,Stop('Final deadline check','wall_guard'))
++        code=1
++    def after_handler_restore(force):
++        nonlocal code
++        if code==1:
++            cancel.final_exit_code=1
++            return  # No normal verification or new alarm after failure.
++        try:
++            authority(force=False)
++            if force:
++                with absolute_alarm(deadline):
++                    authority(force=True)
++            authority(force=False)
++        except BaseException as error:
++            revoke_terminal(args.output,result,started,stable,error)
++            code=1
++        cancel.final_exit_code=code
++    cancel.after_handler_restore=after_handler_restore
+     return code
++
++
++def supervise(args,**kwargs):
++    """One effective SIGINT/SIGTERM latch through every publication/close phase."""
++    with cancellation_signals() as cancel:
++        code=_supervise(args,cancel,**kwargs)
++    # Include the outer latch's own handler restoration, as well as every
++    # borrowed inner context. Only failure persistence can occur after this.
++    if cancel.cancellation_requests:
++        result=read_json(args.output/'long-run-result.json')
++        result.update(cancellation_requests=cancel.cancellation_requests,
++                      cancellation_signal=signal.Signals(cancel.requested_signal).name)
++        started=kwargs.get('started')
++        started=LAUNCH_MONOTONIC if started is None else started
++        stop=result.get('owned_process_stop',{})
++        stable=not stop or (stop.get('reaped') is True and stop.get('group_empty') is True
++                            and not stop.get('errors') and not stop.get('error'))
++        revoke_terminal(args.output,result,started,stable,Stop('Outer cancellation restoration latch','cancelled'))
++        code=1
++    return 1 if cancel.cancellation_requests else getattr(cancel,'final_exit_code',code)
+ 
+ 
+ def main():
+--- learning/runs/v2/postovernight-long-D2-prepare-r1/publication_probes.py
++++ learning/runs/v2/postovernight-long-D2-prepare-r2/publication_probes.py
+@@ -0,0 +1,174 @@
++"""Owned stdlib OS probes of actual supervise/Guard, never a campaign launch.
++
++All authority files, logs, mutations and signals belong to the named scenario.
++Events live outside the synthetic output and therefore cannot alter its manifest.
++LONG_D2_TEST_SOURCE permits exact r1 or retained single-line negative controls.
++"""
++from contextlib import contextmanager
++import io
++import json
++import os
++from pathlib import Path
++import signal
++import subprocess
++import sys
++import time
++import types
++from unittest.mock import patch
++import test_long_d2 as t
++
++c=t.c
++HERE=Path(__file__).resolve().parent
++
++
++def scenario(root,phase='hash-before',mutation='cancel',mode='closure',delay=0.0):
++    root=Path(root).resolve();root.mkdir(exist_ok=False)
++    output=root/'campaign';state=root/'state.json';watched=root/'watched.txt'
++    watched.write_text('original frozen synthetic bytes\n')
++    pins={str(watched):c.sha(watched)}
++    state.write_text(json.dumps({'active_long_campaign':t.lease()}))
++    (root/'capsule-manifest.json').write_text('{"files":{}}')
++    context=({**t.PROTOCOL,'output':'campaign'},t.CONFIG,t.BASE,{},pins,t.lease())
++    args=types.SimpleNamespace(output=output,state_path=state)
++    real_sha,real_replace,real_verify=c.sha,c.replace_json,c.verify_files
++    real_alarm,real_stop=c.absolute_alarm,c.stop_owned
++    real_signal=c.signal.signal
++    real_rss=c.sampled_rss
++    restoring=[False];restored_samples=[0]
++    old_handlers={number:signal.getsignal(number) for number in (signal.SIGINT,signal.SIGTERM)}
++    events=[];fired=[False];guards=[];started=time.monotonic()
++    writers=set();writer_checks=[];real_open=Path.open
++    def event(kind,**fields):
++        events.append(dict(event=kind,elapsed=time.monotonic()-started,**fields))
++        (root/'events.json').write_text(json.dumps(events,sort_keys=True,indent=2)+'\n')
++    def trigger(at):
++        if phase!=at or fired[0]:return
++        fired[0]=True;event('trigger',phase=phase,mutation=mutation)
++        if mutation=='cancel':
++            value=c.read_json(state);value['active_long_campaign']['cancel_requested']=True
++            state.write_text(json.dumps(value))
++        elif mutation=='input':watched.write_text('changed pinned bytes\n')
++        elif mutation in ('SIGINT','SIGTERM'):
++            number=getattr(signal,mutation)
++            event('real_signal',number=number,handler=str(signal.getsignal(number)))
++            os.kill(os.getpid(),number)
++        if delay:time.sleep(delay)
++    def terminal_exists():
++        return (output/'finalization-result.json').exists()
++    class ActualGuard(c.Guard):
++        def __init__(self,*args,**kwargs):
++            super().__init__(*args,**kwargs);guards.append(self)
++        def close(self):
++            if terminal_exists():trigger('monitor-close-before')
++            super().close()
++            if terminal_exists():trigger('monitor-close-after')
++            event('guard_closed',receipt=self.receipt())
++        def sample(self,*args,**kwargs):
++            if terminal_exists():trigger('authority-before')
++            super().sample(*args,**kwargs)
++            if terminal_exists():trigger('authority-after')
++    class Buffer(io.StringIO):
++        def close(self):
++            if terminal_exists():trigger('stream-close-before')
++            super().close()
++            if terminal_exists():trigger('stream-close-after')
++    def verify(actual):
++        if restoring[0]:trigger('restoration-verify')
++        if terminal_exists():trigger('full-verify-before')
++        real_verify(actual)
++        if terminal_exists():trigger('full-verify-after')
++    class TrackedWriter:
++        def __init__(self,inner,path):self.inner,self.path=inner,path;writers.add(str(path))
++        def __getattr__(self,name):return getattr(self.inner,name)
++        def __enter__(self):self.inner.__enter__();return self
++        def __exit__(self,*args):
++            try:return self.inner.__exit__(*args)
++            finally:writers.discard(str(self.path))
++        def close(self):
++            try:return self.inner.close()
++            finally:writers.discard(str(self.path))
++    def opening(path,mode='r',*args,**kwargs):
++        value=real_open(path,mode,*args,**kwargs)
++        if path.is_relative_to(output) and any(x in mode for x in ('w','a','x','+')):
++            return TrackedWriter(value,path)
++        return value
++    def hashing(path):
++        path=Path(path);artifact=path.is_relative_to(output)
++        if artifact:
++            writer_checks.append(dict(path=path.name,open_output_writers=sorted(writers),
++                                      live_memory_monitor=any(g.thread is not None and g.thread.is_alive() for g in guards)))
++            trigger('hash-before')
++        value=real_sha(path)
++        if artifact:trigger('hash-after')
++        return value
++    def replacing(path,value):
++        if path.name=='artifact-manifest.json':trigger('manifest-before')
++        if path.name=='finalization-result.json':trigger('terminal-before')
++        real_replace(path,value)
++        if path.name=='artifact-manifest.json':trigger('manifest-after')
++        if path.name=='finalization-result.json':trigger('terminal-after')
++    @contextmanager
++    def alarm(deadline):
++        with real_alarm(deadline):yield
++        if terminal_exists():trigger('alarm-exit')
++    def signal_handler(number,handler):
++        value=real_signal(number,handler)
++        if number in old_handlers and handler==old_handlers[number] and terminal_exists():
++            restoring[0]=True
++            trigger('latch-restore')
++        return value
++    def rss(pid):
++        if restoring[0]:
++            restored_samples[0]+=1
++            if restored_samples[0]==4:trigger('restoration-final-sample')
++        return real_rss(pid)
++    def stop(process):
++        receipt=real_stop(process);event('owned_stop',receipt=receipt);return receipt
++    def command(*unused):
++        return [sys.executable,'-B',str(HERE/'fake_worker.py'),'--output',str(output),'--mode',mode]
++    with patch.object(c,'ORIGINAL_ROOT',root),patch.object(c,'ROOT',root), \
++         patch.object(c,'STATE_PATH',state),patch.object(c,'assert_readonly_capsule'), \
++         patch.object(c,'sha',side_effect=hashing),patch.object(c,'replace_json',side_effect=replacing), \
++         patch.object(c,'verify_files',side_effect=verify),patch.object(c,'stop_owned',side_effect=stop), \
++         patch.object(c.signal,'signal',side_effect=signal_handler), \
++         patch.object(c,'sampled_rss',side_effect=rss), \
++         patch.object(Path,'open',opening), \
++         patch.object(c.io if hasattr(c,'io') else io,'StringIO',Buffer):
++        code=c.supervise(args,context_provider=lambda unused:context,command_factory=command,
++                         guard_factory=ActualGuard,alarm_factory=alarm,started=started)
++    terminal=c.read_json(output/'finalization-result.json')
++    result=c.read_json(output/'long-run-result.json')
++    manifest=output/'artifact-manifest.json'
++    stable=True
++    if manifest.exists():
++        entries=c.read_json(manifest)
++        stable=all(real_sha(output/name)==digest for name,digest in entries.items())
++        stable=stable and terminal['artifact_manifest_sha256']==real_sha(manifest)
++        stable=stable and terminal['run_result_sha256']==real_sha(output/'long-run-result.json')
++    for g in guards:
++        event('guard_final',receipt=g.receipt(),threads_stopped=all(
++            thread is None or not thread.is_alive() for thread in (g.thread,getattr(g,'verify_thread',None))))
++    cleanup=result.get('owned_process_stop',{})
++    absent=False
++    if cleanup.get('owned_pgid'):
++        try:os.killpg(cleanup['owned_pgid'],0)
++        except ProcessLookupError:absent=True
++    observed=dict(return_code=code,phase=phase,mutation=mutation,mode=mode,delay_seconds=delay,
++                  actual_supervise=True,actual_guard=True,owned_stdlib_OS_worker=True,
++                  trigger_fired=fired[0],manifest_available=manifest.exists(),manifest_still_matches=stable,
++                  terminal=terminal,events=events,owned_group_positively_absent=absent,
++                  artifact_hash_writer_checks=writer_checks,
++                  input_matches=real_sha(watched)==pins[str(watched)],
++                  cancel_requested=c.read_json(state)['active_long_campaign']['cancel_requested'],
++                  controller_sha256=real_sha(Path(c.__file__)),
++                  ML_imports=any(n in ('torch','numpy','dodge_rl') or n.startswith(('torch.','numpy.','dodge_rl.'))
++                                 for n in sys.modules))
++    (root/'events.json').write_text(json.dumps(events,sort_keys=True,indent=2)+'\n')
++    (root/'observation.json').write_text(json.dumps(observed,sort_keys=True,indent=2)+'\n')
++    return observed
++
++
++if __name__=='__main__':
++    value=scenario(sys.argv[1],sys.argv[2],sys.argv[3],sys.argv[4],float(sys.argv[5]))
++    print(json.dumps({k:value[k] for k in ('return_code','trigger_fired','manifest_available','manifest_still_matches')}))
++    raise SystemExit(value['return_code'])
+--- learning/runs/v2/postovernight-long-D2-prepare-r1/regression_negative_controls.py
++++ learning/runs/v2/postovernight-long-D2-prepare-r2/regression_negative_controls.py
+@@ -0,0 +1,39 @@
++"""Kill exact retained r1 with new actual-supervisor publication regressions."""
++from pathlib import Path
++import os
++import subprocess
++import sys
++import long_d2 as c
++
++HERE=Path(__file__).resolve().parent
++R1=HERE.parent/'postovernight-long-D2-prepare-r1/long_d2.py'
++TESTS=['test_late_cancel_hash_real_guard_both_outcomes',
++       'test_late_input_hash_real_guard_both_outcomes',
++       'test_real_SIGINT_SIGTERM_outer_publication_alarm_exit']
++
++
++def main():
++    round_name=sys.argv[1]
++    directory=HERE/('r1-regression-controls-'+round_name);directory.mkdir(exist_ok=False)
++    c.require(c.sha(R1)=='62ece46ba9a59d3c116013580ce29875aa76eaceed59eb56480a804649c8ffca','Exact r1 changed')
++    results=[]
++    for test in TESTS:
++        evidence=directory/test;evidence.mkdir()
++        command=[sys.executable,'-B','-m','unittest','test_publication.PublicationTests.'+test,'-v']
++        run=subprocess.run(command,cwd=HERE,capture_output=True,text=True,timeout=45,
++                env=dict(os.environ,LONG_D2_TEST_SOURCE=str(R1),LONG_D2_PROBE_EVIDENCE=str(evidence),
++                         PYTHONDONTWRITEBYTECODE='1',TMPDIR=str(HERE/'tmp')))
++        log=directory/(test+'.log');log.write_text(run.stdout+run.stderr)
++        assertion=run.returncode!=0 and 'FAIL:' in run.stderr and 'AssertionError' in run.stderr
++        api_error=any(x in run.stderr for x in ('ERROR:','ImportError','SyntaxError','AttributeError','TypeError'))
++        results.append(dict(test=test,source=str(R1),source_sha256=c.sha(R1),command=command,
++                            exit_code=run.returncode,assertion_failure=assertion,API_or_import_errors=api_error,
++                            log=str(log.relative_to(HERE)),log_sha256=c.sha(log),killed=assertion and not api_error))
++        print(test,results[-1]['killed'],flush=True)
++    c.save(HERE/('r1-regression-control-receipt-'+round_name+'.json'),dict(
++        count=len(results),all_killed=all(v['killed'] for v in results),cases=results,
++        exact_r1_not_rewritten_or_import_adapted=True,source_sha256=c.sha(R1)))
++    return 0 if all(v['killed'] for v in results) else 1
++
++
++if __name__=='__main__':raise SystemExit(main())
+--- learning/runs/v2/postovernight-long-D2-prepare-r1/test_publication.py
++++ learning/runs/v2/postovernight-long-D2-prepare-r2/test_publication.py
+@@ -0,0 +1,113 @@
++"""Discriminating publication regressions, real Guard and stdlib owned workers."""
++import json
++import os
++from pathlib import Path
++import signal
++import subprocess
++import sys
++import tempfile
++import time
++import unittest
++import io
++import test_long_d2 as t
++from publication_probes import scenario
++
++c=t.c
++HERE=Path(__file__).resolve().parent
++EVIDENCE=Path(os.environ.get('LONG_D2_PROBE_EVIDENCE',str(HERE/'tmp')))
++
++
++class PublicationTests(unittest.TestCase):
++    def run_probe(self,phase,mutation,mode='closure',delay=0):
++        parent=Path(tempfile.mkdtemp(prefix='publication-',dir=EVIDENCE))
++        root=parent/'scenario'
++        command=[sys.executable,'-B',str(HERE/'publication_probes.py'),str(root),phase,mutation,mode,str(delay)]
++        run=subprocess.run(command,capture_output=True,text=True,timeout=30,
++                           env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1'))
++        (parent/'subprocess.log').write_text(run.stdout+run.stderr)
++        (parent/'subprocess-receipt.json').write_text(json.dumps(dict(argv=command,return_code=run.returncode),sort_keys=True,indent=2)+'\n')
++        self.assertTrue((root/'observation.json').exists(),run.stderr)
++        value=json.loads((root/'observation.json').read_bytes())
++        self.assertEqual(run.returncode,value['return_code'])
++        self.assertTrue(value['trigger_fired'])
++        self.assertTrue(value['owned_group_positively_absent'])
++        self.assertFalse(value['ML_imports'])
++        self.assertTrue(value['manifest_still_matches'])
++        self.assertTrue(all(not v['open_output_writers'] for v in value['artifact_hash_writer_checks']))
++        return value
++    def failed(self,value):
++        self.assertEqual(value['return_code'],1)
++        self.assertEqual(value['terminal']['experiment_status'],'failed')
++        self.assertFalse(value['manifest_available'])
++    def test_late_cancel_hash_real_guard_both_outcomes(self):
++        for mode in ('closure','pass'):
++            with self.subTest(mode=mode):self.failed(self.run_probe('hash-before','cancel',mode,.65))
++    def test_late_input_hash_real_guard_both_outcomes(self):
++        for mode in ('closure','pass'):
++            with self.subTest(mode=mode):self.failed(self.run_probe('hash-after','input',mode,.65))
++    def test_before_after_manifest_terminal_and_hash(self):
++        for phase in ('hash-after','manifest-before','manifest-after','terminal-before','terminal-after'):
++            for mutation in ('cancel','input'):
++                for mode in ('closure','pass'):
++                    with self.subTest(phase=phase,mutation=mutation,mode=mode):
++                        self.failed(self.run_probe(phase,mutation,mode))
++    def test_real_SIGINT_SIGTERM_outer_publication_alarm_exit(self):
++        for sig in ('SIGINT','SIGTERM'):
++            for mode in ('closure','pass'):
++                with self.subTest(signal=sig,mode=mode):
++                    value=self.run_probe('alarm-exit',sig,mode)
++                    self.failed(value)
++                    self.assertEqual(value['terminal']['outcome'],'cancelled')
++                    event=next(e for e in value['events'] if e['event']=='real_signal')
++                    self.assertNotEqual(event['handler'],'0')
++    def test_final_authority_monitor_and_stream_closure_cancellations(self):
++        for phase in ('authority-before','authority-after','monitor-close-before','monitor-close-after',
++                      'stream-close-before','stream-close-after','full-verify-before','full-verify-after'):
++            for sig in ('SIGINT','SIGTERM'):
++                with self.subTest(phase=phase,signal=sig):self.failed(self.run_probe(phase,sig))
++    def test_final_checks_and_context_closures_revalidate_inputs_and_lease(self):
++        for phase in ('alarm-exit','monitor-close-after','stream-close-after','authority-after','full-verify-after'):
++            for mutation in ('input','cancel'):
++                with self.subTest(phase=phase,mutation=mutation):self.failed(self.run_probe(phase,mutation))
++    def test_delayed_hash_has_live_observations_and_stable_manifest(self):
++        value=self.run_probe('hash-before','none','closure',.7)
++        self.assertEqual(value['return_code'],2)
++        self.assertTrue(value['manifest_available'])
++        self.assertTrue(any(v['live_memory_monitor'] for v in value['artifact_hash_writer_checks']))
++        resources=value['terminal']['supervisor_resources_final']
++        self.assertLessEqual(resources['maximum_sample_gap_seconds'],.5)
++        self.assertLessEqual(resources['maximum_full_input_gap_seconds'],5)
++        self.assertTrue(value['terminal']['final_authority_check_after_monitor_and_stream_close'])
++    def test_slow_full_verification_does_not_block_resource_monitor(self):
++        value=self.run_probe('full-verify-before','none','pass',.7)
++        self.assertEqual(value['return_code'],0)
++        resources=value['terminal']['supervisor_resources_final']
++        self.assertLessEqual(resources['maximum_sample_gap_seconds'],.5)
++        self.assertGreaterEqual(resources['maximum_full_input_gap_seconds'],.7)
++        self.assertLessEqual(resources['maximum_full_input_gap_seconds'],5)
++    def test_full_hash_duration_and_completed_gap_are_bounded(self):
++        clock=t.Clock();verify=lambda:clock.advance(5.000001)
++        g=c.Guard(20,lambda:None,verify,io.StringIO(),clock=clock,rss=lambda:0,peak=lambda:0)
++        with self.assertRaisesRegex(c.Stop,'Full input verification gap'):g.sample(force=True)
++    def test_outer_latch_restoration_revalidates_lease_and_inputs(self):
++        for mutation in ('cancel','input'):
++            for mode in ('closure','pass'):
++                with self.subTest(mutation=mutation,mode=mode):self.failed(self.run_probe('latch-restore',mutation,mode))
++    def test_masked_signals_during_post_restoration_final_checks(self):
++        for phase in ('restoration-verify','restoration-final-sample'):
++            for sig in ('SIGINT','SIGTERM'):
++                with self.subTest(phase=phase,signal=sig):self.failed(self.run_probe(phase,sig))
++    def test_outer_latch_own_handler_restoration_revokes_completion(self):
++        for sig in ('SIGINT','SIGTERM'):
++            with self.subTest(signal=sig):self.failed(self.run_probe('latch-restore',sig))
++    def test_nested_context_keeps_same_handler_and_request_count(self):
++        for sig in (signal.SIGINT,signal.SIGTERM):
++            with c.cancellation_signals() as outer:
++                outer();handler=signal.getsignal(sig)
++                with c.cancellation_signals() as inner:
++                    self.assertIs(inner,outer);os.kill(os.getpid(),sig)
++                self.assertIs(signal.getsignal(sig),handler);os.kill(os.getpid(),sig)
++            self.assertEqual(outer.cancellation_requests,2)
++
++
++if __name__=='__main__':unittest.main(verbosity=2)
+--- learning/runs/v2/postovernight-long-D2-prepare-r1/README.md
++++ learning/runs/v2/postovernight-long-D2-prepare-r2/README.md
+@@ -1,67 +1,120 @@
+-# Standalone long-D2 preparation
++# Long-D2 supervisor repair r2
+ 
+-This directory implements only the newly registered `v2-m3-long-D2-20261024-r1`
+-experiment. Preparation does not create a lease or launch a campaign. The parent
+-must reconcile the final synthetic evidence and independently review the sealed
+-capsule before creating the exact lease in `state.active_long_campaign`.
++This is preparation for a fresh parent frozen review. No production campaign,
++lease, Torch/native import, teacher deserialization, inference, gameplay or
++training was performed. The exact registered experiment remains
++`v2-m3-long-D2-20261024-r1`, output `postovernight-long-D2-campaign-r1`, seed
++`5562873868232098305`, with a 7,200-second absolute budget and the exact successful
++D1 checkpoint SHA256 `ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f`.
++All failed D2 weights remain ineligible. No resume or retry exists.
+ 
+-`long_d2.py` provides `preflight`, `run`, and an internal supervisor-owned `worker`.
+-There is no resume, alternate parent, device, seed, budget, or evaluation override.
+-Only the original successful D1 terminal candidate may initialize the learner.
+-The old failed D2 entry certificate is read as JSON control data only.
++The parent revision changes only the controller path and registration timestamp.
++This helper binds `postovernight-long-D2-r1-protocol-r2.json`, raw SHA256
++`f662a4aba18e144098faeb01d398b67f489aea7549a9ebe4a5959f993e1cff09`.
++The config raw SHA256 remains
++`2ac814d3842228017d09669364a8391344722da56ad19f41ad9030dbb930c2db`.
++The previous protocol, r1 candidate, both independent reviews, all historical
++artifacts and their identities remain intact.
+ 
+-The unchanged historical `check_frozen` and `validate_transition` are called in
+-the worker with the old D2 config/identity and original project root. They prove
+-historical source/runtime/parent identity, not authorization for the new budget.
+-The new protocol, complete identity envelope and strict parent lease authorize
+-this experiment independently. No old validator or `Experiment` is bypassed.
++## SUP-001: publication authority
+ 
+-The controller executes inside the read-only capsule and explicitly prepends
+-`ORIGINAL_ROOT/python`. Every loaded `dodge_rl` module must originate in the
+-original byte-pinned package and match its capsule mirror. Runtime receipts record
+-actual module origins. The original native extension absolute path is preserved.
++The actual Guard remains active while normal artifact hashes and terminal writes
++run. Its supervisor observation stream is memory only. After owned worker reaping
++and positive group-absence proof, the supervisor writes and closes one
++`supervisor-guard.jsonl` snapshot. Later samples never write that file. Thus no
++manifest-bound log has a live writer during hashing. The terminal receipt labels
++the snapshot's scope and records publication resource observations separately.
+ 
+-`freeze.py` and the controller's `preflight` are stdlib-only. `freeze-receipt.json`
+-records the raw identity/config/protocol document hashes separately from the
+-canonical semantic identity hash embedded by unchanged `make_state`. The identity
+-contains all helper/test source hashes, complete long config, full historical
+-identity, exact D1 anchor and all original input pins. It excludes its own document
+-hash and the capsule manifest; the manifest includes the identity and excludes
+-itself. There is no circular hash dependency.
++Resource/lease sampling and full input verification use separate threads and
++locks. Full byte hashing cannot suppress the <=0.5-second resource/lease monitor.
++Full input checks retain the <=5-second bound, including their own duration.
++Both monitors latch failures. Publication checks authority before/after hashes
++and writes, with forced full verification immediately before terminal authority
++and after its write. After publication alarm restoration, monitor closure and
++memory-stream closure, synchronous full checks revalidate inputs and lease,
++including after the last terminal write. Sampling gaps and the absolute deadline
++still fail closed. Any authority loss revokes the complete terminal and manifest;
++only explicit failure persistence remains.
+ 
+-Use `invocation.json` for the exact argv and `required-lease.json` for the exact
+-15-field lease. Store task IDs/progress outside that lease. `preflight` may run
+-without a lease and creates no campaign output. `run` checks the lease before
+-creating its single-use registered output directory. The parent alone writes the
+-lease; preparation does not execute the run command.
++The complete pin set includes original 75 sources, original runtime/foundation,
++new helper/test source, both protocol versions, unchanged config, new identity,
++D1 terminal chain, readonly capsule and original-only r1/review references.
++Loaded `dodge_rl` modules retain explicit original package origins, hashes and
++capsule-mirror checks. Unchanged historical `check_frozen` receives the original
++D2 config/root. Unchanged `validate_transition` receives only the exact D1 anchor.
++Neither historical proof authorizes the new budget. No legacy validator,
++Experiment constructor or legacy Guard is bypassed.
+ 
+-The supervisor starts T0 before normal imports. Worker deadline is T0+7140,
+-absolute normal-publication deadline T0+7200. Failure-only owned cleanup is at
+-most 10 seconds. An independent alarm and supervisor bound blocked worker calls.
+-Resource and lease failures latch; RSS and MPS remain separate 6 GiB observations.
+-Signals remain blocked through creation/assignment of the owned PID. Publication
+-requires a reaped leader and positively empty group; every normal publication/hash
+-checks the absolute deadline. Cancellation latches survive cleanup and stream close.
++## SUP-002: one cancellation latch
+ 
+-Entry evaluation is phase update 0; further evaluations occur only at multiples
+-of 16, always after a checkpoint. Periodic checkpoints occur at update 8 within
+-each block. U/E reserve estimates only grow. If a full block no longer fits,
+-closure preserves the last complete state without an off-cadence evaluation.
+-Checkpoints preserve live training environments/observations and training RNG.
+-All artifacts remain training-parent ineligible and teacher-unqualified.
++One effective outer SIGINT/SIGTERM latch covers worker ownership, cleanup,
++publication, alarm restoration, monitor/stream closure and final decisions.
++Nested publication contexts borrow that latch and never restore its handlers.
++Every delivered request increments the same counter. Handler restoration is
++signal-masked; pending requests join the same latch before unmasking. The
++supervisor revalidates full authority after handler restoration while signals
++remain masked, then reads the latch again after its outer context exits and revokes
++completion when a request arrived during restoration.
+ 
+-Exit 0 means complete with D2 progress gate passed. Exit 2 means complete with
+-budget closed below gate. Exit 1 means failed. A gate pass only identifies a
+-candidate for a separate future parent audit; it opens no D3/B/E/student work.
+-The terminal receipt is authoritative and binds the stable manifest/run result.
+-Its wall observation excludes its own write and process exit; the parent must
+-observe actual exit/wall. Unproven writer absence or late publication revokes the
+-manifest and writes an explicit failure receipt.
++Normal work must finish before T0+7,200; T0 precedes ordinary imports and worker
++spawn. The worker remains bounded by T0+7,140. Failure-only owned cleanup remains
++<=10 seconds. RSS and MPS each retain a separate 6 GiB limit. A blocked worker
++remains bounded by the independent supervisor alarm. Exit 0 means complete D2
++progress gate pass; exit 2 means complete budget closure below gate; exit 1 means
++failure. No result opens D3/B/E/student work or teacher qualification.
+ 
+-Tests are synthetic: fake clocks, fake learner/state objects, AST-loaded unchanged
+-legacy rejection paths, real OS-owned stdlib fake workers, and deliberate retained
+-broken helper copies. No actual teacher, native environment, MPS, gameplay, model
+-inference, checkpoint deserialization, or gradient updates occur in preparation.
+-Counts and scope belong to `test-receipt.json`; historical test totals are not reused.
+-Development failures and negative-control attempts remain retained. Early source
+-reconstructions are labeled separately from contemporaneous snapshots.
++`Learner`, all schedule logic, model/Adam/RNG restoration, entry control,
++environment construction, counters, ML call sites, rewards and gates remain
++byte-identical. The worker receipt adds only a scope label: inherited
++`run_context.consumed_wall_seconds` belongs to historical D1 and never defines the
++new budget. Exact source comparisons and the full r1-to-r2 diff are delivered.
++Actual MPS restoration and entry equality remain future mandatory runtime gates.
++
++## Evidence and freeze
++
++The original 70 synthetic methods remain, with 13 publication methods. New
++probes execute actual `supervise`, actual Guard and owned stdlib OS workers.
++They cover both completion outcomes, delayed hashes, late input/lease changes,
++before/after manifest and terminal writes, final checks, monitor/stream closure,
++real subprocess SIGINT and SIGTERM at outer publication-alarm exit, and the outer
++latch's own handler restoration. Probes track open output writers at every hash,
++verify final manifest bytes, record monitor gap bounds, and positively prove owned
++group absence. Subtests are not counted as separate test methods.
++
++Fourteen inherited deliberate controls and three exact-r1 regression groups must
++fail by AssertionError, never import/API errors. The r1 comparison imports its
++exact original helper without path rewriting or API adaptation. All attempts,
++expected failures, sources, logs and synthetic output receipts remain retained.
++`test-receipt.json` records fresh final counts and source hashes.
++
++`freeze.py` is stdlib only. Identity pins every active root helper/test Python
++source. Retained attempt/mutant sources belong to the preparation artifact
++inventory, not the active execution source list. Historical r1 and review files
++are original-only immutable references; the old capsule/logs are never copied
++into the new execution capsule. Original 75 package/core mirrors and the new
++helper sources are freshly copied, verified and sealed readonly.
++
++Raw identity document hash differs from canonical checkpoint semantic identity
++hash. Identity excludes its own document hash and the capsule manifest; the
++manifest includes identity and excludes itself. `invocation.json` gives exact
++argv/cwd/environment. `required-lease.json` gives the strict 15-field lease;
++only the parent may activate it after fresh frozen review. Task IDs belong
++outside that lease. Pure preflight creates no production output.
++
++`finalize_preparation.py` runs only after redirected logs close. It verifies
++protected before/after hashes, frozen preflight, source equality, tests and control
++receipts, then writes the final inventory. That inventory excludes only itself.
++Parent must separately observe raw exit and actual wall time; receipt timing
++excludes its own write and process exit. This preparation proves no actual
++Torch/native/MPS runtime behavior, learning performance or qualification.
++
++The first r2 sealed preparation is retained in `capsule` with its receipts and
++source in `attempts/pre-outer-closure-repair`. Final execution capsule is
++`capsule-final`; final receipts bind only that capsule. The first seal exposed
++an additional SUP-001 outer-restoration input/lease gap during final audit.
++Four new actual-Guard OS cases discriminate that gap; no campaign was launched.
++
++A synthetic blocked-worker check exposed a pending SIGALRM restoration race.
++The failed exit 142, log and exact source remain retained. Final alarm teardown
++masks, disarms and consumes pending SIGALRM before restoring the prior handler.
++Failure paths start no new normal verification or alarm after the deadline.

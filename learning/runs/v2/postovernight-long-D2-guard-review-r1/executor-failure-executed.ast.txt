@@ -1,0 +1,479 @@
+Module(
+  body=[
+    Try(
+      body=[
+        If(
+          test=Compare(
+            left=Attribute(
+              value=Name(id='self', ctx=Load()),
+              attr='child',
+              ctx=Load()),
+            ops=[
+              IsNot()],
+            comparators=[
+              Constant(value=None)]),
+          body=[
+            Expr(
+              value=Call(
+                func=Attribute(
+                  value=Name(id='self', ctx=Load()),
+                  attr='recover_registration_race',
+                  ctx=Load()),
+                args=[],
+                keywords=[]))],
+          orelse=[
+            Assign(
+              targets=[
+                Attribute(
+                  value=Name(id='self', ctx=Load()),
+                  attr='recovery_proven',
+                  ctx=Store())],
+              value=Constant(value=True)),
+            Assign(
+              targets=[
+                Attribute(
+                  value=Name(id='self', ctx=Load()),
+                  attr='cleanup_complete',
+                  ctx=Store())],
+              value=Constant(value=True))]),
+        While(
+          test=UnaryOp(
+            op=Not(),
+            operand=Attribute(
+              value=Name(id='self', ctx=Load()),
+              attr='cleanup_complete',
+              ctx=Load())),
+          body=[
+            Expr(
+              value=Call(
+                func=Attribute(
+                  value=Name(id='life', ctx=Load()),
+                  attr='remaining',
+                  ctx=Load()),
+                args=[
+                  Attribute(
+                    value=Attribute(
+                      value=Name(id='self', ctx=Load()),
+                      attr='pool',
+                      ctx=Load()),
+                    attr='until',
+                    ctx=Load())],
+                keywords=[])),
+            Try(
+              body=[
+                With(
+                  items=[
+                    withitem(
+                      context_expr=Attribute(
+                        value=Name(id='self', ctx=Load()),
+                        attr='ipc_lock',
+                        ctx=Load()))],
+                  body=[
+                    Expr(
+                      value=Call(
+                        func=Attribute(
+                          value=Name(id='self', ctx=Load()),
+                          attr='pump',
+                          ctx=Load()),
+                        args=[],
+                        keywords=[]))])],
+              handlers=[
+                ExceptHandler(
+                  type=Name(id='BaseException', ctx=Load()),
+                  body=[
+                    Pass()])],
+              orelse=[],
+              finalbody=[]),
+            Expr(
+              value=Call(
+                func=Attribute(
+                  value=Name(id='time', ctx=Load()),
+                  attr='sleep',
+                  ctx=Load()),
+                args=[
+                  Call(
+                    func=Attribute(
+                      value=Name(id='life', ctx=Load()),
+                      attr='remaining',
+                      ctx=Load()),
+                    args=[
+                      Attribute(
+                        value=Attribute(
+                          value=Name(id='self', ctx=Load()),
+                          attr='pool',
+                          ctx=Load()),
+                        attr='until',
+                        ctx=Load()),
+                      Constant(value=0.02)],
+                    keywords=[])],
+                keywords=[]))],
+          orelse=[]),
+        If(
+          test=Compare(
+            left=Attribute(
+              value=Name(id='self', ctx=Load()),
+              attr='guard',
+              ctx=Load()),
+            ops=[
+              IsNot()],
+            comparators=[
+              Constant(value=None)]),
+          body=[
+            Expr(
+              value=Call(
+                func=Attribute(
+                  value=Attribute(
+                    value=Attribute(
+                      value=Name(id='self', ctx=Load()),
+                      attr='guard',
+                      ctx=Load()),
+                    attr='event',
+                    ctx=Load()),
+                  attr='set',
+                  ctx=Load()),
+                args=[],
+                keywords=[])),
+            For(
+              target=Name(id='thread', ctx=Store()),
+              iter=Tuple(
+                elts=[
+                  Attribute(
+                    value=Attribute(
+                      value=Name(id='self', ctx=Load()),
+                      attr='guard',
+                      ctx=Load()),
+                    attr='thread',
+                    ctx=Load()),
+                  Attribute(
+                    value=Attribute(
+                      value=Name(id='self', ctx=Load()),
+                      attr='guard',
+                      ctx=Load()),
+                    attr='verify_thread',
+                    ctx=Load())],
+                ctx=Load()),
+              body=[
+                If(
+                  test=Compare(
+                    left=Name(id='thread', ctx=Load()),
+                    ops=[
+                      IsNot()],
+                    comparators=[
+                      Constant(value=None)]),
+                  body=[
+                    Expr(
+                      value=Call(
+                        func=Attribute(
+                          value=Name(id='thread', ctx=Load()),
+                          attr='join',
+                          ctx=Load()),
+                        args=[],
+                        keywords=[
+                          keyword(
+                            arg='timeout',
+                            value=Call(
+                              func=Attribute(
+                                value=Name(id='life', ctx=Load()),
+                                attr='remaining',
+                                ctx=Load()),
+                              args=[
+                                Attribute(
+                                  value=Attribute(
+                                    value=Name(id='self', ctx=Load()),
+                                    attr='pool',
+                                    ctx=Load()),
+                                  attr='until',
+                                  ctx=Load()),
+                                Constant(value=0.5)],
+                              keywords=[]))]))],
+                  orelse=[])],
+              orelse=[])],
+          orelse=[]),
+        Assign(
+          targets=[
+            Name(id='result', ctx=Store())],
+          value=Call(
+            func=Name(id='dict', ctx=Load()),
+            args=[],
+            keywords=[
+              keyword(
+                arg='schema',
+                value=Constant(value='long_d2_outer_acceptance_v1')),
+              keyword(
+                arg='accepted',
+                value=Constant(value=False)),
+              keyword(
+                arg='experiment_status',
+                value=Constant(value='failed')),
+              keyword(
+                arg='expected_exit_code',
+                value=Constant(value=1)),
+              keyword(
+                arg='error',
+                value=Call(
+                  func=Name(id='repr', ctx=Load()),
+                  args=[
+                    Name(id='error', ctx=Load())],
+                  keywords=[])),
+              keyword(
+                arg='traceback',
+                value=Call(
+                  func=Attribute(
+                    value=Name(id='traceback', ctx=Load()),
+                    attr='format_exc',
+                    ctx=Load()),
+                  args=[],
+                  keywords=[])),
+              keyword(
+                arg='first_failure_monotonic',
+                value=Attribute(
+                  value=Attribute(
+                    value=Name(id='self', ctx=Load()),
+                    attr='pool',
+                    ctx=Load()),
+                  attr='first',
+                  ctx=Load())),
+              keyword(
+                arg='cleanup_until_monotonic',
+                value=Attribute(
+                  value=Attribute(
+                    value=Name(id='self', ctx=Load()),
+                    attr='pool',
+                    ctx=Load()),
+                  attr='until',
+                  ctx=Load())),
+              keyword(
+                arg='cleanup_complete',
+                value=Attribute(
+                  value=Name(id='self', ctx=Load()),
+                  attr='cleanup_complete',
+                  ctx=Load())),
+              keyword(
+                arg='ownership',
+                value=Attribute(
+                  value=Name(id='self', ctx=Load()),
+                  attr='groups',
+                  ctx=Load())),
+              keyword(
+                arg='inner_wait',
+                value=IfExp(
+                  test=Compare(
+                    left=Attribute(
+                      value=Name(id='self', ctx=Load()),
+                      attr='child',
+                      ctx=Load()),
+                    ops=[
+                      Is()],
+                    comparators=[
+                      Constant(value=None)]),
+                  body=Constant(value=None),
+                  orelse=Attribute(
+                    value=Attribute(
+                      value=Name(id='self', ctx=Load()),
+                      attr='child',
+                      ctx=Load()),
+                    attr='report',
+                    ctx=Load()))),
+              keyword(
+                arg='worker_wait',
+                value=Attribute(
+                  value=Name(id='self', ctx=Load()),
+                  attr='worker_wait',
+                  ctx=Load())),
+              keyword(
+                arg='forwarded_cancellation',
+                value=Attribute(
+                  value=Name(id='self', ctx=Load()),
+                  attr='forwarded',
+                  ctx=Load())),
+              keyword(
+                arg='events',
+                value=Attribute(
+                  value=Name(id='self', ctx=Load()),
+                  attr='events',
+                  ctx=Load())),
+              keyword(
+                arg='teacher_qualified',
+                value=Constant(value=False)),
+              keyword(
+                arg='training_parent_eligible',
+                value=Constant(value=False)),
+              keyword(
+                arg='limitations',
+                value=Name(id='LIMITATIONS', ctx=Load()))])),
+        Expr(
+          value=Call(
+            func=Attribute(
+              value=Name(id='life', ctx=Load()),
+              attr='remaining',
+              ctx=Load()),
+            args=[
+              Attribute(
+                value=Attribute(
+                  value=Name(id='self', ctx=Load()),
+                  attr='pool',
+                  ctx=Load()),
+                attr='until',
+                ctx=Load())],
+            keywords=[])),
+        Expr(
+          value=Call(
+            func=Attribute(
+              value=Attribute(
+                value=Name(id='receipt_path', ctx=Load()),
+                attr='parent',
+                ctx=Load()),
+              attr='mkdir',
+              ctx=Load()),
+            args=[],
+            keywords=[
+              keyword(
+                arg='parents',
+                value=Constant(value=False)),
+              keyword(
+                arg='exist_ok',
+                value=Constant(value=True))])),
+        If(
+          test=Compare(
+            left=Attribute(
+              value=Name(id='self', ctx=Load()),
+              attr='guard',
+              ctx=Load()),
+            ops=[
+              IsNot()],
+            comparators=[
+              Constant(value=None)]),
+          body=[
+            Expr(
+              value=Call(
+                func=Attribute(
+                  value=Attribute(
+                    value=Name(id='self', ctx=Load()),
+                    attr='guard',
+                    ctx=Load()),
+                  attr='persist_timing',
+                  ctx=Load()),
+                args=[
+                  BinOp(
+                    left=Attribute(
+                      value=Name(id='receipt_path', ctx=Load()),
+                      attr='parent',
+                      ctx=Load()),
+                    op=Div(),
+                    right=Constant(value='outer-verification.jsonl')),
+                  Attribute(
+                    value=Attribute(
+                      value=Name(id='self', ctx=Load()),
+                      attr='pool',
+                      ctx=Load()),
+                    attr='until',
+                    ctx=Load())],
+                keywords=[]))],
+          orelse=[]),
+        Expr(
+          value=Call(
+            func=Attribute(
+              value=Name(id='c', ctx=Load()),
+              attr='replace_json',
+              ctx=Load()),
+            args=[
+              Name(id='receipt_path', ctx=Load()),
+              Name(id='result', ctx=Load())],
+            keywords=[])),
+        Expr(
+          value=Call(
+            func=Attribute(
+              value=Name(id='life', ctx=Load()),
+              attr='remaining',
+              ctx=Load()),
+            args=[
+              Attribute(
+                value=Attribute(
+                  value=Name(id='self', ctx=Load()),
+                  attr='pool',
+                  ctx=Load()),
+                attr='until',
+                ctx=Load())],
+            keywords=[])),
+        Expr(
+          value=Call(
+            func=Attribute(
+              value=Attribute(
+                value=Name(id='self', ctx=Load()),
+                attr='stop',
+                ctx=Load()),
+              attr='set',
+              ctx=Load()),
+            args=[],
+            keywords=[])),
+        Expr(
+          value=Call(
+            func=Attribute(
+              value=Attribute(
+                value=Name(id='self', ctx=Load()),
+                attr='watchdog',
+                ctx=Load()),
+              attr='join',
+              ctx=Load()),
+            args=[],
+            keywords=[
+              keyword(
+                arg='timeout',
+                value=Call(
+                  func=Attribute(
+                    value=Name(id='life', ctx=Load()),
+                    attr='remaining',
+                    ctx=Load()),
+                  args=[
+                    Attribute(
+                      value=Attribute(
+                        value=Name(id='self', ctx=Load()),
+                        attr='pool',
+                        ctx=Load()),
+                      attr='until',
+                      ctx=Load()),
+                    Constant(value=0.5)],
+                  keywords=[]))])),
+        For(
+          target=Name(id='channel', ctx=Store()),
+          iter=Tuple(
+            elts=[
+              Attribute(
+                value=Name(id='self', ctx=Load()),
+                attr='super_channel',
+                ctx=Load()),
+              Attribute(
+                value=Name(id='self', ctx=Load()),
+                attr='worker_channel',
+                ctx=Load())],
+            ctx=Load()),
+          body=[
+            If(
+              test=Compare(
+                left=Name(id='channel', ctx=Load()),
+                ops=[
+                  IsNot()],
+                comparators=[
+                  Constant(value=None)]),
+              body=[
+                Expr(
+                  value=Call(
+                    func=Attribute(
+                      value=Attribute(
+                        value=Name(id='channel', ctx=Load()),
+                        attr='sock',
+                        ctx=Load()),
+                      attr='close',
+                      ctx=Load()),
+                    args=[],
+                    keywords=[]))],
+              orelse=[])],
+          orelse=[])],
+      handlers=[
+        ExceptHandler(
+          type=Name(id='BaseException', ctx=Load()),
+          body=[
+            Pass()])],
+      orelse=[],
+      finalbody=[])],
+  type_ignores=[])

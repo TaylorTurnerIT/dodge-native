@@ -1,0 +1,52 @@
+{
+ "budgets": {
+  "main_deadline_s": 40,
+  "wrapper_kill_at_s": 45,
+  "wrapper_total_s": 60
+ },
+ "cases": [
+  "case1_legacy_close_delayed_registration",
+  "case2_early_close_after_popen"
+ ],
+ "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPYCACHEPREFIX=<OUT>/fresh-pycache <interpreter> -B <OUT>/probe_wrapper.py   (one invocation)",
+ "frozen_event_order": [
+  "E1 executor creates socketpairs (supervisor channel, gate), Popen supervisor(start_new_session,pass_fds=child_socket)",
+  "E2 executor sends start+SCM_RIGHTS(gate_child); closes child_socket and gate_child copies",
+  "E3 supervisor receives gate, Popen worker(start_new_session,pass_fds=gate)",
+  "E3b CASE2 ONLY: supervisor closes its gate copy immediately after Popen returns, before register send; records F_GETFD/fstat (EBADF expected) BEFORE exchange",
+  "E4 supervisor sends register_worker; worker sleeps 0.12s then sends worker_ready on gate",
+  "E5 executor receives register_worker and positive worker_ready (observation time t_ready); executor holds registered ACK until t_ready+0.4s",
+  "E6 executor sends registered (supervisor channel) THEN start_ack (gate, .2s send timeout) -- production order",
+  "E7 executor sends ack_attempt_done to supervisor (probe-only notice)",
+  "E8 CASE1 ONLY: supervisor, after registered, waits for ack_attempt_done (<=3s) -- ARTIFICIAL probe-only barrier, not a measured production delay -- then records F_GETFD open, closes gate, records EBADF; gate closes in finally even if ACK failed",
+  "E9 worker records start_ack recv (2.0s timeout); supervisor reaps worker (raw wait status), sends done; executor reaps supervisor (raw status), probes group absence"
+ ],
+ "frozen_inputs": {
+  "parent_ipc_assessment_sha256": "a9c5e0fcd83143c85402c1b08d0944247ac8b3dab82c4a63622c09c4e488287b",
+  "pins": "learning/runs/v2/postovernight-long-D2-boundary-prepare-r9/parent-frozen-pins.json (verify8 by parent)",
+  "protocol_r6_sha256": "96c170a5adb37829c2a8530d13b85d1d9c5f983a2b3582263893aa470b1ba3a4"
+ },
+ "interpreter": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+ "limits": "Synthetic paired controlled-schedule evidence; one run each; not a rate; not proof old r9 had this schedule; no kernel mechanism claim. Case1 gate retention is via an artificial probe-only barrier.",
+ "no_retry": true,
+ "prelaunch_note": "First wrapper launch aborted at plan.json load (file missing); probe script never executed; evidence in prelaunch-aborted/. Script edit before real run: rec() pid setdefault (owned-pid bookkeeping only).",
+ "question": "Under production order (registered ACK before start_ack; socketpair/SCM_RIGHTS/pass_fds/new_sessions/.2s ACK send timeout) does delayed supervisor endpoint close explain paired symptoms, and does immediate close after Popen remove them?",
+ "recorded": [
+  "length",
+  "flags",
+  "ancillary records",
+  "errno",
+  "message sequence",
+  "kind",
+  "per-role FD identity (dev/ino/mode/cloexec)",
+  "monotonic timestamps (same clock across processes)"
+ ],
+ "schema": "ipc_close_order_probe_plan_v1",
+ "script_sha256": "1a0ba4e989477fa4cc5c8dc110473e07c4e003004fdd7c5df50aaba52cb3d599",
+ "verdict_rules": {
+  "failed": "unexpected exception, wrapper/process/budget failure, or owned process not proven absent",
+  "inconclusive": "no unexpected error but rule above not met (incl. partial reproduction, case2 symptoms, precondition failure with partial receipts)",
+  "paired_support": "case1 worker ack recv ok with raw_length==0 and flags==0 AND executor start_ack send TimeoutError AND case2 start_ack delivered (executor send ok and worker received kind start_ack)"
+ },
+ "wrapper_sha256": "baf0cfcb46a93ec1ee32a88261dab8c3eea22778ce2e5c5a62f8e3b770be6689"
+}

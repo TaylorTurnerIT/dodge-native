@@ -1,0 +1,71 @@
+{
+  "claims": {
+    "campaign_eligible": false,
+    "hardware_calibration": false,
+    "qualification": false,
+    "training_result": false
+  },
+  "findings": {
+    "B1": {
+      "change": "Plan pins lexical python/.venv/bin/python and resolved binary SHA-256. Launcher checks interpreter and all pre-spawn gates before fixed marker.",
+      "status": "repaired_cpu_cli_tested",
+      "test": "test_main_cli_missing_interpreter_fails_before_fixed_marker"
+    },
+    "B2": {
+      "change": "Pinned state path; state hash recorded as provenance only. Require null active_long_campaign and exact active_inference_diagnostic run/client/plan/authorization/cancel fields before spawn, before MPS, and at every guard.",
+      "live_state_read_for_launch": false,
+      "status": "repaired_fake_fixture_tested_live_gate_not_run",
+      "test": "test_live_authority_requires_exact_parent_lease_and_fails_closed"
+    },
+    "B3": {
+      "change": "Fixed marker at R3 calibration directory, independent of output path.",
+      "status": "repaired_cli_tested",
+      "tests": [
+        "test_fixed_marker_blocks_second_claim_across_output_locations",
+        "test_main_cli_harmless_child_and_second_output_share_one_fixed_marker"
+      ]
+    },
+    "B4": {
+      "change": "Require nonempty gaps and ages, >=20 samples, age/gap <=1s, exact guard count 64+72*passes, >=240 forwards, and >=30s active work.",
+      "status": "repaired_cpu_negative_controls_passed",
+      "test": "test_probe_measurement_gates_reject_empty_and_incomplete_data"
+    },
+    "B5": {
+      "change": "R6 evaluate over 64 synthetic envs, repeated 8-decision passes, >=30s and >=240 forwards, <=90s work. No game episodes.",
+      "cpu_test": "test_r6_evaluator_runs_64_synthetic_episodes_on_cpu",
+      "status": "repaired_plan_frozen_hardware_unmeasured"
+    },
+    "N1": {
+      "change": "After startup wait, pins and reservation rechecked; live authority immediately before MPS model load; guard repeats live check.",
+      "status": "repaired"
+    },
+    "N2": {
+      "change": "Check child poll before ps; vanished child PID ends RSS sampling.",
+      "status": "repaired_cpu_cli_race_handling"
+    },
+    "N3": {
+      "change": "TERM becomes partial probe evidence; timeout envelope retains logs, owned PID/PGID/start identity, cleanup result, and group-absence proof.",
+      "status": "repaired_static_runtime_path_not_exercised"
+    },
+    "N4": {
+      "change": "8 CPU controls cover real launcher main with harmless child, pre-spawn failure, fake live state, measurement negatives, and actual R6 evaluator with synthetic CPU model.",
+      "status": "cpu_coverage_added"
+    }
+  },
+  "preserved": {
+    "current_training_priority": true,
+    "new_reservation_written": false,
+    "probe_launched": false,
+    "r1_failed_probe": true,
+    "r2_frozen": true,
+    "r6_frozen": true
+  },
+  "remaining_gates": [
+    "Parent replays same focused 18 R6 tests.",
+    "Fresh independent review of frozen R3 plan/source/pins.",
+    "Parent waits until active training permits calibration, then writes exact one-shot reservation and verifies unmocked live state.",
+    "Only parent may authorize the future one-shot MPS probe."
+  ],
+  "schema": "current_pair_resource_calibration_r3_reconciliation_v1",
+  "scope": "R2 source review and CPU-only R3 repair; no hardware probe or authorization"
+}

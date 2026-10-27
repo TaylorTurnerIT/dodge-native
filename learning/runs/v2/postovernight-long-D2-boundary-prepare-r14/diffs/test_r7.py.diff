@@ -1,0 +1,21 @@
+--- r12-source/test_r7.py
++++ r14/test_r7.py
+@@ -373,13 +373,14 @@
+         old=blocks(H/'r6-source/long_d2_executor.py');new=blocks(H/'long_d2_executor.py')
+         for key in ('validate_wait_reports','accept_observed','validate_artifacts','checked_registration','worker_command'):
+             self.assertEqual(old[key],new[key],key)
++        from current_delta import blocks_equal_except_scheduling_delta,SCHEDULING_HELPERS
+         before=blocks(H/'r6-source/long_d2.py');after=blocks(H/'long_d2.py')
+-        for key in before:
+-            if key!='supervise_owned':self.assertEqual(before[key],after[key],key)
++        self.assertEqual(blocks_equal_except_scheduling_delta(before,after,('supervise_owned',),False),sorted(SCHEDULING_HELPERS))
+         self.assertEqual(body(H/'r6-source/long_d2.py'),body(H/'long_d2.py'))
+         for name in ('lifecycle.py','boundary_integrity.py'):self.assertEqual((H/name).read_bytes(),(H/'r6-source'/name).read_bytes())
+-        proposed=c.read_json(H/'protocol-r8-proposal.json')
+-        self.assertEqual(c.sha(H/'protocol-r8-proposal.json'),c.PROTOCOL_SHA256)
++        proposed=c.read_json(H/'protocol-r10-proposal.json')
++        self.assertEqual(c.sha(H/'protocol-r10-proposal.json'),c.PROTOCOL_SHA256)
++        self.assertEqual(c.sha(H/'protocol-r8-proposal.json'),'fe11c08159bdb9ca1f03cb0fb96ffd133ad144d107b2a854d19fc49159aa2db2')
+         self.assertEqual(proposed['config_sha256'],c.CONFIG_SHA256)
+         self.assertEqual(proposed['config']['phase_settings']['run_seed'],5562873868232098305)
+         self.assertEqual(proposed['parent_checkpoint_sha256'],'ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f')

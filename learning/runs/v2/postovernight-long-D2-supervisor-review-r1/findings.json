@@ -1,0 +1,153 @@
+{
+  "accepted": false,
+  "actual_training_gameplay_inference_native_Torch_import_or_parent_deserialization": false,
+  "blocking_findings": 2,
+  "candidate": {
+    "capsule_manifest_sha256": "6284b4389b1fdd1eadbd3f7d1c9104831a49af9482b78e21d84e1b19cb89227e",
+    "config_sha256": "2ac814d3842228017d09669364a8391344722da56ad19f41ad9030dbb930c2db",
+    "controller_sha256": "62ece46ba9a59d3c116013580ce29875aa76eaceed59eb56480a804649c8ffca",
+    "identity_document_sha256": "f163c3e0d76ed9d839d8f9838840f6427c0e8ad379b24da6efc585f7f6e51ab4",
+    "protocol_sha256": "119e3daba7c8112f4a7a30d467f57ed9d4cd6fb3b14da4252a60e45722e8039b"
+  },
+  "child_agents_created": false,
+  "evidence_receipt": "execution-receipt.json",
+  "findings": [
+    {
+      "assertion_log": "independent-contract-assertions.log",
+      "blocking": true,
+      "contract_assertions": "test_recorded_contract.py:45-58",
+      "description": "Guard.close precedes the final lease/input check. publish_terminal checks only time while hashing and publishing. Late parent cancellation or a pinned input change is never checked again, so complete outcomes survive authority loss.",
+      "expected": "Keep authority and frozen inputs verified through normal publication; cancellation or identity loss must produce failure exit 1 and invalidate complete terminal status.",
+      "id": "SUP-001",
+      "line_refs": [
+        {
+          "end": 1080,
+          "path": "learning/runs/v2/postovernight-long-D2-prepare-r1/long_d2.py",
+          "start": 1073
+        },
+        {
+          "end": 982,
+          "path": "learning/runs/v2/postovernight-long-D2-prepare-r1/long_d2.py",
+          "start": 937
+        },
+        {
+          "end": 1108,
+          "path": "learning/runs/v2/postovernight-long-D2-prepare-r1/long_d2.py",
+          "start": 1094
+        }
+      ],
+      "observed": [
+        {
+          "OS_worker": true,
+          "actual_guard": true,
+          "controller_return_code": 2,
+          "evidence": "late-lease-cancel-real-guard/observation.json",
+          "hash_delay_seconds": 0.65,
+          "lease_cancel_requested": true,
+          "manifest_available": true,
+          "outcome": "budget_closed_below_gate",
+          "scenario": "late-lease-cancel-real-guard",
+          "terminal_status": "complete"
+        },
+        {
+          "OS_worker": true,
+          "actual_guard": false,
+          "controller_return_code": 0,
+          "evidence": "late-lease-cancel-pass/observation.json",
+          "lease_cancel_requested": true,
+          "manifest_available": true,
+          "outcome": "D2_progress_gate_passed",
+          "scenario": "late-lease-cancel-pass",
+          "terminal_status": "complete"
+        },
+        {
+          "OS_worker": true,
+          "actual_guard": true,
+          "controller_return_code": 2,
+          "evidence": "late-input-change-real-guard/observation.json",
+          "manifest_available": true,
+          "pinned_input_still_matches": false,
+          "scenario": "late-input-change-real-guard",
+          "terminal_status": "complete"
+        }
+      ],
+      "recommended_direction": "Maintain lease checks and bounded input verification through hashing/publication without reopening manifest-bound streams; revalidate before success becomes authoritative. Preserve deadline and positive writer-absence checks.",
+      "reproduction": "From repository root, set PYTHONDONTWRITEBYTECODE=1 and TMPDIR to this review directory/tmp. Run learning/.venv/bin/python -B learning/runs/v2/postovernight-long-D2-supervisor-review-r1/probes.py late-lease-cancel-fresh-real-guard. The suffix must name an unused owned scenario directory; the script refuses overwrite.",
+      "reproduction_source": "probes.py",
+      "severity": "P1",
+      "title": "Lease and frozen-input verification stop before normal terminal publication"
+    },
+    {
+      "blocking": true,
+      "contract_assertions": "test_recorded_contract.py:60-67",
+      "description": "The supervisor cancellation context has ended, and publish_terminal restores prior handlers before the enclosing alarm context exits. SIGTERM is SIG_DFL at that boundary, so default termination bypasses BaseException revocation.",
+      "evidence": [
+        "outer-alarm-SIGTERM/events.json",
+        "outer-alarm-SIGTERM/campaign/finalization-result.json",
+        "probe-summary.json",
+        "independent-contract-assertions.log"
+      ],
+      "expected": "Latch SIGTERM through outer-context restoration and ensure no cancelled completion receipt survives.",
+      "id": "SUP-002",
+      "impact_boundary": "A compliant parent checking raw process exit rejects -15. This does not demonstrate parent acceptance of a cancelled run; it demonstrates missing required signal latching and stale authoritative complete artifacts.",
+      "line_refs": [
+        {
+          "end": 420,
+          "path": "learning/runs/v2/postovernight-long-D2-prepare-r1/long_d2.py",
+          "start": 418
+        },
+        {
+          "end": 992,
+          "path": "learning/runs/v2/postovernight-long-D2-prepare-r1/long_d2.py",
+          "start": 960
+        },
+        {
+          "end": 1108,
+          "path": "learning/runs/v2/postovernight-long-D2-prepare-r1/long_d2.py",
+          "start": 1088
+        }
+      ],
+      "observed": {
+        "handler": 0,
+        "handler_meaning": "SIG_DFL",
+        "manifest_available": true,
+        "outcome": "budget_closed_below_gate",
+        "owned_group_positively_absent": true,
+        "scenario": "outer-alarm-SIGTERM",
+        "signal": 15,
+        "supervisor_process_return_code": -15,
+        "terminal_status": "complete"
+      },
+      "recommended_direction": "Keep one outer cancellation envelope across normal publication, alarm-context exit, and final status decisions; revoke completion when the latch is set.",
+      "reproduction": "Use the same isolated environment as SUP-001 and run probes.py outer-alarm-fresh-SIGTERM with an unused scenario directory. This intentionally SIGTERMs only its own synthetic supervisor process after the owned worker is reaped.",
+      "reproduction_source": "probes.py",
+      "severity": "P2",
+      "title": "Outer publication-context SIGTERM is not latched and leaves complete authoritative artifacts"
+    }
+  ],
+  "input_SHA_manifest": {
+    "files": 1259,
+    "mismatches": [],
+    "path": "input-sha256-manifest.json",
+    "post_review_verification": "input-sha256-verification-after.json",
+    "sha256": "948a1d059a20294e8dd91171870cf75503b9f2cda1efe6466442e924cda72425"
+  },
+  "limitations": [
+    "No actual Torch/native/MPS integration, entry restore/determinism, model inference, PPO, throughput or qualification proof.",
+    "Synthetic probes inject authority/clock/IO boundary events; they are not a real experiment.",
+    "A compliant parent must inspect raw exit and actual wall time in addition to terminal artifact bindings."
+  ],
+  "nonblocking_findings": 0,
+  "original_three_repaired_defects": {
+    "deferred_cleanup_or_final_verification_cancel": "tested; latched failures, with separate outer-context gap SUP-002",
+    "late_final_verification_hash_or_publication_false_success": "tested; no regression at probed boundaries",
+    "reaped_leader_unproven_group_stable_manifest": "tested; manifest blocked"
+  },
+  "production_edits_or_lease_creation": false,
+  "provider_retries": false,
+  "review": "review.md",
+  "reviewed_at_utc": "2026-10-24T16:56:46.047172+00:00",
+  "scope": "Independent frozen READONLY supervisor/guards/finalization/identity/evidence review. Actual learner API integration is owned by a separate reviewer.",
+  "verdict": "changes_required",
+  "version": "frozen_long_D2_supervisor_review_v1"
+}

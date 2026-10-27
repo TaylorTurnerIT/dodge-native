@@ -1,0 +1,35 @@
+{
+  "status": "defect_reproduced",
+  "runner_call_line": 774,
+  "finding": "Missing progress=progress loses partial-update accounting on PPO failure; successful runs unaffected.",
+  "controls": [
+    {
+      "progress_bound": false,
+      "actual_optimizer_steps": 1,
+      "reported_progress": {
+        "complete": true,
+        "in_update": false,
+        "completed_updates": 0
+      }
+    },
+    {
+      "progress_bound": true,
+      "actual_optimizer_steps": 1,
+      "reported_progress": {
+        "complete": false,
+        "in_update": true,
+        "completed_updates": 0,
+        "state": "in_update",
+        "phase": "optimization",
+        "epoch": 0,
+        "minibatch": 0,
+        "optimizer_steps": 1,
+        "epochs_completed": 0
+      }
+    }
+  ],
+  "real_game_episodes": 0,
+  "mps_operations": 0,
+  "synthetic_optimizer_steps": 2,
+  "actual_campaigns": 0
+}

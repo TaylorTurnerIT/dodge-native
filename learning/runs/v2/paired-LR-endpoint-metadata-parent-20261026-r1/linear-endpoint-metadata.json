@@ -1,0 +1,172 @@
+{
+  "CPU_only": true,
+  "algorithm_source_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/paired-LR-upperD64-evaluator-luna-20261026-r2/paired_eval.py",
+  "algorithm_source_sha256": "3263459ceb66eec189957931bcc389dbf1e43a391863d5a1f98b5a9b490557b6",
+  "birth_sidecar_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained324-linear-lr-20261026-r1/checkpoint-000384-candidate.pt.json",
+  "birth_sidecar_sha256": "67b91f0be83dd45db6475b69a3743ad7e1055f1e8b8eeeaea5cdb089b01f4eb0",
+  "checkpoint_loader_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/checkpoints.py",
+  "checkpoint_loader_sha256": "807141943a742c6e9fdd34274c191b3c318134cc7fb0c1c6256874cadee1cbc3",
+  "checkpoint_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained324-linear-lr-20261026-r1/checkpoint-000384-candidate.pt",
+  "checkpoint_sha256": "cc5c3bee52b3fdad925ad90e793983df41954f16ce11403f9f32c431434e52e2",
+  "continuation_authority": false,
+  "cumulative_updates": 432,
+  "evaluation_or_training_run": false,
+  "identity": {
+    "architecture": {
+      "activation": "gelu",
+      "actor_head": [
+        128,
+        128,
+        9
+      ],
+      "attention": "full_self_attention",
+      "average_attn_weights": true,
+      "class": "OmniscientEntityTeacher",
+      "critic_head": [
+        128,
+        128,
+        1
+      ],
+      "dropout": 0.0,
+      "entity_embedding": [
+        16,
+        128,
+        128
+      ],
+      "entity_mask_true_means_valid": true,
+      "entity_position_embeddings": false,
+      "entity_shape": [
+        80,
+        16
+      ],
+      "entity_type_vocab_size": 9,
+      "entity_valid_types": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "ffn_dim": 256,
+      "global_embedding": [
+        14,
+        128
+      ],
+      "global_shape": [
+        1,
+        14
+      ],
+      "head_initialization": {
+        "actor_final_gain": 0.01,
+        "critic_final_gain": 1.0,
+        "hidden_gain": 1.4142135623730951,
+        "method": "orthogonal_weights_zero_biases"
+      },
+      "layernorm_eps": 1e-05,
+      "model_dim": 128,
+      "need_weights": true,
+      "normalization": "pre_norm_plus_final_layernorm",
+      "num_heads": 4,
+      "num_layers": 2,
+      "parameter_count": 321290,
+      "token_count": 81,
+      "trunk_initialization": "pytorch_default",
+      "version": "omniscient_entity_teacher_full_attention_v1"
+    },
+    "config": {
+      "action_repeat": 4,
+      "auxiliary_targets": false,
+      "batch_size": 64,
+      "chunk_size": 8,
+      "contract_sha256": "a1051d82527a9aec1f7967ff8ab217c30263240e032991aeff7b993fd975ba47",
+      "development_layout": "64_independent_B1_envs;one_seed_each;batch_policy_over_alive_envs;no_reset_or_filler",
+      "device": "mps",
+      "dtype": "float32",
+      "excluded_seed_ranges": [
+        [
+          2952790016,
+          2952791015
+        ],
+        [
+          3489660928,
+          3489661055
+        ],
+        [
+          3758096384,
+          3758097383
+        ]
+      ],
+      "num_threads": 4,
+      "parent_checkpoint_sha256": "ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f",
+      "phase": "D2",
+      "phase_settings": {
+        "budget_seconds": 1800,
+        "difficulty": 2,
+        "initialization": "transition_from_successful_D1",
+        "patterns_enabled": true,
+        "run_seed": 5562881586070242562
+      },
+      "powerups_enabled": true,
+      "ppo": {
+        "adam_eps": 1e-05,
+        "clip_coef": 0.2,
+        "ent_coef": 0.01,
+        "gae_lambda": 0.95,
+        "gamma": 0.995,
+        "learning_rate": 3e-05,
+        "max_grad_norm": 0.5,
+        "minibatch_size": 512,
+        "reward_scale": 0.1,
+        "target_kl": 0.03,
+        "update_epochs": 4,
+        "vf_coef": 0.5
+      },
+      "probe_devices": [],
+      "protocol_sha256": "9e0d82028011f83e0cf6ddaef5f5e118591158d8a557f6698c82c150d5a69bab",
+      "qualification_sha256": "e091f8a2fad0a307d289a6d306112606b15df8f8aa0f3a75707ac7cfb2cee803",
+      "render_pixels": false,
+      "rollout_steps": 256,
+      "running_normalization": false,
+      "sampling_backend": "torch_global_mps",
+      "training_raw_frame_cap": 18000,
+      "version": "teacher_registered_config_v1"
+    },
+    "lr_schedule": {
+      "after_horizon": "hold_end_lr",
+      "application": "before_optimizer_step_for_cumulative_update",
+      "end_lr": 1e-05,
+      "formula": "start_lr - (start_lr - end_lr) * (u - 1) / (horizon_updates - 1)",
+      "horizon_updates": 60,
+      "name": "linear_3e-5_to_1e-5_then_hold",
+      "origin_cumulative_update": 372,
+      "start_lr": 3e-05,
+      "u_definition": "cumulative_update - origin_cumulative_update",
+      "version": 1
+    },
+    "lr_schedule_spec_sha256": "7ceed85c5dc277602f2f51937b4ac003e2013e2689341a963ce5d82d5b64c9e4",
+    "parent_checkpoint_sha256": "c10d90ec0e67503afef8f4d90c4968581d430ef2065117a75e81c445a04c8ddc",
+    "parent_config_sha256": "1c24df3eea150160451ada08e9f6844cd67645abf5fb8b712afd14abca930ce8",
+    "parent_terminal_receipt_sha256": "76cb15733e87518cb3b473b7f8ebd847ed206351fb9f17d89b8b92e6bf853f08",
+    "phase": "D2",
+    "phase_update_end": 384,
+    "phase_update_start": 324,
+    "policy_sha256": "bfcbee1609cec0180495c957cf4b5e0b31356f395e2a706217cc9225647d23ae",
+    "registration_sha256": "0a6bf98221689ffcf62a28289dae7bb98eb89bc8d3c02b93127f4a04df75cb4e",
+    "run_id": "D2-retained324-linear-lr-20261026-r1",
+    "run_seed": 4200000001,
+    "version": "teacher_identity_v3"
+  },
+  "identity_sha256": "1842d188d84b8b0f9939643d26c23c65712234d2b2a937bb35122ce282f72db4",
+  "local_update": 60,
+  "model_state_dict_sha256": "39c51b5cf2ef9c54b18cda8eac52dd5cee92986cf0161aa6478a330a7d37c3d3",
+  "native_sha256": "022d41dde9bace0b4f4c4c06b9b4ed007bc2c60013cd98734086e587d7bb997e",
+  "phase_update": 384,
+  "run_id": "D2-retained324-linear-lr-20261026-r1",
+  "runtime_sha256": "2cf10e9f056f41b39dc17845192e9adf553a5f699546d4f5dcea764a23e36b31",
+  "schema": "paired_LR_endpoint_metadata_parent_attestation_v1",
+  "source_audit_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained324-linear-auditor-prepare-luna-20261026-r3/full-audit.json",
+  "source_audit_sha256": "e1c32e9960e1b5dd832b88494771f01b02ef1e4f48fdb074f5f91fe4c9c9ee44"
+}

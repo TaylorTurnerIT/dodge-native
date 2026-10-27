@@ -1,0 +1,210 @@
+{
+  "milestone": "v2 Milestone 1 Rust foundation only",
+  "utc": "2026-10-24T05:21:22.446530+00:00",
+  "status": "implemented and locally verified; pending parent Beam and Opus review",
+  "toolchain": "1.97.1-aarch64-apple-darwin",
+  "apis": [
+    "NativeGame::advance_frame_headless(u8) -> Result<HeadlessResult, CoreError>",
+    "NativeGame::advance_frame_headless_with_post_mask(u8, u8) -> Result<HeadlessResult, CoreError>",
+    "NativeGame::render_into(&self, &mut [u8; FRAMEBUFFER_SIZE])",
+    "NativeGame::privileged_view(&self) -> PrivilegedView"
+  ],
+  "semantics": [
+    "Headless runs shared update, camera RNG, draw effects, input finalization, and transition-only extra trail. No rasterization, Snapshot, FullState, or FrameResult construction.",
+    "Headless reward remains exact PicoFixed legacy alive reward; score and delta are exact PicoFixed. Wrapper RL reward remains future M2 work.",
+    "Legacy FrameResult cached pre-effect pixels and capture order preserved. New rendering and privileged_view use current post-method state; headless leaves cached snapshot pixels stale.",
+    "Renderer borrows scalar/slice inputs; legacy rendering borrows disjoint game fields while mutating screen. On-demand rendering uses fixed 16 KB scratch and caller-owned canonical projection.",
+    "Privileged view excludes RNG, spawn schedules, inactive catalog, PatternState timers, and counters. Borrowed raw PatternRect still contains targets/bookkeeping and is not a policy tensor contract."
+  ],
+  "checks": {
+    "fmt-targeted-final": {
+      "command": [
+        "cargo",
+        "+1.97.1",
+        "fmt",
+        "-p",
+        "dodge-core"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.07184625,
+      "utc": "2026-10-24T05:16:04.608849+00:00",
+      "source_sha256": {
+        "crates/dodge-core/src/game.rs": "4390a4bc8053fbe1eec4d8d1ff57ed0c25c6ef71c8d325594fed694b74a85216",
+        "crates/dodge-core/src/snapshot.rs": "975fa296d97c3fead5abe89963005f6852f091dda30d4a3f8a2b97159f853a62",
+        "crates/dodge-core/src/lib.rs": "0896a3e1b7bfd10ce7166714b9a94f52b771a0ac5db23413dbd23983fceaea7d",
+        "crates/dodge-core/src/headless.rs": "569c88735ccb64b193c659e6f572f97f9adbd864f7d30e12d906005a031f1a6d",
+        "crates/dodge-core/src/headless_tests.rs": "472c7d5c8e5900d43e6ffa487d599a13ce3da8494a9b4950c821e77eceb9b1a2",
+        "crates/dodge-core/examples/headless_profile.rs": "a53ffd29b1541b40893b6c0f5b51978291771b6bf5c2eae975c8b1dd0b833e7d"
+      },
+      "source_changed_during_check": false
+    },
+    "fmt-workspace-final": {
+      "command": [
+        "cargo",
+        "+1.97.1",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.07511025,
+      "utc": "2026-10-24T05:16:04.685017+00:00",
+      "source_sha256": {
+        "crates/dodge-core/src/game.rs": "4390a4bc8053fbe1eec4d8d1ff57ed0c25c6ef71c8d325594fed694b74a85216",
+        "crates/dodge-core/src/snapshot.rs": "975fa296d97c3fead5abe89963005f6852f091dda30d4a3f8a2b97159f853a62",
+        "crates/dodge-core/src/lib.rs": "0896a3e1b7bfd10ce7166714b9a94f52b771a0ac5db23413dbd23983fceaea7d",
+        "crates/dodge-core/src/headless.rs": "569c88735ccb64b193c659e6f572f97f9adbd864f7d30e12d906005a031f1a6d",
+        "crates/dodge-core/src/headless_tests.rs": "472c7d5c8e5900d43e6ffa487d599a13ce3da8494a9b4950c821e77eceb9b1a2",
+        "crates/dodge-core/examples/headless_profile.rs": "a53ffd29b1541b40893b6c0f5b51978291771b6bf5c2eae975c8b1dd0b833e7d"
+      },
+      "source_changed_during_check": false
+    },
+    "clippy-workspace-final": {
+      "command": [
+        "cargo",
+        "+1.97.1",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.370204875,
+      "utc": "2026-10-24T05:16:05.056168+00:00",
+      "source_sha256": {
+        "crates/dodge-core/src/game.rs": "4390a4bc8053fbe1eec4d8d1ff57ed0c25c6ef71c8d325594fed694b74a85216",
+        "crates/dodge-core/src/snapshot.rs": "975fa296d97c3fead5abe89963005f6852f091dda30d4a3f8a2b97159f853a62",
+        "crates/dodge-core/src/lib.rs": "0896a3e1b7bfd10ce7166714b9a94f52b771a0ac5db23413dbd23983fceaea7d",
+        "crates/dodge-core/src/headless.rs": "569c88735ccb64b193c659e6f572f97f9adbd864f7d30e12d906005a031f1a6d",
+        "crates/dodge-core/src/headless_tests.rs": "472c7d5c8e5900d43e6ffa487d599a13ce3da8494a9b4950c821e77eceb9b1a2",
+        "crates/dodge-core/examples/headless_profile.rs": "a53ffd29b1541b40893b6c0f5b51978291771b6bf5c2eae975c8b1dd0b833e7d"
+      },
+      "source_changed_during_check": false
+    },
+    "test-workspace-final": {
+      "command": [
+        "cargo",
+        "+1.97.1",
+        "test",
+        "--workspace"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 161.558242,
+      "utc": "2026-10-24T05:18:46.615513+00:00",
+      "source_sha256": {
+        "crates/dodge-core/src/game.rs": "4390a4bc8053fbe1eec4d8d1ff57ed0c25c6ef71c8d325594fed694b74a85216",
+        "crates/dodge-core/src/snapshot.rs": "975fa296d97c3fead5abe89963005f6852f091dda30d4a3f8a2b97159f853a62",
+        "crates/dodge-core/src/lib.rs": "0896a3e1b7bfd10ce7166714b9a94f52b771a0ac5db23413dbd23983fceaea7d",
+        "crates/dodge-core/src/headless.rs": "569c88735ccb64b193c659e6f572f97f9adbd864f7d30e12d906005a031f1a6d",
+        "crates/dodge-core/src/headless_tests.rs": "472c7d5c8e5900d43e6ffa487d599a13ce3da8494a9b4950c821e77eceb9b1a2",
+        "crates/dodge-core/examples/headless_profile.rs": "a53ffd29b1541b40893b6c0f5b51978291771b6bf5c2eae975c8b1dd0b833e7d"
+      },
+      "source_changed_during_check": false
+    },
+    "benchmark-receipt": {
+      "command": [
+        "cargo",
+        "+1.97.1",
+        "run",
+        "--release",
+        "-p",
+        "dodge-core",
+        "--example",
+        "headless_profile"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds_including_build": 3.539111208,
+      "utc": "2026-10-24T05:20:15.846790+00:00",
+      "source_sha256": {
+        "crates/dodge-core/src/game.rs": "4390a4bc8053fbe1eec4d8d1ff57ed0c25c6ef71c8d325594fed694b74a85216",
+        "crates/dodge-core/src/snapshot.rs": "975fa296d97c3fead5abe89963005f6852f091dda30d4a3f8a2b97159f853a62",
+        "crates/dodge-core/src/lib.rs": "0896a3e1b7bfd10ce7166714b9a94f52b771a0ac5db23413dbd23983fceaea7d",
+        "crates/dodge-core/src/headless.rs": "569c88735ccb64b193c659e6f572f97f9adbd864f7d30e12d906005a031f1a6d",
+        "crates/dodge-core/src/headless_tests.rs": "472c7d5c8e5900d43e6ffa487d599a13ce3da8494a9b4950c821e77eceb9b1a2",
+        "crates/dodge-core/examples/headless_profile.rs": "a53ffd29b1541b40893b6c0f5b51978291771b6bf5c2eae975c8b1dd0b833e7d"
+      },
+      "source_unchanged": true
+    }
+  },
+  "workspace_tests_passed": 71,
+  "core_tests_passed": 59,
+  "new_core_tests": 15,
+  "parity": {
+    "seeds": "0..100",
+    "raw_frames_per_seed": 2000,
+    "comparison": "live full state after each method, excluding only physical_screen; also compare internal audio/config and result fields",
+    "additional_coverage": [
+      "all 39 active pattern entries",
+      "freeze/shrink collection and expiration",
+      "frozen static charging",
+      "kamikaze explosion growth and expiry",
+      "explode powerup mutable-list order",
+      "draw trail RNG/colors",
+      "death/negative retry delta",
+      "invalid simulation/post masks 64..=255 before mutation",
+      "settings/transitions across menu/alive/dead",
+      "transition extra trail after snapshot",
+      "render never/every-frame/K=4 trajectory invariance",
+      "FullState/native borrowed renderer equality",
+      "canonical projection with retained physical edges",
+      "24 original legacy pixel/state fingerprint pairs across 3 seeds"
+    ]
+  },
+  "benchmark": {
+    "kind": "modified-core matched stepping microbenchmark",
+    "seeds": "1000..1064",
+    "difficulty": 2,
+    "patterns_enabled": true,
+    "powerups_enabled": true,
+    "action_repeat": 4,
+    "cap_raw_frames": 2000,
+    "episodes": 64,
+    "deaths": 64,
+    "raw_frames_per_round": 16142,
+    "rounds": 5,
+    "full_seconds": [
+      0.29263387,
+      0.29625095900000015,
+      0.29470062699999994,
+      0.2965922119999999,
+      0.29445882999999995
+    ],
+    "headless_seconds": [
+      0.0011431259999999997,
+      0.001111628,
+      0.001103207,
+      0.0011194940000000004,
+      0.0011004150000000002
+    ],
+    "headless_render_k4_seconds": [
+      0.037619045000000004,
+      0.03779066600000001,
+      0.03783413000000002,
+      0.037938083,
+      0.037751709
+    ],
+    "full_median_sps": 54774.230256388306,
+    "headless_median_sps": 14521044.80995441,
+    "headless_render_k4_median_sps": 427142.5118572929,
+    "headless_speedup": 265.10723641362034,
+    "render_k4_speedup": 7.798238512123599,
+    "final_logical_states_match": true
+  },
+  "benchmark_boundary": "Quick single-thread release microbenchmark on modified core, 64 fresh seeded random K=4 episodes ending at death, 5 rotating measured rounds; initialization/startup and final-state comparisons excluded. Not M0 unmodified-source or full baseline campaign. No allocation measurement.",
+  "remaining_limits": [
+    "External Pemsa/cartridge parity was not run: executable absent from PATH; existing v1xx Rust tests passed unchanged.",
+    "Headless particle/audio capacity growth and active pattern clones can still allocate. On-demand renderer may allocate formatted strings. No zero-allocation claim.",
+    "No default catalog entry enables smooth; that code branch is tested synthetically. Existing pattern behavior preserved.",
+    "M2 must enforce an explicit 14/16 scalar feature allowlist and must not serialize raw rectangle future targets.",
+    "No PPO/student/PyO3, M0 campaign, publishing, commits, PRs, nested agents, or integration review performed."
+  ],
+  "source_manifest": "source-manifest.json",
+  "review_patch": "milestone1.patch",
+  "source_archive": "source.tar.gz",
+  "diff_check_exit_code": 0,
+  "current_source_hashes_match_frozen_manifest": true
+}

@@ -1,0 +1,17 @@
+# Current-pair resource calibration R2 preparation
+
+Preparation only. R1 remains failed and unchanged: 1.6739395409822464 seconds, receipt-binding failure, zero teacher MPS inference calls, one sample, no measured freshness, and unknown executed R5 worker bytes. Its parent audit cleared the matching reservation. R2 does not retry or launch R1.
+
+R2 proposes one separately registered, parent-reviewed, parent-authorized probe. Run ID and client request ID are fixed in `calibration-plan.json`; any parent reservation must bind both plus the exact plan SHA-256. The reservation is a separate calibration record. The launcher never reads or writes `state.json`, never installs an inference-campaign lease, and never edits parent state. No reservation exists in this preparation.
+
+Before launching the probe subprocess, the launcher checks every source pin and runs `cpu_preflight.py`. That gate calls R6 `verify_inputs()`, validates both pinned receipt and audit anchors, applies the seven-evaluation execution-boundary checks, and strict-loads both checkpoints on CPU. It confirms frozen module origins and reports zero MPS operations, game episodes, training, and checkpoint writes. The launcher checks pins and reservation again before spawning.
+
+Inside the probe process, hash checks run before importing R6 modules, then again after imports and strict CPU loads immediately before any MPS model load. R6 modules load only from their exact frozen paths. The probe asserts the R6 worker, paired evaluator, supervisor, native extension, Torch, and NumPy origins. Launcher checks all pins before and after the child. Any mismatch stops before MPS.
+
+The bounded future workload uses production `worker.evaluate` with 64 synthetic environments and eight batched policy decisions. It makes no native game calls and records zero real game episodes. It exercises the actual R6 observation concatenation, model output conversion to CPU actions, resource and calibration-reservation guard, per-row JSONL write plus flush/fsync, and sampler queries while a real pinned teacher runs on MPS. The probe first waits for one complete resource sample and checks freshness before model-to-MPS.
+
+Limits remain 120 seconds outer including cleanup, 90 seconds probe work, 10 seconds cleanup, 10 seconds first-sample startup, 1.0 second after-read freshness, 0.25 second sampler period, separate 6 GiB aggregate current RSS and MPS driver caps. Launcher reports current RSS for itself and worker separately, and aggregate current RSS. Worker sampler reports process RSS high-water mark from `ru_maxrss`; these are different measurements. No hash runs on the sampler timer.
+
+The receipt must report first-sample delay, maximum sample interarrival gap, every observed after-read age and maximum, worker RSS high-water, launcher and worker current RSS peaks, aggregate current RSS peak, MPS driver peak, per-row fsync timings, guard count and reservation-read timing, strict CPU checkpoint results, origins, raw exits, process-group absence, before/after pin checks, cleanup time, and exact disposition for any wrapper error. Missing, malformed, future, or stale samples fail closed. Thresholds do not relax.
+
+No probe has launched. This plan does not authorize MPS use. Parent must review the frozen R6 sources and this exact plan, then issue one matching reservation before any future launcher call. Training retains MPS priority.

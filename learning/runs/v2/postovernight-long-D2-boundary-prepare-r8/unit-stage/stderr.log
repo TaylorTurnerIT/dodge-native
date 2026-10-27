@@ -1,0 +1,24 @@
+test_A_actual_main_branch_9975_before_drain (test_r7.R7.test_A_actual_main_branch_9975_before_drain) ... ok
+test_A_actual_main_earlier_guard_and_ACK_win (test_r7.R7.test_A_actual_main_earlier_guard_and_ACK_win) ... ERROR
+
+======================================================================
+ERROR: test_A_actual_main_earlier_guard_and_ACK_win (test_r7.R7.test_A_actual_main_earlier_guard_and_ACK_win)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r8/test_r7.py", line 128, in test_A_actual_main_earlier_guard_and_ACK_win
+    x=self.main_path(**kwargs);self.assertEqual((x.pool.first,x.pool.until),(99.5,109.5));self.assertEqual(x.pool.first_global['outcome'],outcome)
+      ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r8/test_r7.py", line 119, in main_path
+    c.save(self.d/'main-result.json',dict(first=x.pool.first,until=x.pool.until,descriptor=x.pool.first_global,pumps=pumps))
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r8/long_d2.py", line 106, in save
+    with Path(path).open('x') as stream:
+         ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/pathlib.py", line 1013, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileExistsError: [Errno 17] File exists: '/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r8/unit-stage/fixtures/test_A_actual_main_earlier_guard_and_ACK_win-jhqw0402/main-result.json'
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.003s
+
+FAILED (errors=1)

@@ -1,0 +1,55 @@
+test_inherited_env_flag_is_required (test_terminal_wrapper.BytecodeBindingTests) ... ok
+test_nested_child_inherits_no_bytecode_writes (test_terminal_wrapper.BytecodeBindingTests) ... ok
+test_registered_prefix_is_empty_and_is_the_prep_empty_pycache (test_terminal_wrapper.BytecodeBindingTests) ... ok
+test_wrong_prefix_binding_rejected (test_terminal_wrapper.BytecodeBindingTests) ... ok
+test_auditor_digest_pinned (test_terminal_wrapper.ImportHardeningTests) ... FAIL
+test_dependency_origins_bound_to_registered_pins (test_terminal_wrapper.ImportHardeningTests) ... ERROR
+test_preloaded_dodge_rejected_before_original_import (test_terminal_wrapper.ImportHardeningTests) ... ok
+test_registered_observer_directory_and_source_bind (test_terminal_wrapper.ImportHardeningTests) ... ok
+test_registered_observer_source_digest_rejected_when_changed (test_terminal_wrapper.ImportHardeningTests) ... ok
+test_registration_digest_pinned (test_terminal_wrapper.ImportHardeningTests) ... ok
+test_registration_mismatch_rejected (test_terminal_wrapper.ImportHardeningTests) ... ok
+test_live_pid_rejected (test_terminal_wrapper.ProcessAbsenceTests) ... ok
+test_reaped_child_is_absent (test_terminal_wrapper.ProcessAbsenceTests) ... ok
+test_full_mode_refused_on_cli (test_terminal_wrapper.SubprocessNegativeControls) ... ok
+test_preloaded_out_of_runtime_dodge_fails_before_audit (test_terminal_wrapper.SubprocessNegativeControls) ... ok
+test_wrong_interpreter_fails_before_audit (test_terminal_wrapper.SubprocessNegativeControls) ... ok
+test_clean_record_passes (test_terminal_wrapper.TerminalGateTests) ... ok
+test_launch_count_two_rejected (test_terminal_wrapper.TerminalGateTests) ... ok
+test_missing_process_absence_flag_rejected (test_terminal_wrapper.TerminalGateTests) ... ok
+test_nonzero_worker_exit_rejected (test_terminal_wrapper.TerminalGateTests) ... ok
+test_rss_over_cap_rejected (test_terminal_wrapper.TerminalGateTests) ... ok
+test_source_postflight_failure_rejected (test_terminal_wrapper.TerminalGateTests) ... ok
+test_wall_over_limit_rejected (test_terminal_wrapper.TerminalGateTests) ... ok
+test_worker_first_failure_rejected (test_terminal_wrapper.TerminalGateTests) ... ok
+test_worker_mps_over_cap_rejected (test_terminal_wrapper.TerminalGateTests) ... ok
+
+======================================================================
+ERROR: test_dependency_origins_bound_to_registered_pins (test_terminal_wrapper.ImportHardeningTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_terminal_wrapper.py", line 178, in test_dependency_origins_bound_to_registered_pins
+    origins = wrapper.bind_dependency_origins(reg)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/wrapper.py", line 126, in bind_dependency_origins
+    origin = dependency_origin(name)
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/wrapper.py", line 119, in dependency_origin
+    need(spec is not None and spec.origin, f"{name} origin not found")
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/wrapper.py", line 48, in need
+    raise WrapperError(message)
+terminal_wrapper.WrapperError: torch origin not found
+
+======================================================================
+FAIL: test_auditor_digest_pinned (test_terminal_wrapper.ImportHardeningTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-all-candidate-auditor-luna-20261026-r3/test_terminal_wrapper.py", line 164, in test_auditor_digest_pinned
+    self.assertEqual(wrapper.sha_file(wrapper.AUD_PATH), wrapper.AUD_SHA)
+AssertionError: '98a58d8300eebd4630eb5d8ba66cf4880b49fc0526253d3bb8fe4b9d485ab707' != 'e5d43d3b4b7d8a4f5a97dd278bbc3d29671f6ccfffddbfb5533854606c1b94ee'
+- 98a58d8300eebd4630eb5d8ba66cf4880b49fc0526253d3bb8fe4b9d485ab707
++ e5d43d3b4b7d8a4f5a97dd278bbc3d29671f6ccfffddbfb5533854606c1b94ee
+
+
+----------------------------------------------------------------------
+Ran 25 tests in 0.355s
+
+FAILED (failures=1, errors=1)

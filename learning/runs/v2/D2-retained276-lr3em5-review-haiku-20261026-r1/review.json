@@ -1,0 +1,49 @@
+{
+  "schema": "d2_retained276_lr3em5_source_review_v1",
+  "review_mode": "SOURCEONLY_frozen_static_review",
+  "reviewer_model": "claude-haiku-5-5",
+  "target_directory": "learning/runs/v2/D2-retained276-lr3em5-prepare-luna-20261026-r1",
+  "budget_seconds": 420,
+  "child_agents_spawned": 0,
+  "actual_run_executed": false,
+  "tests_or_probes_executed": false,
+  "pinned_hashes_verified": {
+    "registration_sha256": "9e754cb96fa3d53fec3da58f225ef775158fbb2705bcbbaf5b1d05220cf9a869",
+    "runner_sha256": "8094099f0c5f6566b50f08eeda6798aa032b413ec7ec72efaa0b6b841a6dc787",
+    "launcher_execute_once_sha256": "5dc5bf98b17f9f67078cad4768f731970b3d87aff2cf80dca03c44e82425d88b",
+    "lr_helper_sha256": "459f61bc5905437aec1e98f1b421e1d657521809e2a40859da80506a82089488",
+    "resource_cost_anchor_sha256": "711b2949fb4123381d9af6618e47f4628540f424a0973785bb6392e14169b4c3"
+  },
+  "verdict": "no_findings",
+  "findings": [],
+  "non_blocking_observations": [
+    {
+      "file": "learning/runs/v2/D2-retained276-lr3em5-prepare-luna-20261026-r1/D2-retained276-lr3em5-config.json",
+      "summary": "Config carries parent_checkpoint_sha256 ce9c03c8... inherited unchanged from validated r2 config; differs from accepted parent checkpoint 0b5cf72b... Runner pins parent by PARENT_SHA constant, so no active check reads this field in the code reviewed. Impact not traced through the full tree.",
+      "severity": "low",
+      "blocking": false
+    },
+    {
+      "file": "learning/runs/v2/D2-retained276-lr3em5-prepare-luna-20261026-r1/runner.py",
+      "summary": "Resource estimate scales the 72-update control outer time linearly by 60/72 and applies 15% margin. Arm has 6 evaluations vs 7 in control, so linear scaling is conservative for eval cost. Arithmetic verified: 1581.0090618329123 * 60/72 * 1.15 = 1515.1336842565406.",
+      "severity": "info",
+      "blocking": false
+    }
+  ],
+  "checked_and_consistent": [
+    "config diff vs parent f858a63c: only ppo.learning_rate 1e-4 -> 3e-5; seed 3791628420 not in excluded ranges",
+    "runner: NEW_UPDATES=60, PHASE_START=276, PHASE_END=336, EVALUATION_UPDATES=276..336 step 12, EXPECTED_TOTAL=384",
+    "runner: expected output list and execute_once checks use EVALUATION_UPDATES length (6), no stale 7/72/396 evaluation expectations in arm-specific checks",
+    "runner: 72-update parent receipt counters and 72-update anchor counters retained only where they describe the parent/anchor, not the arm",
+    "resource anchor fields (completed 348, endpoint 2a21ca..., counters 72/396, cost 5537.77 -> 7118.78, branch 4760.06) match completed-iteration-receipt.json",
+    "LR transition: restore Adam/model/RNG, fingerprint before write, write only param_groups[*].lr, verify model/RNG/mode unchanged, fingerprint excluding lr unchanged; helper loaded by hash-pinned exec with origin check",
+    "guarded_update asserts effective LR before and after each PPO call; saved checkpoint optimizer LR asserted 3e-5",
+    "entry candidate checkpoint 276 saved after override (evaluate_at after LR write), so validate_terminal_candidate_binding expectation of 3e-5 is consistent",
+    "counter helper special-cases entry 276 as zeros; arm metric boundaries 288..336 require exactly one matching row"
+  ],
+  "unverified_by_static_review": [
+    "entry-restoration Adam restored_sha256 equals fingerprint(optimizer.state_dict()) used in transition receipt (not traced into helper output of prior run)",
+    "lease assertion and unmocked parent preflight (parent-owned gates, not checked here)",
+    "python/tests and CPU scripts were not executed by this review"
+  ]
+}

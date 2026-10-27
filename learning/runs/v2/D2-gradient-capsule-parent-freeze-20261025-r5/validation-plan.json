@@ -1,0 +1,53 @@
+{
+  "budget_seconds": 600,
+  "cause": "One stale helper pin from hashing before final source edit. Original interpreter lexical alias and resolved target retained.",
+  "freeze_order": "Copy complete final source, write fixed plan, hash source once, write registration; no source edits afterward. Exclude newly generated output artifacts from registration inputs.",
+  "schema": "D2_gradient_parent_capsule_freeze_validation_plan_v1",
+  "scope": "New parent metadata reconciliation candidate; identical Luna runtime/adapter/tests; no environment, training, evaluation or gradients. Old failed candidates preserved.",
+  "steps": [
+    {
+      "args": [
+        "validate_registration_keys.py"
+      ],
+      "budget_seconds": 60,
+      "id": "pin_audit"
+    },
+    {
+      "args": [
+        "-m",
+        "unittest",
+        "-v",
+        "test_continuation_contract",
+        "test_launcher_lifecycle",
+        "test_capsule_support",
+        "test_outputs"
+      ],
+      "budget_seconds": 120,
+      "id": "contracts"
+    },
+    {
+      "args": [
+        "compare_smoke.py"
+      ],
+      "budget_seconds": 120,
+      "id": "protocol_smoke"
+    },
+    {
+      "args": [
+        "test_torch_restore.py"
+      ],
+      "budget_seconds": 180,
+      "id": "learner_restoration"
+    },
+    {
+      "args": [
+        "preflight_prepare.py",
+        "<registration>",
+        "<registration_sha256>"
+      ],
+      "budget_seconds": 120,
+      "id": "full_preflight"
+    }
+  ],
+  "stop_policy": "Stop on first failed stage; no retry or edit of frozen candidate."
+}

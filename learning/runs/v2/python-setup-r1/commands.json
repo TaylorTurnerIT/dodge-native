@@ -1,0 +1,98 @@
+[
+  {
+    "args": [
+      "uv",
+      "--version"
+    ],
+    "exit_code": 0,
+    "finished_at_utc": "2026-10-24T06:16:29.633117+00:00",
+    "name": "uv-version",
+    "started_at_utc": "2026-10-24T06:16:29.620745+00:00"
+  },
+  {
+    "args": [
+      "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+      "-c",
+      "import sys;print(sys._base_executable)"
+    ],
+    "exit_code": 0,
+    "finished_at_utc": "2026-10-24T06:16:29.645591+00:00",
+    "name": "base-python",
+    "started_at_utc": "2026-10-24T06:16:29.633456+00:00"
+  },
+  {
+    "args": [
+      "uv",
+      "venv",
+      "--python",
+      "/Users/taylor/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
+      "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv"
+    ],
+    "exit_code": 0,
+    "finished_at_utc": "2026-10-24T06:16:29.658197+00:00",
+    "name": "create-venv",
+    "started_at_utc": "2026-10-24T06:16:29.645903+00:00"
+  },
+  {
+    "args": [
+      "uv",
+      "pip",
+      "install",
+      "--python",
+      "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+      "torch==2.14.1",
+      "numpy==2.5.4",
+      "pytest",
+      "maturin",
+      "--no-progress"
+    ],
+    "exit_code": 0,
+    "finished_at_utc": "2026-10-24T06:16:32.457595+00:00",
+    "name": "install",
+    "started_at_utc": "2026-10-24T06:16:29.658548+00:00"
+  },
+  {
+    "args": [
+      "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+      "-c",
+      "import importlib.metadata as m,json,platform,sys,torch,numpy,pytest\ntorch.set_num_threads(1)\ncpu=float((torch.tensor([1.,2.])*2).sum().item())\nassert cpu==6.0\nbuilt=torch.backends.mps.is_built()\navailable=torch.backends.mps.is_available()\nmps=None\nif available:\n    mps=float((torch.tensor([1.,2.],device=\"mps\")*2).sum().cpu().item())\n    torch.mps.synchronize()\n    assert mps==6.0\nassert m.version(\"torch\")==\"2.14.1\"\nassert m.version(\"numpy\")==\"2.5.4\"\nprint(json.dumps({\"python\":sys.version,\"executable\":sys.executable,\"base_prefix\":sys.base_prefix,\"platform\":platform.platform(),\"machine\":platform.machine(),\"versions\":{name:m.version(name) for name in [\"torch\",\"numpy\",\"pytest\",\"maturin\"]},\"imports\":{\"torch\":torch.__file__,\"numpy\":numpy.__file__,\"pytest\":pytest.__file__},\"cpu_tensor_sum\":cpu,\"mps_built\":built,\"mps_available\":available,\"mps_tensor_sum\":mps},indent=2))"
+    ],
+    "exit_code": 0,
+    "finished_at_utc": "2026-10-24T06:16:38.812174+00:00",
+    "name": "verify-imports-and-tensors",
+    "started_at_utc": "2026-10-24T06:16:32.457972+00:00"
+  },
+  {
+    "args": [
+      "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/pytest",
+      "--version"
+    ],
+    "exit_code": 0,
+    "finished_at_utc": "2026-10-24T06:16:38.960913+00:00",
+    "name": "pytest-version",
+    "started_at_utc": "2026-10-24T06:16:38.812737+00:00"
+  },
+  {
+    "args": [
+      "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/maturin",
+      "--version"
+    ],
+    "exit_code": 0,
+    "finished_at_utc": "2026-10-24T06:16:39.492543+00:00",
+    "name": "maturin-version",
+    "started_at_utc": "2026-10-24T06:16:38.961321+00:00"
+  },
+  {
+    "args": [
+      "uv",
+      "pip",
+      "freeze",
+      "--python",
+      "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python"
+    ],
+    "exit_code": 0,
+    "finished_at_utc": "2026-10-24T06:16:39.505585+00:00",
+    "name": "freeze",
+    "started_at_utc": "2026-10-24T06:16:39.492959+00:00"
+  }
+]

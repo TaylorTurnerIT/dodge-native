@@ -1,0 +1,118 @@
+..............................................................FF         [100%]
+=================================== FAILURES ===================================
+__ test_pilot_preserves_original_baseline_and_reserved_after_eval_time[False] __
+
+tmp_path = PosixPath('/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone3-trainer-runtime-r1/pytest-attempt4/test_pilot_preserves_original_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x110fcec30>
+resuming = False
+
+    @pytest.mark.parametrize('resuming',[False,True])
+    def test_pilot_preserves_original_baseline_and_reserved_after_eval_time(tmp_path,monkeypatch,resuming):
+        from test_checkpoints import eval_result
+        before=eval_result(1,500);clock=SimpleNamespace(now=0.)
+        model=t.Experiment.__new__(t.Experiment);model.directory=tmp_path
+        model.context={} if not resuming else {'pilot_before':before,
+                'pilot_initial_checkpoint':str(tmp_path/'original.pt'),'pilot_initial_checkpoint_sha256':'original'}
+        model.guard=SimpleNamespace(deadline=100.,check=lambda **kw:None)
+        model.counters={'phase_updates':0};model.env=object() if resuming else None
+        model.config=i.default_config('pilot')
+        created=[];checkpoints=[]
+        def checkpoint(tag):
+            checkpoints.append(tag);return tmp_path/(tag+'.pt'),tag
+        model.checkpoint=checkpoint
+        def make_env():created.append(True);model.env=object()
+        model.make_environment=make_env
+        def update():model.counters['phase_updates']+=1;clock.now+=30
+        model.update_once=update
+        def after(path,digest,pilot_before):
+            assert pilot_before==before
+            return {'passed':True}
+        model.evaluate_checkpoint=after
+        def baseline(*args,**kwargs):
+            assert not resuming,'resume must not substitute a trained-policy baseline'
+            return before
+        monkeypatch.setattr(t,'evaluate',baseline)
+        monkeypatch.setattr(t.time,'monotonic',lambda:clock.now)
+>       result=model.pilot()
+               ^^^^^^^^^^^^^
+
+python/tests/test_teacher_runner.py:381: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <dodge_rl.train_teacher.Experiment object at 0x110fce780>
+
+    def pilot(self) -> dict:
+        if "pilot_before" in self.context:
+            before = self.context["pilot_before"]
+            initial_path = Path(self.context["pilot_initial_checkpoint"])
+            initial_hash = self.context["pilot_initial_checkpoint_sha256"]
+        else:
+            initial_path, initial_hash = self.checkpoint("pilot_initial")
+            with (self.directory / "pilot-before-development.jsonl").open("x") as stream:
+>               before = evaluate(self.model, "D1", self.device, check_guard=self.guard.check, episode_stream=stream)
+                                  ^^^^^^^^^^
+E               AttributeError: 'Experiment' object has no attribute 'model'
+
+python/dodge_rl/train_teacher.py:297: AttributeError
+__ test_pilot_preserves_original_baseline_and_reserved_after_eval_time[True] ___
+
+tmp_path = PosixPath('/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone3-trainer-runtime-r1/pytest-attempt4/test_pilot_preserves_original_1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x110d02750>
+resuming = True
+
+    @pytest.mark.parametrize('resuming',[False,True])
+    def test_pilot_preserves_original_baseline_and_reserved_after_eval_time(tmp_path,monkeypatch,resuming):
+        from test_checkpoints import eval_result
+        before=eval_result(1,500);clock=SimpleNamespace(now=0.)
+        model=t.Experiment.__new__(t.Experiment);model.directory=tmp_path
+        model.context={} if not resuming else {'pilot_before':before,
+                'pilot_initial_checkpoint':str(tmp_path/'original.pt'),'pilot_initial_checkpoint_sha256':'original'}
+        model.guard=SimpleNamespace(deadline=100.,check=lambda **kw:None)
+        model.counters={'phase_updates':0};model.env=object() if resuming else None
+        model.config=i.default_config('pilot')
+        created=[];checkpoints=[]
+        def checkpoint(tag):
+            checkpoints.append(tag);return tmp_path/(tag+'.pt'),tag
+        model.checkpoint=checkpoint
+        def make_env():created.append(True);model.env=object()
+        model.make_environment=make_env
+        def update():model.counters['phase_updates']+=1;clock.now+=30
+        model.update_once=update
+        def after(path,digest,pilot_before):
+            assert pilot_before==before
+            return {'passed':True}
+        model.evaluate_checkpoint=after
+        def baseline(*args,**kwargs):
+            assert not resuming,'resume must not substitute a trained-policy baseline'
+            return before
+        monkeypatch.setattr(t,'evaluate',baseline)
+        monkeypatch.setattr(t.time,'monotonic',lambda:clock.now)
+>       result=model.pilot()
+               ^^^^^^^^^^^^^
+
+python/tests/test_teacher_runner.py:381: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <dodge_rl.train_teacher.Experiment object at 0x110845220>
+
+    def pilot(self) -> dict:
+        if "pilot_before" in self.context:
+            before = self.context["pilot_before"]
+            initial_path = Path(self.context["pilot_initial_checkpoint"])
+            initial_hash = self.context["pilot_initial_checkpoint_sha256"]
+        else:
+            initial_path, initial_hash = self.checkpoint("pilot_initial")
+            with (self.directory / "pilot-before-development.jsonl").open("x") as stream:
+                before = evaluate(self.model, "D1", self.device, check_guard=self.guard.check, episode_stream=stream)
+            self.context.update(pilot_before=before, pilot_initial_checkpoint=str(initial_path.resolve()),
+                                pilot_initial_checkpoint_sha256=initial_hash)
+        save_json(self.directory / "pilot-before.json", {"checkpoint_sha256": initial_hash, **before})
+>       self.context["D1_competence_demonstrated"] |= bool(progress_passed("D1", {"D1": before}))
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'D1_competence_demonstrated'
+
+python/dodge_rl/train_teacher.py:301: KeyError
+=========================== short test summary info ============================
+FAILED python/tests/test_teacher_runner.py::test_pilot_preserves_original_baseline_and_reserved_after_eval_time[False]
+FAILED python/tests/test_teacher_runner.py::test_pilot_preserves_original_baseline_and_reserved_after_eval_time[True]
+2 failed, 62 passed in 2.00s

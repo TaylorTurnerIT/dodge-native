@@ -1,0 +1,546 @@
+- **Outputs:**
+  - Slice Token `0`: $z_{\text{teacher}} \in \mathbb{R}^{B \times 128}$.
+  - `actor_head`: `Linear(128, 128) -> GELU -> Linear(128, 9)`
+  - `critic_head`: `Linear(128, 128) -> GELU -> Linear(128, 1)`
+
+### 5.2 Stage 2: `VisualViTStudent` (`models/student.py`)
+
+- **Categorical Palette Input Embedding:**
+  - Input tensor: `frames_idx` of shape `[B, 4, 128, 128]` (`uint8` indices in `0..15`).
+  - Pass through `self.palette_embed = nn.Embedding(16, 8)` $\rightarrow$ `[B, 4, 128, 128, 8]`, permute and reshape to `[B, 32, 128, 128]`. This cleanly separates identical-luminance colors and preserves the trail color signatures (`{8,9,10}` vs `{1,13,7}` vs `{7}`) that distinguish Explode, Freeze, and Shrink powerups.
+- **Conv Patch Stem ($128 \times 128 \to 16 \times 16$ Grid of $8 \times 8$ Patches):**
+  1. `Conv2d(32, 64, kernel_size=4, stride=4) + GroupNorm(8, 64) + GELU` ($128 \to 32$)
+  2. `Conv2d(64, 128, kernel_size=2, stride=2) + GroupNorm(8, 128) + GELU` ($32 \to 16$)
+  - Flatten spatial grid $(16, 16)$ into `256` visual patch tokens of dimension `d_model = 128`: $E_{\text{patches}} \in \mathbb{R}^{B \times 256 \times 128}$.
+- **ViT Backbone:**
+  - Add learnable 2D positional embedding `pos_embed` `(1, 256, 128)` and prepend `[CLS_student]` `(1, 1, 128)` $\rightarrow$ shape `[B, 257, 128]`.
+  - Pass through `3` `CustomTransformerLayer` blocks (`d_model = 128`, `nhead = 4`, `ffn_dim = 256`).
+- **Output Heads:**
+  1. **Actor Head (`9` actions):** Takes $z_{\text{student}} = \text{out}[:, 0, :] \in \mathbb{R}^{B \times 128}$. Initialized from the trained Teacher's `actor_head` weights, but **kept unfrozen** for end-to-end fine-tuning.
+  2. **Dense Spatial Auxiliary Head (`5` channels per patch):** A lightweight linear projection on the 256 patch tokens `Linear(128, 5)` outputting logits of shape `[B, 5, 16, 16]`.
+
+### 5.3 Multi-Channel Box Rasterization Targets (Replacing Point Gaussian Splats)
+Because pattern walls can be $127 \times 32$ pixels wide, point-based Gaussian splats misrepresent their spatial footprint. Instead, in `crates/dodge-rl-env` (or vectorized PyTorch), rasterize the exact entity AABBs onto the $16 \times 16$ patch grid (each cell $(u, v)$ covers $[8u, 8u+8) \times [8v, 8v+8)$ in screen space) to produce binary target masks $Y_{\text{aux}} \in \{0, 1\}^{B \times 5 \times 16 \times 16}$:
+
+- **Channel 0 (`lethal_now`):** `1.0` if any currently lethal AABB (Enemy, Kamikaze, Explosion, Moving Rect, or Static Rect with $\text{sh} == 2$) overlaps patch $(u, v)$.
+- **Channel 1 (`lethal_soon`):** `1.0` if any charging Static Rect ($0 < \text{sh} < 2$) or warning line overlaps patch $(u, v)$.
+- **Channel 2 (`enemy_body`):** `1.0` if any Normal or Kamikaze enemy overlaps patch $(u, v)$ (helps the Student identify enemy-enemy collision opportunities for $+0.5$ score).
+- **Channel 3 (`powerup`):** `1.0` if any Powerup AABB overlaps patch $(u, v)$.
+- **Channel 4 (`player`):** `1.0` if the Player AABB overlaps patch $(u, v)$.
+
+### 5.4 Staged Distillation & Ablation Protocol
+To ensure every loss term pulls its weight:
+
+1. **Stage 2A (Baseline DAgger):** Train Student with pure Action KL loss:$L_{\text{action}} = D_{\text{KL}}\left(\pi_{\text{teacher}}(\cdot \mid s_{\text{priv}}) \;\parallel\; \pi_{\text{student}}(\cdot \mid o_{\text{vis}})\right)$
+2. **Stage 2B (+ Dense Box Rasterization Auxiliary Loss):** Add per-patch binary cross-entropy over the 5 semantic occupancy maps:$L_{\text{total}} = L_{\text{action}} + \lambda_{\text{aux}} \text{BCEWithLogits}( \hat{Y}_{\text{aux}}, Y_{\text{aux}} )$
+3. **Stage 2C (Controlled Ablations):** Test adding:
+  - **Latent Alignment:** $L_{\text{latent}} = \| z_{\text{student}} - \text{sg}(z_{\text{teacher}}) \|_2^2$
+  - **Attention Transfer:** Project Teacher entity attention $\alpha_{\text{teacher}, i}$ across all patches overlapped by Entity $i$'s AABB (normalized to sum to 1) and minimize $D_{\text{KL}}(M_{\text{box\_attn}} \parallel \alpha_{\text{student}})$.
+  - *Gate:* Only retain $L_{\text{latent}}$ or $L_{\text{attn}}$ in the final config if they measurably improve pure-visual score or survival over Stage 2B.
+4. **Stage 2.5 (Asymmetric PPO Fine-Tuning):** If a distillation gap remains, run on-policy PPO where the Visual Student is the Actor $\pi_\theta(a \mid o_{\text{vis}})$ and the frozen/fine-tuned Privileged Teacher Critic $V_\phi(s_{\text{priv}})$ supplies low-variance GAE advantages.
+
+## 6. Revised 7-Milestone Execution Plan
+
+### Milestone 0: Environment Setup, Baselines & Engine Profiling
+
+1. Update `devenv.nix` (or configure a `uv` virtual environment inside the `devenv` shell with `LD_LIBRARY_PATH` / CUDA wheel support for NixOS) to provide Python 3.11+, `maturin`, `pytest`, `numpy`, and `torch`.
+{
+  "M2_binding": {
+    "build_input_supplement": "milestone2-binding-build-input-supplement-r1.json",
+    "evidence_limitations": [
+      "Intermediate extension binaries from early develop builds were overwritten before independent binary hashes/archives were captured. Their source hashes and full build/test logs are retained; only final installed binary and matching wheel are archived."
+    ],
+    "extension_sha256": "967c7249acd52339d1818dcbe94e63ee734aea914c3497eb59a7e945a6e95583",
+    "long_campaigns_executed": true,
+    "pre_campaign_build_requirement": "completeinputpin+freshidentifiedbuild_afterreplaytemplateintegration;preserveoriginalbinary",
+    "preflight": "milestone2-binding-parent-preflight-r1.json",
+    "provenance_scope_resolution": "learning/runs/v2/milestone2-integration-r2/parent-verification.json",
+    "python_tests_passed": 68,
+    "rust_tests_passed": 76,
+    "source_manifest": "learning/runs/v2/milestone2-binding-r1/source-manifest.json",
+    "status": "accepted_complete_M2_runtime_on_pinned_r2"
+  },
+  "M2_core_acceptance": {
+    "API": "enemy_serials()->Option<&[EnemySerial]>;drawn_warning_lines()->borrowediterator",
+    "limitations": "Rust wrapper component accepted;PyO3 and full runtime campaigns pending;external Pemsa unrun",
+    "review": "milestone2_core_review_r1-result.json",
+    "source_manifest": "learning/runs/v2/milestone2-core-r1/source-manifest.json",
+    "status": "accepted",
+    "test_count": 86
+  },
+  "M2_design": {
+    "admission": "current_conservative_renderer_footprint_only_no_sticky_tracking",
+    "contract_sha256": "79e953f20487bb442888fe40cee5f43226ae2cfc7ef0b9ef0fc3a377db4e01aa",
+    "document": "docs/v2-environment-contract.md",
+    "motion_semantics": "measured_center_delta_v1_wrapper_owned_raw_history",
+    "no_implementation_started": false,
+    "observation_only_core_additions": [
+      "currently_drawn_warning_iterator",
+      "mutation_safe_enemy_birth_serials"
+    ],
+    "status": "pureRust_components_accepted;PyO3_next"
+  },
+  "M2_design_requirements": [
+    "explicit_terminal_pixel_pair_validity",
+    "render_derived_warning_visibility_not_timer_features",
+    "raw_frame_enemy_growth_without_index_aliasing",
+    "canonical_world_grid_no_double_camera_shift",
+    "point_explosion_halfopen_patch_assignment"
+  ],
+  "M2_validation": {
+    "acceptance_receipt": "milestone2-acceptance-r2.json",
+    "acceptance_receipt_sha256": "15384c4296dfd1e577746a896c0ef3c3d2de01400948155fc2daa766e8e0f006",
+    "campaign_not_started": false,
+    "campaign_started_at_utc": "2026-10-24T08:48:37.147149+00:00",
+    "capsule_manifest_sha256": "4ccfad09f2dc3a5c6a9625a269598a3bea4dc823e4fef6128760965ae192f1dd",
+    "identity": "learning/runs/v2/milestone2-campaign-freeze-r4/frozen-identity.json",
+    "identity_sha256": "eb72ae7efec29f6def72940715ad6ff09e43d09140f0c348f095bdbbf2727448",
+    "integration": "learning/runs/v2/milestone2-integration-r2",
+    "last_campaign_result": "learning/runs/v2/milestone2-validation-campaign-r2/campaign-result.json",
+    "last_campaign_result_sha256": "40e712a0ab7890e5952828d15735e558de214ad0f5f3d196c2e8910318836a3d",
+    "latest_progress": {
+      "elapsed_seconds": 561.5134818749502,
+      "observed_peak_RSS_bytes": 69976064,
+      "run_id": "v2-m2-validation-20261024-r2",
+      "status": "all_four_phases_passed;independent_audits_pending"
+    },
+    "latest_pure_tests_passed": 54,
+    "memory100k": "accepted_empirical_plateau100000calls101samples3014656bytegrowth",
+    "native_full_parity": "accepted_r2_2000episodes_10146614framesperpath",
+    "next_campaign_plan": "milestone2_validation_campaign_r2-plan.json",
+    "old_identity_preserved": "learning/runs/v2/milestone2-integration-r2/frozen-identity.json",
+    "pending_acceptance": [],
+    "pending_supervisor_repairs": [],
+    "prior_campaign_failure": "TypeError: argument 'excluded_seed_ranges': 'list' object cannot be cast as 'tuple'",
+    "receipt_audit": "accepted_independent_native_build_and_Python_audits",
+    "reconciled_build_receipt": "learning/runs/v2/milestone2-campaign-freeze-r4/reconciled-build-receipt.json",
+    "repair_receipt_audit": "learning/runs/v2/milestone2-supervisor-parent-audit-r1/audit.json",
+    "repair_receipt_audit_status": "accepted_with_original_control_source_label_caveat",
+    "retained_prior_attempt": "learning/runs/v2/milestone2-integration-r1",
+    "state_write_policy": "Atomic os.replace while campaign checks lease; no ordinary truncating ledger writes",
+    "status": "accepted_complete_M2_for_M3",
+    "supervisor_pure_tests": {
+      "new_passed": 37,
+      "old_control_expected_errors": 2,
+      "old_control_expected_failures": 10,
+      "original_passed": 9
+    },
+    "supervisor_repair_result": "learning/runs/v2/milestone2-supervisor-repair-r1/result.json",
+    "throughput": "accepted4paired_publicAPI_configurations"
+  },
+  "M2_wrapper": {
+    "PyO3": "accepted_code_and_runtime_r2",
+    "acceptance": "milestone2-wrapper-acceptance-r2.json",
+    "baseline_replay_frames_per_path": 69326,
+    "completed_parent_repairs": [
+      "aux_enemy_body_excludes_explosion"
+    ],
+    "current_source_sha256": {
+      "Cargo.lock": "4299c3d2e11b69abca390d5af7350abb5afcabd59f11c553f33049df201c7e4a",
+      "Cargo.toml": "7f837074b9d42f0531b2dd9268a0854a3fa2a98ffbafe8bba31789557feb154f",
+      "crates/dodge-rl-env/Cargo.toml": "0c1d5e13fe74f1b2fde903f6430e829c29d9ca3c8739f8367d9491c1e55f972d",
+      "crates/dodge-rl-env/src/config.rs": "a1b87f34294dae6962bb3a3dee36599d4627c86d641d7cedcc5f3d09814db682",
+      "crates/dodge-rl-env/src/env.rs": "edf65603636614a6c369d0030875d1cd595649cca1bc2b6a437752a9e8dfc339",
+      "crates/dodge-rl-env/src/features.rs": "78d72ee29fdcf2c0828e26d0a4265b50809f4c9899183332a4c48fb326dc006c",
+      "crates/dodge-rl-env/src/geometry.rs": "5b04907b9d87b336b685922ac0c7f235174e347e5a5308b1ebb1645c6014c171",
+      "crates/dodge-rl-env/src/lib.rs": "d12f7a3864d0cb0f6cdc1efbc85a4322c07cd622568951f17aaf46de43bcc29e",
+      "crates/dodge-rl-env/src/raster.rs": "a48c80a0a549e76e7e77bdd79ef2aa0b6171669d761770c6b33b3ea0921a6927",
+      "crates/dodge-rl-env/src/seed.rs": "7478aabe705fc538f806f7a14bc6ad6a9b08a77b1a3978ab5f238e2565b612eb",
+      "crates/dodge-rl-env/src/tests.rs": "832d091b775af081e6501973572ead94b27c1bd519ad0199ba75bdece63e8379",
+      "crates/dodge-rl-env/tests/primitives.rs": "588bc397427f992f8ddf75b8b2811f59bc4f570ea316876f55db30a6de4c80fd",
+      "crates/dodge-rl-env/tests/support/m0_expected.rs": "4615b8249f33640f70f8e38c47cd05fa3c437fa0dd4d497d904352e60ad4dc3f",
+      "crates/dodge-rl-env/tests/support/m0_policy.rs": "eeae605299b1018437a54df66f4eabf6e6d4defc20334c1baf93692900601b85",
+      "crates/dodge-rl-env/tests/support/wire_fixture.rs": "a25d4e7114fe76080e3051cb1391f2239089174aae2e849572ef819af28cd556"
+    },
+    "episode_review": "accepted_no_findings_frozen_r1",
+    "feature_review_r1": "no_findings_on_originalcapsule;missed_parentconfirmed_aux_bug;repairreview_required",
+    "full_1000_D2_D3_parity": "accepted_r2",
+    "memory100k": "accepted_empirical_plateau_r2",
+    "new_crate_tests_passed": 69,
+    "parent_source_findings": "milestone2-wrapper-parent-findings-r1.json",
+    "pending_parent_repairs": [],
+    "preflight": "milestone2-wrapper-parent-preflight-r1.json",
+    "receipt_audit": "passed_r1",
+    "repair": "learning/runs/v2/milestone2-wrapper-repair-r1/verification.json",
+    "repair_review": "accepted_no_findings_r2",
+    "replay_evidence_scope": "30episodes_r1_source_only;fullpostrepair1000D2D3pending",
+    "small_baseline_replay_episodes": 30,
+    "source_manifest": "learning/runs/v2/milestone2-wrapper-r1/source-manifest.json",
+    "status": "accepted_complete_M2_on_pinned_r2_campaign"
+  },
+  "M3_implementation": {
+    "D1": {
+      "D1_competence": true,
+      "audit": "learning/runs/v2/milestone3-D1-parent-audit-r1/audit.json",
+      "audit_sha256": "b0816410dbe1e6672ee44f0e339731b9342f932084e5eda13923967b690b3c08",
+      "candidate": "checkpoint-000009-candidate.pt",
+      "candidate_sha256": "ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f",
+      "caps": 57,
+      "config": "learning/runs/v2/milestone3-D1-freeze-r1/D1-config.json",
+      "config_sha256": "624c491ce59881e232ff25750a5a13e312b08bfdea39cc4c86bd17149a19f789",
+      "consumed_phase_wall_seconds": 554.3451906670234,
+      "deaths": 7,
+      "execution_result": "learning/runs/v2/milestone3-D1-execution-r1/result.json",
+      "execution_result_sha256": "2801905d8a1713a63cbc4a53ce6e8ead9b14e3239147f465aa7b9335cb19bbf0",
+      "identity": "learning/runs/v2/milestone3-D1-freeze-r1/D1-frozen-identity.json",
+      "identity_sha256": "7df70937ae7ced6f993277dae2d02f22c6ffee4a0ddfa0fcb26ef8388e6f1e63",
+      "mean_alive_frames": 1917.53125,
+      "mean_score": 12.109375,
+      "parent_checkpoint": "learning/runs/v2/milestone3-D1-curriculum-r1/checkpoint-000009-candidate.pt",
+      "parent_checkpoint_sha256": "aaafdaaef6c2e79acf7af025714f2d4f9113631743c7b80a7d4fa1b9724e374b",
+      "parent_terminal_receipt": {
+        "checkpoint_sha256": "ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f",
+        "config_sha256": "624c491ce59881e232ff25750a5a13e312b08bfdea39cc4c86bd17149a19f789",
+        "evaluation_sha256": "17b253b9d32e70b875bca8b496348e313568a82b3e8f431fa4a905bf720ccad7",
+        "identity_sha256": "7df70937ae7ced6f993277dae2d02f22c6ffee4a0ddfa0fcb26ef8388e6f1e63",
+        "phase": "D1",
+        "run_id": "v2-m3-D1-20261024-r1",
+        "run_result_sha256": "3475d2b86c935e219c4729a13f448330b2bb2c395617ed07381cb79c00a7aa18",
+        "supervisor_exit_code": 0
+      },
+      "phase_updates": 32,
+      "plan": "milestone3_D1_curriculum_r1-plan.json",
+      "preliminary_runner_result": {
+        "consumed_phase_wall_seconds": 554.3451906670234,
+        "mean_alive_frames": 1917.53125,
+        "mean_score": 12.109375,
+        "not_parent_accepted": true,
+        "phase_updates": 32,
+        "status": "passed;executor_postflight_pending",
+        "total_updates_including_pilot": 48
+      },
+      "run_id": "v2-m3-D1-20261024-r1",
+      "run_result": "learning/runs/v2/milestone3-D1-curriculum-r1/run-result.json",
+      "run_result_sha256": "3475d2b86c935e219c4729a13f448330b2bb2c395617ed07381cb79c00a7aa18",
+      "status": "accepted_D1_progress_only",
+      "supervisor_exit_code": 0,
+      "task_id": "node:delegated-task:command%3Amcp%3Addabe9aa-111f-44d8-8b93-9dcd3a4e910d%3Adelegate-task%3Adodge-v2-m3-D1-curriculum-codex-20261024-r1-fullaccess",
+      "total_optimizer_steps": 6144,
+      "total_updates": 48
+    },
+    "D2": {
+      "all_artifacts_transition_ineligible": true,
+      "audit": "learning/runs/v2/milestone3-D2-parent-audit-r1/audit.json",
+      "audit_sha256": "08a0d4e409ef7a857fc3aa2be0722e46b7871f38921f169152cd63cf45d35cea",
+      "config": "learning/runs/v2/milestone3-D2-freeze-r1/D2-config.json",
+      "config_sha256": "2d8eb5626d0debdf5416d0b89610d78ddd56011c3238a82fec72efabe1bd7fe3",
+      "consumed_phase_wall_seconds": 1800.439149916987,
+      "diagnosis": {
+        "no_defect_proven": true,
+        "receipt": "learning/runs/v2/milestone3-D2-plateau-diagnosis-r1/parent-reconciliation.json",
+        "sha256": "8c9542cc95e743bbce05be915eb3e6c2ca1a2c2359020e3dfabf793294e0351f",
+        "status": "Opusreceived_parentqualified"
+      },
+      "execution_result": "learning/runs/v2/milestone3-D2-execution-r1/result.json",
+      "execution_result_sha256": "a07005def4bcf0b3bc75dd97731d2b04ead87a344528758f6af2160b37e11c59",
+      "failure_checkpoint": "checkpoint-000024-interrupted_mid_update.pt",
+      "failure_checkpoint_sha256": "bc0bb18106d52ca2e133fc6123263779660a4324c031b2b4ca5ad3b0741ae194",
+      "failure_checkpoint_tag": "interrupted_mid_update",
+      "failure_update_progress": {
+        "complete": false,
+        "epoch": 2,
+        "epochs_completed": 2,
+        "in_update": true,
+        "minibatch": 5,
+        "optimizer_steps": 69,
+        "phase": "optimization",
+        "state": "in_update"
+      },
+      "identity": "learning/runs/v2/milestone3-D2-freeze-r1/D2-frozen-identity.json",
+      "identity_sha256": "56dcf1ba848c2e2acdca967ce8ed5bca9457551659421a9070c2f7c5ba2bc14f",
+      "last_complete_evaluation": {
+        "caps": 0,
+        "certificate_sha256": "e1de9ef4e0481224277217822c932136ae6494dad9e077c1e01ae55a7d79c942",
+        "checkpoint": "checkpoint-000022-candidate.pt",
+        "checkpoint_sha256": "2d598e1973ded1748ec18d59ed11abe524b2f2a9d68c8796d105266a31d4e8b6",
+        "deaths": 64,
+        "elapsed_seconds": 8.18450449994998,
+        "episodes": 64,
+        "mean_alive_frames": 1148.78125,
+        "mean_score": 8.9140625,
+        "passed": false,
+        "phase_updates": 96
+      },
+      "latest_complete_evaluation": {
+        "caps": 0,
+        "certificate_sha256": "e1de9ef4e0481224277217822c932136ae6494dad9e077c1e01ae55a7d79c942",
+        "checkpoint": "checkpoint-000022-candidate.pt",
+        "checkpoint_sha256": "2d598e1973ded1748ec18d59ed11abe524b2f2a9d68c8796d105266a31d4e8b6",
+        "deaths": 64,
+        "elapsed_seconds": 8.18450449994998,
+        "episodes": 64,
+        "mean_alive_frames": 1148.78125,
+        "mean_score": 8.9140625,
+        "passed": false,
+        "phase_updates": 96
+      },
+      "maximum_MPS_driver_bytes": 2456387584,
+      "maximum_observed_RSS_bytes": 952745984,
+      "new_complete_optimizer_steps": 13248,
+      "new_complete_updates": 104,
+      "paired_action_mode_diagnostic": {
+        "acceptance": "learning/runs/v2-orchestration/postovernight-action-mode-acceptance-r1.json",
+        "acceptance_sha256": "a652206e1885216325b64b5fd1bf2e98dd26a94a28cd44c6af24a09cd570d70b",
+        "all_material_margin_verdicts": "mixed_or_inconclusive",
+        "latest_complete_phase104_diagnostic_argmax_mean_alive_frames": 1341.578125,
+        "latest_complete_phase104_diagnostic_argmax_mean_score": 10.515625,
+        "report": "docs/v2-action-mode-results-2026-10-24.md",
+        "training_result_or_eligibility_changed": false
+      },
+      "parent_checkpoint_sha256": "ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f",
+      "partial_optimizer_steps": 69,
+      "plan": "milestone3_D2_curriculum_r1-plan.json",
+      "post_overnight_diagnosis": {
+        "receipt": "learning/runs/v2-orchestration/postovernight-transfer-diagnosis-opus-r1-parent-reconciliation.json",
+        "sha256": "17a63c99d7d1066d441c78aa77e1bbe8effa7792e6ae591155da6fd0c4d2d949",
+        "status": "retained_facts_and_hypotheses_with_corrections;nextdiagnostic_proposed_only"
+      },
+      "progress_gate_passed": false,
+      "retained_checkpoints": 15,
+      "run_id": "v2-m3-D2-20261024-r1",
+      "run_result": "learning/runs/v2/milestone3-D2-curriculum-r1/run-result.json",
+      "run_result_sha256": "3b726c8c522e8c44b5d4827abe6b176defc5e4f5653e0e883091eb1e3a9e2250",
+      "status": "failed_wall_guard_independently_audited;no_retry_resume_or_advancement",
+      "supervisor_exit_code": 1,
+      "task_id": "node:delegated-task:command%3Amcp%3Addabe9aa-111f-44d8-8b93-9dcd3a4e910d%3Adelegate-task%3Adodge-v2-m3-D2-curriculum-codex-20261024-r1-fullaccess",
+      "total_actual_optimizer_steps": 19461,
+      "total_complete_updates": 152
+    },
+    "D3": {
+      "reason": "currentUTCpast12:20;no_budget_shortening",
+      "status": "not_started;full1800+600budget_no_longer_fits_cutoff"
+    },
+    "PPO_component": "accepted_frozen_static_review_no_findings;44syntheticCPUtests",
+    "combined_python_tests_passed": 312,
+    "completed_runtime_repairs": [
+      "cancellation_must_cleanup_exact_owned_worker_even_BaseException_and_SIGTERM",
+      "interrupted_update_resume_must_not_make_candidate_without_complete_update_or_reject_resume",
+      "phase_resume_must_anchor_consumption_after_checkpoint_to_parent_high_water_terminal_receipt",
+      "nonfinite_probe_failure_must_stop_whole_probe",
+      "candidate_certificates_must_require_successful_terminal_source_run_and_parent_owned_transition_anchor"
+    ],
+    "component_contract": "docs/v2-m3-component-contract.md",
+    "component_contract_sha256": "a1051d82527a9aec1f7967ff8ab217c30263240e032991aeff7b993fd975ba47",
+    "contract_revision": 2,
+    "device_probe": {
+      "audit": "learning/runs/v2/milestone3-probe-parent-audit-r1/audit.json",
+      "audit_sha256": "215f9c7b57109a5d293c6cfa8e520b5f76e68156cda8a93a8808a36e39641ee7",
+      "consumed_phase_wall_seconds": 60.071293292043265,
+      "execution_result": "learning/runs/v2/milestone3-probe-execution-r1/result.json",
+      "execution_result_sha256": "85d7d3b0be8905983ec95acbba3e717f02538cb2cb68bc71683b0a807abc6302",
+      "identity_sha256": "82ad7e95ed3b1a780a826b44d603e2ef2cecc5c1e4057f6ceec4e0ebc3b92267",
+      "maximum_MPS_driver_bytes": 2348630016,
+      "maximum_observed_RSS_bytes": 1764065280,
+      "plan": "milestone3_device_probe_r1-plan.json",
+      "planned_budget_seconds": 180,
+      "receipt_reserve_seconds": 600,
+      "run_id": "v2-m3-probe-20261024-r1",
+      "run_result": "learning/runs/v2/milestone3-device-probe-r1/run-result.json",
+      "run_result_sha256": "68362c98b1ce9291c2bbc39b950da7804b58086d463f0faf0532dd0d7fc6c058",
+      "selected_device": "mps",
+      "selected_device_pending_audit": "mps",
+      "status": "accepted_independent_audit_passed",
+      "supervisor_exit_code": 0,
+      "task_id": "node:delegated-task:command%3Amcp%3Addabe9aa-111f-44d8-8b93-9dcd3a4e910d%3Adelegate-task%3Adodge-v2-m3-device-probe-codex-20261024-r1-fullaccess"
+    },
+    "frozen_identity": "learning/runs/v2/milestone3-integration-r3/probe-frozen-identity.json",
+    "frozen_identity_sha256": "82ad7e95ed3b1a780a826b44d603e2ef2cecc5c1e4057f6ceec4e0ebc3b92267",
+    "integration": "learning/runs/v2/milestone3-integration-r3",
+    "integration_smoke": {
+      "caps": 6,
+      "observed_peak_RSS_bytes": 216743936,
+      "raw_frames": 110,
+      "receipt": "learning/runs/v2/milestone3-real-collector-smoke-r1/result.json",
+      "receipt_sha256": "122d66af8c41964febfe3580101451dd8b881ab3f985d51cf3f9912cfee183cf",
+      "source_pins": {
+        "python/dodge_rl/__init__.py": "2bf56a8151b512d78a228d604fdac67c529c8ebfd3fa233c71c2dd4f882b44dc",
+        "python/dodge_rl/models/__init__.py": "b28b2623443e31d9e9cb81350f89e9fb7d285abe3e2a74c007be8e4cfff432dc",
+        "python/dodge_rl/models/teacher.py": "e4d7f597a2824c2b0d4ba261dddc9d7d1ee1d5592c2fc966a44c54b5ec417e35",
+        "python/dodge_rl/ppo.py": "533055b0832b87f3eccd6d005437583c074b525fc5f1d002e0e84e06b4239a58"
+      },
+      "status": "passed_no_optimizer_updates",
+      "transitions": 32
+    },
+    "pending_runtime_repairs": [],
+    "pilot": {
+      "D1_competence": false,
+      "audit": "learning/runs/v2/milestone3-pilot-parent-audit-r1/audit.json",
+      "audit_sha256": "2fd6052627cb623a6ab5a8784875da9c077664c71430f029df0bee392f426884",
+      "candidate": "checkpoint-000004-candidate.pt",
+      "candidate_sha256": "aaafdaaef6c2e79acf7af025714f2d4f9113631743c7b80a7d4fa1b9724e374b",
+      "completed_updates": 16,
+      "config": "learning/runs/v2/milestone3-pilot-freeze-r1/pilot-config.json",
+      "config_sha256": "0c987279795ff2618592dc46fbab723a4341fce290df718475897494f56d19e4",
+      "consumed_phase_wall_seconds": 276.3868367500254,
+      "device": "mps",
+      "execution_result": "learning/runs/v2/milestone3-pilot-execution-r1/result.json",
+      "execution_result_sha256": "2c5c0f21b62adf1cc2edda53d398981dab47773856befac977f9d2e79ee6bec4",
+      "fresh_initialization": true,
+      "identity": "learning/runs/v2/milestone3-pilot-freeze-r1/pilot-frozen-identity.json",
+      "identity_sha256": "7d59a77c389abcaa91481be8cd8dd7d1154f29f2544f70badc06c706db543379",
+      "means": {
+        "after": {
+          "mean_alive_frames": 990.296875,
+          "mean_score": 3.921875
+        },
+        "before": {
+          "mean_alive_frames": 223.140625,
+          "mean_score": 0.03125
+        }
+      },
+      "optimizer_steps": 2048,
+      "parent_checkpoint": "learning/runs/v2/milestone3-D1-pilot-r1/checkpoint-000004-candidate.pt",
+      "parent_terminal_receipt": {
+        "checkpoint_sha256": "aaafdaaef6c2e79acf7af025714f2d4f9113631743c7b80a7d4fa1b9724e374b",
+        "config_sha256": "0c987279795ff2618592dc46fbab723a4341fce290df718475897494f56d19e4",
+        "evaluation_sha256": "2248edcec6bcf74f92a6351978ad6b4444c7a79e3a24733afb086e9f574b5231",
+        "identity_sha256": "7d59a77c389abcaa91481be8cd8dd7d1154f29f2544f70badc06c706db543379",
+        "phase": "pilot",
+        "run_id": "v2-m3-pilot-20261024-r1",
+        "run_result_sha256": "0c46eefe7b5c7b5f90c44a9fe270998091c195c2fe6f17745c83ae5e73e8fd2c",
+        "supervisor_exit_code": 0
+      },
+      "plan": "milestone3_D1_pilot_r1-plan.json",
+      "probe_weights_inherited": false,
+      "run_id": "v2-m3-pilot-20261024-r1",
+      "run_result": "learning/runs/v2/milestone3-D1-pilot-r1/run-result.json",
+      "run_result_sha256": "0c46eefe7b5c7b5f90c44a9fe270998091c195c2fe6f17745c83ae5e73e8fd2c",
+      "status": "accepted_pilot_improvement_only",
+      "supervisor_exit_code": 0,
+      "task_id": "node:delegated-task:command%3Amcp%3Addabe9aa-111f-44d8-8b93-9dcd3a4e910d%3Adelegate-task%3Adodge-v2-m3-D1-pilot-codex-20261024-r1-fullaccess"
+    },
+    "plan": "learning/runs/v2/milestone3-component-plan-r1/plan.json",
+    "prepared_probe_plan_status": "replaced_by_reviewed_r3_device_probe_plan",
+    "probe_completed": true,
+    "probe_started": true,
+    "raw_probe_config_sha256": "aa14a822cd8d1cd559d385501c65a93ad828897f1125d071bb90f2d9f06b28b5",
+    "run_protocol": "docs/v2-m3-run-protocol.json",
+    "run_protocol_sha256": "9e0d82028011f83e0cf6ddaef5f5e118591158d8a557f6698c82c150d5a69bab",
+    "runtime_acceptance": "milestone3-runtime-acceptance-r3.json",
+    "runtime_capsule": "learning/.cache/v2-m3-runtime-review-r3",
+    "runtime_capsule_manifest_sha256": "86b5477f5e6811c81ecc87f8f4f48129c74ae8a888e80b12aa0f57ca2ff3d431",
+    "runtime_repair_cpu_tests_passed": 94,
+    "runtime_repair_receipt_audit": "learning/runs/v2/milestone3-runtime-repair-parent-audit-r1/audit.json",
+    "runtime_repair_receipt_audit_sha256": "2783e4ad210b5b9a7f78e5f6dad3617302cf173c9a087a480a04bc5f29b81b9c",
+    "runtime_repairs_source_reconciled": true,
+    "same_phase_resume": "disabled_fail_closed;parent_terminal_receipt_anchoring_unimplemented",
+    "status": "overnight_closed;D1progress_accepted;D2failed_audited;teacher_unqualified",
+    "student_work": false,
+    "teacher_component": "accepted_frozen_static_review_no_findings;20syntheticCPUtests",
+    "teacher_qualified": false,
+    "terminal_eligibility_design": "Opusaccepted_with_raw_vs_semantic_identity_and_finalization_signal_qualifications",
+    "terminal_eligibility_reproduction": {
+      "cases": 4,
+      "receipt": "learning/runs/v2/milestone3-terminal-eligibility-reproduction-r1/reproduction-result.json",
+      "scope": "synthetic_no_optimizer_updates_or_game_rollouts",
+      "sha256": "b5b9abefae947a1c162d66951aadb5c876675e5debe248288066aa486dffe785"
+    },
+    "terminal_repair_cpu_tests_passed": 180,
+    "terminal_repair_provenance_caveat": "The full test source for the initial failing runtime-controls-attempt1 fixture was hash-recorded but not archived. Its failure trace and hash remain retained. Production bytes are equal across that fixture correction; final corrected test and all negative-control test versions are independently byte-verified. Do not describe the initial fixture correction itself as exact byte-audited.",
+    "terminal_repair_receipt_audit": "learning/runs/v2/milestone3-terminal-eligibility-parent-audit-r1/audit.json",
+    "terminal_repair_receipt_audit_sha256": "c9de65869824402e6e9df4e65e19c785d86b31ca057f179f567f9fa91a788e6d",
+    "terminal_repair_source_reconciled": true,
+    "trainer": "accepted_final312testintegration_and_frozen_r3_reviews;learning_gate_separate",
+    "training_started": true
+  },
+  "M3_phase_budget_usage": {
+    "D1": {
+      "automatic_retry_permitted": false,
+      "budget_seconds": 1800,
+      "consumed_phase_wall_seconds": 554.3451906670234,
+      "run_id": "v2-m3-D1-20261024-r1",
+      "status": "accepted_complete_no_retry",
+      "supervisor_exit_code": 0
+    },
+    "D2": {
+      "automatic_retry_permitted": false,
+      "budget_seconds": 1800,
+      "consumed_phase_wall_seconds": 1800.439149916987,
+      "run_id": "v2-m3-D2-20261024-r1",
+      "status": "failed_wallguard_budget_consumed;no_retry_or_resume",
+      "supervisor_exit_code": 1
+    },
+    "pilot": {
+      "automatic_retry_permitted": false,
+      "budget_seconds": 300,
+      "consumed_phase_wall_seconds": 276.3868367500254,
+      "run_id": "v2-m3-pilot-20261024-r1",
+      "status": "accepted_complete_no_retry",
+      "supervisor_exit_code": 0
+    },
+    "probe": {
+      "automatic_retry_permitted": false,
+      "budget_seconds": 180,
+      "consumed_phase_wall_seconds": 60.071293292043265,
+      "run_id": "v2-m3-probe-20261024-r1",
+      "status": "accepted_complete_no_retry",
+      "supervisor_exit_code": 0
+    }
+  },
+  "active_long_campaign": null,
+  "active_native_design": "completed read-only /root/v2_m2_contract_design with parent correction of negative-enemy visual claim",
+  "audits": {
+    "geometry": {
+      "findings": [
+        "point_player_gap_math",
+        "zero_size_explosion_remains_lethal",
+        "zero_area_rect_filter_requires_source_specific_rule",
+        "velocity_estimate_not_exact_historical_center_delta",
+        "pattern17_smooth_resize_absent_at_pin",
+        "slab_contact_distinct_from_strict_overlap",
+        "visibility_not_proven_by_nonbackground_pixels"
+      ],
+      "record": "docs/v2-source-audit.md",
+      "source": "d7ad951",
+      "status": "completed_read_only"
+    }
+  },
+  "authority": "docs/SPEC_PRIVILEGED_VIT_RL.md",
+  "authorized_by": [
+    "Continue this loop overnight, I am heading to sleep",
+    "I am still heading to sleep so once you are ready go ahead and send it"
+  ],
+  "baseline_campaign_plan": {
+    "action_repeat": 4,
+    "audit": "learning/runs/v2/milestone0-audit-tool/full-audit-r3.json",
+    "completed_at_utc": "2026-10-24T06:16:42.902761+00:00",
+    "difficulty": 2,
+    "document": "docs/v2-baseline-campaign.md",
+    "episodes_per_policy": 1000,
+    "exec_session_id": 54993,
+    "max_seconds": 3600,
+    "output_dir": "/Users/taylor/.t3/worktrees/dodge-native/t3-5d7162c0/target/v2-m0-baselines-r2",
+    "parent_gate_at_utc": "2026-10-24T06:13:36.517936+00:00",
+    "parent_mirror": "learning/runs/v2/milestone0-campaign-r2/native-results/copy-manifest.json",
+    "patterns": true,
+    "powerups": true,
+    "raw_frame_cap": 18000,
+    "results_document": "docs/v2-baseline-results.md",
+    "review_receipt": "native-fallback-review-results.json",
+    "seed_base": 2952790016,
+    "started_at_utc": "2026-10-24T06:13:36+00:00",
+    "status": "accepted_audited_D2",
+    "supervisor": "learning/scripts/v2_run_m0_campaign.py",
+    "supervisor_receipt": "learning/runs/v2/milestone0-campaign-r2/supervisor.json"
+  },
+  "capacity_decision": {
+    "censoring": "15of1000heuristic_episodes_capped_at18000rawframes",
+    "enemy_slots": 64,
+    "max_observed_raw_active_rects": 16,
+    "max_observed_raw_enemy_family": 18,
+    "observed_by_config": {
+      "D1_sanity": {
+        "active_rects": 0,
+        "enemy_family": 18
+      },
+      "D2": {
+        "active_rects": 16,
+        "enemy_family": 15
+      },
+      "D3": {
+        "active_rects": 16,
+        "enemy_family": 15
+      }
+    },
+    "observed_overflow_frames": 0,
+    "rationale": "retain_spec64+16headroom;D2andD3all39patterns;D1shows18enemies;overflowguardsremain",

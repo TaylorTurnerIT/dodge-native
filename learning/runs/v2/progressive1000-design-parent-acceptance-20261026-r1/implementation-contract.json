@@ -1,0 +1,15 @@
+{
+  "schema": "progressive1000_native_collector_boundary_v1",
+  "python_method": "truncate_practice(indices, horizons)",
+  "inputs": "Equal-length integer sequences; unique slots; whole request validated before mutation. Only alive/non-ended slots exactly at requested positive1000-multiple horizon below ordinarycap; action_repeat4; reject misalignment/overshoot.",
+  "output": "Owned EpisodeInfo list in request order, identical schema to episode_info, selected truncated=true terminated=false.",
+  "invariants": [
+    "No stepping, timer jump, reward/death penalty, counter/seed/history/observation mutation except selected truncated flag.",
+    "Collector excludes true-death and ordinarycap slots; reconciles returned info and selected step truncated mask before audit/storage/final-value/reset.",
+    "Original step final observation/rewards/raw counts remain unchanged.",
+    "One normal reset_done on all ended slots increments each episode index once.",
+    "H18000 uses ordinary cap without practice method.",
+    "Both arms share successor native/runtime; disabled cutoff parity required."
+  ],
+  "training_authority": false
+}

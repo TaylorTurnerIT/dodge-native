@@ -1,0 +1,33 @@
+{
+  "live_source_matches_snapshot": true,
+  "manifest_sha256": "6ba198d7c45b086cc0a45d966dbb460b1a5a4d7d52c35c058bfc62b392e3f2ec",
+  "parent_reconciliation": [
+    {
+      "disposition": "rejected_intentional_budget_enforcement",
+      "evidence": "teacher_onset_ablation.py:576-619",
+      "finding": "Trailing arm deadline check rejects an otherwise completed arm at or beyond deadline.",
+      "reason": "The declared arm wall-time cap includes model evaluation and source-identity verification. Per-operation checks cannot enforce time spent between calls. Completion after the cap is not a valid capped comparison. Checkpoints and fit receipts are written before this check; exception handling retains the in-memory metrics in partial-run.json. No source change."
+    }
+  ],
+  "review": {
+    "childNodeId": "node:delegated-task:command%3Amcp%3Addabe9aa-111f-44d8-8b93-9dcd3a4e910d%3Adelegate-task%3Adodge-teacher-onset-beam-20261024-r2-fullaccess",
+    "childRunId": "run:thread:thread%3Adelegated-task%3Acommand%253Amcp%253Addabe9aa-111f-44d8-8b93-9dcd3a4e910d%253Adelegate-task%253Adodge-teacher-onset-beam-20261024-r2-fullaccess:ordinal:1",
+    "childThreadId": "thread:delegated-task:command%3Amcp%3Addabe9aa-111f-44d8-8b93-9dcd3a4e910d%3Adelegate-task%3Adodge-teacher-onset-beam-20261024-r2-fullaccess",
+    "hasPendingChildRuns": false,
+    "hasPendingQuestion": false,
+    "latestTerminalResultContextTransferId": "context-transfer:type:subagent_result:source-thread:thread%3Adelegated-task%3Acommand%253Amcp%253Addabe9aa-111f-44d8-8b93-9dcd3a4e910d%253Adelegate-task%253Adodge-teacher-onset-beam-20261024-r2-fullaccess:target-thread:518b8c2d-01fb-4f39-acc3-f2d9f1f35c4e:d8f15435-1905-44c9-8938-0136e94bdc40",
+    "latestTerminalRunId": "run:thread:thread%3Adelegated-task%3Acommand%253Amcp%253Addabe9aa-111f-44d8-8b93-9dcd3a4e910d%253Adelegate-task%253Adodge-teacher-onset-beam-20261024-r2-fullaccess:ordinal:1",
+    "latestTerminalStatus": "completed",
+    "latestTerminalSummary": "One concrete defect:\n\n**`learning/.cache/teacher-onset-review-r2/learning/python/dodge_learning/teacher_onset_ablation.py:596`** \u2014 redundant `_expired(arm_deadline, clock)` after all arm work. Every sub-operation (`fit_arm`, `subset_metrics`, `greedy_smoke`) already enforces `arm_deadline` internally. This trailing check uses `>=`, so an arm that completes all required work but finishes exactly at (or a few microseconds past) the deadline raises `AblationTimeout`, writes `failure.json`, and discards a successful matched-budget arm. Failure scenario: a valid onset run whose gameplay/smoke finishes at the 300s boundary is reported as failed despite `epochs_completed == config.epochs` and complete metrics, corrupting the matched comparison. Fix: remove the redundant line (or guard it so completed arms are not failed).\n\nNo other substantial defects found across the reviewed categories.",
+    "model": "opencode/beam-free",
+    "providerInstanceId": "opencode",
+    "resultContextTransferId": "context-transfer:type:subagent_result:source-thread:thread%3Adelegated-task%3Acommand%253Amcp%253Addabe9aa-111f-44d8-8b93-9dcd3a4e910d%253Adelegate-task%253Adodge-teacher-onset-beam-20261024-r2-fullaccess:target-thread:518b8c2d-01fb-4f39-acc3-f2d9f1f35c4e:d8f15435-1905-44c9-8938-0136e94bdc40",
+    "status": "completed",
+    "summary": "One concrete defect:\n\n**`learning/.cache/teacher-onset-review-r2/learning/python/dodge_learning/teacher_onset_ablation.py:596`** \u2014 redundant `_expired(arm_deadline, clock)` after all arm work. Every sub-operation (`fit_arm`, `subset_metrics`, `greedy_smoke`) already enforces `arm_deadline` internally. This trailing check uses `>=`, so an arm that completes all required work but finishes exactly at (or a few microseconds past) the deadline raises `AblationTimeout`, writes `failure.json`, and discards a successful matched-budget arm. Failure scenario: a valid onset run whose gameplay/smoke finishes at the 300s boundary is reported as failed despite `epochs_completed == config.epochs` and complete metrics, corrupting the matched comparison. Fix: remove the redundant line (or guard it so completed arms are not failed).\n\nNo other substantial defects found across the reviewed categories.",
+    "taskId": "node:delegated-task:command%3Amcp%3Addabe9aa-111f-44d8-8b93-9dcd3a4e910d%3Adelegate-task%3Adodge-teacher-onset-beam-20261024-r2-fullaccess",
+    "waitTimedOut": false,
+    "workState": "result_available"
+  },
+  "snapshot": "learning/.cache/teacher-onset-review-r2",
+  "status": "reconciled_no_accepted_findings"
+}

@@ -1,0 +1,145 @@
+EXECUTED_SOURCE supervision /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m3-runtime-review-r1/python/dodge_rl/supervision.py c5f893c3da5c857649679ade6c70075dc80185d5aab6848bd1fee4f87cf87fae
+EXECUTED_SOURCE checkpoints /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m3-runtime-review-r1/python/dodge_rl/checkpoints.py 42bc64deff28ebdaf7b90c4716575c69071bdb7b78525953a2485cdf8fcb4db3
+EXECUTED_SOURCE train_teacher /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m3-runtime-review-r1/python/dodge_rl/train_teacher.py 6366545bcfcc246c8c0fcd6bb9bf4711d48307fe9fec4480d735ef909fb68708
+FFFFFFFFFFFFFFFFF.FF                                                     [100%]
+=================================== FAILURES ===================================
+__ test_supervisor_baseexception_keeps_receipt_and_reaps_owned_worker[error0] __
+python/tests/test_runtime_repair.py:82: in test_supervisor_baseexception_keeps_receipt_and_reaps_owned_worker
+    assert escaped is None, f"Cancellation escaped before owned-worker cleanup: {escaped!r}"
+E   AssertionError: Cancellation escaped before owned-worker cleanup: KeyboardInterrupt('cancelled')
+E   assert KeyboardInterrupt('cancelled') is None
+__ test_supervisor_baseexception_keeps_receipt_and_reaps_owned_worker[error1] __
+python/tests/test_runtime_repair.py:82: in test_supervisor_baseexception_keeps_receipt_and_reaps_owned_worker
+    assert escaped is None, f"Cancellation escaped before owned-worker cleanup: {escaped!r}"
+E   AssertionError: Cancellation escaped before owned-worker cleanup: SystemExit(17)
+E   assert SystemExit(17) is None
+__ test_supervisor_baseexception_keeps_receipt_and_reaps_owned_worker[error2] __
+python/tests/test_runtime_repair.py:82: in test_supervisor_baseexception_keeps_receipt_and_reaps_owned_worker
+    assert escaped is None, f"Cancellation escaped before owned-worker cleanup: {escaped!r}"
+E   AssertionError: Cancellation escaped before owned-worker cleanup: BaseException('abort')
+E   assert BaseException('abort') is None
+__ test_supervisor_real_sigterm_checkpoints_worker_and_keeps_terminal_receipt __
+python/tests/test_runtime_repair.py:157: in test_supervisor_real_sigterm_checkpoints_worker_and_keeps_terminal_receipt
+    assert process.returncode == 1, output
+E   AssertionError: EXECUTED_SOURCE supervision /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m3-runtime-review-r1/python/dodge_rl/supervision.py c5f893c3da5c857649679ade6c70075dc80185d5aab6848bd1fee4f87cf87fae
+E     EXECUTED_SOURCE checkpoints /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m3-runtime-review-r1/python/dodge_rl/checkpoints.py 42bc64deff28ebdaf7b90c4716575c69071bdb7b78525953a2485cdf8fcb4db3
+E     EXECUTED_SOURCE train_teacher /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m3-runtime-review-r1/python/dodge_rl/train_teacher.py 6366545bcfcc246c8c0fcd6bb9bf4711d48307fe9fec4480d735ef909fb68708
+E     
+E   assert -15 == 1
+E    +  where -15 = <Popen: returncode: -15 args: ['/Users/taylor/.t3/worktrees/dodge-native/t3-...>.returncode
+___ test_worker_cancellation_attempts_tagged_diagnostic_checkpoint[SIGTERM] ____
+python/tests/test_runtime_repair.py:214: in test_worker_cancellation_attempts_tagged_diagnostic_checkpoint
+    assert result.returncode == 1, result.stdout + result.stderr
+E   AssertionError: EXECUTED_SOURCE supervision /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m3-runtime-review-r1/python/dodge_rl/supervision.py c5f893c3da5c857649679ade6c70075dc80185d5aab6848bd1fee4f87cf87fae
+E     EXECUTED_SOURCE checkpoints /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m3-runtime-review-r1/python/dodge_rl/checkpoints.py 42bc64deff28ebdaf7b90c4716575c69071bdb7b78525953a2485cdf8fcb4db3
+E     EXECUTED_SOURCE train_teacher /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m3-runtime-review-r1/python/dodge_rl/train_teacher.py 6366545bcfcc246c8c0fcd6bb9bf4711d48307fe9fec4480d735ef909fb68708
+E     
+E   assert -15 == 1
+E    +  where -15 = CompletedProcess(args=['/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python', '-B', '/Users/t...iew-r1/python/dodge_rl/train_teacher.py 6366545bcfcc246c8c0fcd6bb9bf4711d48307fe9fec4480d735ef909fb68708\n', stderr='').returncode
+_ test_worker_cancellation_attempts_tagged_diagnostic_checkpoint[KeyboardInterrupt] _
+python/tests/test_runtime_repair.py:214: in test_worker_cancellation_attempts_tagged_diagnostic_checkpoint
+    assert result.returncode == 1, result.stdout + result.stderr
+E   AssertionError: EXECUTED_SOURCE supervision /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m3-runtime-review-r1/python/dodge_rl/supervision.py c5f893c3da5c857649679ade6c70075dc80185d5aab6848bd1fee4f87cf87fae
+E     EXECUTED_SOURCE checkpoints /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m3-runtime-review-r1/python/dodge_rl/checkpoints.py 42bc64deff28ebdaf7b90c4716575c69071bdb7b78525953a2485cdf8fcb4db3
+E     EXECUTED_SOURCE train_teacher /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m3-runtime-review-r1/python/dodge_rl/train_teacher.py 6366545bcfcc246c8c0fcd6bb9bf4711d48307fe9fec4480d735ef909fb68708
+E     Traceback (most recent call last):
+E       File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone3-runtime-repair-r1/frozen-r1-negative/fixtures/test_worker_cancellation_attem1/worker.py", line 39, in <module>
+E         raise SystemExit(t.worker(args))
+E                          ^^^^^^^^^^^^^^
+E       File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m3-runtime-review-r1/python/dodge_rl/train_teacher.py", line 449, in worker
+E         result = experiment.pilot()
+E                  ^^^^^^^^^^^^^^^^^^
+E       File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone3-runtime-repair-r1/frozen-r1-negative/fixtures/test_worker_cancellation_attem1/worker.py", line 28, in pilot
+E         raise KeyboardInterrupt('cancelled')
+E     KeyboardInterrupt: cancelled
+E     
+E   assert -2 == 1
+E    +  where -2 = CompletedProcess(args=['/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python', '-B', '/Users/t...tion_attem1/worker.py", line 28, in pilot\n    raise KeyboardInterrupt(\'cancelled\')\nKeyboardInterrupt: cancelled\n').returncode
+_ test_interrupted_resume_rejects_before_stage_entry_candidate[interrupted_mid_update-progress0] _
+python/tests/test_runtime_repair.py:258: in test_interrupted_resume_rejects_before_stage_entry_candidate
+    assert rejected is not None, f"Partially updated learner reached stage candidate: {candidates}"
+E   AssertionError: Partially updated learner reached stage candidate: ['candidate']
+E   assert None is not None
+_ test_interrupted_resume_rejects_before_stage_entry_candidate[periodic-progress1] _
+python/tests/test_runtime_repair.py:258: in test_interrupted_resume_rejects_before_stage_entry_candidate
+    assert rejected is not None, f"Partially updated learner reached stage candidate: {candidates}"
+E   AssertionError: Partially updated learner reached stage candidate: ['candidate']
+E   assert None is not None
+__________ test_restore_partial_update_refuses_before_model_mutation ___________
+python/tests/test_runtime_repair.py:276: in test_restore_partial_update_refuses_before_model_mutation
+    assert rejected is not None, "Interrupted update restored into a live learner"
+E   AssertionError: Interrupted update restored into a live learner
+E   assert None is not None
+_______ test_checkpoint_time_cannot_grant_same_phase_resume_allowance[0] _______
+python/tests/test_runtime_repair.py:284: in test_checkpoint_time_cannot_grant_same_phase_resume_allowance
+    with pytest.raises(ValueError, match="Same-phase resume disabled"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+_____ test_checkpoint_time_cannot_grant_same_phase_resume_allowance[1600] ______
+python/tests/test_runtime_repair.py:284: in test_checkpoint_time_cannot_grant_same_phase_resume_allowance
+    with pytest.raises(ValueError, match="Same-phase resume disabled"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+____ test_checkpoint_time_cannot_grant_same_phase_resume_allowance[1799.9] _____
+python/tests/test_runtime_repair.py:284: in test_checkpoint_time_cannot_grant_same_phase_resume_allowance
+    with pytest.raises(ValueError, match="Same-phase resume disabled"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+__ test_internal_worker_rejects_unanchored_same_phase_resume_before_identity ___
+python/tests/test_runtime_repair.py:324: in test_internal_worker_rejects_unanchored_same_phase_resume_before_identity
+    assert rejected is not None, f"Internal worker granted extra checkpoint-local allowance: {entered}"
+E   AssertionError: Internal worker granted extra checkpoint-local allowance: ['identity', 'experiment', 'candidate']
+E   assert None is not None
+___ test_probe_device_correctness_failure_cannot_become_cpu_pass[inference] ____
+python/tests/test_runtime_repair.py:391: in test_probe_device_correctness_failure_cannot_become_cpu_pass
+    assert rejected is not None, f"Measured device failure was masked by selected CPU: {result}"
+E   AssertionError: Measured device failure was masked by selected CPU: {'status': 'passed', 'phase': 'probe', 'selected_device': 'cpu', 'measurements': [{'device': 'cpu', 'status': 'completed', 'inference_wall_seconds': 0.00015433301450684667, 'update_wall_seconds': 1.00000761449337e-06, 'measured_inference_plus_update_seconds': 0.00015533302212134004, 'optimizer_steps': 1, 'metrics': {'optimizer_steps': 1, 'epochs_completed': 1}, 'checkpoint': 'probe-cpu-updated.pt', 'checkpoint_sha256': 'd4c80943ec1298fc61734aabab6b6bc13a437697c4e04dcd98a674545fa0e00d'}, {'device': 'mps', 'status': 'failed', 'error': "ValueError('Nonfinite device probe')", 'traceback': 'Traceback (most recent call last):\n  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m3-runtime-review-r1/python/dodge_rl/train_teacher.py", line 378, in probe\n    require(bool(torch.isfinite(output.logits).all())\n  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/dodge_rl/identity.py", line 30, in require\n    raise ValueError(message)\nValueError: Nonfinite device probe\n', 'automatic_retry': False}], 'frozen_rollout_collection_wall_seconds': 2.8329668566584587e-06, 'frozen_rollout': 'probe-rollout.pt', 'frozen_rollout_sha256': '75ff8120831e79d70c2e6c1e09f3d642cbd9f96723d1ffbb5b65cea4dc97dc89', 'initial_checkpoint': 'initial.pt', 'initial_checkpoint_sha256': '732b2e81e53ad18a454c4b450948f53a1b6903430bf21377a3932797928afd61', 'weights_discarded_from_training': True, 'B_opened': False, 'devices_excluded_from_speed_selection_for_unequal_update_work': [], 'timing_scope': 'Same starting weights and real frozen rollout; completed inference and PPO update, collection wall reported separately. Not a closed-loop training SPS estimate.'}
+E   assert None is not None
+______ test_probe_device_correctness_failure_cannot_become_cpu_pass[loss] ______
+python/tests/test_runtime_repair.py:391: in test_probe_device_correctness_failure_cannot_become_cpu_pass
+    assert rejected is not None, f"Measured device failure was masked by selected CPU: {result}"
+E   AssertionError: Measured device failure was masked by selected CPU: {'status': 'passed', 'phase': 'probe', 'selected_device': 'cpu', 'measurements': [{'device': 'cpu', 'status': 'completed', 'inference_wall_seconds': 2.9166985768824816e-05, 'update_wall_seconds': 1.1249794624745846e-06, 'measured_inference_plus_update_seconds': 3.02919652312994e-05, 'optimizer_steps': 1, 'metrics': {'optimizer_steps': 1, 'epochs_completed': 1}, 'checkpoint': 'probe-cpu-updated.pt', 'checkpoint_sha256': 'd4c80943ec1298fc61734aabab6b6bc13a437697c4e04dcd98a674545fa0e00d'}, {'device': 'mps', 'status': 'failed', 'error': "ValueError('Nonfinite PPO loss')", 'traceback': 'Traceback (most recent call last):\n  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m3-runtime-review-r1/python/dodge_rl/train_teacher.py", line 386, in probe\n    metrics = ppo_update(candidate, optimizer, collection.batch, self.ppo,\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/tests/test_runtime_repair.py", line 374, in update\n    raise ValueError({"loss": "Nonfinite PPO loss", "audit": "Raw reward audit failed",\nValueError: Nonfinite PPO loss\n', 'automatic_retry': False}], 'frozen_rollout_collection_wall_seconds': 1.8749851733446121e-06, 'frozen_rollout': 'probe-rollout.pt', 'frozen_rollout_sha256': '75ff8120831e79d70c2e6c1e09f3d642cbd9f96723d1ffbb5b65cea4dc97dc89', 'initial_checkpoint': 'initial.pt', 'initial_checkpoint_sha256': '732b2e81e53ad18a454c4b450948f53a1b6903430bf21377a3932797928afd61', 'weights_discarded_from_training': True, 'B_opened': False, 'devices_excluded_from_speed_selection_for_unequal_update_work': [], 'timing_scope': 'Same starting weights and real frozen rollout; completed inference and PPO update, collection wall reported separately. Not a closed-loop training SPS estimate.'}
+E   assert None is not None
+_____ test_probe_device_correctness_failure_cannot_become_cpu_pass[audit] ______
+python/tests/test_runtime_repair.py:391: in test_probe_device_correctness_failure_cannot_become_cpu_pass
+    assert rejected is not None, f"Measured device failure was masked by selected CPU: {result}"
+E   AssertionError: Measured device failure was masked by selected CPU: {'status': 'passed', 'phase': 'probe', 'selected_device': 'cpu', 'measurements': [{'device': 'cpu', 'status': 'completed', 'inference_wall_seconds': 2.6499968953430653e-05, 'update_wall_seconds': 8.329516276717186e-07, 'measured_inference_plus_update_seconds': 2.733292058110237e-05, 'optimizer_steps': 1, 'metrics': {'optimizer_steps': 1, 'epochs_completed': 1}, 'checkpoint': 'probe-cpu-updated.pt', 'checkpoint_sha256': 'd4c80943ec1298fc61734aabab6b6bc13a437697c4e04dcd98a674545fa0e00d'}, {'device': 'mps', 'status': 'failed', 'error': "ValueError('Raw reward audit failed')", 'traceback': 'Traceback (most recent call last):\n  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m3-runtime-review-r1/python/dodge_rl/train_teacher.py", line 386, in probe\n    metrics = ppo_update(candidate, optimizer, collection.batch, self.ppo,\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/tests/test_runtime_repair.py", line 374, in update\n    raise ValueError({"loss": "Nonfinite PPO loss", "audit": "Raw reward audit failed",\nValueError: Raw reward audit failed\n', 'automatic_retry': False}], 'frozen_rollout_collection_wall_seconds': 1.5409896150231361e-06, 'frozen_rollout': 'probe-rollout.pt', 'frozen_rollout_sha256': '75ff8120831e79d70c2e6c1e09f3d642cbd9f96723d1ffbb5b65cea4dc97dc89', 'initial_checkpoint': 'initial.pt', 'initial_checkpoint_sha256': '732b2e81e53ad18a454c4b450948f53a1b6903430bf21377a3932797928afd61', 'weights_discarded_from_training': True, 'B_opened': False, 'devices_excluded_from_speed_selection_for_unequal_update_work': [], 'timing_scope': 'Same starting weights and real frozen rollout; completed inference and PPO update, collection wall reported separately. Not a closed-loop training SPS estimate.'}
+E   assert None is not None
+___ test_probe_device_correctness_failure_cannot_become_cpu_pass[unexpected] ___
+python/tests/test_runtime_repair.py:391: in test_probe_device_correctness_failure_cannot_become_cpu_pass
+    assert rejected is not None, f"Measured device failure was masked by selected CPU: {result}"
+E   AssertionError: Measured device failure was masked by selected CPU: {'status': 'passed', 'phase': 'probe', 'selected_device': 'cpu', 'measurements': [{'device': 'cpu', 'status': 'completed', 'inference_wall_seconds': 2.179096918553114e-05, 'update_wall_seconds': 7.080379873514175e-07, 'measured_inference_plus_update_seconds': 2.2499007172882557e-05, 'optimizer_steps': 1, 'metrics': {'optimizer_steps': 1, 'epochs_completed': 1}, 'checkpoint': 'probe-cpu-updated.pt', 'checkpoint_sha256': 'd4c80943ec1298fc61734aabab6b6bc13a437697c4e04dcd98a674545fa0e00d'}, {'device': 'mps', 'status': 'failed', 'error': "ValueError('Unexpected measured-device failure')", 'traceback': 'Traceback (most recent call last):\n  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m3-runtime-review-r1/python/dodge_rl/train_teacher.py", line 386, in probe\n    metrics = ppo_update(candidate, optimizer, collection.batch, self.ppo,\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/tests/test_runtime_repair.py", line 374, in update\n    raise ValueError({"loss": "Nonfinite PPO loss", "audit": "Raw reward audit failed",\nValueError: Unexpected measured-device failure\n', 'automatic_retry': False}], 'frozen_rollout_collection_wall_seconds': 1.334003172814846e-06, 'frozen_rollout': 'probe-rollout.pt', 'frozen_rollout_sha256': '75ff8120831e79d70c2e6c1e09f3d642cbd9f96723d1ffbb5b65cea4dc97dc89', 'initial_checkpoint': 'initial.pt', 'initial_checkpoint_sha256': '732b2e81e53ad18a454c4b450948f53a1b6903430bf21377a3932797928afd61', 'weights_discarded_from_training': True, 'B_opened': False, 'devices_excluded_from_speed_selection_for_unequal_update_work': [], 'timing_scope': 'Same starting weights and real frozen rollout; completed inference and PPO update, collection wall reported separately. Not a closed-loop training SPS estimate.'}
+E   assert None is not None
+_______ test_device_selector_rejects_failed_rows_even_with_completed_cpu _______
+python/tests/test_runtime_repair.py:409: in test_device_selector_rejects_failed_rows_even_with_completed_cpu
+    with pytest.raises(ValueError, match="correctness failure"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+________ test_cleanup_terminates_group_even_after_worker_leader_exited _________
+python/tests/test_runtime_repair_signals.py:88: in test_cleanup_terminates_group_even_after_worker_leader_exited
+    assert sent == [signal.SIGTERM, signal.SIGKILL]
+E   assert [] == [<Signals.SIG...s.SIGKILL: 9>]
+E     
+E     Right contains 2 more items, first extra item: <Signals.SIGTERM: 15>
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED python/tests/test_runtime_repair.py::test_supervisor_baseexception_keeps_receipt_and_reaps_owned_worker[error0]
+FAILED python/tests/test_runtime_repair.py::test_supervisor_baseexception_keeps_receipt_and_reaps_owned_worker[error1]
+FAILED python/tests/test_runtime_repair.py::test_supervisor_baseexception_keeps_receipt_and_reaps_owned_worker[error2]
+FAILED python/tests/test_runtime_repair.py::test_supervisor_real_sigterm_checkpoints_worker_and_keeps_terminal_receipt
+FAILED python/tests/test_runtime_repair.py::test_worker_cancellation_attempts_tagged_diagnostic_checkpoint[SIGTERM]
+FAILED python/tests/test_runtime_repair.py::test_worker_cancellation_attempts_tagged_diagnostic_checkpoint[KeyboardInterrupt]
+FAILED python/tests/test_runtime_repair.py::test_interrupted_resume_rejects_before_stage_entry_candidate[interrupted_mid_update-progress0]
+FAILED python/tests/test_runtime_repair.py::test_interrupted_resume_rejects_before_stage_entry_candidate[periodic-progress1]
+FAILED python/tests/test_runtime_repair.py::test_restore_partial_update_refuses_before_model_mutation
+FAILED python/tests/test_runtime_repair.py::test_checkpoint_time_cannot_grant_same_phase_resume_allowance[0]
+FAILED python/tests/test_runtime_repair.py::test_checkpoint_time_cannot_grant_same_phase_resume_allowance[1600]
+FAILED python/tests/test_runtime_repair.py::test_checkpoint_time_cannot_grant_same_phase_resume_allowance[1799.9]
+FAILED python/tests/test_runtime_repair.py::test_internal_worker_rejects_unanchored_same_phase_resume_before_identity
+FAILED python/tests/test_runtime_repair.py::test_probe_device_correctness_failure_cannot_become_cpu_pass[inference]
+FAILED python/tests/test_runtime_repair.py::test_probe_device_correctness_failure_cannot_become_cpu_pass[loss]
+FAILED python/tests/test_runtime_repair.py::test_probe_device_correctness_failure_cannot_become_cpu_pass[audit]
+FAILED python/tests/test_runtime_repair.py::test_probe_device_correctness_failure_cannot_become_cpu_pass[unexpected]
+FAILED python/tests/test_runtime_repair.py::test_device_selector_rejects_failed_rows_even_with_completed_cpu
+FAILED python/tests/test_runtime_repair_signals.py::test_cleanup_terminates_group_even_after_worker_leader_exited
+19 failed, 1 passed in 2.84s

@@ -1,0 +1,79 @@
+{
+  "calibration_plan_path": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r2/calibration-plan.json",
+  "campaign_launch_eligible": false,
+  "campaign_launched": false,
+  "cpu_validation": {
+    "game_episodes": 0,
+    "mps_operations": 0,
+    "path": "learning/runs/v2/latest-best-paired-eval-prepare-luna-20261026-r6/cpu-preparation-validation.json",
+    "sha256": "828aa0ce6055f5b00f19e62162a21b076e439e96f7e6d074695246e803c9c2da",
+    "status": "passed",
+    "strict_cpu_loads": [
+      "best204",
+      "latest252"
+    ],
+    "verify_inputs": true
+  },
+  "focused_cpu_tests": {
+    "native_game_fixture_tests_run": false,
+    "path": "learning/runs/v2/latest-best-paired-eval-prepare-luna-20261026-r6/test-runs-attempt8.log",
+    "sha256": "c0660a3900d4551b29a8afb8fa92335f5c85585ffd908353800de55f5b159536",
+    "status": "passed",
+    "tests": 18
+  },
+  "harness_sha256": "8fc6b6b0d20ec84bc4619958994925889c8ff0bb23990f17a4460c6363e1d037",
+  "input_manifest_sha256": "4cafb2cf6ccbb6de77d7d3d05ad9c59674a2d621bc8e88235eeb905fdbba3f00",
+  "protocol_sha256": "547d33a4716b7be7e03c663f06a9c784d2497d212e2155e07ac872e4d1612655",
+  "retained_attempt_logs": [
+    "learning/runs/v2/latest-best-paired-eval-prepare-luna-20261026-r6/test-runs-attempt1.log",
+    "learning/runs/v2/latest-best-paired-eval-prepare-luna-20261026-r6/test-runs-attempt2.log",
+    "learning/runs/v2/latest-best-paired-eval-prepare-luna-20261026-r6/test-runs-attempt3.log",
+    "learning/runs/v2/latest-best-paired-eval-prepare-luna-20261026-r6/test-runs-attempt4.log",
+    "learning/runs/v2/latest-best-paired-eval-prepare-luna-20261026-r6/test-runs-attempt5.log",
+    "learning/runs/v2/latest-best-paired-eval-prepare-luna-20261026-r6/test-runs-attempt6.log",
+    "learning/runs/v2/latest-best-paired-eval-prepare-luna-20261026-r6/test-runs-attempt7.log",
+    "learning/runs/v2/latest-best-paired-eval-prepare-luna-20261026-r6/test-runs-attempt8.log"
+  ],
+  "review_findings": {
+    "B1": "R6 paired_eval loads by exact path under private module name; calibration source pinset and origin checks exclude R4 imports.",
+    "B2": "Representative load is future parent-approved 64 synthetic env x 8 batched decisions; zero real game episodes.",
+    "B3": "Source pinset binds source, helpers, probe, launcher, R6 runtime, interpreter, native extension, checkpoints, receipts, and audits before import, before MPS, and after child.",
+    "B4": "Pinned parent audit schema checks raw exits, owned process absence, before/after pins, observer disposition, seven evaluations, passed status, and 252-versus-300 counters.",
+    "B5": "Worker checks latest complete resource sample age in [0,1.0] seconds before MPS and at each decision/action chunk; 10-second startup remains.",
+    "B6": "Lease checks run at decision boundaries and after each eight active-environment step calls; resource freshness, cancellation, and deadline stay responsive."
+  },
+  "run_id": "latest-best-paired-eval-prepare-luna-20261026-r6",
+  "schema": "latest_best_paired_eval_r6_preparation_receipt_v1",
+  "scope": {
+    "checkpoint_writes": 0,
+    "game_episodes": 0,
+    "mps_operations": 0,
+    "optimizer_instantiated": false,
+    "state_or_lease_writes": false,
+    "training": false,
+    "writes_outside_new_r6_and_r2_directories": false
+  },
+  "scope_exclusions": [
+    "No qualification or student claim",
+    "No D3, B/E, held-out, or generalization claim",
+    "Historical R4/R5 mixed module cache and unknown executed R5 bytes remain unrepairable and are not retroactively attributed to R6"
+  ],
+  "source_sha256": {
+    "paired_eval.py": "51b78e6e74dcbaf3d9b04302d6f9ea1e37ea92779e9d237c48dd03ec77946475",
+    "supervisor.py": "0aacb8e539585312c053f70518a041a487ca09598865d88e111c5a284b4b25bd",
+    "tests/test_paired_eval.py": "6f652f1f4d2be70c85ef3df4ffc07a574ce7c66a19599b94675a569b80e5b586",
+    "worker.py": "c663543638e6bc5aea684a3dd38e27c079bd633f784590219d148d16fa0d190e"
+  },
+  "status": "frozen_proposed_pending_independent_review_and_parent_reconciliation",
+  "support_sha256": {
+    "README.md": "470a6dbb4190688ac76e5a439749278a5f1e710733ece5c4f2f91609b3156a26",
+    "freeze_artifacts.py": "ecaf765735b9c30a0d8d4efc11bbabeb067f46224964f90003504bfa86ab5e47"
+  },
+  "unresolved": {
+    "campaign_requires_separate_parent_authorization": true,
+    "fresh_independent_review_required": true,
+    "new_parent_registration_and_reservation_required": true,
+    "parent_reconciliation_required": true,
+    "representative_MPS_freshness_RSS_MPS_IO_measurements": "not measured"
+  }
+}

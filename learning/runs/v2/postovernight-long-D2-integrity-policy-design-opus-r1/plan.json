@@ -1,0 +1,259 @@
+{
+ "alternatives": [
+  {
+   "decision": "reject",
+   "id": "keep_5s_cooperative_hashing",
+   "reason": "latency bound not needed for executed-code identity; caused failures"
+  },
+  {
+   "decision": "reject",
+   "id": "slower_periodic",
+   "reason": "same framing, arbitrary"
+  },
+  {
+   "decision": "reject",
+   "id": "pre_post_only",
+   "reason": "misses persistent edits before lazy consumption/many updates; post_import+boundaries cheap"
+  },
+  {
+   "decision": "reject",
+   "id": "separate_verifier_process",
+   "reason": "new lifecycle/RSS surface, no stronger threat coverage"
+  },
+  {
+   "decision": "defer",
+   "id": "readonly_copied_capsule_new_identity",
+   "reason": "real prevention but requires new identity/mappings; not needed for sound D2 baseline"
+  },
+  {
+   "decision": "reject",
+   "id": "import_hook",
+   "reason": "alters startup; module delta suffices"
+  }
+ ],
+ "authority": {
+  "context": "codex design 5ef2e5af\u2026 accepted for implementation only (95977b36\u2026); boundary-prepare-r1 implementation running; not read",
+  "latest_user_steering": [
+   "What is this five second limit?",
+   "This sounds like something that should be redesigned. Yeah, certainly look at what Opus said."
+  ],
+  "unused_authorization": "postovernight_user_go_guard_repair_and_long_D2_7200s_r2"
+ },
+ "boundary_level_rule": {
+  "C": "else full boundary at run_schedule loop check, checkpoint pre/post, eval entry/exit, startup, final; other forced calls sample+module delta only",
+  "F": "full boundary at every existing forced check (3 per update: run_schedule loop, update_once entry, update_once exit) if 3*t95<=0.02*20.9s i.e. t95<=0.139s",
+  "guarantee_delta_F_vs_C": "persistent B edit detection latency <=1 update under C vs <=1 forced-boundary interval under F",
+  "measure": "t95 of N>=5 consecutive B-boundary passes (wall, worker main thread) in startup rehearsal",
+  "never_changed_mid_run": true,
+  "reference": "r1 1066.756s/51 updates=20.9s/update coarse (included old verifier+evals)",
+  "registered_before_launch": true
+ },
+ "budgets": {
+  "MPS_bytes": 6442450944,
+  "RSS_bytes": 6442450944,
+  "cleanup_shared": 10,
+  "freeze_checks": 60,
+  "inner": 7170,
+  "integrity_hash_io_deadline": null,
+  "normal": 7200,
+  "note": "integrity IO counts against same absolute deadlines",
+  "real_OS_lifecycle": 300,
+  "resource_gap": 0.5,
+  "startup_rehearsal": 120,
+  "stdlib_units": 300,
+  "stress": 120,
+  "validation_total_max": 900,
+  "worker": 7140
+ },
+ "chosen_policy": {
+  "concurs_with": "declared_boundary_verification_with_full_preflight_and_postflight",
+  "forbidden_additions": [
+   "periodic integrity timer",
+   "fourth verifier process",
+   "sys.meta_path/import hook",
+   "mtime cache",
+   "cross-boundary hash cache",
+   "independent integrity IO deadline",
+   "learner/PPO/Schedule/run_schedule edits"
+  ],
+  "id": "consumption_bound_boundary_integrity",
+  "removed": [
+   "background verify_thread",
+   "2s trigger",
+   "end_current-start_previous<=5s",
+   "monitor last_full<=5s",
+   "final input-age acceptance predicate",
+   "periodic archival hashing"
+  ],
+  "steps": [
+   "parent ownership reservation + launch attestation of active threads/worktrees (not OS enforcement); cannot hold -> do not launch",
+   "outer full B/R/A preflight: every 10091 old pin classified once B>R>A with original SHA + actual membership",
+   "worker: empty registered PYTHONPYCACHEPREFIX,-B,PYTHONDONTWRITEBYTECODE=1 asserted; imports; named post_import boundary = fresh B + unchanged check_frozen + check_module_origins + sys.modules snapshot",
+   "D1 consumption bracket: fresh hash of D1 checkpoint+terminal receipt immediately before/after unchanged validate_transition",
+   "declared boundaries per registered level F or C; nonforced check never hashes; sys.modules key/origin delta at every boundary",
+   "resource/lease/cancel/wall monitor unchanged 0.05/0.15/0.5s; remove now-last_full<=5 clause; never hashes",
+   "outer full B/R/A postflight after owned-writer absence, before any accepted:true"
+  ]
+ },
+ "failure_semantics": {
+  "acceptance": "no success if postflight fails/missing; partial results retained ineligible",
+  "cleanup_until": "min(prev_until, global_first.at+10, T0+7210); monotone tighten; never reset",
+  "fields": {
+   "descriptor": [
+    "role",
+    "kind",
+    "outcome",
+    "at_monotonic",
+    "timing_basis",
+    "local_seq"
+   ],
+   "first_alarm": "separate",
+   "first_cancel": "separate {signum,observed_at_monotonic,basis:handler|pending_scan,sender:unknown}"
+  },
+  "fix": "defer cancel@1+guard@2 must report cancel primary",
+  "generic_exception_time": "first caught/observed, never Stop construction",
+  "global_primary": "earliest across ACKs; strictly earlier late peer replaces; later never overwrites; sticky failed",
+  "secondary": "self-forwarded cleanup signals after global first (forwarding logged before send)",
+  "telemetry": "IO errors are diagnostic loss; mandatory failure receipt attempted first and independently; raw outer exit/wall authority",
+  "tie_order": [
+   "cancel",
+   "alarm",
+   "resource",
+   "lease",
+   "integrity",
+   "exception"
+  ],
+  "tie_then": [
+   "role",
+   "local_seq"
+  ]
+ },
+ "input_classification": {
+  "A": "historical pin closure excluding B/R; keep every path/hash; pre/post only via hash-pinned archive manifests plus all actual members",
+  "B": "all 75 legacy semantic-source files+mirrors; controller/executor/lifecycle/processes; new protocol/config/identity/classification/registration/capsule; base identity/config; foundation_identity deps incl M2 acceptance/identity/build/reconciled receipt; project extension 967c7249\u2026; interpreter; D1 checkpoint ce9c03c8\u2026 and terminal proof inputs; entry-control source",
+  "M": "parent state: only lease/cancel field <=0.5s",
+  "O": "new outputs hashed on write; final inventory after writer absence",
+  "R": "Torch/NumPy native files, CPython extension roots/libpython, platform/env vars, sys.path, distribution metadata, cache-prefix policy; pre/post only; new loaded native origins must be members",
+  "precedence": "B>R>A, one class per canonical path; conflicting expected SHA rejects; any dependency read by live code promoted to B"
+ },
+ "legacy_paths": {
+  "decision": "keep original root execution and unchanged check_frozen/validate_transition/check_module_origins; no monkeypatch/filter/strip; protocol states legacy executes from ORIGINAL_ROOT not capsule",
+  "future": "copied active capsule under new identity for OS readonly prevention; deferred"
+ },
+ "protected_unchanged": [
+  "python/dodge_rl package",
+  "Rust/native inputs and installed extension",
+  "Learner",
+  "Schedule",
+  "run_schedule",
+  "PPO/reward/env/entry helpers",
+  "worker ML try body",
+  "check_module_origins",
+  "config 2ac814d3842228017d09669364a8391344722da56ad19f41ad9030dbb930c2db",
+  "master seed 5562873868232098305",
+  "D1 parent ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f"
+ ],
+ "revised_guarantees": {
+  "exact_loss": "no fixed <=5s detection latency for persistent edits to pinned files; larger transient/lazy windows; not equally strong by assertion",
+  "new_proves": [
+   "all B/R/A exact bytes+membership at preflight and postflight",
+   "loaded project code equals registered bytes at post_import (persistent edits before import caught)",
+   "D1 bytes equal before/after consumption",
+   "every new loaded module after startup in expected origin set and hashed at next boundary",
+   "B bytes at each declared boundary",
+   "independent <=0.5s resource/lease/cancel"
+  ],
+  "old_did_not_prove": [
+   "executed code identity (imports read once)",
+   "transient edit/revert",
+   "lazy import/data windows",
+   "malicious same-user",
+   "stale pyc",
+   "useful archival integrity beyond postflight",
+   "reproducibility"
+  ],
+  "old_proved": "persistent on-disk change to any pinned path detected within ~5s in one process view",
+  "unchanged_limits": [
+   "malicious same-user",
+   "transient revert",
+   "memory attestation",
+   "transitive OS closure"
+  ]
+ },
+ "risks": [
+  "same-user writers only attested",
+  "larger transient windows",
+  "R manifest not transitive closure",
+  "F/C rule heuristic",
+  "pre/post IO consumes finite budget",
+  "r1 per-update figure coarse",
+  "no ML performance evidence"
+ ],
+ "schema": "long_D2_integrity_policy_design_opus_v1",
+ "scope": {
+  "no_ML_native_imports": true,
+  "no_checkpoint_decode": true,
+  "no_delegation": true,
+  "no_edits_outside_output": true,
+  "no_runs": true,
+  "readonly": true
+ },
+ "source_edits": [
+  {
+   "change": "remove verify_thread and all 5s/age rules; B-only boundary verify; nonforced never hashes",
+   "file": "NEW_PREPARE/long_d2.py",
+   "units": [
+    "Guard.start/full_check/check/sample",
+    "worker.verify",
+    "worker post_import boundary",
+    "D1 consumption bracket",
+    "module delta helper beside unchanged check_module_origins",
+    "boundary level F/C selector from protocol"
+   ]
+  },
+  {
+   "change": "outer owns B/R/A pre/postflight; drop full-pin-age predicates; require integrity summary incl post_import_verdict, boundary count/level, postflight verdict",
+   "file": "NEW_PREPARE/long_d2_executor.py",
+   "units": [
+    "Execution.run",
+    "Execution.monitor",
+    "validate_artifacts",
+    "accept_observed"
+   ]
+  },
+  {
+   "change": "split first_alarm/first_cancel; descriptor; global earliest; monotone deadline; tie order",
+   "file": "NEW_PREPARE/lifecycle.py",
+   "units": [
+    "ProcessLatch",
+    "FailurePool.fail",
+    "notify_failure",
+    "ACK payload"
+   ]
+  },
+  {
+   "change": "register policy, level rule and measured level, classification manifests, guarantee delta; old protocols/results untouched",
+   "file": "NEW protocol/identity/registration"
+  }
+ ],
+ "startup_rehearsal": {
+  "authorization": "parent determines; believed within relevant validation",
+  "excludes": [
+   "D1 deserialization",
+   "env",
+   "inference",
+   "gradient"
+  ],
+  "includes": [
+   "real interpreter/imports",
+   "post_import B pass",
+   "check_frozen",
+   "origins",
+   "N>=5 B pass timings"
+  ],
+  "max_seconds": 120,
+  "outputs": "new readonly dir"
+ },
+ "status": "proposal_only_not_implemented;independent_second_opinion_to_accepted_codex_design",
+ "tests": "see diagnosis.md section 8; sequential, frozen, stop-on-first-unexpected, no retries"
+}

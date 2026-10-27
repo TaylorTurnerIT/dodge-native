@@ -1,0 +1,62 @@
+{
+  "api": {
+    "function": "evaluate_registered",
+    "keyword_parameters": [
+      "registration_path",
+      "registration_sha256",
+      "candidate_update",
+      "cohort_name",
+      "output_path",
+      "check_guard"
+    ],
+    "module": "expanded_eval.py"
+  },
+  "authority": "interfaceonly_notlaunchregistration",
+  "notes": [
+    "Evaluator owns checks of runtime/candidate/cohort/source/confirmation identity;worker/launcher owns lease/resource/limits/review/cache/one-shot policy. No dynamic fakebackend production API.",
+    "Evaluator process may reuse exacttrustedruntime imported firstcall;wrongpreloadedruntime rejected.",
+    "If extra keys are needed coordinate via parent or message sibling beforefreezing."
+  ],
+  "ownership": "childrenonlyOWN;parentsoleledgerwriter",
+  "performance_column_order": [
+    "Worst",
+    "Q1",
+    "Mean",
+    "Q4",
+    "Best"
+  ],
+  "performance_definition": "alive rawframes;Q1/Q4 sortedpercandidate lowest/highest N/4 means;notquantiles",
+  "registration_schema": "expanded_D2_evaluation_registration_v1",
+  "registration_sections": {
+    "cancel_path": "run-specificabsolute",
+    "candidates": "object keyed by phase update string;candidate fields from accepted proposal cp and receipt refs",
+    "cohorts": "object keyed benchmark_dev64|ranking|confirmation;each {manifest_path,manifest_sha256,count}",
+    "expected_lease": "parentowned exact object",
+    "limits": "{outer_seconds,work_seconds,cleanup_seconds,RSS_bytes,MPS_driver_bytes,guard_poll_seconds,heartbeat_stale_seconds}",
+    "mode": "benchmark|ranking|confirmation",
+    "one_shot_marker": "run-specificabsolute claimedafterpreflight",
+    "output_dir": "absolute new run path",
+    "review_records": "externally pinned parent source review evidence;no fake production authority",
+    "run_id": "unique string",
+    "runtime": "{root,member_sha256,native_relative_path,backend,torch_version,numpy_version,pycache_prefix}",
+    "schema": "exactregistration_schema",
+    "selection_record": "null unless confirmation;{path,sha256,winner_update,winner_checkpoint_sha256,incumbent_checkpoint_sha256};exact source validated",
+    "source": "{evaluator_path,evaluator_sha256,worker_path,worker_sha256,launcher_path,launcher_sha256}",
+    "state_path": "ledgerabsolute"
+  },
+  "result_required": {
+    "candidate_update": "int",
+    "caps": "count",
+    "checkpoint_sha256": "actualpinnedcandidate",
+    "cohort_name": "namedcohort",
+    "cohort_sha256": "manifest bytes",
+    "complete": "true only all rowsvalidated",
+    "death_causes": "allcausecounts",
+    "elapsed_seconds": "measured",
+    "episodes": "N",
+    "performance": "{worst,q1_bottom_quarter_mean,mean,q4_top_quarter_mean,best}",
+    "rows": "full N ordered per-seed rows",
+    "schema": "expanded_D2_candidate_evaluation_v1"
+  },
+  "schema": "expanded_evaluation_integration_contract_v1"
+}

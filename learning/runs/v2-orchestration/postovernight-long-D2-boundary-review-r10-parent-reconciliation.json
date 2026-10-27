@@ -1,0 +1,34 @@
+{
+  "accepted_fix": "Keep unexpected endpoint errors fatal and source-stamped, but isolate receive/packet/send failure per already-readable endpoint so valid sibling evidence and one ACK remain processable under same dynamic absolute deadline. Retain earlier source tightening, validation, one-shot ACKs, bounded diagnostics and no normal close relaxation.",
+  "at_utc": "2026-10-25T02:56:02.509691+00:00",
+  "authorization_consumed": false,
+  "findings": [
+    {
+      "id": "BOUNDARY-R10-IPC-ENDPOINT-STARVATION",
+      "line": 327,
+      "parent_verdict": "confirmed_against_current_source",
+      "path": "learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/long_d2_executor.py",
+      "proof_limits": "Exact AST-extracted production Execution.monitor/pump/fail, FailurePool, observed_failure and (second proof) Channel.receive. Fake readiness, sockets, clocks, direct reports, process groups, signals and absence. Persistent endpoint failure is an explicit fixture condition; no claim it caused the retained production transport failure. This is deterministic control-flow starvation of an endpoint already reported readable, not a queued-delivery guarantee.",
+      "severity": "P2"
+    }
+  ],
+  "no_new_OS_validation": true,
+  "no_production_transport_cause_claim": true,
+  "parent_verifier_setup_failure": "Initial parent output verifier compared digest to metadata object instead of its sha256 field; assertion occurred before any writes. Schema-aware verification confirms no artifact mismatch; no proof or validation reran.",
+  "required_regressions": [
+    "actual pump and monitor: supervisor unexpected reset plus worker readable earlier failure, consume worker and ACK once",
+    "actual Channel.receive zero-packet error on supervisor plus valid worker, preserve earliest pool",
+    "packet/ACK send failure on one endpoint does not skip other; malformed data never accepted",
+    "valid current channel ownership/sequence/clock/FD rules, strict gate booleans and all successful consumers unchanged",
+    "bounded final drain with late earlier peer and shortened deadlines; no transport retry, new process/thread or allowance"
+  ],
+  "review_manifest_sha256": "40a399144d83a84aff131e7d1d93fa9963a570cee3e3d5e183ac66dafe5c32d2",
+  "schema": "boundary_r10_parent_review_reconciliation_v1",
+  "training_launched": false,
+  "verdict": "changes_required;combine_with_pending_Sonnet_escalation_design",
+  "verified_capsule_members": 129,
+  "verified_immutable_inputs": 501,
+  "verified_mutable_context_snapshots": 1,
+  "verified_outputs": 76,
+  "verified_parent_pins": 8
+}

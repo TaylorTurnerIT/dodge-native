@@ -1,0 +1,339 @@
+--- learning/runs/v2/D2-retained324-linear-runner-luna-20261026-r3/runner.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained324-linear-integrated-luna-20261026-r4/runner.py
+@@ -19,6 +19,7 @@
+ import sys
+ import time
+ import traceback
++sys.dont_write_bytecode = True
+ import parent_adapter
+ import registration_schema
+ 
+@@ -47,9 +48,9 @@
+ PARENT_REGISTRATION_SHA = "8a60dc80f1ebe03c43bf18eebf75199e14f207b677570ac2d6d4368ddfcb0f79"
+ PARENT_SOURCE_REGISTRATION_SHA = "6f4adf808789655a663800a1e4a0613192d02b0c8287d121455ea748fe043916"
+ HISTORICAL_SELECTED_PARENT_ADAPTER_SHA = "355880c2cddc455219c4714b8fd57b7a59075ef0581086b153d7b89b05a26a26"
+-LAUNCHER_SHA = "7215ae6628c364fe74bafba68e66cb1c688000a3b7d648dba9248fc2d812310e"
+-FINAL_SOURCE_DIR = "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained324-linear-runner-luna-20261026-r3"
+-FROZEN_LAUNCHER_PATH = "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained324-continuation-prepare-luna-20261026-r2/execute_once.py"
++LAUNCHER_SHA = "6b27b5702e050ba1899078a80c4909ff89cd12a72abcff0ff5dcc7006d679728"
++FINAL_SOURCE_DIR = "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained324-linear-integrated-luna-20261026-r4"
++FROZEN_LAUNCHER_PATH = "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained324-linear-integrated-luna-20261026-r4/execute_once.py"
+ PARENT_SELECTED_TRAJECTORY_REPORTED_SECONDS = 5678.9823631240915
+ PARENT_SELECTED_ITERATION_REPORTED_SECONDS = 488.7727023329353
+ PARENT_WORKER_TRAJECTORY_REPORTED_SECONDS = 6323.834494166139
+@@ -96,6 +97,7 @@
+ SCHEDULE_END_LR = 1e-5
+ _PARENT_METADATA_PATH = None
+ _PARENT_COST_RECEIPT_PATH = None
++_LATEST_COST_RECEIPT_PATH = None
+ _PARENT_CLOCKS = None
+ 
+ 
+@@ -308,8 +310,9 @@
+ 
+ 
+ def validate_parent_checkpoint_for_restore(state, checkpoint_sha256=PARENT_SHA, receipt=None):
+-    """Keep three-argument launcher API; derive selected receipts from pinned paths."""
++    """Keep three-argument launcher API; derive both cost receipts from pinned registration paths."""
+     need(checkpoint_sha256 == PARENT_SHA, "Selected checkpoint digest authority differs")
++    need(_LATEST_COST_RECEIPT_PATH is not None, "Latest accounting receipt path was not bound by registration")
+     need(isinstance(receipt, dict) and receipt.get("schema") == parent_adapter.SCHEMA,
+          "Selected candidate receipt required")
+     metadata_path = Path(str(receipt["checkpoint_path"]) + ".json")
+@@ -321,7 +324,8 @@
+         state, checkpoint_sha256, receipt, PARENT_RECEIPT_SHA, fingerprint,
+         read(metadata_path),
+         parent_adapter.CHECKPOINT_METADATA_SHA,
+-        read(cost_path), parent_adapter.COST_RECEIPT_SHA)
++        read(cost_path), parent_adapter.COST_RECEIPT_SHA,
++        read(_LATEST_COST_RECEIPT_PATH), parent_adapter.LATEST_COST_RECEIPT_SHA256)
+ 
+ 
+ def validate_parent_terminal_receipt(receipt, reg):
+@@ -440,10 +444,18 @@
+ 
+ 
+ def load_registration(path, expected_sha):
+-    global _PARENT_METADATA_PATH, _PARENT_COST_RECEIPT_PATH
++    global _PARENT_METADATA_PATH, _PARENT_COST_RECEIPT_PATH, _LATEST_COST_RECEIPT_PATH
+     need(sha(path)==expected_sha,"External registration digest differs")
+     reg=validate_registration(read(path)); verify_pins(reg["pins"])
+     parent=reg["parent"]
++    latest_anchor=reg.get("latest_resource_cost_anchor", {})
++    latest_path=str(Path(latest_anchor.get("path", "")).resolve())
++    need(latest_anchor.get("sha256")==parent_adapter.LATEST_COST_RECEIPT_SHA256
++         and reg["pins"].get(latest_path)==parent_adapter.LATEST_COST_RECEIPT_SHA256
++         and sha(latest_path)==parent_adapter.LATEST_COST_RECEIPT_SHA256,
++         "Latest campaign accounting receipt pin differs")
++    parent_adapter.validate_latest_cost_receipt(read(latest_path),parent_adapter.LATEST_COST_RECEIPT_SHA256)
++    _LATEST_COST_RECEIPT_PATH=latest_path
+     schema_path = str((Path(reg["runner_path"]).parent / "registration_schema.py").resolve())
+     schedule_path = str(LR_SCHEDULE_PATH)
+     need(reg.get("registration_schema_path") == schema_path
+--- learning/runs/v2/D2-retained324-linear-registration-luna-20261026-r1/parent_adapter.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained324-linear-integrated-luna-20261026-r4/parent_adapter.py
+@@ -166,3 +166,14 @@
+          and all(group.get("eps") == 1e-5 for group in groups),
+          "Restored optimizer parameters differ")
+     return state
++
++# Frozen runner compatibility aliases; all name same pinned selected324 inputs.
++CHECKPOINT_SHA = CHECKPOINT_SHA256
++RECEIPT_SHA = SELECTED_RECEIPT_SHA256
++SCHEMA = SELECTED_SCHEMA
++STATUS = SELECTED_STATUS
++COST_RECEIPT_SHA = PRODUCING_COST_RECEIPT_SHA256
++CHECKPOINT_METADATA_SHA = CHECKPOINT_METADATA_SHA256
++
++def validate_cost_anchor(receipt, digest):
++    return validate_producing_cost_receipt(receipt, digest)
+--- learning/runs/v2/D2-retained324-linear-registration-luna-20261026-r1/registration_schema.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained324-linear-integrated-luna-20261026-r4/registration_schema.py
+@@ -13,7 +13,7 @@
+ TOTAL_UPDATES = 432
+ RUN_SEED = 4200000001
+ SCHEDULE_SPEC_SHA256 = "7ceed85c5dc277602f2f51937b4ac003e2013e2689341a963ce5d82d5b64c9e4"
+-HELPER_SHA256 = "35fee3a73fc1b283c5412d577ccee8635caa26f6fbf251e10009566c3a18fbc6"
++HELPER_SHA256 = "ef81e87580c39e6f733098a5c228e4660af03e7fccddcc06044e9d3612bce079"
+ 
+ 
+ def need(condition: bool, message: str) -> None:
+@@ -52,4 +52,25 @@
+          and registration.get("promoted") is False
+          and registration.get("normal_training_iteration") is True,
+          "Registration grants continuation or promotion authority")
++    need(schedule.get("spec_sha256") == SCHEDULE_SPEC_SHA256, "Schedule spec digest differs")
++    need(registration.get("limits", {}).get("planned_seconds") == 1750
++         and registration["limits"].get("work_seconds") == 1790
++         and registration["limits"].get("total_seconds") == 1800
++         and registration["limits"].get("cleanup_seconds") == 10
++         and registration["limits"].get("RSS_bytes") == 6442450944
++         and registration["limits"].get("MPS_bytes") == 6442450944,
++         "Registered resource limits differ")
++    need(registration.get("ppo") == {"gamma": .995, "gae_lambda": .95, "learning_rate": 3e-5,
++         "adam_eps": .00001, "clip_coef": .2, "vf_coef": .5, "ent_coef": .01,
++         "max_grad_norm": .5, "update_epochs": 4, "minibatch_size": 512,
++         "target_kl": .03, "reward_scale": .1}, "PPO settings differ")
++    for key in ("runner_path", "launcher_path", "parent_adapter_path", "registration_schema_path", "lr_schedule_path"):
++        need(Path(registration.get(key, "")).is_absolute(), "Missing absolute source path: " + key)
++    pins = registration.get("pins", {})
++    for path_key, digest_key in (("runner_path", "runner_sha256"), ("launcher_path", "launcher_sha256"),
++                                 ("parent_adapter_path", "parent_adapter_sha256"),
++                                 ("registration_schema_path", "registration_schema_sha256"),
++                                 ("lr_schedule_path", "lr_schedule_sha256")):
++        need(registration[path_key] in pins and pins[registration[path_key]] == registration.get(digest_key),
++             "Required executable source pin missing: " + path_key)
+     return registration
+--- learning/runs/v2/D2-retained324-linear-registration-luna-20261026-r1/build_registration.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained324-linear-integrated-luna-20261026-r4/build_registration.py
+@@ -6,15 +6,20 @@
+ import json
+ from pathlib import Path
+ from typing import Any
++import sys
++sys.dont_write_bytecode = True
+ 
+ import parent_adapter
+ import registration_schema
++import runner as integrated_runner
+ 
+ ROOT = Path("/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79")
+-OWN = ROOT / "learning/runs/v2/D2-retained324-linear-registration-luna-20261026-r1"
++OWN = ROOT / "learning/runs/v2/D2-retained324-linear-integrated-luna-20261026-r4"
+ BASE = ROOT / "learning/runs/v2/D2-retained324-continuation-prepare-luna-20261026-r2"
+-SCHEDULE = ROOT / "learning/runs/v2/D2-retained324-linear-schedule-prepare-luna-20261026-r1"
+-RUNNER_DIR = ROOT / "learning/runs/v2/D2-retained324-linear-runner-luna-20261026-r3"
++SCHEDULE = OWN
++RUNNER_DIR = OWN
++BASE_REGISTRATION_SHA256 = "44ac8185b24de2d98cc1c870191f18be47734b5cc11c7c6ff91b9feacb34cd5a"
++BASE_MANIFEST_SHA256 = "9032b3ee00ed30c72364acfc8e865730625d244edfb8662147300970cec52741"
+ LATEST_COST_PATH = ROOT / "learning/runs/v2/D2-retained324-parent-terminal-audit-20261026-r1/completed-iteration-receipt.json"
+ SELECTED_RECEIPT_PATH = ROOT / "learning/runs/v2/D2-retained300-parent-terminal-audit-20261026-r1/retained-best-candidate-receipt.json"
+ PRODUCING_COST_PATH = ROOT / "learning/runs/v2/D2-retained300-parent-terminal-audit-20261026-r1/completed-iteration-receipt.json"
+@@ -62,6 +67,15 @@
+                        helper_manifest_path: Path, helper_manifest_sha256: str,
+                        launcher_manifest_path: Path, launcher_manifest_sha256: str) -> dict[str, Any]:
+     """Build in memory; caller may publish only after all immutable input checks pass."""
++    own_manifest = read_json(OWN / "source-manifest.json")
++    if own_manifest.get("schema") != "d2_retained324_linear_integrated_source_manifest_v1":
++        raise ValueError("Integrated source manifest schema differs")
++    for name, digest in own_manifest.get("files", {}).items():
++        if not (OWN / name).is_file() or sha256(OWN / name) != digest:
++            raise ValueError("Integrated owned source digest differs: " + name)
++    for name, digest in own_manifest.get("manifests", {}).items():
++        if not (OWN / name).is_file() or sha256(OWN / name) != digest:
++            raise ValueError("Integrated owned manifest digest differs: " + name)
+     runner_manifest = require_manifest(runner_manifest_path, runner_manifest_sha256, "runner")
+     helper_manifest = require_manifest(helper_manifest_path, helper_manifest_sha256, "helper")
+     launcher_manifest = require_manifest(launcher_manifest_path, launcher_manifest_sha256, "launcher")
+@@ -87,6 +101,10 @@
+     if helper_manifest.get("origin_cumulative_update") != 372 or helper_manifest.get("horizon_updates") != 60:
+         raise ValueError("Schedule helper manifest origin or horizon differs")
+ 
++    if Path(parent_adapter.__file__).resolve() != (OWN / "parent_adapter.py").resolve() or Path(registration_schema.__file__).resolve() != (OWN / "registration_schema.py").resolve():
++        raise ValueError("Loaded adapter/schema origins differ from owned sources")
++    if sha256(BASE / "registration.json") != BASE_REGISTRATION_SHA256 or sha256(BASE / "source-manifest.json") != BASE_MANIFEST_SHA256:
++        raise ValueError("Pinned base registration or source manifest drifted")
+     base = read_json(BASE / "registration.json")
+     prior_manifest = read_json(BASE / "source-manifest.json")
+     prior_pins = base.get("pins")
+@@ -94,6 +112,10 @@
+         raise ValueError("Frozen historical pin set does not contain exactly 13846 entries")
+     if prior_manifest.get("pins") != len(prior_pins):
+         raise ValueError("Frozen source manifest pin count differs")
++    r1 = read_json(ROOT / "learning/runs/v2/D2-retained300-continuation-freeze-20261026-r5/registration.json").get("pins", {})
++    actual_overlap = sum(1 for k, v in r1.items() if k in prior_pins and prior_pins[k] == v)
++    if len(r1) != 13827 or actual_overlap != 13827:
++        raise ValueError("Historical R1 pin bytes differ from the frozen R2 pin set")
+     if prior_manifest.get("historical_R1_pin_coverage") != {
+         "R1_pin_count": 13827, "R2_pin_count": 13846,
+         "removed_R1_pins": 0, "shared_hash_rewrites": 0,
+@@ -117,11 +139,40 @@
+         raise ValueError("Latest cost chain does not begin at original producing cost")
+     if selected.get("checkpoint_sha256") != parent_adapter.CHECKPOINT_SHA256:
+         raise ValueError("Selected original checkpoint authority differs")
++    metadata_path = Path(selected["checkpoint_path"] + ".json")
++    metadata = read_json(metadata_path)
++    if metadata != {"checkpoint_sha256": parent_adapter.CHECKPOINT_SHA256,
++                    "eligibility_status": "provisional_pending_parent_terminal_receipt",
++                    "promoted": False, "training_eligible": False}:
++        raise ValueError("Selected checkpoint metadata differs")
++    if (selected.get("candidate_phase_update"), selected.get("candidate_local_update"),
++        selected.get("candidate_cumulative_counters", {}).get("updates"),
++        selected.get("candidate_counters", {}).get("updates")) != (324, 24, 372, 24):
++        raise ValueError("Selected parent counter contract differs")
++    if selected.get("config_sha256") != parent_adapter.CONFIG_SHA256 or selected.get("checkpoint_path") is None:
++        raise ValueError("Selected parent config or checkpoint path differs")
++    parent = base.get("parent", {})
++    if (Path(parent.get("path", "")).resolve() != Path(selected["checkpoint_path"]).resolve()
++        or parent.get("sha256") != parent_adapter.CHECKPOINT_SHA256
++        or parent.get("terminal_receipt_sha256") != parent_adapter.SELECTED_RECEIPT_SHA256
++        or parent.get("metadata_sha256") != parent_adapter.CHECKPOINT_METADATA_SHA256
++        or base.get("config_sha256") != parent_adapter.CONFIG_SHA256
++        or base.get("runtime_sha256") != selected.get("runtime_sha256")) :
++        raise ValueError("Copied parent path, byte pin, metadata, config, or runtime differs")
++    if selected.get("next_episode_indices") != selected.get("candidate_counters", {}).get("next_episode_indices") and "next_episode_indices" in selected.get("candidate_counters", {}):
++        raise ValueError("Selected episode-index contract differs")
++
+ 
+     registration = json.loads(json.dumps(base))
+     if (ROOT / "learning/runs/v2" / registration_schema.RUN_ID).exists():
+         raise ValueError("Run output collision; registration assembly refused")
+     registration.update({
++        "root": str(ROOT),
++        "ppo": integrated_runner.PPO,
++        "registration_schema_path": str((OWN / "registration_schema.py").resolve()),
++        "registration_schema_sha256": sha256(OWN / "registration_schema.py"),
++        "lr_schedule_path": str((OWN / "lr_schedule.py").resolve()),
++        "lr_schedule_sha256": helper_digest,
+         "schema": registration_schema.SCHEMA,
+         "run_id": registration_schema.RUN_ID,
+         "output": str(registration_schema.OUTPUT),
+@@ -199,10 +250,13 @@
+     registration["parent"]["completed_cost_receipt_sha256"] = parent_adapter.PRODUCING_COST_RECEIPT_SHA256
+     registration["parent"]["completed_iteration_receipt_path"] = str(PRODUCING_COST_PATH)
+     registration["parent"]["completed_iteration_receipt_sha256"] = parent_adapter.PRODUCING_COST_RECEIPT_SHA256
++    registration["parent"]["latest_resource_cost_anchor"] = {"path":str(LATEST_COST_PATH),"sha256":parent_adapter.LATEST_COST_RECEIPT_SHA256}
++    registration["parent"]["completed_iteration_receipt_path"] = str(PRODUCING_COST_PATH)
++    registration["parent"]["completed_iteration_receipt_sha256"] = parent_adapter.PRODUCING_COST_RECEIPT_SHA256
+     registration["resource_cost_anchor"] = {
+-        "authority": "resource_cost_only; no model or continuation authority",
+-        "path": str(PRODUCING_COST_PATH),
+-        "sha256": parent_adapter.PRODUCING_COST_RECEIPT_SHA256,
++        "authority": "accounting_only; no model or continuation authority",
++        "path": str(LATEST_COST_PATH),
++        "sha256": parent_adapter.LATEST_COST_RECEIPT_SHA256,
+     }
+     registration["pins"] = dict(prior_pins)
+     for path, digest in (
+@@ -211,6 +265,7 @@
+         ((OWN / "build_registration.py"), sha256(OWN / "build_registration.py")),
+         (runner_path, runner_manifest["runner_sha256"]),
+         (helper_path, helper_digest),
++        (OWN / "frozen-manifest.json", sha256(OWN / "frozen-manifest.json")),
+         (launcher_path, launcher_manifest["launcher_sha256"]),
+         (SELECTED_RECEIPT_PATH, parent_adapter.SELECTED_RECEIPT_SHA256),
+         (PRODUCING_COST_PATH, parent_adapter.PRODUCING_COST_RECEIPT_SHA256),
+@@ -220,6 +275,7 @@
+         (launcher_manifest_path.resolve(), launcher_manifest_sha256),
+     ):
+         _source_pin(registration["pins"], path, digest)
++    registration_schema.validate_identity(registration)
+     return registration
+ 
+ 
+--- learning/runs/v2/D2-retained324-continuation-prepare-luna-20261026-r2/execute_once.py
++++ /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained324-linear-integrated-luna-20261026-r4/execute_once.py
+@@ -82,7 +82,34 @@
+            and state.get("update_progress", {}).get("completed_updates") == local
+            and state.get("counters") == expected_counters,
+            "Candidate update/counter boundary differs")
+-    r.assert_saved_optimizer_lr(state, 0.00003)
++    r.validate_saved_schedule_lr(state, state["cumulative_counters"]["updates"])
++
++
++def validate_metric_schedule(metrics):
++    """Independently bind every emitted LR metric to inherited plus local updates."""
++    r.need(len(metrics) == r.NEW_UPDATES, "Schedule metric row count differs from 60 updates")
++    for local_update, row in enumerate(metrics, 1):
++        actual = r.PARENT_TOTAL_UPDATES + local_update
++        expected = r.lr_schedule.learning_rate_for_cumulative_update(actual)
++        schedule = row.get("lr_schedule")
++        group_lrs = row.get("optimizer_group_lrs")
++        r.need(isinstance(schedule, dict)
++               and schedule.get("schedule_origin_cumulative_update") == r.SCHEDULE_ORIGIN_CUMULATIVE_UPDATE
++               and schedule.get("horizon_updates") == r.SCHEDULE_HORIZON_UPDATES
++               and schedule.get("completed_schedule_updates") == local_update
++               and schedule.get("schedule_spec_sha256") == r.lr_schedule.SCHEDULE_SPEC_SHA256,
++               "Metric LR schedule spec or progress differs")
++        r.need(row.get("cumulative_updates") == actual
++               and row.get("local_update") == local_update
++               and row.get("counters", {}).get("updates") == local_update,
++               "Metric cumulative update differs from inherited plus local counters")
++        r.need(isinstance(group_lrs, list) and len(group_lrs) > 0
++               and len(group_lrs) == schedule.get("optimizer_param_group_count")
++               and all(type(value) in (int, float) and math.isfinite(value)
++                       and math.isclose(value, expected, rel_tol=0, abs_tol=1e-15)
++                       for value in group_lrs),
++               "Metric optimizer group LR differs from scheduled update")
++    return True
+ 
+ 
+ def validate_outputs(reg, worker, registration_sha):
+@@ -97,12 +124,12 @@
+            and worker["parent_worker_reported_complete_campaign_cost_seconds"] == r.PARENT_WORKER_CAMPAIGN_REPORTED_SECONDS,
+            "Parent narrow reported clocks were not preserved separately")
+     r.need(worker["selected_parent_checkpoint_trajectory_baseline_seconds"] == r.SELECTED_TRAJECTORY_BASELINE_SECONDS
+-           and worker["parent_completed_campaign_cost_baseline_seconds"] == r.COMPLETED_CAMPAIGN_COST_BASELINE_SECONDS
++           and worker["parent_completed_campaign_cost_baseline_seconds"] == r.LATEST_COMPLETED_CAMPAIGN_COST_SECONDS
+            and worker["current_iteration_observed_outer_seconds"] <= worker["elapsed_seconds"]
+            and math.isclose(worker["cumulative_selected_checkpoint_trajectory_wall_seconds"],
+                             r.SELECTED_TRAJECTORY_BASELINE_SECONDS + worker["current_iteration_observed_outer_seconds"], rel_tol=0, abs_tol=0.01)
+            and math.isclose(worker["cumulative_successful_ancestor_and_completed_campaign_cost_seconds"],
+-                            r.COMPLETED_CAMPAIGN_COST_BASELINE_SECONDS + worker["current_iteration_observed_outer_seconds"], rel_tol=0, abs_tol=0.01),
++                            r.LATEST_COMPLETED_CAMPAIGN_COST_SECONDS + worker["current_iteration_observed_outer_seconds"], rel_tol=0, abs_tol=0.01),
+            "Worker trajectory and complete-campaign wall accounting differ")
+     r.need(worker["peak_rss_bytes"] <= r.LIMITS["RSS_bytes"]
+            and worker["peak_mps_driver_bytes"] <= r.LIMITS["MPS_bytes"], "Worker exceeded resources")
+@@ -132,6 +159,7 @@
+     r.assert_saved_optimizer_lr(parent_state, r.LEARNING_RATE)
+     r.assert_saved_optimizer_lr(entry_state, r.LEARNING_RATE)
+     metrics = [json.loads(line) for line in (out / "training-metrics.jsonl").read_text().splitlines()]
++    validate_metric_schedule(metrics)
+     r.need([row["phase_update"] for row in metrics] == list(range(r.PHASE_START + 1, r.PHASE_END + 1)), "Update journal incomplete")
+     steps = 0
+     for local_update, row in enumerate(metrics, 1):
+@@ -257,11 +285,11 @@
+            and state["next_episode_indices"] == episodes["next_episode_indices"]
+            and state["update_progress"]["completed_updates"] == r.NEW_UPDATES and state["phase_update"] == r.PHASE_END
+            and state["local_update"] == r.NEW_UPDATES and state["selected_parent_checkpoint_trajectory_baseline_seconds"] == r.SELECTED_TRAJECTORY_BASELINE_SECONDS
+-           and state["parent_completed_campaign_cost_baseline_seconds"] == r.COMPLETED_CAMPAIGN_COST_BASELINE_SECONDS
++           and state["parent_completed_campaign_cost_baseline_seconds"] == r.LATEST_COMPLETED_CAMPAIGN_COST_SECONDS
+            and state["current_iteration_observed_outer_seconds"] <= worker["elapsed_seconds"]
+            and state["parent_checkpoint_sha256"] == r.PARENT_SHA
+            and state["cumulative_selected_checkpoint_trajectory_wall_seconds"] == r.SELECTED_TRAJECTORY_BASELINE_SECONDS + state["current_iteration_observed_outer_seconds"]
+-           and state["cumulative_successful_ancestor_and_completed_campaign_cost_seconds"] == r.COMPLETED_CAMPAIGN_COST_BASELINE_SECONDS + state["current_iteration_observed_outer_seconds"],
++           and state["cumulative_successful_ancestor_and_completed_campaign_cost_seconds"] == r.LATEST_COMPLETED_CAMPAIGN_COST_SECONDS + state["current_iteration_observed_outer_seconds"],
+            "Candidate counters, inheritance or next indices differ")
+     cumulative = r.continuation_cumulative_counters(parent["cumulative_counters"], worker["counters"])
+     r.need(state["cumulative_counters"] == cumulative == worker["cumulative_counters"]

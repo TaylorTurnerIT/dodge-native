@@ -1,0 +1,32 @@
+{
+  "at_utc": "2026-10-25T16:41:07.822096+00:00",
+  "authority": "Latest user instruction, 2026-10-25",
+  "changes": [
+    "Every return reports survival Q1/Q4/mean; rank16of64 per metric independently.",
+    "Score removed from future pilot/progression/qualification pass conditions; survival thresholds retained.",
+    "Reward unchanged; score remains diagnostic.",
+    "Added separately versioned survival-only predicates and six isolated stdlib unit tests."
+  ],
+  "inputs": {
+    "historical_gate_v2_sha256": "e091f8a2fad0a307d289a6d306112606b15df8f8aa0f3a75707ac7cfb2cee803",
+    "state_before_sha256": "251a3d87abd245d0afbba11d6916a748b4790ebf8a9bffab287fe54feb59317d"
+  },
+  "limitations": [
+    "Frozen v2 runner remains unchanged; future execution must explicitly bind the v3 policy and matching sources/identities.",
+    "Death-category frequencies cannot be recovered from retained episode fields. Native first-fatal-contact attribution remains future work.",
+    "No historical failed checkpoint is promoted and no new experiment is authorized."
+  ],
+  "outputs": {
+    "docs/teacher-qualification-v3.json": "bfcbee1609cec0180495c957cf4b5e0b31356f395e2a706217cc9225647d23ae",
+    "docs/v2-performance-policy-2026-10-25.md": "57746f384702557576c73798fb9236fda07a725cc2d4fe8d3e5ca38506a1a307",
+    "learning/runs/v2/user-performance-policy-20261025-r1/performance-summary.json": "18af4c5bde9453e9a19b9b583984636296b22fa4838bbd6c38a0cb27822dcc38",
+    "python/dodge_rl/survival_gate.py": "11257111602f26e49fbc71afc6a51acb79434a3717bd8d6d36d1bbf87dfb8841",
+    "python/tests/test_survival_gate_v3.py": "f61f63cddf4ea227ca6075817af21aef5475ab0878a9280b8b95c1e52673fee1"
+  },
+  "validation": {
+    "command": "learning/.venv/bin/python -B -m unittest discover -s python/tests -p test_survival_gate_v3.py -v",
+    "raw_exit": 0,
+    "scope": "Policy predicates only; no native/model imports or training/evaluation.",
+    "tests_passed": 6
+  }
+}

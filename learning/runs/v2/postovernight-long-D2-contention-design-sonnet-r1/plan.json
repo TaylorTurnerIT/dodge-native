@@ -1,0 +1,141 @@
+{
+  "schema": "contention_design_plan_v1",
+  "status": "proposal_only_no_training_launch",
+  "claims": {
+    "production": false,
+    "causal_confidence": false,
+    "training_performance": false,
+    "acceptance": false,
+    "note": "H1 is the most source-supported hypothesis; no measurement was run by this task."
+  },
+  "frozen_candidate": "learning/runs/v2/postovernight-long-D2-boundary-prepare-r11",
+  "parent_frozen_pins_verified": 8,
+  "protocol_r8_sha256": "fe11c08159bdb9ca1f03cb0fb96ffd133ad144d107b2a854d19fc49159aa2db2",
+  "boundary_policy_sha256": "95977b36b45ad1ea670a601b51bb70198d0c0f37bb76c237b6ac032e535ebe9d",
+  "config_sha256": "2ac814d3842228017d09669364a8391344722da56ad19f41ad9030dbb930c2db",
+  "d1_checkpoint_sha256": "ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f",
+  "evidence": [
+    "Guard.full_check(force=True) runs verify() synchronously on the calling thread (long_d2.py:497-531, call at :511).",
+    "verify_files does is_file + open/read(1MiB)/hashlib.update/close per file (long_d2.py:68-82,124-126); about 2,400 GIL-releasing calls per pass in the profile (open 371, read 585, update 310, DirEntry.stat 171, posix.stat 426, close 275, scandir 70).",
+    "Stress contender is a pure-Python loop that never blocks (stress.py:28-31); stress is a registered robustness requirement (parent-validation-plan.json stage changed-source-contention), stdlib-only, MPS not observed.",
+    "No setswitchinterval call exists in r11 sources; CPython 3.12.15.",
+    "Uncontended boundary 0.031 s wall = 0.031 s CPU; nine contended boundaries 4.280-16.135 s wall with 0.082-0.159 s thread CPU; every pass 273 files, 47,527,648 bytes.",
+    "Profile r1: 8.578 s wall, 0.0847 s CPU, max sample gap 0.2028 s; stress max sample gap 0.2633 s (limit 0.5 s).",
+    "Stress ran without cProfile and shows the same regime, so profiler overhead is not the cause.",
+    "project_members is 0.527 s cumulative of 8.578 s, so project-members dominance is unsupported."
+  ],
+  "hypotheses": {
+    "H1_gil_handoff": "Most source-supported. Verifier thread waits one switch interval (default 5 ms) to regain the GIL after each syscall behind a never-blocking Python thread; about 2,400 releases times 3.5-7 ms predicts 8-16 s.",
+    "H2_storage_latency": "Weak: identical bytes read uncontended in 0.03 s. Not excluded for cold cache.",
+    "H3_scheduler_qos": "Not excluded; GIL handoff wait is itself a timed condition-variable wait.",
+    "H4_second_waiter_monitor_thread": "Not excluded; may explain 4.28 s versus 16.1 s variance."
+  },
+  "rejected_options": [
+    {"option": "batch byte reads", "reason": "At most about 14% of GIL releases removed; predicts about 11-14 s per pass; whole-file reads change memory behavior."},
+    {"option": "hash in child process or helper thread", "reason": "New verifier thread/process and trust boundary; violates no-background-verifier contract."},
+    {"option": "content/stat cache, cadence skips, fewer passes", "reason": "Forbidden by protected contracts."},
+    {"option": "change contender, raise cap, remove boundaries", "reason": "Excluded by task."}
+  ],
+  "next_step": {
+    "kind": "discriminating_probe_no_source_change",
+    "name": "switch-interval probe",
+    "suggested_output_dir": "learning/runs/v2/postovernight-long-D2-switchinterval-probe-r1",
+    "fixed_work": [
+      "Load frozen r11 context with capsule_context(verify_inputs=False), no ML imports.",
+      "Actual c.Guard with unmodified integrity.verify, no monkeypatching, cProfile off.",
+      "B0 uncontended boundary.",
+      "Start byte-identical 12000-iteration Python contender.",
+      "Forced boundaries in order: A1 default interval 0.005, B1 0.0001, A2 default, B2 0.0001; restore and verify interval after each pass.",
+      "Stop/reap contender and Guard threads; save per-pass wall, thread CPU, interval before/during/after, max sample gap, RSS."
+    ],
+    "caps": {"work_seconds": 60, "emergency_guardian_seconds": 70, "retries": 0},
+    "predicted_if_H1": "A1/A2 in the 4-16 s regime; B1/B2 0.03-0.5 s, at least 10x faster than adjacent A, thread CPU under 0.2 s, smaller sample gap.",
+    "confirm": "A1 and A2 each >= 4 s and B1 and B2 each < 1.0 s and each at least 10x faster than the adjacent A.",
+    "falsify": "Any B pass >= 1.0 s or any B pass not at least 10x faster than its adjacent A pass: stop, propose no source change, design a storage/scheduler discriminator.",
+    "inconclusive": "A1 and A2 both < 4 s: contention not reproduced; record and stop.",
+    "stop_conditions": [
+      "any boundary not passed",
+      "interval not restored after a pass",
+      "max sample gap >= 0.5 s",
+      "cap breach",
+      "any need to alter contender, checks or limits"
+    ]
+  },
+  "contingent_repair": {
+    "applies_only_if": "probe confirms H1",
+    "target_candidate": "new r12 freeze; r11 and all prior failed evidence preserved unchanged",
+    "changed_source": "learning/runs/v2/<r12>/long_d2.py only",
+    "changed_functions": [
+      "boundary_switch_interval (new @contextmanager helper near long_d2.py:452)",
+      "Guard.full_check (long_d2.py:497-531): wrap self.verify() at :511"
+    ],
+    "interval_seconds": 0.0001,
+    "interval_tuning": "none; single value fixed before any run and identical to the probe value",
+    "scope": "Guard forced boundary callback only, under verify_lock; outer preflight/postflight endpoints, final-hash and timing writers not wrapped",
+    "process_global_effects": [
+      "Interpreter-wide: contender and monitor thread see the interval during each boundary.",
+      "Contender loses some throughput during boundaries; monitor sample gaps expected to shrink.",
+      "Verifier thread CPU may rise from context switches; measure, expect about 0.2 s or lower per boundary.",
+      "Native torch/MPS compute is not GIL-bound; boundaries run with training paused; no MPS claim.",
+      "Main-thread GIL regain wait shrinks, so signal/cancel latency expected to improve; ProcessLatch.handle semantics unchanged.",
+      "Child processes do not inherit the setting."
+    ],
+    "restoration": "Nested try/finally: inner finally restores on success, Stop, any BaseException and KeyboardInterrupt; outer finally re-checks to cover a signal-raised Stop landing inside the inner finally. os._exit paths destroy the process. Nested same-thread calls are LIFO-safe. A leaked interval is performance-only.",
+    "optional_evidence_fields": ["switch_interval_before", "switch_interval_during", "switch_interval_after"],
+    "optional_evidence_note": "Only if r12 review confirms consumers tolerate extra row fields; boundary_integrity.py:165 reads only sequence and verdict.",
+    "measurable_risks": [
+      "macOS wakeup granularity at 100 us unknown; probe measures it",
+      "CPU overhead from extra context switches",
+      "interval leak on an unanticipated failure path",
+      "reduced contender throughput not affecting any required check"
+    ],
+    "protected_bytes_expected_identical": {
+      "boundary_integrity.py": "d4aafd463d105967b44151f11ec8e1c5fb5d5b633c6892db8bde829f28eff560",
+      "lifecycle.py": "aab36d678526b6fbd4eecbe1493ad3511365f00064a91d459b85834eaf3e752b",
+      "classification.json": "17612541f3a44a3df9205093e7e597f8f728e3562964141e3def374bf7afd3ac",
+      "long_d2_executor.py": "b63d5356beb88c801ce4f8d5ccd82d5df1c65d32b6e955c72899c41cd3ffbdd4"
+    },
+    "expected_to_change": {
+      "long_d2.py": "d226dac2e1173891fc9cd94ecfb394b3c75f1335ae94d6c1a35f24030caf21d1 (r11)",
+      "derived_expected_not_measured": ["capsule-final/capsule-manifest.json", "long-identity.json", "registration.json"]
+    },
+    "protected_contracts_unchanged": [
+      "full actual B/R/A endpoint checks and all forced active B checks",
+      "genuine legacy check_frozen/origin/runtime/cache checks",
+      "no cross-pass content/stat cache, no cadence skips, no background verifier thread/process, no new integrity deadline, no weakened identity, no five-second full-tree watchdog",
+      "single-scandir capsule pass",
+      "7200 outer / 7140 worker / 7170 inner seconds; cleanup min(previous, earliest_failure+10, T0+7210)",
+      ".05/.15/max .5 resource and lease timing; separate observed 6 GiB RSS and MPS limits",
+      "raw/exit-wall/direct-parent wait/positive absence/mandatory integrity-summary acceptance",
+      "original source unions, failure chronology, one-shot ACK, IPC transport, r11 escalation repair",
+      "model, PPO, reward, env, seeds, gates, D1 lineage, restore-before-environment, 64-row nine-field entry control",
+      "stress contender, 12 forced boundaries, actual B bytes, unchanged 120 s cap",
+      "no failed-weight resume, D3, student, CPU fallback, automatic launch or retry"
+    ]
+  },
+  "validation_order": [
+    "1. Rehash eight r11 pins, protocol r8, config, D1 checkpoint; keep failed r11 stress, r11 review and profile r1 evidence unchanged.",
+    "2. Run switch-interval probe (<=60 s, one invocation); only 'confirmed' continues.",
+    "3. Freeze r12 with only the two source edits; static diff check that protected files are unchanged and long_d2.py differs only in the helper and call site.",
+    "4. Stdlib unit tests: restoration on success, Stop, BaseException, signal-injected Stop inside finally, nested calls, concurrent getswitchinterval reader; existing 112 methods.",
+    "5. Independent review of frozen r12 source.",
+    "6. Existing 15 real-OS lifecycle fixtures, once.",
+    "7. Changed-source contention stress, once, unchanged contender/12 boundaries/120 s cap.",
+    "8. Startup-only stage; 7,200-second authorization stays held until parent gates pass."
+  ],
+  "stop_conditions": [
+    "any failed or missing check or any boundary not passed",
+    "switch interval not restored",
+    "probe B pass >= 1.0 s",
+    "max sample gap >= 0.5 s",
+    "cap breach",
+    "any attempt to change contender, cap, checks or limits",
+    "any need to widen scope beyond the two named functions"
+  ],
+  "not_done": [
+    "no experiment, probe, stress, startup rehearsal or training run",
+    "no source, state, docs or protocol edit",
+    "no ML or project module import, no checkpoint decode, no lease or scheduler",
+    "no nested delegation, commit or PR"
+  ]
+}

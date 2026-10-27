@@ -1,0 +1,155 @@
+{
+  "version": "long_D2_design_plan_v1",
+  "status": "design_only;parent_registers_final_protocol;no_training_or_implementation_performed",
+  "design": "learning/runs/v2/postovernight-long-D2-design-opus-r1/design.md",
+  "evidence": "learning/runs/v2/postovernight-long-D2-design-opus-r1/evidence/manifests/inputs.json",
+  "run_id": "v2-m3-long-D2-20261024-r1",
+  "experiment_phase": "long_D2",
+  "evaluation_stage": "D2",
+  "single_use": true,
+  "required_parent_corrections": [
+    {
+      "field": "proposed_training_run_seed",
+      "proposal_value": 5562881586070242563,
+      "problem": "equals registered D3 run_seed 0x4d33535441474503 ('M3STAGE'||0x03)",
+      "replacement": 5562873868232098305,
+      "replacement_hex": "0x4d334c4f4e470201",
+      "replacement_derivation": "big-endian bytes 'M3LONG'||0x02||0x01; distinct from all registered run and initialization seeds"
+    }
+  ],
+  "parent": {
+    "checkpoint": "learning/runs/v2/milestone3-D1-curriculum-r1/checkpoint-000009-candidate.pt",
+    "checkpoint_sha256": "ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f",
+    "terminal_receipt_anchor": {
+      "checkpoint_sha256": "ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f",
+      "config_sha256": "624c491ce59881e232ff25750a5a13e312b08bfdea39cc4c86bd17149a19f789",
+      "evaluation_sha256": "17b253b9d32e70b875bca8b496348e313568a82b3e8f431fa4a905bf720ccad7",
+      "identity_sha256": "7df70937ae7ced6f993277dae2d02f22c6ffee4a0ddfa0fcb26ef8388e6f1e63",
+      "phase": "D1",
+      "run_id": "v2-m3-D1-20261024-r1",
+      "run_result_sha256": "3475d2b86c935e219c4729a13f448330b2bb2c395617ed07381cb79c00a7aa18",
+      "supervisor_exit_code": 0
+    },
+    "D1_audit_sha256": "b0816410dbe1e6672ee44f0e339731b9342f932084e5eda13923967b690b3c08",
+    "inherited_counters": {"updates": 48, "optimizer_steps": 6144, "environment_decisions": 786432, "raw_frames": 3139552, "checkpoint_index": 9},
+    "failed_D2_artifacts_as_training_parent": false
+  },
+  "legacy_proofs_unchanged_functions": [
+    "dodge_rl.identity.check_frozen(learning/runs/v2/milestone3-D2-freeze-r1/D2-frozen-identity.json, 56dcf1ba848c2e2acdca967ce8ed5bca9457551659421a9070c2f7c5ba2bc14f, D2-config)",
+    "dodge_rl.checkpoints.validate_transition(D1 checkpoint, D2 frozen identity object, terminal_anchor=exact D1 anchor) -> (parent_state, certificate)",
+    "hash pin of D1 audit and execution result"
+  ],
+  "legacy_proof_scope": "proves D1 eligible under old registered D1->D2 contract and source/runtime identity equality; does not authorize the 7200-second row",
+  "config": {
+    "version": "teacher_long_D2_config_v1",
+    "base_config": "learning/runs/v2/milestone3-D2-freeze-r1/D2-config.json",
+    "base_config_sha256": "2d8eb5626d0debdf5416d0b89610d78ddd56011c3238a82fec72efabe1bd7fe3",
+    "learner_fields": "byte-identical to every D2-config field except version/phase/phase_settings (see evidence derived_facts.D2_config_learner_fields)",
+    "phase": "long_D2",
+    "evaluation_stage": "D2",
+    "phase_settings": {"budget_seconds": 7200, "difficulty": 2, "patterns_enabled": true, "initialization": "transition_from_successful_D1_long_protocol_r1", "run_seed": 5562873868232098305},
+    "long_settings": {
+      "evaluate_at_entry": true,
+      "evaluate_every_completed_updates": 16,
+      "periodic_checkpoint_every_completed_updates": 8,
+      "gate": "dodge_rl.dev_eval.progress_passed('D2', {'D2': summary}) unchanged: mean_score>=50 and mean_alive_frames>=3060, deterministic argmax, 64 D seeds 3489660928..3489660991, cap 18000",
+      "supervisor_finalization_reserve_seconds": 60,
+      "worker_deadline": "T0+7200-60",
+      "U_seconds": "max(25.0, 1.25*max observed complete-update wall incl periodic checkpoint)",
+      "E_seconds": "max(150.0, 3.0*max observed evaluation wall incl entry)",
+      "C_seconds_per_checkpoint": 15.0,
+      "F_worker_seconds": 30.0,
+      "block_admission": "at evaluated boundary 16k after non-passing eval: admit iff remaining_worker >= 16*U + E + 2*C + F",
+      "in_block_check": "before update j (1..16): remaining_worker >= (17-j)*U + E + remaining_checkpoints*C + F, else close with long_closure_unevaluated and no evaluation",
+      "pre_evaluation_check": "remaining_worker >= C + E + F, else close unevaluated",
+      "off_cadence_evaluation": false,
+      "futility_stop": false,
+      "rss_limit_bytes": 6442450944,
+      "mps_driver_limit_bytes": 6442450944,
+      "cleanup_reserve_seconds_failure_only": 10
+    },
+    "unknown_or_missing_field": "fail_closed"
+  },
+  "unchanged_learner_settings": {
+    "reward": "score_delta + 0.01 per alive raw frame - 5 once on death (score_plus_0.01_alive_minus_5_termination_v1)",
+    "ppo": {"adam_eps": 1e-05, "clip_coef": 0.2, "ent_coef": 0.01, "gae_lambda": 0.95, "gamma": 0.995, "learning_rate": 0.0003, "max_grad_norm": 0.5, "minibatch_size": 512, "reward_scale": 0.1, "target_kl": 0.03, "update_epochs": 4, "vf_coef": 0.5},
+    "batch_size": 64, "rollout_steps": 256, "action_repeat": 4, "device": "mps", "dtype": "float32", "num_threads": 4, "chunk_size": 8,
+    "training_raw_frame_cap": 18000, "patterns_enabled": true, "powerups_enabled": true, "running_normalization": false,
+    "observation": "dodge_global14_entity80x16_v2_r2 (14 global, 16 entity scalars, 64 enemy + 16 rect capacities)",
+    "architecture": "unchanged full teacher, 321290 params, width 128, 2 layers, 4 heads, 81 tokens",
+    "excluded_seed_ranges": [[2952790016, 2952791015], [3489660928, 3489661055], [3758096384, 3758097383]],
+    "safety_stops": "nonfinite raise; approx_kl>0.1 three consecutive updates GuardStop; entropy<0.3 before D1 competence (inert, competence carried true)"
+  },
+  "identity": {
+    "version": "teacher_long_D2_identity_v1",
+    "fields": ["version", "config", "config_sha256", "base_registered_identity_sha256", "base_registered_identity", "parent_checkpoint_sha256", "parent_terminal_receipt", "protocol_sha256", "controller_sources"],
+    "base_registered_identity_sha256": "56dcf1ba848c2e2acdca967ce8ed5bca9457551659421a9070c2f7c5ba2bc14f",
+    "base_source_count": 75,
+    "controller_location": "outside python/dodge_rl, python/tests, crates (source_inventory roots), e.g. learning/runs/v2/postovernight-long-D2-prepare-r1/{long_d2.py,test_long_d2.py}",
+    "capsule": "read-only snapshot, manifest version long_d2_capsule_v1, mirroring r3 capsule construction"
+  },
+  "checkpoint_coupling": {
+    "container_version": "teacher_checkpoint_v1",
+    "resume_mode": "fresh_env",
+    "tags": ["long_evaluated", "long_periodic", "long_closure_unevaluated", "interrupted_mid_update", "timeout", "failure"],
+    "evaluation_suffix": ".long-evaluation.json",
+    "receipt_names": ["long-config.json", "long-identity.json", "parent-lineage.json", "entry-control.json", "schedule.jsonl", "training-episodes.jsonl", "training-metrics.jsonl", "worker-resources.jsonl", "supervisor-guard.jsonl", "checkpoint-index.json", "long-worker-result.json", "long-run-result.json", "artifact-manifest.json", "finalization-result.json"],
+    "old_reader_rejection_points": ["tag != candidate", "run-result.json/registered-config.json/.evaluation.json absent", "validate_config rejects long_D2", "protocol has no long_D2 phase/transition", "assert_lease requires M3_teacher", "same-phase resume disabled"],
+    "training_parent_eligible_any_checkpoint": false
+  },
+  "lease": {
+    "location": "state.active_long_campaign",
+    "exact_keys": ["kind", "authorization", "run_id", "protocol_sha256", "controller_sha256", "capsule_manifest_sha256", "capsule_path", "config_sha256", "identity_sha256", "parent_checkpoint_sha256", "parent_terminal_receipt", "budget_seconds", "cleanup_reserve_seconds", "output", "cancel_requested"],
+    "kind": "M3_long_D2_experiment",
+    "authorization": "postovernight_user_go_long_D2_7200s_r1",
+    "budget_seconds": 7200,
+    "cleanup_reserve_seconds": 10,
+    "cancel_requested": false,
+    "checked": "supervisor before spawn and every <=0.5 s; worker every guard sample; any change stops"
+  },
+  "entry": {
+    "order": ["seed_initialization(0)", "construct model+Adam", "restore_learner(parent_state)", "bitwise equality model/Adam/RNG vs parent_state", "emit parent abandoned_episodes reason long_D2_namespace_transition", "env = VecDodgeEnv(**{**training_env_config(D2 config,[0]*64), run_seed: new}) assert single diff", "verify_training_env(env, long_config, [0]*64)", "capture_rng", "save long_evaluated checkpoint", "dev_eval.evaluate(model,'D2','mps')", "capture_rng equal; weights unchanged", "exact 64-row control"],
+    "control": "learning/runs/v2/milestone3-D2-curriculum-r1/checkpoint-000010-candidate.pt.evaluation.json",
+    "control_sha256": "d52919c5e260d3eab31573aa0ef671b0cf03e70fe3aabe23ff96a830bd24b0cc",
+    "control_means": {"mean_score": 1.4765625, "mean_alive_frames": 295.25},
+    "control_rule": "all 64 rows field-for-field equal; JSON only, never load failed-run checkpoint; mismatch = pre-gradient failure exit 1",
+    "is_registered_cadence_point": true
+  },
+  "exit_codes": {"0": "complete;D2_progress_gate_passed", "2": "complete;budget_closed_below_gate", "1": "failed"},
+  "outcome_fields": {
+    "experiment_status": ["complete", "failed"],
+    "outcome": ["D2_progress_gate_passed", "budget_closed_below_gate", "safety_stop", "entry_control_mismatch", "identity_or_lease_failure", "resource_stop", "cancelled", "wall_guard", "publication_failure"],
+    "progression_gate_passed": "true only from passing cadence evaluation",
+    "teacher_qualified": false,
+    "training_parent_eligible": false,
+    "D3_parent_candidate_pending_separate_parent_audit": "true only for gate-passing checkpoint; D3 requires new protocol/controller/authorization",
+    "B_E_student_D3_opened": false
+  },
+  "measured_basis": {
+    "old_D2_updates": 104,
+    "old_D2_complete_adam_steps": 13248,
+    "old_D2_mean_update_interval_seconds": 17.172,
+    "old_D2_median_update_interval_seconds": 16.913,
+    "old_D2_max_update_interval_seconds": 25.371,
+    "old_D2_startup_to_first_update_seconds": 20.785,
+    "old_D2_max_eval_seconds": 8.185,
+    "projected_all_capped_D2_eval_seconds": [92, 110],
+    "old_D2_max_MPS_driver_bytes": 2456387584,
+    "old_D2_max_RSS_bytes": 952745984,
+    "projection_not_promise": {"blocks": [21, 23], "complete_updates": [336, 368], "adam_steps_approx": [43000, 47000], "disk_MB_approx": 250}
+  },
+  "reused_unchanged_apis": {
+    "dodge_rl.checkpoints": ["validate_transition", "validate_terminal_receipt", "load_checkpoint", "require_complete_update", "restore_learner", "make_state", "save_checkpoint", "capture_rng", "REJECTED_PARENT_TAGS"],
+    "dodge_rl.identity": ["check_frozen", "identity_hash", "file_hash", "canonical_bytes", "read_protocol", "training_env_config (old D2 config only)", "verify_training_env", "require", "OBSERVATION_KEYS"],
+    "dodge_rl.dev_eval": ["evaluate", "progress_passed", "validate_summary", "development_seeds"],
+    "dodge_rl.ppo": ["PPOConfig", "collect_rollout", "ppo_update"],
+    "dodge_rl.models.teacher": ["OmniscientEntityTeacher"],
+    "dodge_rl.train_teacher": ["TrainingEnvLog", "make_optimizer", "require_raw_diagnostics", "save_json", "seed_initialization", "synchronize"],
+    "dodge_rl.supervision": ["current_rss_bytes", "peak_rss_bytes", "emit", "GuardStop"]
+  },
+  "not_reused": ["identity.validate_config/default_config/build_identity for long config", "supervision.Guard/check_budget/assert_lease/CUTOFF", "train_teacher.Experiment/worker/_run_supervised", "checkpoints.remaining_phase_budget path", "r3 runner.py (reference only; patterns copied, file unchanged)"],
+  "r3_defects_not_to_regress": ["late false complete: post-write deadline check revokes manifest+terminal", "unstable manifest: hash only after reaped leader and positively empty group", "deferred cancel: cancellation request latch read after signal context invalidates completion"],
+  "tests": "design.md section 9 (11 synthetic groups + negative controls against broken copies)",
+  "acceptance_checklist": "design.md section 10",
+  "unverified_until_run": ["MPS memory over 2 h", "throughput/thermal drift and eval-time growth", "learning curve beyond 104 updates; gate pass not predicted", "entry control determinism today", "platform string equality with D2 freeze", "cooperative MPS guard blind during blocked native/MPS call"]
+}

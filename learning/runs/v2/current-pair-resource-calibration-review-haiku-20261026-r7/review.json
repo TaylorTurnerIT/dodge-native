@@ -1,0 +1,60 @@
+{
+  "schema": "current_pair_resource_calibration_review_v1",
+  "mode": "static_source_only",
+  "verdict": "findings_no_blocker_static",
+  "reader_cap_integration": "matches_worker_read_latest_resource_sample_return_shape",
+  "launcher_args": "launcher accepts only --plan --pins --reservation --output; plan and pins sha flags are passed to the child probe only",
+  "guard_formula": "136 per pass verified by static trace: 64 construction guards + 8 decisions x (1 top + 7 chunk + 1 end)",
+  "findings": [
+    {
+      "severity": "low",
+      "category": "contract-accuracy",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r7/probe.py",
+      "line": 0,
+      "summary": "Comment says no MPS call precedes the pre-MPS gate, but ResourceSampler.start() runs _default_probe, which calls torch.mps.driver_allocated_memory(), before the rehash gate.",
+      "failure_scenario": "Probe run starts sampler thread, which queries MPS driver memory before the rehash-before-MPS gate; the stated 'no MPS call precedes this gate' claim is false, so evidence based on that claim is inaccurate. Runtime effect unverified."
+    },
+    {
+      "severity": "low",
+      "category": "correctness",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r7/launch_once.py",
+      "line": 0,
+      "summary": "monitor_rss raises on ps nonzero exit before rechecking process.poll(), so a clean child exit racing with ps is recorded as an RSS monitor failure.",
+      "failure_scenario": "Worker exits 0 between the poll check and the ps call for the worker PID; ps returns nonzero, monitor_error is set, and _main raises 'RSS monitor failed closed' even though the probe passed."
+    },
+    {
+      "severity": "low",
+      "category": "evidence",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r7/probe.py",
+      "line": 0,
+      "summary": "Failures before the try block (imports, verify_inputs, CPU checkpoint loop, second pins/reservation check, sampler.start) raise without writing probe-result.json.",
+      "failure_scenario": "Strict CPU checkpoint check fails; probe exits 1 with traceback only. Launcher writes failed_child, but no probe-owned metrics or failure reason file exists."
+    },
+    {
+      "severity": "low",
+      "category": "defense-in-depth",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r7/launch_once.py",
+      "line": 0,
+      "summary": "run_cpu_preflight checks only status and mps_operations, not training or requires_grad_any in strict_cpu_loads.",
+      "failure_scenario": "cpu_preflight reports a load with requires_grad True but status passed; the launcher gate accepts it. The probe's own CPU loop still rejects it before MPS, so no MPS exposure, but the launcher-level gate is weaker than the stated strict CPU preflight."
+    },
+    {
+      "severity": "info",
+      "category": "contract-ambiguity",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r7/launch_once.py",
+      "line": 0,
+      "summary": "Launcher enforces a 6 GiB aggregate of launcher plus worker current RSS, while probe enforces worker ru_maxrss separately. calibration-plan.json says rss_and_mps_caps_separate: true.",
+      "failure_scenario": "Reviewers reading 'separate 6 GiB RSS/MPS' may expect no combined RSS cap; the implemented combined cap is stricter and could fail a run the plan intends to allow. Intent needs confirmation."
+    }
+  ],
+  "static_checks_passed": [
+    "Frozen hashes match for calibration-plan.json, freeze-manifest.json, preparation-receipt.json, review-source-manifest.json (source-pins.json recorded only; expected hash checked in the freeze log)",
+    "probe.py read_latest_resource_sample usage matches worker.py return keys sample, age_seconds, complete_records",
+    "probe rejects stale samples via reader max_age=1.0 and separate age check",
+    "startup MPS zero accepted by session check; active-window zero-only rejected by any(value > 0) check",
+    "cpu_preflight.py has main() and __main__ guard; launcher CLI matches probe required args",
+    "cpu_preflight ROOT parents[4] and launcher HERE.parents[3] both resolve to repo root"
+  ],
+  "test_coverage_observed": "cpu-tests-r7-final.log reports 17 tests OK (static log only, not re-run). Reader integration, launcher end-to-end publication, cleanup, and guard formula tests are present in test_calibration_cpu.py.",
+  "runtime_acceptance": "not_established_by_this_review"
+}

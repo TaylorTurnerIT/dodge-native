@@ -1,0 +1,44 @@
+[
+  {
+    "name": "syntax_compile",
+    "command": "PYTHONPYCACHEPREFIX= python3 -c from pathlib import Path\nfor n in (\"adapter.py\",\"launcher.py\",\"worker.py\",\"helper.py\",\"startup_rehearsal.py\",\"test_adapter.py\",\"test_launcher.py\",\"test_torch_restore.py\"): compile(Path(n).read_text(), n, \"exec\")\nprint(\"syntax compile passed\")",
+    "exit_code": 0,
+    "wall_seconds": 0.029185417,
+    "output": "syntax compile passed\n"
+  },
+  {
+    "name": "adapter_and_launcher_tests",
+    "command": "PYTHONPYCACHEPREFIX= /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python -B -m unittest -v test_adapter.py test_launcher.py",
+    "exit_code": 0,
+    "wall_seconds": 0.042384833,
+    "output": "test_cache_policy_requires_explicit_empty_value (test_adapter.AdapterContractTests.test_cache_policy_requires_explicit_empty_value) ... ok\ntest_checkpoint_is_provisional_at_complete_boundary (test_adapter.AdapterContractTests.test_checkpoint_is_provisional_at_complete_boundary) ... ok\ntest_eighty_updates_and_six_evaluations (test_adapter.AdapterContractTests.test_eighty_updates_and_six_evaluations) ... ok\ntest_episode_seed_indices_carry_without_replay (test_adapter.AdapterContractTests.test_episode_seed_indices_carry_without_replay) ... ok\ntest_failure_and_truncation_rejected (test_adapter.AdapterContractTests.test_failure_and_truncation_rejected) ... ok\ntest_score_never_enters_progress_predicate (test_adapter.AdapterContractTests.test_score_never_enters_progress_predicate) ... ok\ntest_seed_is_pinned (test_adapter.AdapterContractTests.test_seed_is_pinned) ... ok\ntest_empty_group_gets_no_signal (test_launcher.LauncherBoundaryTests.test_empty_group_gets_no_signal) ... ok\ntest_finalization_budget_checks_cancellation_and_absolute_deadline (test_launcher.LauncherBoundaryTests.test_finalization_budget_checks_cancellation_and_absolute_deadline) ... ok\ntest_stop_signals_only_live_owned_group_and_proves_absence (test_launcher.LauncherBoundaryTests.test_stop_signals_only_live_owned_group_and_proves_absence) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.001s\n\nOK\n"
+  },
+  {
+    "name": "retained_r3_supervisory_regressions",
+    "command": "PYTHONPYCACHEPREFIX= /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python -B ../critic-diagnostic-runner-prepare-20261025-r3/test_contract.py",
+    "exit_code": 0,
+    "wall_seconds": 0.058178167,
+    "output": "................\n----------------------------------------------------------------------\nRan 16 tests in 0.020s\n\nOK\n"
+  },
+  {
+    "name": "model_adam_restore_fixtures",
+    "command": "PYTHONPYCACHEPREFIX= /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python -B test_torch_restore.py",
+    "exit_code": 0,
+    "wall_seconds": 0.8595918749999999,
+    "output": "actual Torch model and Adam restoration fixtures passed\n"
+  },
+  {
+    "name": "module_imports_no_campaign",
+    "command": "PYTHONPYCACHEPREFIX= /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python -B -c import launcher, worker; print(\"imports passed\")",
+    "exit_code": 0,
+    "wall_seconds": 0.025066749999999915,
+    "output": "imports passed\n"
+  },
+  {
+    "name": "accepted_d1_startup_only_rehearsal",
+    "command": "PYTHONPYCACHEPREFIX= /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python -B startup_rehearsal.py",
+    "exit_code": 0,
+    "wall_seconds": 0.9537179169999999,
+    "output": "{\"comparisons\": {\"Adam\": {\"expected_sha256\": \"05ebd5a56a5766a816e7d0b8d1cb3307a5ee4ec00ed846f139917469facc3d2d\", \"matched\": true, \"mismatch_paths\": [], \"restored_sha256\": \"05ebd5a56a5766a816e7d0b8d1cb3307a5ee4ec00ed846f139917469facc3d2d\"}, \"RNG\": {\"expected_sha256\": \"90fdf06c54a072a1de7d2669cb5b418b780730f6e2cf34bca2d001d9253a52c2\", \"matched\": true, \"mismatch_paths\": [], \"restored_sha256\": \"90fdf06c54a072a1de7d2669cb5b418b780730f6e2cf34bca2d001d9253a52c2\"}, \"model\": {\"expected_sha256\": \"415355ea78de1c5d7106a41b772f1e7ba129f31ce8563b45e69cf6be69b75d2f\", \"matched\": true, \"mismatch_paths\": [], \"restored_sha256\": \"415355ea78de1c5d7106a41b772f1e7ba129f31ce8563b45e69cf6be69b75d2f\"}}, \"elapsed_seconds\": 0.7699217090848833, \"status\": \"passed\"}\n"
+  }
+]

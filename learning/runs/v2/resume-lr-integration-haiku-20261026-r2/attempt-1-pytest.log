@@ -1,0 +1,127 @@
+...................................FFF                                   [100%]
+=================================== FAILURES ===================================
+_____ test_proposed_runner_top_level_imports_are_stdlib_plus_shared_module _____
+
+    def test_proposed_runner_top_level_imports_are_stdlib_plus_shared_module():
+        tree = ast.parse((PROPOSED / "runner.py").read_text())
+        modules = set()
+        for node in tree.body:
+            if isinstance(node, ast.Import):
+                modules |= {alias.name.split(".")[0] for alias in node.names}
+            elif isinstance(node, ast.ImportFrom) and node.level == 0:
+                modules.add(node.module.split(".")[0])
+        assert modules <= set(sys.stdlib_module_names) | {"resume_lr_transition"}
+>       assert "resume_lr_transition" in modules
+E       AssertionError: assert 'resume_lr_transition' in {'__future__', 'argparse', 'collections', 'hashlib', 'json', 'math', ...}
+
+learning/runs/v2/resume-lr-integration-haiku-20261026-r2/test_resume_lr_transition.py:379: AssertionError
+____ test_proposed_runner_orders_validation_override_assertions_and_update _____
+
+    def test_proposed_runner_orders_validation_override_assertions_and_update():
+        tree = ast.parse((PROPOSED / "runner.py").read_text())
+        worker = _function(tree, "worker")
+        evaluate_at = _function(worker, "evaluate_at")
+    
+        load_line = _call_lines(worker, "load_registration")
+        apply_lines = _call_lines(worker, "apply_resume_lr_override")
+        guarded_lines = _call_lines(worker, "guarded_update")
+>       assert len(load_line) == len(apply_lines) == len(guarded_lines) == 1
+E       assert 1 == 0
+E        +  where 1 = len([550])
+E        +  and   0 = len([])
+
+learning/runs/v2/resume-lr-integration-haiku-20261026-r2/test_resume_lr_transition.py:404: AssertionError
+_____ test_arm_diff_applies_to_frozen_runner_copy_and_yields_proposed_file _____
+
+tmp_path = PosixPath('/private/var/folders/_j/6mq3w82s4h52bncpkwsn4mc00000gn/T/pytest-of-taylor/pytest-2/test_arm_diff_applies_to_froze0')
+
+    def test_arm_diff_applies_to_frozen_runner_copy_and_yields_proposed_file(tmp_path):
+        target = tmp_path / "learning/runs/v2/D2-best180-branch-prepare-luna-20261026-r1"
+        target.mkdir(parents=True)
+        (target / "runner.py").write_bytes(FROZEN_RUNNER.read_bytes())
+>       subprocess.run(["git", "apply", "--check", str(DIFF)], cwd=tmp_path, check=True)
+
+learning/runs/v2/resume-lr-integration-haiku-20261026-r2/test_resume_lr_transition.py:435: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+input = None, capture_output = False, timeout = None, check = True
+popenargs = (['git', 'apply', '--check', '/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/resume-lr-integration-haiku-20261026-r2/arm-adapter.diff'],)
+kwargs = {'cwd': PosixPath('/private/var/folders/_j/6mq3w82s4h52bncpkwsn4mc00000gn/T/pytest-of-taylor/pytest-2/test_arm_diff_applies_to_froze0')}
+
+    def run(*popenargs,
+            input=None, capture_output=False, timeout=None, check=False, **kwargs):
+        """Run command with arguments and return a CompletedProcess instance.
+    
+        The returned instance will have attributes args, returncode, stdout and
+        stderr. By default, stdout and stderr are not captured, and those attributes
+        will be None. Pass stdout=PIPE and/or stderr=PIPE in order to capture them,
+        or pass capture_output=True to capture both.
+    
+        If check is True and the exit code was non-zero, it raises a
+        CalledProcessError. The CalledProcessError object will have the return code
+        in the returncode attribute, and output & stderr attributes if those streams
+        were captured.
+    
+        If timeout (seconds) is given and the process takes too long,
+         a TimeoutExpired exception will be raised.
+    
+        There is an optional argument "input", allowing you to
+        pass bytes or a string to the subprocess's stdin.  If you use this argument
+        you may not also use the Popen constructor's "stdin" argument, as
+        it will be used internally.
+    
+        By default, all communication is in bytes, and therefore any "input" should
+        be bytes, and the stdout and stderr will be bytes. If in text mode, any
+        "input" should be a string, and stdout and stderr will be strings decoded
+        according to locale encoding, or by "encoding" if set. Text mode is
+        triggered by setting any of text, encoding, errors or universal_newlines.
+    
+        The other arguments are the same as for the Popen constructor.
+        """
+        if input is not None:
+            if kwargs.get('stdin') is not None:
+                raise ValueError('stdin and input arguments may not both be used.')
+            kwargs['stdin'] = PIPE
+    
+        if capture_output:
+            if kwargs.get('stdout') is not None or kwargs.get('stderr') is not None:
+                raise ValueError('stdout and stderr arguments may not be used '
+                                 'with capture_output.')
+            kwargs['stdout'] = PIPE
+            kwargs['stderr'] = PIPE
+    
+        with Popen(*popenargs, **kwargs) as process:
+            try:
+                stdout, stderr = process.communicate(input, timeout=timeout)
+            except TimeoutExpired as exc:
+                process.kill()
+                if _mswindows:
+                    # Windows accumulates the output in a single blocking
+                    # read() call run on child threads, with the timeout
+                    # being done in a join() on those threads.  communicate()
+                    # _after_ kill() is required to collect that and add it
+                    # to the exception.
+                    exc.stdout, exc.stderr = process.communicate()
+                else:
+                    # POSIX _communicate already populated the output so
+                    # far into the TimeoutExpired exception.
+                    process.wait()
+                raise
+            except:  # Including KeyboardInterrupt, communicate handled that.
+                process.kill()
+                # We don't call process.wait() as .__exit__ does that for us.
+                raise
+            retcode = process.poll()
+            if check and retcode:
+>               raise CalledProcessError(retcode, process.args,
+                                         output=stdout, stderr=stderr)
+E               subprocess.CalledProcessError: Command '['git', 'apply', '--check', '/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/resume-lr-integration-haiku-20261026-r2/arm-adapter.diff']' returned non-zero exit status 128.
+
+../../../../.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/subprocess.py:571: CalledProcessError
+----------------------------- Captured stderr call -----------------------------
+error: can't open patch '/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/resume-lr-integration-haiku-20261026-r2/arm-adapter.diff': No such file or directory
+=========================== short test summary info ============================
+FAILED learning/runs/v2/resume-lr-integration-haiku-20261026-r2/test_resume_lr_transition.py::test_proposed_runner_top_level_imports_are_stdlib_plus_shared_module
+FAILED learning/runs/v2/resume-lr-integration-haiku-20261026-r2/test_resume_lr_transition.py::test_proposed_runner_orders_validation_override_assertions_and_update
+FAILED learning/runs/v2/resume-lr-integration-haiku-20261026-r2/test_resume_lr_transition.py::test_arm_diff_applies_to_frozen_runner_copy_and_yields_proposed_file
+3 failed, 35 passed in 1.35s

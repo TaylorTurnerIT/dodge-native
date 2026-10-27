@@ -1,0 +1,171 @@
+Module(
+  body=[
+    FunctionDef(
+      name='accept_observed',
+      args=arguments(
+        posonlyargs=[],
+        args=[
+          arg(arg='receipt'),
+          arg(arg='raw_exit'),
+          arg(arg='elapsed_seconds')],
+        kwonlyargs=[],
+        kw_defaults=[],
+        defaults=[]),
+      body=[
+        Expr(
+          value=Constant(value='Parent-side minimum consumer: a receipt alone can never authorize success.')),
+        Return(
+          value=BoolOp(
+            op=And(),
+            values=[
+              Compare(
+                left=Call(
+                  func=Name(id='type', ctx=Load()),
+                  args=[
+                    Name(id='raw_exit', ctx=Load())],
+                  keywords=[]),
+                ops=[
+                  Is()],
+                comparators=[
+                  Name(id='int', ctx=Load())]),
+              Compare(
+                left=Name(id='raw_exit', ctx=Load()),
+                ops=[
+                  In()],
+                comparators=[
+                  Tuple(
+                    elts=[
+                      Constant(value=0),
+                      Constant(value=2)],
+                    ctx=Load())]),
+              Compare(
+                left=Call(
+                  func=Name(id='type', ctx=Load()),
+                  args=[
+                    Name(id='elapsed_seconds', ctx=Load())],
+                  keywords=[]),
+                ops=[
+                  In()],
+                comparators=[
+                  Tuple(
+                    elts=[
+                      Name(id='int', ctx=Load()),
+                      Name(id='float', ctx=Load())],
+                    ctx=Load())]),
+              Call(
+                func=Attribute(
+                  value=Name(id='math', ctx=Load()),
+                  attr='isfinite',
+                  ctx=Load()),
+                args=[
+                  Name(id='elapsed_seconds', ctx=Load())],
+                keywords=[]),
+              Compare(
+                left=Constant(value=0),
+                ops=[
+                  LtE(),
+                  LtE()],
+                comparators=[
+                  Name(id='elapsed_seconds', ctx=Load()),
+                  Name(id='NORMAL_SECONDS', ctx=Load())]),
+              Compare(
+                left=Call(
+                  func=Attribute(
+                    value=Name(id='receipt', ctx=Load()),
+                    attr='get',
+                    ctx=Load()),
+                  args=[
+                    Constant(value='schema')],
+                  keywords=[]),
+                ops=[
+                  Eq()],
+                comparators=[
+                  Constant(value='long_d2_outer_acceptance_v1')]),
+              Compare(
+                left=Call(
+                  func=Attribute(
+                    value=Name(id='receipt', ctx=Load()),
+                    attr='get',
+                    ctx=Load()),
+                  args=[
+                    Constant(value='accepted')],
+                  keywords=[]),
+                ops=[
+                  Is()],
+                comparators=[
+                  Constant(value=True)]),
+              Compare(
+                left=Call(
+                  func=Attribute(
+                    value=Name(id='receipt', ctx=Load()),
+                    attr='get',
+                    ctx=Load()),
+                  args=[
+                    Constant(value='expected_exit_code')],
+                  keywords=[]),
+                ops=[
+                  Eq()],
+                comparators=[
+                  Name(id='raw_exit', ctx=Load())]),
+              Compare(
+                left=Call(
+                  func=Attribute(
+                    value=Name(id='receipt', ctx=Load()),
+                    attr='get',
+                    ctx=Load()),
+                  args=[
+                    Constant(value='experiment_status')],
+                  keywords=[]),
+                ops=[
+                  Eq()],
+                comparators=[
+                  Constant(value='complete')]),
+              Compare(
+                left=Call(
+                  func=Attribute(
+                    value=Name(id='receipt', ctx=Load()),
+                    attr='get',
+                    ctx=Load()),
+                  args=[
+                    Constant(value='outcome')],
+                  keywords=[]),
+                ops=[
+                  Eq()],
+                comparators=[
+                  IfExp(
+                    test=Compare(
+                      left=Name(id='raw_exit', ctx=Load()),
+                      ops=[
+                        Eq()],
+                      comparators=[
+                        Constant(value=0)]),
+                    body=Constant(value='D2_progress_gate_passed'),
+                    orelse=Constant(value='budget_closed_below_gate'))]),
+              Compare(
+                left=Call(
+                  func=Attribute(
+                    value=Name(id='receipt', ctx=Load()),
+                    attr='get',
+                    ctx=Load()),
+                  args=[
+                    Constant(value='teacher_qualified')],
+                  keywords=[]),
+                ops=[
+                  Is()],
+                comparators=[
+                  Constant(value=False)]),
+              Compare(
+                left=Call(
+                  func=Attribute(
+                    value=Name(id='receipt', ctx=Load()),
+                    attr='get',
+                    ctx=Load()),
+                  args=[
+                    Constant(value='training_parent_eligible')],
+                  keywords=[]),
+                ops=[
+                  Is()],
+                comparators=[
+                  Constant(value=False)])]))],
+      decorator_list=[])],
+  type_ignores=[])

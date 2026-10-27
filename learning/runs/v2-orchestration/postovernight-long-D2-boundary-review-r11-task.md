@@ -1,0 +1,40 @@
+Fresh READONLY frozen Dodge v2 r11 adversarial review. Budget<=900s. User authorized parallel readonly review and supported Codex fallback after recorded free OpenCode quota exhaustion. Workspace /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79. Output ONLY NEW learning/runs/v2/postovernight-long-D2-boundary-review-r11/. Never edit target/capsule/state/docs/protocol/project/runtime/historical evidence. No nested delegation/provider calls, whole unit/OS/probe/stress/startup reruns, ML/native imports/checkpoint decode/env/inference/training/lease/scheduler/commits/PR/deploy/messages. Small stdlib source-extracted discriminators allowed in owned output with exact raw evidence and all failed attempts retained.
+
+READ FULL docs/implementation-plan-v2.md/docs/SPEC_PRIVILEGED_VIT_RL.md,statecontext. Read complete original broad review brief learning/runs/v2-orchestration/postovernight-long-D2-boundary-review-r10-task.md for inherited contracts/earlier findings. Latest r11 target overrides oldr10. Read complete r10 findings/audit/proofs, Sonnet escalation diagnosis/plan/model and parent reconciliations:
+- learning/runs/v2-orchestration/postovernight-long-D2-boundary-review-r10-parent-reconciliation.json SHAb8401edfa2ec2106dcc4ba7b00f841e008619cfa94572314f426d54ac2886594
+- learning/runs/v2-orchestration/postovernight-long-D2-escalation-reap-sonnet-r1-parent-reconciliation.json SHA83fc23ac9dac6a1898f1b2d6301b1c3b79ba7fb3e45dedba3d4c3c67a8c7b642
+- acceptedpolicy postovernight-long-D2-boundary-policy-parent-reconciliation-r1.json SHA95977b36b45ad1ea670a601b51bb70198d0c0f37bb76c237b6ac032e535ebe9d under sameorchestrationdir.
+Read full implementation brief postovernight-long-D2-boundary-repair-r11-task.md, parent postovernight-long-D2-r11-parent-reconciliation.json, candidate implementation-result/completion/PARENT-NEXT/diff/source/evidence manifests.
+
+TARGET learning/runs/v2/postovernight-long-D2-boundary-prepare-r11/
+Snapshot+verify8parent-frozen-pins.json BEFOREproofs;stopmismatch:
+controllerd226dac2e1173891fc9cd94ecfb394b3c75f1335ae94d6c1a35f24030caf21d1
+executorb63d5356beb88c801ce4f8d5ccd82d5df1c65d32b6e955c72899c41cd3ffbdd4
+lifecycleaab36d678526b6fbd4eecbe1493ad3511365f00064a91d459b85834eaf3e752b
+boundary_integrityd4aafd463d105967b44151f11ec8e1c5fb5d5b633c6892db8bde829f28eff560
+identityc80a02b8712926c470fcb9bd358c9f46b26ecb5ea6463a487eda745d580df083
+classification17612541f3a44a3df9205093e7e597f8f728e3562964141e3def374bf7afd3ac
+registrationf11fea188c8b006fed6034f1ad003d0d9db128fc8d0af3ee0d9d1aca1bbc8f69
+capsulemanifestc65b7fa36662786e4edee8445219d33464a41c50606ed36e170de6d09a1d786d
+External learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r8.json SHAfe11c08159bdb9ca1f03cb0fb96ffd133ad144d107b2a854d19fc49159aa2db2.
+Fresh B267/R37/A9998,135capsulemembers. No previouscounts transferred. Parent owns mutablevalidationoutputs concurrently; source/identity fixed. r11passed112freshstdlibmethodsonce(91rerun+21new),raw0/.790059667s;freezepassed2.16624075s;purepreflight/OS/stress/startup parentownedpendingatdispatch. No training/productionlease; one7200sD2authorizationunused.
+
+Priorfindings+response:
+r10actualmonitor killedsupervisorandwedgedworker atsamefirst+5 tick, losingworker directreap. ItsOSstage13casespassed,14thwedgedfailedworker_waitnull,15thRSSunrun;bothgroupsabsent/honestfailure. No stress/startup/trainingfollowed.
+Sonnetmodel18assertions sourceonly, exceeded600sdesignbudget retained. Parent rejected childNone/recoveryunknown=>reaped shortcut, unconditionalprecutpointKILLonerror,until-.4optionaldeferral,confidencepercentages/casepredictions.
+r11stagedKILL: workeroriginalcutpointunchanged, supervisorTERMimmediate; parentpreserveduntilactualvalidatedworker_wait/actualmatchingreap or existinguntil-.5eligibility; unknownregistration/childNone notproof, fallbackoriginaleligibilityonhelpererror; samepooldynamiclateearlier tightening; escalationreasonattemptstampsonce, no OS exacttimestampguarantee.
+r10review found Sendpointreset/zero-packet/handlererror starvesalready-readablevalid Wfailure+ACK, source99.5unreadpool109.75after10passes.
+r11perendpointisolation: fatalerrorslatched/sourcepreserved, siblingreadyprocessedonce, currentdeadline tightens, boundeddiagnostics, validation/normalexpectedclose rules/one-shotbooleans preserved, no transport retry/redesign/dropidentity.
+Read actual pump implementation/refactor, monitor, kill_gate andexactreaders—tests alone aren't proof. Check bothdirectionerror/ACKfailure/partialparser/invalidFD/lateearlierpeer/capshortening/finaldrain; no normalprogress/acceptancefromfailedsend.
+Transportdescriptorcloseorder/sockettype/.2sIPCtimeout/lifecycle.FailurePool/processes/boundary_integrity unchanged; inconclusiveearliercloseprobe NOTadopted.
+r11scope-deviation: childinitialbootstrap/tmp write movedintoownoutput, parentverifiedtemporaryabsent andrecordedlocaloutputscopeviolation; no universalwriteaudit/no retroactivecompliance. This is not itself runtimebug.
+Parentverified478evidencemembers,125sourcemanifestmembers,8basepins,4authoritypins,27basesources; controllerallfunction/classes+successfulconsumers includingExecution.run byteequalr10. 112unitcount remains parentownednotreviewerrun.
+
+Review FULL contract, no arbitraryhardening:
+Successful accept_observed/validate_wait_reports/validate_artifacts/checked_registration/worker_command andExecution.run byteequalr10; exactnormalraw0/2/rawexitwall/PIDs/directparentwaits/rawstatus/deadlines/registration/currentbytes/mandatorysummary. Raw1cannotacceptstalegoodreceipt. Absenceneverreaping. MissingACKforbidsworkerwrites/retry; mandatoryimmutableinnerfailurefirst;ACKgatedownchildreap/singleworkerwait/currentpoolboundeddraintilluntil-.25.
+ProtectedLearner/Schedule/run_schedule/workerMLtry/PPOmodelrewardenvcore/configseedgates/D1lineage unchanged;D1modelAdamRNGbeforeenv/64row9fieldentrybeforegradient.
+Config2ac814d3842228017d09669364a8391344722da56ad19f41ad9030dbb930c2db;seed5562873868232098305;D1ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f.
+ALLforcedB/genuine75sourcecheck_frozen/origins/runtimecache/searchpath/fullactualB/R/Aprepost/DAG/externalpins/10091-9870-9675unions/singlefreshscandirnocache. No5sbytewatchdog/latency/cadenceskips,operationalno-writer notOS/memoryattestation.
+7200outer/7140worker/7170inner;sharedmin(previous,earliest+10,T0+7210),.05/.15/max.5independentresource/lease,separate6GiBRSS/MPS. Inner1.0/outer.25reservesinsidepool;globaldeadlineexitindependentoffallibleduties. All15originalfixtureclasses/options/limits/positiveprerequisites/phasechecks remainstrict. No relabelwedgedorphantomakepass, noall({})/missingfileproof. No student/D3/B/E/failedweightsresume.
+
+Returnonlyconcrete reproduciblefindingsseverity/path/line/trigger/consequence+proof,or exactlyNo findingsifnone. Retainfailedproofattempts; do notturnfixturefailureintosuccessbypass. Source/actualBstaticchecks vsruntime/R/A/nativeevidenceexplicit. Input/outputmanifests+receipt excludingitself,JSONvalidation; close logs beforehashing. Parent reconcilesactualfinalvalidation andyourfinding beforeexperiment.

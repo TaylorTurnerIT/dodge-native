@@ -1,0 +1,59 @@
+{
+  "gate_cases": 16,
+  "persistent_gate_error_monitor": {
+    "signals": [
+      {
+        "pid": 200,
+        "signal": 15,
+        "at": 100.02
+      },
+      {
+        "pid": 300,
+        "signal": 15,
+        "at": 100.02
+      },
+      {
+        "pid": 200,
+        "signal": 9,
+        "at": 105.0
+      },
+      {
+        "pid": 300,
+        "signal": 9,
+        "at": 105.0
+      }
+    ],
+    "events": [
+      {
+        "kind": "monitor_error",
+        "duty": "KILL_gate_supervisor",
+        "error": "RuntimeError('synthetic gate failure')",
+        "source": null
+      },
+      {
+        "kind": "monitor_error",
+        "duty": "KILL_gate_worker",
+        "error": "RuntimeError('synthetic gate failure')",
+        "source": null
+      },
+      {
+        "kind": "escalation",
+        "role": "supervisor",
+        "reason": "gate_error_original_cutpoint",
+        "monotonic": 105.0
+      },
+      {
+        "kind": "escalation",
+        "role": "worker",
+        "reason": "gate_error_original_cutpoint",
+        "monotonic": 105.0
+      }
+    ],
+    "first": 100.0,
+    "until": 110.0,
+    "exit_at": 110.0,
+    "cleanup_complete": false,
+    "worker_wait": null
+  },
+  "passed": true
+}

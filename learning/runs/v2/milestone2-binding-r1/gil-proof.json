@@ -1,0 +1,38 @@
+{
+  "mechanism": "Python::detach around entire owned Rust operations; NumPy guard dropped before detach; PyO3 exclusive borrow rejects concurrent same-env mutation",
+  "python_switch_interval_seconds": 60,
+  "single_native_call_per_witness": true,
+  "witnesses": {
+    "constructor": {
+      "gil_call_ns": 16460916,
+      "witness_after_start_ns": 9375,
+      "witness_before_return_ns": 16451541
+    },
+    "step_same_env_borrow": {
+      "gil_call_ns": 12383834,
+      "witness_after_start_ns": 16959,
+      "witness_before_return_ns": 12366875
+    },
+    "reset_all_same_env_borrow": {
+      "gil_call_ns": 17651334,
+      "witness_after_start_ns": 11750,
+      "witness_before_return_ns": 17639584
+    },
+    "reset_done_same_env_borrow": {
+      "gil_call_ns": 19118458,
+      "witness_after_start_ns": 13458,
+      "witness_before_return_ns": 19105000
+    },
+    "held_gil_negative_control": {
+      "gil_call_ns": 24527334,
+      "witness_after_start_ns": 24551375,
+      "witness_before_return_ns": -24041
+    },
+    "action_copy_concurrent_mutation": {
+      "gil_call_ns": 14153416,
+      "witness_after_start_ns": 13791,
+      "witness_before_return_ns": 14139625
+    }
+  },
+  "limitations": "Bounded CPython 3.12 witness checks plus source inspection; not a parallel speedup, throughput, free-threaded Python, or memory-leak proof."
+}

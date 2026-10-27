@@ -1,0 +1,57 @@
+--- frozen-r2/worker
++++ r3/worker
+@@ -60,7 +60,7 @@
+                 verify_training_env=old_identity.verify_training_env,collect_rollout=collect_rollout,
+                 ppo_update=ppo_update,require_raw_diagnostics=require_raw_diagnostics,
+                 evaluate=dev_eval.evaluate,validate_summary=dev_eval.validate_summary,
+-                progress_passed=dev_eval.progress_passed,absolute_deadline=args.started+BUDGET)
++                progress_passed=dev_eval.progress_passed,absolute_deadline=args.started+WORKER_SECONDS)
+             save(args.output/'long-config.json',config)
+             save(args.output/'long-identity.json',identity)
+             learner=Learner(api,config,identity,parent,guard,args.output,p)
+@@ -69,6 +69,7 @@
+             result=run_schedule(learner,guard,schedule)
+             guard.check(force=True)
+         except BaseException as error:
++            worker_failure(error, args, guard, learner)
+             result.update(outcome_fields(failure_outcome(error)),error=repr(error),traceback=traceback.format_exc())
+         finally:
+             cancel()  # Every later signal is still latched.
+@@ -86,13 +87,16 @@
+                     save(args.output/'checkpoint-index.json',learner.checkpoints)
+                 if guard is not None:
+                     guard.close()
+-                verify()
+-                require(time.monotonic()<args.started+BUDGET,'Worker finalization crossed absolute deadline','wall_guard')
++                if result_code(result) != 1:
++                    verify()
++                require(time.monotonic()<life.POOL.deadline(args.started+WORKER_SECONDS),'Worker finalization crossed absolute deadline','wall_guard')
+             except BaseException as error:
++                worker_failure(error, args, guard, learner)
+                 result.update(outcome_fields(failure_outcome(error)),final_verification_error=repr(error))
+             try:
+                 streams.close()
+             except BaseException as error:
++                worker_failure(error, args, guard, learner)
+                 result.update(outcome_fields('publication_failure'),stream_close_error=repr(error))
+             if guard:
+                 result['worker_resources']=guard.receipt()
+@@ -102,11 +106,15 @@
+     result.update(run_id=p['run_id'],protocol_sha256=PROTOCOL_SHA256,
+                   config_document_sha256=CONFIG_SHA256,identity_document_sha256=lease['identity_sha256'],
+                   checkpoint_identity_semantic_sha256=semantic_hash(identity),
+-                  actual_import_origins=check_module_origins(identity,ROOT),
++                  actual_import_origins=(check_module_origins(identity,ROOT) if result_code(result)!=1 else {}),
+                   inherited_consumed_wall_scope='D1 historical context only; long budget uses supervisor T0',
+                   worker_wall_seconds_lower_bound=time.monotonic()-args.started,
+                   worker_result_write_and_process_exit_not_timed=True)
+-    if time.monotonic()>=args.started+BUDGET:
++    if time.monotonic()>=life.POOL.deadline(args.started+WORKER_SECONDS):
+         result.update(outcome_fields('wall_guard'),deadline_expired=True)
++    if result_code(result)==1 and life.POOL.until is None:
++        worker_failure(Stop(result['outcome']),args,guard,learner)
++    life.remaining(life.POOL.deadline(args.started+WORKER_SECONDS))
+     save(args.output/'long-worker-result.json',result)
+-    return result_code(result) if time.monotonic()<args.started+BUDGET else 1
++    life.remaining(life.POOL.deadline(args.started+WORKER_SECONDS))
++    return result_code(result) if time.monotonic()<life.POOL.deadline(args.started+WORKER_SECONDS) else 1

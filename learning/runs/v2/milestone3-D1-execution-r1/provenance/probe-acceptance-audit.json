@@ -1,0 +1,280 @@
+{
+  "elapsed_seconds": 0.3677090830169618,
+  "findings": [],
+  "finished_at_utc": "2026-10-24T11:20:21.307119+00:00",
+  "limitations": [
+    "Same starting weights are supported by initial checkpoint/buffer lineage and the reviewed load_state_dict path, not an independent execution replay.",
+    "The CPU-only GAE audit verifies finite saved data and two independent arithmetic formulations; no stored learner GAE output exists to compare directly.",
+    "Observed sampled RSS and MPS driver maxima are separate overlapping accounting categories; no unsampled hard memory ceiling is claimed.",
+    "One frozen-buffer timing comparison does not establish closed-loop training throughput, teacher skill, score/survival qualification or future pilot initialization.",
+    "No B/E evaluation or data use appeared in retained metadata; logged actual seeds are outside all three exclusion ranges."
+  ],
+  "scope": "read_only_receipts_source_and_CPU_tensor_deserialization;no_model_forward_optimizer_update_or_gameplay",
+  "started_at_utc": "2026-10-24T11:20:20.939425+00:00",
+  "status": "passed",
+  "verified": {
+    "CPU_MPS_final_CPU_rng_equal": true,
+    "CPU_MPS_final_parameter_max_abs_difference": 2.6635825634002686e-07,
+    "CPU_to_MPS_matched_work_ratio": 2.2026705661559594,
+    "GAE_recurrence_vs_independent_sum_max_abs_difference": 7.771561172376096e-16,
+    "alive_raw_frames": 65070,
+    "completed_episode_reward_audits": 183,
+    "consumed_phase_wall_seconds": 60.071293292043265,
+    "current_source_pins": 75,
+    "execution_artifact_entries": 99,
+    "inspection_inputs_pinned": 194,
+    "logged_seed_occurrences": 860,
+    "measurements": [
+      {
+        "checkpoint": "probe-cpu-updated.pt",
+        "checkpoint_sha256": "23ce12225f7339a1d1f25e2be233670f0975c7cc7d94e7d4e7c78fa365f07b7e",
+        "device": "cpu",
+        "inference_wall_seconds": 1.8746349589782767,
+        "measured_inference_plus_update_seconds": 36.23541183397174,
+        "metrics": {
+          "actor_grad_norm": 0.43394927715417,
+          "approx_kl": 0.00951632064243313,
+          "clip_fraction": 0.0626068115234375,
+          "critic_grad_norm": 0.4775880992092425,
+          "early_stop_kl": false,
+          "entropy": 2.189344411715865,
+          "epoch_approx_kls": [
+            0.008125756226945668,
+            0.008407031447859481,
+            0.009015379997435957,
+            0.00951632064243313
+          ],
+          "epochs_completed": 4,
+          "explained_variance": 0.2769770389989502,
+          "finite": true,
+          "grad_norm": 0.8496991968713701,
+          "head_gradient_metrics_available": true,
+          "loss": -0.01067953336314531,
+          "optimizer_steps": 128,
+          "policy_loss": -0.00421597836248111,
+          "transitions": 16384,
+          "trunk_grad_norm": 0.3872447014146019,
+          "value_loss": 0.03085977674345486,
+          "value_loss_formula": "0.5 * mean((new_value - GAE_return) ** 2)"
+        },
+        "optimizer_steps": 128,
+        "status": "completed",
+        "update_wall_seconds": 34.36077687499346
+      },
+      {
+        "checkpoint": "probe-mps-updated.pt",
+        "checkpoint_sha256": "4d4b465aea817ac475c658b82ca73fd99dc7185c906df65eac46bf41ffb77711",
+        "device": "mps",
+        "inference_wall_seconds": 1.8027087500086054,
+        "measured_inference_plus_update_seconds": 16.450672375038266,
+        "metrics": {
+          "actor_grad_norm": 0.4339493211591616,
+          "approx_kl": 0.009516315360087901,
+          "clip_fraction": 0.0626068115234375,
+          "critic_grad_norm": 0.47758818135480396,
+          "early_stop_kl": false,
+          "entropy": 2.189344370737672,
+          "epoch_approx_kls": [
+            0.008125754160573706,
+            0.008407023939071223,
+            0.009015373303554952,
+            0.009516315360087901
+          ],
+          "epochs_completed": 4,
+          "explained_variance": 0.2769770389989502,
+          "finite": true,
+          "grad_norm": 0.8496993967564777,
+          "head_gradient_metrics_available": true,
+          "loss": -0.01067953632446006,
+          "optimizer_steps": 128,
+          "policy_loss": -0.004215981269226177,
+          "transitions": 16384,
+          "trunk_grad_norm": 0.38724488459411077,
+          "value_loss": 0.03085977627779357,
+          "value_loss_formula": "0.5 * mean((new_value - GAE_return) ** 2)"
+        },
+        "optimizer_steps": 128,
+        "status": "completed",
+        "update_wall_seconds": 14.64796362502966
+      }
+    ],
+    "one_observed_command": true,
+    "outer_duration_seconds": 60.63349195802584,
+    "owned_pid_inspection": [
+      {
+        "pid": 7383,
+        "returncode": 1,
+        "stderr": "",
+        "stdout": ""
+      },
+      {
+        "pid": 7389,
+        "returncode": 1,
+        "stderr": "",
+        "stdout": ""
+      }
+    ],
+    "probe_tags_only": true,
+    "raw_frames": 65253,
+    "raw_reward_max_abs_error": 2.2888183615066282e-07,
+    "resource_peaks": {
+      "supervisor-resources.jsonl": {
+        "mps_driver_bytes": 0,
+        "rss_bytes": 220872704,
+        "samples": 221,
+        "self_peak_rss_bytes": 220872704,
+        "worker_rss_bytes": 1763983360
+      },
+      "worker-resources.jsonl": {
+        "mps_driver_bytes": 2348630016,
+        "rss_bytes": 1764065280,
+        "samples": 109,
+        "self_peak_rss_bytes": 1764065280,
+        "worker_rss_bytes": 0
+      }
+    },
+    "runner_artifact_entries": 15,
+    "selected_device": "mps",
+    "source_pins_unchanged": true,
+    "supervisor_exit_code": 0,
+    "tensor_shapes": {
+      "actions": {
+        "dtype": "torch.int64",
+        "shape": [
+          256,
+          64
+        ]
+      },
+      "alive_raw_frames": {
+        "dtype": "torch.int64",
+        "shape": [
+          256,
+          64
+        ]
+      },
+      "elapsed_raw_frames": {
+        "dtype": "torch.int64",
+        "shape": [
+          256,
+          64
+        ]
+      },
+      "entity_feats": {
+        "dtype": "torch.float32",
+        "shape": [
+          256,
+          64,
+          80,
+          16
+        ]
+      },
+      "entity_mask": {
+        "dtype": "torch.bool",
+        "shape": [
+          256,
+          64,
+          80
+        ]
+      },
+      "entity_types": {
+        "dtype": "torch.int64",
+        "shape": [
+          256,
+          64,
+          80
+        ]
+      },
+      "global_feats": {
+        "dtype": "torch.float32",
+        "shape": [
+          256,
+          64,
+          1,
+          14
+        ]
+      },
+      "next_values": {
+        "dtype": "torch.float32",
+        "shape": [
+          256,
+          64
+        ]
+      },
+      "old_log_probs": {
+        "dtype": "torch.float32",
+        "shape": [
+          256,
+          64
+        ]
+      },
+      "raw_rewards": {
+        "dtype": "torch.float32",
+        "shape": [
+          256,
+          64
+        ]
+      },
+      "rewards": {
+        "dtype": "torch.float32",
+        "shape": [
+          256,
+          64
+        ]
+      },
+      "score_delta_raw_fixed": {
+        "dtype": "torch.int64",
+        "shape": [
+          256,
+          64
+        ]
+      },
+      "terminated": {
+        "dtype": "torch.bool",
+        "shape": [
+          256,
+          64
+        ]
+      },
+      "truncated": {
+        "dtype": "torch.bool",
+        "shape": [
+          256,
+          64
+        ]
+      },
+      "values": {
+        "dtype": "torch.float32",
+        "shape": [
+          256,
+          64
+        ]
+      }
+    },
+    "terminated": 183,
+    "truncated": 0,
+    "unique_logged_seeds": 247,
+    "updated_checkpoints": [
+      {
+        "changed_parameter_tensors": 41,
+        "device": "cpu",
+        "optimizer_state_entries": 41,
+        "optimizer_step_values": [
+          128.0
+        ]
+      },
+      {
+        "changed_parameter_tensors": 41,
+        "device": "mps",
+        "optimizer_state_entries": 41,
+        "optimizer_step_values": [
+          128.0
+        ]
+      }
+    ],
+    "worker_exit_code": 0,
+    "wrapper_event_kinds": {
+      "command_launched_once": 1,
+      "status_sample": 30
+    }
+  }
+}

@@ -1,0 +1,181 @@
+{
+ "facts": {
+  "accepted": false,
+  "cumulative_adam": 12672,
+  "cumulative_updates": 99,
+  "first_failure_monotonic": 491753.434364083,
+  "forwarded_cancellation": [],
+  "full_pins": {
+   "bytes": 228611008,
+   "count": 9870,
+   "idle_pins_only_hash_seconds": 0.3268215410062112,
+   "note": "brief said ~180MB; frozen receipt says 228611008 bytes"
+  },
+  "groups_absent": true,
+  "last_full_monotonic": 491748.428956583,
+  "last_sample_monotonic": 491753.302113083,
+  "latch_site": "long_d2.py:507 monitor thread",
+  "latched_failure": "Stop('Full input verification gap exceeded 5s')",
+  "launch_count": 1,
+  "maximum_full_input_gap_seconds": 5.005385208001826,
+  "maximum_sample_gap_seconds": 0.2500741249532439,
+  "mps": 2459009024,
+  "new_adam": 6528,
+  "outer_raw_wait": 256,
+  "outer_returncode": 1,
+  "partial_adam": 0,
+  "partial_rollout": {
+   "decisions": 13312,
+   "frames": 53153
+  },
+  "phase_updates": 51,
+  "reap_after_first_failure_seconds": 0.3479244580375962,
+  "rss": 1001635840,
+  "self_peak": 1001701376,
+  "user_cancel": false,
+  "utc": [
+   "2026-10-24T19:34:54.697450+00:00",
+   "2026-10-24T19:52:41.455141+00:00"
+  ],
+  "wall_seconds": 1066.7562106660334
+ },
+ "minimal_fix": {
+  "F1_required": "earlier admission: trigger at at-last_full>=2.0s (reserve 3.0s); optional adaptive earlier-only trigger min(2.0, 4.95-2*max recent D_bg), floor 0.5s, distinct verification_headroom_exhausted failure",
+  "F2_required": "per-pass JSONL instrumentation: thread, forced, trigger_lag, lock_wait, start, end, duration, component durations, thread_time delta, gap, files, bytes; add monotonic to schedule.jsonl",
+  "F3_conditional": "process-isolated verifier only if synthetic stress shows background p99.9 >1.5s at 2s trigger",
+  "invariants": [
+   "revisit limit <=5.0s strict",
+   "all 9870 pins and 9675 old-pin union",
+   "legacy 75-source check_frozen unchanged",
+   "capsule readonly walk and module origins unchanged",
+   "forced passes at update/eval boundaries",
+   "no hash/stat cache, no subset, no tolerance"
+  ],
+  "outcome_precedence_fix": "do not let post-failure cleanup SIGTERM overwrite primary outcome/error; record cancellation as secondary",
+  "overhead": {
+   "busy_case": "not measured",
+   "cpu_duty_at_2s": [
+    0.15,
+    0.4
+   ],
+   "cpu_duty_now": [
+    0.09,
+    0.22
+   ],
+   "static_GB_per_hour_at_2s": [
+    275,
+    330
+   ],
+   "static_GB_per_hour_now": [
+    165,
+    183
+   ]
+  },
+  "rejected": [
+   "raise 5s/grace/tolerance",
+   "hash or stat caching",
+   "drop or dedupe pins/legacy checks",
+   "per-pin timestamp accounting (deferred, needs own review)",
+   "switchinterval tuning as sole fix"
+  ]
+ },
+ "pins": {
+  "capsule_identity_py": "50775b2e7c30e53757dd3134d11613f716733cee8e6a96cc18b62e8ff2a4a053",
+  "capsule_manifest": "f0dac0e0eff869504c7b1f17e37a1fd572b0160e8d4daf774045895e44ba2f8a",
+  "controller": "a8f1e9a979f9f1308417924cf2390e538fd01049557502f5bb1cea270df2bd1a",
+  "executor": "6ab9555a7edc63a6f299cb7c3b90dc5441a53b879e0f9c3c2e12bf5c44ab8b52",
+  "identity_document": "abd50a467ae9827699648c5509954f96f357725fc50cc33aa15e03bd89884340",
+  "protocol": "66cc36ef1db959bfe4188a3e2d201f8911b3ffc64baeb1d8347be6fd376ab501"
+ },
+ "regression_matrix": [
+  "R1 fake-clock durations 0.9/1.5/2.9 pass",
+  "R2 fake-clock 3.1s latches",
+  "R3 monitor fires before in-flight end",
+  "R4 adaptive never later; floor distinct failure",
+  "R5 stdlib GIL stress synthetic 228611008B/9870 files p99.9+trigger<=4.5s",
+  "R6 pin-set equality 9870/9675/75/160",
+  "R7 one-byte mutation detected <=5s",
+  "R8 forced boundary passes retained",
+  "R9 instrumentation schema",
+  "R10 outcome precedence primary retained"
+ ],
+ "root_cause_rank": [
+  {
+   "cause": "fixed 4s trigger vs strict 5s revisit limit leaves ~1.0s for trigger lag + full verify(); failing pass consumed ~1.005s",
+   "evidence": "proven",
+   "rank": 1
+  },
+  {
+   "cause": "verify() cost ~0.45s foreground and ~1.0s background under training, versus 0.327s idle pins-only design receipt that excluded capsule walks, check_frozen, module origins and ML load",
+   "evidence": "supported",
+   "rank": 2
+  },
+  {
+   "cause": "GIL/CPU contention: verify thread vs training main thread, torch 4 threads, native env threads, ps fork every ~0.18s",
+   "evidence": "hypothesis_unmeasured",
+   "rank": 3
+  },
+  {
+   "cause": "IO/page-cache pressure",
+   "evidence": "hypothesis_low",
+   "rank": 4
+  },
+  {
+   "cause": "resource caps, sample gap, lease/user cancel, source/input change, absolute deadline",
+   "evidence": "ruled_out",
+   "rank": 5
+  }
+ ],
+ "run_id": "v2-m3-long-D2-20261024-r1",
+ "schema": "long_d2_guard_diagnosis_plan_v1",
+ "scope": {
+  "checkpoint_deserialization": false,
+  "children": false,
+  "edits_outside_owned_dir": false,
+  "implementation": false,
+  "ml_imports": false,
+  "training": false
+ },
+ "secondary_behaviour": {
+  "code_defect": "outcome precedence: cleanup SIGTERM relabels guard failure as cancelled (long_d2.py:937-940)",
+  "missing_proof_not_defect": [
+   "worker_wait",
+   "campaign manifest",
+   "outer/inner final resource receipts"
+  ],
+  "owned_absence_holds": true,
+  "rejection_holds": true
+ },
+ "status": "complete_plan_only",
+ "timing": {
+  "background_pass_distribution": "not recorded",
+  "failing_background_pass_seconds_inferred": [
+   0.955,
+   1.005
+  ],
+  "foreground_forced_pass_spacing_upper_bound": {
+   "max": 0.9857,
+   "median": 0.4502,
+   "min": 0.417,
+   "n": 127,
+   "p90": 0.5213,
+   "source": "worker-resources.jsonl forced samples gap<0.15"
+  },
+  "headroom_seconds": 1.0,
+  "limit_seconds": 5.0,
+  "schedule_monotonic": "absent (derived from remaining_worker_seconds)",
+  "trigger_seconds": 4
+ },
+ "training_authority": {
+  "automatic_retry": false,
+  "failed_weights": "diagnostic only, ineligible",
+  "future_run_requires": [
+   "explicit new user authorization",
+   "fresh review of F1/F2(/F3)",
+   "new registered protocol/identity/capsule",
+   "eligible audited D1 parent"
+  ],
+  "one_shot_consumed": true,
+  "resume": false
+ }
+}

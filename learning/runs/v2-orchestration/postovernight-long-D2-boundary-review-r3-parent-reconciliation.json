@@ -1,0 +1,72 @@
+{
+  "at_utc": "2026-10-25T01:18:20.454366+00:00",
+  "candidate_unchanged": true,
+  "findings": [
+    {
+      "id": "BOUNDARY-R3-WORKER-DESCRIPTOR",
+      "limits": {
+        "execution_limit": "Deterministic clock, exact extracted functions; no lifecycle signals or ML. The original combined shell raw exit is 0; a separate child exit was not retained.",
+        "observation": "descriptor timestamp 100.001; clock 100.00300000000001; pool_first/pool_until null; ACK calls 0; Stop: Failure descriptor timestamp differs",
+        "script": "proof_worker_failure.py",
+        "stderr": "proof-worker-failure.stderr.log",
+        "stdout": "proof-worker-failure.stdout.log"
+      },
+      "line": 938,
+      "parent_verdict": "confirmed_against_current_source",
+      "path": "learning/runs/v2/postovernight-long-D2-boundary-prepare-r3/long_d2.py",
+      "severity": "P2"
+    },
+    {
+      "id": "BOUNDARY-R3-CONSUMER-REAP",
+      "limits": {
+        "command": "proof-consumer-command.json",
+        "execution_limit": "Exact source-extracted consumer and real JSON/hash/file/summary validators, with filesystem constants redirected to owned fixtures. No process evidence or ML results fabricated as runtime proof.",
+        "observations": {
+          "both_reports_raw_failure_and_not_reaped": true,
+          "both_wait_reports_missing": true,
+          "control": true,
+          "raw_outer_exit_1_rejected": true
+        },
+        "raw_exit": 0,
+        "results": "consumer-proof-results.json",
+        "script": "proof_accept_observed.py",
+        "stdout": "proof-consumer.stdout.log"
+      },
+      "line": 512,
+      "parent_verdict": "confirmed_against_current_source",
+      "path": "learning/runs/v2/postovernight-long-D2-boundary-prepare-r3/long_d2_executor.py",
+      "severity": "P2"
+    },
+    {
+      "id": "BOUNDARY-R3-INNER-PUBLICATION-ORDER",
+      "limits": {
+        "fixture_attempts": [
+          "proof-inner-command.json",
+          "proof-inner-r2-command.json"
+        ],
+        "fixture_limit": "Both extracted attempts observed optional_timing before mandatory replacement. They are not successful end-to-end receipt proofs: first omitted json/os from the extraction namespace; second corrected json but still omitted os and its final assertion failed with raw exit 1. Both attempts and partial files are preserved. No blocked IO, process kill, or acceptance-bypass claim relies on them.",
+        "runtime_suppression_tested": false,
+        "source_order": "source-publication-order.json",
+        "source_snapshot": "source-snapshot/long_d2.py",
+        "static_source_confirmed": true
+      },
+      "line": 1337,
+      "parent_verdict": "confirmed_against_current_source",
+      "path": "learning/runs/v2/postovernight-long-D2-boundary-prepare-r3/long_d2.py",
+      "severity": "P2"
+    }
+  ],
+  "new_validation_executed": false,
+  "next_step": "Await separate Sonnet diagnosis; reconcile all confirmed findings and stress failure before distinct repair candidate. Preserve r3 source and all failed fixtures.",
+  "production_process_acceptance_demonstrated": false,
+  "review_directory": "learning/runs/v2/postovernight-long-D2-boundary-review-r3",
+  "review_manifest_sha256": "6f55e06e0965c2c1bced6060c2b8e7e2a77443b1dd824047273c94312d6047f6",
+  "schema": "boundary_r3_parent_review_reconciliation_v1",
+  "task_id": "node:delegated-task:command%3Amcp%3A3672d5f7-9e24-401a-a63a-f51e72ecbcaf%3Adelegate-task%3Adodge-v2-long-D2-boundary-frozen-review-codex-20261025-r3",
+  "training_authorization_consumed": false,
+  "training_launched": false,
+  "verdict": "candidate_rejected_changes_required",
+  "verified_end_snapshot_files": 146,
+  "verified_review_outputs": 92,
+  "verified_target_pins": 10
+}

@@ -1,0 +1,37 @@
+EXECUTED_SOURCE supervision /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m3-runtime-review-r1/python/dodge_rl/supervision.py c5f893c3da5c857649679ade6c70075dc80185d5aab6848bd1fee4f87cf87fae
+EXECUTED_SOURCE checkpoints /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m3-runtime-review-r1/python/dodge_rl/checkpoints.py 42bc64deff28ebdaf7b90c4716575c69071bdb7b78525953a2485cdf8fcb4db3
+EXECUTED_SOURCE train_teacher /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m3-runtime-review-r1/python/dodge_rl/train_teacher.py 6366545bcfcc246c8c0fcd6bb9bf4711d48307fe9fec4480d735ef909fb68708
+FFFFF                                                                    [100%]
+=================================== FAILURES ===================================
+________ test_supervisor_rejects_same_phase_resume_before_launch[None] _________
+python/tests/test_runtime_repair.py:331: in test_supervisor_rejects_same_phase_resume_before_launch
+    assert rejected is not None, "Supervisor launched a worker using stale checkpoint consumption"
+E   AssertionError: Supervisor launched a worker using stale checkpoint consumption
+E   assert None is not None
+________ test_supervisor_rejects_same_phase_resume_before_launch[stale] ________
+python/tests/test_runtime_repair.py:331: in test_supervisor_rejects_same_phase_resume_before_launch
+    assert rejected is not None, "Supervisor launched a worker using stale checkpoint consumption"
+E   AssertionError: Supervisor launched a worker using stale checkpoint consumption
+E   assert None is not None
+_____ test_supervisor_rejects_same_phase_resume_before_launch[mismatching] _____
+python/tests/test_runtime_repair.py:331: in test_supervisor_rejects_same_phase_resume_before_launch
+    assert rejected is not None, "Supervisor launched a worker using stale checkpoint consumption"
+E   AssertionError: Supervisor launched a worker using stale checkpoint consumption
+E   assert None is not None
+_ test_internal_worker_rejects_unanchored_same_phase_resume_before_identity[False] _
+python/tests/test_runtime_repair.py:372: in test_internal_worker_rejects_unanchored_same_phase_resume_before_identity
+    assert rejected is not None, f"Internal worker granted extra checkpoint-local allowance: {entered}"
+E   AssertionError: Internal worker granted extra checkpoint-local allowance: ['identity', 'experiment', 'candidate']
+E   assert None is not None
+_ test_internal_worker_rejects_unanchored_same_phase_resume_before_identity[True] _
+python/tests/test_runtime_repair.py:372: in test_internal_worker_rejects_unanchored_same_phase_resume_before_identity
+    assert rejected is not None, f"Internal worker granted extra checkpoint-local allowance: {entered}"
+E   AssertionError: Internal worker granted extra checkpoint-local allowance: ['identity', 'experiment', 'candidate']
+E   assert None is not None
+=========================== short test summary info ============================
+FAILED python/tests/test_runtime_repair.py::test_supervisor_rejects_same_phase_resume_before_launch[None]
+FAILED python/tests/test_runtime_repair.py::test_supervisor_rejects_same_phase_resume_before_launch[stale]
+FAILED python/tests/test_runtime_repair.py::test_supervisor_rejects_same_phase_resume_before_launch[mismatching]
+FAILED python/tests/test_runtime_repair.py::test_internal_worker_rejects_unanchored_same_phase_resume_before_identity[False]
+FAILED python/tests/test_runtime_repair.py::test_internal_worker_rejects_unanchored_same_phase_resume_before_identity[True]
+5 failed in 1.50s

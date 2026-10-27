@@ -1,0 +1,31 @@
+{
+  "schema": "parent_expanded_runner_integration_findings_v1",
+  "status": "blocked_source_preparation_only",
+  "findings": [
+    {
+      "severity": "high",
+      "source": "build_registration.py:80-81",
+      "mode": "ranking",
+      "exception": "NameError(\"name 'limits' is not defined\")",
+      "consequence": "No ranking/confirmation draft can be built from valid throughput evidence."
+    },
+    {
+      "severity": "high",
+      "source": "build_registration.py:80-81",
+      "mode": "confirmation",
+      "exception": "NameError(\"name 'limits' is not defined\")",
+      "consequence": "No ranking/confirmation draft can be built from valid throughput evidence."
+    },
+    {
+      "severity": "high",
+      "source": "worker.py:208-209 and build_registration.py:24-25",
+      "actual_schema": "expanded_D2_stage_bundle_v1",
+      "exception": "ValueError('receipt identity must be successful update-348 benchmark_dev64')",
+      "consequence": "Successful benchmark output cannot feed ranking/confirmation budget builder; tests fabricate different receipt."
+    }
+  ],
+  "limits": [
+    "All throughput inputs and worker runtime are explicitly synthetic; no actual benchmark/games/native/MPS/checkpoint deserialization.",
+    "Real lease/marker untouched; fake worker creates own fixture marker only."
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "schema": "confirmed324_transition_completion_v1",
+  "status": "preparation_only_not_launch_ready",
+  "study_id": "paired-lr-confirmed324-20261026-r1",
+  "parent": {
+    "checkpoint_sha256": "c10d90ec0e67503afef8f4d90c4968581d430ef2065117a75e81c445a04c8ddc",
+    "original_receipt_sha256": "76cb15733e87518cb3b473b7f8ebd847ed206351fb9f17d89b8b92e6bf853f08",
+    "acceptance_sha256": "3e84979c4c8da76d0f98666a23f90eb15c1e813ca5edf1001e19daebaf4d5bbd",
+    "cumulative_update": 372,
+    "saved_lr": 0.00003,
+    "old_schedule": "none"
+  },
+  "proposal": {
+    "pairs": 3,
+    "arm_A": "constant 3e-5",
+    "arm_B": "linear 3e-5 to 1e-5 over 60 updates",
+    "first_update": 373,
+    "last_update": 432,
+    "real_reference": "pending_notrun"
+  },
+  "bounded_predecessor_diff": [
+    "Replaced invented four-key capture contract with exact raw six-key capture_rng dictionary.",
+    "Added source SHA/path and function-origin checked inert adapter for capture_rng and restore_learner.",
+    "Added durable O_EXCL + file/directory fsync claim with run/study/replica/arm/vector/checkpoint identity binding and receipt verification.",
+    "Claim occurs only after immutable source/reference validation and before mutable restore; failure leaves claim consumed.",
+    "Corrected controller bounds to 373..432 and constant arm end_lr to 3e-5.",
+    "Expanded synthetic CPU test suite; fingerprints.py unchanged from R1."
+  ],
+  "verification": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python -B -m unittest -v",
+    "interpreter": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+    "exit": 0,
+    "tests": 14,
+    "scope": "CPU toy Torch/NumPy and owned synthetic temporary attempt files"
+  },
+  "limits": [
+    "No actual MPS or game/env imports, actual RNG reads, real checkpoint deserialization, training, evaluation, launch, or production marker writes.",
+    "The adapter is inert; real binding remains unproven until an authorized registered measured run.",
+    "Future driver must supply externally registered exact attempt path and run identity; constructor and environment seeding remain deferred.",
+    "No measured RNG digests, qualification, readiness, ranking, acceptance, or confirmation claim."
+  ]
+}

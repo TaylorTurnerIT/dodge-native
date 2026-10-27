@@ -1,0 +1,49 @@
+{
+  "schema": "fixed_rollout_lambda_diagnostic_receipt_v1",
+  "status": "synthetic_controls_passed_tool_ready_for_future_authorized_npz_only",
+  "actual_rollout_read": false,
+  "actual_diagnostic_run": false,
+  "rollout_capture": false,
+  "training_or_experiment": false,
+  "hardware_or_mps": false,
+  "production_runtime_modified": false,
+  "production_runner_modified": false,
+  "python_command": "python/.venv/bin/python -B learning/runs/v2/fixed-rollout-lambda-diagnostic-luna-20261026-r1/controls.py",
+  "environment": {
+    "PYTHONPATH": "unset",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONPYCACHEPREFIX": "learning/runs/v2/fixed-rollout-lambda-diagnostic-luna-20261026-r1/pycache (owned empty cache root)",
+    "OMP_NUM_THREADS": 2,
+    "MKL_NUM_THREADS": 2,
+    "OPENBLAS_NUM_THREADS": 2,
+    "torch_device": "CPU",
+    "wall_time_seconds": 1.8,
+    "budget_seconds": 600
+  },
+  "controls": [
+    "terminal death, time-limit truncation, rollout tail, post-terminal reset",
+    "synthetic parity against pinned production compute_gae",
+    "component variance plus all pair covariance reconstruction",
+    "constant target EV undefined; empty observed-death cohort; finite negative rewards; overlapping boundary rejection"
+  ],
+  "synthetic_arrays_sha256": "5034c80de980588dcced4714dde81d1a050a5976ba35f47327126e20ee643e2d",
+  "synthetic_analyzer_json_sha256": "3868dc29f5ffd1714d95ac4b128e8b9181513c0e4b4d48baadd33bdcfdfc1640",
+  "pinned_compute_gae_source": {
+    "path": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/ppo.py",
+    "sha256": "b3cef91b1293056e9d1820a94fd5730accae4c5728d23566857a6c3a0e1eeac5"
+  },
+  "owned_outputs_sha256": {
+    "diagnostic.py": "78c3a3fa8a26057e058ed602bf8a50a569b53469a5b7e0a2aa3195b9e0e97ca6",
+    "controls.py": "d35f55364b93fcbd154ddff4637c49061e2f6d68670de694dee9ec14d4758a77",
+    "CONTRACT.md": "569bb68a2b278e1b0d013e602f04e424264213bac9bfeadf8a0b2b28c8685887",
+    "README.md": "813931c6696ec4b71cc3479afdac39666812b33486f3a940a094193a4e67ab88",
+    "controls.log": "b510df437fbd429d6a6db00ec1549ec35f9e90cba8db15fb0c718c2e624ce282"
+  },
+  "limits": [
+    "synthetic checks do not establish actual rollout parity",
+    "descriptive fixed-rollout comparison; no causal or actor-interference claim",
+    "EV is self-bootstrapped and not critic-quality evidence",
+    "higher lambda may increase variance; no guaranteed EV gain",
+    "no gamma change, acceptance gate, or trial selection"
+  ]
+}

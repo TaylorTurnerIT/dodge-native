@@ -1,0 +1,3036 @@
+diff --git a/Cargo.toml b/Cargo.toml
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -2,6 +2,7 @@
+ resolver = "2"
+ members = [
+     "crates/dodge-core",
++    "crates/dodge-rl-env",
+     "crates/dodge-native-runner",
+     "crates/dodge-viewer",
+ ]
+diff --git a/Cargo.lock b/Cargo.lock
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -69,6 +69,31 @@
+ ]
+ 
+ [[package]]
++name = "crossbeam-deque"
++version = "0.8.8"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "622f3fc73690be383c7214310406f28a90e6edeadc3cea882f9d71e495b9711a"
++dependencies = [
++ "crossbeam-epoch",
++ "crossbeam-utils",
++]
++
++[[package]]
++name = "crossbeam-epoch"
++version = "0.9.21"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "dc74980687109a3b14c72fd458107bf0baa1da1a1a805e178d15501ba9b86d9d"
++dependencies = [
++ "crossbeam-utils",
++]
++
++[[package]]
++name = "crossbeam-utils"
++version = "0.8.23"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "a31eee39dddec8330830986fcd7625edb5a24ec90ea038215273bbc3adb08ac6"
++
++[[package]]
+ name = "dodge-core"
+ version = "0.1.0"
+ 
+@@ -79,6 +104,14 @@
+  "dodge-core",
+  "serde",
+  "serde_json",
++]
++
++[[package]]
++name = "dodge-rl-env"
++version = "0.1.0"
++dependencies = [
++ "dodge-core",
++ "rayon",
+ ]
+ 
+ [[package]]
+@@ -90,6 +123,12 @@
+  "serde",
+  "serde_json",
+ ]
++
++[[package]]
++name = "either"
++version = "1.19.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "0e9c71c2167ca323c882b99918929403426e2373ea17242ff5653e0d5e1058be"
+ 
+ [[package]]
+ name = "equivalent"
+@@ -310,6 +349,26 @@
+ ]
+ 
+ [[package]]
++name = "rayon"
++version = "1.12.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "fb39b166781f92d482534ef4b4b1b2568f42613b53e5b6c160e24cfbfa30926d"
++dependencies = [
++ "either",
++ "rayon-core",
++]
++
++[[package]]
++name = "rayon-core"
++version = "1.13.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "22e18b0f0062d30d4230b2e85ff77fdfe4326feb054b9783a3460d8435c8ab91"
++dependencies = [
++ "crossbeam-deque",
++ "crossbeam-utils",
++]
++
++[[package]]
+ name = "serde"
+ version = "1.0.229"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+diff --git a/crates/dodge-rl-env/Cargo.toml b/crates/dodge-rl-env/Cargo.toml
+new file mode 100644
+--- /dev/null
++++ b/crates/dodge-rl-env/Cargo.toml
+@@ -0,0 +1,18 @@
++[package]
++name = "dodge-rl-env"
++version = "0.1.0"
++edition = "2024"
++publish = false
++
++[lib]
++name = "dodge_rl_env"
++
++[dependencies]
++dodge-core = { path = "../dodge-core" }
++rayon = "1.11"
++
++[lints.rust]
++unsafe_code = "allow"
++
++[lints.clippy]
++all = "warn"
+diff --git a/crates/dodge-rl-env/src/config.rs b/crates/dodge-rl-env/src/config.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/dodge-rl-env/src/config.rs
+@@ -0,0 +1,71 @@
++use crate::EnvError;
++
++/// Evaluation lists are explicit, per stable slot, then episode. Exhaustion is
++/// an error; evaluation seeds are never drawn from the training stream.
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub enum SeedMode {
++    Training { run_seed: u64 },
++    Evaluation { seeds_by_slot: Vec<Vec<u32>> },
++}
++
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct EnvConfig {
++    pub batch_size: usize,
++    pub action_repeat: u8,
++    pub difficulty: u8,
++    pub patterns_enabled: bool,
++    pub powerups_enabled: bool,
++    /// Raw gameplay frames, excluding startup. Zero is invalid.
++    pub raw_frame_cap: u32,
++    pub num_threads: usize,
++    pub chunk_size: usize,
++    pub render_pixels: bool,
++    pub auxiliary_targets: bool,
++    pub seed_mode: SeedMode,
++}
++
++impl Default for EnvConfig {
++    fn default() -> Self {
++        Self {
++            batch_size: 1,
++            action_repeat: 4,
++            difficulty: 2,
++            patterns_enabled: true,
++            powerups_enabled: true,
++            raw_frame_cap: 18_000,
++            num_threads: 1,
++            chunk_size: 8,
++            render_pixels: false,
++            auxiliary_targets: false,
++            seed_mode: SeedMode::Training { run_seed: 0 },
++        }
++    }
++}
++
++impl EnvConfig {
++    pub fn validate(&self) -> Result<(), EnvError> {
++        if self.batch_size == 0 {
++            return Err(EnvError::Config("batch_size must be positive"));
++        }
++        if !(2..=4).contains(&self.action_repeat) {
++            return Err(EnvError::Config("action_repeat must be 2..=4"));
++        }
++        if !(1..=3).contains(&self.difficulty) {
++            return Err(EnvError::Config("difficulty must be 1..=3"));
++        }
++        if self.raw_frame_cap == 0 {
++            return Err(EnvError::Config("raw_frame_cap must be positive"));
++        }
++        if self.num_threads == 0 || self.chunk_size == 0 {
++            return Err(EnvError::Config("thread and chunk counts must be positive"));
++        }
++        if let SeedMode::Evaluation { seeds_by_slot } = &self.seed_mode
++            && (seeds_by_slot.len() != self.batch_size || seeds_by_slot.iter().any(Vec::is_empty))
++        {
++            return Err(EnvError::Config(
++                "evaluation needs a nonempty seed list per slot",
++            ));
++        }
++        Ok(())
++    }
++}
+diff --git a/crates/dodge-rl-env/src/env.rs b/crates/dodge-rl-env/src/env.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/dodge-rl-env/src/env.rs
+@@ -0,0 +1,501 @@
++use dodge_core::{Action, BUTTON_X_MASK, FRAMEBUFFER_SIZE, Mode, NativeConfig, NativeGame};
++use rayon::prelude::*;
++
++use crate::features::{History, Observation, ObservationBatch};
++use crate::seed::{SeedMetadata, seed_for};
++use crate::{EnvConfig, EnvError, MOTION_VERSION, SEED_STREAM_VERSION};
++
++const STARTUP_LIMIT: u32 = 64;
++const PINNED_STARTUP_FRAMES: u32 = 13;
++
++#[cfg(test)]
++type RawObserver = Box<dyn FnMut(&NativeGame) + Send>;
++
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct BatchInfo {
++    pub config: EnvConfig,
++    pub seed_stream_version: &'static str,
++    pub motion_version: &'static str,
++    pub theme_background_shadow: [u8; 2],
++    pub initial_highscores_raw_fixed: [i32; 12],
++}
++
++#[derive(Clone, Debug, PartialEq)]
++pub struct EpisodeInfo {
++    pub seed: SeedMetadata,
++    pub startup_frames: u32,
++    pub gameplay_frames: u32,
++    pub alive_frames: u32,
++    pub score_raw_fixed: i32,
++    pub score: f64,
++    pub score_delta_sum_raw_fixed: i64,
++    /// Computed from exact cumulative score/counts, not summed f32 rewards.
++    pub objective_return: f64,
++    pub terminated: bool,
++    pub truncated: bool,
++    pub bootstrap: bool,
++    pub diagnostics: crate::Diagnostics,
++}
++
++#[derive(Clone, Debug, PartialEq)]
++pub struct StepBatch {
++    pub observations: ObservationBatch,
++    pub rewards: Vec<f32>,
++    pub score_delta_raw_fixed: Vec<i64>,
++    pub alive_raw_frames: Vec<u32>,
++    pub elapsed_raw_frames: Vec<u32>,
++    pub terminated: Vec<bool>,
++    pub truncated: Vec<bool>,
++    pub info: Vec<EpisodeInfo>,
++}
++
++#[derive(Clone, Debug, PartialEq)]
++pub struct ResetBatch {
++    pub observations: ObservationBatch,
++    pub info: Vec<EpisodeInfo>,
++}
++
++struct Slot {
++    game: NativeGame,
++    seed: SeedMetadata,
++    history: History,
++    observation: Option<Observation>,
++    pixel_stack: Option<Vec<u8>>,
++    startup_frames: u32,
++    gameplay_frames: u32,
++    alive_frames: u32,
++    score_delta_sum_raw_fixed: i64,
++    terminated: bool,
++    truncated: bool,
++    #[cfg(test)]
++    raw_observer: Option<RawObserver>,
++    #[cfg(test)]
++    injected_error: Option<EnvError>,
++}
++
++#[derive(Clone, Copy)]
++struct StepCounts {
++    elapsed: u32,
++    alive: u32,
++    score: i64,
++}
++
++impl Slot {
++    fn unstarted(config: &EnvConfig, seed: SeedMetadata) -> Self {
++        let mut native = NativeConfig::new(seed.actual_seed);
++        native.difficulty = config.difficulty;
++        native.patterns_enabled = config.patterns_enabled;
++        native.powerups_enabled = config.powerups_enabled;
++        Self {
++            game: NativeGame::new(native),
++            seed,
++            history: History::default(),
++            observation: None,
++            pixel_stack: config.render_pixels.then(|| vec![0; 4 * FRAMEBUFFER_SIZE]),
++            startup_frames: 0,
++            gameplay_frames: 0,
++            alive_frames: 0,
++            score_delta_sum_raw_fixed: 0,
++            terminated: false,
++            truncated: false,
++            #[cfg(test)]
++            raw_observer: None,
++            #[cfg(test)]
++            injected_error: None,
++        }
++    }
++
++    fn start(&mut self, config: &EnvConfig) -> Result<(), EnvError> {
++        for frame in 0..STARTUP_LIMIT {
++            let result =
++                self.game
++                    .advance_frame_headless(if frame == 0 { BUTTON_X_MASK } else { 0 })?;
++            self.startup_frames += 1;
++            if result.mode == Mode::Game && !result.dead {
++                if self.startup_frames != PINNED_STARTUP_FRAMES {
++                    return Err(EnvError::Contract(
++                        "startup frame count differs from accepted pin (13)",
++                    ));
++                }
++                self.history
++                    .observe_raw(self.game.privileged_view(), self.game.enemy_serials())?;
++                self.update_observation(config, true)?;
++                return Ok(());
++            }
++            if result.dead {
++                return Err(EnvError::Contract("death during startup"));
++            }
++        }
++        Err(EnvError::Contract(
++            "bounded startup did not reach alive Game",
++        ))
++    }
++
++    fn update_observation(&mut self, config: &EnvConfig, initial: bool) -> Result<(), EnvError> {
++        let lifecycle = self.game.lifecycle();
++        let warnings = self
++            .game
++            .drawn_warning_lines()
++            .filter(|_| lifecycle.mode == Mode::Game && !lifecycle.dead);
++        let mut observation = self.history.observation(
++            self.game.privileged_view(),
++            warnings,
++            config.auxiliary_targets,
++        )?;
++        if let Some(stack) = &mut self.pixel_stack {
++            if !lifecycle.dead {
++                let mut frame = [0; FRAMEBUFFER_SIZE];
++                self.game.render_into(&mut frame);
++                if frame.iter().any(|v| *v > 15) {
++                    return Err(EnvError::Contract("palette index outside 0..15"));
++                }
++                if initial {
++                    for slot in stack.chunks_exact_mut(FRAMEBUFFER_SIZE) {
++                        slot.copy_from_slice(&frame);
++                    }
++                } else {
++                    stack.copy_within(FRAMEBUFFER_SIZE.., 0);
++                    stack[3 * FRAMEBUFFER_SIZE..].copy_from_slice(&frame);
++                }
++                observation.pixel_valid = true;
++            }
++            observation.pixels = Some(stack.clone());
++            observation.pixel_aux_pair_valid =
++                observation.pixel_valid && observation.auxiliary.is_some();
++        }
++        self.observation = Some(observation);
++        Ok(())
++    }
++
++    fn advance(&mut self, action: Action, config: &EnvConfig) -> Result<StepCounts, EnvError> {
++        let mut counts = StepCounts {
++            elapsed: 0,
++            alive: 0,
++            score: 0,
++        };
++        for _ in 0..config.action_repeat {
++            let before = self.game.score().raw();
++            let result = self.game.advance_frame_headless(action.mask())?;
++            self.gameplay_frames += 1;
++            counts.elapsed += 1;
++            // Compare native fixed values exactly. Float reward tolerances do
++            // not apply to this accounting identity, including death pickups.
++            let delta = i64::from(result.score.raw()) - i64::from(before);
++            if delta < 0 || delta != i64::from(result.score_delta.raw()) {
++                return Err(EnvError::Contract(
++                    "negative or inconsistent fixed score delta",
++                ));
++            }
++            counts.score += delta;
++            self.score_delta_sum_raw_fixed += delta;
++            if !result.dead {
++                self.alive_frames += 1;
++                counts.alive += 1;
++            }
++            self.terminated = result.dead;
++            self.truncated = !result.dead && self.gameplay_frames >= config.raw_frame_cap;
++            self.history
++                .observe_raw(self.game.privileged_view(), self.game.enemy_serials())?;
++            #[cfg(test)]
++            if let Some(observer) = &mut self.raw_observer {
++                observer(&self.game);
++            }
++            #[cfg(test)]
++            if let Some(error) = self.injected_error.take() {
++                return Err(error);
++            }
++            if result.mode != Mode::Game {
++                return Err(EnvError::Contract("gameplay left Mode::Game"));
++            }
++            if self.terminated || self.truncated {
++                break;
++            }
++        }
++        self.update_observation(config, false)?;
++        Ok(counts)
++    }
++
++    fn info(&self) -> EpisodeInfo {
++        let score_raw_fixed = self.game.score().raw();
++        let score = f64::from(score_raw_fixed) / 65536.0;
++        let cumulative = self.history.cumulative_diagnostics();
++        let mut diagnostics = self
++            .observation
++            .as_ref()
++            .map_or(crate::Diagnostics::default(), |o| o.diagnostics);
++        diagnostics.raw_history_samples = cumulative.raw_history_samples;
++        diagnostics.unknown_enemy_samples = cumulative.unknown_enemy_samples;
++        diagnostics.unknown_rectangle_samples = cumulative.unknown_rectangle_samples;
++        diagnostics.unknown_phase_samples = cumulative.unknown_phase_samples;
++        diagnostics.dropped_enemy_total = cumulative.dropped_enemy_total;
++        EpisodeInfo {
++            seed: self.seed,
++            startup_frames: self.startup_frames,
++            gameplay_frames: self.gameplay_frames,
++            alive_frames: self.alive_frames,
++            score_raw_fixed,
++            score,
++            score_delta_sum_raw_fixed: self.score_delta_sum_raw_fixed,
++            objective_return: self.score_delta_sum_raw_fixed as f64 / 65536.0
++                + f64::from(self.alive_frames) / 100.0
++                - if self.terminated { 5.0 } else { 0.0 },
++            terminated: self.terminated,
++            truncated: self.truncated,
++            bootstrap: !self.terminated,
++            diagnostics,
++        }
++    }
++}
++
++/// Persistent pool and stable simulation slots. Parallel failures retain all
++/// partially advanced games and poison the whole batch; no rollback is claimed.
++/// The initial construction performs the first fresh reset. `observations()`
++/// returns its owned initial arrays without consuming another episode seed.
++pub struct VecDodgeEnv {
++    config: EnvConfig,
++    pool: rayon::ThreadPool,
++    slots: Vec<Slot>,
++    poisoned: bool,
++    last_failures: Vec<(usize, String)>,
++}
++
++impl VecDodgeEnv {
++    pub fn new(config: EnvConfig) -> Result<Self, EnvError> {
++        config.validate()?;
++        let pool = rayon::ThreadPoolBuilder::new()
++            .num_threads(config.num_threads)
++            .build()
++            .map_err(|e| EnvError::Native(e.to_string()))?;
++        let seeds = (0..config.batch_size)
++            .map(|i| seed_for(&config.seed_mode, i, 0))
++            .collect::<Result<Vec<_>, _>>()?;
++        let mut slots = Vec::with_capacity(config.batch_size);
++        for seed in seeds {
++            let mut slot = Slot::unstarted(&config, seed);
++            slot.start(&config)?;
++            slots.push(slot);
++        }
++        Ok(Self {
++            config,
++            pool,
++            slots,
++            poisoned: false,
++            last_failures: Vec::new(),
++        })
++    }
++
++    pub fn batch_info(&self) -> BatchInfo {
++        BatchInfo {
++            config: self.config.clone(),
++            seed_stream_version: SEED_STREAM_VERSION,
++            motion_version: MOTION_VERSION,
++            theme_background_shadow: [12, 1],
++            initial_highscores_raw_fixed: [0; 12],
++        }
++    }
++    pub fn is_poisoned(&self) -> bool {
++        self.poisoned
++    }
++    pub fn last_failures(&self) -> &[(usize, String)] {
++        &self.last_failures
++    }
++    /// Available after failure for partial-state diagnostics, never neural input.
++    pub fn episode_info(&self) -> Vec<EpisodeInfo> {
++        self.slots.iter().map(Slot::info).collect()
++    }
++
++    pub fn observations(&self) -> Result<ObservationBatch, EnvError> {
++        if self.poisoned {
++            return Err(EnvError::Poisoned);
++        }
++        self.observation_subset((0..self.slots.len()).collect())
++    }
++
++    fn observation_subset(&self, indices: Vec<usize>) -> Result<ObservationBatch, EnvError> {
++        let rows = indices
++            .iter()
++            .map(|i| {
++                self.slots[*i]
++                    .observation
++                    .as_ref()
++                    .ok_or(EnvError::Contract("slot has no completed observation"))
++            })
++            .collect::<Result<Vec<_>, _>>()?;
++        Ok(ObservationBatch::collect(
++            indices,
++            rows.into_iter(),
++            self.config.render_pixels,
++            self.config.auxiliary_targets,
++        ))
++    }
++
++    pub fn step(&mut self, action_ids: &[i64]) -> Result<StepBatch, EnvError> {
++        if self.poisoned {
++            return Err(EnvError::Poisoned);
++        }
++        if action_ids.len() != self.slots.len() {
++            return Err(EnvError::ActionShape {
++                expected: self.slots.len(),
++                actual: action_ids.len(),
++            });
++        }
++        // Complete validation and copy into owned Rust storage before any slot
++        // can mutate. A later Python binding can release the GIL after this.
++        let actions = action_ids
++            .iter()
++            .enumerate()
++            .map(|(slot, &id)| {
++                usize::try_from(id)
++                    .ok()
++                    .and_then(|i| Action::ALL.get(i))
++                    .copied()
++                    .ok_or(EnvError::ActionId { slot, id })
++            })
++            .collect::<Result<Vec<_>, _>>()?;
++        for (index, slot) in self.slots.iter().enumerate() {
++            if slot.terminated || slot.truncated {
++                return Err(EnvError::SlotEnded(index));
++            }
++            if slot.game.lifecycle().mode != Mode::Game || slot.game.lifecycle().dead {
++                return Err(EnvError::Contract("step requires alive Mode::Game"));
++            }
++        }
++        let config = &self.config;
++        let results = self.pool.install(|| {
++            self.slots
++                .par_chunks_mut(config.chunk_size)
++                .enumerate()
++                .map(|(chunk, slots)| {
++                    slots
++                        .iter_mut()
++                        .enumerate()
++                        .map(|(offset, slot)| {
++                            let index = chunk * config.chunk_size + offset;
++                            (index, slot.advance(actions[index], config))
++                        })
++                        .collect::<Vec<_>>()
++                })
++                .collect::<Vec<_>>()
++        });
++        let mut counts = Vec::with_capacity(self.slots.len());
++        let mut failures = Vec::new();
++        for (index, result) in results.into_iter().flatten() {
++            match result {
++                Ok(value) => counts.push(value),
++                Err(error) => failures.push((index, error.to_string())),
++            }
++        }
++        if !failures.is_empty() {
++            return Err(self.poison(failures));
++        }
++        let info = self.episode_info();
++        Ok(StepBatch {
++            observations: self.observations()?,
++            rewards: counts
++                .iter()
++                .zip(&info)
++                .map(|(c, i)| {
++                    (c.score as f64 / 65536.0 + f64::from(c.alive) / 100.0
++                        - if i.terminated { 5.0 } else { 0.0 }) as f32
++                })
++                .collect(),
++            score_delta_raw_fixed: counts.iter().map(|c| c.score).collect(),
++            alive_raw_frames: counts.iter().map(|c| c.alive).collect(),
++            elapsed_raw_frames: counts.iter().map(|c| c.elapsed).collect(),
++            terminated: info.iter().map(|i| i.terminated).collect(),
++            truncated: info.iter().map(|i| i.truncated).collect(),
++            info,
++        })
++    }
++
++    fn poison(&mut self, failures: Vec<(usize, String)>) -> EnvError {
++        self.poisoned = true;
++        self.last_failures = failures.clone();
++        EnvError::BatchFailure(failures)
++    }
++
++    /// Only `reset_all` can recover a poisoned batch. Every requested seed is
++    /// validated first. Once mutation starts, failed fresh episodes are consumed
++    /// and retained; a later explicit reset advances their episode counters.
++    pub fn reset_done(&mut self, indices: &[usize]) -> Result<ResetBatch, EnvError> {
++        if self.poisoned {
++            return Err(EnvError::Poisoned);
++        }
++        let mut unique = std::collections::BTreeSet::new();
++        for &index in indices {
++            let slot = self.slots.get(index).ok_or(EnvError::SlotIndex(index))?;
++            if !unique.insert(index) {
++                return Err(EnvError::DuplicateReset(index));
++            }
++            if !slot.terminated && !slot.truncated {
++                return Err(EnvError::SlotNotEnded(index));
++            }
++        }
++        self.reset_indices(indices, false)
++    }
++
++    pub fn reset_all(&mut self) -> Result<ResetBatch, EnvError> {
++        let indices: Vec<_> = (0..self.slots.len()).collect();
++        self.reset_indices(&indices, true)
++    }
++
++    fn reset_indices(&mut self, indices: &[usize], all: bool) -> Result<ResetBatch, EnvError> {
++        let seeds = indices
++            .iter()
++            .map(|&index| {
++                let episode = self.slots[index]
++                    .seed
++                    .episode
++                    .checked_add(1)
++                    .ok_or(EnvError::CounterExhausted)?;
++                seed_for(&self.config.seed_mode, index, episode)
++            })
++            .collect::<Result<Vec<_>, _>>()?;
++        for (&index, seed) in indices.iter().zip(seeds) {
++            self.slots[index] = Slot::unstarted(&self.config, seed);
++            if let Err(error) = self.slots[index].start(&self.config) {
++                return Err(self.poison(vec![(index, error.to_string())]));
++            }
++        }
++        if all {
++            self.poisoned = false;
++            self.last_failures.clear();
++        }
++        Ok(ResetBatch {
++            observations: self.observation_subset(indices.to_vec())?,
++            info: indices.iter().map(|i| self.slots[*i].info()).collect(),
++        })
++    }
++}
++
++#[cfg(test)]
++impl VecDodgeEnv {
++    pub(crate) fn test_game(&self, slot: usize) -> &NativeGame {
++        &self.slots[slot].game
++    }
++    pub(crate) fn test_restore(
++        &mut self,
++        slot: usize,
++        snapshot: &dodge_core::Snapshot,
++    ) -> Result<(), EnvError> {
++        let target = &mut self.slots[slot];
++        target.game = NativeGame::restore(snapshot)?;
++        target.history = History::default();
++        target
++            .history
++            .observe_raw(target.game.privileged_view(), target.game.enemy_serials())?;
++        target.terminated = target.game.lifecycle().dead;
++        target.truncated = false;
++        target.update_observation(&self.config, true)
++    }
++    pub(crate) fn test_observer(
++        &mut self,
++        slot: usize,
++        observer: Box<dyn FnMut(&NativeGame) + Send>,
++    ) {
++        self.slots[slot].raw_observer = Some(observer);
++    }
++    pub(crate) fn test_inject_error(&mut self, slot: usize, error: EnvError) {
++        self.slots[slot].injected_error = Some(error);
++    }
++}
+diff --git a/crates/dodge-rl-env/src/features.rs b/crates/dodge-rl-env/src/features.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/dodge-rl-env/src/features.rs
+@@ -0,0 +1,544 @@
++use dodge_core::{EnemySerial, EnemyState, PicoFixed, PrivilegedView, WarningLine};
++
++use crate::EnvError;
++use crate::geometry::{
++    self, PlayerBoxKind, RawAabb, RawBoxMeasures, RelativeVelocityRaw, WarningSegment,
++};
++use crate::raster::{AuxRaster, RasterChannels, RasterFlags};
++
++pub const GLOBAL_DIM: usize = 14;
++pub const ENTITY_DIM: usize = 16;
++pub const ENEMY_SLOTS: usize = 64;
++pub const RECT_SLOTS: usize = 16;
++pub const ENTITY_SLOTS: usize = ENEMY_SLOTS + RECT_SLOTS;
++pub const MOTION_VERSION: &str = "measured_center_delta_v1";
++
++/// Metadata only. None of these values is appended to neural arrays.
++#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
++pub struct Diagnostics {
++    pub raw_history_samples: u64,
++    pub unknown_enemy_samples: u64,
++    pub unknown_rectangle_samples: u64,
++    pub unknown_phase_samples: u64,
++    pub admitted_enemies: usize,
++    pub admitted_rectangles: usize,
++    pub onscreen_warnings: usize,
++    pub dropped_enemies: usize,
++    pub dropped_enemy_total: u64,
++    pub inverted_boxes: u64,
++    pub inverted_axes: u64,
++}
++
++#[derive(Clone, Debug, PartialEq)]
++pub struct Observation {
++    pub global_feats: [[f32; GLOBAL_DIM]; 1],
++    pub entity_feats: [[f32; ENTITY_DIM]; ENTITY_SLOTS],
++    pub entity_types: [i64; ENTITY_SLOTS],
++    pub entity_mask: [bool; ENTITY_SLOTS],
++    /// Oldest to newest, contiguous [4,128,128].
++    pub pixels: Option<Vec<u8>>,
++    pub auxiliary: Option<Box<RasterChannels>>,
++    pub pixel_valid: bool,
++    /// False if either member is absent, or pixels precede terminal state.
++    pub pixel_aux_pair_valid: bool,
++    pub diagnostics: Diagnostics,
++}
++
++/// Contiguous row-major arrays, owned by this return value. `indices` defines
++/// the row-to-stable-slot mapping, including caller-ordered partial resets.
++#[derive(Clone, Debug, PartialEq)]
++pub struct ObservationBatch {
++    pub indices: Vec<usize>,
++    pub global_feats: Vec<f32>,
++    pub entity_feats: Vec<f32>,
++    pub entity_types: Vec<i64>,
++    pub entity_mask: Vec<bool>,
++    pub pixels: Option<Vec<u8>>,
++    pub auxiliary: Option<Vec<f32>>,
++    pub pixel_valid: Vec<bool>,
++    pub pixel_aux_pair_valid: Vec<bool>,
++    pub diagnostics: Vec<Diagnostics>,
++}
++
++impl ObservationBatch {
++    pub(crate) fn collect<'a>(
++        indices: Vec<usize>,
++        rows: impl Iterator<Item = &'a Observation>,
++        pixels: bool,
++        auxiliary: bool,
++    ) -> Self {
++        let mut batch = Self {
++            indices,
++            global_feats: Vec::new(),
++            entity_feats: Vec::new(),
++            entity_types: Vec::new(),
++            entity_mask: Vec::new(),
++            pixels: pixels.then(Vec::new),
++            auxiliary: auxiliary.then(Vec::new),
++            pixel_valid: Vec::new(),
++            pixel_aux_pair_valid: Vec::new(),
++            diagnostics: Vec::new(),
++        };
++        for row in rows {
++            batch.global_feats.extend_from_slice(&row.global_feats[0]);
++            batch
++                .entity_feats
++                .extend(row.entity_feats.iter().flatten().copied());
++            batch.entity_types.extend_from_slice(&row.entity_types);
++            batch.entity_mask.extend_from_slice(&row.entity_mask);
++            if let (Some(out), Some(input)) = (&mut batch.pixels, &row.pixels) {
++                out.extend_from_slice(input);
++            }
++            if let (Some(out), Some(input)) = (&mut batch.auxiliary, &row.auxiliary) {
++                out.extend(input.iter().flatten().flatten().copied());
++            }
++            batch.pixel_valid.push(row.pixel_valid);
++            batch.pixel_aux_pair_valid.push(row.pixel_aux_pair_valid);
++            batch.diagnostics.push(row.diagnostics);
++        }
++        batch
++    }
++
++    pub fn batch_size(&self) -> usize {
++        self.indices.len()
++    }
++}
++
++#[derive(Clone, Copy, Debug, Default)]
++struct Motion {
++    /// Raw Q16.16 units; halves remain representable in f64.
++    dx: f64,
++    dy: f64,
++    dhx: f64,
++    dhy: f64,
++}
++
++impl Motion {
++    fn measured(now: RawBoxMeasures, old: RawBoxMeasures) -> Self {
++        Self {
++            dx: (now.center_x_twice_raw - old.center_x_twice_raw) as f64 / 2.0,
++            dy: (now.center_y_twice_raw - old.center_y_twice_raw) as f64 / 2.0,
++            dhx: (now.half_x_twice_raw - old.half_x_twice_raw) as f64 / 2.0,
++            dhy: (now.half_y_twice_raw - old.half_y_twice_raw) as f64 / 2.0,
++        }
++    }
++}
++
++#[derive(Clone, Copy, Debug)]
++struct MeasuredEntity {
++    bounds: RawAabb,
++    motion: Motion,
++    type_id: i64,
++    admitted: bool,
++    lethal_now: bool,
++    charging: bool,
++    until_lethal: f64,
++}
++
++#[derive(Clone, Copy, Debug)]
++struct EnemyHistory {
++    serial: EnemySerial,
++    measures: RawBoxMeasures,
++}
++
++#[derive(Clone, Copy, Debug)]
++struct RectHistory {
++    measures: RawBoxMeasures,
++    sh: PicoFixed,
++}
++
++/// Only selected geometry and observed charge are retained. A None-pattern raw
++/// frame clears rectangle history even if another activation appears within K.
++#[derive(Default)]
++pub(crate) struct History {
++    enemies: Vec<EnemyHistory>,
++    rectangles: Vec<RectHistory>,
++    current_enemies: Vec<(EnemySerial, MeasuredEntity)>,
++    current_rectangles: Vec<MeasuredEntity>,
++    pattern_present: bool,
++    diagnostics: Diagnostics,
++}
++
++fn enemy_geometry(enemy: &EnemyState) -> Result<(RawAabb, bool, i64), EnvError> {
++    let x = enemy.x.raw();
++    let y = enemy.y.raw();
++    let s = enemy.size.raw();
++    let type_id = match enemy.personality {
++        0 => 1,
++        1 => 2,
++        -1 => 3,
++        2 => 4,
++        3 => 5,
++        4 => 6,
++        _ => return Err(EnvError::Contract("unsupported enemy personality")),
++    };
++    let beneficial = (4..=6).contains(&type_id);
++    let (bounds, footprint) = if beneficial {
++        (
++            geometry::powerup_box(x, y),
++            geometry::powerup_footprint(x, y),
++        )
++    } else {
++        (
++            geometry::enemy_box(x, y, s),
++            geometry::enemy_footprint(x, y, s),
++        )
++    };
++    Ok((bounds, footprint.intersects_world(), type_id))
++}
++
++impl History {
++    pub(crate) fn cumulative_diagnostics(&self) -> Diagnostics {
++        self.diagnostics
++    }
++
++    pub(crate) fn observe_raw(
++        &mut self,
++        view: PrivilegedView<'_>,
++        serials: Option<&[EnemySerial]>,
++    ) -> Result<(), EnvError> {
++        let serials = serials.ok_or(EnvError::Contract("enemy identity metadata unavailable"))?;
++        if serials.len() != view.enemies.len() || !serials.windows(2).all(|w| w[0] < w[1]) {
++            return Err(EnvError::Contract("enemy identity length/order mismatch"));
++        }
++        self.diagnostics.raw_history_samples =
++            self.diagnostics.raw_history_samples.saturating_add(1);
++        let mut old_index = 0;
++        let mut next = Vec::with_capacity(serials.len());
++        self.current_enemies.clear();
++        for (&serial, enemy) in serials.iter().zip(view.enemies) {
++            while self
++                .enemies
++                .get(old_index)
++                .is_some_and(|old| old.serial < serial)
++            {
++                old_index += 1;
++            }
++            let (bounds, admitted, type_id) = enemy_geometry(enemy)?;
++            let measures = bounds.measures();
++            let motion = if let Some(old) = self
++                .enemies
++                .get(old_index)
++                .filter(|old| old.serial == serial)
++            {
++                Motion::measured(measures, old.measures)
++            } else {
++                self.diagnostics.unknown_enemy_samples =
++                    self.diagnostics.unknown_enemy_samples.saturating_add(1);
++                Motion::default()
++            };
++            let beneficial = (4..=6).contains(&type_id);
++            next.push(EnemyHistory { serial, measures });
++            self.current_enemies.push((
++                serial,
++                MeasuredEntity {
++                    bounds,
++                    motion,
++                    type_id,
++                    admitted,
++                    lethal_now: !beneficial,
++                    charging: false,
++                    until_lethal: if beneficial { 1.0 } else { 0.0 },
++                },
++            ));
++        }
++        self.enemies = next;
++        self.current_rectangles.clear();
++        if let Some(pattern) = view.active_pattern {
++            if pattern.pattern_type > 1 {
++                return Err(EnvError::Contract("unsupported pattern type"));
++            }
++            let mut next = Vec::with_capacity(pattern.rects.len());
++            for (index, rect) in pattern.rects.iter().enumerate() {
++                let bounds = geometry::rectangle_box(
++                    rect.x.raw(),
++                    rect.y.raw(),
++                    rect.width.raw(),
++                    rect.height.raw(),
++                );
++                let measures = bounds.measures();
++                let old = self
++                    .pattern_present
++                    .then(|| self.rectangles.get(index))
++                    .flatten();
++                let motion = old.map_or_else(
++                    || {
++                        self.diagnostics.unknown_rectangle_samples =
++                            self.diagnostics.unknown_rectangle_samples.saturating_add(1);
++                        Motion::default()
++                    },
++                    |old| Motion::measured(measures, old.measures),
++                );
++                let sh_delta = old.map(|old| i64::from(rect.sh.raw()) - i64::from(old.sh.raw()));
++                let lethal_now = pattern.pattern_type == 1 || rect.sh == PicoFixed::from_int(2);
++                let charging = !lethal_now
++                    && rect.sh < PicoFixed::from_int(2)
++                    && sh_delta.is_some_and(|d| d > 0);
++                let until_lethal = if lethal_now {
++                    0.0
++                } else if charging {
++                    ((f64::from(PicoFixed::from_int(2).raw()) - f64::from(rect.sh.raw()))
++                        / sh_delta.unwrap_or(1) as f64)
++                        .clamp(0.0, 120.0)
++                        / 120.0
++                } else {
++                    1.0
++                };
++                if pattern.pattern_type == 0 && !lethal_now && sh_delta.is_none() {
++                    self.diagnostics.unknown_phase_samples =
++                        self.diagnostics.unknown_phase_samples.saturating_add(1);
++                }
++                self.current_rectangles.push(MeasuredEntity {
++                    bounds,
++                    motion,
++                    type_id: if pattern.pattern_type == 0 { 7 } else { 8 },
++                    admitted: geometry::rectangle_footprint(
++                        rect.x.raw(),
++                        rect.y.raw(),
++                        rect.width.raw(),
++                        rect.height.raw(),
++                    )
++                    .intersects_world(),
++                    lethal_now,
++                    charging,
++                    until_lethal,
++                });
++                next.push(RectHistory {
++                    measures,
++                    sh: rect.sh,
++                });
++            }
++            self.rectangles = next;
++            self.pattern_present = true;
++        } else {
++            self.rectangles.clear();
++            self.pattern_present = false;
++        }
++        Ok(())
++    }
++
++    pub(crate) fn observation<'a>(
++        &mut self,
++        view: PrivilegedView<'_>,
++        warnings: impl Iterator<Item = &'a WarningLine>,
++        auxiliary: bool,
++    ) -> Result<Observation, EnvError> {
++        let rects: Vec<_> = self
++            .current_rectangles
++            .iter()
++            .filter(|e| e.admitted)
++            .copied()
++            .collect();
++        if rects.len() > RECT_SLOTS {
++            return Err(EnvError::RectangleOverflow(rects.len()));
++        }
++        let mut raster = AuxRaster::default();
++        let mut onscreen_warnings = 0;
++        for warning in warnings {
++            let segment = WarningSegment::from_raw_q16(
++                warning.x0.raw(),
++                warning.y0.raw(),
++                warning.x1.raw(),
++                warning.y1.raw(),
++            )
++            .map_err(|_| EnvError::Contract("non-axis-aligned drawn warning"))?;
++            if segment.intersects_world() {
++                onscreen_warnings += 1;
++                if auxiliary {
++                    raster.paint_warning(
++                        segment,
++                        RasterFlags {
++                            lethal_soon: true,
++                            ..RasterFlags::default()
++                        },
++                    );
++                }
++            }
++        }
++        let mut enemies: Vec<_> = self
++            .current_enemies
++            .iter()
++            .filter(|(_, e)| e.admitted)
++            .map(|(serial, e)| {
++                (
++                    *serial,
++                    *e,
++                    entity_features(*e, view),
++                    slab_frames(*e, view),
++                )
++            })
++            .collect();
++        let admitted_enemies = enemies.len();
++        // Auxiliary targets include all admitted geometry, even a token dropped
++        // by enemy overflow. The target is the current visible scene occupancy.
++        for e in enemies.iter().map(|(_, e, _, _)| e).chain(rects.iter()) {
++            let flags = RasterFlags {
++                lethal_now: e.lethal_now,
++                lethal_soon: e.charging,
++                enemy: (1..=3).contains(&e.type_id),
++                powerup: (4..=6).contains(&e.type_id),
++                player: false,
++            };
++            // Paint even when targets are disabled to retain inverted diagnostics.
++            raster.paint_box(e.bounds, flags);
++        }
++        if auxiliary {
++            raster.paint_box(
++                geometry::player_box(
++                    view.player.x.raw(),
++                    view.player.y.raw(),
++                    view.player.size.raw(),
++                    PlayerBoxKind::Powerup,
++                ),
++                RasterFlags {
++                    player: true,
++                    ..RasterFlags::default()
++                },
++            );
++        }
++        let dropped = admitted_enemies.saturating_sub(ENEMY_SLOTS);
++        if dropped > 0 {
++            enemies.sort_by(|a, b| a.3.total_cmp(&b.3).then(a.0.cmp(&b.0)));
++            enemies.truncate(ENEMY_SLOTS);
++        }
++        self.diagnostics.dropped_enemy_total = self
++            .diagnostics
++            .dropped_enemy_total
++            .saturating_add(dropped as u64);
++        let raster_diagnostics = raster.diagnostics();
++        let diagnostics = Diagnostics {
++            admitted_enemies,
++            admitted_rectangles: rects.len(),
++            onscreen_warnings,
++            dropped_enemies: dropped,
++            inverted_boxes: raster_diagnostics.inverted_boxes,
++            inverted_axes: raster_diagnostics.inverted_axes,
++            ..self.diagnostics
++        };
++        let mut out = Observation {
++            global_feats: [global_features(
++                view,
++                !rects.is_empty() || onscreen_warnings > 0,
++            )],
++            entity_feats: [[0.0; ENTITY_DIM]; ENTITY_SLOTS],
++            entity_types: [0; ENTITY_SLOTS],
++            entity_mask: [false; ENTITY_SLOTS],
++            pixels: None,
++            auxiliary: auxiliary.then(|| Box::new(raster.into_channels())),
++            pixel_valid: false,
++            pixel_aux_pair_valid: false,
++            diagnostics,
++        };
++        for (i, (_, e, features, _)) in enemies.into_iter().enumerate() {
++            out.entity_feats[i] = features;
++            out.entity_types[i] = e.type_id;
++            out.entity_mask[i] = true;
++        }
++        for (i, e) in rects.into_iter().enumerate() {
++            let i = ENEMY_SLOTS + i;
++            out.entity_feats[i] = entity_features(e, view);
++            out.entity_types[i] = e.type_id;
++            out.entity_mask[i] = true;
++        }
++        if !out
++            .global_feats
++            .iter()
++            .flatten()
++            .chain(out.entity_feats.iter().flatten())
++            .all(|v| v.is_finite())
++        {
++            return Err(EnvError::Contract("nonfinite neural feature"));
++        }
++        Ok(out)
++    }
++}
++
++fn global_features(view: PrivilegedView<'_>, pattern_visible: bool) -> [f32; GLOBAL_DIM] {
++    let p = view.player;
++    let x = p.x.to_double();
++    let y = p.y.to_double();
++    [
++        ((x - 64.0) / 64.0) as f32,
++        ((y - 64.0) / 64.0) as f32,
++        (p.vx.to_double() / 2.5) as f32,
++        (p.vy.to_double() / 2.5) as f32,
++        (p.size.to_double() / 4.0) as f32,
++        view.freeze_rate.to_f32(),
++        (view.speed.to_double() / 3.0) as f32,
++        (view.enemy_est.to_double() / 2.0) as f32,
++        (view.score.to_double() / 50.0).tanh() as f32,
++        f32::from(pattern_visible),
++        ((x - 2.0) / 123.0) as f32,
++        ((125.0 - x) / 123.0) as f32,
++        ((y - 2.0) / 123.0) as f32,
++        ((125.0 - y) / 123.0) as f32,
++    ]
++}
++
++fn entity_features(e: MeasuredEntity, view: PrivilegedView<'_>) -> [f32; ENTITY_DIM] {
++    let measures = e.bounds.measures();
++    let cx = geometry::half_raw_to_pixels(measures.center_x_twice_raw);
++    let cy = geometry::half_raw_to_pixels(measures.center_y_twice_raw);
++    let kind = match e.type_id {
++        4..=6 => PlayerBoxKind::Powerup,
++        7..=8 => PlayerBoxKind::Rectangle,
++        _ => PlayerBoxKind::EnemyFamily,
++    };
++    let player = geometry::player_box(
++        view.player.x.raw(),
++        view.player.y.raw(),
++        view.player.size.raw(),
++        kind,
++    );
++    let (gx, gy) = e.bounds.signed_gaps(player);
++    let contact = geometry::slab_contact(
++        e.bounds,
++        player,
++        RelativeVelocityRaw {
++            x: e.motion.dx - f64::from(view.player.vx.raw()),
++            y: e.motion.dy - f64::from(view.player.vy.raw()),
++        },
++    );
++    let velocity_scale = f64::from(geometry::ONE_RAW) * 4.0;
++    [
++        ((cx - 64.0) / 128.0) as f32,
++        ((cy - 64.0) / 128.0) as f32,
++        (geometry::half_raw_to_pixels(measures.half_x_twice_raw) / 64.0) as f32,
++        (geometry::half_raw_to_pixels(measures.half_y_twice_raw) / 64.0) as f32,
++        ((cx - view.player.x.to_double()) / 128.0) as f32,
++        ((cy - view.player.y.to_double()) / 128.0) as f32,
++        (e.motion.dx / velocity_scale) as f32,
++        (e.motion.dy / velocity_scale) as f32,
++        (e.motion.dhx / velocity_scale) as f32,
++        (e.motion.dhy / velocity_scale) as f32,
++        (geometry::raw_to_pixels(gx) / 64.0) as f32,
++        (geometry::raw_to_pixels(gy) / 64.0) as f32,
++        (contact.frames / 120.0) as f32,
++        e.until_lethal as f32,
++        f32::from((4..=6).contains(&e.type_id)),
++        f32::from(e.lethal_now),
++    ]
++}
++
++fn slab_frames(e: MeasuredEntity, view: PrivilegedView<'_>) -> f64 {
++    let kind = match e.type_id {
++        4..=6 => PlayerBoxKind::Powerup,
++        7..=8 => PlayerBoxKind::Rectangle,
++        _ => PlayerBoxKind::EnemyFamily,
++    };
++    let player = geometry::player_box(
++        view.player.x.raw(),
++        view.player.y.raw(),
++        view.player.size.raw(),
++        kind,
++    );
++    geometry::slab_contact(
++        e.bounds,
++        player,
++        RelativeVelocityRaw {
++            x: e.motion.dx - f64::from(view.player.vx.raw()),
++            y: e.motion.dy - f64::from(view.player.vy.raw()),
++        },
++    )
++    .frames
++}
+diff --git a/crates/dodge-rl-env/src/lib.rs b/crates/dodge-rl-env/src/lib.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/dodge-rl-env/src/lib.rs
+@@ -0,0 +1,54 @@
++//! Pure Rust, owned-batch Dodge environment. No Python or window dependency.
++mod config;
++mod env;
++mod features;
++pub mod geometry;
++pub mod raster;
++mod seed;
++
++pub use config::{EnvConfig, SeedMode};
++pub use env::{BatchInfo, EpisodeInfo, ResetBatch, StepBatch, VecDodgeEnv};
++pub use features::{
++    Diagnostics, ENEMY_SLOTS, ENTITY_DIM, ENTITY_SLOTS, GLOBAL_DIM, MOTION_VERSION, Observation,
++    ObservationBatch, RECT_SLOTS,
++};
++pub use seed::{SEED_STREAM_VERSION, SeedMetadata, training_seed};
++
++/// A failed call never implies rollback. A batch failure requires `reset_all`.
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub enum EnvError {
++    Config(&'static str),
++    ActionShape { expected: usize, actual: usize },
++    ActionId { slot: usize, id: i64 },
++    SlotIndex(usize),
++    DuplicateReset(usize),
++    SlotNotEnded(usize),
++    SlotEnded(usize),
++    Poisoned,
++    SeedExhausted { slot: usize, episode: u64 },
++    CounterExhausted,
++    Native(String),
++    Contract(&'static str),
++    RectangleOverflow(usize),
++    BatchFailure(Vec<(usize, String)>),
++}
++
++impl std::fmt::Display for EnvError {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        write!(f, "{self:?}")
++    }
++}
++
++impl std::error::Error for EnvError {}
++
++impl From<dodge_core::CoreError> for EnvError {
++    fn from(value: dodge_core::CoreError) -> Self {
++        Self::Native(value.to_string())
++    }
++}
++
++#[cfg(test)]
++mod tests;
++
++#[cfg(test)]
++type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+diff --git a/crates/dodge-rl-env/src/seed.rs b/crates/dodge-rl-env/src/seed.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/dodge-rl-env/src/seed.rs
+@@ -0,0 +1,89 @@
++use crate::{EnvError, SeedMode};
++
++pub const SEED_STREAM_VERSION: &str = "dodge_slot_splitmix64_high32_reject_v1";
++
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub struct SeedMetadata {
++    pub slot: usize,
++    pub episode: u64,
++    /// Rehash counter; zero is the first candidate. Also the rejection count.
++    pub counter: u64,
++    pub actual_seed: u32,
++    pub evaluation: bool,
++}
++
++/// SplitMix64 finalizer, with explicit wrapping arithmetic (not its PRNG step).
++const fn mix(mut z: u64) -> u64 {
++    z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
++    z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
++    z ^ (z >> 31)
++}
++
++/// Exact v1 tuple hash:
++/// `base = mix(run ^ 0x444f4447455f5632) ^ mix(slot + 0x9e3779b97f4a7c15)
++///         ^ mix(episode + 0xd1b54a32d192ed03)`;
++/// candidate = upper 32 bits of `mix(base ^ mix(counter + 0x94d049bb133111eb))`.
++/// Reject the inclusive M0 evaluation interval and advance only this counter.
++pub fn training_seed(run: u64, slot: usize, episode: u64) -> Result<SeedMetadata, EnvError> {
++    let slot64 = u64::try_from(slot).map_err(|_| EnvError::CounterExhausted)?;
++    let base = mix(run ^ 0x444F_4447_455F_5632)
++        ^ mix(slot64.wrapping_add(0x9E37_79B9_7F4A_7C15))
++        ^ mix(episode.wrapping_add(0xD1B5_4A32_D192_ED03));
++    let (counter, actual_seed) = reject_reserved(|counter| {
++        let bytes = mix(base ^ mix(counter.wrapping_add(0x94D0_49BB_1331_11EB))).to_be_bytes();
++        u32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
++    })?;
++    Ok(SeedMetadata {
++        slot,
++        episode,
++        counter,
++        actual_seed,
++        evaluation: false,
++    })
++}
++
++fn reject_reserved(mut candidate: impl FnMut(u64) -> u32) -> Result<(u64, u32), EnvError> {
++    let mut counter = 0;
++    loop {
++        let seed = candidate(counter);
++        if !(0xB000_0000..=0xB000_03E7).contains(&seed) {
++            return Ok((counter, seed));
++        }
++        counter = counter.checked_add(1).ok_or(EnvError::CounterExhausted)?;
++    }
++}
++
++pub(crate) fn seed_for(
++    mode: &SeedMode,
++    slot: usize,
++    episode: u64,
++) -> Result<SeedMetadata, EnvError> {
++    match mode {
++        SeedMode::Training { run_seed } => training_seed(*run_seed, slot, episode),
++        SeedMode::Evaluation { seeds_by_slot } => {
++            let seed = usize::try_from(episode)
++                .ok()
++                .and_then(|i| seeds_by_slot.get(slot)?.get(i))
++                .copied()
++                .ok_or(EnvError::SeedExhausted { slot, episode })?;
++            Ok(SeedMetadata {
++                slot,
++                episode,
++                counter: 0,
++                actual_seed: seed,
++                evaluation: true,
++            })
++        }
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    fn rejection_rehashes_reserved_interval_including_both_edges() -> Result<(), EnvError> {
++        let candidates = [0xB000_0000, 0xB000_03E7, 42];
++        assert_eq!(reject_reserved(|i| candidates[i as usize])?, (2, 42));
++        Ok(())
++    }
++}
+diff --git a/crates/dodge-rl-env/src/tests.rs b/crates/dodge-rl-env/src/tests.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/dodge-rl-env/src/tests.rs
+@@ -0,0 +1,1151 @@
++use crate::features::History;
++use crate::*;
++use dodge_core::{
++    ActivePatternView, EnemySerial, EnemyState, NativeConfig, NativeGame, PatternRect,
++    PatternTarget, PicoFixed, PlayerState, PrivilegedView, WarningLine,
++};
++
++#[path = "../tests/support/m0_policy.rs"]
++mod m0_policy;
++#[path = "../tests/support/wire_fixture.rs"]
++mod wire_fixture;
++
++fn q(n: i32) -> PicoFixed {
++    PicoFixed::from_int(n)
++}
++fn enemy(personality: i8, x: i32, y: i32, size: i32) -> EnemyState {
++    EnemyState {
++        personality,
++        size: q(size),
++        isizing: false,
++        ..EnemyState::normal(q(x), q(y), q(size))
++    }
++}
++fn rect(x: i32, y: i32, w: i32, h: i32, sh: PicoFixed) -> PatternRect {
++    PatternRect {
++        x: q(x),
++        y: q(y),
++        width: q(w),
++        height: q(h),
++        speed: PicoFixed::ZERO,
++        dx: PicoFixed::ZERO,
++        dy: PicoFixed::ZERO,
++        targets: vec![],
++        target_index: 0,
++        wait: PicoFixed::ZERO,
++        shown: true,
++        sh,
++        warnings: vec![],
++        collision_done: false,
++        finished: false,
++    }
++}
++fn view<'a>(
++    p: &'a PlayerState,
++    enemies: &'a [EnemyState],
++    rects: Option<(u8, &'a [PatternRect])>,
++) -> PrivilegedView<'a> {
++    PrivilegedView {
++        player: p,
++        enemies,
++        freeze_rate: PicoFixed::ONE,
++        speed: PicoFixed::ONE,
++        enemy_est: q(2),
++        score: PicoFixed::ZERO,
++        active_pattern: rects.map(|(pattern_type, rects)| ActivePatternView {
++            pattern_type,
++            rects,
++        }),
++        difficulty: 2,
++        patterns_enabled: true,
++        powerups_enabled: true,
++    }
++}
++fn ids(n: usize) -> crate::Result<Vec<EnemySerial>> {
++    let game = NativeGame::new(NativeConfig::new(1));
++    let game = NativeGame::restore(&wire_fixture::with_enemies(
++        &game,
++        &vec![enemy(0, 10, 10, 2); n],
++    )?)?;
++    Ok(game.enemy_serials().ok_or("missing serials")?.to_vec())
++}
++fn obs(
++    history: &mut History,
++    v: PrivilegedView<'_>,
++    serials: &[EnemySerial],
++) -> crate::Result<Observation> {
++    history.observe_raw(v, Some(serials))?;
++    Ok(history.observation(v, std::iter::empty(), true)?)
++}
++fn evaluation_config(seeds: Vec<Vec<u32>>) -> EnvConfig {
++    EnvConfig {
++        batch_size: seeds.len(),
++        seed_mode: SeedMode::Evaluation {
++            seeds_by_slot: seeds,
++        },
++        ..EnvConfig::default()
++    }
++}
++fn canonical(env: &VecDodgeEnv) -> Vec<Vec<u8>> {
++    (0..env.batch_info().config.batch_size)
++        .map(|i| env.test_game(i).snapshot().canonical_bytes())
++        .collect()
++}
++
++#[test]
++fn validates_every_config_bound_without_clamping() {
++    let good = EnvConfig::default();
++    assert_eq!(good.raw_frame_cap, 18000);
++    assert_eq!(good.action_repeat, 4);
++    for bad in [
++        EnvConfig {
++            batch_size: 0,
++            ..good.clone()
++        },
++        EnvConfig {
++            action_repeat: 1,
++            ..good.clone()
++        },
++        EnvConfig {
++            action_repeat: 5,
++            ..good.clone()
++        },
++        EnvConfig {
++            difficulty: 0,
++            ..good.clone()
++        },
++        EnvConfig {
++            difficulty: 4,
++            ..good.clone()
++        },
++        EnvConfig {
++            raw_frame_cap: 0,
++            ..good.clone()
++        },
++        EnvConfig {
++            num_threads: 0,
++            ..good.clone()
++        },
++        EnvConfig {
++            chunk_size: 0,
++            ..good.clone()
++        },
++        evaluation_config(vec![]),
++        evaluation_config(vec![vec![]]),
++    ] {
++        assert!(bad.validate().is_err(), "{bad:?}");
++    }
++    for k in 2..=4 {
++        for difficulty in 1..=3 {
++            assert!(
++                EnvConfig {
++                    action_repeat: k,
++                    difficulty,
++                    ..good.clone()
++                }
++                .validate()
++                .is_ok()
++            );
++        }
++    }
++}
++
++#[test]
++fn exact_global_and_entity_normalizations_and_padding() -> crate::Result<()> {
++    let p = PlayerState {
++        x: q(32),
++        y: q(96),
++        vx: PicoFixed::from_f32(1.25),
++        vy: PicoFixed::from_f32(-2.5),
++        size: q(2),
++    };
++    let enemies = [enemy(0, 80, 100, 4)];
++    let serials = ids(1)?;
++    let v = PrivilegedView {
++        freeze_rate: PicoFixed::from_f32(0.4),
++        speed: PicoFixed::from_f32(1.5),
++        enemy_est: q(1),
++        score: q(50),
++        ..view(&p, &enemies, None)
++    };
++    let o = obs(&mut History::default(), v, &serials)?;
++    assert_eq!(
++        o.global_feats[0],
++        [
++            -0.5,
++            0.5,
++            0.5,
++            -1.0,
++            0.5,
++            PicoFixed::from_f32(0.4).to_f32(),
++            0.5,
++            0.5,
++            1.0_f64.tanh() as f32,
++            0.0,
++            30.0 / 123.0,
++            93.0 / 123.0,
++            94.0 / 123.0,
++            29.0 / 123.0
++        ]
++    );
++    assert_eq!(
++        o.entity_feats[0],
++        [
++            18.0 / 128.0,
++            38.0 / 128.0,
++            2.0 / 64.0,
++            2.0 / 64.0,
++            50.0 / 128.0,
++            6.0 / 128.0,
++            0.0,
++            0.0,
++            0.0,
++            0.0,
++            47.0 / 64.0,
++            3.0 / 64.0,
++            1.0,
++            0.0,
++            0.0,
++            1.0
++        ]
++    );
++    assert_eq!(o.entity_types[0], 1);
++    assert!(o.entity_mask[0]);
++    assert!(o.entity_types[1..].iter().all(|x| *x == 0));
++    assert!(o.entity_mask[1..].iter().all(|x| !*x));
++    assert!(o.entity_feats[1..].iter().flatten().all(|x| *x == 0.0));
++    Ok(())
++}
++
++#[test]
++fn types_masks_empty_allowlist_and_finite() -> crate::Result<()> {
++    let p = PlayerState::new();
++    let serials = ids(6)?;
++    let enemies: Vec<_> = [0, 1, -1, 2, 3, 4]
++        .into_iter()
++        .map(|t| enemy(t, 10, 20, 4))
++        .collect();
++    let rects = [rect(10, 10, 20, 20, q(2))];
++    let mut history = History::default();
++    let mut o = obs(
++        &mut history,
++        view(&p, &enemies, Some((0, &rects))),
++        &serials,
++    )?;
++    assert_eq!(&o.entity_types[..6], &[1, 2, 3, 4, 5, 6]);
++    assert_eq!(o.entity_types[64], 7);
++    o = obs(
++        &mut history,
++        view(&p, &enemies, Some((1, &rects))),
++        &serials,
++    )?;
++    assert_eq!(o.entity_types[64], 8);
++    assert_eq!(o.entity_mask.iter().filter(|x| **x).count(), 7);
++    assert!(
++        o.global_feats
++            .iter()
++            .flatten()
++            .chain(o.entity_feats.iter().flatten())
++            .all(|x| x.is_finite())
++    );
++    let empty = obs(&mut History::default(), view(&p, &[], None), &[])?;
++    assert_eq!(empty.global_feats[0].len(), 14);
++    assert_eq!(empty.entity_feats.len(), 80);
++    assert_eq!(empty.entity_feats[0].len(), 16);
++    assert!(empty.entity_mask.iter().all(|x| !x));
++    assert_eq!(empty.global_feats[0][9], 0.0);
++    Ok(())
++}
++
++#[test]
++fn stable_serial_merge_survives_earlier_removal_and_new_birth() -> crate::Result<()> {
++    let p = PlayerState::new();
++    let serials = ids(3)?;
++    let mut h = History::default();
++    let first = [enemy(0, 10, 10, 2), enemy(1, 20, 20, 2)];
++    obs(&mut h, view(&p, &first, None), &serials[..2])?;
++    let mut moved = first[1];
++    moved.x = q(25);
++    moved.size = q(3);
++    let next = [moved, enemy(0, 100, 100, 1)];
++    let o = obs(&mut h, view(&p, &next, None), &serials[1..])?;
++    assert_eq!(o.entity_feats[0][6], 5.5 / 4.0);
++    assert_eq!(o.entity_feats[0][8], 0.5 / 4.0);
++    assert_eq!(&o.entity_feats[1][6..10], &[0.0; 4]);
++    assert_eq!(o.diagnostics.unknown_enemy_samples, 3);
++    Ok(())
++}
++
++#[test]
++fn half_raw_growth_and_powerup_internal_size_jump() -> crate::Result<()> {
++    let p = PlayerState::new();
++    let serials = ids(2)?;
++    let mut h = History::default();
++    let mut enemies = [enemy(0, 10, 10, 1), enemy(3, 20, 20, 1)];
++    obs(&mut h, view(&p, &enemies, None), &serials)?;
++    enemies[0].size = PicoFixed::from_raw(q(1).raw() + 1);
++    enemies[1].size = q(4);
++    let o = obs(&mut h, view(&p, &enemies, None), &serials)?;
++    assert_eq!(o.entity_feats[0][6], 0.5 / (65536.0 * 4.0));
++    assert_eq!(o.entity_feats[0][8], 0.5 / (65536.0 * 4.0));
++    assert_eq!(&o.entity_feats[1][6..10], &[0.0; 4]);
++    assert_eq!(o.entity_feats[1][2], 4.0 / 64.0);
++    Ok(())
++}
++
++#[test]
++fn missing_mismatched_or_unordered_serials_fail_closed() -> crate::Result<()> {
++    let p = PlayerState::new();
++    let enemies = [enemy(0, 10, 10, 1), enemy(0, 20, 20, 1)];
++    let serials = ids(2)?;
++    for serials in [
++        None,
++        Some(&serials[..1]),
++        Some(&[serials[1], serials[0]][..]),
++    ] {
++        assert!(
++            History::default()
++                .observe_raw(view(&p, &enemies, None), serials)
++                .is_err()
++        );
++    }
++    Ok(())
++}
++
++#[test]
++fn final_raw_delta_not_repeat_average_and_every_none_gap_resets() -> crate::Result<()> {
++    let p = PlayerState::new();
++    let mut rects = [rect(0, 10, 20, 20, q(1))];
++    let mut h = History::default();
++    obs(&mut h, view(&p, &[], Some((0, &rects))), &[])?;
++    for x in [2, 8, 9, 15] {
++        rects[0].x = q(x);
++        h.observe_raw(view(&p, &[], Some((0, &rects))), Some(&[]))?;
++    }
++    let o = h.observation(view(&p, &[], Some((0, &rects))), std::iter::empty(), true)?;
++    assert_eq!(o.entity_feats[64][6], 6.0 / 4.0);
++    h.observe_raw(view(&p, &[], None), Some(&[]))?;
++    rects[0].x = q(100);
++    rects[0].sh = PicoFixed::from_f32(1.5);
++    let o = obs(&mut h, view(&p, &[], Some((0, &rects))), &[])?;
++    assert_eq!(&o.entity_feats[64][6..10], &[0.0; 4]);
++    assert_eq!(o.entity_feats[64][13], 1.0);
++    assert_eq!(o.diagnostics.raw_history_samples, 7);
++    Ok(())
++}
++
++#[test]
++fn charge_unknown_flat_fading_full_and_moving_phases() -> crate::Result<()> {
++    let p = PlayerState::new();
++    let mut rects = [rect(10, 10, 127, 32, q(1))];
++    let mut h = History::default();
++    let first = obs(&mut h, view(&p, &[], Some((0, &rects))), &[])?;
++    assert_eq!(first.entity_feats[64][13], 1.0);
++    assert_eq!(first.diagnostics.unknown_phase_samples, 1);
++    rects[0].sh = PicoFixed::from_f32(1.02);
++    let o = obs(&mut h, view(&p, &[], Some((0, &rects))), &[])?;
++    let expected =
++        ((2.0 - rects[0].sh.to_double()) / (rects[0].sh.to_double() - 1.0) / 120.0) as f32;
++    assert_eq!(o.entity_feats[64][13], expected);
++    assert!(
++        o.auxiliary.as_ref().unwrap()[1]
++            .iter()
++            .flatten()
++            .any(|v| *v == 1.0)
++    );
++    for sh in [rects[0].sh, PicoFixed::ONE, PicoFixed::from_f32(0.9)] {
++        rects[0].sh = sh;
++        let o = obs(&mut h, view(&p, &[], Some((0, &rects))), &[])?;
++        assert_eq!(o.entity_feats[64][13], 1.0);
++        assert_eq!(o.entity_feats[64][15], 0.0);
++        assert!(
++            o.auxiliary.as_ref().unwrap()[1]
++                .iter()
++                .flatten()
++                .all(|v| *v == 0.0)
++        );
++    }
++    rects[0].sh = q(2);
++    let o = obs(&mut h, view(&p, &[], Some((0, &rects))), &[])?;
++    assert_eq!(o.entity_feats[64][13], 0.0);
++    assert_eq!(o.entity_feats[64][15], 1.0);
++    rects[0].sh = q(1);
++    let o = obs(&mut h, view(&p, &[], Some((1, &rects))), &[])?;
++    assert_eq!(o.entity_feats[64][15], 1.0);
++    Ok(())
++}
++
++#[test]
++fn hidden_enemy_rect_and_config_fields_do_not_enter_neural_arrays() -> crate::Result<()> {
++    let p = PlayerState::new();
++    let serials = ids(1)?;
++    let mut enemies = [enemy(0, 10, 10, 3)];
++    let mut rects = [rect(20, 20, 30, 30, q(1))];
++    let mut a = History::default();
++    let mut b = History::default();
++    obs(&mut a, view(&p, &enemies, Some((0, &rects))), &serials)?;
++    obs(&mut b, view(&p, &enemies, Some((0, &rects))), &serials)?;
++    let before = obs(&mut a, view(&p, &enemies, Some((0, &rects))), &serials)?;
++    enemies[0].max_size = q(300);
++    enemies[0].life = Some(q(60));
++    enemies[0].speed = q(200);
++    enemies[0].vx = q(20);
++    enemies[0].vy = q(-20);
++    enemies[0].inside = true;
++    enemies[0].is_dying = true;
++    enemies[0].isizing = true;
++    rects[0].targets = vec![PatternTarget::Wait(q(10))];
++    rects[0].target_index = 2;
++    rects[0].wait = q(100);
++    rects[0].shown = false;
++    rects[0].dx = q(50);
++    rects[0].dy = q(-50);
++    rects[0].speed = q(60);
++    rects[0].collision_done = true;
++    rects[0].finished = true;
++    let v = PrivilegedView {
++        difficulty: 3,
++        patterns_enabled: false,
++        powerups_enabled: false,
++        ..view(&p, &enemies, Some((0, &rects)))
++    };
++    let after = obs(&mut b, v, &serials)?;
++    assert_eq!(before, after);
++    Ok(())
++}
++
++#[test]
++fn current_admission_keeps_unclipped_geometry_without_sticky_tracking() -> crate::Result<()> {
++    let p = PlayerState::new();
++    let serials = ids(3)?;
++    let mut h = History::default();
++    let mut enemies = [
++        enemy(0, -2, 10, 4),
++        enemy(-1, 127, 10, -4),
++        enemy(3, 131, 127, 1),
++    ];
++    let o = obs(&mut h, view(&p, &enemies, None), &serials)?;
++    assert_eq!(o.diagnostics.admitted_enemies, 3);
++    assert_eq!(o.entity_feats[0][0], -0.5);
++    assert!(o.entity_feats[2][0] > (127.0 - 64.0) / 128.0);
++    assert!(o.entity_feats[1][2] < 0.0);
++    assert_eq!(o.diagnostics.inverted_boxes, 1);
++    assert_eq!(o.diagnostics.inverted_axes, 2);
++    enemies[0].x = q(-100);
++    enemies[1].x = q(128);
++    enemies[2].x = q(132);
++    let o = obs(&mut h, view(&p, &enemies, None), &serials)?;
++    assert!(o.entity_mask.iter().all(|x| !x));
++    Ok(())
++}
++
++#[test]
++fn warnings_do_not_admit_hidden_control_and_shadow_is_onscreen() -> crate::Result<()> {
++    let p = PlayerState::new();
++    let rects = [rect(-50, -50, 0, 0, PicoFixed::ZERO)];
++    let v = view(&p, &[], Some((1, &rects)));
++    let mut h = History::default();
++    h.observe_raw(v, Some(&[]))?;
++    let hidden = h.observation(v, std::iter::empty(), true)?;
++    assert_eq!(hidden.global_feats[0][9], 0.0);
++    assert!(!hidden.entity_mask[64]);
++    let warning = WarningLine {
++        x0: q(8),
++        y0: q(-1),
++        x1: q(15),
++        y1: q(-1),
++    };
++    let o = h.observation(v, std::iter::once(&warning), true)?;
++    assert_eq!(o.global_feats[0][9], 1.0);
++    assert!(!o.entity_mask[64]);
++    assert_eq!(o.diagnostics.onscreen_warnings, 1);
++    let aux = o.auxiliary.unwrap();
++    assert_eq!(aux[1][0][1], 1.0);
++    assert_eq!(aux[1].iter().flatten().sum::<f32>(), 1.0);
++    let diagonal = WarningLine {
++        x0: q(0),
++        y0: q(0),
++        x1: q(10),
++        y1: q(10),
++    };
++    assert!(h.observation(v, std::iter::once(&diagonal), true).is_err());
++    Ok(())
++}
++
++#[test]
++fn caps_apply_after_admission_enemy_ties_use_serial_and_rect_overflow_errors() -> crate::Result<()>
++{
++    let p = PlayerState::new();
++    let serials = ids(66)?;
++    let mut enemies = vec![enemy(0, 10, 10, 1); 66];
++    enemies[0].x = q(-100); // hidden row consumes no slot
++    for (i, e) in enemies.iter_mut().enumerate().skip(1) {
++        e.x = PicoFixed::from_raw(q(10).raw() + i as i32);
++    }
++    let o = obs(&mut History::default(), view(&p, &enemies, None), &serials)?;
++    assert_eq!(o.diagnostics.admitted_enemies, 65);
++    assert_eq!(o.diagnostics.dropped_enemies, 1);
++    assert_eq!(o.entity_mask.iter().filter(|x| **x).count(), 64);
++    // All stationary nonoverlap times tie at 120; keep earliest admitted births.
++    assert_eq!(
++        o.entity_feats[63][0],
++        ((10.5 + 64.0 / 65536.0 - 64.0) / 128.0) as f32
++    );
++    let rects = vec![rect(10, 10, 127, 32, q(2)); 17];
++    let mut h = History::default();
++    h.observe_raw(view(&p, &[], Some((0, &rects))), Some(&[]))?;
++    assert_eq!(
++        h.observation(view(&p, &[], Some((0, &rects))), std::iter::empty(), true),
++        Err(EnvError::RectangleOverflow(17))
++    );
++    Ok(())
++}
++
++#[test]
++fn fresh_startup_and_seed_stream_preserve_high_bits_and_reserved_split() -> crate::Result<()> {
++    assert_ne!(
++        training_seed(1, 0, 0)?.actual_seed,
++        training_seed(1 + (1_u64 << 32), 0, 0)?.actual_seed
++    );
++    for slot in 0..7 {
++        for episode in 0..20 {
++            let s = training_seed(u64::MAX, slot, episode)?;
++            assert!(!(0xB0000000..=0xB00003E7).contains(&s.actual_seed));
++            assert_eq!(s, training_seed(u64::MAX, slot, episode)?);
++        }
++    }
++    let mut env = VecDodgeEnv::new(EnvConfig {
++        raw_frame_cap: 1,
++        ..EnvConfig::default()
++    })?;
++    let first = env.episode_info()[0].clone();
++    assert_eq!(first.startup_frames, 13);
++    assert_eq!(first.gameplay_frames, 0);
++    let initial = env.test_game(0).snapshot();
++    let state = initial.logical_state();
++    assert_eq!(state.highscores, [PicoFixed::ZERO; 12]);
++    assert_eq!(
++        [state.settings.theme_background, state.settings.theme_shadow],
++        [12, 1]
++    );
++    env.step(&[0])?;
++    let reset = env.reset_done(&[0])?;
++    assert_eq!(reset.info[0].seed.episode, 1);
++    assert_ne!(reset.info[0].seed.actual_seed, first.seed.actual_seed);
++    assert_eq!(reset.info[0].diagnostics.raw_history_samples, 1);
++    assert_eq!(
++        env.test_game(0).snapshot().logical_state().highscores,
++        [PicoFixed::ZERO; 12]
++    );
++    Ok(())
++}
++
++#[test]
++fn action_and_reset_requests_validate_whole_batch_before_mutation() -> crate::Result<()> {
++    let mut env = VecDodgeEnv::new(EnvConfig {
++        batch_size: 3,
++        raw_frame_cap: 1,
++        ..EnvConfig::default()
++    })?;
++    let initial = canonical(&env);
++    let info = env.episode_info();
++    for ids in [&[0, 0][..], &[0, 0, 9][..], &[0, -1, 0][..]] {
++        assert!(env.step(ids).is_err());
++        assert_eq!(canonical(&env), initial);
++        assert_eq!(env.episode_info(), info);
++    }
++    assert!(matches!(
++        env.reset_done(&[2, 0]),
++        Err(EnvError::SlotNotEnded(2))
++    ));
++    assert_eq!(canonical(&env), initial);
++    env.step(&[0, 0, 0])?;
++    let ended = canonical(&env);
++    let info = env.episode_info();
++    for indices in [&[0, 0][..], &[1, 3][..]] {
++        assert!(env.reset_done(indices).is_err());
++        assert_eq!(canonical(&env), ended);
++        assert_eq!(env.episode_info(), info);
++    }
++    assert!(matches!(env.step(&[0, 0, 0]), Err(EnvError::SlotEnded(0))));
++    assert_eq!(canonical(&env), ended);
++    let reset = env.reset_done(&[2, 0])?;
++    assert_eq!(reset.observations.indices, vec![2, 0]);
++    assert_eq!(
++        reset.info.iter().map(|i| i.seed.slot).collect::<Vec<_>>(),
++        vec![2, 0]
++    );
++    let before = canonical(&env);
++    assert!(matches!(
++        env.reset_done(&[1, 0]),
++        Err(EnvError::SlotNotEnded(0))
++    ));
++    assert_eq!(canonical(&env), before);
++    Ok(())
++}
++
++#[test]
++fn cap_ragged_steps_alive_bootstrap_and_terminal_stack() -> crate::Result<()> {
++    let mut env = VecDodgeEnv::new(EnvConfig {
++        raw_frame_cap: 5,
++        render_pixels: true,
++        auxiliary_targets: true,
++        ..EnvConfig::default()
++    })?;
++    let initial = env.observations()?;
++    let pixels = initial.pixels.as_ref().unwrap();
++    assert!(pixels.chunks_exact(16384).all(|p| p == &pixels[..16384]));
++    let a = env.step(&[2])?;
++    assert_eq!(a.elapsed_raw_frames, vec![4]);
++    assert_eq!(a.alive_raw_frames, vec![4]);
++    assert_eq!(a.rewards, vec![0.04]);
++    let b = env.step(&[2])?;
++    assert_eq!(b.elapsed_raw_frames, vec![1]);
++    assert_eq!(b.truncated, vec![true]);
++    assert_eq!(b.terminated, vec![false]);
++    assert!(b.info[0].bootstrap);
++    assert_eq!(b.observations.pixel_valid, vec![true]);
++    assert_eq!(b.observations.pixel_aux_pair_valid, vec![true]);
++    assert_eq!(b.info[0].diagnostics.raw_history_samples, 6);
++    let mut dead = VecDodgeEnv::new(EnvConfig {
++        raw_frame_cap: 1,
++        render_pixels: true,
++        auxiliary_targets: true,
++        ..EnvConfig::default()
++    })?;
++    let fixture = wire_fixture::with_enemies(
++        dead.test_game(0),
++        &[enemy(0, 64, 64, 4), enemy(3, 64, 64, 4)],
++    )?;
++    dead.test_restore(0, &fixture)?;
++    let pixels = dead.observations()?.pixels.unwrap();
++    let d = dead.step(&[2])?;
++    assert_eq!(d.elapsed_raw_frames, vec![1]);
++    assert_eq!(d.alive_raw_frames, vec![0]);
++    assert_eq!(d.terminated, vec![true]);
++    assert_eq!(d.truncated, vec![false]);
++    assert_eq!(d.score_delta_raw_fixed, vec![65536]);
++    assert_eq!(d.rewards, vec![-4.0]);
++    assert!(!d.info[0].bootstrap);
++    assert_eq!(d.observations.pixels.unwrap(), pixels);
++    assert_eq!(d.observations.pixel_valid, vec![false]);
++    assert_eq!(d.observations.pixel_aux_pair_valid, vec![false]);
++    assert_eq!(
++        d.observations.global_feats[8],
++        (1.0_f64 / 50.0).tanh() as f32
++    );
++    Ok(())
++}
++
++#[test]
++fn repeated_same_frame_deaths_pickup_both_orders_one_penalty_and_ragged_batch() -> crate::Result<()>
++{
++    for personality in [3, 4] {
++        for pickup_first in [false, true] {
++            let mut env = VecDodgeEnv::new(EnvConfig {
++                batch_size: 2,
++                raw_frame_cap: 3,
++                ..EnvConfig::default()
++            })?;
++            let mut enemies = vec![enemy(0, 64, 64, 4), enemy(1, 64, 64, 4)];
++            let pickup = enemy(personality, 64, 64, 4);
++            if pickup_first {
++                enemies.insert(0, pickup)
++            } else {
++                enemies.push(pickup)
++            }
++            let fixture = wire_fixture::with_enemies(env.test_game(0), &enemies)?;
++            let mut full = NativeGame::restore(&fixture)?;
++            let native = full.advance_frame(0)?;
++            assert_eq!(
++                native
++                    .events
++                    .iter()
++                    .filter(|e| **e == dodge_core::FrameEvent::Death)
++                    .count(),
++                2
++            );
++            assert_eq!(full.score(), PicoFixed::ONE);
++            env.test_restore(0, &fixture)?;
++            let result = env.step(&[0, 0])?;
++            assert_eq!(result.elapsed_raw_frames, vec![1, 3]);
++            assert_eq!(result.alive_raw_frames, vec![0, 3]);
++            assert_eq!(result.rewards, vec![-4.0, 0.03]);
++            assert_eq!(result.terminated, vec![true, false]);
++            assert_eq!(result.truncated, vec![false, true]);
++            assert_eq!(result.info[0].objective_return, -4.0);
++        }
++    }
++    Ok(())
++}
++
++#[test]
++fn returned_buffers_are_owned_and_resets_refill_pixel_history() -> crate::Result<()> {
++    let mut env = VecDodgeEnv::new(EnvConfig {
++        raw_frame_cap: 1,
++        render_pixels: true,
++        auxiliary_targets: true,
++        ..EnvConfig::default()
++    })?;
++    let initial = env.observations()?;
++    let saved = initial.clone();
++    let mut result = env.step(&[2])?;
++    let current = env.observations()?;
++    result.observations.global_feats.fill(123.0);
++    result.observations.entity_feats.fill(456.0);
++    result.observations.entity_mask.fill(true);
++    result.observations.entity_types.fill(99);
++    result.observations.pixels.as_mut().unwrap().fill(200);
++    result.observations.auxiliary.as_mut().unwrap().fill(400.0);
++    assert_eq!(env.observations()?, current);
++    assert_eq!(initial, saved);
++    let reset = env.reset_done(&[0])?;
++    let pixels = reset.observations.pixels.unwrap();
++    assert!(pixels.chunks_exact(16384).all(|p| p == &pixels[..16384]));
++    assert_eq!(reset.info[0].gameplay_frames, 0);
++    assert_eq!(reset.observations.pixel_aux_pair_valid, vec![true]);
++    Ok(())
++}
++
++#[test]
++fn parallel_error_poison_retains_partial_state_and_only_reset_all_recovers() -> crate::Result<()> {
++    let mut env = VecDodgeEnv::new(EnvConfig {
++        batch_size: 3,
++        num_threads: 2,
++        chunk_size: 1,
++        ..EnvConfig::default()
++    })?;
++    env.test_inject_error(1, EnvError::RectangleOverflow(17));
++    let result = env.step(&[0, 0, 0]);
++    assert!(matches!(result, Err(EnvError::BatchFailure(_))));
++    assert!(env.is_poisoned());
++    assert_eq!(
++        env.episode_info()
++            .iter()
++            .map(|i| i.gameplay_frames)
++            .collect::<Vec<_>>(),
++        vec![4, 1, 4]
++    );
++    assert!(env.last_failures()[0].1.contains("RectangleOverflow(17)"));
++    assert!(matches!(env.observations(), Err(EnvError::Poisoned)));
++    assert!(matches!(env.step(&[0, 0, 0]), Err(EnvError::Poisoned)));
++    assert!(matches!(env.reset_done(&[1]), Err(EnvError::Poisoned)));
++    let reset = env.reset_all()?;
++    assert!(!env.is_poisoned());
++    assert!(env.last_failures().is_empty());
++    assert!(
++        reset
++            .info
++            .iter()
++            .all(|i| i.gameplay_frames == 0 && i.seed.episode == 1)
++    );
++    Ok(())
++}
++
++#[test]
++fn explicit_evaluation_exhaustion_does_not_mutate_or_generate_training_seeds() -> crate::Result<()>
++{
++    let mut env = VecDodgeEnv::new(EnvConfig {
++        raw_frame_cap: 1,
++        ..evaluation_config(vec![vec![0xB0000000], vec![0xB0000001, 9]])
++    })?;
++    assert!(env.episode_info().iter().all(|i| i.seed.evaluation));
++    env.step(&[0, 0])?;
++    let old = canonical(&env);
++    assert!(matches!(
++        env.reset_done(&[1, 0]),
++        Err(EnvError::SeedExhausted {
++            slot: 0,
++            episode: 1
++        })
++    ));
++    assert_eq!(canonical(&env), old);
++    assert!(!env.is_poisoned());
++    Ok(())
++}
++
++#[test]
++fn thread_and_chunk_trajectory_invariance_uses_logical_state_not_native_equality()
++-> crate::Result<()> {
++    let config = EnvConfig {
++        batch_size: 5,
++        raw_frame_cap: 16,
++        auxiliary_targets: true,
++        ..EnvConfig::default()
++    };
++    let mut a = VecDodgeEnv::new(EnvConfig {
++        num_threads: 1,
++        chunk_size: 1,
++        ..config.clone()
++    })?;
++    let mut b = VecDodgeEnv::new(EnvConfig {
++        num_threads: 3,
++        chunk_size: 2,
++        ..config
++    })?;
++    for episode in 0..3 {
++        assert_eq!(a.observations()?, b.observations()?);
++        assert_eq!(canonical(&a), canonical(&b));
++        for step in 0..4 {
++            let actions: Vec<i64> = (0..5).map(|i| (i + step + episode) % 9).collect();
++            assert_eq!(a.step(&actions)?, b.step(&actions)?);
++            assert_eq!(canonical(&a), canonical(&b));
++        }
++        assert_eq!(a.reset_all()?, b.reset_all()?);
++    }
++    Ok(())
++}
++
++struct Expected {
++    policy: &'static str,
++    seed: u32,
++    score: i32,
++    frames: u32,
++    alive: u32,
++    dead: bool,
++    cap: bool,
++    full_state_hash: u64,
++}
++include!("../tests/support/m0_expected.rs");
++
++/// Validation-only expensive work: exact frozen policy in both full and batch
++/// paths, per-raw-frame full logical-state comparison, retained original M0
++/// totals and final full-path fingerprint. No production snapshots are used.
++#[test]
++#[ignore = "bounded release replay only after parent long-campaign lease ends"]
++fn frozen_m0_ten_paired_episodes_per_policy() -> crate::Result<()> {
++    use m0_policy::{Policy, PolicyKind};
++    use std::collections::VecDeque;
++    use std::sync::{Arc, Mutex};
++    use std::time::{Duration, Instant};
++    let start = Instant::now();
++    let deadline = Duration::from_secs(120);
++    let mut total_frames = 0_u64;
++    let mut active_patterns = std::collections::BTreeMap::<u8, u64>::new();
++    for kind in PolicyKind::ALL {
++        for expected in EXPECTED.iter().filter(|e| e.policy == kind.name()) {
++            assert!(
++                start.elapsed() < deadline,
++                "120-second replay deadline reached; no retry"
++            );
++            let mut full = NativeGame::new(NativeConfig::new(expected.seed));
++            let mut frame = full.advance_frame(dodge_core::BUTTON_X_MASK)?;
++            for _ in 0..12 {
++                frame = full.advance_frame(0)?;
++            }
++            assert_eq!(full.lifecycle().mode, dodge_core::Mode::Game);
++            let mut full_policy = Policy::new(kind, expected.seed);
++            full_policy.observe(frame.snapshot.logical_state());
++            let vector_policy = Arc::new(Mutex::new(Policy::new(kind, expected.seed)));
++            let mut env = VecDodgeEnv::new(evaluation_config(vec![vec![expected.seed]]))?;
++            vector_policy
++                .lock()
++                .unwrap()
++                .observe(env.test_game(0).snapshot().logical_state());
++            let raw_states = Arc::new(Mutex::new(VecDeque::<dodge_core::FullState>::new()));
++            let observer_states = Arc::clone(&raw_states);
++            let observer_policy = Arc::clone(&vector_policy);
++            env.test_observer(
++                0,
++                Box::new(move |game| {
++                    let snapshot = game.snapshot();
++                    let actual = snapshot.logical_state();
++                    let mut expected = observer_states.lock().unwrap().pop_front().unwrap();
++                    // Headless intentionally keeps its old physical framebuffer.
++                    // All other fields, including RNG/input/particles, must match.
++                    expected.physical_screen = actual.physical_screen.clone();
++                    assert_eq!(
++                        &expected, actual,
++                        "raw full/headless logical-state mismatch"
++                    );
++                    observer_policy.lock().unwrap().observe(actual);
++                }),
++            );
++            let mut frames = 0;
++            let mut alive = 0;
++            let mut score_sum = 0_i64;
++            let mut death_events = 0;
++            let mut last;
++            loop {
++                assert!(
++                    start.elapsed() < deadline,
++                    "120-second replay deadline reached; no retry"
++                );
++                let full_action = full_policy.action(frame.snapshot.logical_state());
++                let action = vector_policy
++                    .lock()
++                    .unwrap()
++                    .action(env.test_game(0).snapshot().logical_state());
++                assert_eq!(full_action, action, "frozen policy diverged");
++                let id = ActionIndex::of(action);
++                let before = full.score().raw();
++                let before_alive = alive;
++                let before_frames = frames;
++                for _ in 0..4 {
++                    frame = full.advance_frame(action.mask())?;
++                    frames += 1;
++                    alive += u32::from(!frame.dead);
++                    death_events += frame
++                        .events
++                        .iter()
++                        .filter(|e| **e == dodge_core::FrameEvent::Death)
++                        .count();
++                    full_policy.observe(frame.snapshot.logical_state());
++                    let snapshot = full.snapshot();
++                    let state = snapshot.logical_state();
++                    raw_states.lock().unwrap().push_back(state.clone());
++                    if let Some(p) = state.active_pattern.and_then(|i| state.patterns.get(i)) {
++                        *active_patterns.entry(p.id).or_default() += 1;
++                    }
++                    if frame.dead || frames == 18000 {
++                        break;
++                    }
++                }
++                let result = env.step(&[id])?;
++                assert!(raw_states.lock().unwrap().is_empty());
++                let score_delta = i64::from(full.score().raw()) - i64::from(before);
++                score_sum += score_delta;
++                assert_eq!(result.score_delta_raw_fixed[0], score_delta);
++                assert_eq!(result.elapsed_raw_frames[0], frames - before_frames);
++                assert_eq!(result.alive_raw_frames[0], alive - before_alive);
++                let reward = score_delta as f64 / 65536.0 + f64::from(alive - before_alive) / 100.0
++                    - if frame.dead { 5.0 } else { 0.0 };
++                assert!(
++                    (f64::from(result.rewards[0]) - reward).abs() <= 1e-5,
++                    "only f32 step reward uses a tolerance"
++                );
++                last = result.info[0].clone();
++                if last.terminated || last.truncated {
++                    break;
++                }
++            }
++            assert_eq!(
++                (
++                    last.score_raw_fixed,
++                    frames,
++                    alive,
++                    last.terminated,
++                    last.truncated
++                ),
++                (
++                    expected.score,
++                    expected.frames,
++                    expected.alive,
++                    expected.dead,
++                    expected.cap
++                )
++            );
++            assert_eq!(last.score_delta_sum_raw_fixed, score_sum);
++            assert_eq!(score_sum, i64::from(expected.score));
++            assert_eq!(
++                full.snapshot().state_hash(),
++                expected.full_state_hash,
++                "retained original full-path state fingerprint"
++            );
++            assert_eq!(
++                last.objective_return,
++                expected.score as f64 / 65536.0 + f64::from(expected.alive) / 100.0
++                    - if expected.dead { 5.0 } else { 0.0 }
++            );
++            total_frames += u64::from(frames);
++            println!(
++                "REPLAY_EPISODE {{\"policy\":\"{}\",\"seed\":{},\"score_raw_fixed\":{},\"raw_frames\":{},\"alive_frames\":{},\"terminated\":{},\"truncated\":{},\"death_events\":{},\"full_state_hash\":{},\"objective_return\":{}}}",
++                kind.name(),
++                expected.seed,
++                last.score_raw_fixed,
++                frames,
++                alive,
++                last.terminated,
++                last.truncated,
++                death_events,
++                expected.full_state_hash,
++                last.objective_return
++            );
++        }
++    }
++    println!(
++        "REPLAY_TOTAL {{\"episodes\":30,\"raw_frames_per_path\":{},\"elapsed_seconds\":{},\"catalog_ids_seen\":{}}}",
++        total_frames,
++        start.elapsed().as_secs_f64(),
++        active_patterns.len()
++    );
++    println!("REPLAY_PATTERN_FRAMES {:?}", active_patterns);
++    Ok(())
++}
++
++struct ActionIndex;
++impl ActionIndex {
++    fn of(action: dodge_core::Action) -> i64 {
++        dodge_core::Action::ALL
++            .iter()
++            .position(|a| *a == action)
++            .unwrap() as i64
++    }
++}
++
++#[test]
++fn renderer_entity_differences_stay_inside_current_conservative_footprints() -> crate::Result<()> {
++    use crate::geometry::{enemy_footprint, powerup_footprint};
++    let env = VecDodgeEnv::new(EnvConfig::default())?;
++    let game = env.test_game(0);
++    let mut base = [0; 16384];
++    game.render_into(&mut base);
++    for (personality, x, y, size) in [
++        (0, -2, 10, 4),
++        (1, 126, 20, 4),
++        (-1, 127, 30, 0),
++        (-1, 127, 40, -4),
++        (2, 131, 127, 1),
++        (3, -4, 50, 4),
++        (4, 10, -4, 4),
++    ] {
++        let entity = enemy(personality, x, y, size);
++        let changed = NativeGame::restore(&wire_fixture::with_enemies(game, &[entity])?)?;
++        let mut pixels = [0; 16384];
++        changed.render_into(&mut pixels);
++        let footprint = if personality >= 2 {
++            powerup_footprint(q(x).raw(), q(y).raw())
++        } else {
++            enemy_footprint(q(x).raw(), q(y).raw(), q(size).raw())
++        };
++        let mut differences = 0;
++        for (i, (&a, &b)) in base.iter().zip(&pixels).enumerate() {
++            if a != b {
++                differences += 1;
++                let x = (i % 128) as i64;
++                let y = (i / 128) as i64;
++                assert!(
++                    x >= footprint.min_x
++                        && x <= footprint.max_x
++                        && y >= footprint.min_y
++                        && y <= footprint.max_y,
++                    "{personality} {x} {y} {footprint:?}"
++                );
++            }
++        }
++        assert!(
++            differences > 0,
++            "single-entity boundary fixture drew no changed pixel: {personality} {x} {y} {size}"
++        );
++    }
++    Ok(())
++}
++
++#[test]
++fn renderer_rectangles_and_gated_warning_footprints_match_boundary_fixtures() -> crate::Result<()> {
++    use crate::geometry::rectangle_footprint;
++    let env = VecDodgeEnv::new(EnvConfig::default())?;
++    let game = env.test_game(0);
++    let mut base = [0; 16384];
++    game.render_into(&mut base);
++    for r in [
++        rect(-5, 20, 10, 10, q(2)),
++        rect(130, 30, -6, 10, q(2)),
++        rect(10, -2, 20, 4, q(1)),
++        rect(127, 60, 1, 1, q(2)),
++    ] {
++        let mut pattern = game.patterns()[0].clone();
++        pattern.pattern_type = 0;
++        pattern.rects = vec![r.clone()];
++        pattern.timer = PicoFixed::ZERO;
++        let fixture = NativeGame::restore(&wire_fixture::with_pattern(game, pattern)?)?;
++        let mut pixels = [0; 16384];
++        fixture.render_into(&mut pixels);
++        let f = rectangle_footprint(r.x.raw(), r.y.raw(), r.width.raw(), r.height.raw());
++        let mut changes = 0;
++        for (i, (&a, &b)) in base.iter().zip(&pixels).enumerate() {
++            if a != b {
++                changes += 1;
++                let x = (i % 128) as i64;
++                let y = (i / 128) as i64;
++                assert!(x >= f.min_x && x <= f.max_x && y >= f.min_y && y <= f.max_y);
++            }
++        }
++        assert!(changes > 0);
++    }
++    let mut r = rect(-50, -50, 0, 0, q(1));
++    r.warnings = vec![WarningLine {
++        x0: q(10),
++        y0: q(20),
++        x1: q(30),
++        y1: q(20),
++    }];
++    let mut pattern = game.patterns()[0].clone();
++    pattern.pattern_type = 0;
++    pattern.timer = q(10);
++    pattern.rects = vec![r];
++    let hidden = NativeGame::restore(&wire_fixture::with_pattern(game, pattern.clone())?)?;
++    assert_eq!(hidden.drawn_warning_lines().count(), 0);
++    pattern.rects[0].sh = q(2);
++    let shown = NativeGame::restore(&wire_fixture::with_pattern(game, pattern.clone())?)?;
++    assert_eq!(shown.drawn_warning_lines().count(), 1);
++    pattern.timer = q(125);
++    let late = NativeGame::restore(&wire_fixture::with_pattern(game, pattern)?)?;
++    assert_eq!(late.drawn_warning_lines().count(), 0);
++    Ok(())
++}
++
++#[test]
++fn actual_rectangle_overflow_after_raw_mutation_poisons_batch() -> crate::Result<()> {
++    let mut env = VecDodgeEnv::new(EnvConfig {
++        batch_size: 2,
++        num_threads: 2,
++        chunk_size: 1,
++        ..EnvConfig::default()
++    })?;
++    let mut pattern = env.test_game(0).patterns()[0].clone();
++    pattern.pattern_type = 0;
++    pattern.rects = vec![rect(10, 10, 10, 10, q(1)); 17];
++    // Installing overflow state retains its raw game and error; this explicit
++    // validation seam clears geometry history, never recovers a production run.
++    let snapshot = wire_fixture::with_pattern(env.test_game(0), pattern)?;
++    assert!(matches!(
++        env.test_restore(0, &snapshot),
++        Err(EnvError::RectangleOverflow(17))
++    ));
++    assert!(matches!(env.step(&[0, 0]), Err(EnvError::BatchFailure(_))));
++    assert!(env.is_poisoned());
++    assert!(env.last_failures()[0].1.contains("RectangleOverflow(17)"));
++    assert!(env.episode_info().iter().all(|i| i.gameplay_frames == 4));
++    env.reset_all()?;
++    assert!(!env.is_poisoned());
++    Ok(())
++}
++
++#[test]
++fn real_native_growth_features_use_last_executed_raw_frame() -> crate::Result<()> {
++    use std::sync::{Arc, Mutex};
++    let mut env = VecDodgeEnv::new(EnvConfig::default())?;
++    let mut growing = enemy(0, 10, 10, 1);
++    growing.max_size = q(6);
++    growing.isizing = true;
++    let snapshot = wire_fixture::with_enemies(env.test_game(0), &[growing])?;
++    env.test_restore(0, &snapshot)?;
++    let seen = Arc::new(Mutex::new(Vec::new()));
++    let captured = Arc::clone(&seen);
++    env.test_observer(
++        0,
++        Box::new(move |g| {
++            let e = g.enemies()[0];
++            captured
++                .lock()
++                .unwrap()
++                .push(crate::geometry::enemy_box(e.x.raw(), e.y.raw(), e.size.raw()).measures());
++        }),
++    );
++    let result = env.step(&[0])?;
++    let frames = seen.lock().unwrap();
++    assert_eq!(frames.len(), 4);
++    let a = frames[2];
++    let b = frames[3];
++    let expected = [
++        b.center_x_twice_raw - a.center_x_twice_raw,
++        b.center_y_twice_raw - a.center_y_twice_raw,
++        b.half_x_twice_raw - a.half_x_twice_raw,
++        b.half_y_twice_raw - a.half_y_twice_raw,
++    ]
++    .map(|d| (d as f64 / (2.0 * 65536.0 * 4.0)) as f32);
++    assert_eq!(&result.observations.entity_feats[6..10], &expected);
++    assert!(expected[2] > 0.0);
++    Ok(())
++}
+diff --git a/crates/dodge-rl-env/tests/support/m0_expected.rs b/crates/dodge-rl-env/tests/support/m0_expected.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/dodge-rl-env/tests/support/m0_expected.rs
+@@ -0,0 +1,303 @@
++// Generated from retained M0 D2 records; selected before replay.
++const EXPECTED: &[Expected] = &[
++    Expected {
++        policy: "random",
++        seed: 2952790016,
++        score: 0,
++        frames: 156,
++        alive: 155,
++        dead: true,
++        cap: false,
++        full_state_hash: 13359267635555613050,
++    },
++    Expected {
++        policy: "random",
++        seed: 2952790017,
++        score: 196608,
++        frames: 522,
++        alive: 521,
++        dead: true,
++        cap: false,
++        full_state_hash: 4353267322020293150,
++    },
++    Expected {
++        policy: "random",
++        seed: 2952790018,
++        score: 0,
++        frames: 115,
++        alive: 114,
++        dead: true,
++        cap: false,
++        full_state_hash: 9026063023473669345,
++    },
++    Expected {
++        policy: "random",
++        seed: 2952790019,
++        score: 0,
++        frames: 153,
++        alive: 152,
++        dead: true,
++        cap: false,
++        full_state_hash: 9155215171002074082,
++    },
++    Expected {
++        policy: "random",
++        seed: 2952790020,
++        score: 0,
++        frames: 188,
++        alive: 187,
++        dead: true,
++        cap: false,
++        full_state_hash: 13883548928840589334,
++    },
++    Expected {
++        policy: "random",
++        seed: 2952790021,
++        score: 0,
++        frames: 122,
++        alive: 121,
++        dead: true,
++        cap: false,
++        full_state_hash: 16365175964789559768,
++    },
++    Expected {
++        policy: "random",
++        seed: 2952790022,
++        score: 0,
++        frames: 262,
++        alive: 261,
++        dead: true,
++        cap: false,
++        full_state_hash: 12433198609128949514,
++    },
++    Expected {
++        policy: "random",
++        seed: 2952790023,
++        score: 0,
++        frames: 221,
++        alive: 220,
++        dead: true,
++        cap: false,
++        full_state_hash: 11767004603198591080,
++    },
++    Expected {
++        policy: "random",
++        seed: 2952790024,
++        score: 0,
++        frames: 168,
++        alive: 167,
++        dead: true,
++        cap: false,
++        full_state_hash: 7341690718588727942,
++    },
++    Expected {
++        policy: "random",
++        seed: 2952790025,
++        score: 0,
++        frames: 187,
++        alive: 186,
++        dead: true,
++        cap: false,
++        full_state_hash: 3456097163782642146,
++    },
++    Expected {
++        policy: "neutral",
++        seed: 2952790016,
++        score: 0,
++        frames: 188,
++        alive: 187,
++        dead: true,
++        cap: false,
++        full_state_hash: 11141289326281614040,
++    },
++    Expected {
++        policy: "neutral",
++        seed: 2952790017,
++        score: 0,
++        frames: 188,
++        alive: 187,
++        dead: true,
++        cap: false,
++        full_state_hash: 2179087948656049624,
++    },
++    Expected {
++        policy: "neutral",
++        seed: 2952790018,
++        score: 0,
++        frames: 188,
++        alive: 187,
++        dead: true,
++        cap: false,
++        full_state_hash: 6755071743489367054,
++    },
++    Expected {
++        policy: "neutral",
++        seed: 2952790019,
++        score: 65536,
++        frames: 191,
++        alive: 190,
++        dead: true,
++        cap: false,
++        full_state_hash: 5582458146130659666,
++    },
++    Expected {
++        policy: "neutral",
++        seed: 2952790020,
++        score: 0,
++        frames: 188,
++        alive: 187,
++        dead: true,
++        cap: false,
++        full_state_hash: 1181882877112707005,
++    },
++    Expected {
++        policy: "neutral",
++        seed: 2952790021,
++        score: 0,
++        frames: 188,
++        alive: 187,
++        dead: true,
++        cap: false,
++        full_state_hash: 17530581986129516123,
++    },
++    Expected {
++        policy: "neutral",
++        seed: 2952790022,
++        score: 65536,
++        frames: 191,
++        alive: 190,
++        dead: true,
++        cap: false,
++        full_state_hash: 670438889671348688,
++    },
++    Expected {
++        policy: "neutral",
++        seed: 2952790023,
++        score: 0,
++        frames: 188,
++        alive: 187,
++        dead: true,
++        cap: false,
++        full_state_hash: 5681797769466600837,
++    },
++    Expected {
++        policy: "neutral",
++        seed: 2952790024,
++        score: 0,
++        frames: 188,
++        alive: 187,
++        dead: true,
++        cap: false,
++        full_state_hash: 12014077854465842800,
++    },
++    Expected {
++        policy: "neutral",
++        seed: 2952790025,
++        score: 0,
++        frames: 188,
++        alive: 187,
++        dead: true,
++        cap: false,
++        full_state_hash: 2045332278043063509,
++    },
++    Expected {
++        policy: "nearest_lethal_aabb_safe_powerup",
++        seed: 2952790016,
++        score: 2064384,
++        frames: 2966,
++        alive: 2965,
++        dead: true,
++        cap: false,
++        full_state_hash: 7502040738467125924,
++    },
++    Expected {
++        policy: "nearest_lethal_aabb_safe_powerup",
++        seed: 2952790017,
++        score: 22478848,
++        frames: 15390,
++        alive: 15389,
++        dead: true,
++        cap: false,
++        full_state_hash: 13735961731173307528,
++    },
++    Expected {
++        policy: "nearest_lethal_aabb_safe_powerup",
++        seed: 2952790018,
++        score: 1540096,
++        frames: 1782,
++        alive: 1781,
++        dead: true,
++        cap: false,
++        full_state_hash: 3011151422391980360,
++    },
++    Expected {
++        policy: "nearest_lethal_aabb_safe_powerup",
++        seed: 2952790019,
++        score: 4751360,
++        frames: 5614,
++        alive: 5613,
++        dead: true,
++        cap: false,
++        full_state_hash: 5144379005070243048,
++    },
++    Expected {
++        policy: "nearest_lethal_aabb_safe_powerup",
++        seed: 2952790020,
++        score: 3538944,
++        frames: 4824,
++        alive: 4823,
++        dead: true,
++        cap: false,
++        full_state_hash: 6031925502325466521,
++    },
++    Expected {
++        policy: "nearest_lethal_aabb_safe_powerup",
++        seed: 2952790021,
++        score: 884736,
++        frames: 1085,
++        alive: 1084,
++        dead: true,
++        cap: false,
++        full_state_hash: 11083180222042053284,
++    },
++    Expected {
++        policy: "nearest_lethal_aabb_safe_powerup",
++        seed: 2952790022,
++        score: 10289152,
++        frames: 9248,
++        alive: 9247,
++        dead: true,
++        cap: false,
++        full_state_hash: 16906394758071736284,
++    },
++    Expected {
++        policy: "nearest_lethal_aabb_safe_powerup",
++        seed: 2952790023,
++        score: 7077888,
++        frames: 7926,
++        alive: 7925,
++        dead: true,
++        cap: false,
++        full_state_hash: 10111384576635211954,
++    },
++    Expected {
++        policy: "nearest_lethal_aabb_safe_powerup",
++        seed: 2952790024,
++        score: 5767168,
++        frames: 6898,
++        alive: 6897,
++        dead: true,
++        cap: false,
++        full_state_hash: 1717647213425742112,
++    },
++    Expected {
++        policy: "nearest_lethal_aabb_safe_powerup",
++        seed: 2952790025,
++        score: 9568256,
++        frames: 9613,
++        alive: 9612,
++        dead: true,
++        cap: false,
++        full_state_hash: 17305424474105353138,
++    },
++];
+diff --git a/crates/dodge-rl-env/tests/support/wire_fixture.rs b/crates/dodge-rl-env/tests/support/wire_fixture.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/dodge-rl-env/tests/support/wire_fixture.rs
+@@ -0,0 +1,159 @@
++//! Validation-only snapshot edits. Production has no restore/snapshot path.
++//! Pinned v1 wire offsets are checked against decoded fields before and after.
++use dodge_core::{EnemyState, NativeGame, Snapshot};
++
++pub fn with_enemies(game: &NativeGame, enemies: &[EnemyState]) -> crate::Result<Snapshot> {
++    let snapshot = game.snapshot();
++    let state = snapshot.logical_state();
++    let mut bytes = snapshot.canonical_bytes();
++    // magic/version/schema/cartridge = 44; seed = 4; lifecycle = 10;
++    // input = 3; rng = 4 + 4*degree + 2; player = 20.
++    let start = 44 + 4 + 10 + 3 + 4 + 4 * state.rng.state.len() + 2 + 20;
++    assert_eq!(
++        u32::from_le_bytes(bytes[start..start + 4].try_into()?) as usize,
++        state.enemies.len()
++    );
++    let old_length = 4 + state
++        .enemies
++        .iter()
++        .map(|e| 33 + if e.life.is_some() { 4 } else { 0 })
++        .sum::<usize>();
++    let mut replacement = Vec::new();
++    replacement.extend(u32::try_from(enemies.len())?.to_le_bytes());
++    for e in enemies {
++        for v in [e.x, e.y, e.vx, e.vy, e.size, e.max_size] {
++            replacement.extend(v.raw().to_le_bytes());
++        }
++        replacement.push(e.personality as u8);
++        replacement.extend(e.speed.raw().to_le_bytes());
++        replacement.extend([
++            u8::from(e.inside),
++            u8::from(e.is_dying),
++            u8::from(e.isizing),
++            u8::from(e.life.is_some()),
++        ]);
++        if let Some(life) = e.life {
++            replacement.extend(life.raw().to_le_bytes());
++        }
++    }
++    bytes.splice(start..start + old_length, replacement);
++    let result = Snapshot::from_canonical_bytes(&bytes)?;
++    let mut expected = state.clone();
++    expected.enemies = enemies.to_vec();
++    assert_eq!(result.logical_state(), &expected);
++    assert_eq!(result.render_state(), snapshot.render_state());
++    assert_eq!(result.framebuffer(), snapshot.framebuffer());
++    Ok(result)
++}
++
++fn pattern_bytes(p: &dodge_core::PatternState) -> Vec<u8> {
++    use dodge_core::PatternTarget;
++    let mut b = Vec::new();
++    b.push(p.id);
++    for v in [p.mins, p.maxs, p.probability] {
++        b.extend(v.raw().to_le_bytes());
++    }
++    b.extend((p.variants.len() as u32).to_le_bytes());
++    b.extend(&p.variants);
++    b.extend([
++        u8::from(p.smooth),
++        p.pattern_type,
++        u8::from(p.bounce_cap),
++        u8::from(p.spawn_enabled),
++        u8::from(p.automatic_variant.is_some()),
++    ]);
++    if let Some(v) = p.automatic_variant {
++        b.push(v);
++    }
++    b.extend(p.special.raw().to_le_bytes());
++    b.extend(p.counter.to_le_bytes());
++    b.extend(p.timer.raw().to_le_bytes());
++    b.extend((p.rects.len() as u32).to_le_bytes());
++    for r in &p.rects {
++        for v in [r.x, r.y, r.width, r.height, r.speed, r.dx, r.dy] {
++            b.extend(v.raw().to_le_bytes());
++        }
++        b.extend((r.targets.len() as u32).to_le_bytes());
++        for t in &r.targets {
++            match t {
++                PatternTarget::Move {
++                    x,
++                    y,
++                    width,
++                    height,
++                } => {
++                    b.push(0);
++                    for v in [x, y, width, height] {
++                        b.extend(v.raw().to_le_bytes());
++                    }
++                }
++                PatternTarget::Wait(v) => {
++                    b.push(1);
++                    b.extend(v.raw().to_le_bytes());
++                }
++                PatternTarget::SetFyou(v) => b.extend([2, u8::from(*v)]),
++                PatternTarget::SetSpawns(points) => {
++                    b.push(3);
++                    b.extend((points.len() as u32).to_le_bytes());
++                    for p in points {
++                        b.extend(p.x.raw().to_le_bytes());
++                        b.extend(p.y.raw().to_le_bytes());
++                    }
++                }
++            }
++        }
++        b.extend((r.target_index as u32).to_le_bytes());
++        b.extend(r.wait.raw().to_le_bytes());
++        b.push(u8::from(r.shown));
++        b.extend(r.sh.raw().to_le_bytes());
++        b.extend((r.warnings.len() as u32).to_le_bytes());
++        for w in &r.warnings {
++            for v in [w.x0, w.y0, w.x1, w.y1] {
++                b.extend(v.raw().to_le_bytes());
++            }
++        }
++        b.extend([u8::from(r.collision_done), u8::from(r.finished)]);
++    }
++    b
++}
++
++pub fn with_pattern(
++    game: &NativeGame,
++    pattern: dodge_core::PatternState,
++) -> crate::Result<Snapshot> {
++    let snapshot = game.snapshot();
++    let state = snapshot.logical_state();
++    let mut bytes = snapshot.canonical_bytes();
++    let enemy_start = 44 + 4 + 10 + 3 + 4 + 4 * state.rng.state.len() + 2 + 20;
++    let start = enemy_start
++        + 4
++        + state
++            .enemies
++            .iter()
++            .map(|e| 33 + if e.life.is_some() { 4 } else { 0 })
++            .sum::<usize>()
++        + 4
++        + 34 * state.particles.len();
++    assert_eq!(
++        u32::from_le_bytes(bytes[start..start + 4].try_into()?) as usize,
++        state.patterns.len()
++    );
++    let old = state
++        .patterns
++        .iter()
++        .flat_map(pattern_bytes)
++        .collect::<Vec<_>>();
++    assert_eq!(&bytes[start + 4..start + 4 + old.len()], &old);
++    let mut new = 1_u32.to_le_bytes().to_vec();
++    new.extend(pattern_bytes(&pattern));
++    new.push(1);
++    new.extend(0_u32.to_le_bytes());
++    let old_active = if state.active_pattern.is_some() { 5 } else { 1 };
++    bytes.splice(start..start + 4 + old.len() + old_active, new);
++    let result = Snapshot::from_canonical_bytes(&bytes)?;
++    let mut expected = state.clone();
++    expected.patterns = vec![pattern];
++    expected.active_pattern = Some(0);
++    assert_eq!(result.logical_state(), &expected);
++    Ok(result)
++}

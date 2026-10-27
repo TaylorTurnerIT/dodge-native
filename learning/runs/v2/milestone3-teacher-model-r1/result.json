@@ -1,0 +1,158 @@
+{
+  "architecture": {
+    "activation": "gelu",
+    "actor_head": [
+      128,
+      128,
+      9
+    ],
+    "attention": "full_self_attention",
+    "average_attn_weights": true,
+    "class": "OmniscientEntityTeacher",
+    "critic_head": [
+      128,
+      128,
+      1
+    ],
+    "dropout": 0.0,
+    "entity_embedding": [
+      16,
+      128,
+      128
+    ],
+    "entity_mask_true_means_valid": true,
+    "entity_position_embeddings": false,
+    "entity_shape": [
+      80,
+      16
+    ],
+    "entity_type_vocab_size": 9,
+    "entity_valid_types": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "ffn_dim": 256,
+    "global_embedding": [
+      14,
+      128
+    ],
+    "global_shape": [
+      1,
+      14
+    ],
+    "head_initialization": {
+      "actor_final_gain": 0.01,
+      "critic_final_gain": 1.0,
+      "hidden_gain": 1.4142135623730951,
+      "method": "orthogonal_weights_zero_biases"
+    },
+    "layernorm_eps": 1e-05,
+    "model_dim": 128,
+    "need_weights": true,
+    "normalization": "pre_norm_plus_final_layernorm",
+    "num_heads": 4,
+    "num_layers": 2,
+    "parameter_count": 321290,
+    "token_count": 81,
+    "trunk_initialization": "pytorch_default",
+    "version": "omniscient_entity_teacher_full_attention_v1"
+  },
+  "at_utc": "2026-10-24T09:23:27.376516+00:00",
+  "checks": {
+    "model-metadata-r1": {
+      "elapsed_seconds": 0.503317125,
+      "exit_code": 0,
+      "log_sha256": "07625648126e939a1a0eb015f2657239c4235ba94ec788dd4d6ae32b0a512bb0",
+      "receipt": "checks/model-metadata-r1.json",
+      "receipt_sha256": "430c028d19b89746699b107bad5cedd745121cf30458a5e9d1785b89da13ef78"
+    },
+    "teacher-tests-r1": {
+      "elapsed_seconds": 1.8994891250000001,
+      "exit_code": 1,
+      "log_sha256": "f1b1feeb4204730e48b6b371b1e49da1e00513db607fbf755f76bc5059c93f56",
+      "receipt": "checks/teacher-tests-r1.json",
+      "receipt_sha256": "e2461403521c1481bc92ddbc288d8305eb1458242f9128170c40fe39669578e3"
+    },
+    "teacher-tests-r2": {
+      "elapsed_seconds": 1.608907625,
+      "exit_code": 0,
+      "log_sha256": "22fd8cfc10f356079b0a345e770f451814de3e10cbeedc7fd30c83b9bd86f884",
+      "receipt": "checks/teacher-tests-r2.json",
+      "receipt_sha256": "8103c094cd1b061548d27b6a3a24046dffb8564be03842b9c8b463769f206302"
+    }
+  },
+  "final_tests_passed": 20,
+  "initial_test_attempt": {
+    "cause": "Arbitrary absolute1e-7 Gram tolerance below float32 QR/GEMM roundoff; production initialization unchanged.",
+    "failed": 1,
+    "passed": 18,
+    "receipt": "checks/teacher-tests-r1.json"
+  },
+  "inputs_sha256": {
+    "docs/SPEC_PRIVILEGED_VIT_RL.md": "02230eea7a3b36c786d3deeb31471baf8270efb09c3c1e77b7a77c7cfae240f3",
+    "docs/v2-m3-component-contract.md": "8463577314134e8be00b1b53560a1bc88f6da5544abe24f4c1149140b8925d70",
+    "docs/v2-teacher-training-plan.md": "36e1c5aef5fdcc4f5863d9adfef505ee3f4163ba4fbaf5ed2bb1ef282dac9338",
+    "learning/runs/v2-orchestration/milestone2-acceptance-r2.json": "15384c4296dfd1e577746a896c0ef3c3d2de01400948155fc2daa766e8e0f006"
+  },
+  "limitations": [
+    "Tests establish model structure, masking, tensor routing, gradient routing, and fixed-input state-dict equality; no game-playing competence or teacher qualification.",
+    "Entity intervention and attention probes are synthetic routing evidence, not proof of learned strategic use.",
+    "Real-environment integration, PPO updates, checkpoint identity, MPS behavior/performance, and all training require parent integration/tests/frozen review.",
+    "Valid-row feature finiteness and type1..8 semantics remain enforced at the environment/rollout boundary; model checks shapes,dtypes,shared input device and sanitizes masked rows.",
+    "The package import loads existing extension exports but no environment is constructed or stepped."
+  ],
+  "model_api": {
+    "constructor": "OmniscientEntityTeacher()",
+    "forward": "forward(global_feats, entity_feats, entity_types, entity_mask) -> TeacherOutput",
+    "identity_method": "model.architecture_description() -> fresh JSON-compatible dict",
+    "output_fields": {
+      "attentions": "tuple of two [B,81,81] tensors",
+      "latent": [
+        "B",
+        128
+      ],
+      "logits": [
+        "B",
+        9
+      ],
+      "values": [
+        "B"
+      ]
+    }
+  },
+  "owned_source_sha256": {
+    "python/dodge_rl/models/__init__.py": "b28b2623443e31d9e9cb81350f89e9fb7d285abe3e2a74c007be8e4cfff432dc",
+    "python/dodge_rl/models/teacher.py": "e4d7f597a2824c2b0d4ba261dddc9d7d1ee1d5592c2fc966a44c54b5ec417e35",
+    "python/tests/test_teacher.py": "d37f96a8ecb49b7bd1895e80299f90f299d808543887900af31b642676db6d03"
+  },
+  "protected_changes": [],
+  "protected_files_unchanged": 64,
+  "runtime": {
+    "device": "cpu",
+    "platform": "macOS-27.0.1-arm64-arm-64bit",
+    "python": "3.12.15 (main, Oct  1 2026, 20:49:34) [Clang 22.1.3 ]",
+    "torch": "2.14.1",
+    "torch_git_version": "5c4886908584029761b579af026dcfb627c84070",
+    "torch_num_threads": 4
+  },
+  "scope": {
+    "MPS_device_probe": false,
+    "game_environment_constructed_or_stepped": false,
+    "maximum_torch_threads": 4,
+    "outside_owned_source_edits": false,
+    "student_code": false,
+    "synthetic_CPU_only": true,
+    "training_campaign": false
+  },
+  "source_archive_sha256": "f6ef13338ecfaa7d9e5e13b97ae35f47957182b5331a2a41d55f27f7d60fca14",
+  "source_patch_sha256": "3bceca67d6fb34c2dd1f64cea8b3ca20186a047f6f110df73af4c7e9e8736810",
+  "status": "implemented_20_synthetic_CPU_tests_passed_pending_parent_integration_and_frozen_review",
+  "test_only_correction": "Gain-normalized Gram computed in float64, rtol0/atol8float32eps; diagonal and actor small-gain checks tighten. Perturbed weights must fail. Parent explicitly accepted this correction.",
+  "version": "milestone3_fixed_teacher_component_r1"
+}

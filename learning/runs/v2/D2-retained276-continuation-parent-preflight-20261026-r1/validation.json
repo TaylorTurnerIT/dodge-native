@@ -1,0 +1,55 @@
+{
+  "scope": "CPU preparation only; no lease, environment, MPS, optimizer steps or campaign",
+  "commands": [
+    {
+      "argv": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+        "-B",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r1/test_source_contract.py"
+      ],
+      "exit": 0,
+      "log": "check-1.log",
+      "log_sha256": "578d55db683b15e6ba085405b5a6868dde73026d999149ea50008d0e28e92308"
+    },
+    {
+      "argv": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+        "-B",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r1/test_entry_counter_binding.py"
+      ],
+      "exit": 0,
+      "log": "check-2.log",
+      "log_sha256": "7f586d4acd7f2e3b789e29e2a70abe9dbcef95a108a5adc62a51e4449ce408cf"
+    },
+    {
+      "argv": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+        "-B",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r1/test_entry_evaluation.py"
+      ],
+      "exit": 0,
+      "log": "check-3.log",
+      "log_sha256": "b091211bc5871fb2f0d26afb677342074eaf5fcd668f89668cc625a18bc5b4be"
+    },
+    {
+      "argv": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+        "-B",
+        "-c",
+        "import runpy,sys\nfrom pathlib import Path\nfrom unittest.mock import patch\nsource=Path(sys.argv[1]); target=Path(sys.argv[2]); original=Path.write_text\nexpected=source.parent/'cpu-restore-and-controls.json'\ndef owned_write(path,*args,**kwargs):\n    if path == expected:\n        return original(target,*args,**kwargs)\n    raise AssertionError('Unexpected test write: '+str(path))\nwith patch.object(Path,'write_text',owned_write):\n    runpy.run_path(str(source),run_name='__main__')\n",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r1/cpu_restore_and_controls.py",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-parent-preflight-20261026-r1/cpu-restore-and-controls.json"
+      ],
+      "exit": 1,
+      "log": "check-4.log",
+      "log_sha256": "21b2f021772376e1971d0eb33e884b30dce456a08eceab39cada6cfecbd27e17"
+    }
+  ],
+  "before": {
+    "pins": 13786,
+    "manifest_files": 11
+  },
+  "status": "failed",
+  "error": "AssertionError('CPU check 4 failed; see /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained276-continuation-parent-preflight-20261026-r1/check-4.log')",
+  "elapsed_seconds": 1.7349252089999998
+}

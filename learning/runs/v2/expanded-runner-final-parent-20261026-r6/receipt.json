@@ -1,0 +1,39 @@
+{
+  "schema": "final_integrated_benchmark_runner_parent_v1",
+  "status": "37integrated_controls_plus4_signal_assignment_controls_passed;source_review_pending",
+  "precursors": {
+    "supervisor": "learning/runs/v2/supervisor-signal-windows-repair-luna-20261026-r2",
+    "worker": "learning/runs/v2/worker-independent-heartbeat-parent-20261026-r2"
+  },
+  "changes": [
+    "Independent resource heartbeat and full supervisor signal lifetime.",
+    "Defer termination handler during Popen until handle assignment without masking child signals.",
+    "Worker peakRSS via getrusage conservatively enforces6GiB; supervisor still actualcurrentprocessgroup RSS.",
+    "Updated obsolete no-callback stale test to expect healthy independent heartbeat.",
+    "Persistent excessive-MPS telemetry fixture replaces race-prone single heartbeat edit."
+  ],
+  "limits": [
+    "No real run/lease/marker/registration.",
+    "SIGKILL and processgroup-escaping descendants remain limitations.",
+    "Ranking/confirmation selection gates remain separately blocked."
+  ],
+  "test_count": 41,
+  "assignment_test_exit": 0,
+  "source_sha256": {
+    "worker.py": "da212582802e9119095b96057d38158d400d046128299ff1b845d420e236b162",
+    "execute_once.py": "e68567f0225fa2bbc49944c1fc28518250747be1e0dcf274c23586dbac79b09f",
+    "test_signal_assignment.py": "c1f8119260f451f224931b307601b3163d6d8123c53312a6c533373510b9dd1f",
+    "test_actual_lease_keys.py": "eb3b5869c9575dcd35e770e411bf3b8a7d241b3ab67f9c5c70f45d5342af4bc7",
+    "test_worker_lifecycle.py": "d1dc82c114770bb891270bf7afbe13b7613481b52be245c73ab01d10b043d159",
+    "test_heartbeat.py": "9d2b95d21f5d15872b0c30982a2313630c25e4de099e2e3964e169c773ec7874",
+    "test_runner.py": "265d005e8b6864e94ab779e33af6ca0d797910aa5dddfc425ad2f4ab38bd03bb",
+    "test_signal_windows.py": "78881ab2957dcd94f0177d2cbeb44b035c323f7ae3a88ec7c220f6514cc96139",
+    "accept_benchmark.py": "5f51cf1a3644702b72a22c5a42d717bbfdc9e6320b1108c2891702cb88ff7647",
+    "build_registration.py": "280650effba15ca1763707bbf054d081f6d4fb662da83f6a70a299243b07e8eb",
+    "test_supervisor_cleanup.py": "db86611976d5e5f4fb34ed342bcecc63d308c2de2d27dc7b7e54e5e5ccb9be86"
+  },
+  "tests_log_sha256": "f821386a873b1c3eb926e81f32537a0de0e16d034aa77e6f54caa68f1ca3b1ba",
+  "assignment_final_log_sha256": "6c3f504bc906a0c11ab10fe4eadc87f033e5f0dd6d898283e5ae71ffc0c8ca94",
+  "worker_RSS_basis": "resource.getrusage peak processRSS; cap6GiB unchanged and conservative; supervisor actualcurrentgroupRSS remainsindependent",
+  "signal_spawning": "Defer handler exceptions while Popen returns/assigns handle; child signals remain unmasked; confirmed by fake worker test."
+}

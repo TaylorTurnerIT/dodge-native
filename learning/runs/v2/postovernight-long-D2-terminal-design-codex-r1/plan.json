@@ -1,0 +1,443 @@
+{
+  "acceptance": {
+    "exit0": "complete accepted D2 progress gate pass; teacher unqualified; parent-ineligible",
+    "exit1_or_signal_or_late_or_missing": "reject; partial failure evidence retained",
+    "exit2": "complete accepted clean budget closure below gate; not gate pass",
+    "inner_candidate_authoritative": false,
+    "inner_metadata": {
+      "acceptance_authority": "outer-executor-receipt",
+      "authoritative": false,
+      "internal_decision_values": [
+        "complete_pending_outer_acceptance",
+        "failed"
+      ]
+    },
+    "late_failure_after_outer_receipt_write": "raw outer failure/wall invalidates receipt even if revocation write fails",
+    "no_hash_cycle": "outer receipt excludes its own digest; parent command receipt binds it",
+    "parent_accepts_only": [
+      "matching observed inner raw exit0/2 and inner wall<7170",
+      "worker actual direct-parent reaping report before7140 plus independent group absence",
+      "matching observed outer raw exit0/2 and total wall<=7200",
+      "strict exact 15-field uncancelled lease through final bounded IO",
+      "no latched or executor-forwarded cancellation/failure",
+      "all old and new pins exact; readonly capsule and origin policy preserved",
+      "closed writers and exact owned Guard thread absence",
+      "positive supervisor and separate worker group absence",
+      "all artifact/manifest/run/terminal/outcome bindings exact",
+      "external receipt hash computed by parent after exit"
+    ]
+  },
+  "actual_actions": {
+    "ML_Torch_native_import": false,
+    "candidate_import": false,
+    "checkpoint_deserialization": false,
+    "children": false,
+    "external_messages": false,
+    "inference_gameplay_training": false,
+    "installs": false,
+    "production_protocol_config_state_source_edits": false,
+    "provider_retry": false,
+    "sha256_verification": true,
+    "static_source_and_JSON_read": true,
+    "stdlib_JSON_consistency_checks": true,
+    "tests_or_probes_executed": false
+  },
+  "budget": {
+    "all_normal_work_includes": [
+      "imports",
+      "identity preflight",
+      "model restore",
+      "entry control",
+      "inference",
+      "training",
+      "evaluation",
+      "checkpoints",
+      "worker result and exit",
+      "inner publication and exit",
+      "outer rehashes and strict lease checks",
+      "outer receipt close",
+      "owned monitor shutdown",
+      "actual outer exit"
+    ],
+    "config_supervisor_reserve_seconds_unchanged": 60,
+    "extra_cleanup_phases": 0,
+    "extra_normal_grace_seconds": 0,
+    "failure_deadline": "min(first_failure+10,T0+7210)",
+    "failure_total_cleanup_seconds": 10,
+    "feasibility": "Arithmetic allocation only; actual future artifact hashing must fit or fail; no ML timing run here",
+    "inner_seconds": 7170,
+    "normal_total_seconds": 7200,
+    "origin": "executor first monotonic sample before ordinary imports",
+    "outer_seconds": 7200,
+    "reserve_split_seconds": [
+      30,
+      30
+    ],
+    "worker_seconds": 7140
+  },
+  "created_at_utc": "2026-10-24T18:01:34.487719+00:00",
+  "design": "design.md",
+  "design_sha256": "cbe3cad320082e97529745fd4e72dc21a997ce5f58535711bf07a193e5ff21a0",
+  "frozen_candidate": {
+    "accepted": false,
+    "accepted_parent_blockers": [
+      "SUP-001-R2",
+      "SUP-002-R2"
+    ],
+    "r2_capsule_manifest_sha256": "b1ccbeefe219c24f33b34db19178f4af68baa9674a058b066738231282ef25a1",
+    "r2_controller_sha256": "0fe9970187e5c4c2576ff2929a475025cd5731a538325ffac78f172304af1d01",
+    "r2_identity_sha256": "969d825968e7782bc377cfd4d9312cf186df351e5219bff64d849f3d79781ed0",
+    "r2_protocol_sha256": "f662a4aba18e144098faeb01d398b67f489aea7549a9ebe4a5959f993e1cff09",
+    "unresolved_raw_SIGALRM": {
+      "cause": "unproven",
+      "failed_wall_receipt": true,
+      "manifest_available": false,
+      "owned_group_positively_absent": true,
+      "raw_exit": -14,
+      "retried_here": false
+    }
+  },
+  "function_plan": [
+    {
+      "design_section": "4: ProcessLatch",
+      "function": "ProcessLatch.install/handle/observe_pending_once",
+      "requirements": [
+        "lifetime INT/TERM/ALRM dispositions",
+        "one nonzero timer arming",
+        "expired install fails synchronously",
+        "one asynchronous raise maximum",
+        "DEFER/FAILURE latch only",
+        "finite pending set scan; no signal storm drain loop",
+        "no SIG_DFL restore"
+      ]
+    },
+    {
+      "design_section": "4: Guard and writers",
+      "function": "start_masked_owned_thread / Guard.start / close_owned_guards",
+      "requirements": [
+        "mask owned thread creation",
+        "separate existing locks and sample bounds",
+        "exact owned handles positively absent",
+        "ML/native pool threads not blindly prohibited",
+        "closed disk snapshot; continuing memory-only observations"
+      ]
+    },
+    {
+      "design_section": "4: One cleanup owner",
+      "function": "begin_failure / cleanup_owned_once",
+      "requirements": [
+        "executor sole escalation owner",
+        "share earliest failure timestamp and absolute deadline",
+        "TERM once, KILL once by min(first_failure+5,cleanup_until-0.5)",
+        "reap direct children and prove each group absent",
+        "all failure writes/joins/probes consume same ten seconds",
+        "no interruption/retry/reset",
+        "unproven at deadline stays failure"
+      ]
+    },
+    {
+      "design_section": "4: Inner publication",
+      "function": "supervise_owned / publish_terminal",
+      "requirements": [
+        "all worker log writers closed and group absent before hashing",
+        "continuous authority through publication/close",
+        "candidate metadata only",
+        "all normal IO and owned teardown before D under timer",
+        "no normal path after failure"
+      ]
+    },
+    {
+      "design_section": "4: Inner finite D",
+      "function": "final_D_and_exit / main",
+      "requirements": [
+        "no enclosing context teardown left",
+        "block once; disarm after all normal IO; finite pending scan",
+        "memory/clock decision only",
+        "os._exit immediately",
+        "late scan failure exits1 even if provisional files remain",
+        "no flush/hash/lease/write/join/restore/unmask after D"
+      ]
+    },
+    {
+      "design_section": "4: Outer executor",
+      "function": "execute_once / watchdog / validate_acceptance",
+      "requirements": [
+        "shared T0 before ordinary imports",
+        "separate supervisor and worker group ownership",
+        "actual inner raw exit and wall before acceptance",
+        "independent watchdog while hashing and writing",
+        "all expanded pins, strict lease, artifact inventory/bindings",
+        "post-receipt-close checks before finite outer D",
+        "parent requires actual outer raw exit and <=7200 wall"
+      ]
+    }
+  ],
+  "implementation_steps": [
+    {
+      "action": "Reconcile design, compute final plan digest and register protocol r3; preserve config and r1/r2; no lease yet",
+      "done_when": "exact protocol patch and no-cycle ordering reviewed",
+      "id": 1,
+      "owner": "parent"
+    },
+    {
+      "action": "Create new r3 controller/executor lifecycle interfaces only; freeze pre-change protected inventories",
+      "done_when": "byte-identical protected learner/worker/config blocks and original75 proof",
+      "id": 2,
+      "owner": "new implementation delegate"
+    },
+    {
+      "action": "Implement lifetime latch, shared cleanup ownership/deadline, worker registration gate, provisional publication, finite CLI exits and outer validator",
+      "done_when": "all function contracts and ownership/deadline paths concrete",
+      "id": 3,
+      "owner": "new implementation delegate"
+    },
+    {
+      "action": "Run targeted stdlib controls and exact-r2 discriminating negative controls; stop unexpected failures and retain evidence",
+      "done_when": "all required controls reached expected contract results; no always-reject false pass",
+      "id": 4,
+      "owner": "new implementation delegate"
+    },
+    {
+      "action": "Seal new expanded identity/capsule, hashes, invocation and receipts after all writers close",
+      "done_when": "full old+new inventory verified; no source/hash cycles; new pure stdlib preflight",
+      "id": 5,
+      "owner": "new implementation delegate"
+    },
+    {
+      "action": "Review frozen r3 lifecycle and evidence; parent reconcile before activating any lease",
+      "done_when": "fresh accepted exact frozen identity; no runtime/qualification overclaim",
+      "id": 6,
+      "owner": "independent frozen reviewer then parent"
+    },
+    {
+      "action": "Delegate the already-authorized one7200-second experiment if frozen review accepted",
+      "done_when": "separate launch decision; this design performs no campaign",
+      "id": 7,
+      "owner": "parent only, later"
+    }
+  ],
+  "inputs_sha256_manifest": "inputs-sha256.json",
+  "interfaces": {
+    "handoff_fields": [
+      "executor_pid",
+      "t0_monotonic_hex",
+      "protocol_sha256",
+      "identity_sha256",
+      "capsule_manifest_sha256"
+    ],
+    "handoff_schema": "long_d2_owned_start_v1",
+    "new_controller_cli_hidden_args": [
+      "--executor-fd",
+      "--executor-pid"
+    ],
+    "ownership_table": "exact supervisor PGID plus separate single-worker PGID, command/session proof and reap observations; never supervisor-PGID-only cleanup",
+    "registration_race": "reject; bounded exact command/T0/capsule/supervisor process census and cleanup; uncertain ownership means unproven failure, never acceptance",
+    "transport": "private inherited bounded socketpair; parent PID and exact frozen identities required",
+    "worker_gate": "hidden CLI pre-worker() gate; registration ack before any ML import",
+    "worker_started_arg": "existing --started receives same float T0; no new learner field"
+  },
+  "limitations": [
+    "No atomic observation across signals, pending state, filesystem bytes and exit.",
+    "Direct third-party signals arriving after the last finite pending scan can be unobserved; legitimate requests are not redefined out of scope.",
+    "Executor-recorded forwarded cancellation after inner D rejects independently; persistent lease/input mutations reject by outer checks.",
+    "Transient cancel-and-revert/input-change-and-revert between samples is not guaranteed observable.",
+    "POSIX spawn/registration race requires fail-closed ownership evidence and bounded cleanup; unknown ownership cannot be accepted.",
+    "OS scheduling or uninterruptible kernel work can delay kill/reap; missing bound is failure, not an extension.",
+    "Thirty-second finalization allocations are not measured future artifact throughput guarantees.",
+    "Torch/native/MPS restoration, entry determinism, runtime resource behavior, gameplay/training and qualification are untested."
+  ],
+  "protocol_registration": {
+    "all_other_fields": "unchanged exact r2 values",
+    "base_path": "learning/runs/v2-orchestration/postovernight-long-D2-r1-protocol-r2.json",
+    "freeze_order": [
+      "completed design and plan",
+      "parent registers protocol r3",
+      "sources embed protocol digest",
+      "identity pins all sources plus protocol and old inputs, excludes own raw hash and capsule manifest",
+      "readonly capsule includes identity and sources, excludes its own manifest",
+      "external invocation pins executor/controller/protocol/config/identity/capsule",
+      "parent strict lease pins final identity/capsule/controller/protocol",
+      "outer receipt binds all inputs and outputs",
+      "parent observed-command receipt hashes outer receipt"
+    ],
+    "lease": {
+      "field_count": 15,
+      "new_keys": [],
+      "schema": "unchanged",
+      "task_ids_outside_lease": true
+    },
+    "new_fields": {
+      "terminal_lifecycle": {
+        "acceptance_authority": "outer-executor-receipt-plus-observed-outer-raw-exit-and-wall",
+        "acceptance_receipt": "learning/runs/v2/postovernight-long-D2-execution-r1/acceptance-receipt.json",
+        "cancellation_policy": "direct_delivered_or_pending_requests_latched_before_D;executor_records_before_forward;strict_lease_until_outer_D;post_scan_direct_signal_observation_limit_explicit",
+        "cleanup_owner": "executor",
+        "clock_handoff_schema": "long_d2_owned_start_v1",
+        "clock_origin": "executor_T0_before_ordinary_imports",
+        "executor": "learning/runs/v2/postovernight-long-D2-prepare-r3/long_d2_executor.py",
+        "existing_supervisor_reserve_split_seconds": {
+          "inner": 30,
+          "outer": 30
+        },
+        "failure_cleanup_deadline_rule": "min(first_failure_monotonic+10,T0+7210);shared_all_participants;never_reset",
+        "failure_cleanup_total_seconds": 10,
+        "final_decision_policy": "all_owned_teardown_and_normal_IO_before_finite_D;no_IO_unmask_or_restore_after_D;os._exit",
+        "inner_publication_exit_deadline_seconds": 7170,
+        "internal_terminal_semantics": "provisional_internal_decision",
+        "outer_receipt_exit_deadline_seconds": 7200,
+        "owned_groups": "track_supervisor_and_separate_single_worker_new_session_groups;positive_absence_before_hash",
+        "owned_thread_policy": "exact_Guard_verifier_writer_handles_absent;do_not_assert_all_runtime_threads_absent",
+        "schema": "long_d2_terminal_lifecycle_v3",
+        "signal_policy": "process_lifetime_SIGINT_SIGTERM_SIGALRM_latch;one_nonzero_alarm_arm;no_production_restore",
+        "worker_deadline_seconds": 7140
+      }
+    },
+    "new_path": "learning/runs/v2-orchestration/postovernight-long-D2-r1-protocol-r3.json",
+    "parent_only": true,
+    "source_identity_capsule_hashes_in_protocol": false,
+    "updated_existing_fields": {
+      "controller": "learning/runs/v2/postovernight-long-D2-prepare-r3/long_d2.py",
+      "design": "learning/runs/v2/postovernight-long-D2-terminal-design-codex-r1/plan.json",
+      "design_sha256": "PARENT_COMPUTES_FROM_COMPLETED_PLAN_BYTES_BEFORE_PROTOCOL_REGISTRATION",
+      "registered_at_utc": "PARENT_SETS_ACTUAL_REGISTRATION_UTC",
+      "version": "postovernight_long_D2_protocol_v3"
+    }
+  },
+  "provider_fallback": {
+    "adopted": [
+      "process-lifetime handlers",
+      "one alarm owner per process",
+      "outer raw-exit/wall/identity/artifact acceptance"
+    ],
+    "claude_or_opencode_retried": false,
+    "exact_error": "Claude API rate limit reached. Try again later.",
+    "failed_model": "claude-opus-5-5",
+    "failed_provider": "claudeAgent",
+    "opus_completed": false,
+    "partial_design": "learning/runs/v2/postovernight-long-D2-terminal-design-opus-r1/design.md",
+    "partial_design_sha256": "931d5912f68668db3e1b547608d8d0c6033cb9d40c176bea6e46defa728f06c4",
+    "partial_preserved": true,
+    "replaced": [
+      "two 9.5-second cleanup attempts",
+      "7215-second watchdog plus extra waits",
+      "outer normal work without an inside-7200 reserve",
+      "post-disarm flush/lease IO",
+      "all-thread MainThread-only requirement",
+      "direct-cancellation channel narrowing",
+      "protocol/source hash cycle",
+      "mandatory repeated identical probes"
+    ]
+  },
+  "source_contract": {
+    "full_pin_policy": "retain all 793 existing r2 full verification pins and exact hashes including prior helpers/capsule; add new r3 pins; report exact expanded inventory",
+    "historical_stop_owned": "retain original r2 bytes in old path; new r3 cleanup implementation may differ",
+    "module_origins": "unchanged original-project origins plus readonly capsule mirror validation",
+    "must_be_byte_identical_to_r2": [
+      "Learner",
+      "Schedule",
+      "run_schedule",
+      "environment_kwargs",
+      "counter_report",
+      "compare_control",
+      "tree_fingerprint",
+      "assert_equal_tree",
+      "worker",
+      "validate_long_config",
+      "expected_lease",
+      "assert_lease",
+      "check_module_origins",
+      "outcome_fields",
+      "result_code"
+    ],
+    "old_75_legacy_sources_and_old_1800_cutoff_validators": "unchanged and fully pinned",
+    "permitted_changes": [
+      "new ProcessLatch and borrowing cancellation adapter",
+      "remove supervisor nested alarm contexts",
+      "masked creation of owned Guard threads",
+      "supervisor-only finalization and authority metadata",
+      "deadline-aware single-owner cleanup orchestration",
+      "hidden owned T0/IPC/worker-start CLI setup",
+      "os._exit CLI leaf",
+      "external stdlib executor/watchdog",
+      "new freeze/source inventory/test interfaces"
+    ]
+  },
+  "status": "design_only_ready_for_parent_reconciliation_not_implementation_or_campaign_approval",
+  "unchanged_experiment": {
+    "D2_gate": {
+      "mean_alive_frames_at_least": 3060,
+      "mean_score_at_least": 50
+    },
+    "D3_B_E_student_or_extra_ML_smoke": false,
+    "architecture": {
+      "heads": 4,
+      "layers": 2,
+      "parameters": 321290,
+      "tokens": 81,
+      "width": 128
+    },
+    "authorization": "postovernight_user_go_long_D2_7200s_r1",
+    "automatic_retry": false,
+    "config_path": "learning/runs/v2-orchestration/postovernight-long-D2-r1-config.json",
+    "config_sha256": "2ac814d3842228017d09669364a8391344722da56ad19f41ad9030dbb930c2db",
+    "entry_control": {
+      "before_any_gradient": true,
+      "fields": 9,
+      "mean_alive_frames": 295.25,
+      "mean_score": 1.4765625,
+      "rows": 64
+    },
+    "evaluation_cadence_updates": 16,
+    "failed_D2_parent_allowed": false,
+    "full_input_verification_max_gap_seconds": 5.0,
+    "historical_checkpoint_metadata_rewrite": false,
+    "learner_PPO_reward_environment_schedule_counters_restore_control_decision_budget": "byte-identical",
+    "limits_separate": true,
+    "mps_driver_limit_bytes": 6442450944,
+    "parent_checkpoint_sha256": "ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f",
+    "periodic_checkpoint_cadence_updates": 8,
+    "resource_lease_max_gap_seconds": 0.5,
+    "rss_limit_bytes": 6442450944,
+    "run_id": "v2-m3-long-D2-20261024-r1",
+    "run_seed": 5562873868232098305,
+    "same_phase_resume": false,
+    "scheduler_enabled": false
+  },
+  "validation": {
+    "ML_allowed": false,
+    "both_completion_outcomes": true,
+    "first_unexpected_failure": "stop campaign validation; retain failure; no automatic retry or runtime qualification transfer",
+    "mandatory_repeat_count": null,
+    "matrix": "design.md section 7, exact injection/outcome requirements",
+    "negative_control_required": "retained exact r2 final-unmask evidence; at most one optional discriminating fresh execution per needed case; no identical replay of unresolved -14",
+    "positive_controls_required": "outer acceptance0 and2 with actual Guard and owned stdlib OS worker",
+    "run_now": false,
+    "scenario_ids": [
+      "POS-0/2",
+      "R2-NEG",
+      "PRE-D",
+      "SIG-DIRECT",
+      "POST-D",
+      "ALARM",
+      "R3-LATE",
+      "R1-REG",
+      "OUTER-LAST",
+      "PIN-LEASE",
+      "GUARD",
+      "WRITER",
+      "GROUP",
+      "RAW-WALL"
+    ],
+    "test_validity": [
+      "trigger reached",
+      "failure is a contract assertion, not import/API error",
+      "actual tested sources pinned",
+      "raw exit and real wall retained",
+      "owned groups and threads inspected",
+      "writers and bindings checked",
+      "method/subprocess counts distinct"
+    ]
+  },
+  "version": "long_D2_terminal_design_codex_reconciliation_v1",
+  "write_scope": "learning/runs/v2/postovernight-long-D2-terminal-design-codex-r1"
+}

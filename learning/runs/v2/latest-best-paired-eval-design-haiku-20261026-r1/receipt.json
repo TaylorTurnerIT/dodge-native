@@ -1,0 +1,50 @@
+{
+  "schema": "v2_best180_latest252_paired_eval_design_receipt_v1",
+  "date_utc_context": "2026-10-26",
+  "status": "planned_not_implemented",
+  "role": "design sub-agent (Haiku 5.5)",
+  "writes": ["learning/runs/v2/latest-best-paired-eval-design-haiku-20261026-r1/plan.md", "learning/runs/v2/latest-best-paired-eval-design-haiku-20261026-r1/plan.json", "learning/runs/v2/latest-best-paired-eval-design-haiku-20261026-r1/receipt.json"],
+  "not_performed": ["harness implementation", "harness run", "Torch load", "checkpoint load", "environment steps", "gradients", "optimizer instantiation", "checkpoint writes", "B/E qualification seed opens", "source/ledger/checkpoint/lease edits", "child agents", "approval request"],
+  "inputs": {
+    "checkpoint_best180": {"path": "learning/runs/v2/D2-continuation-20261025-r2/checkpoint-000180-candidate.pt", "sha256": "3173d293dc3309afcdeaec5d386807be40b27c0f024f67c23221d067d2b2cca8"},
+    "checkpoint_latest252": {"path": "learning/runs/v2/D2-continuation-20261025-r2/checkpoint-000252-candidate.pt", "sha256": "cbdc65d0f3b2e32644ba64ada80093f20c7a6bceb8730f2eecac7a188504254b"},
+    "dev_record_180_jsonl": {"path": "learning/runs/v2/D2-continuation-20261025-r2/development-000180.jsonl", "sha256": "33e7859274c65cbefb627e595006e4c64650a653ccace1e059bc9e46a8df76f1"},
+    "dev_record_180_json": {"path": "learning/runs/v2/D2-continuation-20261025-r2/development-000180.json", "sha256": "ed8244688da40a466c82427af9047b418f380921bf471e8508ca1e407893e2c4"},
+    "dev_record_252_jsonl": {"path": "learning/runs/v2/D2-continuation-20261025-r2/development-000252.jsonl", "sha256": "dd02551520977ceb26cddec7a7d9437265d3fbfd58917a79bbc52cc1f5929d36"},
+    "dev_record_252_json": {"path": "learning/runs/v2/D2-continuation-20261025-r2/development-000252.json", "sha256": "f6f5dd73f1f3e4537f6646ea2c6726932569d88f26ca85d5b0eeb82384274614"},
+    "latest252_parent_terminal_receipt": {"path": "learning/runs/v2/d2-continuation252-parent-terminal-audit-20261026-r1/parent-terminal-receipt.json", "sha256": "25f2744d39e2c48e48333088c78855af1ad3b65f1053f576d70f9ac38b5d4096"},
+    "latest252_audit": {"path": "learning/runs/v2/d2-continuation252-parent-terminal-audit-20261026-r1/audit.json", "sha256": "08eb63b4c6d199bfb44e3abdafd1d773ab921de3687c04641c6df596ad7313b2"},
+    "best180_parent_terminal_receipt": {"path": "learning/runs/v2/d2-gradient-parent-terminal-audit-20261025-r2/parent-terminal-receipt.json", "sha256": "7968a62b6e601fab971e4145dbaebfa1995c8f696e6df442ab70fc0435b74903"},
+    "canonical_performance_correction": {"path": "learning/runs/v2/d2-continuation252-parent-terminal-audit-20261026-r1/canonical-performance-correction.json", "sha256": "22ea28a115382abca1fa45a2023bd92132c6c0e7a99767db8a090663747e33a0"},
+    "prior_regression_analysis": {"path": "learning/runs/v2/D2-252-regression-analysis-haiku-20261026-r1/analysis.json", "sha256": "a8f6abaa638ec4070b639ce80a027d798d25810f6aff6364dcdb0edc33e7f43d"},
+    "prior_regression_receipt": {"path": "learning/runs/v2/D2-252-regression-analysis-haiku-20261026-r1/receipt.json", "sha256": "b5fb90eee7be67a4c22454ce558ba8867ba5f97d131669bb784da2e973f4afa5"},
+    "reused_protocol_r3": {"path": "learning/runs/v2-orchestration/postovernight-action-mode-r3-protocol.json", "sha256": "90e3ae1cc8ba253e2e64a708f9b66ed59762e85668a15197d04d9265180ea741"},
+    "reused_runner_r3": {"path": "learning/runs/v2/postovernight-action-mode-prepare-r3/runner.py", "sha256": "8c4be28db13db8df2c4fb647ea10fdd815ef6612139dc497b04b4b6915f9e329"},
+    "reused_campaign_r1_run_result": {"path": "learning/runs/v2/postovernight-action-mode-campaign-r1/run-result.json", "sha256": "4e49bb98dece0ae8004ee94407cd70b2cd245f6ac3d928420867c89a77dd5c8e"},
+    "reused_campaign_r1_evaluations": {"path": "learning/runs/v2/postovernight-action-mode-campaign-r1/evaluations.jsonl", "sha256": "9109b787145abf2478061b8acc7dba1a1756f9b02f25dea351587f48ca07e618"}
+  },
+  "outputs": {
+    "plan_md": {"path": "learning/runs/v2/latest-best-paired-eval-design-haiku-20261026-r1/plan.md", "sha256": "18e16c403ab3f6614d62434a4ee18310d7c56e82b9488cd5ba8154c7174ee10c"},
+    "plan_json": {"path": "learning/runs/v2/latest-best-paired-eval-design-haiku-20261026-r1/plan.json", "sha256": "65104a03192f0f040551f8a86c7886dbffba526aa2f41ecbfc89cbfd76a55087"}
+  },
+  "receipt_hash_note": "receipt cannot hash itself; output hashes above cover plan.md and plan.json",
+  "budget_justification": {
+    "task_budget_seconds": 300,
+    "resource_caps": {"wall_seconds": 600, "cleanup_reserve_seconds": 10, "host_rss_bytes": 6442450944, "mps_driver_bytes": 6442450944, "torch_threads": 4},
+    "episodes": 512,
+    "episodes_basis": "2 checkpoints x 64 seeds x (1 argmax + 3 sampled replicates)",
+    "measured_reference": {"campaign_r1_768_episodes_seconds": 47.673861957970075, "dev_180_argmax_seconds": 10.123696166090667, "dev_252_argmax_seconds": 5.81374550005421},
+    "raw_frame_worst_case": 9216000,
+    "raw_frame_cap_per_episode": 18000
+  },
+  "seed_policy": {
+    "cohort": "existing 64 dev seeds 3489660928..3489660991",
+    "new_seeds": false,
+    "B_E_opened": false,
+    "held_out_claim": false,
+    "future_training_constraint": "exclude these 64 seeds from any later training selection, or mark them diagnostic-only"
+  },
+  "training_eligibility_changed": false,
+  "parent_reconciliation": "latest252 stays provisional; best180 stays accepted reference; no training parent chosen; no rollback",
+  "correction_acknowledged": "Q1/Q4 are sorted bottom/top-16 means; prior seed-ordered attribution withdrawn"
+}

@@ -1,0 +1,35 @@
+.....................................s.................................. [ 21%]
+........................................................................ [ 43%]
+................................................................. [ 63%]
+....F................................................................... [ 85%]
+...............................................                          [100%]
+=================================== FAILURES ===================================
+___________ test_real_identity_is_read_only_and_preserves_torch_rng ____________
+
+    def test_real_identity_is_read_only_and_preserves_torch_rng():
+        cfg=i.default_config("probe");rng=torch.get_rng_state().clone()
+>       identity=i.build_identity(cfg)
+                 ^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_teacher_runner.py:90: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+dodge_rl/identity.py:162: in build_identity
+    "foundation": foundation_identity(root), "architecture": copy.deepcopy(_architecture_description()),
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^
+dodge_rl/identity.py:127: in foundation_identity
+    require(file_hash(root / name) == value, f"Accepted native/build input changed: {name}")
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+condition = False
+message = 'Accepted native/build input changed: crates/dodge-core/src/game.rs'
+
+    def require(condition: bool, message: str) -> None:
+        if not condition:
+>           raise ValueError(message)
+E           ValueError: Accepted native/build input changed: crates/dodge-core/src/game.rs
+
+dodge_rl/identity.py:30: ValueError
+=========================== short test summary info ============================
+FAILED tests/test_teacher_runner.py::test_real_identity_is_read_only_and_preserves_torch_rng
+1 failed, 326 passed, 1 skipped, 7 subtests passed in 6.08s
+exit 1

@@ -1,0 +1,49 @@
+{
+  "budget_seconds": 600,
+  "evidence_limits": "No environment construction, gradient computation, optimizer step, training, or evaluation.",
+  "fixed": {
+    "cumulative_updates": [
+      180,
+      228
+    ],
+    "launch": false,
+    "master_seed": 810631976,
+    "new_updates": 48,
+    "run_id": "D2-gradient-alignment-20261025-r2",
+    "updates": [
+      132,
+      180
+    ]
+  },
+  "schema": "d2_gradient_capsule_finalize_validation_plan_v1",
+  "scope": "Preparation only; no training, evaluation, environment construction, launch, lease/state/docs edits, commits, or messages.",
+  "status": "written_before_validation",
+  "steps": [
+    {
+      "budget_seconds": 120,
+      "command": "python -B -m unittest -v test_continuation_contract test_launcher_lifecycle test_capsule_support test_outputs",
+      "id": "contracts"
+    },
+    {
+      "budget_seconds": 120,
+      "command": "python -B compare_smoke.py; launches smoke_runtime.py in separate processes for new and accepted baseline runtimes",
+      "id": "runtime_smoke"
+    },
+    {
+      "budget_seconds": 180,
+      "command": "python -B test_torch_restore.py",
+      "id": "restore"
+    },
+    {
+      "budget_seconds": 120,
+      "command": "python -B preflight_prepare.py <registration> <registration-sha256> with only runner.check_lease mocked",
+      "id": "preflight"
+    },
+    {
+      "budget_seconds": 60,
+      "command": "close logs; parse JSON; verify complete absolute pin keys and hashes; compute final receipt and manifest hashes",
+      "id": "finalize"
+    }
+  ],
+  "stop_policy": "Stop at first failed registered command. Preserve failure; no retries, fallback, patch, or successor."
+}

@@ -1,0 +1,98 @@
+{
+  "commands": [
+    {
+      "cmd": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+        "-I",
+        "-B",
+        "discriminator_monitor.py"
+      ],
+      "stdout": "discriminator_monitor.out.json",
+      "stderr": "discriminator_monitor.err.log",
+      "raw_exit": 0,
+      "target": "frozen r3",
+      "stdout_sha256": "452bd1836f37a5ab80433ac2f5830d3ef7f306dd9de3bba4d3c6c22d6b8fdaf3",
+      "stdout_bytes": 2051,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "cmd": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+        "-I",
+        "-B",
+        "discriminator_timestamp.py"
+      ],
+      "stdout": "discriminator_timestamp.out.json",
+      "stderr": "discriminator_timestamp.err.log",
+      "raw_exit": 0,
+      "target": "frozen r3",
+      "stdout_sha256": "d1d42be92a8dd71c92963be598b49c17c296bf32169dd81972049c2c621c0043",
+      "stdout_bytes": 1171,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "cmd": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+        "-I",
+        "-B",
+        "discriminator_acceptance.py"
+      ],
+      "stdout": "discriminator_acceptance.out.json",
+      "stderr": "discriminator_acceptance.err.log",
+      "raw_exit": 0,
+      "target": "frozen r3",
+      "stdout_sha256": "920627341e0308bbc8d4fc66c6986f6f50aae33ded0c97ccfa36bcb223de05ad",
+      "stdout_bytes": 585,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "cmd": [
+        "python3",
+        "-I",
+        "-B",
+        "make_patched_copy.py"
+      ],
+      "stdout": "(console)",
+      "raw_exit": 0,
+      "target": "creates patched-candidate/ copy only"
+    },
+    {
+      "cmd": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+        "-I",
+        "-B",
+        "discriminator_monitor.py",
+        "<out>/patched-candidate"
+      ],
+      "stdout": "patched.monitor.out.json",
+      "stderr": "patched.monitor.err.log",
+      "raw_exit": 0,
+      "target": "patched copy",
+      "stdout_sha256": "32ad5f325ef349cdd247af1cf277ef67b302eaf56b91386d2dcfbd0a91c8a1f2",
+      "stdout_bytes": 1771,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    },
+    {
+      "cmd": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+        "-I",
+        "-B",
+        "discriminator_timestamp.py",
+        "<out>/patched-candidate"
+      ],
+      "stdout": "patched.timestamp.out.json",
+      "stderr": "patched.timestamp.err.log",
+      "raw_exit": 0,
+      "target": "patched copy",
+      "stdout_sha256": "c316be1aad8252ffd2f4fe51d007228ad2e1b515ae9fe7327461a12bc48c3421",
+      "stdout_bytes": 1392,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_bytes": 0
+    }
+  ],
+  "note": "Discriminators were first run before the optional argv[1] override was added; the frozen-target outputs were regenerated with the final scripts (exit 0, identical results). No unexpected failure occurred; no command was retried to hide a failure. Local socket-semantics probe (python3 -I -B inline): closed DGRAM peer -> one-shot ConnectionResetError, then timeouts. OS cases re-executed: 0. Child processes launched by discriminators: 0."
+}

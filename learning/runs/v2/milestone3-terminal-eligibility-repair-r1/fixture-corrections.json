@@ -1,0 +1,21 @@
+[
+  {
+    "attempt": "repaired-cpu-attempt1",
+    "correction": "Recorder now creates executed-source archive subdirectory before copy. No pytest launched."
+  },
+  {
+    "attempt": "runtime-controls-attempt1",
+    "failed_test": "test_terminal_actual_evaluate_final_guard_expiry_never_authorizes_candidate",
+    "observed": "Guard raised on first pre-evaluation check; certificate absent.",
+    "correction": "Raise on third check, after real evaluate_checkpoint publishes certificate, matching parent reproduction. Production unchanged.",
+    "retained": "runtime-controls-attempt1/stdout-stderr.log"
+  },
+  {
+    "scope": "existing checkpoint tests before first pytest",
+    "correction": "Transition fixture now supplies a complete valid terminal receipt, including source identity/config semantic copies and artifact index. Existing source/runtime/config/budget/gate rejection tests therefore still reach their original checks."
+  },
+  {
+    "scope": "existing mocked runtime tests before first pytest",
+    "correction": "Authorization doubles accept new phase/expected_parent_receipt keywords. Guard lease fixture explicitly declares phase pilot. Synthetic internal worker adds read-only lease double because worker now checks actual parent authorization independently."
+  }
+]

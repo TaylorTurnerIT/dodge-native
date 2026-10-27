@@ -1,0 +1,29 @@
+{
+  "status": "full_registered_campaign_receipts_verified",
+  "utc": "2026-10-24T06:18:49.870940+00:00",
+  "script_sha256": "4c8b9c93cd4ffdacdf1a28d70888db020dd77967d49c8aa6b81f3bd995c6291f",
+  "final_audit": "full-audit-r3.json",
+  "final_audit_sha256": "f1f4580e83a33befe75a49d461220d5f073cc4069c59a104b1667b5e04c328d3",
+  "native_event_semantics": {
+    "checker_correction": "Retained full-audit-r1.json records the invalid exactly-one-Death-event assumption; corrected against source without rerunning native experiments.",
+    "death_event_multiplicity_total": {
+      "0": 15,
+      "1": 2685,
+      "2": 13,
+      "3": 287
+    },
+    "death_events": "May exceed one: multiple enemies and a rectangle can call die() on the same raw frame.",
+    "reward_penalty": "Subtract five once using bool death, regardless of Death-event multiplicity.",
+    "source": "d7ad951 crates/dodge-core/src/game.rs collision_check/collide_enemy, lines917-998",
+    "terminal_events": "Exactly one per terminated episode; zero for an alive cap truncation.",
+    "terminal_events_total": 2985
+  },
+  "retained_prior_receipts": [
+    "profile-audit-r1.json",
+    "full-audit-r1.json",
+    "full-audit-r2.json",
+    "tool-verification.json"
+  ],
+  "native_experiments_launched": 0,
+  "new_Rust_tests_run": 0
+}

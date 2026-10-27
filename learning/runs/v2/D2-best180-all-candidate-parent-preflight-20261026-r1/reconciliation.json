@@ -1,0 +1,34 @@
+{
+  "schema": "best180_candidate_auditor_parent_preflight_v1",
+  "source_sha256": "edb5666b0d52b7c954ffc11e0535c92aecb937c36d6f74044d5155089aba3040",
+  "real_cpu_checkpoint_load_passed": true,
+  "positive_published_update": 204,
+  "snapshot_binding_failure": {
+    "type": "KeyError",
+    "key": "'config_sha256'",
+    "actual_identity_keys": [
+      "version",
+      "run_id",
+      "phase",
+      "phase_update_start",
+      "phase_update_end",
+      "run_seed",
+      "config",
+      "parent_checkpoint_sha256",
+      "policy_sha256",
+      "registration_sha256",
+      "architecture"
+    ]
+  },
+  "selection_bug": {
+    "entry_mean": 1854.46875,
+    "higher_candidate_mean": 1921.171875,
+    "wrong_comparison_entry_le_original": true,
+    "effect": "Code resets proposedbest toNone evenwhen204improves."
+  },
+  "additional_source_findings": [
+    "Standalone launcher sibling runner import is not bound by custom load_module names.",
+    "Terminal file is execution-result.json; auditor looks for run-result.json."
+  ],
+  "scope": "Read-only CPU validation of publishedimmutable204; does not select or acceptcandidate, no MPS orenvironment."
+}

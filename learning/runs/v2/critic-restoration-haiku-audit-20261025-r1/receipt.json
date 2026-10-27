@@ -1,0 +1,34 @@
+{
+  "schema": "critic_restoration_haiku_audit_receipt_v1",
+  "run_id": "critic-restoration-haiku-audit-20261025-r1",
+  "mode": "static_read_only",
+  "tests_run": false,
+  "experiments_run": false,
+  "checkpoints_decoded": false,
+  "r3_directory_read": false,
+  "reviewer_model": "claude-haiku-5-5",
+  "report": {
+    "path": "learning/runs/v2/critic-restoration-haiku-audit-20261025-r1/report.md",
+    "sha256": "963b3dd874458d44a23803e1e9754846f3c4d670605d453563eddfd3fafbd35f"
+  },
+  "inputs_sha256": {
+    "learning/runs/v2/critic-diagnostic-runner-prepare-20261025-r2/runner.py": "5aa564528b5f173c4f94dd5bc3c38c8ec5796571b3da45be47f52ee40475851c",
+    "learning/runs/v2/critic-diagnostic-runner-prepare-20261025-r2/execute_once.py": "6d935fd6081e84bca1b4b22f16573494dd520f7109c65eb46b4e3a5df917f903",
+    "learning/runs/v2/critic-diagnostic-runner-prepare-20261025-r2/test_contract.py": "8a31eaf50b5288c31410a4a592e554bd9b7a5ef9e4b8a4acf500b51ab10eca2d",
+    "python/dodge_rl/checkpoints.py": "807141943a742c6e9fdd34274c191b3c318134cc7fb0c1c6256874cadee1cbc3",
+    "python/.venv/lib/python3.12/site-packages/torch/optim/optimizer.py": "ebc2511e0a07b18bbfba44f61667ddaeee47f23cdc856a43234d89007010fe86",
+    "python/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py": "d139fc1dc9adb172c208b8b470fc405d8037612c0f08768d275c5bbcc284b9c9",
+    "learning/runs/v2/critic-diagnostic-parent-prepare-20261025-r1/parent-terminal-audit-r1.json": "9bffdc4d855761badd0b86c5efaf2ce6f6338fa005390b4753a0e1ec6f6bf651",
+    "learning/runs/v2/critic-diagnostic-D2-20261025-r1/worker-result.json": "3b145c21c4160044a1fe06943dd1584b81d029757bb1aaa72cb77c97d80da333"
+  },
+  "findings": [
+    {"severity": "P2", "id": "equality-components-not-recorded", "status": "demonstrated", "path": "runner.py", "lines": "306-310"},
+    {"severity": "P2", "id": "no-fingerprint-contract-tests", "status": "demonstrated", "path": "test_contract.py", "lines": "n/a"},
+    {"severity": "P3", "id": "restored-optimizer-group-values-from-checkpoint", "status": "source", "path": "python/.venv/lib/python3.12/site-packages/torch/optim/optimizer.py", "lines": "1031-1041"},
+    {"severity": "hypothesis", "id": "adam-step-device-dtype", "status": "needs_rehearsal", "path": "python/.venv/lib/python3.12/site-packages/torch/optim/optimizer.py", "lines": "813-815"},
+    {"severity": "hypothesis", "id": "mps-rng-capture-side-effect", "status": "needs_rehearsal", "path": "python/dodge_rl/checkpoints.py", "lines": "22-28"}
+  ],
+  "blocking_findings_beyond_known_comparator": 0,
+  "diagnostic_only": true,
+  "training_eligible": false
+}

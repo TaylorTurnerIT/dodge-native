@@ -1,0 +1,25 @@
+{
+  "at_utc": "2026-10-24T07:43:32.415325+00:00",
+  "failed_stage": "workspace-clippy",
+  "source_run": "learning/runs/v2/milestone2-integration-r1",
+  "log_sha256": "4f4d87441974bed3d82f5c24ed693dd20e166549733f27780f311ff72043e19c",
+  "defects": [
+    "duplicate frozen-policy module loading",
+    "two large const tables require static storage"
+  ],
+  "repairs": [
+    "Existing test helper module made crate-visible; replay imports same module instead of loading a second copy.",
+    "Only table declarations changed const to static; all 2000 data rows byte-identical."
+  ],
+  "all_original_assertions_preserved": true,
+  "first_normal_tests": {
+    "unit": 49,
+    "primitive": 35,
+    "included_eight_duplicate_helper_executions": true
+  },
+  "new_attempt": "learning/runs/v2/milestone2-integration-r2",
+  "new_attempt_budget_seconds": 900,
+  "prior_targets_and_logs_preserved": true,
+  "full_campaign_executed": false,
+  "limit_relaxation": false
+}

@@ -1,0 +1,19 @@
+{
+  "schema": "d2_best180_branch_preparation_plan_v1",
+  "status": "source_frozen_registration_pending",
+  "scope": "Prepare one bounded 72-update D2 fresh-stream continuation from audited BEST180; no training launch",
+  "run_id": "D2-best180-branch-luna-20261026-r1",
+  "parent": {
+    "path": "learning/runs/v2/D2-gradient-alignment-20261025-r2/checkpoint-000180-candidate.pt",
+    "sha256": "105e0f7a83e154116bd9f0d5eaaf573a896886468c9038f548f5ce7e6377c7ea",
+    "terminal_receipt": "learning/runs/v2/d2-gradient-parent-terminal-audit-20261025-r2/parent-terminal-receipt.json",
+    "terminal_receipt_sha256": "7968a62b6e601fab971e4145dbaebfa1995c8f696e6df442ab70fc0435b74903"
+  },
+  "phase": {"start": 180, "end": 252, "new_updates": 72, "evaluation_updates": [180, 192, 204, 216, 228, 240, 252]},
+  "evaluation": {"metric": "mean alive raw frames", "seeds": 64, "action_selection": "deterministic argmax", "secondary": ["Q1 bottom-16 alive-frame mean", "Q4 top-16 alive-frame mean", "death counts", "score delta plus 0.01 per alive raw frame minus 5 per death"], "promotion": "strictly higher mean than current best, only after exact parent audit"},
+  "limits": {"outer_seconds": 1800, "cleanup_reserve_seconds": 10, "rss_bytes": 6442450944, "mps_bytes": 6442450944, "retries": 0},
+  "prior_wall_seconds": {"72_update": 1169.719, "48_update": 729.705, "full_lineage_user_reported": 4122.0439, "accepted_parent_receipt": 2952.324712417151},
+  "ledgerstate": {"requested": true, "found": false},
+  "training_launched": false,
+  "freeze_gate": "pending lease-path authority, lineage reconciliation, full live registration/pin refresh, parent and Haiku review"
+}

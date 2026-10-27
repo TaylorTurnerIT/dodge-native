@@ -1,0 +1,32 @@
+{
+  "schema": "dodge_source_publication_validation_v1",
+  "source_commit": "58a230be465db1a06459e5caf8e54270546d0e19",
+  "rust": {
+    "command": "cargo test -p dodge-core -p dodge-rl-env --offline",
+    "exit_code": 0,
+    "passed": 163,
+    "ignored_campaign_only": 2,
+    "breakdown": {
+      "dodge_core": 82,
+      "dodge_rl_env": 46,
+      "primitives": 35
+    }
+  },
+  "python": {
+    "command": "python/.venv/bin/python -B -m pytest python/tests/test_ppo.py python/tests/test_checkpoints.py python/tests/test_survival_gate_v3.py python/tests/test_teacher.py -q -p no:cacheprovider",
+    "exit_code": 0,
+    "passed": 98,
+    "subtests_passed": 7
+  },
+  "format": {
+    "command": "cargo fmt --all -- --check",
+    "exit_code": 0
+  },
+  "additional_current_preparation_controls": {
+    "collector_fake_CPU_parent_replay": 39,
+    "curriculum_scheduler_parent_tests": 21,
+    "RNG_probe_fake_parent_replay": 48
+  },
+  "evidence_limit": "Tests cover committed current runtime source and listed synthetic controls. Archived historical failed preparations remain historical. New curriculum native Python-binding build failed at macOS CPython linking; its ten authored Rust tests were not run. This does not claim native successor integration or training qualification.",
+  "publication_scope": "Source, configs, tests, compact evidence. Checkpoints/build outputs remain local."
+}

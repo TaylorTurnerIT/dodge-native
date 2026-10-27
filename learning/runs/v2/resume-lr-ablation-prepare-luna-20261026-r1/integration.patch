@@ -1,0 +1,42 @@
+--- a/frozen-training-adapter/runner.py
++++ b/future-registered-arm/runner.py
+@@ after exact parent model/Adam/RNG restore and equality assertion; before environment construction
+             need(all(equality.values()), "Parent model/Adam/RNG restoration differs")
++            parent_adam_without_lr = without_group_lr(optimizer.state_dict())
++            parent_adam_fingerprint_without_lr = fingerprint(parent_adam_without_lr)
++            # Arm-only transition; hook asserts restored 3e-4 and config 1e-4.
++            lr_transition = apply_resume_lr_override(optimizer, reg["ppo"]["learning_rate"])
++            assert_effective_lr(optimizer, expected_lr=reg["ppo"]["learning_rate"])
++            effective_adam_fingerprint_without_lr = fingerprint(
++                without_group_lr(optimizer.state_dict()))
++            need(effective_adam_fingerprint_without_lr == parent_adam_fingerprint_without_lr,
++                 "Adam state changed outside declared parameter-group LR transition")
++            need(reg["arm_transition"] == {
++                "kind": "restore_adam_moments_then_override_group_lr_v1",
++                "parent_lr": 0.0003, "effective_lr": 0.0001,
++                "changed_fields": ["optimizer.param_groups[*].lr"]},
++                "Registered LR transition differs")
++            save(out / "lr-transition.json", {
++                **lr_transition,
++                "parent_checkpoint_sha256": PARENT_SHA,
++                "parent_receipt_sha256": PARENT_RECEIPT_SHA,
++                "parent_optimizer_fingerprint_excluding_lr": parent_adam_fingerprint_without_lr,
++                "effective_optimizer_fingerprint_excluding_lr": effective_adam_fingerprint_without_lr})
+ 
+             inherited = dict(parent["cumulative_counters"])
+@@ after each PPO update, before metrics/checkpoint publication
+             need(all(group["lr"] == reg["ppo"]["learning_rate"]
+                      for group in optimizer.param_groups),
+                  "Optimizer LR drifted from registered arm")
+
+# Integration constraints:
+# 1. Preserve the old parent file, sidecar, receipt, and exact parent validation.
+# 2. Arm config gets a new digest and arm id; parent identity/config digest stays
+#    as archived provenance. Do not relax check_same_run or parent hash checks.
+# 3. Future transition validator explicitly allows only ppo.learning_rate
+#    0.0003 -> 0.0001 plus the declared arm identity. Every other PPO/runtime,
+#    protocol, reward, seed namespace, source, and parent field remains exact.
+# 4. The existing frozen adapter pins CONFIG_SHA, run id, runtime tree, and
+#    registration pins. It cannot consume an arm config by editing only JSON.
+#    Build and review a new source/runtime capsule and registration after the
+#    live control result and parent reconciliation.

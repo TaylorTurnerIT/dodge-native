@@ -1,0 +1,109 @@
+{
+  "schema": "fixed_rollout_lambda_diagnostic_review_v4",
+  "target": "learning/runs/v2/fixed-rollout-lambda-diagnostic-luna-20261026-r4",
+  "target_sha256": {
+    "diagnostic.py": "ee3b1ec123ee1e5fd0ba2bd716ec0566e16c05e53d6b29cacc51f6511a711b27",
+    "controls_r4.py": "bdea9980dd89b64c360eaecf70e2cf6b53139e27019a806527b36dff44638aa0"
+  },
+  "verdict": "findings_nonblocking",
+  "summary": "No correctness defect found in analyzer recurrence, observed-return scan, or NPZ variant admission. R3 high (observed-return off-by-one) and R3 medium (partial raw admitted with complete components) are fixed by static reading and hand arithmetic. Remaining findings are test-coverage, validation asymmetry, and receipt/reproducibility gaps.",
+  "r3_closure": [
+    {"r3_id": 1, "status": "closed_by_reading", "evidence": "diagnostic.py:175-176 adds rewards[t] + GAMMA*ret before append. Hand arithmetic on R3 reproduction data (T=3,N=1, terminal at t=2, rewards 0.104, 0.204, -0.497) gives G=[-0.185062425, -0.290515, -0.497], mean -0.324192475, matching the expected values in parent-validation-20261026-r3/reproduction.json. Not executed."},
+    {"r3_id": 2, "status": "closed_by_reading", "evidence": "load_npz diagnostic.py:51-52 and analyze diagnostic.py:78-81 require present set == raw or == components exactly. controls_r4.py:112-121 covers 12 mixed subsets."},
+    {"r3_id": 3, "status": "partially_closed", "evidence": "controls_r4.py:34-48 asserts per-element target and advantage against production compute_gae at atol 2e-7 for both lambdas. Decomposition and covariance output remain unasserted (finding 1)."}
+  ],
+  "findings": [
+    {
+      "id": 1,
+      "severity": "medium",
+      "category": "test-coverage",
+      "file": "learning/runs/v2/fixed-rollout-lambda-diagnostic-luna-20261026-r4/controls_r4.py",
+      "lines": [34, 48],
+      "summary": "No control asserts analyzer decomposition outputs: component covariances, variance reconstruction, identity error, or signed/norm change fields.",
+      "failure_scenario": "A sign error or dropped cross-term in the diagnostic.py:113-128 decomposition (e.g., omitting value_bootstrap from the covariance table) leaves target moments and element parity unchanged, so controls still print PASS while component_target_covariances and component_variance_identity_error are wrong.",
+      "consequence": "The contract's required population covariance decomposition is unverified; grep finds zero references to component_target_covariances, component_variance_reconstruction, component_variance_identity_error, signed_change, or norm_difference in controls_r4.py.",
+      "fix": "Assert component_variance_identity_error is within 2e-7 of 0 for both lambdas, and assert covariance entries against hand values on the 3x4 fixture. Also remove the duplicate recurrence at diagnostic.py:113-129, whose target and adv at lines 128-129 are overwritten at line 130."
+    },
+    {
+      "id": 2,
+      "severity": "low",
+      "category": "test-coverage",
+      "file": "learning/runs/v2/fixed-rollout-lambda-diagnostic-luna-20261026-r4/controls_r4.py",
+      "lines": [81, 91],
+      "summary": "Observed-return value checks cover one slot and only the 0 and 1_4 buckets; 5_16 and 17_plus values and the 4/5 and 16/17 boundaries are never exercised.",
+      "failure_scenario": "An off-by-one in the 5_16 lower bound (diagnostic.py:192) or the 17_plus bound (diagnostic.py:193) passes all controls. Truncation or tail start exclusion across multiple slots with reset after death is also unvalued.",
+      "consequence": "Bucket boundaries and multi-episode reset isolation are only checked by static reading, not by controls. The reviewed bounds (0:(0,0), 1_4:(1,4), 5_16:(5,16), 17_plus:(17,None)) and distance=end-start are correct by reading.",
+      "fix": "Add a slot with death at distance 4, 5, 16, and 17, plus a multi-slot case with truncation before death, tail starts, and a reset after death, asserting every bucket mean and count."
+    },
+    {
+      "id": 3,
+      "severity": "low",
+      "category": "validation",
+      "file": "learning/runs/v2/fixed-rollout-lambda-diagnostic-luna-20261026-r4/diagnostic.py",
+      "lines": [58, 104],
+      "summary": "analyze accepts unexpected extra arrays silently, while load_npz rejects them.",
+      "failure_scenario": "analyze({values, next_values, terminated, truncated, complete raw variant, typo key 'score_delta_raw_fixd'}) returns results, while the same payload saved as NPZ is rejected at diagnostic.py:53-54.",
+      "consequence": "Validation differs between the NPZ and in-memory paths; a misnamed field is ignored without error.",
+      "fix": "Add the same unexpected-field check to analyze, and add a control for it."
+    },
+    {
+      "id": 4,
+      "severity": "low",
+      "category": "test-coverage",
+      "file": "learning/runs/v2/fixed-rollout-lambda-diagnostic-luna-20261026-r4/diagnostic.py",
+      "lines": [83, 87],
+      "summary": "Raw-variant bounds are unasserted: elapsed outside [1,4], negative score, and non-integer raw dtype.",
+      "failure_scenario": "Removing the elapsed bound check at diagnostic.py:86 or the dtype check at line 83 still passes controls; the only raw-invalid case is alive mismatch at controls_r4.py:125.",
+      "consequence": "Contract-required bounds are enforced by code reading only.",
+      "fix": "Add rejections for elapsed 0 and 5, score -1, and float raw counters, in both analyze and load_npz paths."
+    },
+    {
+      "id": 5,
+      "severity": "low",
+      "category": "test-coverage",
+      "file": "learning/runs/v2/fixed-rollout-lambda-diagnostic-luna-20261026-r4/controls_r4.py",
+      "lines": [77, 79],
+      "summary": "The near-constant EV check uses zero values and next_values, so EV is exactly 0 by algebra and the test only asserts np.isfinite.",
+      "failure_scenario": "A regression that returns a wrong nonzero EV on near-constant targets with nonzero values still passes.",
+      "consequence": "The finite-EV claim for near-constant targets is weakly tested.",
+      "fix": "Use nonzero values so residual variance differs from target variance, and assert the EV value against a hand computation."
+    },
+    {
+      "id": 6,
+      "severity": "low",
+      "category": "documentation",
+      "file": "learning/runs/v2/fixed-rollout-lambda-diagnostic-luna-20261026-r4/receipt.json",
+      "lines": [1, 40],
+      "summary": "Receipt reports partial_other_variant_subsets_checked_per_path as 6, but controls_r4.py:112-121 checks 12 mixed subsets per path (6 per direction).",
+      "failure_scenario": "Reader counts receipt entries and concludes half the mixed-variant space was checked.",
+      "consequence": "Evidence count is misstated. The npz_reader_rejections value of 21 matches the 21 rejected() asserts in controls_r4.py.",
+      "fix": "Correct the receipt count to 12 per path, or define the field as per direction."
+    },
+    {
+      "id": 7,
+      "severity": "low",
+      "category": "reproducibility",
+      "file": "learning/runs/v2/fixed-rollout-lambda-diagnostic-luna-20261026-r4/receipt.json",
+      "lines": [1, 40],
+      "summary": "The production compute_gae parity reference is not hashed in receipt or hash-manifest, and the retained controls.py PASS rests on a legacy log without R4 hash binding.",
+      "failure_scenario": "controls_r4.py:14-17 imports ppo.py from the frozen D2 r5 runtime (sha256 b3cef91b1293056e9d1820a94fd5730accae4c5728d23566857a6c3a0e1eeac5). That file can change without the R4 receipt noticing.",
+      "consequence": "The pinned-production-parity claim is not reproducible from the R4 receipt alone. controls-r3-legacy.log has no run-to-file hash link to controls.py sha d35f5536.",
+      "fix": "Add ppo.py sha256 to receipt inputs, and record the controls.py run log tied to its hash."
+    }
+  ],
+  "static_limitations": [
+    "Static source reading and stdlib SHA-256 only. No analyzer, controls, torch, runtime, or native code was executed.",
+    "Hand arithmetic reproduces the R3 observed-return reference; it is not an execution result.",
+    "Decomposition correctness is by reading only; no control asserts it (finding 1).",
+    "No actual rollout, capture, checkpoint, environment, MPS, training, state, lease, or source write was touched.",
+    "Does not affect accepted best300 or its published playback."
+  ],
+  "scope": {
+    "actual_rollout_read": false,
+    "checkpoint_decoding": false,
+    "runtime_or_analyzer_import": false,
+    "children_spawned": false,
+    "tests_run": false,
+    "source_state_lease_changes": false
+  }
+}

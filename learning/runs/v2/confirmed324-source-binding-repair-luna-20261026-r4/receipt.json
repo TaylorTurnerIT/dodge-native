@@ -1,0 +1,54 @@
+{
+  "schema": "confirmed324_source_binding_repair_v1",
+  "status": "CPU_controls_pass_independent_review_pending",
+  "source_parent": "confirmed324-transition-parent-repair-20261026-r3",
+  "review_blocker": "Loaded functions sharing a pinned filename could bypass disk-only source verification.",
+  "repair": [
+    "Hash pinned checkpoint, identity, and runner source bytes once; compile definitions without executing source modules.",
+    "Compare loaded callable code recursively against pinned definitions, excluding line/position metadata only.",
+    "Bind capture_rng, restore_learner, restore_rng, require_complete_update, and runner worker; verify checkpoint namespace ownership and runner namespace ownership.",
+    "Verify capture_rng, restore_learner, and restore_rng defaults against pinned declarations.",
+    "Pin pure identity.require source and require loaded copy/random/numpy/torch globals to be the corresponding sys.modules objects.",
+    "Ignore caller-supplied capture_module_hash as proof; retain argument only for compatibility."
+  ],
+  "negative_controls": [
+    "Same-filename substituted capture_rng rejected.",
+    "Same-filename substituted restore_learner rejected.",
+    "Same-filename substituted restore_rng rejected.",
+    "Same-filename substituted require_complete_update rejected.",
+    "Same-filename substituted worker rejected.",
+    "Mutated capture_rng defaults rejected.",
+    "Substituted identity.require, torch, numpy, random, and copy dependencies rejected."
+  ],
+  "source_pins": {
+    "checkpoints.py": "807141943a742c6e9fdd34274c191b3c318134cc7fb0c1c6256874cadee1cbc3",
+    "identity.py": "50775b2e7c30e53757dd3134d11613f716733cee8e6a96cc18b62e8ff2a4a053",
+    "runner.py": "108ba55ad78aa26166acb14f67cc6466da6293ccee3d272e1fe6e775ebf2ac60"
+  },
+  "validation": {
+    "command": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python -B -m unittest -v test_transition test_regressions",
+    "working_directory": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-source-binding-repair-luna-20261026-r4",
+    "interpreter": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+    "python": "3.12.15",
+    "exit_code": 0,
+    "tests_passed": 22,
+    "log": "tests.log",
+    "bytecode_mode": "-B",
+    "own_output_pycache_or_pyc": false,
+    "runtime": "Project Python venv; CPU toy Torch/NumPy; selected AST definitions compiled only."
+  },
+  "preserved_parent_evidence": {
+    "accepted_fingerprints": "accepted324",
+    "cumulative_updates": 372,
+    "saved_learning_rate": "3e-5",
+    "controllers": "373..432",
+    "parent_original_324_receipt_sha256": "76cb15733e87518cb3b473b7f8ebd847ed206351fb9f17d89b8b92e6bf853f08",
+    "confirmed_acceptance_sha256": "3e84979c4c8da76d0f98666a23f90eb15c1e813ca5edf1001e19daebaf4d5bbd",
+    "real_rng_reference": "pending_notrun"
+  },
+  "limits": [
+    "No MPS/game/environment imports, real RNG reads, production checkpoint deserialization, real checkpoint callbacks, launch, training, or evaluation.",
+    "Future driver must authenticate module loading and provenance of copy/random/numpy/torch objects already in sys.modules; this builder verifies object identity only.",
+    "No runtime readiness, registration, parent acceptance, or qualification claim; independent review and parent-owned gates remain pending."
+  ]
+}

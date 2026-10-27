@@ -1,0 +1,56 @@
+{
+  "schema": "gradient_alignment_measurement_result_v1",
+  "status": "stopped_on_first_new_unexpected_failure",
+  "authority": "learning/runs/v2/gradient-alignment-parent-prepare-20261025-r1/parent-plan.json",
+  "scope": "owned source repair only; no real environment, training, evaluation campaign, registration, launch, PR, commit, deployment, or messages",
+  "source_provenance": {
+    "starting_point": "immutable r1 own/runtime and own/tests copied into r2/own",
+    "r1_logs_preserved": ["own/mps.log", "own/parity.log", "own/tests.log", "own/benchmark.log"],
+    "edited_files": ["own/runtime/dodge_rl/ppo.py", "own/runtime/dodge_rl/gradient_alignment.py", "own/tests/test_gradient_alignment.py", "own/tests/parity_fixture.py"],
+    "module_origin": "r2/own/runtime/dodge_rl/ppo.py",
+    "native_sha256": "022d41dde9bace0b4f4c4c06b9b4ed007bc2c60013cd98734086e587d7bb997e",
+    "teacher_sha256": "e4d7f597a2824c2b0d4ba261dddc9d7d1ee1d5592c2fc966a44c54b5ec417e35"
+  },
+  "repairs_attempted": {
+    "mps_transfer": "explicit source-device to CPU float32 transfer, then CPU float64 reductions; separately check source-gradient and CPU-copy finiteness with parameter name and first bad coordinate",
+    "vjp_buffer_reuse": "clone actor gradient buffers before critic VJP",
+    "undefined_values": "zero norms emit defined=false and reason; undefined cosine omitted; actor-zero ratio omitted; nonfinite gradients rejected",
+    "validation": "count and shape checks; aligned, orthogonal, opposing, scaled, zero, unused, per-layer coverage and no-None analytic checks",
+    "parity_fixture": "expanded synthetic full-state CPU/MPS parity fixture written; CPU parity stopped before MPS run"
+  },
+  "tests": {
+    "analytic_command": "PYTHONPYCACHEPREFIX=<absolute-r2>/own/pycache PYTHONPATH=<absolute-r2>/own/runtime python/.venv/bin/python3.12 -B -m pytest -q <absolute-r2>/own/tests/test_gradient_alignment.py",
+    "analytic_result": "3 passed in 1.49s",
+    "parity_command": "PYTHONPYCACHEPREFIX=<absolute-r2>/own/pycache PYTHONPATH=<absolute-r2>/own/runtime python/.venv/bin/python3.12 -B <absolute-r2>/own/tests/parity_fixture.py",
+    "parity_result": "failed on first CPU parity comparison; enabled/disabled model state differs at model.type_embedding.weight",
+    "first_failure_log": "own/parity-r2.log",
+    "first_failure_log_sha256": "dc83a96e3a27e254833ee867ff165522496b2b2022ae33d380379bdb00c8d334",
+    "stopped_immediately": true,
+    "mps_parity": "not run",
+    "full_state_parity": "not established"
+  },
+  "resource_and_benchmark": {
+    "rss": "not measured in r2",
+    "mps_allocation": "not sampled in r2",
+    "paired_benchmarks": "not run",
+    "reason": "stopped on first new parity failure"
+  },
+  "protected_inputs": {
+    "candidate_sha256_before_and_after": "bf858ed9975e6f994acbca011895b140be6943cf1852c88b54549a9c8db0c1a8",
+    "sidecar_sha256_before_and_after": "e658dc631a2cfa8ac43495993672d26a0c3f8a533e526c4d55de3b05013e5dba",
+    "parent_receipt_sha256": "fce4262d97f4cca11d8c28dd68fe4a4ec8fa48ba747c393ab864a380f07f90a3",
+    "checkpoint_loaded_or_modified": false
+  },
+  "limits": [
+    "CPU exact parity failure blocks acceptance and integration.",
+    "MPS finiteness hypothesis remains unverified by this r2 run.",
+    "Haiku frozen review remains outstanding.",
+    "No integration readiness claim."
+  ],
+  "source_sha256": {
+    "own/runtime/dodge_rl/ppo.py": "f38d0295822f207d59314a4450b223250379a3d1bb2485a82a263950bc06d33e",
+    "own/runtime/dodge_rl/gradient_alignment.py": "e6a58028d03afdb335f4193b81c9b150be4383c54b435271266d5de1db2ee3a1",
+    "own/tests/test_gradient_alignment.py": "f72c512bf84fd05de81f00c3a2e77c489c191946dcd8300f521c5d1f59bc4b1e",
+    "own/tests/parity_fixture.py": "0769ebeb72c536eec3383d297530b77e233f0db44c155e94bbbd5925c6b27e79"
+  }
+}

@@ -1,0 +1,122 @@
+{
+  "schema": "d2_continuation180_frozen_source_review_receipt_v1",
+  "reviewer": "claude-haiku-5-5 (native, read-only adversarial review)",
+  "date": "2026-10-25",
+  "scope": "static source/pin review of D2-continuation-20261025-r2 (72 updates, 180->252); no tests, torch loads, training, env steps, gradients, or child runs",
+  "verdict": "no_blocking_findings",
+  "blocking_findings": [],
+  "non_blocking_findings": [
+    {
+      "id": "F1",
+      "severity": "low-medium",
+      "file": "learning/runs/v2/D2-continuation180-parent-repair-20261025-r3/execute_once.py",
+      "lines": "325-331",
+      "summary": "execution-result.json is saved with status 'passed' before the post-publication budget check; if the total budget is exceeded the launcher returns 1 and writes publication-failure.json, but execution-result.json still says 'passed'.",
+      "consequence": "Receipts disagree. Acceptance must require both exit code 0 and absence of publication-failure.json, not execution-result status alone.",
+      "parent_action": "Acceptance check must test exit code and publication-failure.json absence."
+    },
+    {
+      "id": "F2",
+      "severity": "low-medium",
+      "file": "learning/runs/v2/D2-continuation180-parent-repair-20261025-r3/execute_once.py",
+      "lines": "217-226 (vs load_registration at 247)",
+      "summary": "execute() creates the output directory and the single-use launch-marker.json from an unverified json read of the registration before load_registration checks the external digest and pins. The comment at 217-218 says full byte checks precede the marker; they do not.",
+      "consequence": "A wrong --registration-sha256 or stale registration consumes RUN_ID D2-continuation-20261025-r2 without any subprocess starting.",
+      "parent_action": "Run the unmocked preflight by calling runner.load_registration directly, never through execute_once.execute, so no marker is written."
+    },
+    {
+      "id": "F3",
+      "severity": "low",
+      "file": "learning/runs/v2/D2-continuation180-parent-repair-20261025-r3/execute_once.py",
+      "lines": "288-289 vs 277-331",
+      "summary": "artifact-manifest.json is written before execution-result.json and publication-failure.json, so the final receipts are not digest-covered by the manifest.",
+      "consequence": "Post-hoc tampering of the final receipts is not caught by the manifest. Informational, since generated outputs are intentionally unpinned.",
+      "parent_action": "None required; hash the final receipts in the reconciliation record if needed."
+    },
+    {
+      "id": "F4",
+      "severity": "risk (not a defect)",
+      "file": "learning/runs/v2/D2-continuation180-parent-repair-20261025-r3/runner.py",
+      "lines": "669 (evaluate_at(PHASE_START)); execute_once.py 163-167",
+      "summary": "Entry evaluation must reproduce the accepted development-000180.json rows exactly under argmax on MPS. Lineage evidence covers restore fingerprints of model, Adam, and RNG, and protocol/seed smoke, but not live evaluation equality.",
+      "consequence": "If MPS inference is not bit-identical across processes, the run fails only after all 72 updates. retries=0, so RUN_ID is consumed and the run is lost.",
+      "parent_action": "Accept the risk knowingly, or get a no-training equality check approved before exact-once launch."
+    },
+    {
+      "id": "F5",
+      "severity": "informational",
+      "file": "learning/runs/v2/D2-continuation180-parent-repair-20261025-r3/runner.py",
+      "lines": "220-249 validate_runtime_continuity",
+      "summary": "Same-runtime identity is enforced by path-set plus per-member bytes against the parent member map and pins. It does not require reg['runtime_root'] == continuity['source_runtime_root']. The test fixture intentionally uses separate roots.",
+      "consequence": "Not exploitable here, because the registration digest is externally pinned and the pin set covers the actual runtime root.",
+      "parent_action": "None."
+    },
+    {
+      "id": "F6",
+      "severity": "informational",
+      "file": "learning/runs/v2/D2-continuation180-parent-repair-20261025-r3/runner.py",
+      "lines": "447-483 Guard.check, 41-43 LIMITS",
+      "summary": "The work budget is hard. Estimate 72*16.7596*1.15+150 = 1537.69 s against a 1600 s cap leaves about 62 s of margin, and the 252 evaluation runs inside that budget.",
+      "consequence": "A late overrun aborts the worker with no retry.",
+      "parent_action": "None; this is the registered limit."
+    }
+  ],
+  "checked_and_ok": [
+    "Pins: r4 registration has 13744 pins, the r3 registration had 13738. The 6 added pins are r4/r3 receipts and logs, plus the r4 validation plan. No pin removed or changed digest. Top-level keys differing from r3 are only cancel_path, expected_lease (run_id), and import_policy (new owned paths).",
+    "No output artifact of the new run is pinned. Pinned D2-continuation-20261025-r1/* files are historical ancestry only.",
+    "Runtime: 13 member files, member map equals disk bytes, runtime digest derived from pins equals PARENT_RUNTIME_SHA 2cf10e9f...; interpreter and the lexical venv links are pinned.",
+    "Parent evidence: receipt, registration digest, checkpoint digest, and wall 2952.324712417151 bind as stated. Parent worker peak RSS 2.16 GB and MPS 2.46 GB sit well under the 6 GiB caps.",
+    "Validators: validate_parent_checkpoint_for_restore is called by the worker before env construction (runner.py 580) and by test_torch_restore. The runner diff against the capsule r2 runner touches only constants, the new helper, the runtime-continuity validator, and the removal of the audited runtime-transition check. The 48-update loop body is unchanged. The execute_once diff against the r3 parent-repair launcher is only the predecessor path and message.",
+    "Seeds: per-slot episode index is next = current+1 (checkpoints.episode_resume_state). Seed = hash(run, slot, episode) (seed.rs). No seed reuse. Abandoned live episodes are not retrained.",
+    "Counters: continuation_cumulative_counters yields 228 + 72 = 300. Competence predicate in the launcher (mean_alive_frames >= 3060) matches survival_gate.progress_passed for D2.",
+    "Preconditions: learning/runs/v2/D2-continuation-20261025-r2 absent; cancel-requested absent; empty-pycache-prefix empty; active_long_campaign currently null (the parent must install the exact lease dict before launch)."
+  ],
+  "limits_of_this_review": [
+    "No torch.load of parent checkpoint. Parent internal fields (tag, phase_update, registration_sha256, abandoned episodes) rely on actual_parent_restore.log, not on my reading.",
+    "Only the 13 runtime-package members were rehashed. Full 13744-pin rehash not repeated; the r3 pin_audit.log and r4 full_preflight.log cover it.",
+    "Test diff was reviewed through its first 120 changed lines plus the constants; the full test-suite diff was not exhaustively read.",
+    "The r3 failed preflight (stale lease run_id) is not cited as a current blocker; r4 corrected it."
+  ],
+  "inspected_inputs_sha256": {
+    "learning/runs/v2/D2-continuation180-parent-repair-20261025-r3/runner.py": "d3dc12b9301e4750d7ab2a8137c8aaa09de9d8175ac6ccc177e5076059310fb3",
+    "learning/runs/v2/D2-continuation180-parent-repair-20261025-r3/execute_once.py": "0e0a85a33ea8463f565acf19a124b994a54084d9b403fcd13e14d2ff5af45423",
+    "learning/runs/v2/D2-continuation180-parent-repair-20261025-r3/test_continuation_contract.py": "8e3825401f3047013c95ba34707ecfdc6410fee68faef78e3d51f6c4aac9faa3",
+    "learning/runs/v2/D2-continuation180-parent-repair-20261025-r3/test_launcher_lifecycle.py": "9503808451fad4e2fb2a02ced684d849ce588df627cbed4f465ece7b3451c555",
+    "learning/runs/v2/D2-continuation180-parent-repair-20261025-r3/test_outputs.py": "fc073030a4f76e410d5342b9975fe22a01f75bc4f145fe1563f1744b2135ffa4",
+    "learning/runs/v2/D2-continuation180-parent-repair-20261025-r3/test_torch_restore.py": "af6e9978a588ab46082f2ae958e6698d96aca0e60c872e72e54184a451924a77",
+    "learning/runs/v2/D2-continuation180-parent-repair-20261025-r3/test_capsule_support.py": "a39c24ba55dac28f9f0b87dd3594e096ab71d651e579c4ab44247a29c0945a41",
+    "learning/runs/v2/D2-continuation180-parent-repair-20261025-r3/validate_registration_keys.py": "288c549cd1c3a06d4fbcdfd333ce95378fa53bb292581f26c36f22d4feb05f3b",
+    "learning/runs/v2/D2-continuation180-parent-repair-20261025-r3/smoke_runtime.py": "79f8c5f508cd09d803c33835fe082580cbdf060889d7b7e5301022ef232101c5",
+    "learning/runs/v2/D2-continuation180-parent-repair-20261025-r3/compare_smoke.py": "aae05cba40f35a13184e4dac63709ec570f7e377f9fde2e8e40a81d1cba51341",
+    "learning/runs/v2/D2-continuation180-parent-repair-20261025-r3/preflight_prepare.py": "4d20b8a9b7235d6a9f764124a0e2f9a1df6b4374d00acdb0863178eaafcaca81",
+    "learning/runs/v2/D2-continuation180-parent-repair-20261025-r3/preparation-receipt.json": "10a500142b4d6c3989513ba871f2dbee1c1d0ef8b3f600c8aadc6b05add3e92b",
+    "learning/runs/v2/D2-continuation180-parent-repair-20261025-r3/full_preflight.log": "6c24742f23173bb81aec0f00b82e1a8a7e1866613ddceca9ab5d622016fb4fa3",
+    "learning/runs/v2/D2-continuation180-parent-repair-20261025-r3/pin_audit.log": "487c23c4514ae2dad22cedc6e7a836c82a963f4fe2dd964e9e2be21f1f389ba1",
+    "learning/runs/v2/D2-continuation180-parent-repair-20261025-r3/actual_parent_restore.log": "6c9c184a1698a167a7f6067dbd4f6d8b165146e64ac73f820a5c4605d0225dbd",
+    "learning/runs/v2/D2-continuation180-parent-repair-20261025-r3/protocol_smoke.log": "8317b3d3077ab64e4113e89c0c2f0a24ad06f9d70698bad70ced39dce348603e",
+    "learning/runs/v2/D2-continuation180-parent-repair-20261025-r3/contracts.log": "fa88551e35838b5fc8708dd27c92d60e3c01a3e0c982c6ac07124d2244c30e08",
+    "learning/runs/v2/D2-continuation180-parent-repair-20261025-r3/validation-plan.json": "4e38997eb855568619da3f0f6aa758b41f3d6cdb391ecc73ad521a0807ccf02f",
+    "learning/runs/v2/D2-continuation180-parent-repair-20261025-r3/registration-proposed.json": "f4b89a7aecc6c51145c4f4fb66bfcafa6c751d6d2b849f02d7d278aa7e1db0a9",
+    "learning/runs/v2/D2-continuation180-parent-freeze-20261025-r4/registration-proposed.json": "0059ce1a3f2dae18a34b085b57b251c115ac53e7bc82835a6eff2164ac70e949",
+    "learning/runs/v2/D2-continuation180-parent-freeze-20261025-r4/preparation-receipt.json": "cd901b278199a21ee6afebfd59c7e1f2fc8fd3f8a7eb67440ff90e118ebda73e",
+    "learning/runs/v2/D2-continuation180-parent-freeze-20261025-r4/input-manifest.json": "d682d1a694fe4a1e3e57f4291e42e24505ffa8182a07688ca3748b5d56dd81f2",
+    "learning/runs/v2/D2-continuation180-parent-freeze-20261025-r4/validation-plan.json": "fabd03508ea9a0d96190f2e479f0d7a27c6e35fd4da075399e20fe0c1c146bcc",
+    "learning/runs/v2/D2-continuation180-parent-freeze-20261025-r4/full_preflight.log": "55553278a3e8492369ffafae4db615ea63e13d4267c7142e2dbe82f6e55351cd",
+    "learning/runs/v2/D2-gradient-alignment-20261025-r2/checkpoint-000180-candidate.pt": "105e0f7a83e154116bd9f0d5eaaf573a896886468c9038f548f5ce7e6377c7ea",
+    "learning/runs/v2/D2-gradient-alignment-20261025-r2/checkpoint-000180-candidate.pt.json": "350b629e31b9c593f02c877623e53f45f2fdd60241a909122907d1dab67ac1ae",
+    "learning/runs/v2/D2-gradient-alignment-20261025-r2/development-000180.json": "2456bef85e7203d60496a6600631613a7dbc2987467d63d467dfec048f3d5680",
+    "learning/runs/v2/D2-gradient-alignment-20261025-r2/worker-result.json": "f9d1b9ccefba7fd95f111f6304b12767b5633acc062c74697fb4cfa3478a0903",
+    "learning/runs/v2/d2-gradient-parent-terminal-audit-20261025-r2/parent-terminal-receipt.json": "7968a62b6e601fab971e4145dbaebfa1995c8f696e6df442ab70fc0435b74903",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/registration-proposed.json": "6f4adf808789655a663800a1e4a0613192d02b0c8287d121455ea748fe043916",
+    "learning/runs/v2-orchestration/state.json": "d5615872aeff5fbac8048b2fd5ba3d7a7f358be47028ec1d9395eb527c81878c"
+  },
+  "runtime_verification": {
+    "runtime_root": "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime",
+    "member_count": 13,
+    "member_map_equals_disk": true,
+    "runtime_digest_from_pins_equals_PARENT_RUNTIME_SHA": true,
+    "PARENT_RUNTIME_SHA": "2cf10e9f056f41b39dc17845192e9adf553a5f699546d4f5dcea764a23e36b31"
+  },
+  "writes": ["learning/runs/v2/D2-continuation180-frozen-review-haiku-20261025-r4/review-receipt.json"],
+  "frozen_sources_or_pins_modified": false
+}

@@ -1,0 +1,98 @@
+{
+  "schema": "d2_retained276_lr3em5_review_v2",
+  "reviewer": "claude-haiku-5-5",
+  "round": "R2",
+  "scope": "frozen source-only review of learning/runs/v2/D2-retained276-lr3em5-prepare-luna-20261026-r2/ against R1 failure audit",
+  "method": "static read and hash comparison only; no imports, checkpoint loads, MPS, env, training, launch, marker, state, or lease actions; tests not executed",
+  "production_defect_closed": true,
+  "production_defect_evidence": "execute_once.py:288 now calls registration_schema.validate_identity(reg); the R1 hardcoded d2_retained276_continuation_registration_v1 guard is gone. Grep finds no remaining old-schema acceptance in launch code (only a negative test fixture in test_execute_registration_boundary.py:52).",
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "medium",
+      "verdict": "CONFIRMED",
+      "file": "learning/runs/v2/D2-retained276-lr3em5-prepare-luna-20261026-r2/wrapper.py",
+      "line": 33,
+      "summary": "AUD_SHA pin does not match the on-disk auditor it guards.",
+      "detail": "wrapper.py:33 pins AUD_SHA = 884cf86a3b044c8664873221505d6e64022a1303ed067116174c585682760285. The file it loads, wrapper.py:32 AUD_PATH = OUT/audit_candidates.py, hashes to 604133a1b3dc34616cee2401662c573662c9475363d2c2e0254aeffa2094bcb7. freeze-hashes.json:55 records that same 604133 value, so the disk file and freeze manifest agree and the wrapper pin is the stale value. load_auditor (wrapper.py:103-106) fails closed with 'Auditor source digest differs'. run_audit (wrapper.py:226) and the pins-unchanged gate (wrapper.py:245) use the same pin.",
+      "failure_scenario": "Any invocation of wrapper.py run_audit or full_mode (wrapper.py:217, 274) raises before the audit runs.",
+      "consequence": "Post-run audit is blocked. Fail-closed, so no bypass and no false pass. Grep shows execute_once.py does not call the wrapper audit path, so the launch path itself is not shown to be blocked; the parent should confirm this.",
+      "fix": "Repin AUD_SHA to 604133a1b3dc34616cee2401662c573662c9475363d2c2e0254aeffa2094bcb7 only after the separate six-candidate auditor rebind the brief requires, or make the rebind the owner of that value."
+    },
+    {
+      "id": "F2",
+      "severity": "low",
+      "verdict": "CONFIRMED",
+      "file": "learning/runs/v2/D2-retained276-lr3em5-prepare-luna-20261026-r2/execute_once.py",
+      "line": 291,
+      "summary": "The one-use launch marker is written before the registration digest is verified.",
+      "detail": "execute() validates identity (line 288), mkdirs the output (line 290), and saves launch-marker.json (lines 291-292). Only then does load_registration (line 313, which checks sha(path)==expected_sha at runner.py:362) run. A call with a valid-shape registration and a wrong registration_sha therefore consumes the single-use marker and launches nothing. R1 also recorded marker consumption as a failure mode.",
+      "failure_scenario": "execute(valid_v2_registration, wrong_sha) writes launch-marker.json, then raises 'External registration digest differs'. A later correct call sees the marker already present.",
+      "consequence": "A caller error burns the one-use marker before any worker starts. Documented in the code comment as intended ('exclusive marker precedes verified registration loading'), so this is a design choice, not a bypass. Flagged because it repeats the R1 consumption symptom.",
+      "fix": "Optional: verify the registration digest before the marker write, or record the failure separately. Parent decides."
+    },
+    {
+      "id": "F3",
+      "severity": "low",
+      "verdict": "CONFIRMED",
+      "file": "learning/runs/v2/D2-retained276-lr3em5-prepare-luna-20261026-r2/test_execute_registration_boundary.py",
+      "line": 11,
+      "summary": "ROOT in the boundary regression is computed one directory too high and is unused.",
+      "detail": "The file is at learning/runs/v2/<prep>/; parents[3] is the repo root and parents[4] is its parent. ROOT is never referenced in the file. Dead code, not a correctness failure.",
+      "failure_scenario": "None at runtime; a future use of ROOT would resolve outside the repo.",
+      "consequence": "Cosmetic, but misleading for a regression file that is meant to be exact.",
+      "fix": "Delete ROOT, or use parents[3]."
+    },
+    {
+      "id": "F4",
+      "severity": "low",
+      "verdict": "PLAUSIBLE",
+      "file": "learning/runs/v2/D2-retained276-lr3em5-prepare-luna-20261026-r2/execute_once.py",
+      "line": 18,
+      "summary": "registration_schema is imported before its pin is verified.",
+      "detail": "execute_once.py:18 and runner.py:21 import registration_schema from the script directory at module load. The registration pins registration_schema.py (f8956515...), and that matches disk, but verify_pins runs later inside load_registration (runner.py:363). A modified registration_schema.py would execute before the pin check.",
+      "failure_scenario": "A tampered registration_schema.py in the frozen prep directory runs its module body before any pin check.",
+      "consequence": "Trust in the shared schema module rests on directory freeze, the same trust the launcher and runner already place in their own source. Not a new bypass; noted for completeness.",
+      "fix": "Optional: verify the module hash in the wrapper before launch, or accept the existing freeze model."
+    },
+    {
+      "id": "F5",
+      "severity": "low",
+      "verdict": "PLAUSIBLE",
+      "file": "learning/runs/v2/D2-retained276-lr3em5-prepare-luna-20261026-r2/test_execute_registration_boundary.py",
+      "line": 1,
+      "summary": "Boundary regression covers only the execute() entry; the runner-side identity rejection has no test.",
+      "detail": "The test exercises execute_once.execute with reached and rejected cases. runner.validate_registration calls the same validate_identity (runner.py:125ish) but no test drives it with the wrong schema, run_id, or output.",
+      "failure_scenario": "A future edit that removes the runner's validate_identity call would not be caught by this test.",
+      "consequence": "Coverage gap for the second entry point the brief names.",
+      "fix": "Add a runner.validate_registration rejection case to the same regression file."
+    },
+    {
+      "id": "F6",
+      "severity": "info",
+      "verdict": "PLAUSIBLE",
+      "file": "learning/runs/v2/D2-retained276-lr3em5-prepare-luna-20261026-r2/audit_candidates.py",
+      "line": 127,
+      "summary": "Auditor drops the PYTHONPATH-unset check and one Entry Adam mutation test relative to R1.",
+      "detail": "R1 audit_candidates.py:127 had check('PYTHONPATH' not in os.environ). R2 removes it. R1 test_audit_candidates.py:139-140 had the Entry Adam mutation test; R2 removes it. The brief says the embedded auditor is inactive until a separate six-candidate rebind, so this is informational. test_audit_candidates.py in R2 is pinned in freeze-hashes.json.",
+      "failure_scenario": "None for the launch path. The auditor's environment check is weaker in R2.",
+      "consequence": "Informational. Rebind should decide whether the check and test return.",
+      "fix": "Restore the removed check and test in the rebind, or record why they were dropped."
+    }
+  ],
+  "verified_non_findings": [
+    "Hashes match the brief: registration_schema.py f8956515, execute_once.py fd7298a8, runner.py 013ef0b5, test acec2d1c, registration.json 8e17e118.",
+    "Schema, run_id, and output identity are checked by one shared function (registration_schema.validate_identity) used by both execute_once.py:288 and runner.py validate_registration.",
+    "Schema v2 and RUN_ID D2-retained276-lr3em5-20261026-r2 match registration.json. No launch-code path accepts the R1 schema.",
+    "registration.json is not in its own pins, and the pins for runner, execute_once, registration_schema, lr_transition, and config match disk. Pins are non-circular.",
+    "Cost anchor: registration sha 711b2949fb4123381d9af6618e47f4628540f424a0973785bb6392e14169b4c3 matches disk; receipt fields (348 phase updates, 72 local updates, counters) match runner.py:412-416.",
+    "Parent terminal receipt d64d0f803d02a8d2 matches the brief."
+  ],
+  "uncertainties": [
+    "Tests were not executed. Running them imports execute_once and runner, which the brief forbids. All verdicts are static reads and hash comparisons.",
+    "Whether wrapper.py's auditor path is on the launch path is inferred from grep, not from a run.",
+    "No runtime, RSS, MPS, or resource evidence was available or examined; the 6GiB separate-measurement claim is unverified here.",
+    "The six-candidate auditor rebind is out of scope; F1 and F6 are input to it, not verdicts on it."
+  ],
+  "overall": "No blocking defect in the R1 fix. One medium fail-closed pin defect (F1) in the post-run audit wrapper. Low-severity items F2-F6 are advisory."
+}

@@ -1,0 +1,33 @@
+# r7 handoff: source preparation and one stdlib stage only
+
+Read `implementation-result.json`, the registered unit command, raw exit/logs, suite counts and unrun list first. Any unexpected failure ends this candidate's validation. Do not patch or repeat its stage; reconcile a distinct candidate if needed. Source ownership is released for immutable review at handoff. No production registration, freeze, lease, OS scenario, stress, startup rehearsal or training was performed by this implementation task.
+
+## Source and protocol
+
+1. Verify `source-manifest.json`, `evidence-manifest.json`, `candidate.diff`, input pins and the unchanged eight r6 parent pins. Treat the ledger state hash as contextual only. The exact `original-source/` fixture copy is retained; `r6-source/` is comparison provenance, never a fresh envelope or runtime capsule.
+2. Reconcile the source and current unit evidence. `validate_wait_reports` and `accept_observed` must remain byte-equal to r6. The learner, schedule, worker ML try body, legacy checks, forced active boundaries, fresh scandir, full endpoint bytes, config, seed and eligible D1 lineage remain unchanged. The new process helper validates raw direct observations; all preexisting process functions remain byte-equal.
+3. Parent alone publishes the exact bytes of `protocol-r6-proposal.json` as `learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r6.json`. Its hash is pinned in the controller. If the parent changes any proposed bytes, a distinct reviewed controller pin is required. The proposal derives from current external r5 with only candidate paths and explicit timestamp/reaping semantics changed; config and parent lineage are identical.
+4. Parent alone registers and executes a fresh freeze (`freeze.py`) with the alias interpreter, `-B`, explicit source identity and a fresh empty cache prefix. No old capsule, attempts, identity, classification, registration, invocation, cache or lease may be reused as current. The acyclic leaf/classification/identity/capsule/external-registration/parent-invocation order and all historical 10091/9870/9675 bindings remain required. Counts for a newly frozen r7 are to be measured, never copied from r6's B235/R37/A9998/119 files.
+5. Obtain a fresh exact-source adversarial review and reconcile it. Parent owns the order and registration of subsequent bounded validation and any acceptance. Neither this handoff nor a passing unit suite is campaign acceptance.
+
+## Runtime evidence still required
+
+Preregister fresh once-only, stop-on-first-unexpected-failure OS, contention and startup stages, with frozen source/command/env and complete raw receipts. No identical failed attempt retry. Preserve every prior failure and unrun case as historical. The OS list still contains all 15 originally planned cases, including the six historically unrun after r6's ninth failure: direct-cancel-wait, missing-worker-ACK, parent-death, surviving-descendant, normal-deadline-wedged and RSS-resource-cap. The `os_checks.py` fixture writes expectation class and expected raw exit into options before launch.
+
+Successful closure still requires both exact direct-parent waits/raw outcomes/deadlines/PIDs/parent order, positive group absence, and unchanged real `accept_observed` predicates. A failure with a live supervisor requires a worker wait whenever the worker was positively spawned. The specific blocked-worker parent crash requires registration, blocked-entry and positive live-worker/no-prior-wait milestones before injected raw 7, accepted=false, both independently absent groups and explicit unproven worker reaping. A legitimate earlier worker wait followed by later supervisor death is not globally called fabricated. Missing receipts, empty absence, absent milestones or unentered wedged loops fail.
+
+The startup cancel hook remains the actual worker Popen boundary. The new blocked-parent-crash milestone waits within the existing normal cutoff for the positive worker entry and live parent/PID census; failure to reach it fails the scenario, never silently skips it. These hooks have only static review and pure fixture-predicate evidence here, not OS proof.
+
+Register a distinct single contention stage <=120 seconds and a single startup-only rehearsal <=120 seconds if source/unit/review reconciliation permits. Retain all full B/R/A endpoint bytes and forced B plus genuine legacy75/origin/runtime/cache checks; no five-second byte watchdog or skipped boundaries. Startup's previously authorized architecture-only constructor and RNG save/restore scope does not authorize D1 decode, environment construction, inference or gradients. No performance claim follows from these source repairs.
+
+## Failure-path limits
+
+The source time is the successful waitpid observation, not an inferred exit time. Earlier peer/guard/cancel/alarm/deadline observations win; exact ties follow the existing stable candidate order and an already latched global tie remains unchanged. Main stamps a nonzero retained report before terminal drain.
+
+Mandatory inner failure publication precedes fallback/reap, guard joins, stream/gate closes and optional diagnostics. After failure ACK and nonblocking closes, the supervisor polls its exact child until the current shared deadline minus 1.0 second. The executor remains sole TERM/KILL owner. Child constructor failure is guarded and diagnostic, not risk-free. Worker-wait attempts are marked before send on normal and failure paths and never retried. Missing ACK skips extended reap and optional reap-diagnostic writes; worker write permissions remain unchanged.
+
+The first inner receipt is immutable and may honestly say worker reaping is still unproven. Later actual reports use existing IPC. Optional `inner-reap-diagnostic.json` records bounded constructor/poll/send errors under the same pool; it is not acceptance or proof of packet delivery. The executor attempts at most four bounded final pumps before constructing its failed receipt, within the existing final .25-second reserve, and derives reaping status only from validated reports. Reset diagnostics remain retained. No queued-message arrival or OS scheduling guarantee is claimed.
+
+All reserves are internal allocations of `min(previous, earliest_failure+10, T0+7210)`, never added time. Cap-truncated or uninterruptible reaping stays unproven. Cleanup completeness remains actual owned absence evidence, independent of direct reaping. Publication itself can fail or be truncated at the cap.
+
+The still-unused 7200-second D2 experiment remains parent-owned. No student/D3/B/E, failed-weight resume, same-phase resume, automatic retry, scheduler, commit, PR or deployment follows automatically.

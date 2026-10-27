@@ -1,0 +1,892 @@
+--- learning/runs/v2/confirmed324-probe-venv-source-repair-luna-20261026-r3/build_registration.py
++++ learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/build_registration.py
+@@ -10,10 +10,10 @@
+ FINGERPRINT=RUN.parent/'confirmed324-transition-parent-repair-20261026-r3'/'fingerprints.py'
+ PRIMITIVE_SHA='4a5d084359ee48fe5351c96e0ec4455fdcd95a428a17bbcf59d0653f6922de98'
+ def sha(p): return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+-def build(*,state_path,expected_lease,marker_path,cancel_path,output_path,python_path,runtime_root,empty_cache_path):
++def build(*,state_path,expected_lease,marker_path,cancel_path,output_path,python_path,runtime_root,empty_cache_path,expected_venv_prefix=None):
+  vraw=VECTORS.read_bytes(); vectors=json.loads(vraw)
+  import probe
+  probe.validate_vectors(vectors)
+  src={'worker_path':str(RUN/'worker_cli.py'),'worker_sha256':sha(RUN/'worker_cli.py'),'supervisor_path':str(RUN/'supervisor_cli.py'),'supervisor_sha256':sha(RUN/'supervisor_cli.py'),'probe_path':str(RUN/'probe.py'),'probe_sha256':sha(RUN/'probe.py'),'fingerprint_path':str(FINGERPRINT),'fingerprint_sha256':sha(FINGERPRINT),'cleanup_primitives_sha256':PRIMITIVE_SHA}
+- return {'schema':'d2_layerb_rng_reference_probe_registration_v1','status':'draft_parent_review_required','authority':'none_until_parent_registration_review_and_lease_installation','run_id':'PENDING_PARENT_UNIQUE_RUN_ID','study_id':vectors['study_id'],'source':src,'runtime':{'python_path':str(Path(python_path).absolute()),'python_version':'3.12.15','interpreter_sha256':sha(python_path),'runtime_root':str(Path(runtime_root).resolve()),'torch_version':'2.14.1','numpy_version':'2.5.4','empty_cache_path':str(Path(empty_cache_path).resolve()),'pycache_policy':'PYTHONDONTWRITEBYTECODE=1 -B; ownedemptycache'},'vectors_path':str(VECTORS.resolve()),'vectors_sha256':hashlib.sha256(vraw).hexdigest(),'vectors':vectors,'checkpoint_path':str(CHECKPOINT.resolve()),'checkpoint_sha256':sha(CHECKPOINT),'parent_receipt_path':str(PARENT_RECEIPT.resolve()),'parent_receipt_sha256':sha(PARENT_RECEIPT),'acceptance_path':str(ACCEPTANCE.resolve()),'acceptance_sha256':ACCEPTANCE_SHA,'state_path':str(Path(state_path).resolve()),'expected_lease':expected_lease,'one_shot_marker':str(Path(marker_path).resolve()),'cancel_path':str(Path(cancel_path).resolve()),'output_dir':str(Path(output_path).resolve()),'limits':{'work_seconds':45,'outer_seconds':55,'cleanup_seconds':10,'startup_grace_seconds':12,'RSS_bytes':6*1024**3,'MPS_driver_bytes':6*1024**3,'guard_poll_seconds':.2,'heartbeat_stale_seconds':2.0},'references':{'required_replicas':[1,2,3],'receipt_fields':sorted(probe.RECEIPT_FIELDS),'same_reference_for_both_arms':True}}
++ return {'schema':'d2_layerb_rng_reference_probe_registration_v1','status':'draft_parent_review_required','authority':'none_until_parent_registration_review_and_lease_installation','run_id':'PENDING_PARENT_UNIQUE_RUN_ID','study_id':vectors['study_id'],'source':src,'runtime':{'python_path':str(Path(python_path).absolute()),'expected_venv_prefix':str(Path(expected_venv_prefix).absolute() if expected_venv_prefix is not None else Path(python_path).absolute().parent.parent),'python_version':'3.12.15','interpreter_sha256':sha(python_path),'runtime_root':str(Path(runtime_root).resolve()),'torch_version':'2.14.1','numpy_version':'2.5.4','empty_cache_path':str(Path(empty_cache_path).resolve()),'pycache_policy':'PYTHONDONTWRITEBYTECODE=1 -B; ownedemptycache'},'vectors_path':str(VECTORS.resolve()),'vectors_sha256':hashlib.sha256(vraw).hexdigest(),'vectors':vectors,'checkpoint_path':str(CHECKPOINT.resolve()),'checkpoint_sha256':sha(CHECKPOINT),'parent_receipt_path':str(PARENT_RECEIPT.resolve()),'parent_receipt_sha256':sha(PARENT_RECEIPT),'acceptance_path':str(ACCEPTANCE.resolve()),'acceptance_sha256':ACCEPTANCE_SHA,'state_path':str(Path(state_path).resolve()),'expected_lease':expected_lease,'one_shot_marker':str(Path(marker_path).resolve()),'cancel_path':str(Path(cancel_path).resolve()),'output_dir':str(Path(output_path).resolve()),'limits':{'work_seconds':45,'outer_seconds':55,'cleanup_seconds':10,'startup_grace_seconds':12,'RSS_bytes':6*1024**3,'MPS_driver_bytes':6*1024**3,'guard_poll_seconds':.2,'heartbeat_stale_seconds':2.0},'references':{'required_replicas':[1,2,3],'receipt_fields':sorted(probe.RECEIPT_FIELDS),'same_reference_for_both_arms':True}}
+ if __name__=='__main__': raise SystemExit('Import build() to create a draft; parent must complete and approve registration before execution.')
+--- /dev/null
++++ learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/finalize_preparation.py
+@@ -0,0 +1,89 @@
++"""Generate owned inert preparation artifacts and verify the frozen read set."""
++import ast
++import copy
++import datetime
++import difflib
++import hashlib
++import json
++import os
++from pathlib import Path
++import re
++import sys
++
++RUN=Path(__file__).absolute().parent
++ROOT=RUN.parents[3]
++OLD=RUN.parent/'confirmed324-probe-venv-source-repair-luna-20261026-r3'
++PARENT=RUN.parent/'confirmed324-rng-reference-parent-20261026-r1'/'registration-final.json'
++PARENT_SHA='e0e94321c17dbfc69cbde7da689bab43f8d7088a9c59cda6f30be9727b58f56b'
++
++def sha(p): return hashlib.sha256(Path(p).read_bytes()).hexdigest()
++def load(p): return json.loads(Path(p).read_text())
++def save(name,obj): (RUN/name).write_text(json.dumps(obj,sort_keys=True,indent=2)+'\n')
++def info(p): return {'path':str(Path(p).absolute()),'bytes':Path(p).stat().st_size,'sha256':sha(p)}
++
++def main():
++    assert Path(sys.executable).absolute()==ROOT/'python/.venv/bin/python'
++    assert sys.prefix==str(ROOT/'python/.venv')
++    assert sys.dont_write_bytecode and os.environ['PYTHONDONTWRITEBYTECODE']=='1'
++    assert os.environ['PYTHONPYCACHEPREFIX']==str(RUN/'empty-pycache')
++    assert sha(PARENT)==PARENT_SHA
++    before=load(RUN/'preservation-before.json'); original=load(PARENT)
++    preservation=[]
++    for row in before['files']:
++        try:
++            actual=sha(row['path'])
++            preservation.append(dict(row,after_sha256=actual,unchanged=actual==row['sha256']))
++        except OSError as e: preservation.append(dict(row,unchanged=False,error=str(e)))
++    parent_states={k:Path(original[k]).exists() for k in ('one_shot_marker','cancel_path','output_dir')}
++    caches={str(p):{'exists':p.exists(),'is_directory':p.is_dir(),'entries':sorted(x.name for x in p.iterdir()) if p.is_dir() else None} for p in (RUN/'empty-pycache',OLD/'empty-pycache',Path(original['runtime']['empty_cache_path']))}
++    unchanged=all(x['unchanged'] for x in preservation)
++    immutable_unchanged=all(x['unchanged'] for x in preservation if x['path']!=original['state_path'])
++    state_observation=next(x for x in preservation if x['path']==original['state_path'])
++    save('preservation-after.json',{'files':preservation,'all_snapshotted_files_unchanged':unchanged,'immutable_read_set_unchanged':immutable_unchanged,'state_writes_by_this_task':0,'orchestration_state_observation':state_observation,'parent_paths_exist':parent_states,'caches':caches})
++    assert immutable_unchanged,'immutable read-set drift: inspect preservation-after.json; do not repair frozen files'
++    # The independently managed orchestration state is an observation, never our output.
++    # Preserve its before/after hashes; do not reset it to make preservation pass.
++    assert not any(parent_states.values())
++    assert all(row['exists'] and row['is_directory'] and row['entries']==[] for row in caches.values())
++
++    sys.path.insert(0,str(RUN))
++    import build_registration
++    lease=copy.deepcopy(original['expected_lease'])
++    lease.update(run_id='PENDING_PARENT_UNIQUE_RUN_ID',owner_token='PENDING_PARENT_OWNER_TOKEN',registration_path=str(RUN/'proposed-parent'/'registration-final.json'))
++    draft=build_registration.build(state_path=original['state_path'],expected_lease=lease,marker_path=RUN/'proposed-parent'/'one-shot.claimed',cancel_path=RUN/'proposed-parent'/'CANCEL',output_path=RUN/'proposed-parent'/'outputs',python_path=original['runtime']['python_path'],runtime_root=original['runtime']['runtime_root'],empty_cache_path=RUN/'empty-pycache',expected_venv_prefix=original['runtime']['expected_venv_prefix'])
++    assert set(draft)==set(original)
++    unchanged_contract=('schema','study_id','vectors_path','vectors_sha256','vectors','checkpoint_path','checkpoint_sha256','parent_receipt_path','parent_receipt_sha256','acceptance_path','acceptance_sha256','state_path','limits','references')
++    assert all(draft[k]==original[k] for k in unchanged_contract)
++    assert {k:v for k,v in draft['runtime'].items() if k!='empty_cache_path'}=={k:v for k,v in original['runtime'].items() if k!='empty_cache_path'}
++    assert draft['source']['fingerprint_path']==original['source']['fingerprint_path']
++    assert draft['source']['fingerprint_sha256']==original['source']['fingerprint_sha256']
++    assert draft['source']['cleanup_primitives_sha256']==original['source']['cleanup_primitives_sha256']
++    assert draft['status']=='draft_parent_review_required'
++    save('registration-template.json',draft)
++
++    sources=sorted(RUN.glob('*.py'))
++    for p in sources: ast.parse(p.read_bytes(),filename=str(p))
++    diff=[]
++    for p in sources+[RUN/'README.md']:
++        old=OLD/p.name
++        a=old.read_text().splitlines(keepends=True) if old.exists() else []
++        diff.extend(difflib.unified_diff(a,p.read_text().splitlines(keepends=True),fromfile=str(old.relative_to(ROOT)) if old.exists() else '/dev/null',tofile=str(p.relative_to(ROOT))))
++    (RUN/'exact-diff.patch').write_text(''.join(diff))
++    external=[Path(original['source']['fingerprint_path']),RUN.parent/'confirmation-proof-binding-parent-repair-20261026-r4'/'execute_once.py']
++    source_manifest={'schema':'confirmed324_probe_r4_authoritative_source_manifest_v1','authoritative':True,'hash_algorithm':'sha256','source_directory':str(RUN),'files':[info(p) for p in sources],'external_pinned_source':[info(p) for p in external],'probe_unchanged_from_R3':sha(RUN/'probe.py')==sha(OLD/'probe.py'),'interpreter_invocation':info(ROOT/'python/.venv/bin/python')}
++    save('source-hashes.json',source_manifest)
++    log=(RUN/'tests.log').read_text(); match=re.search(r'Ran (\d+) tests in ([0-9.]+)s\n\nOK\s*$',log)
++    assert match and int(match[1])==33
++    assert log.count(' ... ok')==33
++    methods=re.findall(r'^(test_\w+) \(([^)]+)\) \.\.\. ok$',log,re.MULTILINE)
++    save('test-results.json',{'schema':'synthetic_control_results_v1','passed':33,'failed':0,'original_controls_replayed':7,'new_controls':26,'elapsed_seconds':float(match[2]),'tests':[{'method':m,'class':c} for m,c in methods],'final_test_exit_code':0,'initial_development_result':'30 controls; one test-count assertion expected 20 rather than 19; retained tests-initial.log','real_generator_reference_proof':False})
++    receipts=[]
++    for p in sorted((RUN/'test-tmp').glob('*/out/outer-receipt.json')):
++        rec=load(p); receipts.append(dict(info(p),status=rec['status'],stop_reason=rec['stop_reason'],raw_worker_exit_code=rec['raw_worker_exit_code'],process_group_absent=rec['process_group_absent']))
++    assert all(row['process_group_absent'] for row in receipts)
++    save('synthetic-receipt-index.json',{'scope':'synthetic-only retained initial and final fixtures; no actual parent outputs','receipts':receipts})
++    artifacts=['README.md','registration-template.json','exact-diff.patch','source-hashes.json','tests.log','tests-initial.log','test-results.json','synthetic-receipt-index.json','preservation-before.json','preservation-after.json','finalization-initial.log']
++    save('receipt.json',{'schema':'confirmed324_probe_signal_postflight_repair_preparation_v1','status':'source_prepared_not_registered_not_runtime_qualified','created_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'owned_output':str(RUN),'role':'implementation_sub_agent','findings_repaired':['F1/P1','F2/P1','F3/P2','F4/P2','F5/P2'],'source_manifest':info(RUN/'source-hashes.json'),'original_registration':info(PARENT),'expected_original_registration_sha256':PARENT_SHA,'accepted_checkpoint_sha256':original['checkpoint_sha256'],'accepted_integrity_receipt_sha256':original['parent_receipt_sha256'],'accepted_parent_record_sha256':original['acceptance_sha256'],'contract_fields_preserved':list(unchanged_contract),'runtime_contract_preserved_except_owned_cache_path':True,'limits_unchanged':draft['limits'],'test_summary':load(RUN/'test-results.json'),'actual_interpreter':{'invocation':sys.executable,'version':sys.version,'version_short':sys.version.split()[0],'prefix':sys.prefix,'bytecode_disabled':sys.dont_write_bytecode,'cache':str(RUN/'empty-pycache'),'cache_empty':True},'test_command':'PYTHONDONTWRITEBYTECODE=1 PYTHONPYCACHEPREFIX="'+str(RUN/'empty-pycache')+'" '+str(ROOT/'python/.venv/bin/python')+' -B -m unittest discover -s '+str(RUN)+" -p 'test_*.py' -v",'preservation':{'all_snapshotted_files_unchanged':unchanged,'parent_marker_cancel_output_still_absent':True,'root_README_unchanged':True,'parent_state_unchanged':state_observation['unchanged'],'state_writes_by_this_task':0,'immutable_read_set_unchanged':immutable_unchanged,'orchestration_state_drift_observed':not state_observation['unchanged'],'frozen_predecessors_unchanged':True},'execution_scope':{'stdlib_and_inert_source_only':True,'Torch_NumPy_native_project_imports':0,'checkpoint_deserializations':0,'actual_RNG_MPS_calls':0,'models_environments_training_evaluation':0,'actual_campaign_launches':0,'actual_parent_markers_claimed':0,'actual_leases_installed_or_cleared':0,'subdelegations':0,'synthetic_claims_and_subprocesses_only_below_owned_output':True},'evidence_limits':['Synthetic controls and static source preparation only; no real CPU/MPS reference, timing/resource qualification or runtime dependency version verification.','55-second worker/cleanup decisions do not hard-bound blocking filesystem/hash/fsync/receipt finalization.','Startup imports precede first MPS heartbeat; final forced sampling is implemented and fake-cap tested only.','No package-byte pinning claim; runtime_root remains recorded metadata.','Exclusive final JSON writes may leave partial files; no atomic visibility or directory-fsync crash durability claim.','Snapshot equality covers enumerated read set, not every file in the repository.'],'remaining_gates':['Parent review of delivered exact source hashes and controls','Parent successor identity/destination and final registration freeze','Parent fresh live-state audit, exact-lease installation and complete preflight','Separately authorized exactly-once real run and parent output acceptance'],'artifacts':[info(RUN/name) for name in artifacts]})
++    print(json.dumps({'status':'prepared','controls_passed':33,'source_files':len(sources),'preservation_observations':len(preservation),'immutable_read_set_unchanged':immutable_unchanged,'orchestration_state_unchanged':state_observation['unchanged'],'source_manifest_sha256':sha(RUN/'source-hashes.json'),'receipt_sha256':sha(RUN/'receipt.json')},sort_keys=True))
++
++if __name__=='__main__': main()
+--- learning/runs/v2/confirmed324-probe-venv-source-repair-luna-20261026-r3/supervisor_cli.py
++++ learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/supervisor_cli.py
+@@ -5,9 +5,14 @@
+ PRIMITIVES=Path(__file__).parents[1]/'confirmation-proof-binding-parent-repair-20261026-r4'/'execute_once.py'
+ def sha(p): return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+ def read(p): return json.loads(Path(p).read_text())
+-def exclusive_json(path,obj):
++def exclusive_json(path,obj,on_created=None):
+  p=Path(path); p.parent.mkdir(parents=True,exist_ok=True); raw=(json.dumps(obj,sort_keys=True)+'\n').encode(); fd=os.open(p,os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)
+- with os.fdopen(fd,'wb') as f: f.write(raw); f.flush(); os.fsync(f.fileno())
++ try:
++  if on_created is not None: on_created(fd)
++  with os.fdopen(fd,'wb') as f:
++   fd=None; f.write(raw); f.flush(); os.fsync(f.fileno())
++ finally:
++  if fd is not None: os.close(fd)
+ def verified_primitives():
+  raw=PRIMITIVES.read_bytes()
+  if hashlib.sha256(raw).hexdigest()!=PIN: raise RuntimeError('cleanup primitive source pin mismatch')
+@@ -36,12 +41,14 @@
+  if hashlib.sha256(probe_raw).hexdigest()!=src['probe_sha256']: raise RuntimeError('probe source buffer pin mismatch')
+  spec=importlib.util.spec_from_file_location('_verified_probe_preflight',probe_path); probe=importlib.util.module_from_spec(spec); exec(compile(probe_raw,str(probe_path),'exec'),probe.__dict__)
+  probe.validate_vectors(vectors,reg['study_id'])
++ if reg['references']!={'required_replicas':[1,2,3],'receipt_fields':sorted(probe.RECEIPT_FIELDS),'same_reference_for_both_arms':True}: raise RuntimeError('reference contract mismatch')
+  if sha(reg['checkpoint_path'])!=reg['checkpoint_sha256'] or reg['checkpoint_sha256']!=probe.PARENT: raise RuntimeError('checkpoint byte pin mismatch')
+  if sha(reg['parent_receipt_path'])!=reg['parent_receipt_sha256'] or reg['parent_receipt_sha256']!=probe.PARENT_RECEIPT: raise RuntimeError('accepted receipt pin mismatch')
+  acceptance=read(reg['acceptance_path'])
+  if reg['acceptance_sha256']!='3e84979c4c8da76d0f98666a23f90eb15c1e813ca5edf1001e19daebaf4d5bbd' or sha(reg['acceptance_path'])!=reg['acceptance_sha256'] or acceptance.get('status')!='accepted_checkpoint324_replaces348_by_registered_fresh_confirmation' or acceptance.get('retained_update')!=324 or acceptance.get('checkpoint_sha256')!=reg['checkpoint_sha256'] or acceptance.get('source_integrity_receipt_sha256')!=reg['parent_receipt_sha256']: raise RuntimeError('accepted parent binding mismatch')
+  rt=reg['runtime']; exe=Path(rt['python_path'])
+  if not exe.is_file() or sha(exe)!=rt['interpreter_sha256']: raise RuntimeError('interpreter byte pin mismatch')
++ if Path(sys.executable).absolute()!=exe.absolute() or sys.prefix!=rt['expected_venv_prefix'] or sys.version.split()[0]!=rt['python_version']: raise RuntimeError('interpreter invocation/prefix/version mismatch')
+  if rt['python_version']!='3.12.15' or rt['torch_version']!='2.14.1' or rt['numpy_version']!='2.5.4': raise RuntimeError('runtime version registration mismatch')
+  cache=Path(rt['empty_cache_path'])
+  if not cache.is_dir() or any(cache.iterdir()): raise RuntimeError('owned empty cache missing/not empty')
+@@ -56,113 +63,186 @@
+  lim=reg['limits']; expected={'work_seconds':45,'outer_seconds':55,'cleanup_seconds':10,'startup_grace_seconds':12,'RSS_bytes':6*1024**3,'MPS_driver_bytes':6*1024**3,'guard_poll_seconds':.2,'heartbeat_stale_seconds':2.0}
+  if lim!=expected: raise RuntimeError('resource/time limits mismatch')
+  return state
++def require(ok,message):
++ if not ok: raise ValueError(message)
++def cache_check(reg):
++ cache=Path(reg['runtime']['empty_cache_path'])
++ require(cache.exists() and cache.is_dir() and not any(cache.iterdir()),'registered empty cache missing/not directory/not empty')
++def lease_check(reg):
++ state=read(reg['state_path'])
++ require(state.get('active_inference_diagnostic')==reg['expected_lease'] and all(state.get(k) in (None,False) for k in ('active_long_campaign','active_long','active_inference')),'exact lease changed/conflicting lease')
++def marker_check(reg,rsha):
++ marker=read(reg['one_shot_marker'])
++ require(marker.get('run_id')==reg['run_id'] and marker.get('registration_sha256')==rsha,'marker binding mismatch')
++def committed_check(reg):
++ """Independent consumer: hashes alone do not establish semantic bindings."""
++ out=Path(reg['output_dir']); commit=read(out/'COMMITTED.json')
++ require(set(commit)=={'schema','references','files'} and commit['schema']=='d2_layerb_rng_reference_probe_commit_v1' and type(commit['references']) is int and commit['references']==3,'commit schema/count mismatch')
++ names={'replica-1.json','replica-2.json','replica-3.json','receipt.json'}
++ items=commit['files']
++ require(isinstance(items,list) and len(items)==4 and all(set(x)=={'path','sha256'} for x in items) and {x['path'] for x in items}==names,'commit inventory mismatch')
++ require({p.name for p in out.glob('replica-*.json')}==names-{'receipt.json'},'replica inventory mismatch')
++ # Parse the same bytes that were hashed, including the aggregate.
++ parsed={}
++ for item in items:
++  raw=(out/item['path']).read_bytes()
++  require(hashlib.sha256(raw).hexdigest()==item['sha256'],'committed artifact hash mismatch')
++  parsed[item['path']]=json.loads(raw)
++ probe_path=Path(reg['source']['probe_path']); raw=probe_path.read_bytes()
++ require(hashlib.sha256(raw).hexdigest()==reg['source']['probe_sha256'],'probe postflight buffer pin mismatch')
++ ns={'__file__':str(probe_path),'__name__':'_verified_probe_postflight'}; exec(compile(raw,str(probe_path),'exec'),ns)
++ require(reg['references']=={'required_replicas':[1,2,3],'receipt_fields':sorted(ns['RECEIPT_FIELDS']),'same_reference_for_both_arms':True},'registered reference contract mismatch')
++ canonical=lambda obj:json.dumps(obj,sort_keys=True,allow_nan=False,separators=(',',':'))
++ rows=[]
++ for i in (1,2,3):
++  row=parsed[f'replica-{i}.json']; vector=reg['vectors']['vectors'][i-1]
++  require(set(row)==ns['RECEIPT_FIELDS'] and row['schema']==ns['SCHEMA'] and row['status']=='measured' and type(row['replica']) is int and row['replica']==i,'reference schema/status/replica invalid')
++  require(row['study_id']==reg['study_id'] and canonical(row['complete_seed_vector'])==canonical(vector['seeds']) and row['vector_sha256']==vector['vector_sha256'],'reference vector binding mismatch')
++  require(row['accepted_checkpoint_sha256']==reg['checkpoint_sha256'] and row['parent_receipt_sha256']==reg['parent_receipt_sha256'],'reference parent binding mismatch')
++  require(row['backend']=='mps' and row['torch_version']==reg['runtime']['torch_version'],'reference backend/torch binding mismatch')
++  for field in ('cpu_rng_state_sha256','mps_rng_state_sha256'):
++   value=row[field]
++   require(isinstance(value,str) and len(value)==64 and all(c in '0123456789abcdef' for c in value),'reference digest invalid')
++  rows.append(row)
++ agg=parsed['receipt.json']
++ expected_runtime={'python':reg['runtime']['python_version'],'numpy':reg['runtime']['numpy_version'],'torch':reg['runtime']['torch_version'],'backend':'mps'}
++ scope={'checkpoint_bytes_hashed_only':True,'model_constructed':False,'environment_constructed':False,'checkpoint_deserialized':False,'training':False,'evaluation':False,'launch_authority':False}
++ require(set(agg)=={'schema','status','study_id','references','runtime','scope'} and agg['schema']=='d2_layerb_rng_reference_probe_receipt_v1' and agg['status']=='captured_pending_parent_postflight' and agg['study_id']==reg['study_id'],'aggregate schema/status/study mismatch')
++ require(canonical(agg['runtime'])==canonical(expected_runtime),'aggregate runtime mismatch')
++ require(canonical(agg['references'])==canonical(rows),'aggregate references differ from replicas')
++ require(canonical(agg['scope'])==canonical(scope),'aggregate scope mismatch')
++ return {'replicas':3,'runtime':expected_runtime}
++def integrity_postflight(reg,rp,rsha,ns,proc):
++ """Each required observation survives failure or unavailability of every other check."""
++ checks={}
++ def check(name,fn):
++  try:
++   value=fn(); checks[name]={'status':'pass'}
++   if value is not None: checks[name]['observed']=value
++  except (ValueError,AssertionError) as e: checks[name]={'status':'fail','error':type(e).__name__+':'+str(e)}
++  except Exception as e: checks[name]={'status':'unavailable','error':type(e).__name__+':'+str(e)}
++ def pinned(path,digest):
++  actual=sha(path); require(actual==digest,'SHA-256 mismatch'); return {'sha256':actual}
++ check('registration',lambda:pinned(rp,rsha))
++ for n in ('worker','supervisor','probe','fingerprint'):
++  check('source:'+n,lambda n=n:pinned(reg['source'][n+'_path'],reg['source'][n+'_sha256']))
++ check('cleanup_source',lambda:pinned(PRIMITIVES,PIN))
++ check('cleanup_registration_pin',lambda:require(reg['source']['cleanup_primitives_sha256']==PIN,'cleanup registration pin mismatch'))
++ for n in ('checkpoint','parent_receipt','vectors','acceptance'):
++  check('input:'+n,lambda n=n:pinned(reg[n+'_path'],reg[n+'_sha256']))
++ check('interpreter',lambda:pinned(reg['runtime']['python_path'],reg['runtime']['interpreter_sha256']))
++ check('interpreter_identity',lambda:require(Path(sys.executable).absolute()==Path(reg['runtime']['python_path']).absolute() and sys.prefix==reg['runtime']['expected_venv_prefix'] and sys.version.split()[0]==reg['runtime']['python_version'],'interpreter invocation/prefix/version changed'))
++ check('lease',lambda:lease_check(reg))
++ check('marker',lambda:marker_check(reg,rsha))
++ check('cache',lambda:cache_check(reg))
++ check('cancel',lambda:require(not Path(reg['cancel_path']).exists(),'cancel present'))
++ def absent():
++  if proc is None: return {'rows':[],'worker_spawned':False}
++  rows,error=ns['sample_procs'](proc.pid)
++  if error: raise OSError(error)
++  require(rows==[],'process group remains'); return {'rows':rows,'worker_spawned':True}
++ check('process_absence',absent)
++ check('committed_output',lambda:committed_check(reg))
++ return checks
++def inventory(directory):
++ artifacts=[]; errors=[]
++ try: paths=sorted(Path(directory).iterdir())
++ except Exception as e: return [],[{'path':str(directory),'error':type(e).__name__+':'+str(e)}]
++ for p in paths:
++  try:
++   if p.is_file(): artifacts.append({'path':str(p),'bytes':p.stat().st_size,'sha256':sha(p)})
++  except Exception as e: errors.append({'path':str(p),'error':type(e).__name__+':'+str(e)})
++ return artifacts,errors
+ def execute(rp,rsha,worker):
+  reg=read(rp); ns=verified_primitives(); preflight(rp,rsha,reg,worker)
+- start=time.monotonic(); work_deadline=start+45; outer_deadline=start+55; proc=None; reason=None; raw_exit=None; claimed=False; rows=None; log=Path(reg['output_dir'])/'worker.log'; hb=Path(reg['output_dir'])/'worker-heartbeat.json'; receipt_path=Path(reg['output_dir'])/'outer-receipt.json'
+- old={}; pending=[]; spawning=False
++ start=time.monotonic(); work_deadline=start+45; outer_deadline=start+55; proc=None; reason=None; raw_exit=None; claimed=False; claim_complete=False; claim_identity=None; rows=None
++ log=Path(reg['output_dir'])/'worker.log'; hb=Path(reg['output_dir'])/'worker-heartbeat.json'; receipt_path=Path(reg['output_dir'])/'outer-receipt.json'
++ old={}; received=[]; deferred=True; errors=[]; result=None
+  def handler(sig,frame):
+-  nonlocal reason,spawning
+-  reason='supervisor_signal:'+signal.Signals(sig).name
+-  if spawning: pending.append(sig); return
++  nonlocal reason,deferred
++  received.append(signal.Signals(sig).name)
++  reason=reason or 'supervisor_signal:'+signal.Signals(sig).name
++  if deferred: return
++  # First interrupt switches permanently to deferral before unwinding.
++  deferred=True
+   raise KeyboardInterrupt
+- for s in (signal.SIGTERM,signal.SIGHUP,signal.SIGINT): old[s]=signal.signal(s,handler)
++ def own_claim(fd):
++  nonlocal claimed,claim_identity
++  claimed=True  # O_EXCL succeeded; write/fsync completion is a separate fact.
++  st=os.fstat(fd); claim_identity={'device':st.st_dev,'inode':st.st_ino}
+  try:
+-  # Claim after all preflight and signal installation; marker never cleared.
+-  exclusive_json(reg['one_shot_marker'],{'run_id':reg['run_id'],'registration_sha256':rsha,'pid':os.getpid(),'timestamp_ns':time.time_ns()}); claimed=True
+-  Path(reg['output_dir']).mkdir(parents=True,exist_ok=True)
+-  cmd=[reg['runtime']['python_path'],'-B',str(worker),'--registration',str(rp),'--registration-sha256',rsha,'--heartbeat',str(hb),'--deadline',str(work_deadline)]
+-  env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1',PYTHONPYCACHEPREFIX=reg['runtime']['empty_cache_path'])
+-  with log.open('xb') as f:
+-   spawning=True
+-   try: proc=subprocess.Popen(cmd,start_new_session=True,stdout=f,stderr=subprocess.STDOUT,env=env,close_fds=True)
+-   finally: spawning=False
+-  if pending: raise KeyboardInterrupt
+-  startup_end=min(work_deadline,start+12); last=0
+-  while proc.poll() is None:
+-   now=time.monotonic()
+-   if now>=work_deadline: reason='work_limit'; break
+-   if now-last>=.2:
+-    rss,rows=ns['aggregate_rss'](proc.pid)
+-    if rss>reg['limits']['RSS_bytes']: reason='rss_limit'; break
+-    if hb.exists():
+-     h=read(hb)
+-     if h.get('run_id')!=reg['run_id'] or h.get('registration_sha256')!=rsha or h.get('pid')!=proc.pid: reason='heartbeat_identity'; break
+-     if (time.time_ns()-h.get('timestamp_ns',0))/1e9>2: reason='heartbeat_stale'; break
+-     if type(h.get('mps_driver_bytes')) is not int or not 0<=h['mps_driver_bytes']<=reg['limits']['MPS_driver_bytes']: reason='mps_limit_or_invalid'; break
+-     if type(h.get('rss_bytes')) is not int or h['rss_bytes']>reg['limits']['RSS_bytes']: reason='worker_rss_limit'; break
+-    elif now>startup_end: reason='heartbeat_missing'; break
+-    if Path(reg['cancel_path']).exists(): reason='cancelled'; break
+-    if sha(rp)!=rsha: reason='registration_changed'; break
+-    for n in ('worker','supervisor','probe','fingerprint'):
+-     if sha(reg['source'][n+'_path'])!=reg['source'][n+'_sha256']: reason='source_changed:'+n; break
+-    if reason: break
+-    mark=read(reg['one_shot_marker'])
+-    if mark.get('run_id')!=reg['run_id'] or mark.get('registration_sha256')!=rsha: reason='marker_changed'; break
+-    st=read(reg['state_path'])
+-    if st.get('active_inference_diagnostic')!=reg['expected_lease'] or any(st.get(k) not in (None,False) for k in ('active_long_campaign','active_long','active_inference')): reason='lease_changed'; break
+-    last=now
+-   time.sleep(.02)
+-  if reason: ns['terminate_bounded'](proc,min(outer_deadline,start+45+10))
+-  raw_exit=proc.poll()
+-  rows,sample_error=ns['sample_procs'](proc.pid)
+-  if rows:
+-   reason=reason or 'process_group_survived'
+-   ns['terminate_bounded'](proc,min(outer_deadline,time.monotonic()+10))
+-   rows,sample_error=ns['sample_procs'](proc.pid)
+-  if sample_error: reason=reason or sample_error
+-  if rows: reason=reason or 'process_group_survived'
+-  if raw_exit!=0: reason=reason or 'worker_nonzero_exit'
+-  if Path(reg['cancel_path']).exists(): reason=reason or 'cancelled_postflight'
+-  if sha(rp)!=rsha: reason=reason or 'registration_postflight_changed'
+-  for n in ('worker','supervisor','probe','fingerprint'):
+-   if sha(reg['source'][n+'_path'])!=reg['source'][n+'_sha256']: reason=reason or 'source_postflight_changed:'+n
+-  if sha(reg['checkpoint_path'])!=reg['checkpoint_sha256'] or sha(reg['parent_receipt_path'])!=reg['parent_receipt_sha256'] or sha(reg['vectors_path'])!=reg['vectors_sha256'] or sha(reg['acceptance_path'])!=reg['acceptance_sha256']: reason=reason or 'input_pin_postflight_changed'
+-  if sha(reg['runtime']['python_path'])!=reg['runtime']['interpreter_sha256']: reason=reason or 'interpreter_postflight_changed'
+-  state=read(reg['state_path'])
+-  if state.get('active_inference_diagnostic')!=reg['expected_lease'] or any(state.get(k) not in (None,False) for k in ('active_long_campaign','active_long','active_inference')): reason=reason or 'lease_postflight_changed'
+-  if Path(reg['cancel_path']).exists(): reason=reason or 'cancelled_postflight'
+-  marker=read(reg['one_shot_marker'])
+-  if marker.get('run_id')!=reg['run_id'] or marker.get('registration_sha256')!=rsha: reason=reason or 'marker_postflight_changed'
+-  commit_path=Path(reg['output_dir'],'COMMITTED.json')
+-  if not commit_path.is_file(): reason=reason or 'reference_commit_missing'
+-  else:
+-   try:
+-    commit=read(commit_path)
+-    if commit.get('schema')!='d2_layerb_rng_reference_probe_commit_v1' or commit.get('references')!=3 or len(commit.get('files',[]))!=4: raise ValueError('commit manifest schema/count mismatch')
+-    names={'replica-1.json','replica-2.json','replica-3.json','receipt.json'}
+-    if {x.get('path') for x in commit['files']}!=names: raise ValueError('commit file inventory mismatch')
+-    for item in commit['files']:
+-     if sha(Path(reg['output_dir'])/item['path'])!=item['sha256']: raise ValueError('committed artifact hash mismatch')
+-    probe_path=Path(reg['source']['probe_path']); probe_raw=probe_path.read_bytes()
+-    if hashlib.sha256(probe_raw).hexdigest()!=reg['source']['probe_sha256']: raise ValueError('probe source postflight pin mismatch')
+-    import importlib.util
+-    spec=importlib.util.spec_from_file_location('_verified_probe_postflight',probe_path); probe=importlib.util.module_from_spec(spec); exec(compile(probe_raw,str(probe_path),'exec'),probe.__dict__)
+-    for i in (1,2,3):
+-     row=read(Path(reg['output_dir'])/f'replica-{i}.json'); vector=reg['vectors']['vectors'][i-1]
+-     if set(row)!=probe.RECEIPT_FIELDS or row.get('schema')!='d2_layerb_rng_real_state_preflight_v1' or row.get('status')!='measured' or type(row.get('replica')) is not int or row['replica']!=i: raise ValueError('reference schema/status/replica invalid')
+-     if row.get('study_id')!=reg['study_id'] or row.get('complete_seed_vector')!=vector['seeds'] or row.get('vector_sha256')!=vector['vector_sha256']: raise ValueError('reference vector binding mismatch')
+-     for field in ('cpu_rng_state_sha256','mps_rng_state_sha256'):
+-      value=row.get(field)
+-      if not isinstance(value,str) or len(value)!=64 or any(c not in '0123456789abcdef' for c in value): raise ValueError('reference digest invalid')
+-    agg=read(Path(reg['output_dir'])/'receipt.json')
+-    if agg.get('status')!='captured_pending_parent_postflight' or len(agg.get('references',[]))!=3: raise ValueError('aggregate receipt incomplete')
+-   except Exception as e: reason=reason or 'reference_postflight:'+str(e)
+- except BaseException as e:
+-  reason=reason or ('supervisor_interrupted' if isinstance(e,KeyboardInterrupt) else 'supervisor_exception:'+str(e))
+-  if proc is not None:
+-   try: ns['terminate_bounded'](proc,min(outer_deadline,time.monotonic()+10))
+-   except Exception as cleanup_error: reason+=';cleanup_error:'+str(cleanup_error)
+-  if proc is not None: raw_exit=proc.poll()
++  for s in (signal.SIGTERM,signal.SIGHUP,signal.SIGINT): old[s]=signal.signal(s,handler)
++  try:
++   # Do not mask OS signals: a future child must inherit an unblocked signal mask.
++   # Defer Python handler exceptions until claim ownership / child handle is known.
++   exclusive_json(reg['one_shot_marker'],{'run_id':reg['run_id'],'registration_sha256':rsha,'pid':os.getpid(),'timestamp_ns':time.time_ns()},on_created=own_claim)
++   claim_complete=True; deferred=False
++   if received: deferred=True; raise KeyboardInterrupt
++   Path(reg['output_dir']).mkdir(parents=True,exist_ok=True)
++   cmd=[reg['runtime']['python_path'],'-B',str(worker),'--registration',str(rp),'--registration-sha256',rsha,'--heartbeat',str(hb),'--deadline',str(work_deadline)]
++   env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1',PYTHONPYCACHEPREFIX=reg['runtime']['empty_cache_path'])
++   deferred=True
++   with log.open('xb') as f:
++    proc=subprocess.Popen(cmd,start_new_session=True,stdout=f,stderr=subprocess.STDOUT,env=env,close_fds=True)
++   deferred=False
++   if received: deferred=True; raise KeyboardInterrupt
++   startup_end=min(work_deadline,start+12); last=0
++   while proc.poll() is None:
++    now=time.monotonic()
++    if now>=work_deadline: reason='work_limit'; break
++    if now-last>=.2:
++     rss,rows=ns['aggregate_rss'](proc.pid)
++     if rss>reg['limits']['RSS_bytes']: reason='rss_limit'; break
++     if hb.exists():
++      h=read(hb)
++      if h.get('run_id')!=reg['run_id'] or h.get('registration_sha256')!=rsha or h.get('pid')!=proc.pid: reason='heartbeat_identity'; break
++      if (time.time_ns()-h.get('timestamp_ns',0))/1e9>2: reason='heartbeat_stale'; break
++      if type(h.get('mps_driver_bytes')) is not int or not 0<=h['mps_driver_bytes']<=reg['limits']['MPS_driver_bytes']: reason='mps_limit_or_invalid'; break
++      if type(h.get('rss_bytes')) is not int or h['rss_bytes']>reg['limits']['RSS_bytes']: reason='worker_rss_limit'; break
++     elif now>startup_end: reason='heartbeat_missing'; break
++     if Path(reg['cancel_path']).exists(): reason='cancelled'; break
++     if sha(rp)!=rsha: reason='registration_changed'; break
++     for n in ('worker','supervisor','probe','fingerprint'):
++      if sha(reg['source'][n+'_path'])!=reg['source'][n+'_sha256']: reason='source_changed:'+n; break
++     if reason: break
++     mark=read(reg['one_shot_marker'])
++     if mark.get('run_id')!=reg['run_id'] or mark.get('registration_sha256')!=rsha: reason='marker_changed'; break
++     st=read(reg['state_path'])
++     if st.get('active_inference_diagnostic')!=reg['expected_lease'] or any(st.get(k) not in (None,False) for k in ('active_long_campaign','active_long','active_inference')): reason='lease_changed'; break
++     last=now
++    time.sleep(.02)
++  except BaseException as e:
++   deferred=True
++   reason=reason or ('supervisor_interrupted' if isinstance(e,KeyboardInterrupt) else 'supervisor_exception:'+str(e))
++  finally:
++   # Keep these handlers installed through cleanup, every integrity check, inventory,
++   # and receipt fsync. Repeated signals are observations, never new exceptions.
++   deferred=True
++   if proc is not None:
++    try:
++     current=proc.poll()
++     remaining,sample_error=ns['sample_procs'](proc.pid)
++     if current is None or remaining or sample_error:
++      ns['terminate_bounded'](proc,min(outer_deadline,time.monotonic()+10))
++     raw_exit=proc.poll()  # Preserve the real child status, including signal death.
++     if raw_exit!=0: reason=reason or 'worker_nonzero_exit'
++    except Exception as e:
++     errors.append('cleanup:'+type(e).__name__+':'+str(e)); reason=reason or 'cleanup_failed'
++     raw_exit=proc.poll()
++   if claimed:
++    checks=integrity_postflight(reg,rp,rsha,ns,proc)
++    failed=[name for name,value in checks.items() if value['status']!='pass']
++    if failed: reason=reason or 'postflight_failed:'+','.join(failed)
++    artifacts,inventory_errors=inventory(reg['output_dir'])
++    if inventory_errors: reason=reason or 'inventory_failed'
++    rows=checks['process_absence'].get('observed',{}).get('rows')
++    result={'schema':'d2_layerb_rng_reference_probe_outer_receipt_v1','run_id':reg['run_id'],'registration_sha256':rsha,'raw_worker_exit_code':raw_exit,'stop_reason':reason,'process_group_remaining':rows,'process_group_absent':checks['process_absence']['status']=='pass','artifacts':artifacts,'inventory_errors':inventory_errors,'errors':errors,'postflight':checks,'failed_checks':failed,'claim_created':True,'claim_write_completed':claim_complete,'claim_identity':claim_identity,'handled_signals':received,'elapsed_seconds':time.monotonic()-start,'status':'accepted_pending_parent_postflight' if reason is None else 'partial_failure_preserved','bounds_limit':'55-second decisions; filesystem/hash/fsync/receipt finalization lack a hard watchdog'}
++    exclusive_json(receipt_path,result)
+  finally:
+-  if claimed and not receipt_path.exists():
+-   rows=(ns['sample_procs'](proc.pid)[0] if proc else [])
+-   artifacts=[]
+-   for p in sorted(Path(reg['output_dir']).glob('*')):
+-    if p.is_file(): artifacts.append({'path':str(p),'bytes':p.stat().st_size,'sha256':sha(p)})
+-   exclusive_json(receipt_path,{'schema':'d2_layerb_rng_reference_probe_outer_receipt_v1','run_id':reg['run_id'],'registration_sha256':rsha,'raw_worker_exit_code':raw_exit,'stop_reason':reason,'process_group_remaining':rows,'process_group_absent':rows==[],'artifacts':artifacts,'elapsed_seconds':time.monotonic()-start,'status':'accepted_pending_parent_postflight' if reason is None else 'partial_failure_preserved'})
++  # No handlers are restored until receipt finalization completes or raises.
+   for s,h in old.items(): signal.signal(s,h)
+- if reason: raise RuntimeError('probe failed: '+reason+'; partial receipt preserved')
+- return read(receipt_path)
++ if reason: raise RuntimeError('probe failed: '+reason+'; '+('partial receipt preserved' if claimed else 'marker not claimed'))
++ return result
+ def main():
+  ap=argparse.ArgumentParser(); ap.add_argument('--registration',required=True); ap.add_argument('--registration-sha256',required=True); ap.add_argument('--worker',default=str(Path(__file__).with_name('worker_cli.py'))); a=ap.parse_args(); execute(Path(a.registration),a.registration_sha256,Path(a.worker))
+ if __name__=='__main__': main()
+--- learning/runs/v2/confirmed324-probe-venv-source-repair-luna-20261026-r3/test_campaign.py
++++ learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/test_campaign.py
+@@ -6,7 +6,7 @@
+ def sha(p): return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+ class CampaignCLI(unittest.TestCase):
+  def test_builder_pins_dedicated_clis_and_parent_bytes(self):
+-  with tempfile.TemporaryDirectory() as d:
++  with tempfile.TemporaryDirectory(dir=RUN/'test-tmp') as d:
+    reg=build_registration.build(state_path=Path(d)/'state.json',expected_lease={'lease_id':'parent'},marker_path=Path(d)/'marker',cancel_path=Path(d)/'cancel',output_path=Path(d)/'out',python_path=sys.executable,runtime_root=RUN,empty_cache_path=Path(d)/'cache')
+    self.assertEqual(Path(reg['source']['worker_path']),RUN/'worker_cli.py')
+    self.assertEqual(Path(reg['source']['supervisor_path']),RUN/'supervisor_cli.py')
+@@ -22,12 +22,12 @@
+   receipt=BASE/'D2-retained300-parent-terminal-audit-20261026-r1'/'retained-best-candidate-receipt.json'
+   self.assertEqual(sha(checkpoint),probe.PARENT)
+   self.assertEqual(sha(receipt),probe.PARENT_RECEIPT)
+-  with tempfile.TemporaryDirectory() as d:
++  with tempfile.TemporaryDirectory(dir=RUN/'test-tmp') as d:
+    d=Path(d); cache=d/'cache'; cache.mkdir(); state=d/'state.json'; state.write_text(json.dumps({'active_inference_diagnostic':{'lease_id':'synthetic'},'active_long_campaign':False,'active_long':False,'active_inference':False}))
+    out=d/'out'; marker=d/'marker'; cancel=d/'cancel'
+    src={'worker_path':str(RUN/'worker_cli.py'),'worker_sha256':sha(RUN/'worker_cli.py'),'supervisor_path':str(RUN/'supervisor_cli.py'),'supervisor_sha256':sha(RUN/'supervisor_cli.py'),'probe_path':str(RUN/'probe.py'),'probe_sha256':sha(RUN/'probe.py'),'fingerprint_path':str(BASE/'confirmed324-transition-parent-repair-20261026-r3'/'fingerprints.py'),'fingerprint_sha256':sha(BASE/'confirmed324-transition-parent-repair-20261026-r3'/'fingerprints.py'),'cleanup_primitives_sha256':'4a5d084359ee48fe5351c96e0ec4455fdcd95a428a17bbcf59d0653f6922de98'}
+    interpreter=Path(sys.executable).absolute()
+-   reg={'schema':'d2_layerb_rng_reference_probe_registration_v1','status':'synthetic_test_only','authority':'synthetic_test_only','run_id':'synthetic-run','study_id':vectors['study_id'],'source':src,'runtime':{'python_path':str(interpreter),'python_version':'3.12.15','interpreter_sha256':sha(interpreter),'torch_version':'2.14.1','numpy_version':'2.5.4','empty_cache_path':str(cache)},'vectors_path':str(vectors_path),'vectors_sha256':sha(vectors_path),'vectors':vectors,'checkpoint_path':str(checkpoint),'checkpoint_sha256':sha(checkpoint),'parent_receipt_path':str(receipt),'parent_receipt_sha256':sha(receipt),'acceptance_path':str(BASE/'expanded-confirmation-parent-20261026-r1'/'parent-acceptance.json'),'acceptance_sha256':'3e84979c4c8da76d0f98666a23f90eb15c1e813ca5edf1001e19daebaf4d5bbd','state_path':str(state),'expected_lease':{'lease_id':'synthetic'},'one_shot_marker':str(marker),'cancel_path':str(cancel),'output_dir':str(out),'limits':{'work_seconds':45,'outer_seconds':55,'cleanup_seconds':10,'startup_grace_seconds':12,'RSS_bytes':6*1024**3,'MPS_driver_bytes':6*1024**3,'guard_poll_seconds':.2,'heartbeat_stale_seconds':2.0},'references':{'required_replicas':[1,2,3],'receipt_fields':sorted(probe.RECEIPT_FIELDS),'same_reference_for_both_arms':True},'synthetic_test_dependencies':{'runtime_path':str(RUN/'fake_runtime.py'),'runtime_sha256':sha(RUN/'fake_runtime.py')}}
++   reg={'schema':'d2_layerb_rng_reference_probe_registration_v1','status':'synthetic_test_only','authority':'synthetic_test_only','run_id':'synthetic-run','study_id':vectors['study_id'],'source':src,'runtime':{'python_path':str(interpreter),'expected_venv_prefix':sys.prefix,'python_version':'3.12.15','interpreter_sha256':sha(interpreter),'torch_version':'2.14.1','numpy_version':'2.5.4','empty_cache_path':str(cache)},'vectors_path':str(vectors_path),'vectors_sha256':sha(vectors_path),'vectors':vectors,'checkpoint_path':str(checkpoint),'checkpoint_sha256':sha(checkpoint),'parent_receipt_path':str(receipt),'parent_receipt_sha256':sha(receipt),'acceptance_path':str(BASE/'expanded-confirmation-parent-20261026-r1'/'parent-acceptance.json'),'acceptance_sha256':'3e84979c4c8da76d0f98666a23f90eb15c1e813ca5edf1001e19daebaf4d5bbd','state_path':str(state),'expected_lease':{'lease_id':'synthetic'},'one_shot_marker':str(marker),'cancel_path':str(cancel),'output_dir':str(out),'limits':{'work_seconds':45,'outer_seconds':55,'cleanup_seconds':10,'startup_grace_seconds':12,'RSS_bytes':6*1024**3,'MPS_driver_bytes':6*1024**3,'guard_poll_seconds':.2,'heartbeat_stale_seconds':2.0},'references':{'required_replicas':[1,2,3],'receipt_fields':sorted(probe.RECEIPT_FIELDS),'same_reference_for_both_arms':True},'synthetic_test_dependencies':{'runtime_path':str(RUN/'fake_runtime.py'),'runtime_sha256':sha(RUN/'fake_runtime.py')}}
+    rp=d/'registration.json'; rp.write_text(json.dumps(reg,sort_keys=True)); rsha=sha(rp)
+    env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1',PYTHONPYCACHEPREFIX=str(cache),RNG_PROBE_SYNTHETIC_TEST='1')
+    p=subprocess.run([str(interpreter),'-B',str(RUN/'supervisor_cli.py'),'--registration',str(rp),'--registration-sha256',rsha],cwd=RUN,env=env,capture_output=True,text=True,timeout=30)
+--- /dev/null
++++ learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/test_failure_controls.py
+@@ -0,0 +1,304 @@
++"""Synthetic-only failure controls. Every writable fixture stays below test-tmp."""
++import copy
++import hashlib
++import importlib.util
++import json
++import os
++from pathlib import Path
++import shutil
++import signal
++import subprocess
++import sys
++import tempfile
++import time
++import unittest
++from unittest.mock import patch
++import build_registration
++import probe
++import supervisor_cli as supervisor
++from test_probe import FakeTorch
++
++RUN=Path(__file__).absolute().parent
++BASE=RUN.parent
++
++def sha(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
++def write(path,obj): Path(path).write_text(json.dumps(obj,sort_keys=True))
++def fixture(root,mode='normal'):
++    cache=root/'cache'; cache.mkdir()
++    reg=build_registration.build(state_path=root/'state.json',expected_lease={'lease_id':'synthetic-owned'},marker_path=root/'marker',cancel_path=root/'cancel',output_path=root/'out',python_path=sys.executable,runtime_root=root,empty_cache_path=cache,expected_venv_prefix=sys.prefix)
++    reg.update(status='synthetic_test_only',authority='synthetic_test_only',run_id='synthetic-owned')
++    # Frozen files are read/copy sources only. Faults always hit these owned copies.
++    for name in ('checkpoint','parent_receipt','vectors','acceptance'):
++        dest=root/(name+'.input'); shutil.copyfile(reg[name+'_path'],dest); reg[name+'_path']=str(dest)
++    fp=root/'fingerprints.py'; shutil.copyfile(reg['source']['fingerprint_path'],fp); reg['source']['fingerprint_path']=str(fp)
++    runtime=root/'fake_runtime.py'
++    runtime.write_text((RUN/'fake_runtime.py').read_text()+'''\nimport json,signal,time,threading
++from pathlib import Path
++_ROOT=Path(__file__).parent
++_MODE='''+repr(mode)+'''
++_BaseTorch=Torch
++class Torch(_BaseTorch):
++    def get_rng_state(self):
++        if _MODE in ('signals','malformed'):
++            if not (_ROOT/'ready').exists():
++                def term(sig,frame):
++                    with (_ROOT/'child-signals').open('a') as f: f.write(str(sig)+'\\n')
++                signal.signal(signal.SIGTERM,term)
++                (_ROOT/'ready').write_text('ready')
++                if _MODE=='malformed':
++                    (_ROOT/'checkpoint.input').unlink()
++                    (_ROOT/'out'/'worker-heartbeat.json').write_text('{malformed')
++                time.sleep(30)
++        if _MODE=='cache-file': (_ROOT/'cache'/'unexpected').write_text('unexpected')
++        if _MODE=='cache-remove' and (_ROOT/'cache').exists(): (_ROOT/'cache').rmdir()
++        if _MODE in ('final-rss','final-mps'): (_ROOT/'captured').write_text('yes')
++        return super().get_rng_state()
++def memory_sample():
++    if (_ROOT/'captured').exists():
++        return (6442450945,0) if _MODE=='final-rss' else (0,6442450945)
++    return (0,0)
++''')
++    reg['synthetic_test_dependencies']={'runtime_path':str(runtime),'runtime_sha256':sha(runtime)}
++    write(root/'state.json',{'active_inference_diagnostic':reg['expected_lease'],'active_long_campaign':None,'active_long':None,'active_inference':None})
++    write(root/'registration.json',reg)
++    return reg
++
++def driver(root,mode):
++    """Run real supervisor/worker with test-only Python instrumentation, never CLI hooks."""
++    rp=root/'registration.json'; reg=json.loads(rp.read_text()); regsha=sha(rp)
++    original_handlers={s:signal.getsignal(s) for s in (signal.SIGTERM,signal.SIGHUP,signal.SIGINT)}
++    original_primitive_loader=supervisor.verified_primitives
++    original_inventory=supervisor.inventory
++    original_postflight=supervisor.integrity_postflight
++    cleanup_copy=root/'cleanup-source.py'; shutil.copyfile(supervisor.PRIMITIVES,cleanup_copy); supervisor.PRIMITIVES=cleanup_copy
++    original_exclusive=supervisor.exclusive_json
++    evidence={'mode':mode}
++    def send_all():
++        for sig in (signal.SIGTERM,signal.SIGHUP,signal.SIGINT): os.kill(os.getpid(),sig)
++    def load():
++        ns=original_primitive_loader()
++        if mode=='signals':
++            aggregate=ns['aggregate_rss']; terminate=ns['terminate_bounded']
++            def trigger(pid):
++                deadline=time.monotonic()+4
++                while not (root/'ready').exists() and time.monotonic()<deadline: time.sleep(.01)
++                if not (root/'ready').exists(): raise RuntimeError('synthetic child not ready')
++                os.kill(os.getpid(),signal.SIGTERM)
++                return aggregate(pid)
++            def cleanup(proc,deadline):
++                send_all()
++                # More real signals arrive during the imported polling/reap primitive.
++                sender=subprocess.Popen([sys.executable,'-B','-c','import os,signal,time; time.sleep(.15); os.kill('+str(os.getpid())+',signal.SIGHUP); time.sleep(.15); os.kill('+str(os.getpid())+',signal.SIGINT)'],env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1',PYTHONPYCACHEPREFIX=str(root/'cache')))
++                try: return terminate(proc,deadline)
++                finally: sender.wait(timeout=2)
++            ns['aggregate_rss']=trigger; ns['terminate_bounded']=cleanup
++        if mode=='malformed':
++            aggregate=ns['aggregate_rss']
++            def malformed(pid):
++                deadline=time.monotonic()+4
++                while (root/'checkpoint.input').exists() and time.monotonic()<deadline: time.sleep(.01)
++                (root/'out'/'worker-heartbeat.json').write_text('{malformed')
++                return aggregate(pid)
++            ns['aggregate_rss']=malformed
++        return ns
++    def postflight(*args):
++        if mode=='post-cache-file': (root/'cache'/'unexpected').write_text('unexpected')
++        if mode=='post-cache-remove': (root/'cache').rmdir()
++        if mode=='post-integrity':
++            (root/'checkpoint.input').unlink(); cleanup_copy.unlink()
++            (root/'fingerprints.py').write_text('changed owned fingerprint')
++        return original_postflight(*args)
++    def inv(path):
++        if mode=='signals': send_all()
++        if mode=='inventory':
++            # Exercise the real per-file inventory guard, not a replacement receipt.
++            original_sha=supervisor.sha
++            def damaged(p):
++                if Path(p).name=='worker.log': raise OSError('synthetic inventory read failure')
++                return original_sha(p)
++            with patch.object(supervisor,'sha',damaged): return original_inventory(path)
++        return original_inventory(path)
++    def exclusive(path,obj,on_created=None):
++        if Path(path)==Path(reg['one_shot_marker']):
++            if mode=='preexisting': Path(path).write_text('preexisting-race')
++            if mode in ('claim-open-signal','claim-write','claim-fsync'):
++                real_open=os.open; real_fdopen=os.fdopen; real_fsync=os.fsync
++                marker_fd=[]
++                def opened(p,flags,*args,**kwargs):
++                    fd=real_open(p,flags,*args,**kwargs)
++                    if Path(p)==Path(path):
++                        marker_fd.append(fd)
++                        if mode=='claim-open-signal': send_all()
++                    return fd
++                class BrokenWrite:
++                    def __init__(self,f): self.f=f
++                    def __enter__(self): return self
++                    def __exit__(self,*args): self.f.close()
++                    def write(self,raw): self.f.write(raw[:11]); self.f.flush(); raise OSError('synthetic marker write failure')
++                def fdopen(fd,*args,**kwargs):
++                    f=real_fdopen(fd,*args,**kwargs)
++                    return BrokenWrite(f) if fd in marker_fd and mode=='claim-write' else f
++                def fsync(fd):
++                    if fd in marker_fd and mode=='claim-fsync': raise OSError('synthetic marker fsync failure')
++                    return real_fsync(fd)
++                with patch.object(os,'open',opened),patch.object(os,'fdopen',fdopen),patch.object(os,'fsync',fsync):
++                    return original_exclusive(path,obj,on_created)
++        if mode=='signals' and Path(path).name=='outer-receipt.json': send_all()
++        return original_exclusive(path,obj,on_created)
++    try:
++        with patch.object(supervisor,'verified_primitives',load),patch.object(supervisor,'inventory',inv),patch.object(supervisor,'integrity_postflight',postflight),patch.object(supervisor,'exclusive_json',exclusive):
++            supervisor.execute(rp,regsha,RUN/'worker_cli.py')
++        evidence['returned']=True
++    except Exception as e: evidence['error']=str(e)
++    evidence['handlers_restored']=all(signal.getsignal(s)==h for s,h in original_handlers.items())
++    write(root/'driver-result.json',evidence)
++
++class FailureControls(unittest.TestCase):
++    def run_case(self,mode,worker_mode=None):
++        # Retain each control's inputs, logs, marker and partial receipts as evidence.
++        root=Path(tempfile.mkdtemp(prefix=mode+'-',dir=RUN/'test-tmp'))
++        reg=fixture(root,worker_mode or mode)
++        env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1',PYTHONPYCACHEPREFIX=str(root/'cache'),RNG_PROBE_SYNTHETIC_TEST='1')
++        result=subprocess.run([sys.executable,'-B',str(Path(__file__).absolute()),'--driver',str(root),mode],env=env,capture_output=True,text=True,timeout=22)
++        (root/'driver.log').write_text(result.stdout+result.stderr)
++        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
++        evidence=json.loads((root/'driver-result.json').read_text()); self.assertTrue(evidence['handlers_restored'])
++        outer=root/'out'/'outer-receipt.json'
++        return root,reg,evidence,(json.loads(outer.read_text()) if outer.exists() else None)
++    def test_repeated_signals_cleanup_finalization_real_child(self):
++        root,reg,evidence,rec=self.run_case('signals')
++        self.assertEqual(rec['raw_worker_exit_code'],-signal.SIGKILL)
++        self.assertTrue(rec['process_group_absent'])
++        self.assertEqual(rec['stop_reason'],'supervisor_signal:SIGTERM')
++        self.assertGreaterEqual(len(rec['handled_signals']),10)
++        self.assertEqual((root/'child-signals').read_text().splitlines(),[str(signal.SIGTERM)])
++        self.assertEqual(rec['postflight']['cleanup_source']['status'],'pass')
++        self.assertEqual(rec['postflight']['interpreter_identity']['status'],'pass')
++        self.assertEqual(rec['status'],'partial_failure_preserved')
++    def test_claim_signal_between_open_and_assignment(self):
++        root,reg,evidence,rec=self.run_case('claim-open-signal')
++        self.assertTrue(rec['claim_created']); self.assertTrue(rec['claim_write_completed'])
++        self.assertIsNone(rec['raw_worker_exit_code']); self.assertIn('supervisor_signal',rec['stop_reason'])
++        self.assertTrue((root/'marker').exists())
++    def test_claim_partial_write_preserves_receipt(self):
++        root,reg,evidence,rec=self.run_case('claim-write')
++        self.assertTrue(rec['claim_created']); self.assertFalse(rec['claim_write_completed'])
++        self.assertEqual((root/'marker').stat().st_size,11)
++        self.assertEqual(rec['postflight']['marker']['status'],'fail')
++        self.assertIn('synthetic marker write failure',rec['stop_reason'])
++    def test_claim_fsync_failure_preserves_receipt(self):
++        root,reg,evidence,rec=self.run_case('claim-fsync')
++        self.assertTrue(rec['claim_created']); self.assertFalse(rec['claim_write_completed'])
++        self.assertEqual(rec['postflight']['marker']['status'],'pass')
++        self.assertIn('synthetic marker fsync failure',rec['stop_reason'])
++    def test_preexisting_marker_not_claimed(self):
++        root,reg,evidence,rec=self.run_case('preexisting')
++        self.assertIsNone(rec); self.assertEqual((root/'marker').read_text(),'preexisting-race')
++        self.assertIn('marker not claimed',evidence['error'])
++    def test_cache_file_worker_and_outer_reject(self):
++        root,reg,evidence,rec=self.run_case('cache-file')
++        self.assertEqual(rec['postflight']['cache']['status'],'fail')
++        self.assertFalse((root/'out'/'COMMITTED.json').exists())
++        self.assertIn('owned empty cache check failed',(root/'out'/'worker.log').read_text())
++    def test_cache_removal_worker_and_outer_reject(self):
++        root,reg,evidence,rec=self.run_case('cache-remove')
++        self.assertEqual(rec['postflight']['cache']['status'],'fail')
++        self.assertFalse((root/'out'/'COMMITTED.json').exists())
++        self.assertIn('owned empty cache check failed',(root/'out'/'worker.log').read_text())
++    def test_malformed_heartbeat_missing_pin_all_checks_continue(self):
++        root,reg,evidence,rec=self.run_case('malformed')
++        self.assertIn('supervisor_exception:',rec['stop_reason'])
++        self.assertEqual(rec['postflight']['input:checkpoint']['status'],'unavailable')
++        for name in ('input:parent_receipt','input:vectors','input:acceptance','cleanup_source','cache','marker','interpreter','lease','cancel','process_absence'):
++            self.assertEqual(rec['postflight'][name]['status'],'pass',name)
++        self.assertIn('input:checkpoint',rec['failed_checks'])
++        self.assertEqual(len(rec['postflight']),19)
++    def test_outer_cache_file_after_successful_worker(self):
++        root,reg,evidence,rec=self.run_case('post-cache-file','normal')
++        self.assertEqual(rec['raw_worker_exit_code'],0)
++        self.assertEqual(rec['postflight']['committed_output']['status'],'pass')
++        self.assertEqual(rec['postflight']['cache']['status'],'fail')
++        self.assertEqual(rec['status'],'partial_failure_preserved')
++    def test_outer_cache_removal_after_successful_worker(self):
++        root,reg,evidence,rec=self.run_case('post-cache-remove','normal')
++        self.assertEqual(rec['raw_worker_exit_code'],0)
++        self.assertEqual(rec['postflight']['committed_output']['status'],'pass')
++        self.assertEqual(rec['postflight']['cache']['status'],'fail')
++        self.assertEqual(rec['status'],'partial_failure_preserved')
++    def test_cleanup_source_and_other_missing_pins_all_recorded(self):
++        root,reg,evidence,rec=self.run_case('post-integrity','normal')
++        self.assertEqual(rec['postflight']['input:checkpoint']['status'],'unavailable')
++        self.assertEqual(rec['postflight']['cleanup_source']['status'],'unavailable')
++        self.assertEqual(rec['postflight']['source:fingerprint']['status'],'fail')
++        self.assertEqual(rec['postflight']['lease']['status'],'pass')
++        self.assertEqual(rec['postflight']['process_absence']['status'],'pass')
++        self.assertEqual(len(rec['postflight']),19)
++        self.assertEqual(rec['status'],'partial_failure_preserved')
++    def test_inventory_failure_does_not_suppress_receipt(self):
++        root,reg,evidence,rec=self.run_case('inventory','normal')
++        self.assertEqual(rec['stop_reason'],'inventory_failed'); self.assertTrue(rec['inventory_errors'])
++        self.assertTrue(rec['process_group_absent'])
++    def test_final_forced_rss_sample_blocks_publication(self):
++        root,reg,evidence,rec=self.run_case('final-rss')
++        self.assertFalse((root/'out'/'COMMITTED.json').exists()); self.assertNotEqual(rec['raw_worker_exit_code'],0)
++        self.assertIn('heartbeat resource cap exceeded',(root/'out'/'worker.log').read_text())
++    def test_final_forced_mps_sample_blocks_publication(self):
++        root,reg,evidence,rec=self.run_case('final-mps')
++        self.assertFalse((root/'out'/'COMMITTED.json').exists()); self.assertNotEqual(rec['raw_worker_exit_code'],0)
++        self.assertIn('heartbeat resource cap exceeded',(root/'out'/'worker.log').read_text())
++    def test_prefix_asserted_before_claim(self):
++        with tempfile.TemporaryDirectory(dir=RUN/'test-tmp') as d:
++            root=Path(d); reg=fixture(root); reg['runtime']['expected_venv_prefix']=str(root/'wrong-venv'); write(root/'registration.json',reg)
++            with patch.dict(os.environ,RNG_PROBE_SYNTHETIC_TEST='1'):
++                with self.assertRaisesRegex(RuntimeError,'prefix/version'): supervisor.execute(root/'registration.json',sha(root/'registration.json'),RUN/'worker_cli.py')
++            self.assertFalse((root/'marker').exists())
++    def test_production_cannot_enable_synthetic_dependencies(self):
++        with tempfile.TemporaryDirectory(dir=RUN/'test-tmp') as d:
++            root=Path(d); reg=fixture(root); reg.update(status='parent_registered',authority='parent_approved_one_shot'); write(root/'registration.json',reg)
++            with patch.dict(os.environ,RNG_PROBE_SYNTHETIC_TEST='1'):
++                with self.assertRaisesRegex(RuntimeError,'top-level fields'): supervisor.execute(root/'registration.json',sha(root/'registration.json'),RUN/'worker_cli.py')
++            self.assertFalse((root/'marker').exists())
++
++class ConsumerControls(unittest.TestCase):
++    def setUp(self):
++        self.root=Path(tempfile.mkdtemp(prefix='consumer-',dir=RUN/'test-tmp'))
++        self.reg=fixture(self.root)
++        self.good=probe.capture_references(vectors=self.reg['vectors'],study_id=self.reg['study_id'],torch_api=FakeTorch(),numpy_version='2.5.4',python_version=sys.version.split()[0],torch_version='2.14.1',backend_available=True,fingerprint=lambda raw:hashlib.sha256(raw).hexdigest())
++    def bundle(self,mutate=None):
++        obj=copy.deepcopy(self.good)
++        if mutate: mutate(obj)
++        out=Path(self.reg['output_dir']); probe.atomic_publish(out,obj)
++        # Manifest hashes are recomputed after substitution, as an independent writer could do.
++        return out
++    def rehash(self,out):
++        commit=json.loads((out/'COMMITTED.json').read_text())
++        for item in commit['files']: item['sha256']=sha(out/item['path'])
++        write(out/'COMMITTED.json',commit)
++    def test_valid_bundle_passes(self):
++        self.bundle(); self.assertEqual(supervisor.committed_check(self.reg)['replicas'],3)
++    def test_substituted_checkpoint_binding(self):
++        self.bundle(lambda obj:[row.update(accepted_checkpoint_sha256='0'*64) for row in obj['references']])
++        with self.assertRaisesRegex(ValueError,'parent binding'): supervisor.committed_check(self.reg)
++    def test_substituted_parent_receipt_binding(self):
++        self.bundle(lambda obj:[row.update(parent_receipt_sha256='0'*64) for row in obj['references']])
++        with self.assertRaisesRegex(ValueError,'parent binding'): supervisor.committed_check(self.reg)
++    def test_substituted_backend_binding(self):
++        self.bundle(lambda obj:[row.update(backend='cpu') for row in obj['references']])
++        with self.assertRaisesRegex(ValueError,'backend/torch'): supervisor.committed_check(self.reg)
++    def test_substituted_torch_binding(self):
++        self.bundle(lambda obj:[row.update(torch_version='substituted') for row in obj['references']])
++        with self.assertRaisesRegex(ValueError,'backend/torch'): supervisor.committed_check(self.reg)
++    def aggregate_fault(self,key,value,error):
++        out=self.bundle(); agg=json.loads((out/'receipt.json').read_text()); agg[key]=value; write(out/'receipt.json',agg); self.rehash(out)
++        with self.assertRaisesRegex(ValueError,error): supervisor.committed_check(self.reg)
++    def test_aggregate_reference_mismatch_rehashed(self): self.aggregate_fault('references',list(reversed(self.good['references'])),'references differ')
++    def test_aggregate_runtime_mismatch_rehashed(self): self.aggregate_fault('runtime',dict(self.good['runtime'],numpy='wrong'),'runtime mismatch')
++    def test_aggregate_study_mismatch_rehashed(self): self.aggregate_fault('study_id','wrong','schema/status/study')
++    def test_aggregate_schema_mismatch_rehashed(self): self.aggregate_fault('schema','wrong','schema/status/study')
++    def test_extra_replica_rejected(self):
++        out=self.bundle(); shutil.copyfile(out/'replica-1.json',out/'replica-4.json')
++        with self.assertRaisesRegex(ValueError,'replica inventory'): supervisor.committed_check(self.reg)
++
++if __name__=='__main__':
++    if len(sys.argv)>1 and sys.argv[1]=='--driver': driver(Path(sys.argv[2]),sys.argv[3])
++    else: unittest.main()
+--- learning/runs/v2/confirmed324-probe-venv-source-repair-luna-20261026-r3/test_probe.py
++++ learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/test_probe.py
+@@ -22,7 +22,7 @@
+     def test_three_exact_refs_and_cpu_before_mps(self):
+         api=FakeTorch(); fp=lambda b: __import__('hashlib').sha256(b).hexdigest()
+         r=probe.capture_references(vectors=self.vectors,study_id=self.vectors['study_id'],torch_api=api,
+-            numpy_version='2.5.4',python_version='3.12.12',torch_version='2.14.1',backend_available=True,fingerprint=fp)
++            numpy_version='2.5.4',python_version=__import__('sys').version.split()[0],torch_version='2.14.1',backend_available=True,fingerprint=fp)
+         self.assertEqual(len(r['references']),3)
+         for ref in r['references']: self.assertEqual(set(ref),probe.RECEIPT_FIELDS)
+         for n in range(0,len(api.log),4): self.assertEqual([x[0] for x in api.log[n:n+4]],['cpu_seed','mps_seed','cpu_state','mps_state'])
+@@ -31,8 +31,8 @@
+         api=Mock()
+         for mutate in (lambda v:v.update(vectors=v['vectors'][:2]),lambda v:v.update(status='measured')):
+             v=json.loads(json.dumps(self.vectors)); mutate(v)
+-            with self.assertRaises(ValueError): probe.capture_references(vectors=v,study_id=v['study_id'],torch_api=api,numpy_version='2.5.4',python_version='3.12.12',torch_version='2.14.1',backend_available=True,fingerprint=str)
+-        with self.assertRaises(ValueError): probe.capture_references(vectors=self.vectors,study_id=self.vectors['study_id'],torch_api=api,numpy_version='2.5.4',python_version='3.12.12',torch_version='2.14.1',backend_available=True,fingerprint=str,checkpoint_sha256='0'*64)
++            with self.assertRaises(ValueError): probe.capture_references(vectors=v,study_id=v['study_id'],torch_api=api,numpy_version='2.5.4',python_version=__import__('sys').version.split()[0],torch_version='2.14.1',backend_available=True,fingerprint=str)
++        with self.assertRaises(ValueError): probe.capture_references(vectors=self.vectors,study_id=self.vectors['study_id'],torch_api=api,numpy_version='2.5.4',python_version=__import__('sys').version.split()[0],torch_version='2.14.1',backend_available=True,fingerprint=str,checkpoint_sha256='0'*64)
+         api.manual_seed.assert_not_called()
+     def test_strict_int_and_full_vector_binding(self):
+         v=json.loads(json.dumps(self.vectors)); v['vectors'][0]['seeds']['env_master_seed']=True
+@@ -40,7 +40,7 @@
+         v=json.loads(json.dumps(self.vectors)); v['vectors'][0]['seeds']['env_master_seed']+=1
+         with self.assertRaises(ValueError): probe.validate_vectors(v)
+     def test_zero_memory_allowed_excess_rejected_and_collision(self):
+-        with tempfile.TemporaryDirectory() as d:
++        with tempfile.TemporaryDirectory(dir=Path(__file__).parent/'test-tmp') as d:
+             h=Path(d)/'heartbeat.json'; stop=__import__('threading').Event()
+             identity={'run_id':'r','registration_sha256':'a'*64,'mps_cap_bytes':64}
+             t=__import__('threading').Thread(target=probe.heartbeat_loop,args=(h,identity,stop,lambda:(0,0)))
+--- learning/runs/v2/confirmed324-probe-venv-source-repair-luna-20261026-r3/worker_cli.py
++++ learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/worker_cli.py
+@@ -19,6 +19,10 @@
+     if sha(reg['vectors_path'])!=reg['vectors_sha256']: raise RuntimeError('vector file drift')
+     if sha(reg['checkpoint_path'])!=reg['checkpoint_sha256'] or reg['checkpoint_sha256']!=probe.PARENT: raise RuntimeError('checkpoint bytes pin mismatch')
+     if sha(reg['parent_receipt_path'])!=reg['parent_receipt_sha256'] or reg['parent_receipt_sha256']!=probe.PARENT_RECEIPT: raise RuntimeError('parent receipt pin mismatch')
++    rt=reg['runtime']
++    if Path(sys.executable).absolute()!=Path(rt['python_path']).absolute() or sys.prefix!=rt['expected_venv_prefix'] or sys.version.split()[0]!=rt['python_version']: raise RuntimeError('interpreter invocation/prefix/version mismatch')
++    cache=Path(rt['empty_cache_path'])
++    if not cache.exists() or not cache.is_dir() or any(cache.iterdir()): raise RuntimeError('owned empty cache check failed')
+     allowed={'worker.log','worker-heartbeat.json'}
+     if Path(reg['output_dir']).exists() and any(p.name not in allowed for p in Path(reg['output_dir']).iterdir()): raise RuntimeError('output collision')
+     if Path(reg['cancel_path']).exists(): raise RuntimeError('cancelled')
+@@ -41,10 +45,12 @@
+     # Test injection exists only for explicit isolated synthetic registration.
+     test=reg.get('synthetic_test_dependencies')
+     if test:
+-        if reg.get('authority')!='synthetic_test_only' or os.environ.get('RNG_PROBE_SYNTHETIC_TEST')!='1': raise RuntimeError('synthetic dependency gate rejected')
++        if reg.get('status')!='synthetic_test_only' or reg.get('authority')!='synthetic_test_only' or os.environ.get('RNG_PROBE_SYNTHETIC_TEST')!='1': raise RuntimeError('synthetic dependency gate rejected')
+         import importlib.util
+         def load(name,path):
+-            spec=importlib.util.spec_from_file_location(name,path); mod=importlib.util.module_from_spec(spec); spec.loader.exec_module(mod); return mod
++            raw=Path(path).read_bytes(); expected=test['runtime_sha256'] if name=='_fake_runtime' else reg['source']['fingerprint_sha256']
++            if hashlib.sha256(raw).hexdigest()!=expected: raise RuntimeError('synthetic source buffer pin mismatch')
++            spec=importlib.util.spec_from_file_location(name,path); mod=importlib.util.module_from_spec(spec); exec(compile(raw,str(path),'exec'),mod.__dict__); return mod
+         api=load('_fake_runtime',test['runtime_path']); fpmod=load('_fake_fingerprint',reg['source']['fingerprint_path'])
+         torch_api=api.Torch(); numpy_version='2.5.4'; torch_version='2.14.1'; python_version='3.12.15'; backend=True
+         memory_sample=api.memory_sample
+@@ -63,15 +69,17 @@
+             return rss,int(torch.mps.driver_allocated_memory())
+         fpmod=None
+     stop=threading.Event(); errors=[]; lock=threading.Lock()
++    def sample_and_publish():
++        rss,mps=memory_sample()
++        if type(rss)is not int or type(mps)is not int or rss<0 or mps<0 or rss>reg['limits']['RSS_bytes'] or mps>reg['limits']['MPS_driver_bytes']: raise RuntimeError('heartbeat resource cap exceeded')
++        rec={'run_id':reg['run_id'],'registration_sha256':a.registration_sha256,'pid':os.getpid(),'timestamp_ns':time.time_ns(),'sequence':time.monotonic_ns(),'rss_bytes':rss,'mps_driver_bytes':mps}
++        tmp=Path(a.heartbeat).with_name(Path(a.heartbeat).name+'.tmp.'+str(os.getpid())); fd=os.open(tmp,os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)
++        with os.fdopen(fd,'w') as f: json.dump(rec,f); f.flush(); os.fsync(f.fileno())
++        os.replace(tmp,a.heartbeat)
+     def heartbeat():
+         while not stop.is_set():
+             try:
+-                rss,mps=memory_sample()
+-                if type(rss)is not int or type(mps)is not int or rss<0 or mps<0 or rss>reg['limits']['RSS_bytes'] or mps>reg['limits']['MPS_driver_bytes']: raise RuntimeError('heartbeat resource cap exceeded')
+-                rec={'run_id':reg['run_id'],'registration_sha256':a.registration_sha256,'pid':os.getpid(),'timestamp_ns':time.time_ns(),'sequence':time.monotonic_ns(),'rss_bytes':rss,'mps_driver_bytes':mps}
+-                tmp=Path(a.heartbeat).with_name(Path(a.heartbeat).name+'.tmp.'+str(os.getpid())); fd=os.open(tmp,os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)
+-                with os.fdopen(fd,'w') as f: json.dump(rec,f); f.flush(); os.fsync(f.fileno())
+-                os.replace(tmp,a.heartbeat)
++                sample_and_publish()
+             except BaseException as e:
+                 with lock: errors.append(e)
+                 stop.set(); return
+@@ -94,9 +102,13 @@
+         if errors: raise RuntimeError('heartbeat thread failed') from errors[0]
+         if time.monotonic()>=a.deadline: raise TimeoutError('worker deadline elapsed')
+         check(rp,a.registration_sha256,reg,Path(__file__))
++        # Force a fresh RSS/MPS sample after capture and after heartbeat shutdown.
++        sample_and_publish()
+         latest=j(a.heartbeat)
+         if (time.time_ns()-latest.get('timestamp_ns',0))/1e9>reg['limits']['heartbeat_stale_seconds']: raise RuntimeError('heartbeat stale before publish')
+         if latest.get('mps_driver_bytes',-1)>reg['limits']['MPS_driver_bytes'] or latest.get('rss_bytes',-1)>reg['limits']['RSS_bytes']: raise RuntimeError('resource cap before publish')
++        check(rp,a.registration_sha256,reg,Path(__file__))
++        if time.monotonic()>=a.deadline: raise TimeoutError('worker deadline elapsed')
+         probe.atomic_publish(reg['output_dir'],captured)
+     finally:
+         stop.set(); t.join(1)
+--- learning/runs/v2/confirmed324-probe-venv-source-repair-luna-20261026-r3/README.md
++++ learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/README.md
+@@ -1,17 +1,21 @@
+-# Confirmed324 runnable RNG reference probe
++# Confirmed324 probe R4 source preparation
+ 
+-R3 is preparation only. It repairs R2 in this successor directory; R2 and frozen inputs remain untouched. The builder preserves the absolute venv invocation path, registers the parent acceptance path and SHA, and keeps the original limits: 45 seconds work, 55 seconds outer, 10 seconds cleanup, 12 seconds startup grace, 6 GiB RSS/MPS, 0.2 second polling, 2 second heartbeat staleness, and one marker after preflight.
++F1–F5 repaired. Final suite: **33 synthetic controls passed**, including the original seven. No real RNG/MPS references, runtime qualification, campaign registration, lease installation, or launch authority.
+ 
+-Supervisor checks the external registration SHA, exact source paths and hashes, accepted update 324 binding, checkpoint and source integrity receipt pins, runtime executable bytes/version, and owned empty cache before marker claim. Worker imports neither `probe` nor runtime dependencies before registration/source gates. Both CLIs compile exact bytes only after checking their registered hashes. Probe references remain generator-only: no model/environment construction, checkpoint deserialization, training, evaluation, launch, or actual references in this preparation.
++- F1: defer handled signals across marker claim and child-handle assignment; the first interrupt also enables deferral before unwinding. Keep handlers through bounded cleanup, postflight, inventory and receipt fsync, then restore them in an outer `finally`. The real synthetic child ignores the cleanup TERM and dies by KILL; repeated parent signals preserve its raw `-9` exit and receipt. Parent signal deferral does not mask child signals.
++- F2: set claim ownership immediately after `O_EXCL` returns its FD, before writing. Record creation separately from write/fsync completion. Signal, partial-write and marker-fsync faults preserve partial evidence; an existing marker remains unclaimed and untouched. Never delete or reuse a marker.
++- F3: check registered cache existence, directory type and emptiness throughout worker checks and before publication; check again in supervisor postflight on success and failure. Controls cover both file creation and directory removal, including after a successful worker.
++- F4: run 19 individually guarded required postflight checks after cleanup on every claimed exit. Record `pass`, `fail`, or `unavailable` for each registration/source/input/interpreter/lease/marker/cache/cancel/cleanup-source/process/output check. Preserve the first stop cause, every failed check, and inventory errors. Any required failure/unavailability prevents pending acceptance.
++- F5: independently validate every replica's parent checkpoint, integrity receipt, backend, Torch version, vector, schema and digest; require exact replica inventory. Parse the bytes whose commit hashes were checked. Enforce aggregate schema, study, scope, registered runtime and exact replica-row equivalence. Substituted bundles have valid recomputed commit hashes; their semantic defects still fail.
+ 
+-Fake runtime injection requires explicit synthetic status, authority, and environment gate. Parent registered mode rejects synthetic fields. The worker and supervisor retain fixed caps and source postflight checks. Supervisor resamples the owned process group for its final receipt after cleanup. The startup grace permits bounded imports before the first heartbeat; it does not claim heartbeat coverage during imports.
++Worker also asserts actual `sys.prefix == expected_venv_prefix` and preserves the unresolved project venv executable path. After capture and heartbeat shutdown, it forces a final RSS/MPS sample before publication. Both separate caps remain 6442450944 bytes; all 45/55/10/12-second and 0.2/2-second settings remain unchanged.
+ 
+-## Verification
++The enumerated immutable read set stayed byte-identical. Independently managed orchestration state changed hash during preparation; this task made no state writes. Before/after hashes are retained, and parent must audit current state before any future run.
+ 
+-Command used project Python 3.12.15 with `-B`, `PYTHONDONTWRITEBYTECODE=1`, and this output's empty cache:
++Review [receipt.json](receipt.json), [source-hashes.json](source-hashes.json), [exact-diff.patch](exact-diff.patch), and [tests.log](tests.log). `test-tmp/` retains synthetic failure fixtures, claims, logs and receipts. The initial development log records one failed assertion expecting 20 checks rather than the implemented 19; its tested paths otherwise completed. Final suite passed all 33 controls. Source files tested in that final suite are the delivered production/test files.
+ 
+-```sh
+-PYTHONDONTWRITEBYTECODE=1 PYTHONPYCACHEPREFIX="$PWD/learning/runs/v2/confirmed324-probe-venv-source-repair-luna-20261026-r3/empty-pycache" python/.venv/bin/python -B -m unittest -v learning/runs/v2/confirmed324-probe-venv-source-repair-luna-20261026-r3/test_probe.py learning/runs/v2/confirmed324-probe-venv-source-repair-luna-20261026-r3/test_campaign.py
+-```
++`build_registration.py` is inert unless imported and called. [registration-template.json](registration-template.json) is a draft only: pending identity/token, non-authorizing status, successor source pins and owned proposed paths. It preserves the exact original parent contract, input pins, runtime fields and limits. Parent alone chooses its final destination/identity, freezes registration, installs the exact lease, reviews preconditions and authorizes a single real run. Production registration cannot admit synthetic dependency fields.
+ 
+-Seven fake-only tests passed, including a full synthetic CLI campaign and exclusive three-reference commit. No actual Torch/MPS import, real RNG read, checkpoint deserialization, evaluation, training, or launch occurred. Status remains `pending_notrun`; parent review and registration, exact lease installation, one-shot execution, and postflight remain outstanding.
++Actual preparation/test interpreter: project `python/.venv/bin/python`, Python **3.12.15**, `-B`, `PYTHONDONTWRITEBYTECODE=1`, precreated owned `empty-pycache`. Tests import only stdlib and inert owned Python sources, plus the pinned stdlib cleanup source. Frozen inputs are byte-hashed/read only; faults affect owned copies only. No Torch, NumPy, native project modules, checkpoint deserialization, actual generator APIs, models, environments, training or evaluation ran. `runtime_root` remains recorded metadata; no package-byte identity claim is added.
++
++The 55-second bound governs worker/cleanup decisions. Blocking filesystem operations, hashing, fsync and receipt finalization have **no hard total watchdog**. Startup imports precede the first MPS heartbeat. Final-path exclusive JSON writes may leave partial files after I/O failure; they do not provide atomic visibility or directory-fsync crash durability. Complete real CPU/MPS behavior, dependency versions, resource/timing behavior, and reference acceptance remain parent gates.

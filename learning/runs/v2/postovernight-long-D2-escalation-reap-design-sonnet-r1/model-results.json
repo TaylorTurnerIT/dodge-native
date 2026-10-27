@@ -1,0 +1,1310 @@
+{
+  "assertions": {
+    "A11_all_cases_cleanup_complete_and_before_until": true,
+    "A12_only_monitor_and_kill_due_differ": true,
+    "A13_retained_worker_gate_IPC_loss_reproduced_and_does_not_starve_supervisor_channel": true,
+    "A14_escalation_reasons": true,
+    "A1_old_reproduces_r10_same_tick_and_predicate": true,
+    "A2_proposed_r10_reaping_direct_and_fixture_passes": true,
+    "A2_proposed_r10_supervisor_after_worker_and_after_wait": true,
+    "A2_proposed_r10_within_unchanged_cap": true,
+    "A2_proposed_r10_worker_kill_unchanged": true,
+    "A3_unresponsive_supervisor_fallback_at_until_minus_half": true,
+    "A4_lost_ipc_unproven_not_fabricated": true,
+    "A5_tightening_worker_wait_still_relayed": true,
+    "A6_genuine_parent_death_identical_old_new_and_unproven": true,
+    "A7_worker_dies_on_TERM_old_new_equal_no_kill": true,
+    "A8_late_after_latest_bound_same_tick_truthfully_unproven": true,
+    "A8_late_inside_window_relays": true,
+    "A9_direct_reaped_iff_validated_worker_wait_all_cases": true,
+    "A9b_no_case_labels_orphan_as_direct": true
+  },
+  "changed_functions": [
+    "Execution.kill_due",
+    "Execution.monitor"
+  ],
+  "old_frozen": {
+    "earlier_ack_tightening_after_ack": {
+      "absence": {
+        "supervisor": true,
+        "worker": true
+      },
+      "cleanup_complete": true,
+      "cleanup_ordering_ok": true,
+      "clock_end_vs_until": 4.96,
+      "deadline_exit": false,
+      "escalation_events": [],
+      "final_clock": 516544.700299,
+      "first": 516539.66029925004,
+      "inner_reap_result": null,
+      "inner_wait": {
+        "direct_child_reaped": true,
+        "observed_monotonic": 516544.6802992545,
+        "pid": 200,
+        "raw_wait_status": 9,
+        "reaped_by": 1000,
+        "returncode": -9
+      },
+      "ipc_sent": [],
+      "monitor_errors": [
+        {
+          "duty": "IPC",
+          "error": "Stop('Unexpected private IPC loss: {}')",
+          "kind": "monitor_error"
+        }
+      ],
+      "name": "earlier_ack_tightening_after_ack",
+      "reaping": {
+        "supervisor": {
+          "basis": "direct_wait_report_missing",
+          "status": "unproven"
+        },
+        "worker": {
+          "basis": "supervisor_dead_before_report",
+          "status": "unproven"
+        }
+      },
+      "reaping_block_cleanup_errors": [
+        "NameError(\"name 'c' is not defined\")"
+      ],
+      "same_tick_both_kill": true,
+      "supervisor_kill": [
+        516544.660299
+      ],
+      "supervisor_term": [
+        516539.880299
+      ],
+      "until": 516549.66029925004,
+      "worker_kill": [
+        516544.660299
+      ],
+      "worker_term": [
+        516539.880299
+      ],
+      "worker_wait": null,
+      "worker_wait_validated": false
+    },
+    "genuine_parent_death_orphan": {
+      "absence": {
+        "supervisor": true,
+        "worker": true
+      },
+      "cleanup_complete": true,
+      "cleanup_ordering_ok": true,
+      "clock_end_vs_until": 4.98,
+      "deadline_exit": false,
+      "escalation_events": [],
+      "final_clock": 516544.880299,
+      "first": 516539.86029925,
+      "inner_reap_result": null,
+      "inner_wait": {
+        "direct_child_reaped": true,
+        "observed_monotonic": 516539.56029925,
+        "pid": 200,
+        "raw_wait_status": 1792,
+        "reaped_by": 48383,
+        "returncode": 7
+      },
+      "ipc_sent": [],
+      "monitor_errors": [
+        {
+          "duty": "direct_reap",
+          "error": "Stop('Invalid direct wait report identity/status')",
+          "kind": "monitor_error"
+        },
+        {
+          "duty": "IPC",
+          "error": "Stop('Unexpected private IPC loss: {}')",
+          "kind": "monitor_error"
+        }
+      ],
+      "name": "genuine_parent_death_orphan",
+      "reaping": {
+        "supervisor": {
+          "basis": "direct_wait_report_missing",
+          "status": "unproven"
+        },
+        "worker": {
+          "basis": "supervisor_dead_before_report",
+          "status": "unproven"
+        }
+      },
+      "reaping_block_cleanup_errors": [
+        "Stop('Invalid direct wait report identity/status')"
+      ],
+      "same_tick_both_kill": false,
+      "supervisor_kill": [],
+      "supervisor_term": [],
+      "until": 516549.86029925,
+      "worker_kill": [
+        516544.860299
+      ],
+      "worker_term": [
+        516539.880299
+      ],
+      "worker_wait": null,
+      "worker_wait_validated": false
+    },
+    "late_observed_after_latest_bound": {
+      "absence": {
+        "supervisor": true,
+        "worker": true
+      },
+      "cleanup_complete": true,
+      "cleanup_ordering_ok": true,
+      "clock_end_vs_until": 0.34,
+      "deadline_exit": false,
+      "escalation_events": [],
+      "final_clock": 8209.66,
+      "first": 8200.0,
+      "inner_reap_result": {
+        "worker_reap_diagnostic": "unproven: internal reap window exhausted"
+      },
+      "inner_wait": {
+        "direct_child_reaped": true,
+        "observed_monotonic": 8209.640000000001,
+        "pid": 200,
+        "raw_wait_status": 9,
+        "reaped_by": 1000,
+        "returncode": -9
+      },
+      "ipc_sent": [],
+      "monitor_errors": [
+        {
+          "duty": "IPC",
+          "error": "Stop('Unexpected private IPC loss: {}')",
+          "kind": "monitor_error"
+        }
+      ],
+      "name": "late_observed_after_latest_bound",
+      "reaping": {
+        "supervisor": {
+          "basis": "direct_wait_report_missing",
+          "status": "unproven"
+        },
+        "worker": {
+          "basis": "supervisor_dead_before_report",
+          "status": "unproven"
+        }
+      },
+      "reaping_block_cleanup_errors": [
+        "NameError(\"name 'c' is not defined\")"
+      ],
+      "same_tick_both_kill": true,
+      "supervisor_kill": [
+        8209.62
+      ],
+      "supervisor_term": [
+        8209.62
+      ],
+      "until": 8210.0,
+      "worker_kill": [
+        8209.62
+      ],
+      "worker_term": [
+        8209.62
+      ],
+      "worker_wait": null,
+      "worker_wait_validated": false
+    },
+    "late_observed_inside_reap_window": {
+      "absence": {
+        "supervisor": true,
+        "worker": true
+      },
+      "cleanup_complete": true,
+      "cleanup_ordering_ok": true,
+      "clock_end_vs_until": 3.44,
+      "deadline_exit": false,
+      "escalation_events": [],
+      "final_clock": 8206.56,
+      "first": 8200.0,
+      "inner_reap_result": null,
+      "inner_wait": {
+        "direct_child_reaped": true,
+        "observed_monotonic": 8206.54,
+        "pid": 200,
+        "raw_wait_status": 9,
+        "reaped_by": 1000,
+        "returncode": -9
+      },
+      "ipc_sent": [],
+      "monitor_errors": [
+        {
+          "duty": "IPC",
+          "error": "Stop('Unexpected private IPC loss: {}')",
+          "kind": "monitor_error"
+        }
+      ],
+      "name": "late_observed_inside_reap_window",
+      "reaping": {
+        "supervisor": {
+          "basis": "direct_wait_report_missing",
+          "status": "unproven"
+        },
+        "worker": {
+          "basis": "supervisor_dead_before_report",
+          "status": "unproven"
+        }
+      },
+      "reaping_block_cleanup_errors": [
+        "NameError(\"name 'c' is not defined\")"
+      ],
+      "same_tick_both_kill": true,
+      "supervisor_kill": [
+        8206.52
+      ],
+      "supervisor_term": [
+        8206.52
+      ],
+      "until": 8210.0,
+      "worker_kill": [
+        8206.52
+      ],
+      "worker_term": [
+        8206.52
+      ],
+      "worker_wait": null,
+      "worker_wait_validated": false
+    },
+    "lost_ipc_worker_wait_send": {
+      "absence": {
+        "supervisor": true,
+        "worker": true
+      },
+      "cleanup_complete": true,
+      "cleanup_ordering_ok": true,
+      "clock_end_vs_until": 4.96,
+      "deadline_exit": false,
+      "escalation_events": [],
+      "final_clock": 516544.900299,
+      "first": 516539.86029925,
+      "inner_reap_result": null,
+      "inner_wait": {
+        "direct_child_reaped": true,
+        "observed_monotonic": 516544.88029925467,
+        "pid": 200,
+        "raw_wait_status": 9,
+        "reaped_by": 1000,
+        "returncode": -9
+      },
+      "ipc_sent": [],
+      "monitor_errors": [
+        {
+          "duty": "IPC",
+          "error": "Stop('Unexpected private IPC loss: {}')",
+          "kind": "monitor_error"
+        }
+      ],
+      "name": "lost_ipc_worker_wait_send",
+      "reaping": {
+        "supervisor": {
+          "basis": "direct_wait_report_missing",
+          "status": "unproven"
+        },
+        "worker": {
+          "basis": "supervisor_dead_before_report",
+          "status": "unproven"
+        }
+      },
+      "reaping_block_cleanup_errors": [
+        "NameError(\"name 'c' is not defined\")"
+      ],
+      "same_tick_both_kill": true,
+      "supervisor_kill": [
+        516544.860299
+      ],
+      "supervisor_term": [
+        516539.880299
+      ],
+      "until": 516549.86029925,
+      "worker_kill": [
+        516544.860299
+      ],
+      "worker_term": [
+        516539.880299
+      ],
+      "worker_wait": null,
+      "worker_wait_validated": false
+    },
+    "production_scale_wedged": {
+      "absence": {
+        "supervisor": true,
+        "worker": true
+      },
+      "cleanup_complete": true,
+      "cleanup_ordering_ok": true,
+      "clock_end_vs_until": 4.96,
+      "deadline_exit": false,
+      "escalation_events": [],
+      "final_clock": 8145.04,
+      "first": 8140.0,
+      "fixture_wedged_class": "AssertionError: owned direct reap missing",
+      "inner_reap_result": null,
+      "inner_wait": {
+        "direct_child_reaped": true,
+        "observed_monotonic": 8145.02000000011,
+        "pid": 200,
+        "raw_wait_status": 9,
+        "reaped_by": 1000,
+        "returncode": -9
+      },
+      "ipc_sent": [],
+      "monitor_errors": [
+        {
+          "duty": "IPC",
+          "error": "Stop('Unexpected private IPC loss: {}')",
+          "kind": "monitor_error"
+        }
+      ],
+      "name": "production_scale_wedged",
+      "reaping": {
+        "supervisor": {
+          "basis": "direct_wait_report_missing",
+          "status": "unproven"
+        },
+        "worker": {
+          "basis": "supervisor_dead_before_report",
+          "status": "unproven"
+        }
+      },
+      "reaping_block_cleanup_errors": [
+        "NameError(\"name 'c' is not defined\")"
+      ],
+      "same_tick_both_kill": true,
+      "supervisor_kill": [
+        8145.0
+      ],
+      "supervisor_term": [
+        8140.02
+      ],
+      "until": 8150.0,
+      "worker_kill": [
+        8145.0
+      ],
+      "worker_term": [
+        8140.02
+      ],
+      "worker_wait": null,
+      "worker_wait_validated": false
+    },
+    "r10_replay_wedged": {
+      "absence": {
+        "supervisor": true,
+        "worker": true
+      },
+      "cleanup_complete": true,
+      "cleanup_ordering_ok": true,
+      "clock_end_vs_until": 4.96,
+      "deadline_exit": false,
+      "escalation_events": [],
+      "final_clock": 516544.900299,
+      "first": 516539.86029925,
+      "fixture_wedged_class": "AssertionError: owned direct reap missing",
+      "inner_reap_result": null,
+      "inner_wait": {
+        "direct_child_reaped": true,
+        "observed_monotonic": 516544.88029925467,
+        "pid": 200,
+        "raw_wait_status": 9,
+        "reaped_by": 1000,
+        "returncode": -9
+      },
+      "ipc_sent": [],
+      "monitor_errors": [
+        {
+          "duty": "IPC",
+          "error": "Stop('Unexpected private IPC loss: {}')",
+          "kind": "monitor_error"
+        }
+      ],
+      "name": "r10_replay_wedged",
+      "reaping": {
+        "supervisor": {
+          "basis": "direct_wait_report_missing",
+          "status": "unproven"
+        },
+        "worker": {
+          "basis": "supervisor_dead_before_report",
+          "status": "unproven"
+        }
+      },
+      "reaping_block_cleanup_errors": [
+        "NameError(\"name 'c' is not defined\")"
+      ],
+      "same_tick_both_kill": true,
+      "supervisor_kill": [
+        516544.860299
+      ],
+      "supervisor_term": [
+        516539.880299
+      ],
+      "until": 516549.86029925,
+      "worker_kill": [
+        516544.860299
+      ],
+      "worker_term": [
+        516539.880299
+      ],
+      "worker_wait": null,
+      "worker_wait_validated": false
+    },
+    "unresponsive_supervisor": {
+      "absence": {
+        "supervisor": true,
+        "worker": true
+      },
+      "cleanup_complete": true,
+      "cleanup_ordering_ok": true,
+      "clock_end_vs_until": 4.96,
+      "deadline_exit": false,
+      "escalation_events": [],
+      "final_clock": 516544.900299,
+      "first": 516539.86029925,
+      "inner_reap_result": null,
+      "inner_wait": {
+        "direct_child_reaped": true,
+        "observed_monotonic": 516544.88029925467,
+        "pid": 200,
+        "raw_wait_status": 9,
+        "reaped_by": 1000,
+        "returncode": -9
+      },
+      "ipc_sent": [],
+      "monitor_errors": [
+        {
+          "duty": "IPC",
+          "error": "Stop('Unexpected private IPC loss: {}')",
+          "kind": "monitor_error"
+        }
+      ],
+      "name": "unresponsive_supervisor",
+      "reaping": {
+        "supervisor": {
+          "basis": "direct_wait_report_missing",
+          "status": "unproven"
+        },
+        "worker": {
+          "basis": "supervisor_dead_before_report",
+          "status": "unproven"
+        }
+      },
+      "reaping_block_cleanup_errors": [
+        "NameError(\"name 'c' is not defined\")"
+      ],
+      "same_tick_both_kill": true,
+      "supervisor_kill": [
+        516544.860299
+      ],
+      "supervisor_term": [
+        516539.880299
+      ],
+      "until": 516549.86029925,
+      "worker_kill": [
+        516544.860299
+      ],
+      "worker_term": [
+        516539.880299
+      ],
+      "worker_wait": null,
+      "worker_wait_validated": false
+    },
+    "worker_dies_on_TERM_normal": {
+      "absence": {
+        "supervisor": true,
+        "worker": true
+      },
+      "cleanup_complete": true,
+      "cleanup_ordering_ok": true,
+      "clock_end_vs_until": 9.88,
+      "deadline_exit": false,
+      "escalation_events": [],
+      "final_clock": 516539.980299,
+      "first": 516539.86029925,
+      "inner_reap_result": {
+        "worker_wait_send_attempted": true,
+        "worker_wait_send_status": "sent"
+      },
+      "inner_wait": {
+        "direct_child_reaped": true,
+        "observed_monotonic": 516539.9602992501,
+        "pid": 200,
+        "raw_wait_status": 256,
+        "reaped_by": 1000,
+        "returncode": 1
+      },
+      "ipc_sent": [
+        [
+          516539.900299,
+          "worker_wait"
+        ]
+      ],
+      "monitor_errors": [
+        {
+          "duty": "IPC",
+          "error": "Stop('Unexpected private IPC loss: {}')",
+          "kind": "monitor_error"
+        }
+      ],
+      "name": "worker_dies_on_TERM_normal",
+      "reaping": {
+        "supervisor": {
+          "basis": "direct_wait_report_missing",
+          "status": "unproven"
+        },
+        "worker": {
+          "basis": "validated_direct_parent_waitpid_report",
+          "status": "direct_reaped"
+        }
+      },
+      "reaping_block_cleanup_errors": [
+        "NameError(\"name 'c' is not defined\")"
+      ],
+      "same_tick_both_kill": false,
+      "supervisor_kill": [],
+      "supervisor_term": [
+        516539.880299
+      ],
+      "until": 516549.86029925,
+      "worker_kill": [],
+      "worker_term": [
+        516539.880299
+      ],
+      "worker_wait": {
+        "direct_child_reaped": true,
+        "observed_monotonic": 516539.90029925003,
+        "pid": 300,
+        "raw_wait_status": 15,
+        "reaped_by": 200,
+        "returncode": -15
+      },
+      "worker_wait_validated": true
+    }
+  },
+  "proposed": {
+    "earlier_ack_tightening_after_ack": {
+      "absence": {
+        "supervisor": true,
+        "worker": true
+      },
+      "cleanup_complete": true,
+      "cleanup_ordering_ok": true,
+      "clock_end_vs_until": 4.92,
+      "deadline_exit": false,
+      "escalation_events": [
+        {
+          "monotonic": 516544.660299,
+          "reason": "original_cutpoint",
+          "role": "worker"
+        },
+        {
+          "monotonic": 516544.700299,
+          "reason": "validated_worker_wait",
+          "role": "supervisor"
+        }
+      ],
+      "final_clock": 516544.740299,
+      "first": 516539.66029925004,
+      "inner_reap_result": {
+        "worker_wait_send_attempted": true,
+        "worker_wait_send_status": "sent"
+      },
+      "inner_wait": {
+        "direct_child_reaped": true,
+        "observed_monotonic": 516544.7202992545,
+        "pid": 200,
+        "raw_wait_status": 9,
+        "reaped_by": 1000,
+        "returncode": -9
+      },
+      "ipc_sent": [
+        [
+          516544.680299,
+          "worker_wait"
+        ]
+      ],
+      "monitor_errors": [
+        {
+          "duty": "IPC",
+          "error": "Stop('Unexpected private IPC loss: {}')",
+          "kind": "monitor_error"
+        }
+      ],
+      "name": "earlier_ack_tightening_after_ack",
+      "reaping": {
+        "supervisor": {
+          "basis": "direct_wait_report_missing",
+          "status": "unproven"
+        },
+        "worker": {
+          "basis": "validated_direct_parent_waitpid_report",
+          "status": "direct_reaped"
+        }
+      },
+      "reaping_block_cleanup_errors": [
+        "NameError(\"name 'c' is not defined\")"
+      ],
+      "same_tick_both_kill": false,
+      "supervisor_kill": [
+        516544.700299
+      ],
+      "supervisor_term": [
+        516539.880299
+      ],
+      "until": 516549.66029925004,
+      "worker_kill": [
+        516544.660299
+      ],
+      "worker_term": [
+        516539.880299
+      ],
+      "worker_wait": {
+        "direct_child_reaped": true,
+        "observed_monotonic": 516544.6802992545,
+        "pid": 300,
+        "raw_wait_status": 9,
+        "reaped_by": 200,
+        "returncode": -9
+      },
+      "worker_wait_validated": true
+    },
+    "genuine_parent_death_orphan": {
+      "absence": {
+        "supervisor": true,
+        "worker": true
+      },
+      "cleanup_complete": true,
+      "cleanup_ordering_ok": true,
+      "clock_end_vs_until": 4.98,
+      "deadline_exit": false,
+      "escalation_events": [
+        {
+          "monotonic": 516544.860299,
+          "reason": "supervisor_reaped",
+          "role": "supervisor"
+        },
+        {
+          "monotonic": 516544.860299,
+          "reason": "original_cutpoint",
+          "role": "worker"
+        }
+      ],
+      "final_clock": 516544.880299,
+      "first": 516539.86029925,
+      "inner_reap_result": null,
+      "inner_wait": {
+        "direct_child_reaped": true,
+        "observed_monotonic": 516539.56029925,
+        "pid": 200,
+        "raw_wait_status": 1792,
+        "reaped_by": 48383,
+        "returncode": 7
+      },
+      "ipc_sent": [],
+      "monitor_errors": [
+        {
+          "duty": "direct_reap",
+          "error": "Stop('Invalid direct wait report identity/status')",
+          "kind": "monitor_error"
+        },
+        {
+          "duty": "IPC",
+          "error": "Stop('Unexpected private IPC loss: {}')",
+          "kind": "monitor_error"
+        }
+      ],
+      "name": "genuine_parent_death_orphan",
+      "reaping": {
+        "supervisor": {
+          "basis": "direct_wait_report_missing",
+          "status": "unproven"
+        },
+        "worker": {
+          "basis": "supervisor_dead_before_report",
+          "status": "unproven"
+        }
+      },
+      "reaping_block_cleanup_errors": [
+        "Stop('Invalid direct wait report identity/status')"
+      ],
+      "same_tick_both_kill": false,
+      "supervisor_kill": [],
+      "supervisor_term": [],
+      "until": 516549.86029925,
+      "worker_kill": [
+        516544.860299
+      ],
+      "worker_term": [
+        516539.880299
+      ],
+      "worker_wait": null,
+      "worker_wait_validated": false
+    },
+    "late_observed_after_latest_bound": {
+      "absence": {
+        "supervisor": true,
+        "worker": true
+      },
+      "cleanup_complete": true,
+      "cleanup_ordering_ok": true,
+      "clock_end_vs_until": 0.34,
+      "deadline_exit": false,
+      "escalation_events": [
+        {
+          "monotonic": 8209.62,
+          "reason": "latest_bound",
+          "role": "supervisor"
+        },
+        {
+          "monotonic": 8209.62,
+          "reason": "original_cutpoint",
+          "role": "worker"
+        }
+      ],
+      "final_clock": 8209.66,
+      "first": 8200.0,
+      "inner_reap_result": {
+        "worker_reap_diagnostic": "unproven: internal reap window exhausted"
+      },
+      "inner_wait": {
+        "direct_child_reaped": true,
+        "observed_monotonic": 8209.640000000001,
+        "pid": 200,
+        "raw_wait_status": 9,
+        "reaped_by": 1000,
+        "returncode": -9
+      },
+      "ipc_sent": [],
+      "monitor_errors": [
+        {
+          "duty": "IPC",
+          "error": "Stop('Unexpected private IPC loss: {}')",
+          "kind": "monitor_error"
+        }
+      ],
+      "name": "late_observed_after_latest_bound",
+      "reaping": {
+        "supervisor": {
+          "basis": "direct_wait_report_missing",
+          "status": "unproven"
+        },
+        "worker": {
+          "basis": "supervisor_dead_before_report",
+          "status": "unproven"
+        }
+      },
+      "reaping_block_cleanup_errors": [
+        "NameError(\"name 'c' is not defined\")"
+      ],
+      "same_tick_both_kill": true,
+      "supervisor_kill": [
+        8209.62
+      ],
+      "supervisor_term": [
+        8209.62
+      ],
+      "until": 8210.0,
+      "worker_kill": [
+        8209.62
+      ],
+      "worker_term": [
+        8209.62
+      ],
+      "worker_wait": null,
+      "worker_wait_validated": false
+    },
+    "late_observed_inside_reap_window": {
+      "absence": {
+        "supervisor": true,
+        "worker": true
+      },
+      "cleanup_complete": true,
+      "cleanup_ordering_ok": true,
+      "clock_end_vs_until": 3.4,
+      "deadline_exit": false,
+      "escalation_events": [
+        {
+          "monotonic": 8206.52,
+          "reason": "original_cutpoint",
+          "role": "worker"
+        },
+        {
+          "monotonic": 8206.56,
+          "reason": "validated_worker_wait",
+          "role": "supervisor"
+        }
+      ],
+      "final_clock": 8206.6,
+      "first": 8200.0,
+      "inner_reap_result": {
+        "worker_wait_send_attempted": true,
+        "worker_wait_send_status": "sent"
+      },
+      "inner_wait": {
+        "direct_child_reaped": true,
+        "observed_monotonic": 8206.580000000002,
+        "pid": 200,
+        "raw_wait_status": 9,
+        "reaped_by": 1000,
+        "returncode": -9
+      },
+      "ipc_sent": [
+        [
+          8206.54,
+          "worker_wait"
+        ]
+      ],
+      "monitor_errors": [
+        {
+          "duty": "IPC",
+          "error": "Stop('Unexpected private IPC loss: {}')",
+          "kind": "monitor_error"
+        }
+      ],
+      "name": "late_observed_inside_reap_window",
+      "reaping": {
+        "supervisor": {
+          "basis": "direct_wait_report_missing",
+          "status": "unproven"
+        },
+        "worker": {
+          "basis": "validated_direct_parent_waitpid_report",
+          "status": "direct_reaped"
+        }
+      },
+      "reaping_block_cleanup_errors": [
+        "NameError(\"name 'c' is not defined\")"
+      ],
+      "same_tick_both_kill": false,
+      "supervisor_kill": [
+        8206.56
+      ],
+      "supervisor_term": [
+        8206.52
+      ],
+      "until": 8210.0,
+      "worker_kill": [
+        8206.52
+      ],
+      "worker_term": [
+        8206.52
+      ],
+      "worker_wait": {
+        "direct_child_reaped": true,
+        "observed_monotonic": 8206.54,
+        "pid": 300,
+        "raw_wait_status": 9,
+        "reaped_by": 200,
+        "returncode": -9
+      },
+      "worker_wait_validated": true
+    },
+    "lost_ipc_worker_wait_send": {
+      "absence": {
+        "supervisor": true,
+        "worker": true
+      },
+      "cleanup_complete": true,
+      "cleanup_ordering_ok": true,
+      "clock_end_vs_until": 4.9,
+      "deadline_exit": false,
+      "escalation_events": [
+        {
+          "monotonic": 516544.860299,
+          "reason": "original_cutpoint",
+          "role": "worker"
+        },
+        {
+          "monotonic": 516544.940299,
+          "reason": "supervisor_reaped",
+          "role": "supervisor"
+        }
+      ],
+      "final_clock": 516544.960299,
+      "first": 516539.86029925,
+      "inner_reap_result": {
+        "worker_reap_diagnostic": "BrokenPipeError(32, 'modeled lost IPC')",
+        "worker_wait_send_attempted": true,
+        "worker_wait_send_status": "failed_or_prior_attempt"
+      },
+      "inner_wait": {
+        "direct_child_reaped": true,
+        "observed_monotonic": 516544.9402992547,
+        "pid": 200,
+        "raw_wait_status": 256,
+        "reaped_by": 1000,
+        "returncode": 1
+      },
+      "ipc_sent": [],
+      "monitor_errors": [
+        {
+          "duty": "IPC",
+          "error": "Stop('Unexpected private IPC loss: {}')",
+          "kind": "monitor_error"
+        }
+      ],
+      "name": "lost_ipc_worker_wait_send",
+      "reaping": {
+        "supervisor": {
+          "basis": "direct_wait_report_missing",
+          "status": "unproven"
+        },
+        "worker": {
+          "basis": "supervisor_dead_before_report",
+          "status": "unproven"
+        }
+      },
+      "reaping_block_cleanup_errors": [
+        "NameError(\"name 'c' is not defined\")"
+      ],
+      "same_tick_both_kill": false,
+      "supervisor_kill": [],
+      "supervisor_term": [
+        516539.880299
+      ],
+      "until": 516549.86029925,
+      "worker_kill": [
+        516544.860299
+      ],
+      "worker_term": [
+        516539.880299
+      ],
+      "worker_wait": null,
+      "worker_wait_validated": false
+    },
+    "production_scale_wedged": {
+      "absence": {
+        "supervisor": true,
+        "worker": true
+      },
+      "cleanup_complete": true,
+      "cleanup_ordering_ok": true,
+      "clock_end_vs_until": 4.92,
+      "deadline_exit": false,
+      "escalation_events": [
+        {
+          "monotonic": 8145.0,
+          "reason": "original_cutpoint",
+          "role": "worker"
+        },
+        {
+          "monotonic": 8145.04,
+          "reason": "validated_worker_wait",
+          "role": "supervisor"
+        }
+      ],
+      "final_clock": 8145.08,
+      "first": 8140.0,
+      "fixture_wedged_class": "passed",
+      "inner_reap_result": {
+        "worker_wait_send_attempted": true,
+        "worker_wait_send_status": "sent"
+      },
+      "inner_wait": {
+        "direct_child_reaped": true,
+        "observed_monotonic": 8145.06000000011,
+        "pid": 200,
+        "raw_wait_status": 9,
+        "reaped_by": 1000,
+        "returncode": -9
+      },
+      "ipc_sent": [
+        [
+          8145.02,
+          "worker_wait"
+        ]
+      ],
+      "monitor_errors": [
+        {
+          "duty": "IPC",
+          "error": "Stop('Unexpected private IPC loss: {}')",
+          "kind": "monitor_error"
+        }
+      ],
+      "name": "production_scale_wedged",
+      "reaping": {
+        "supervisor": {
+          "basis": "direct_wait_report_missing",
+          "status": "unproven"
+        },
+        "worker": {
+          "basis": "validated_direct_parent_waitpid_report",
+          "status": "direct_reaped"
+        }
+      },
+      "reaping_block_cleanup_errors": [
+        "NameError(\"name 'c' is not defined\")"
+      ],
+      "same_tick_both_kill": false,
+      "supervisor_kill": [
+        8145.04
+      ],
+      "supervisor_term": [
+        8140.02
+      ],
+      "until": 8150.0,
+      "worker_kill": [
+        8145.0
+      ],
+      "worker_term": [
+        8140.02
+      ],
+      "worker_wait": {
+        "direct_child_reaped": true,
+        "observed_monotonic": 8145.02000000011,
+        "pid": 300,
+        "raw_wait_status": 9,
+        "reaped_by": 200,
+        "returncode": -9
+      },
+      "worker_wait_validated": true
+    },
+    "r10_replay_wedged": {
+      "absence": {
+        "supervisor": true,
+        "worker": true
+      },
+      "cleanup_complete": true,
+      "cleanup_ordering_ok": true,
+      "clock_end_vs_until": 4.92,
+      "deadline_exit": false,
+      "escalation_events": [
+        {
+          "monotonic": 516544.860299,
+          "reason": "original_cutpoint",
+          "role": "worker"
+        },
+        {
+          "monotonic": 516544.900299,
+          "reason": "validated_worker_wait",
+          "role": "supervisor"
+        }
+      ],
+      "final_clock": 516544.940299,
+      "first": 516539.86029925,
+      "fixture_wedged_class": "passed",
+      "inner_reap_result": {
+        "worker_wait_send_attempted": true,
+        "worker_wait_send_status": "sent"
+      },
+      "inner_wait": {
+        "direct_child_reaped": true,
+        "observed_monotonic": 516544.9202992547,
+        "pid": 200,
+        "raw_wait_status": 9,
+        "reaped_by": 1000,
+        "returncode": -9
+      },
+      "ipc_sent": [
+        [
+          516544.880299,
+          "worker_wait"
+        ]
+      ],
+      "monitor_errors": [
+        {
+          "duty": "IPC",
+          "error": "Stop('Unexpected private IPC loss: {}')",
+          "kind": "monitor_error"
+        }
+      ],
+      "name": "r10_replay_wedged",
+      "reaping": {
+        "supervisor": {
+          "basis": "direct_wait_report_missing",
+          "status": "unproven"
+        },
+        "worker": {
+          "basis": "validated_direct_parent_waitpid_report",
+          "status": "direct_reaped"
+        }
+      },
+      "reaping_block_cleanup_errors": [
+        "NameError(\"name 'c' is not defined\")"
+      ],
+      "same_tick_both_kill": false,
+      "supervisor_kill": [
+        516544.900299
+      ],
+      "supervisor_term": [
+        516539.880299
+      ],
+      "until": 516549.86029925,
+      "worker_kill": [
+        516544.860299
+      ],
+      "worker_term": [
+        516539.880299
+      ],
+      "worker_wait": {
+        "direct_child_reaped": true,
+        "observed_monotonic": 516544.88029925467,
+        "pid": 300,
+        "raw_wait_status": 9,
+        "reaped_by": 200,
+        "returncode": -9
+      },
+      "worker_wait_validated": true
+    },
+    "unresponsive_supervisor": {
+      "absence": {
+        "supervisor": true,
+        "worker": true
+      },
+      "cleanup_complete": true,
+      "cleanup_ordering_ok": true,
+      "clock_end_vs_until": 0.46,
+      "deadline_exit": false,
+      "escalation_events": [
+        {
+          "monotonic": 516544.860299,
+          "reason": "original_cutpoint",
+          "role": "worker"
+        },
+        {
+          "monotonic": 516549.360299,
+          "reason": "latest_bound",
+          "role": "supervisor"
+        }
+      ],
+      "final_clock": 516549.400299,
+      "first": 516539.86029925,
+      "inner_reap_result": null,
+      "inner_wait": {
+        "direct_child_reaped": true,
+        "observed_monotonic": 516549.38029925886,
+        "pid": 200,
+        "raw_wait_status": 9,
+        "reaped_by": 1000,
+        "returncode": -9
+      },
+      "ipc_sent": [],
+      "monitor_errors": [
+        {
+          "duty": "IPC",
+          "error": "Stop('Unexpected private IPC loss: {}')",
+          "kind": "monitor_error"
+        }
+      ],
+      "name": "unresponsive_supervisor",
+      "reaping": {
+        "supervisor": {
+          "basis": "direct_wait_report_missing",
+          "status": "unproven"
+        },
+        "worker": {
+          "basis": "supervisor_dead_before_report",
+          "status": "unproven"
+        }
+      },
+      "reaping_block_cleanup_errors": [
+        "NameError(\"name 'c' is not defined\")"
+      ],
+      "same_tick_both_kill": false,
+      "supervisor_kill": [
+        516549.360299
+      ],
+      "supervisor_term": [
+        516539.880299
+      ],
+      "until": 516549.86029925,
+      "worker_kill": [
+        516544.860299
+      ],
+      "worker_term": [
+        516539.880299
+      ],
+      "worker_wait": null,
+      "worker_wait_validated": false
+    },
+    "worker_dies_on_TERM_normal": {
+      "absence": {
+        "supervisor": true,
+        "worker": true
+      },
+      "cleanup_complete": true,
+      "cleanup_ordering_ok": true,
+      "clock_end_vs_until": 9.88,
+      "deadline_exit": false,
+      "escalation_events": [],
+      "final_clock": 516539.980299,
+      "first": 516539.86029925,
+      "inner_reap_result": {
+        "worker_wait_send_attempted": true,
+        "worker_wait_send_status": "sent"
+      },
+      "inner_wait": {
+        "direct_child_reaped": true,
+        "observed_monotonic": 516539.9602992501,
+        "pid": 200,
+        "raw_wait_status": 256,
+        "reaped_by": 1000,
+        "returncode": 1
+      },
+      "ipc_sent": [
+        [
+          516539.900299,
+          "worker_wait"
+        ]
+      ],
+      "monitor_errors": [
+        {
+          "duty": "IPC",
+          "error": "Stop('Unexpected private IPC loss: {}')",
+          "kind": "monitor_error"
+        }
+      ],
+      "name": "worker_dies_on_TERM_normal",
+      "reaping": {
+        "supervisor": {
+          "basis": "direct_wait_report_missing",
+          "status": "unproven"
+        },
+        "worker": {
+          "basis": "validated_direct_parent_waitpid_report",
+          "status": "direct_reaped"
+        }
+      },
+      "reaping_block_cleanup_errors": [
+        "NameError(\"name 'c' is not defined\")"
+      ],
+      "same_tick_both_kill": false,
+      "supervisor_kill": [],
+      "supervisor_term": [
+        516539.880299
+      ],
+      "until": 516549.86029925,
+      "worker_kill": [],
+      "worker_term": [
+        516539.880299
+      ],
+      "worker_wait": {
+        "direct_child_reaped": true,
+        "observed_monotonic": 516539.90029925003,
+        "pid": 300,
+        "raw_wait_status": 15,
+        "reaped_by": 200,
+        "returncode": -15
+      },
+      "worker_wait_validated": true
+    }
+  },
+  "source_extracts": {
+    "inner_reap_block": {
+      "file": "long_d2.py",
+      "lines": [
+        1396,
+        1416
+      ],
+      "sha256": "e7fec59f96e39f1718afa686049e26d88ddba583f53b731d9c15c03e0cb6df24"
+    },
+    "publish_failed_reaping_block": {
+      "file": "long_d2_executor.py",
+      "lines": [
+        447,
+        465
+      ],
+      "sha256": "296d11009e39d4fae6bfd7067e58ae42c3de91578308a2126ac4f1374dd73867"
+    }
+  }
+}

@@ -1,0 +1,146 @@
+{
+  "gate_cases": [
+    {
+      "case": "unknown_worker_report",
+      "at": 100.0,
+      "worker": null,
+      "supervisor": null
+    },
+    {
+      "case": "unknown_worker_report",
+      "at": 104.999,
+      "worker": null,
+      "supervisor": null
+    },
+    {
+      "case": "unknown_worker_report",
+      "at": 105.0,
+      "worker": "original_cutpoint",
+      "supervisor": null
+    },
+    {
+      "case": "unknown_worker_report",
+      "at": 109.499,
+      "worker": "original_cutpoint",
+      "supervisor": null
+    },
+    {
+      "case": "unknown_worker_report",
+      "at": 109.5,
+      "worker": "original_cutpoint",
+      "supervisor": "latest_bound"
+    },
+    {
+      "case": "child_None_and_missing_worker_registration",
+      "at": 105.0,
+      "supervisor": null
+    },
+    {
+      "case": "actual_validated_worker_wait",
+      "at": 105.0,
+      "reason": "validated_worker_wait"
+    },
+    {
+      "case": "invalid_worker_wait",
+      "field": "pid",
+      "error": "Invalid direct wait report identity/status"
+    },
+    {
+      "case": "invalid_worker_wait",
+      "field": "reaped_by",
+      "error": "Invalid direct wait report identity/status"
+    },
+    {
+      "case": "invalid_worker_wait",
+      "field": "direct_child_reaped",
+      "error": "Invalid direct wait report identity/status"
+    },
+    {
+      "case": "invalid_worker_wait",
+      "field": "raw_wait_status",
+      "error": "Invalid direct wait report observation"
+    },
+    {
+      "case": "invalid_worker_wait",
+      "field": "observed_monotonic",
+      "error": "Invalid direct wait report observation"
+    },
+    {
+      "case": "invalid_worker_wait",
+      "field": "observed_monotonic",
+      "error": "Invalid direct wait report observation"
+    },
+    {
+      "case": "retained_leader_PID_mismatch",
+      "error": "Supervisor direct observation source differs"
+    },
+    {
+      "case": "late_earlier_peer",
+      "first": 99.5,
+      "until": 109.5,
+      "latest": 109.0
+    },
+    {
+      "case": "cap_truncated",
+      "first": 109.5,
+      "until": 110.0,
+      "truthful_worker_wait": null
+    }
+  ],
+  "persistent_gate_error_monitor": {
+    "signals": [
+      {
+        "pid": 200,
+        "signal": 15,
+        "at": 100.02
+      },
+      {
+        "pid": 300,
+        "signal": 15,
+        "at": 100.02
+      },
+      {
+        "pid": 200,
+        "signal": 9,
+        "at": 105.0
+      },
+      {
+        "pid": 300,
+        "signal": 9,
+        "at": 105.0
+      }
+    ],
+    "events": [
+      {
+        "kind": "monitor_error",
+        "duty": "KILL_gate_supervisor",
+        "error": "RuntimeError('synthetic gate failure')",
+        "source": null
+      },
+      {
+        "kind": "monitor_error",
+        "duty": "KILL_gate_worker",
+        "error": "RuntimeError('synthetic gate failure')",
+        "source": null
+      },
+      {
+        "kind": "escalation",
+        "role": "supervisor",
+        "reason": "gate_error_original_cutpoint",
+        "monotonic": 105.0
+      },
+      {
+        "kind": "escalation",
+        "role": "worker",
+        "reason": "gate_error_original_cutpoint",
+        "monotonic": 105.0
+      }
+    ],
+    "first": 100.0,
+    "until": 110.0,
+    "exit_at": 110.0,
+    "cleanup_complete": false,
+    "worker_wait": null
+  },
+  "limits": "Extracted production gates, monitor, FailurePool and direct-report validation. Fake time/process reports/signals/absence; no real child, socket, signal, OS closure, runtime or acceptance proof."
+}

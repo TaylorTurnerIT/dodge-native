@@ -1,0 +1,123 @@
+--- a/learning/runs/v2/D2-best180-branch-prepare-luna-20261026-r1/runner.py
++++ b/learning/runs/v2/D2-best180-branch-prepare-luna-20261026-r1/runner.py
+@@ -19,13 +19,18 @@
+ import time
+ import traceback
+ 
++from resume_lr_transition import (ARM_LR, apply_resume_lr_override, assert_effective_lr,
++                                  guarded_update, transition_record, validate_arm_binding,
++                                  validate_config_transition)
++
+ PARENT_SHA = "105e0f7a83e154116bd9f0d5eaaf573a896886468c9038f548f5ce7e6377c7ea"
+ PARENT_REGISTRATION_SHA = "6f4adf808789655a663800a1e4a0613192d02b0c8287d121455ea748fe043916"
+ PARENT_RECEIPT_SHA = "7968a62b6e601fab971e4145dbaebfa1995c8f696e6df442ab70fc0435b74903"
+ PARENT_WALL_SECONDS = 2952.324712417151
+ PARENT_RECEIPT_SCHEMA = "d2_normal_training_parent_terminal_receipt_v1"
+ PARENT_RUNTIME_SHA = "2cf10e9f056f41b39dc17845192e9adf553a5f699546d4f5dcea764a23e36b31"
+-CONFIG_SHA = "2d8eb5626d0debdf5416d0b89610d78ddd56011c3238a82fec72efabe1bd7fe3"
++CONFIG_SHA = "2d8eb5626d0debdf5416d0b89610d78ddd56011c3238a82fec72efabe1bd7fe3"  # parent learner config file (archived provenance)
++ARM_SCHEMA = "d2_resume_lr_arm_registration_v1"
+ ANCHOR_SHA = "4e9f12884712916e9eb957628b89b357784c79d0f1f6f8ab18e6047935197413"
+ VALIDATOR_SHA = "72c34ea7a3208f8ce1cba1cd144b3ba58bac7b246ce57610b70970355ac60c55"
+ ARCHIVE_SHA = "3b4b1e4f3337323de9938c0c86f158036d8dacc77acba645b3e150d9d2e765bd"
+@@ -111,7 +116,7 @@
+ 
+ 
+ def validate_registration(reg):
+-    need(reg.get("schema") == "d2_training_v3_continuation_registration_v1", "Wrong continuation registration schema")
++    need(reg.get("schema") == ARM_SCHEMA, "Wrong resume-LR arm registration schema")
+     need(reg.get("normal_training_iteration") is True and reg.get("training_eligible") is False,
+          "Prospective continuation eligibility flags changed")
+     need(reg["limits"] == LIMITS, "Registered continuation limits changed")
+@@ -119,7 +124,8 @@
+     need(type(reg["run_seed"]) is int and 0 <= reg["run_seed"] <= 0xFFFFFFFF
+          and not any(a <= reg["run_seed"] <= b for a, b in RANGES), "Invalid continuation master seed")
+     need(reg["timing_policy"] == "launcher_monotonic_start_plus_registered_limits_v1", "Timing policy changed")
+-    for key in ("root", "output", "runtime_root", "interpreter", "runner_path", "launcher_path", "state_path", "config_path"):
++    for key in ("root", "output", "runtime_root", "interpreter", "runner_path", "launcher_path", "state_path",
++                "config_path", "parent_config_path"):
+         need(Path(reg[key]).is_absolute(), "Registration path must be absolute: " + key)
+     need(Path(reg["cancel_path"]).is_absolute(), "Cancellation path must be absolute")
+     root = Path(reg["root"])
+@@ -135,8 +141,9 @@
+     need(isinstance(receipt, str) and Path(receipt).is_absolute() and isinstance(receipt_sha, str) and len(receipt_sha) == 64,
+          "Parent-authoritative terminal receipt path/digest required")
+     need(receipt_sha == PARENT_RECEIPT_SHA, "Parent terminal receipt is not the externally pinned receipt")
+-    need(reg["config_sha256"] == CONFIG_SHA and reg["native"]["sha256"] == NEW_NATIVE_SHA
+-         and reg["native"]["old_sha256"] == OLD_NATIVE_SHA, "Frozen D2 runtime identity differs")
++    # Arm config identity is bound in validate_arm_binding (load_registration); the parent config stays pinned to CONFIG_SHA.
++    need(reg["native"]["sha256"] == NEW_NATIVE_SHA and reg["native"]["old_sha256"] == OLD_NATIVE_SHA,
++         "Frozen D2 runtime identity differs")
+     need(Path(reg["native"]["path"]).resolve().parent == (Path(reg["runtime_root"]) / "dodge_rl").resolve(),
+          "Native runtime path differs")
+     need(reg["runtime_versions"].keys() == {"python", "torch", "numpy"}, "Runtime versions missing")
+@@ -255,11 +262,12 @@
+     reg = validate_registration(read(path))
+     verify_pins(reg["pins"])
+     parent = reg["parent"]
+-    critical = {reg["runner_path"], reg["launcher_path"], reg["interpreter"], reg["config_path"],
++    critical = {reg["runner_path"], reg["launcher_path"], reg["interpreter"], reg["config_path"], reg["parent_config_path"],
+                 parent["path"], parent["terminal_receipt_path"], reg["native"]["path"], reg["native"]["old_path"]}
+     need(critical <= reg["pins"].keys(), "Critical continuation pins missing")
+     need(reg["pins"][parent["path"]] == PARENT_SHA
+-         and reg["pins"][reg["config_path"]] == CONFIG_SHA
++         and reg["pins"][reg["parent_config_path"]] == CONFIG_SHA
++         and reg["pins"][reg["config_path"]] == reg["config_sha256"]
+          and reg["pins"][reg["native"]["path"]] == NEW_NATIVE_SHA
+          and reg["pins"][reg["native"]["old_path"]] == OLD_NATIVE_SHA,
+          "Critical continuation pin binding differs")
+@@ -289,9 +297,13 @@
+     inventory = read(inventory_path)
+     need(all(reg["pins"].get(name) == item["sha256"] for name, item in inventory["pins"].items()),
+          "Original interpreter/Torch/NumPy dependency pins missing")
+-    need(reg["pins"].get(reg["config_path"]) == CONFIG_SHA, "Frozen config pin differs")
++    # Parent config file (immutable, archived) and arm config file are bound separately, before any optimizer exists.
++    parent_config = read(reg["parent_config_path"])
+     config = read(reg["config_path"])
+-    need(config["ppo"] == PPO and config["device"] == "mps" and config["batch_size"] == 64
++    validate_arm_binding(reg, parent_config_file_sha256=sha(reg["parent_config_path"]),
++                         arm_config_file_sha256=sha(reg["config_path"]))
++    validate_config_transition(parent_config, config)
++    need(config["ppo"] == {**PPO, "learning_rate": ARM_LR} and config["device"] == "mps" and config["batch_size"] == 64
+          and config["rollout_steps"] == 256 and config["action_repeat"] == 4 and config["num_threads"] == 4
+          and config["chunk_size"] == 8 and config["excluded_seed_ranges"] == RANGES,
+          "Frozen learner/environment settings differ")
+@@ -594,6 +606,16 @@
+             save(out / "entry-restoration.json", {"matched": equality, "components": details,
+                   "before_environment_or_gradients": True, "parent_sha256": PARENT_SHA})
+             need(all(equality.values()), "Parent model/Adam/RNG restoration differs")
++            # Declared LR transition: runs only after exact restore and equality checks, before environment construction.
++            # apply_resume_lr_override validates the registration, config value, and every group before its single write.
++            parent_optimizer_state = optimizer.state_dict()
++            lr_delta = apply_resume_lr_override(optimizer, config["ppo"]["learning_rate"], reg["arm_transition"])
++            assert_effective_lr(optimizer, ARM_LR)
++            save(out / "lr-transition.json", transition_record(
++                parent_optimizer_state, optimizer.state_dict(), lr_delta,
++                {"parent_config_file_sha256": CONFIG_SHA, "arm_config_file_sha256": reg["config_sha256"],
++                 "parent_checkpoint_sha256": PARENT_SHA, "parent_receipt_sha256": PARENT_RECEIPT_SHA,
++                 "parent_registration_sha256": PARENT_REGISTRATION_SHA}))
+ 
+             inherited = dict(parent["cumulative_counters"])
+             initial_indices = list(parent["next_episode_indices"])
+@@ -649,6 +671,7 @@
+                              "parent_run_id": "D2-gradient-alignment-20261025-r2",
+                              "parent_registration_sha256": PARENT_REGISTRATION_SHA,
+                              "parent_checkpoint_sha256": PARENT_SHA}
++                    assert_effective_lr(optimizer, ARM_LR)  # publication: never persist a checkpoint at another LR
+                     checkpoint_sha = ckpt.save_checkpoint(path, state)
+                     with (out / f"development-{phase_update:06d}.jsonl").open("x") as stream:
+                         evaluation = evaluate(model, "D2", "mps", check_guard=guard.check, episode_stream=stream)
+@@ -676,9 +699,10 @@
+                     phase_update = PHASE_START + update
+                     for event in ordered_episode_events(collection.completed_episodes, collection.reset_info, phase_update):
+                         emit(episodes, event)
+-                    value = ppo_update(model, optimizer, collection.batch, ppo, check_guard=guard.check,
+-                                       progress=progress, critic_diagnostics=True,
+-                                       gradient_alignment_diagnostics=True)
++                    # Effective LR is asserted immediately before and after every PPO update call.
++                    value = guarded_update(optimizer, ARM_LR, ppo_update, model, optimizer, collection.batch, ppo,
++                                           check_guard=guard.check, progress=progress, critic_diagnostics=True,
++                                           gradient_alignment_diagnostics=True)
+                     finite_tree(value)
+                     diag = value["critic_diagnostics"]
+                     need(diag["version"] == "same_batch_critic_diagnostics_v1", "Unknown diagnostic version")

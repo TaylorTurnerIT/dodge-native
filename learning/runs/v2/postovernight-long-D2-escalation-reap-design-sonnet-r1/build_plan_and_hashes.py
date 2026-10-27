@@ -1,0 +1,118 @@
+"""Writes plan.json and input-hashes.json into this directory only. Reads inputs read-only."""
+import hashlib, json, subprocess
+from pathlib import Path
+ROOT = Path('/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79'); OUT = Path(__file__).resolve().parent
+R10 = ROOT / 'learning/runs/v2/postovernight-long-D2-boundary-prepare-r10'
+sha = lambda p: hashlib.sha256(Path(p).read_bytes()).hexdigest()
+pins = json.loads((R10 / 'parent-frozen-pins.json').read_text())
+verified = {k: sha(ROOT / k) == v for k, v in pins.items()}
+PROTO = 'learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r7.json'
+case = R10 / 'attempts/attempt-03-focused-OS/cases/normal-deadline-wedged'
+files = {
+ 'frozen_pins_file': R10 / 'parent-frozen-pins.json', 'protocol_r7': ROOT / PROTO,
+ 'parent_result_r10': R10 / 'parent-result-r10.json', 'parent_validation_plan': R10 / 'parent-validation-plan.json',
+ 'implementation_plan_v2': ROOT / 'docs/implementation-plan-v2.md', 'spec': ROOT / 'docs/SPEC_PRIVILEGED_VIT_RL.md',
+ 'orchestration_state_(mutable_context)': ROOT / 'learning/runs/v2-orchestration/state.json',
+ 'prior_startup_reap_reconciliation': ROOT / 'learning/runs/v2-orchestration/postovernight-long-D2-startup-reap-sonnet-r1-parent-reconciliation.json',
+ 'task_prompt': ROOT / 'learning/runs/v2-orchestration/postovernight-long-D2-escalation-reap-design-sonnet-r1-task.md',
+ 'r10_long_d2.py': R10 / 'long_d2.py', 'r10_long_d2_executor.py': R10 / 'long_d2_executor.py', 'r10_lifecycle.py': R10 / 'lifecycle.py',
+ 'r10_processes.py': R10 / 'processes.py', 'r10_synthetic.py': R10 / 'synthetic.py', 'r10_os_checks.py': R10 / 'os_checks.py',
+ 'r10_fixture_guards.py': R10 / 'fixture_guards.py', 'r10_fixture_preconditions.py': R10 / 'fixture_preconditions.py',
+ 'r10_test_r10.py': R10 / 'test_r10.py', 'r10_test_repairs.py': R10 / 'test_repairs.py',
+ 'retained_case_receipt': case / 'execution/acceptance-receipt.json', 'retained_case_inner_failure': case / 'campaign/inner-failure.json',
+ 'retained_case_observed_command': case / 'observed-command.json', 'retained_case_outer_events': case / 'outer-events.jsonl',
+ 'retained_case_inner_events': case / 'inner-events.jsonl', 'retained_case_worker_events': case / 'worker-events.jsonl',
+}
+hashes = {k: dict(path=str(v.relative_to(ROOT)), sha256=sha(v)) for k, v in files.items()}
+(OUT / 'input-hashes.json').write_text(json.dumps(dict(
+    frozen_pins_verified=sum(verified.values()), frozen_pins_total=len(verified), frozen_pin_results=verified,
+    protocol_r7_sha256=sha(ROOT / PROTO), protocol_r7_expected='49b25af4181353cc6d31b03c3666475c37eb5a433b4038d4cc4076519420ebce',
+    protocol_r7_match=sha(ROOT / PROTO) == '49b25af4181353cc6d31b03c3666475c37eb5a433b4038d4cc4076519420ebce',
+    controller_sha256=sha(R10 / 'long_d2.py'), controller_expected='1b9b55dfb02cf36b52955f24f3873e02add5741b8595c3533c8c69ff8a0741b7',
+    controller_match=sha(R10 / 'long_d2.py') == '1b9b55dfb02cf36b52955f24f3873e02add5741b8595c3533c8c69ff8a0741b7',
+    executor_sha256=sha(R10 / 'long_d2_executor.py'), executor_expected='57d79bbb1396cefaa80f0e7762bd64f40e1b2ae16b2b155f0e3ede70a0a7479f',
+    executor_match=sha(R10 / 'long_d2_executor.py') == '57d79bbb1396cefaa80f0e7762bd64f40e1b2ae16b2b155f0e3ede70a0a7479f',
+    mutable_context_exclusion='learning/runs/v2-orchestration/state.json is mutable; hash is as-read only',
+    inputs=hashes), indent=2, sort_keys=True) + '\n')
+
+plan = {
+ 'schema': 'escalation_reap_design_plan_v1', 'status': 'source_proposal_only;not_applied;not_OS_validated',
+ 'author_role': 'Sonnet design sub-agent (read-only)', 'follow_on': 'none_automatic',
+ 'problem': 'Executor KILLs worker and supervisor in the same monitor tick at min(first+5,until-.5); the supervisor, still inside its unchanged best-effort reap loop (reap_by=until-1.0), dies before relaying the validated worker_wait, so the direct-parent worker wait is lost.',
+ 'evidence_key_times_r10_monotonic': {'T0': 516539.26029925, 'first_global_failure': 516539.86029925, 'cleanup_until': 516549.86029925,
+     'executor_kill_both_expected': 516544.86029925, 'supervisor_direct_wait_observed': 516544.894805166, 'supervisor_reap_by_expected': 516548.86029925,
+     'worker_wedged_entry': 516539.6151705},
+ 'proposed_ordering': {
+   'worker_group': 'TERM immediately on failure; KILL at K_w=min(first+5,until-.5). UNCHANGED.',
+   'supervisor_group': 'TERM immediately on failure. UNCHANGED. KILL gated by Execution.kill_due("supervisor") evaluated each tick from the CURRENT pool.first/pool.until.',
+   'supervisor_kill_due_when_all': ['now >= K_w'],
+   'supervisor_kill_due_if_any_of': [
+      {'reason': 'validated_worker_wait', 'test': 'self.worker_wait is not None (set only by pump after owned.validate_report with before=pool.until; never from absence)'},
+      {'reason': 'supervisor_reaped', 'test': 'child is None or child.report is not None (leader already direct-reaped by executor; descendants of its group still need KILL)'},
+      {'reason': 'no_registered_worker', 'test': "'worker' not in groups (nothing a supervisor could validly relay)"},
+      {'reason': 'latest_bound', 'test': 'now >= until-.5 (the existing latest KILL bound, unchanged constant)'}],
+   'gate_failure_default': 'If the gate itself raises, KILL immediately (old behavior); gate runs under monitor_duty so peers and the os._exit(1) at pool.until stay independent.',
+   'receipt_disclosure': 'append one dict(kind=escalation,role,reason,monotonic) per role to Execution.events; events already in the failed receipt; no schema change.'},
+ 'timing_inequalities': {
+   'definitions': 'F=pool.first, U=pool.until=min(F+10,T0+7210), K_w=min(F+5,U-.5), L=U-.5, R=U_sup-1.0 (supervisor internal reap_by, supervisor view of U), d_poll=.02, d_pump~.02..0.05 (monitor tick + select .005)',
+   'I1_worker_kill_unchanged': 'worker KILL time == K_w (same as r10 frozen)',
+   'I2_supervisor_kill_lower_bound': 'supervisor KILL >= K_w, and > worker KILL tick unless reason in {supervisor_reaped,no_registered_worker,latest_bound}',
+   'I3_supervisor_kill_upper_bound': 'supervisor KILL <= L = U-.5 always (cap-safe; never later than the old latest KILL)',
+   'I4_report_window_nonempty': 'K_w + d_poll + d_pump < min(R, L)  <=>  nominal when U >= F+6.1; standard U=F+10 gives >=4.0 s margin (r10: K_w=F+5.0, R=F+9.0, L=F+9.5)',
+   'I5_publication': 'cleanup_complete expected <= L+~.1; publish_failed pumps until U-.25 and writes the mandatory receipt inside the unchanged U-.25..U reserve',
+   'I6_no_extra_allowance': 'U unchanged; FailurePool allowance 10 and cap T0+7210 unchanged; no reset',
+   'I7_normal_budget': 'NORMAL 7200 / WORKER 7140 / INNER 7170 unchanged; pool allowance 10; single global min(previous, earliest failure+10, T0+7210)',
+   'I8_tightening': 'earlier ACK/late failure lowers F and U; K_w and L are recomputed every tick from current pool; if U_exec < U_sup-.5 the supervisor may be KILLed while still in its reap loop -> worker_wait absent -> unproven (truthful)',
+   'I9_late_observation': 'if the monitor first observes failure at t_obs>K_w the worker is KILLed that tick; the supervisor has until L; relay needs t_obs+~.1<L (model: observe at F+6.5 relays; observe at >=L kills both same tick and reaping stays unproven)'},
+ 'fallbacks': {
+   'unresponsive_supervisor': 'no validated worker_wait by L -> KILL supervisor at L (model: KILL at U-.5, group absent, cleanup_complete, final_clock U-.46); reaping.worker stays unproven/supervisor_dead_before_report; events show reason=latest_bound',
+   'orphan_genuine_parent_death': 'supervisor already direct-reaped (raw status e.g. 7<<8) -> reason supervisor_reaped, behavior identical to frozen; worker_wait None; unproven/supervisor_dead_before_report; NOT relabelled',
+   'cap_truncated_or_late': 'if observation lateness consumes the window (t_obs>=L) both KILL same tick (reason latest_bound); unproven; no extra time',
+   'lost_ipc_or_ACK': 'supervisor send fails/never ACKs: no retry, no fabrication; supervisor exits by itself (reaped) or is KILLed at L; unproven',
+   'worker_or_descendant_signalling_error': 'unchanged: signal_once records signal_errors (PermissionError) and monitor_duty isolates other failures; worker group absence is checked independently; supervisor still bounded by L',
+   'missing_worker_registration_or_recovery_unknown': "'worker' not in groups -> supervisor KILL at K_w as before; recover_registration_race census unchanged and still claims worker_reaping_claimed=False",
+   'report_queued_not_pumped': 'IPC duty runs every tick after escalation; supervisor sends by R=U-1.0 so >=.5 s (~20 ticks) of pumps precede L. Optional hardening H1 (not in minimal patch): if super_channel readable at L and now<U-.4 defer one tick; hard stop U-.4. Not required for the primary test.',
+   'worker_gate_ECONNRESET_persistent': 'pump iterates [super_channel, worker_channel]; worker_wait on super_channel is processed before the persistent worker-gate IPC loss error each pump (model A13). Keep this order; add a regression guard.'},
+ 'unchanged_controls': ['success acceptance (accept_observed, validate_wait_reports, Execution.run) byte-identical per AST (A12)',
+   'guard sampling max .5 s, .05/.15 intervals, separate 6 GiB RSS/MPS limit: not in diff',
+   'deadline exit os._exit(1) at pool.until stays outside fallible duties',
+   'only the executor sends group signals; no new signal owner/process/thread/subreaper',
+   'no direct wait fabricated from absence; reaping derived only from validated reports (A9)',
+   'no extra cleanup allowance/reset; no normal-wall/resource increase', 'forced B/genuine check_frozen/origin/full B/R/A, endpoint/seed/model/PPO/reward/gates/lineage unchanged',
+   'transport unknown and unchanged; inconclusive early-close probe not adopted', 'deferred_optional_change from prior reconciliation honored: reset classification not changed to quiet diagnostics'],
+ 'tradeoffs': [
+   'Kill-on-validated-wait loses supervisor optional inner-reap-diagnostic.json (absent in r10 anyway); receipt already carries worker_wait. Alternative: wait for natural exit until L (richer diagnostics, longer tail, adds no constant) - not chosen as default.',
+   'Hung supervisor now lives K_w..L (<=4.5 s) before KILL instead of K_w: still inside U; cleanup of a hung supervisor ends ~U-.46 instead of ~F+5.1 (model: 9.54 vs 5.08 s after F). Wedged-supervisor runs end later but within the same cap.',
+   'Gate depends on executor-side validated wait; supervisor-side source (supervise_owned) is untouched, so supervisor unit tests and r10 inner regressions remain valid.',
+   'Does not prove OS datagram/zombie/scheduling behavior; model assumes pessimistic loss of unreceived datagrams after supervisor death.'],
+ 'regression_design': {
+   'location': 'new test module (distinct implementation); copies helper style of test_r10.monitor() (execution(), patched life.time.monotonic/owned.signal_once/absent, e.os._exit)',
+   'harness': 'model_harness.py here is the reference: real Execution.monitor/pump/fail/FailurePool + real owned.signal_once/absent/validate_report + SOURCE-EXTRACTED inner reap block (long_d2.py:%s sha256 pinned) + SOURCE-EXTRACTED publish_failed reaping block (long_d2_executor.py:%s sha256 pinned) + fixture_guards.validate_fixture; fakes: time, os.killpg/getpid, select, 2 IPC endpoints, direct-child objects' % ('1396-1416', '447-465'),
+   'tests': [
+     {'id': 'T1_old_same_tick_fails', 'asserts': 'supervisor KILL time > worker KILL time AND worker_wait validated AND worker_wait.observed < supervisor KILL AND reaping.worker==direct_reaped AND validate_fixture(failed_supervisor_alive,wedged) passes; the frozen executor FAILS this with exact text "owned direct reap missing" (model A1)'},
+     {'id': 'T2_worker_cutpoint_unchanged', 'asserts': 'worker KILL == min(first+5,until-.5) to one tick (A2)'},
+     {'id': 'T3_unresponsive_supervisor', 'asserts': 'no inner actor; supervisor KILL in [until-.5, until-.5+tick]; worker_wait None; unproven; cleanup_complete; final_clock<=until (A3)'},
+     {'id': 'T4_earlier_ACK_tightening', 'asserts': 'late earlier failure lowers until; K_w and L recomputed; worker_wait still relayed; final<=tightened until (A5)'},
+     {'id': 'T5_no_report_absence_conflation', 'asserts': "reaping.worker=='direct_reaped' iff worker_wait validated, in every scenario, old and new (A9/A9b)"},
+     {'id': 'T6_lost_IPC', 'asserts': 'send raises -> no worker_wait, no retry, unproven (A4)'},
+     {'id': 'T7_genuine_parent_death', 'asserts': 'identical signal timeline old vs new; worker_wait None; unproven/supervisor_dead_before_report (A6)'},
+     {'id': 'T8_worker_dies_on_TERM', 'asserts': 'no KILL at all; worker_wait validated; old==new (A7)'},
+     {'id': 'T9_late_observation', 'asserts': 'observe at F+6.5 relays; observe >=U-.5 kills both same tick and stays unproven (A8)'},
+     {'id': 'T10_gate_failure_defaults_to_KILL', 'asserts': 'patch kill_due to raise: both KILL at K_w; os._exit still enforced at U (to be added in implementation; not in this model)'},
+     {'id': 'T11_normal_accepted_consumer_unchanged', 'asserts': 'pool.until None -> no signals; AST: only Execution.monitor and Execution.kill_due differ (A12); existing 91 methods unchanged'},
+     {'id': 'T12_worker_gate_reset_does_not_starve_supervisor_channel', 'asserts': 'persistent worker-gate ECONNRESET present AND worker_wait validated (A13)'},
+     {'id': 'T13_original_15_scenarios_intact', 'asserts': 'os_checks.CASES list hash and every options dict unchanged; only normal-deadline-wedged behavior-affected (static analysis in diagnosis.md); no weaker fixture, no longer limits'}],
+   'scope': 'pure modeled proof; NOT OS closure. OS stage must be re-run by a distinct frozen implementation under the parent validation plan.'},
+ 'truthful_failure_limits': [
+   'Direct reaping is claimed only from a validated waitpid report from the exact parent; group absence never establishes it.',
+   'Same-tick/late/unresponsive/orphan outcomes keep reaping.worker=unproven, basis supervisor_dead_before_report; events[escalation] show who was killed when and why.',
+   'The model uses fake clock/ps/IPC; macOS datagram semantics after peer close, scheduler latency and real zombie timing are unmeasured.',
+   'No claim that the 14th case passes on the OS; no claim that the final RSS case, stress, startup rehearsal or training pass.',
+   'Root-cause confidence is inferential: supervisor internals during 516544.86 were not directly observed (no diagnostic file).'],
+ 'exact_limits': {'normal_outer_seconds': 7200, 'worker_seconds': 7140, 'inner_seconds': 7170, 'failure_allowance_seconds': 10, 'global_cap': 'T0+7210', 'pool_rule': 'min(previous, earliest_failure+10, T0+7210)',
+   'worker_kill_cutpoint': 'min(first+5,until-.5)', 'supervisor_latest_kill': 'until-.5', 'supervisor_reap_by_internal': 'until-1.0', 'publication_reserve': '.25',
+   'guard_sample_max_seconds': .5, 'guard_intervals_seconds': [.05, .15], 'RSS_limit_bytes': 6442450944, 'fixture_wedged_options': dict(worker_seconds=.6, inner_seconds=1, outer_seconds=1.5),
+   'fixture_wedged_max_wall_seconds': 12.0},
+}
+(OUT / 'plan.json').write_text(json.dumps(plan, indent=2, sort_keys=True) + '\n')
+print('verified', sum(verified.values()), 'of', len(verified), 'proto', sha(ROOT / PROTO))

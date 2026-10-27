@@ -1,0 +1,496 @@
+--- /dev/null
++++ b/python/dodge_rl/models/__init__.py
+@@ -0,0 +1,5 @@
++"""Neural models for the privileged-entity training pipeline."""
++
++from .teacher import CustomTransformerLayer, OmniscientEntityTeacher, TeacherOutput
++
++__all__ = ["CustomTransformerLayer", "OmniscientEntityTeacher", "TeacherOutput"]
+--- /dev/null
++++ b/python/dodge_rl/models/teacher.py
+@@ -0,0 +1,215 @@
++"""Full self-attention teacher for the allowlisted M2 entity observations.
++
++The model consumes only the four neural buffers. Episode IDs, seed streams,
++diagnostic counters, and hidden engine state are not model inputs. Attention
++weights are returned to the caller for diagnostics; this module never retains
++them between calls.
++"""
++
++from dataclasses import dataclass
++import math
++
++import torch
++from torch import Tensor, nn
++
++
++GLOBAL_FEAT_DIM = 14
++ENTITY_FEAT_DIM = 16
++MAX_ENTITIES = 80
++TOKEN_COUNT = MAX_ENTITIES + 1
++MODEL_DIM = 128
++NUM_LAYERS = 2
++NUM_HEADS = 4
++FFN_DIM = 256
++NUM_ACTIONS = 9
++LAYERNORM_EPS = 1e-5
++MODEL_VERSION = "omniscient_entity_teacher_full_attention_v1"
++
++
++@dataclass(frozen=True, slots=True)
++class TeacherOutput:
++    """One forward result; values are in the learner's reward units."""
++
++    logits: Tensor
++    values: Tensor
++    latent: Tensor
++    attentions: tuple[Tensor, Tensor]
++
++
++class CustomTransformerLayer(nn.Module):
++    """Pre-norm full self-attention with explicitly returned attention weights."""
++
++    def __init__(self) -> None:
++        super().__init__()
++        self.norm1 = nn.LayerNorm(MODEL_DIM, eps=LAYERNORM_EPS)
++        self.mha = nn.MultiheadAttention(
++            MODEL_DIM, NUM_HEADS, dropout=0.0, batch_first=True
++        )
++        self.norm2 = nn.LayerNorm(MODEL_DIM, eps=LAYERNORM_EPS)
++        self.ffn = nn.Sequential(
++            nn.Linear(MODEL_DIM, FFN_DIM),
++            nn.GELU(),
++            nn.Linear(FFN_DIM, MODEL_DIM),
++        )
++
++    def forward(self, tokens: Tensor, key_padding_mask: Tensor) -> tuple[Tensor, Tensor]:
++        normalized = self.norm1(tokens)
++        attended, weights = self.mha(
++            normalized,
++            normalized,
++            normalized,
++            key_padding_mask=key_padding_mask,
++            need_weights=True,
++            average_attn_weights=True,
++        )
++        if weights is None:
++            raise RuntimeError("Teacher attention weights were not returned")
++        tokens = tokens + attended
++        return tokens + self.ffn(self.norm2(tokens)), weights
++
++
++class OmniscientEntityTeacher(nn.Module):
++    """Fixed 81-token, width-128 teacher from the registered v2 training plan.
++
++    Inputs must use the M2 float32/int64/bool layout. True entity-mask entries
++    mean valid entities. Masked rows are sanitized before embedding, so their
++    values and type IDs cannot affect the player token, even if callers replace
++    padding values with nonfinite sentinels. Valid-row finiteness and the
++    type-1..8 allowlist are enforced by the environment/rollout boundary.
++    """
++
++    def __init__(self) -> None:
++        super().__init__()
++        self.global_projection = nn.Linear(GLOBAL_FEAT_DIM, MODEL_DIM)
++        self.entity_projection = nn.Sequential(
++            nn.Linear(ENTITY_FEAT_DIM, MODEL_DIM),
++            nn.GELU(),
++            nn.Linear(MODEL_DIM, MODEL_DIM),
++        )
++        self.type_embedding = nn.Embedding(9, MODEL_DIM)
++        self.layers = nn.ModuleList(CustomTransformerLayer() for _ in range(NUM_LAYERS))
++        self.final_norm = nn.LayerNorm(MODEL_DIM, eps=LAYERNORM_EPS)
++        self.actor_head = nn.Sequential(
++            nn.Linear(MODEL_DIM, MODEL_DIM),
++            nn.GELU(),
++            nn.Linear(MODEL_DIM, NUM_ACTIONS),
++        )
++        self.critic_head = nn.Sequential(
++            nn.Linear(MODEL_DIM, MODEL_DIM),
++            nn.GELU(),
++            nn.Linear(MODEL_DIM, 1),
++        )
++        self._initialize_head(self.actor_head, final_gain=0.01)
++        self._initialize_head(self.critic_head, final_gain=1.0)
++
++    @staticmethod
++    def _initialize_head(head: nn.Sequential, final_gain: float) -> None:
++        for index, gain in ((0, math.sqrt(2.0)), (2, final_gain)):
++            layer = head[index]
++            nn.init.orthogonal_(layer.weight, gain=gain)
++            nn.init.zeros_(layer.bias)
++
++    @staticmethod
++    def _validate_inputs(
++        global_feats: Tensor,
++        entity_feats: Tensor,
++        entity_types: Tensor,
++        entity_mask: Tensor,
++    ) -> None:
++        values = (global_feats, entity_feats, entity_types, entity_mask)
++        if not all(isinstance(value, Tensor) for value in values):
++            raise TypeError("Teacher inputs must be torch.Tensor objects")
++        if global_feats.ndim != 3 or global_feats.shape[1:] != (1, GLOBAL_FEAT_DIM):
++            raise ValueError("global_feats must have shape [B,1,14]")
++        batch = global_feats.shape[0]
++        if batch == 0:
++            raise ValueError("Teacher batch must contain at least one observation")
++        expected = (
++            (batch, MAX_ENTITIES, ENTITY_FEAT_DIM),
++            (batch, MAX_ENTITIES),
++            (batch, MAX_ENTITIES),
++        )
++        names = ("entity_feats", "entity_types", "entity_mask")
++        for name, value, shape in zip(names, values[1:], expected, strict=True):
++            if value.shape != shape:
++                raise ValueError(f"{name} must have shape {shape}")
++        if global_feats.dtype != torch.float32 or entity_feats.dtype != torch.float32:
++            raise TypeError("Teacher floating inputs must use torch.float32")
++        if entity_types.dtype != torch.int64:
++            raise TypeError("entity_types must use torch.int64")
++        if entity_mask.dtype != torch.bool:
++            raise TypeError("entity_mask must use torch.bool")
++        if any(value.device != global_feats.device for value in values[1:]):
++            raise ValueError("Teacher inputs must share one device")
++
++    def forward(
++        self,
++        global_feats: Tensor,
++        entity_feats: Tensor,
++        entity_types: Tensor,
++        entity_mask: Tensor,
++    ) -> TeacherOutput:
++        self._validate_inputs(global_feats, entity_feats, entity_types, entity_mask)
++        batch = global_feats.shape[0]
++        entity_feats = entity_feats.masked_fill(~entity_mask.unsqueeze(-1), 0.0)
++        entity_types = entity_types.masked_fill(~entity_mask, 0)
++        global_types = torch.zeros((batch, 1), dtype=torch.int64, device=entity_types.device)
++        global_token = self.global_projection(global_feats) + self.type_embedding(global_types)
++        entities = self.entity_projection(entity_feats) + self.type_embedding(entity_types)
++        tokens = torch.cat((global_token, entities), dim=1)
++        # Token zero is always a valid key, including completely empty scenes.
++        key_padding_mask = torch.cat(
++            (
++                torch.zeros((batch, 1), dtype=torch.bool, device=entity_mask.device),
++                ~entity_mask,
++            ),
++            dim=1,
++        )
++        attention_weights = []
++        for layer in self.layers:
++            tokens, weights = layer(tokens, key_padding_mask)
++            attention_weights.append(weights)
++        latent = self.final_norm(tokens)[:, 0, :]
++        return TeacherOutput(
++            logits=self.actor_head(latent),
++            values=self.critic_head(latent).squeeze(-1),
++            latent=latent,
++            attentions=(attention_weights[0], attention_weights[1]),
++        )
++
++    def architecture_description(self) -> dict:
++        """Return a fresh JSON-compatible description for checkpoint identities."""
++        return {
++            "version": MODEL_VERSION,
++            "class": type(self).__name__,
++            "global_shape": [1, GLOBAL_FEAT_DIM],
++            "entity_shape": [MAX_ENTITIES, ENTITY_FEAT_DIM],
++            "entity_type_vocab_size": 9,
++            "entity_valid_types": list(range(1, 9)),
++            "entity_mask_true_means_valid": True,
++            "token_count": TOKEN_COUNT,
++            "model_dim": MODEL_DIM,
++            "num_layers": NUM_LAYERS,
++            "num_heads": NUM_HEADS,
++            "ffn_dim": FFN_DIM,
++            "activation": "gelu",
++            "normalization": "pre_norm_plus_final_layernorm",
++            "layernorm_eps": LAYERNORM_EPS,
++            "dropout": 0.0,
++            "attention": "full_self_attention",
++            "need_weights": True,
++            "average_attn_weights": True,
++            "entity_position_embeddings": False,
++            "global_embedding": [GLOBAL_FEAT_DIM, MODEL_DIM],
++            "entity_embedding": [ENTITY_FEAT_DIM, MODEL_DIM, MODEL_DIM],
++            "actor_head": [MODEL_DIM, MODEL_DIM, NUM_ACTIONS],
++            "critic_head": [MODEL_DIM, MODEL_DIM, 1],
++            "head_initialization": {
++                "method": "orthogonal_weights_zero_biases",
++                "hidden_gain": math.sqrt(2.0),
++                "actor_final_gain": 0.01,
++                "critic_final_gain": 1.0,
++            },
++            "trunk_initialization": "pytorch_default",
++            "parameter_count": sum(parameter.numel() for parameter in self.parameters()),
++        }
+--- /dev/null
++++ b/python/tests/test_teacher.py
+@@ -0,0 +1,267 @@
++"""Synthetic CPU checks for the fixed full-attention teacher; no game rollouts."""
++
++import io
++import json
++
++import pytest
++import torch
++
++from dodge_rl.models.teacher import CustomTransformerLayer, OmniscientEntityTeacher, TeacherOutput
++
++
++@pytest.fixture(scope="module", autouse=True)
++def bounded_cpu_threads():
++    previous = torch.get_num_threads()
++    torch.set_num_threads(4)
++    yield
++    torch.set_num_threads(previous)
++
++
++def inputs(valid_counts=(4, 7)):
++    generator = torch.Generator().manual_seed(382)
++    batch = len(valid_counts)
++    global_feats = torch.randn(batch, 1, 14, generator=generator) * 0.2
++    entity_feats = torch.randn(batch, 80, 16, generator=generator) * 0.2
++    entity_types = torch.randint(1, 9, (batch, 80), generator=generator)
++    mask = torch.arange(80).unsqueeze(0) < torch.tensor(valid_counts).unsqueeze(1)
++    entity_feats[~mask] = 0
++    entity_types[~mask] = 0
++    return global_feats, entity_feats, entity_types, mask
++
++
++def make_model(seed=831):
++    torch.manual_seed(seed)
++    return OmniscientEntityTeacher()
++
++
++def assert_same_policy(left, right):
++    torch.testing.assert_close(left.logits, right.logits, rtol=1e-5, atol=1e-6)
++    torch.testing.assert_close(left.values, right.values, rtol=1e-5, atol=1e-6)
++    torch.testing.assert_close(left.latent, right.latent, rtol=1e-5, atol=2e-6)
++
++
++def test_fixed_default_architecture_and_json_identity():
++    model = make_model()
++    description = model.architecture_description()
++    assert json.loads(json.dumps(description)) == description
++    assert description["token_count"] == 81
++    assert description["model_dim"] == 128
++    assert description["num_layers"] == 2
++    assert description["num_heads"] == 4
++    assert description["ffn_dim"] == 256
++    assert description["entity_position_embeddings"] is False
++    assert len(model.layers) == 2
++    assert all(isinstance(layer, CustomTransformerLayer) for layer in model.layers)
++    assert all(layer.mha.embed_dim == 128 and layer.mha.num_heads == 4 for layer in model.layers)
++    assert all(layer.mha.dropout == 0.0 for layer in model.layers)
++    assert all(layer.norm1.eps == layer.norm2.eps == 1e-5 for layer in model.layers)
++    assert model.final_norm.eps == 1e-5
++    description["entity_shape"][0] = 1
++    assert model.architecture_description()["entity_shape"] == [80, 16]
++
++
++@pytest.mark.parametrize("training", [True, False])
++def test_outputs_and_full_attention_are_available_in_both_modes(training):
++    model = make_model().train(training)
++    with torch.no_grad():
++        result = model(*inputs())
++    assert isinstance(result, TeacherOutput)
++    assert result.logits.shape == (2, 9)
++    assert result.values.shape == (2,)
++    assert result.latent.shape == (2, 128)
++    assert len(result.attentions) == 2
++    for tensor in (result.logits, result.values, result.latent, *result.attentions):
++        assert torch.isfinite(tensor).all()
++    for weights in result.attentions:
++        assert weights.shape == (2, 81, 81)
++        torch.testing.assert_close(weights.sum(dim=-1), torch.ones(2, 81))
++
++
++def test_zero_entities_keep_global_key_valid_and_outputs_finite():
++    model = make_model().eval()
++    with torch.no_grad():
++        result = model(*inputs((0, 0)))
++    assert torch.isfinite(result.logits).all()
++    assert torch.isfinite(result.values).all()
++    assert torch.isfinite(result.latent).all()
++    for weights in result.attentions:
++        assert torch.isfinite(weights).all()
++        assert torch.equal(weights[:, :, 0], torch.ones(2, 81))
++        assert torch.count_nonzero(weights[:, :, 1:]) == 0
++
++
++def test_masked_rows_are_invariant_even_for_nonfinite_padding_and_bad_padding_ids():
++    model = make_model().eval()
++    data = inputs()
++    changed = [tensor.clone() for tensor in data]
++    changed[1][~changed[3]] = float("nan")
++    changed[2][~changed[3]] = 999
++    with torch.no_grad():
++        baseline, sentinel = model(*data), model(*changed)
++    assert_same_policy(baseline, sentinel)
++    for before, after in zip(baseline.attentions, sentinel.attentions, strict=True):
++        assert torch.equal(before, after)
++
++
++def test_entity_permutation_preserves_policy_and_permutes_attention_axes():
++    model = make_model().eval()
++    global_feats, entity_feats, types, mask = inputs()
++    permutation = torch.randperm(80, generator=torch.Generator().manual_seed(71))
++    full_permutation = torch.cat((torch.tensor([0]), permutation + 1))
++    with torch.no_grad():
++        original = model(global_feats, entity_feats, types, mask)
++        permuted = model(global_feats, entity_feats[:, permutation], types[:, permutation], mask[:, permutation])
++    assert_same_policy(original, permuted)
++    for before, after in zip(original.attentions, permuted.attentions, strict=True):
++        expected = before[:, full_permutation][:, :, full_permutation]
++        torch.testing.assert_close(after, expected, rtol=1e-5, atol=1e-6)
++
++
++def test_padding_key_weights_are_zero_in_every_layer():
++    data = inputs()
++    model = make_model()
++    result = model(*data)
++    padded_keys = torch.cat((torch.zeros(2, 1, dtype=torch.bool), ~data[3]), dim=1)
++    for weights in result.attentions:
++        assert torch.count_nonzero(weights.masked_select(padded_keys.unsqueeze(1))) == 0
++        assert (weights[:, 0, 0] > 0).all()
++
++
++def test_entity_queries_receive_other_entity_information_in_first_layer():
++    model = make_model().eval()
++    data = inputs((3,))
++    changed = [tensor.clone() for tensor in data]
++    changed[1][0, 1, 0] += 1.0
++    changed[1][0, 1, 10] -= 0.75
++    captured = []
++    handle = model.layers[0].register_forward_hook(
++        lambda _module, _args, output: captured.append(output[0].detach().clone())
++    )
++    try:
++        with torch.no_grad():
++            baseline, altered = model(*data), model(*changed)
++    finally:
++        handle.remove()
++    # Query 1's own input is unchanged; entity 2 is a different valid key.
++    assert torch.equal(data[1][0, 0], changed[1][0, 0])
++    assert baseline.attentions[0][0, 1, 2] > 0
++    assert altered.attentions[0][0, 1, 2] > 0
++    assert torch.linalg.vector_norm(captured[0][0, 1] - captured[1][0, 1]) > 1e-4
++
++
++def test_valid_threat_geometry_changes_policy_but_same_masked_intervention_does_not():
++    model = make_model().eval()
++    near = list(inputs((1,)))
++    near[1].zero_()
++    near[2][0, 0] = 1
++    # Center, half-extents, relative position, signed gaps, time-to-overlap,
++    # and lethal-now flag represent a nearby normal enemy.
++    near[1][0, 0, [0, 2, 3, 4, 10, 11, 12, 15]] = torch.tensor(
++        [0.02, 0.05, 0.05, 0.02, -0.01, -0.01, 0.0, 1.0]
++    )
++    far = [tensor.clone() for tensor in near]
++    far[1][0, 0, [0, 4, 10, 12]] = torch.tensor([0.75, 0.75, 0.75, 1.0])
++    with torch.no_grad():
++        before, after = model(*near), model(*far)
++    assert torch.linalg.vector_norm(before.latent - after.latent) > 0.01
++    assert (before.logits - after.logits).abs().max() > 1e-6
++    near[3].zero_()
++    far[3].zero_()
++    with torch.no_grad():
++        assert_same_policy(model(*near), model(*far))
++
++
++def gradient_mass(module):
++    gradients = [parameter.grad for parameter in module.parameters() if parameter.grad is not None]
++    assert all(torch.isfinite(gradient).all() for gradient in gradients)
++    return sum(float(gradient.abs().sum()) for gradient in gradients)
++
++
++def test_actor_and_critic_losses_route_to_their_head_and_shared_trunk():
++    model = make_model()
++    model(*inputs()).logits[:, 0].sum().backward()
++    assert gradient_mass(model.actor_head) > 0
++    assert all(parameter.grad is None for parameter in model.critic_head.parameters())
++    for part in (model.global_projection, model.entity_projection, model.type_embedding, *model.layers, model.final_norm):
++        assert gradient_mass(part) > 0
++    model.zero_grad(set_to_none=True)
++    model(*inputs()).values.sum().backward()
++    assert gradient_mass(model.critic_head) > 0
++    assert all(parameter.grad is None for parameter in model.actor_head.parameters())
++    for part in (model.global_projection, model.entity_projection, model.type_embedding, *model.layers, model.final_norm):
++        assert gradient_mass(part) > 0
++
++
++def assert_orthogonal_weight(weight, gain_squared):
++    # Normalize gains so the small actor head cannot hide errors under a fixed
++    # absolute tolerance. Use float64 for the check, allowing eight float32
++    # epsilons for the stored QR-initialized weights rather than dot roundoff.
++    normalized_gram = weight.double() @ weight.double().T / gain_squared
++    torch.testing.assert_close(
++        normalized_gram,
++        torch.eye(weight.shape[0], dtype=torch.float64),
++        rtol=0,
++        atol=8 * torch.finfo(weight.dtype).eps,
++    )
++
++
++def test_registered_head_initialization_and_biases():
++    model = make_model()
++    for head, final_gain in ((model.actor_head, 0.01), (model.critic_head, 1.0)):
++        for index, gain_squared in ((0, 2.0), (2, final_gain**2)):
++            weight = head[index].weight.detach()
++            assert_orthogonal_weight(weight, gain_squared)
++            assert torch.count_nonzero(head[index].bias) == 0
++
++
++def test_orthogonality_check_rejects_perturbed_registered_head_weights():
++    model = make_model()
++    for head, final_gain in ((model.actor_head, 0.01), (model.critic_head, 1.0)):
++        for index, gain_squared in ((0, 2.0), (2, final_gain**2)):
++            changed = head[index].weight.detach().clone()
++            changed[0, 0] += 0.1
++            with pytest.raises(AssertionError):
++                assert_orthogonal_weight(changed, gain_squared)
++
++
++def test_fixed_input_state_dict_round_trip_is_exact():
++    original = make_model().eval()
++    data = inputs()
++    buffer = io.BytesIO()
++    torch.save(original.state_dict(), buffer)
++    buffer.seek(0)
++    restored = make_model(seed=12).eval()
++    restored.load_state_dict(torch.load(buffer, weights_only=True))
++    with torch.no_grad():
++        before, after = original(*data), restored(*data)
++    for left, right in zip(
++        (before.logits, before.values, before.latent, *before.attentions),
++        (after.logits, after.values, after.latent, *after.attentions),
++        strict=True,
++    ):
++        assert torch.equal(left, right)
++
++
++@pytest.mark.parametrize(
++    "position,replacement,error",
++    [
++        (0, lambda value: value.squeeze(1), ValueError),
++        (0, lambda value: value.double(), TypeError),
++        (1, lambda value: value[:, :79], ValueError),
++        (1, lambda value: value.half(), TypeError),
++        (2, lambda value: value.int(), TypeError),
++        (3, lambda value: value.to(torch.uint8), TypeError),
++    ],
++)
++def test_layout_mismatches_fail_before_attention(position, replacement, error):
++    model = make_model()
++    data = list(inputs())
++    data[position] = replacement(data[position])
++    with pytest.raises(error):
++        model(*data)
++
++
++def test_empty_batch_is_rejected():
++    model = make_model()
++    with pytest.raises(ValueError, match="at least one"):
++        model(*(tensor[:0] for tensor in inputs()))

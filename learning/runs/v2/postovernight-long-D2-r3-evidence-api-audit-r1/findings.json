@@ -1,0 +1,134 @@
+{
+  "accepted": false,
+  "actual_ML_execution": false,
+  "audit_attempts_retained": [
+    "audit-attempt1.json: omitted original identity in auditor reconstruction corrected from792 to793",
+    "test_worker_ack_contract_attempt1.py and worker-ack-contract.log: positive fixture initially lacked outcome attribute; final corrected fixture has one pass and one assertion failure without API errors"
+  ],
+  "blocking_findings": 1,
+  "candidate": {
+    "capsule_manifest_sha256": "617dcc46c9f6f0b14ac4d925192636d527e7ed202b915b9179f2070a9d4fba64",
+    "controller_sha256": "d26dd14d844c0e1c7b4414d44a753f913eb1f66560ec9a7cdd0860dec821f73a",
+    "executor_sha256": "a373e898eddf21547a7ff5bcc7d44928edc6e4ab562e1944b9f70f9efe6ea965",
+    "identity_raw_sha256": "0282c37d1b7d8751f858841913d5b6039a6c5b04ad82f4e3c668deef0b76df9c"
+  },
+  "children": false,
+  "coverage": {
+    "actual_paths_exercised": [
+      "Execution.run with actual Guard/IPC/processes/outer artifact validator",
+      "owned_handoff and directed worker_gate",
+      "supervise_owned and lifetime final_exit"
+    ],
+    "candidate_unit_methods": 63,
+    "counts_not_additive": true,
+    "full_lifecycle_OS_scenarios": 165,
+    "production_coverage_limit": "165 matrix scenarios do not run real worker() or worker_failure notification/ACK/persistence handling. External registration is checked by retained pure preflight and static inspection, not the synthetic Execution constructor path.",
+    "synthetic_overrides": [
+      "capsule_context/read-only-capsule/module-origin fixtures",
+      "supervisor and worker command factories point at synthetic.py",
+      "fake_worker replaces real worker() ML and failure-persistence body"
+    ],
+    "unit_signal_subprocesses": 6
+  },
+  "evidence_limitations": [
+    "One intermediate aggregate stdout log is unrecoverable; note and per-case commands/raw/wall/events/source snapshots and summary remain. No claim that all aggregate logs survived.",
+    "Current final matrix runtime sources match; finalize_preparation.py alone changed afterward. Final unit source receipt records its final hash; that does not establish a dedicated behavioral unit test of the finalizer. All final artifact hashes were independently verified.",
+    "Historical exact-r2 negative evidence was rehashed/inspected, not executed anew. Old unexplained -14 was not retried.",
+    "Direct postscan signal controls intentionally accept a provisional complete result and document finite observation limits. They are not successful cancellation-detection cases.",
+    "No Torch/native/NumPy/dodge_rl import, teacher deserialization, inference, gameplay, real model/Adam/RNG restoration, MPS timing or training occurred.",
+    "Supervisor lifecycle correctness and independent OS probes belong to the separate frozen supervisor review. This audit cannot authorize launch."
+  ],
+  "findings": [
+    {
+      "blocking": true,
+      "description": "worker_failure assigns learner.api.absolute_deadline only after notify_failure returns. Missing/invalid ACK raises from the first except hook, but Python still executes the unconditional finally block. Because result remains its initial failed value, finally starts an emergency checkpoint and checkpoint-index persistence before any acknowledged shared deadline.",
+      "evidence": [
+        "worker-missing-ACK-probe.json",
+        "worker-missing-ACK-probe.ast.txt",
+        "test_worker_ack_contract.py",
+        "worker-ack-contract-final.log"
+      ],
+      "expected": "A failed notification/ACK must prevent all emergency checkpoint/index/result persistence; fail and exit through the already bounded executor path. A valid ACK permits failure persistence only under its acknowledged shared deadline.",
+      "id": "WORKER-ACK-001",
+      "impact_boundary": "This does not demonstrate outer acceptance of a failed run. The outer executor should reject the raw worker failure or IPC loss and enforce cleanup. The demonstrated defect is prohibited local persistence before ACK and stale deadline use, plus missing real-worker failure-branch coverage.",
+      "line_refs": [
+        {
+          "end": 782,
+          "start": 777
+        },
+        {
+          "end": 871,
+          "start": 855
+        }
+      ],
+      "observed": {
+        "ACK_received": false,
+        "checkpoint_deadline": 7140,
+        "checkpoint_started": true,
+        "index_persistence_started": true,
+        "shared_fixture_failure_deadline": 10
+      },
+      "proof_scope": "Stdlib execution of exact worker_failure/outcome helper AST and original worker except/finally AST; only the try body is replaced with a controlled failure. Fake model/persistence callbacks record calls in memory. No candidate module, ML package, real checkpoint or actual failure file was loaded/written.",
+      "reproduction": "python3 -B learning/runs/v2/postovernight-long-D2-r3-evidence-api-audit-r1/test_worker_ack_contract.py",
+      "required_fix": "Add an explicit acknowledged-persistence gate; set/check the shared failure bound before any failed-worker write. On ACK failure do no checkpoint/index persistence. Add both missing/invalid ACK regressions and a valid-ACK positive control against the actual worker exception/finally path.",
+      "severity": "P1",
+      "source": "learning/runs/v2/postovernight-long-D2-prepare-r3/long_d2.py",
+      "title": "Failed failure-notification ACK still enters emergency persistence with stale normal deadline"
+    }
+  ],
+  "finished_at_utc": "2026-10-24T18:46:03.018103+00:00",
+  "independent_contract_checks": {
+    "API_or_import_errors": 0,
+    "assertion_failures": 1,
+    "candidate_suite_rerun": false,
+    "methods": 2,
+    "negative_control": "Missing ACK checkpoints under stale7140 and writes index; assertion fails",
+    "passes": 1,
+    "positive_control": "Acknowledged failure checkpoints under deadline10"
+  },
+  "input_files_rechecked": 545,
+  "input_manifest": "input-sha256-manifest.json",
+  "production_or_candidate_edits": false,
+  "status": "changes_required_WORKER_ACK_001",
+  "verification": {
+    "ML_execution": false,
+    "active_root_Python_sources": 15,
+    "artifact_entries": 19269,
+    "candidate_tests_rerun": false,
+    "capsule_files": 141,
+    "controller_source_inventory": 17,
+    "expanded_pin_count": 9675,
+    "groups_current_matches": [],
+    "legacy_sources": 75,
+    "matrix_OS_subprocesses": 165,
+    "matrix_source_drift": {
+      "finalize_preparation.py": {
+        "current": "28811d352e9c73d34a57e3aec180b7cf0583ac1eb6c5769d6ecdee52c8d142d4",
+        "tested": "43a09f1d9ffc6275396f0c59b914b80dbea108773d0d95b2d2f04fac099c62b3"
+      }
+    },
+    "old_pin_union": 793,
+    "protected_current_immutable_files": 9515,
+    "source_nodes_byte_identical": [
+      "Learner",
+      "Schedule",
+      "run_schedule",
+      "environment_kwargs",
+      "counter_report",
+      "compare_control",
+      "tree_fingerprint",
+      "assert_equal_tree",
+      "validate_long_config",
+      "expected_lease",
+      "assert_lease",
+      "check_module_origins",
+      "outcome_fields",
+      "result_code"
+    ],
+    "status": "retained_evidence_verified;confirmed_worker_ACK_blocker_separate",
+    "unique_owned_groups": 329,
+    "unit_methods": 63,
+    "unit_source_drift": {}
+  },
+  "version": "long_D2_r3_independent_evidence_API_audit_v1"
+}

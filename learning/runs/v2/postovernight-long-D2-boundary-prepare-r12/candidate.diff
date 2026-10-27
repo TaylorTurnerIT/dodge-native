@@ -1,0 +1,1305 @@
+--- r11-source/PARENT-NEXT.md
++++ r12/PARENT-NEXT.md
+@@ -1,33 +1,43 @@
+-# r11 handoff: exactly two repairs, one stdlib stage
++# r12 failed source-only handoff
+ 
+-Read `implementation-result.json`, `unit-stage/setup-precheck.json`, `unit-stage/command.json`, `unit-stage/raw-result.json`, raw logs, and `unit-stage/suite-result.json`. An unexpected failure stops this candidate. Do not patch it or repeat its stage. Source ownership is released and source bytes frozen for parent review at handoff. This is a source handoff, not a production capsule freeze, runtime acceptance, transport diagnosis or teacher qualification.
++The single registered stdlib stage failed. Stop-first-failure was honored. No source patch or test retry followed. Source ownership is released, with candidate/source/fixture bytes unchanged from the pre-test source manifest. This candidate is not accepted.
+ 
+-## Exact inputs and scope
++## Actual result
+ 
+-All eight `r10/parent-frozen-pins.json` bindings were verified before source copy. Three parent reconciliations and exact current external protocol-r7 were independently pinned. `r10-source/` holds exact base scripts and fixture/handoff metadata; `original-source/`, `r6-source/`, `r9-source/`, preparation-copy and retained-r9-injection remain exact historical fixtures. No old attempt, capsule, cache, classification, identity, registration, lease or invocation is a current envelope. The state snapshot is mutable context only.
++134 methods were registered: all 112 inherited method names/assertions/consumer bytes unchanged, plus 22 new scheduling methods. Execution reached 21 new methods: 20 passed, method 21 failed, zero errors, zero skips. 113 methods remain unrun: new method 22 and all 112 inherited methods. No prior result transfers. Raw child exit was 1; observed wrapper test wall was 0.3531107919989154 seconds. There was one invocation, no timeout, no retry, and the direct child was reaped. The owned cache stayed empty and forbidden imports were absent.
+ 
+-The source-only r10 review proves endpoint starvation with fake readiness, not the cause of the production transport failure. The retained r10 OS result stays failed: raw1, wall30.620216, 13 cases passed, normal-deadline-wedged failed missing worker direct reap, final RSS case unrun. Worker handshake and wedged-entry markers were positive. Supervisor raw9/rc-9, worker_wait null, positive absence of both groups and an honest failed receipt remain historical evidence. No prior 91-method or 13-case counts transfer to r11. Sonnet's 18 fake-clock assertions are not 18 test methods or OS evidence; its admitted 600-second overrun and missing T10 remain recorded. Parent qualifications override its proposal, especially child-is-None, absent-registration and gate-error shortcuts. Transport is unknown and unchanged; the earlier close-order probe had an invalid treatment, and no early-close change is accepted.
++Failure: `test_r12.R12.test_21_registered_setter_assumption_and_unchanged_monitor_call_sites`, `test_r12.py:414`. Its source-text assertion was too broad: it scanned all original semantic-identity Python files, including `python/tests/test_env.py`. That file's `one_native_call_with_witness` helper calls `sys.setswitchinterval(60)` at line 413 and restores at line 419. It is test code, read as text only here. No competing production setter or production scheduling failure is inferred. The premise must be reconciled by the parent in a distinct authorized task; this candidate and its failed receipt remain intact.
+ 
+-## Qualified implementation
++Read `failure-reconciliation.json`, `unit-stage/command.json`, `unit-stage/raw-result.json`, `unit-stage/stderr.log`, `unit-stage/suite-result.json` and `test-method-inventory.json`. The exact assertion, traceback and all unrun names are retained.
+ 
+-Worker-group TERM remains immediate and KILL eligibility stays `min(current first+5,current until-.5)`. Supervisor TERM remains immediate. At that original KILL eligibility a supervisor is preserved until a validated actual worker_wait, an actual matching direct-reaped supervisor leader, or current until-.5. Missing registration, recovery unknown and child None do not justify early KILL. Each tick reads the current pool. Earlier evidence tightens the window. Gate exceptions retain original eligibility, including no early KILL before that cutpoint. Each role records one escalation reason and actual signal-attempt timestamp. Until-.5 is cooperative eligibility; no exact OS scheduling guarantee or new allowance exists.
++## Candidate source and bounded passing evidence
+ 
+-Pump preserves supervisor-then-worker order and all existing packet/owner/sender/PID/T0/sequence/FD predicates. Receive, packet handling and ACK-send failures latch fatal failure through bounded existing monitor diagnostics before attempting a readable sibling once. A source-known local error and an earlier valid peer observation both remain represented; earlier evidence tightens the pool. Failed packets or sends are not reprocessed or retried. An empty datagram does not retire an endpoint, so new later readiness can supply a legitimate earlier report. Existing expected-close rules are unchanged; retirement proves neither reap nor absence. Failed normal operation cannot set start ACK/recovery. Boolean attempted/acked/failed and one-shot start ACK remain explicit. Final-drain receive and ACK limits recompute current until-.25 after peer tightening. Independent monitor duties and absolute deadline exit stay outside IPC errors.
++Only production semantic change is the process-global CPython interval context around the existing `observation = self.verify()` in `Guard.full_check`, under its existing verification lock. Fixed cap: 0.0001 seconds; already shorter intervals stay shorter. Restoration checks exact observed equality and corrects saved-float microsecond truncation with the adjacent larger float. Nested finally recovery covers one exception interrupting first cleanup; failure still propagates. Arbitrary repeated asynchronous exceptions are not guaranteed recoverable. A leaked interval can affect guard outcomes as well as performance.
+ 
+-Success consumers `validate_wait_reports`, `accept_observed`, `validate_artifacts`, `checked_registration` and `worker_command` remain exact r10 bytes. Every controller function/class, including supervise_owned, Learner, Schedule, run_schedule and worker ML try, remains exact r10 bytes; only candidate/protocol constants change. Lifecycle, processes, boundary_integrity, freeze, synthetic, fixture predicates, case metadata, markers and limits remain exact r10 bytes. All 15 original cases and their intended classes remain intact; the wedged case is never relabelled as an orphan.
++The helper explicitly requires main-thread entry. Registered real boundaries run synchronously on the main thread; the resource monitor uses `full=False`. A per-Guard lock cannot serialize arbitrary global setters. Cooperating code must not change the interval concurrently. The failed scan does not qualify a global no-setter assertion. Main-thread rejection, ordinary restoration, Stop/other BaseException, one modeled cleanup interruption, nested short/nondefault intervals, real simultaneous interval reader, original callback once, and fatal Guard failure were among the 20 passing new methods. Signals were modeled by directly calling unchanged `ProcessLatch.handle`; no OS signal delivery or handler/timer installation occurred.
+ 
+-## Tests and evidence boundaries
++New test 19 passed the complete source-byte projection: remove only the two scheduling helpers, scheduling constant, three mechanical candidate/protocol constants and one callback wrapper, then compare the entire controller with exact r11. Only existing `Guard.full_check` changed; all other Guard methods and controller blocks remain exact. `boundary_integrity.py`, `lifecycle.py`, `processes.py`, `long_d2_executor.py`, `freeze.py`, source-equality machinery, fixture sources/consumers, all 15 cases and unchanged stress contender/12 boundaries/120s cap remain exact r11 bytes. Full protected learner/worker/acceptance/lifecycle/IPC/escalation/checks/limits are unchanged source evidence, not runtime proof.
+ 
+-The single registered suite runs every prior 91 method plus new r11 methods, fail-fast, using `learning/.venv/bin/python`, `-B`, a fresh owned cache prefix and `VALIDATION_DIR`. Actual monitor/pump/fail/FailurePool, Channel.receive/send, wait validation, extracted inner reap, failed-receipt reaping and unchanged fixture consumer are used with fake process/clock/socket behavior. The old same-tick executor is the negative control. The extracted inner block changes only sleep expressions into generator yields for a single-threaded fake scheduler; source hashes and traces disclose that modeling boundary. No OS signal/process/socket/thread, lifecycle matrix, stress, startup or ML/native campaign is run. T10 covers a gate exception before and after original eligibility plus independent deadline exit. Prior tests retain names, success consumers and assertions; r10 invalid-packet expectations now require sticky failure, and event-count checks count the existing eight monitor_error rows separately from the two new escalation rows.
++New test 20 passed exact protocol-delta/hash checks. `protocol-r9-proposal.json` derives from exact r8 and changes only r11 candidate paths to r12, registration timestamp and explicit process-global callback scheduling declaration. Exact proposal SHA256: `22110a3cb52c36c86934ce02bb0b5c82e2041dc1a00e39a11bb80dd23697d115`. Controller pins canonical future `learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r9.json`. No external publication occurred.
+ 
+-`scope-deviation.json` discloses a bootstrap script initially written to /tmp and then moved into this owned directory. That write-location deviation is not hidden as a passing scope claim. All candidate edits and test artifacts are inside r11; no frozen/project/runtime/state/docs/external-protocol/lease mutation is authorized or performed.
++## Existing test preservation and accommodation
++
++All five existing test sources remain byte-identical to r11. Four inherited static methods hard-code r11 equality/r8 constants. The frozen runner registers those exact methods against the exact `r11-source/` historical snapshot and three historical path/hash constants; the other 108 inherited methods bind r12. New tests 19/20 supply strict current-candidate delta coverage. No method assertion, success consumer or production behavior is patched. This accommodation is explicit in the frozen runner and command. None of the 112 inherited methods was reached, so no full regression pass is claimed.
++
++## Inputs, scope and publication
++
++All eight r11 frozen byte bindings were verified before copying and rechecked at closeout. Exact input inventory includes 75 original semantic-source bindings, config and D1 checkpoint bytes without decoding, Sonnet qualified authorities, probe scripts/outputs/manifests and r11 review. `r11-source/` is an exact base fixture snapshot; required original/r6/r9/r10 fixture directories remain historical fixtures. No old attempts, runtime outputs, capsule/classification/identity/registration/lease/invocation are current envelopes. Mutable ledger bytes are retained in `state.context.snapshot.json` with relevant context; routine live updates are not drift.
++
++Every write stayed under this new r12 output. No /tmp write, original/project/runtime/docs/ledger/external-protocol/lease/cache mutation, nested delegation, provider call, message, scheduler, commit, PR or deployment occurred. No production freeze, OS matrix, stress, startup, ML/native import, checkpoint decoding, environment/inference/gradients/training ran. No universal OS write audit is claimed.
++
++`finalize_r12.py` was written and frozen before the test stage but was not executed. Failure-specific evidence publication instead records actual executed/unrun counts and the discovered source-scan error without editing any frozen source.
+ 
+ ## Parent-owned next work
+ 
+-Reconcile exact source, input pins, complete diff, source/evidence manifests, raw test receipts and JSON validation. Publish only the exact `protocol-r8-proposal.json` bytes to `learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r8.json`; its hash is pinned by the controller. The proposal derives from exact current r7, changes candidate paths and adds only qualified escalation/endpoint semantics. Parent owns external publication, fresh registration, capsule freeze, review and all runtime validation. Never run historical implementation/edit scripts as a freeze command.
++Reconcile the failure, complete source diff, exact base/input/source manifests and raw test receipts. Do not patch or rerun r12. Any subsequent source/test repair requires a distinct authorized candidate/stage. Parent owns whether to accept/revise the scheduling design, exact external protocol publication, fresh classification/manifests/identity/registration/capsule, independent frozen review, registered OS/stress/startup validation and any subsequent training decision.
+ 
+-A fresh actual `freeze.py` must measure current B/R/A counts and capsule members; no retained B255/R37/A9998/129 count certifies r11. Preserve the noncircular hash DAG, original10091/9870/9675 bindings, every forced B and genuine75-source check_frozen/origin boundary, full actual B/R/A endpoint bytes, original runtime origins and cache policy, fresh single scandir and `-B`. No five-second byte watchdog, skipped checks or cross-pass cache is introduced.
++Never reuse r11 classification: changed source changes its derived bytes. Preserve original 10091/9870/9675 source unions, disjoint B/R/A coverage and acyclic leaf-manifest/classification/identity/capsule/external-registration hash DAG. No fresh B/R/A/capsule counts or full actual endpoint verification were measured here. Preserve all forced active B and genuine legacy/origin/runtime/cache checks and operational no-writer/finite-observation limits. Missing/unproven stays unproven; transport cause remains unknown.
+ 
+-Register each future bounded stage against frozen source and stop on its first failure: full original 15-case OS matrix, any separately authorized stress/startup stage, independent exact-source review and parent reconciliation. Current source/unit evidence does not establish OS closure, packet delivery, scheduling, resource performance, native behavior or teacher qualification. Capped, hung and lost-IPC cases remain truthfully unproven where actual reports are absent. Mandatory immutable inner receipt first, ACK-gated reap, single worker_wait, missing-ACK write prohibition, inner1.0/outer.25 internal reserves, shared `min(previous,earliest+10,T0+7210)`, 7200/7140/7170, .05/.15/max.5 sampling and separate6GiB RSS/MPS remain unchanged.
++Unchanged experiment: config `2ac814d3842228017d09669364a8391344722da56ad19f41ad9030dbb930c2db`, seed `5562873868232098305`, eligible D1 `ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f`, model/Adam/RNG restoration before environment and 64-row/nine-field control before gradients. Limits stay 7200/7140/7170, shared `min(previous,earliest_failure+10,T0+7210)`, .05/.15/max .5 sampling, separate 6GiB RSS/MPS and inner1.0/outer.25 reserves. The unused 7200-second training authorization remains parent-owned.
+ 
+-The one unused 7200-second D2 remains parent-owned. No automatic follow-on, lease acquisition, scheduler, student/D3/B/E, failed-weight resume, retry, fallback, commit, PR, deployment, external message or nested delegation follows this handoff.
++The evidence manifest excludes itself and the final completion receipt. Completion receipt anchors the evidence manifest and actual elapsed time with no back-edge. Source manifest pins pre-test code and fixtures; logs closed before evidence hashing. Source bytes remain frozen at handoff.
+--- r11-source/finalize_r12.py
++++ r12/finalize_r12.py
+@@ -0,0 +1,187 @@
++"""Publish evidence only after the single test stage; never edit source or retry."""
++from pathlib import Path
++import datetime
++import difflib
++import hashlib
++import json
++import os
++import subprocess
++import time
++
++H = Path(__file__).resolve().parent
++ROOT = H.parents[3]
++ENTRY = datetime.datetime.fromisoformat('2026-10-25T03:54:00+00:00')
++
++def now():
++    return datetime.datetime.now(datetime.timezone.utc)
++
++def sha(path):
++    digest = hashlib.sha256()
++    with path.open('rb') as stream:
++        for block in iter(lambda: stream.read(1024*1024), b''):
++            digest.update(block)
++    return digest.hexdigest()
++
++def save(path, value):
++    with path.open('x') as stream:
++        json.dump(value, stream, indent=2, sort_keys=True, allow_nan=False)
++        stream.write('\n')
++
++def main():
++    raw_path = H/'unit-stage/raw-result.json'
++    raw = json.loads(raw_path.read_text())
++    suite_path = H/'unit-stage/suite-result.json'
++    suite = json.loads(suite_path.read_text()) if suite_path.exists() else {}
++    registered = json.loads((H/'unit-stage/setup-precheck.json').read_text())
++    source = json.loads((H/'source-manifest.json').read_text())['files']
++    source_match = {name:sha(H/name) == value['sha256'] for name,value in source.items()}
++    inputs = json.loads((H/'input-manifest.json').read_text())['files']
++    input_match = {name:sha(Path(name)) == value['sha256'] for name,value in inputs.items()}
++    save(H/'end-verification.json', dict(source_rechecks=source_match, input_rechecks=input_match,
++        source_unchanged=all(source_match.values()), immutable_inputs_unchanged=all(input_match.values()),
++        mutable_ledger_rechecked=False, mutable_ledger_snapshot='state.context.snapshot.json',
++        no_scope_deviations_observed=True,
++        limitation='Owned writes and exact protected bindings checked; this is not a universal OS write audit.'))
++    passed = (raw.get('raw_exit') == 0 and raw.get('validation_attempts') == 1
++        and not raw.get('timed_out') and raw.get('elapsed_seconds',301) <= 300
++        and suite.get('successful') is True and suite.get('existing_method_count') == 112
++        and suite.get('new_method_count') == 22 and not suite.get('unrun_tests')
++        and not suite.get('forbidden_imports') and all(source_match.values()) and all(input_match.values()))
++    status = 'source_only_implementation_tests_passed_parent_reconciliation_required' if passed else 'stopped_failed_no_patch_or_retry'
++    existing = [name for name in registered['planned_tests'] if not name.startswith('test_r12.')]
++    historical = suite.get('historical_static_methods', [])
++    save(H/'test-method-inventory.json', dict(existing_methods=existing,
++        new_methods=[name for name in registered['planned_tests'] if name.startswith('test_r12.')],
++        historical_static_methods=historical,
++        executed_per_test=suite.get('per_test_results', []),
++        unrun=suite.get('unrun_tests', registered['planned_tests'] if not suite else []),
++        binding_note='The original five test sources are exact r11 bytes. Four historical static methods use the r11 source snapshot and three r11 registration constants. All other 108 inherited methods use r12. New tests 19/20 prove the exact permitted r12 source/protocol delta. No behavioral consumer is patched.'))
++    handoff = f'''# r12 source-only handoff
++
++Status: `{status}`. Source ownership is released. Candidate source bytes are frozen at the pre-test source manifest and remain unchanged at handoff. This is not a production capsule freeze or runtime acceptance.
++
++## Implementation
++
++Only production semantic change is the process-global CPython scheduling context around `observation = self.verify()` inside `Guard.full_check`, under its existing verification lock. The fixed cap is 0.0001 seconds; already shorter intervals remain shorter. The helper restores the exact original observed interval, detects truncation when setting a saved float and corrects it with the adjacent larger float. Equality is mandatory. An outer finally recovers one exception interrupting first restoration; errors remain fatal. Arbitrary repeated asynchronous interruptions are not guaranteed recoverable. A leak can affect guard outcomes as well as performance.
++
++Main-thread entry is explicitly enforced across Guard instances. Actual registered forced boundaries run synchronously on the main thread; the independent sampler uses `full=False`. Per-Guard verification locks are not process-global locks. The supported cooperative assumption is no concurrent interval setter. Registered controller/lifecycle/executor/integrity and original semantic Python sources contain no competing setter; absence of arbitrary third-party/native setters is not proven. No signal handler, mask, timer, signal owner, resource lock or sampler changes were introduced. Byte IO does not hold the resource lock.
++
++`boundary_integrity.py`, `lifecycle.py`, `processes.py`, `long_d2_executor.py`, `freeze.py`, all 15 fixture cases and consumers, stress contender/12 boundaries/120s limit are exact r11 bytes. Every existing controller top-level block is exact except `Guard`; every other Guard method is exact. The strict byte projection test removes only the two scheduling helpers, one scheduling constant, three candidate/protocol constants and the one callback wrapper, then compares the entire controller with r11. Learner/Schedule/run_schedule, worker ML try, success consumers, IPC/escalation, full B/R/A endpoints, every forced B/genuine legacy/origin/runtime/cache check, source unions, bounds, reserves and acceptance rules remain protected.
++
++## Tests and evidence boundaries
++
++Read `unit-stage/command.json`, `unit-stage/raw-result.json`, raw stdout/stderr, `unit-stage/suite-result.json`, `test-method-inventory.json`, `source-manifest.json`, `input-manifest.json` and `end-verification.json`.
++
++Exactly one fail-fast stdlib test child was registered with `learning/.venv/bin/python`, `-B`, a fresh owned empty `PYTHONPYCACHEPREFIX`, an explicit empty owned `VALIDATION_DIR`, and a 300-second bound. Actual test result: {suite.get('tests_run',0)} methods, {suite.get('failures',0)} failures, {suite.get('errors',0)} errors, {suite.get('skipped',0)} skipped, {len(suite.get('unrun_tests',registered['planned_tests'] if not suite else []))} unrun; raw exit {raw.get('raw_exit')}; wall {raw.get('elapsed_seconds')} seconds. No patch or retry followed this stage.
++
++All 112 inherited method names, assertions and consumer bytes remain unchanged. Four inherited static methods explicitly assert r11 source equality or hard-code r8. Those four run against the exact `r11-source/` snapshot and r11 path/hash constants; their result is historical-static evidence, not a claim that r12 is byte-identical. The other 108 inherited methods execute against r12. The 22 new methods execute against r12, with strict complete-byte delta and exact protocol checks replacing the four historical methods' candidate static coverage. This binding adaptation is disclosed in the runner, command and every per-test result. No method is skipped, relabeled, xfailed or assertion-edited; no success consumer or production behavior is patched for the adaptation.
++
++New scheduling evidence uses genuine CPython interval operations and real stdlib reader/ownership threads. Signals are modeled by directly calling unchanged `ProcessLatch.handle`; no OS signal is delivered and no handler/timer is installed. Fake clocks/process/socket models in inherited tests remain synthetic. Empty/mocked byte checks do not prove production integrity. No OS lifecycle matrix, stress, startup, source freeze, ML/native import, checkpoint decoding, environment, inference, gradient, training, lease, scheduler, external message, provider call or nested delegation ran.
++
++## Parent-owned next work
++
++Reconcile the complete diffs, exact base/input/source inventories, raw receipts and manifests. `r11-source/` and earlier fixture directories are historical fixtures only. No old capsule, classification, identity, registration, lease or invocation is a current r12 envelope. `state.context.snapshot.json` preserves mutable ledger bytes; routine live ledger updates are not drift.
++
++Publish only the exact `protocol-r9-proposal.json` bytes to `learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r9.json`; the new controller pins its exact SHA256. Proposal changes only r11 candidate paths to r12, registration timestamp and explicit scheduling declaration. It grants no new check/cadence/deadline/acceptance permission. External publication is not performed here.
++
++Parent must freshly derive classification/manifests/identity/registration and measure every B/R/A/capsule count. Preserve original 10091/9870/9675 unions, disjoint source coverage and the acyclic leaf-manifest/classification/identity/capsule/external-registration DAG. Never reuse r11 classification or execute historical editor scripts as freeze commands. Actual `freeze.py` is preserved and must use newly published exact protocol and source bytes. Parent then owns fresh frozen review and separately registered, stop-first-failure OS/stress/startup validation. No current evidence predicts performance, MPS behavior, OS cancellation responsiveness, transport cause, continuous immutability or teacher qualification.
++
++Config SHA256 `2ac814d3842228017d09669364a8391344722da56ad19f41ad9030dbb930c2db`, seed `5562873868232098305`, D1 SHA256 `ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f`, D1 model/Adam/RNG before environment and 64-row/nine-field control before gradients remain unchanged. Bounds remain 7200/7140/7170, shared `min(previous,earliest_failure+10,T0+7210)`, .05/.15/max .5 sampling, separate 6GiB RSS/MPS, inner1.0/outer.25 reserves. Missing/unproven remains unproven. The single unused 7200-second training authorization remains parent-owned.
++
++## Publication graph and elapsed time
++
++`source-manifest.json` pins code and fixtures before the stage. `implementation-result.json` references input/source/raw receipts and diffs. `json-validation.json` validates JSON leaves and result. `evidence-manifest.json` hashes all final artifacts except itself and `completion-receipt.json`; the completion receipt anchors that manifest and actual elapsed time, without a back-edge. Logs are closed before hashing. No output file hashes itself.
++
++Elapsed entry clock is the first observed UTC timestamp, 2026-10-25T03:54:00+00:00. Final observed elapsed is in `completion-receipt.json`; it includes preparation, the one test stage and evidence publication. No universal OS write audit is claimed. No output-location or protected-input scope deviation was observed; the explicit historical-static binding adaptation is the only test harness accommodation.
++'''
++    (H/'PARENT-NEXT.md').write_text(handoff)
++    base = H/'r11-source'
++    diffdir = H/'diffs'
++    diffdir.mkdir()
++    pieces = []
++    names = sorted({p.name for p in H.iterdir() if p.is_file() and p.suffix in ('.py','.md')}
++                   | {p.name for p in base.iterdir() if p.is_file() and p.suffix in ('.py','.md')})
++    for name in names:
++        before = (base/name).read_text().splitlines(True) if (base/name).is_file() else []
++        after = (H/name).read_text().splitlines(True) if (H/name).is_file() else []
++        delta = ''.join(difflib.unified_diff(before, after, fromfile='r11-source/'+name, tofile='r12/'+name))
++        (diffdir/(name+'.diff')).write_text(delta)
++        pieces.append(delta)
++    protocol_delta = ''.join(difflib.unified_diff((base/'protocol-r8-proposal.json').read_text().splitlines(True),
++        (H/'protocol-r9-proposal.json').read_text().splitlines(True),
++        fromfile='external-protocol-r8.json',tofile='protocol-r9-proposal.json'))
++    (diffdir/'protocol-r9-proposal.json.diff').write_text(protocol_delta)
++    pieces.append(protocol_delta)
++    (H/'candidate.diff').write_text(''.join(pieces))
++    save(H/'scope-and-limitations.json', dict(output_root=str(H), scope_deviations=[],
++        historical_static_binding_adaptation=historical, unchanged_existing_test_assertions=True,
++        source_ownership_released=True, production_freeze=False, external_protocol_published=False,
++        runtime_validation=False, training=False, arbitrary_repeated_async_recovery_claimed=False,
++        exact_total_OS_write_audit=False))
++    # Validate all current JSON as data, without importing or executing candidate code.
++    validation = []
++    for path in sorted(H.rglob('*.json')):
++        json.loads(path.read_bytes())
++        validation.append(dict(path=str(path.relative_to(H)), sha256=sha(path), parsed=True))
++    result = dict(schema='r12_implementation_result_v1', status=status,
++        source_ownership='released_frozen_at_handoff', production_capsule_frozen=False,
++        started_at_utc=ENTRY.isoformat(), result_written_at_utc=now().isoformat(),
++        elapsed_seconds_through_result=(now()-ENTRY).total_seconds(), budget_seconds=1800,
++        final_elapsed_receipt='completion-receipt.json',
++        semantic_production_changes=['boundary_switch_interval', 'restore_boundary_switch_interval', 'Guard.full_check callback wrapper'],
++        mechanical_constants=['PREPARE_REL:r12','PROTOCOL_REL:r9','PROTOCOL_SHA256:r9 proposal exact bytes'],
++        protocol_r9_proposal_sha256=sha(H/'protocol-r9-proposal.json'),
++        inputs=dict(path='input-manifest.json',sha256=sha(H/'input-manifest.json'),immutable_bindings=len(inputs),unchanged=all(input_match.values())),
++        source=dict(path='source-manifest.json',sha256=sha(H/'source-manifest.json'),files=len(source),unchanged=all(source_match.values())),
++        diff=dict(path='candidate.diff',sha256=sha(H/'candidate.diff')),
++        tests=dict(raw=raw, raw_receipt_sha256=sha(raw_path), suite_receipt='unit-stage/suite-result.json',
++            existing_methods=suite.get('existing_method_count'),new_methods=suite.get('new_method_count'),
++            tests_run=suite.get('tests_run'),failed=suite.get('failed_tests',[]),errors=suite.get('error_tests',[]),
++            unrun=suite.get('unrun_tests',registered['planned_tests'] if not suite else []),
++            historical_static_methods=historical, actual_candidate_inherited_methods=108,
++            existing_assertions_and_consumers_unchanged=True, forbidden_imports=suite.get('forbidden_imports'),
++            signals='modeled ProcessLatch.handle, no actual OS signal',retry=False),
++        scope_deviations=[], test_harness_accommodation='Four unchanged historical static methods bound to exact r11 snapshot; strict r12 delta/protocol tests provide current candidate static proof.',
++        external_protocol_published=False, old_envelopes_reused=False, runtime_or_training_acceptance=False,
++        held_training_authorization_seconds=7200, parent_next='PARENT-NEXT.md')
++    save(H/'implementation-result.json',result)
++    json_cache = H/'json-validation-pycache'
++    json_cache.mkdir()
++    env = dict(os.environ,PYTHONDONTWRITEBYTECODE='1',PYTHONPYCACHEPREFIX=str(json_cache))
++    tools = []
++    for name in ('implementation-result.json','source-manifest.json','input-manifest.json',
++                 'unit-stage/raw-result.json','unit-stage/suite-result.json','protocol-r9-proposal.json'):
++        path = H/name
++        if path.exists():
++            command = ['learning/.venv/bin/python','-B','-m','json.tool',str(path)]
++            checked = subprocess.run(command,cwd=ROOT,env=env,stdout=subprocess.DEVNULL,stderr=subprocess.PIPE)
++            tools.append(dict(argv=command,raw_exit=checked.returncode,stderr=checked.stderr.decode()))
++            if checked.returncode:
++                save(H/'publication-failure.json',dict(error='JSON tool validation failed',tools=tools,no_retry=True))
++                raise SystemExit(1)
++    save(H/'json-validation.json',dict(parsed_files=validation, tools=tools,
++        final_result_parsed=True, cache_empty=not any(json_cache.iterdir()),
++        excludes_itself_and_later_manifest=True))
++    manifest = {str(path.relative_to(H)):dict(sha256=sha(path),bytes=path.stat().st_size)
++        for path in sorted(H.rglob('*')) if path.is_file()
++        and path not in (H/'evidence-manifest.json',H/'completion-receipt.json')}
++    save(H/'evidence-manifest.json',dict(schema='r12_evidence_manifest_v1',files=manifest,
++        excludes=['evidence-manifest.json','completion-receipt.json'],logs_closed=True,
++        acyclic='leaves to result and validation to evidence manifest to completion receipt; no self hash'))
++    json.loads((H/'evidence-manifest.json').read_bytes())
++    completed = now()
++    save(H/'completion-receipt.json',dict(schema='r12_completion_receipt_v1',status=status,
++        evidence_manifest_sha256=sha(H/'evidence-manifest.json'),implementation_result_sha256=sha(H/'implementation-result.json'),
++        source_manifest_sha256=sha(H/'source-manifest.json'),started_at_utc=ENTRY.isoformat(),
++        completed_at_utc=completed.isoformat(),actual_elapsed_seconds=(completed-ENTRY).total_seconds(),
++        budget_seconds=1800,in_budget=(completed-ENTRY).total_seconds()<=1800,
++        source_ownership_released=True,source_bytes_unchanged=all(source_match.values()),
++        immutable_inputs_unchanged=all(input_match.values()),one_test_invocation=raw.get('validation_attempts')==1,
++        no_retry=True,production_freeze=False,runtime_or_training_acceptance=False,
++        receipt_excluded_from_evidence_manifest=True))
++    json.loads((H/'completion-receipt.json').read_bytes())
++    print(json.dumps(dict(status=status,methods=suite.get('tests_run'),elapsed_seconds=(completed-ENTRY).total_seconds(),
++        evidence_files=len(manifest),raw_exit=raw.get('raw_exit')),sort_keys=True))
++
++if __name__ == '__main__':
++    main()
+--- r11-source/long_d2.py
++++ r12/long_d2.py
+@@ -31,10 +31,10 @@
+ import boundary_integrity as integrity
+ 
+ ORIGINAL_ROOT = Path('/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79')
+-PREPARE_REL = 'learning/runs/v2/postovernight-long-D2-boundary-prepare-r11'
++PREPARE_REL = 'learning/runs/v2/postovernight-long-D2-boundary-prepare-r12'
+ ROOT = Path(__file__).resolve().parents[4]
+-PROTOCOL_REL = 'learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r8.json'
+-PROTOCOL_SHA256 = 'fe11c08159bdb9ca1f03cb0fb96ffd133ad144d107b2a854d19fc49159aa2db2'
++PROTOCOL_REL = 'learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r9.json'
++PROTOCOL_SHA256 = '22110a3cb52c36c86934ce02bb0b5c82e2041dc1a00e39a11bb80dd23697d115'
+ CONFIG_SHA256 = '2ac814d3842228017d09669364a8391344722da56ad19f41ad9030dbb930c2db'
+ STATE_PATH = ORIGINAL_ROOT / 'learning/runs/v2-orchestration/state.json'
+ LIMIT = 6442450944
+@@ -54,6 +54,7 @@
+ 
+ Stop = life.Stop
+ INNER_SECONDS = 7170
++BOUNDARY_SWITCH_INTERVAL = 0.0001
+ 
+ 
+ def require(condition, message, outcome='identity_or_lease_failure'):
+@@ -464,6 +465,49 @@
+     life.ACTIVE.check()
+ 
+ 
++def restore_boundary_switch_interval(previous):
++    """Restore the observed CPython value, including microsecond quantization.
++
++    getswitchinterval() can return 99.99999999999999 microseconds for an
++    internal 100-microsecond value. Setting that float can truncate to 99.
++    The adjacent larger float corrects that truncation; equality is mandatory.
++    This is a bounded correction, not a retry of a failed verification.
++    """
++    if sys.getswitchinterval() != previous:
++        sys.setswitchinterval(previous)
++        if sys.getswitchinterval() != previous:
++            sys.setswitchinterval(math.nextafter(previous, math.inf))
++        require(sys.getswitchinterval() == previous, 'Boundary switch interval restoration failed')
++
++
++@contextmanager
++def boundary_switch_interval():
++    """Temporarily cap the process-global interval during forced byte work.
++
++    Registered boundaries run on the main thread; resource observers use
++    full=False. Enforce that single-thread ownership across Guard instances.
++    Cooperating code must not set the interval concurrently: verify_lock is
++    per Guard and cannot serialize arbitrary process-global setters. Already
++    shorter intervals remain shorter. No signal/timer ownership is changed.
++
++    The outer finally recovers one exception interrupting inner restoration.
++    Arbitrary repeated asynchronous interruptions cannot be guaranteed safe;
++    a leak can change guard outcomes as well as performance.
++    """
++    require(threading.current_thread() is threading.main_thread(),
++            'Boundary switch interval requires main-thread ownership')
++    previous = sys.getswitchinterval()
++    try:
++        try:
++            if previous > BOUNDARY_SWITCH_INTERVAL:
++                sys.setswitchinterval(BOUNDARY_SWITCH_INTERVAL)
++            yield
++        finally:
++            restore_boundary_switch_interval(previous)
++    finally:
++        restore_boundary_switch_interval(previous)
++
++
+ class Guard:
+     """Independent safety observer and synchronous declared byte boundaries.
+ 
+@@ -508,7 +552,8 @@
+             stats = dict(files=0, bytes=0, components={})
+             VERIFY_LOCAL.stats = stats
+             try:
+-                observation = self.verify()
++                with boundary_switch_interval():
++                    observation = self.verify()
+                 self.last_full = at
+                 self.check()
+                 row.update(verdict='passed', observation=observation)
+--- r11-source/prepare_r12.py
++++ r12/prepare_r12.py
+@@ -0,0 +1,115 @@
++"""Read-only authority verification and owned source-only preparation."""
++from pathlib import Path
++import datetime
++import hashlib
++import json
++import shutil
++import time
++
++H = Path(__file__).resolve().parent
++ROOT = H.parents[3]
++BASE = H.with_name('postovernight-long-D2-boundary-prepare-r11')
++START_UTC = '2026-10-25T03:54:00+00:00'
++
++def sha(path):
++    digest = hashlib.sha256()
++    with Path(path).open('rb') as stream:
++        for block in iter(lambda: stream.read(1024 * 1024), b''):
++            digest.update(block)
++    return digest.hexdigest()
++
++def save(name, value):
++    with (H / name).open('x') as stream:
++        json.dump(value, stream, indent=2, sort_keys=True, allow_nan=False)
++        stream.write('\n')
++
++def main():
++    inputs = {}
++    def record(path, expected=None):
++        path = Path(path)
++        actual = sha(path)
++        inputs[str(path)] = dict(sha256=actual, bytes=path.stat().st_size)
++        if expected is not None and actual != expected:
++            raise RuntimeError('Input binding mismatch: ' + str(path))
++        return actual
++    try:
++        record(BASE / 'parent-frozen-pins.json')
++        pins = json.loads((BASE / 'parent-frozen-pins.json').read_text())
++        if len(pins) != 8:
++            raise RuntimeError('Expected eight r11 bindings')
++        for name, digest in pins.items():
++            record(ROOT / name, digest)
++        authority = ROOT / 'learning/runs/v2-orchestration'
++        record(authority / 'postovernight-long-D2-boundary-policy-parent-reconciliation-r1.json', '95977b36b45ad1ea670a601b51bb70198d0c0f37bb76c237b6ac032e535ebe9d')
++        record(authority / 'postovernight-long-D2-r2-protocol-r8.json', 'fe11c08159bdb9ca1f03cb0fb96ffd133ad144d107b2a854d19fc49159aa2db2')
++        for name in ('postovernight-long-D2-boundary-repair-r12-task.md', 'postovernight-long-D2-boundary-review-r11-parent-reconciliation.json', 'postovernight-long-D2-contention-design-sonnet-r1-parent-reconciliation.json'):
++            record(authority / name)
++        for name in ('implementation-plan-v2.md', 'SPEC_PRIVILEGED_VIT_RL.md'):
++            record(ROOT / 'docs' / name)
++        record(BASE.with_name('postovernight-long-D2-boundary-review-r11') / 'audit.md')
++        sonnet = BASE.with_name('postovernight-long-D2-contention-design-sonnet-r1')
++        record(sonnet / 'receipt.json')
++        receipt = json.loads((sonnet / 'receipt.json').read_text())
++        for name, digest in receipt['outputs'].items():
++            record(sonnet / name, digest)
++        probe = BASE.with_name('postovernight-long-D2-switchinterval-probe-r1')
++        record(probe / 'parent-evidence-manifest.json')
++        manifest = json.loads((probe / 'parent-evidence-manifest.json').read_text())
++        for name, value in manifest['files'].items():
++            record(probe / name, value['sha256'])
++            if (probe / name).stat().st_size != value['bytes']:
++                raise RuntimeError('Probe size mismatch: ' + name)
++        plan = json.loads((probe / 'plan.json').read_text())
++        for name, digest in plan['scripts_sha256'].items():
++            record(probe / name, digest)
++        for name, digest in plan['frozen_candidate_pins'].items():
++            record(ROOT / name, digest)
++        protocol = json.loads((authority / 'postovernight-long-D2-r2-protocol-r8.json').read_text())
++        record(ROOT / protocol['config_path'], protocol['config_sha256'])
++        record(ROOT / protocol['parent_checkpoint'], protocol['parent_checkpoint_sha256'])
++        for name, digest in protocol['base_identity']['sources'].items():
++            record(ROOT / name, digest)
++        # Preserve mutable context bytes once; never compare the live ledger later.
++        state = (authority / 'state.json').read_bytes()
++        (H / 'state.context.snapshot.json').write_bytes(state)
++        parsed_state = json.loads(state)
++        save('state-context.json', dict(snapshot_sha256=sha(H / 'state.context.snapshot.json'),
++            context_only=True, keys=sorted(parsed_state),
++            active_long_campaign=parsed_state.get('active_long_campaign'),
++            note='Routine live ledger updates are not immutable-input drift.'))
++        names = ['long_d2.py', 'long_d2_executor.py', 'lifecycle.py', 'processes.py',
++            'boundary_integrity.py', 'freeze.py', 'source_equality.py', 'fixture_guards.py',
++            'fixture_preconditions.py', 'os_checks.py', 'synthetic.py', 'stress.py',
++            'rehearsal.py', 'parent_command.py', 'model_r11.py', 'test_r11.py',
++            'test_r10.py', 'test_r7.py', 'test_repairs.py', 'test_boundary.py',
++            'protocol-r8-proposal.json', 'retained-r9-injection.json', 'preparation-copy.json']
++        snapshot = H / 'r11-source'
++        snapshot.mkdir()
++        copies = {}
++        for name in names + ['PARENT-NEXT.md', 'run_unit_suite.py', 'unit_stage.py']:
++            record(BASE / name)
++            shutil.copyfile(BASE / name, snapshot / name)
++            copies[name] = sha(snapshot / name)
++            if name in names:
++                shutil.copyfile(BASE / name, H / name)
++        for name in ('original-source', 'r6-source', 'r9-source', 'r10-source'):
++            for path in sorted((BASE / name).rglob('*')):
++                if path.is_file():
++                    record(path)
++            shutil.copytree(BASE / name, H / name)
++            shutil.copytree(BASE / name, snapshot / name)
++        save('base-source-manifest.json', dict(base=str(BASE), exact_snapshot=str(snapshot), files=copies,
++            fixture_directories=['original-source','r6-source','r9-source','r10-source']))
++        save('input-manifest.json', dict(schema='r12_inputs_v1', files=inputs,
++            frozen_r11_bindings=8, original_semantic_sources=75, probe_evidence_bindings=len(manifest['files']),
++            mutable_context_excluded=True, read_without_execution=True))
++        save('preparation-result.json', dict(status='prepared', started_at_utc=START_UTC,
++            completed_at_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),
++            no_old_current_envelopes=True, no_campaign=True, no_scope_deviations=True))
++        print(json.dumps(dict(status='prepared', immutable_inputs=len(inputs), r11_pins=8)))
++    except BaseException as error:
++        save('setup-failure.json', dict(error=repr(error), inputs=inputs, no_retry=True))
++        raise
++
++if __name__ == '__main__':
++    main()
+--- r11-source/run_unit_suite.py
++++ r12/run_unit_suite.py
+@@ -1,26 +1,124 @@
+-"""Ordered targeted stdlib tests. Fail once, stop; no campaign authorization."""
++"""One fail-fast suite: unchanged 112 methods plus actual r12 scheduling tests.
++
++Four inherited static methods assert the *absence* of the now-authorized r12
++delta and hard-code protocol r8. Their exact assertions run against the exact
++r11-source snapshot with only three historical registration constants bound.
++All other inherited methods run against r12. test_r12 independently checks the
++entire r12 delta byte-for-byte, including every protected block and consumer.
++No implementation behavior or consumer is patched for the historical methods.
++"""
+ from pathlib import Path
++from contextlib import ExitStack, contextmanager
++from unittest.mock import patch
+ import json
+ import os
+ import sys
++import time
+ import unittest
++import long_d2 as c
++import test_r12
++import test_r11
++import test_r10
++import test_r7
+ import test_repairs
+ import test_boundary
+-import test_r7
+-import test_r10
+-import test_r11
++
++H = Path(__file__).resolve().parent
++MODULES = (test_r12, test_r11, test_r10, test_r7, test_repairs, test_boundary)
++HISTORICAL_STATIC = {
++    'test_r11.R11.test_C01_exact_success_consumers_transport_inner_fixtures_and_old91',
++    'test_r11.R11.test_C02_protocol_only_candidate_paths_and_qualified_semantics',
++    'test_r10.R10.test_exact_r9_transport_success_consumers_protected_blocks',
++    'test_r7.R7.test_success_consumers_and_protected_failure_helpers_byte_equal',
++}
++
++
++def flatten(suite):
++    for item in suite:
++        if isinstance(item, unittest.TestSuite):
++            yield from flatten(item)
++        else:
++            yield item
++
++
++@contextmanager
++def source_binding(test):
++    with ExitStack() as stack:
++        if test.id() in HISTORICAL_STATIC:
++            module = sys.modules[test.__class__.__module__]
++            stack.enter_context(patch.object(module, 'H', H / 'r11-source'))
++            stack.enter_context(patch.object(c, 'PREPARE_REL',
++                'learning/runs/v2/postovernight-long-D2-boundary-prepare-r11'))
++            stack.enter_context(patch.object(c, 'PROTOCOL_REL',
++                'learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r8.json'))
++            stack.enter_context(patch.object(c, 'PROTOCOL_SHA256',
++                'fe11c08159bdb9ca1f03cb0fb96ffd133ad144d107b2a854d19fc49159aa2db2'))
++        yield
++
++
++class BoundSuite(unittest.TestSuite):
++    def run(self, result, debug=False):
++        for test in self:
++            if result.shouldStop:
++                break
++            with source_binding(test):
++                test(result)
++        return result
++
++
++class RecordedResult(unittest.TextTestResult):
++    def __init__(self, *args, **kwargs):
++        super().__init__(*args, **kwargs)
++        self.rows = []
++        self.started = None
++
++    def startTest(self, test):
++        self.started = time.perf_counter()
++        super().startTest(test)
++
++    def row(self, test, status, detail=None):
++        self.rows.append(dict(test=test.id(), status=status, detail=detail,
++            elapsed_seconds=time.perf_counter() - self.started,
++            source_binding='exact_r11_historical_static' if test.id() in HISTORICAL_STATIC else 'r12_candidate'))
++
++    def addSuccess(self, test):
++        self.row(test, 'passed')
++        super().addSuccess(test)
++
++    def addFailure(self, test, error):
++        self.row(test, 'failed', self._exc_info_to_string(error, test))
++        super().addFailure(test, error)
++
++    def addError(self, test, error):
++        self.row(test, 'error', self._exc_info_to_string(error, test))
++        super().addError(test, error)
++
++    def addSkip(self, test, reason):
++        self.row(test, 'skipped', reason)
++        super().addSkip(test, reason)
++
+ 
+ def main():
+-    suite=unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromModule(module) for module in (test_r11,test_r10,test_r7,test_repairs,test_boundary))
+-    planned=[test.id() for module_suite in suite for class_suite in module_suite for test in class_suite]
+-    result=unittest.TextTestRunner(verbosity=2,failfast=True).run(suite)
+-    forbidden=[name for name in sys.modules if name.split('.')[0] in ('torch','numpy','dodge_rl')]
+-    report=dict(tests_run=result.testsRun,failures=len(result.failures),errors=len(result.errors),skipped=len(result.skipped),
+-                unexpected_successes=len(result.unexpectedSuccesses),planned_tests=planned,
+-                failed_tests=[test.id() for test,_ in result.failures],error_tests=[test.id() for test,_ in result.errors],
+-                unrun_tests=planned[result.testsRun:],successful=result.wasSuccessful() and not forbidden,
+-                forbidden_imports=forbidden,scope='real stdlib classes, synthetic clocks/files/peers; no OS lifecycle matrix, ML/native imports, or performance claim',
+-                executable_observed=sys.executable,argv=sys.argv,validation_dir=os.environ['VALIDATION_DIR'])
+-    (Path(os.environ['VALIDATION_DIR']).parent/'suite-result.json').write_text(json.dumps(report,sort_keys=True,indent=2)+'\n')
++    tests = [test for module in MODULES for test in flatten(unittest.defaultTestLoader.loadTestsFromModule(module))]
++    planned = [test.id() for test in tests]
++    result = unittest.TextTestRunner(verbosity=2, failfast=True, resultclass=RecordedResult).run(BoundSuite(tests))
++    forbidden = [name for name in sys.modules if name.split('.')[0] in ('torch', 'numpy', 'dodge_rl')]
++    report = dict(tests_run=result.testsRun, failures=len(result.failures), errors=len(result.errors),
++        skipped=len(result.skipped), unexpected_successes=len(result.unexpectedSuccesses),
++        planned_tests=planned, per_test_results=result.rows,
++        failed_tests=[test.id() for test, _ in result.failures], error_tests=[test.id() for test, _ in result.errors],
++        unrun_tests=planned[result.testsRun:], successful=result.wasSuccessful() and not forbidden,
++        forbidden_imports=forbidden, existing_method_count=sum(not name.startswith('test_r12.') for name in planned),
++        new_method_count=sum(name.startswith('test_r12.') for name in planned),
++        historical_static_methods=sorted(HISTORICAL_STATIC),
++        historical_static_boundary='These four exact old assertions check the exact r11 source snapshot; r12 test_19/test_20 replace their candidate static coverage without normalizing protected bytes.',
++        modeled_signals=True, actual_OS_signals=False, actual_interval_operations=True,
++        actual_reader_thread=True, no_lifecycle_stress_startup_or_ML_campaign=True,
++        executable_observed=sys.executable, argv=sys.argv, validation_dir=os.environ['VALIDATION_DIR'])
++    with (Path(os.environ['VALIDATION_DIR']).parent / 'suite-result.json').open('x') as stream:
++        json.dump(report, stream, indent=2, sort_keys=True, allow_nan=False)
++        stream.write('\n')
+     raise SystemExit(0 if report['successful'] else 1)
+-if __name__=='__main__':main()
++
++if __name__ == '__main__':
++    main()
+--- r11-source/test_r12.py
++++ r12/test_r12.py
+@@ -0,0 +1,440 @@
++"""Actual CPython scheduling and exact r12 source-delta checks.
++
++Signals are modeled by calling the unchanged ProcessLatch.handle directly.
++No OS signal delivery, timer installation, lifecycle/stress or ML run occurs.
++Reader threads use real stdlib threading and real interval operations.
++"""
++from pathlib import Path
++from contextlib import contextmanager
++from unittest.mock import patch
++import ast
++import hashlib
++import json
++import math
++import os
++import signal
++import sys
++import tempfile
++import threading
++import time
++import unittest
++import lifecycle as life
++import long_d2 as c
++import long_d2_executor as e
++
++H = Path(__file__).resolve().parent
++BASE = H / 'r11-source'
++A = Path(os.environ['VALIDATION_DIR'])
++SCHEDULING_HELPERS = {'restore_boundary_switch_interval', 'boundary_switch_interval'}
++
++
++def controller_without_r12_delta(text):
++    """Exact byte projection; no AST normalization of protected source bodies."""
++    lines = text.splitlines(True)
++    for node in sorted((n for n in ast.parse(text).body
++                        if isinstance(n, ast.FunctionDef) and n.name in SCHEDULING_HELPERS),
++                       key=lambda n: n.lineno, reverse=True):
++        first = min([node.lineno] + [n.lineno for n in node.decorator_list])
++        # Each added helper owns its following two blank lines.
++        del lines[first - 1:node.end_lineno + 2]
++    value = ''.join(lines)
++    value = value.replace('BOUNDARY_SWITCH_INTERVAL = 0.0001\n', '')
++    value = value.replace('postovernight-long-D2-boundary-prepare-r12',
++                          'postovernight-long-D2-boundary-prepare-r11')
++    value = value.replace('postovernight-long-D2-r2-protocol-r9.json',
++                          'postovernight-long-D2-r2-protocol-r8.json')
++    value = value.replace(c.PROTOCOL_SHA256,
++                          'fe11c08159bdb9ca1f03cb0fb96ffd133ad144d107b2a854d19fc49159aa2db2')
++    wrapped = '                with boundary_switch_interval():\n                    observation = self.verify()\n'
++    if value.count(wrapped) != 1:
++        raise AssertionError('Exactly one wrapped callback required')
++    return value.replace(wrapped, '                observation = self.verify()\n')
++
++
++class OtherBaseException(BaseException):
++    pass
++
++
++class R12(unittest.TestCase):
++    def setUp(self):
++        self.d = Path(tempfile.mkdtemp(prefix=self._testMethodName + '-', dir=A))
++        self.original = sys.getswitchinterval()
++        self.addCleanup(self.restore_test_interval)
++
++    def restore_test_interval(self):
++        # Independent fixture cleanup: midpoint of the observed microsecond bin.
++        # Test intervals are small positive integer microseconds, never huge floats.
++        ticks = round(self.original / 1e-6)
++        sys.setswitchinterval((ticks + .5) / 1e6)
++        self.assertEqual(sys.getswitchinterval(), self.original)
++
++    def save(self, name, value):
++        with (self.d / (name + '.json')).open('x') as stream:
++            json.dump(value, stream, indent=2, sort_keys=True, allow_nan=False)
++            stream.write('\n')
++
++    def guard(self, callback):
++        return c.Guard(time.monotonic() + 10, lambda: None, callback, None,
++                       rss=lambda: 1, peak=lambda: 1)
++
++    def test_01_success_scoped_and_outside_unchanged(self):
++        sys.setswitchinterval(.005)
++        before = sys.getswitchinterval()
++        with c.boundary_switch_interval():
++            inside = sys.getswitchinterval()
++            self.assertGreater(inside, 0)
++            self.assertLessEqual(inside, c.BOUNDARY_SWITCH_INTERVAL)
++        self.assertEqual(sys.getswitchinterval(), before)
++        self.save('success', dict(before=before, inside=inside, after=sys.getswitchinterval()))
++
++    def test_02_Stop_preserves_same_exception_and_interval(self):
++        error = c.Stop('callback cancellation', 'cancelled')
++        with self.assertRaises(c.Stop) as raised:
++            with c.boundary_switch_interval():
++                raise error
++        self.assertIs(raised.exception, error)
++        self.assertEqual(sys.getswitchinterval(), self.original)
++
++    def test_03_other_BaseException_KeyboardInterrupt_GeneratorExit(self):
++        for error in (OtherBaseException('base'), KeyboardInterrupt('keyboard'), GeneratorExit('generator')):
++            with self.subTest(kind=type(error).__name__):
++                with self.assertRaises(type(error)) as raised:
++                    with c.boundary_switch_interval():
++                        raise error
++                self.assertIs(raised.exception, error)
++                self.assertEqual(sys.getswitchinterval(), self.original)
++
++    def test_04_setter_raises_after_install_restores_without_callback(self):
++        real = sys.setswitchinterval
++        error = OtherBaseException('injected after install')
++        entered = []
++        def setting(value):
++            real(value)
++            if value == c.BOUNDARY_SWITCH_INTERVAL:
++                raise error
++        with patch.object(sys, 'setswitchinterval', setting):
++            with self.assertRaises(OtherBaseException) as raised:
++                with c.boundary_switch_interval():
++                    entered.append(True)
++        self.assertIs(raised.exception, error)
++        self.assertEqual(entered, [])
++        self.assertEqual(sys.getswitchinterval(), self.original)
++
++    def cleanup_interruption(self, *, after_set=False, callback_error=None):
++        real = sys.setswitchinterval
++        sys.setswitchinterval(.005)
++        original = sys.getswitchinterval()
++        latch = life.ProcessLatch()
++        latch.deadline = time.monotonic() + 10
++        first = [True]
++        calls = []
++        def setting(value):
++            calls.append(value)
++            if value == original and first[0]:
++                first[0] = False
++                if after_set:
++                    real(value)
++                # Model precisely the existing signal handler's raised Stop.
++                latch.handle(signal.SIGTERM, None)
++            real(value)
++        with patch.object(sys, 'setswitchinterval', setting):
++            with self.assertRaisesRegex(c.Stop, 'Cancellation latched') as raised:
++                with c.boundary_switch_interval():
++                    if callback_error is not None:
++                        raise callback_error
++        self.assertEqual(raised.exception.outcome, 'cancelled')
++        self.assertEqual(sys.getswitchinterval(), original)
++        self.assertEqual(latch.cancellation_requests, 1)
++        self.assertEqual(latch.phase, 'FAILURE')
++        self.assertEqual(calls.count(original), 1 if after_set else 2)
++        if callback_error is not None:
++            self.assertIs(raised.exception.__context__, callback_error)
++        self.save('modeled-signal', dict(actual_OS_signal=False, after_set=after_set,
++            calls=calls, restored=original, cancellation_requests=latch.cancellation_requests))
++
++    def test_05_one_modeled_signal_before_first_cleanup_set_outer_recovers(self):
++        self.cleanup_interruption()
++
++    def test_06_one_modeled_signal_after_first_cleanup_set_propagates(self):
++        self.cleanup_interruption(after_set=True)
++
++    def test_07_callback_error_and_one_cleanup_signal_both_retained(self):
++        self.cleanup_interruption(callback_error=OtherBaseException('callback base error'))
++
++    def test_08_nested_nondefault_exact_LIFO_restoration(self):
++        sys.setswitchinterval(.002731)
++        original = sys.getswitchinterval()
++        with c.boundary_switch_interval():
++            outer = sys.getswitchinterval()
++            with c.boundary_switch_interval():
++                self.assertEqual(sys.getswitchinterval(), outer)
++            self.assertEqual(sys.getswitchinterval(), outer)
++        self.assertEqual(sys.getswitchinterval(), original)
++        self.save('nested', dict(original=original, outer=outer, final=sys.getswitchinterval()))
++
++    def test_09_already_short_intervals_never_lengthened_or_truncated(self):
++        for interval in (.000001, .000017, .00005, .000099, .0001):
++            with self.subTest(interval=interval):
++                sys.setswitchinterval(interval)
++                observed = sys.getswitchinterval()
++                with c.boundary_switch_interval():
++                    self.assertEqual(sys.getswitchinterval(), observed)
++                    with c.boundary_switch_interval():
++                        self.assertEqual(sys.getswitchinterval(), observed)
++                self.assertEqual(sys.getswitchinterval(), observed)
++
++    def test_10_quantization_negative_control_and_actual_restoration_helper(self):
++        sys.setswitchinterval(.0001)
++        saved = sys.getswitchinterval()
++        sys.setswitchinterval(saved)
++        truncated = sys.getswitchinterval()
++        self.assertNotEqual(truncated, saved, 'Registered CPython negative control must expose truncation')
++        c.restore_boundary_switch_interval(saved)
++        self.assertEqual(sys.getswitchinterval(), saved)
++        rows = []
++        for interval in (.000001, .000017, .000099, .0001, .000731, .002731, .005, .02):
++            sys.setswitchinterval(interval)
++            observed = sys.getswitchinterval()
++            sys.setswitchinterval(.000002)
++            c.restore_boundary_switch_interval(observed)
++            self.assertEqual(sys.getswitchinterval(), observed)
++            rows.append(dict(requested=interval, observed=observed, restored=sys.getswitchinterval()))
++        self.save('quantization', dict(saved=saved, blind_restore=truncated, rows=rows))
++
++    def test_11_simultaneous_reader_observes_callback_and_after(self):
++        entered, read, finished = threading.Event(), threading.Event(), threading.Event()
++        observations, errors = [], []
++        def reader():
++            try:
++                if not entered.wait(2):
++                    raise AssertionError('callback entry not observed')
++                observations.append(sys.getswitchinterval())
++                read.set()
++                if not finished.wait(2):
++                    raise AssertionError('callback completion not observed')
++                observations.append(sys.getswitchinterval())
++            except BaseException as error:
++                errors.append(repr(error))
++                read.set()
++        thread = threading.Thread(target=reader, name='r12-interval-reader')
++        thread.start()
++        def callback():
++            entered.set()
++            self.assertTrue(read.wait(2))
++            self.assertFalse(errors)
++            return 'one callback'
++        try:
++            guard = self.guard(callback)
++            guard.full_check(True)
++        finally:
++            entered.set()
++            finished.set()
++            thread.join(3)
++        self.assertFalse(thread.is_alive())
++        self.assertEqual(errors, [])
++        self.assertEqual(len(observations), 2)
++        self.assertLessEqual(observations[0], c.BOUNDARY_SWITCH_INTERVAL)
++        self.assertEqual(observations[1], self.original)
++        self.save('reader', dict(observations=observations, thread_absent=True, actual_stdlib_thread=True))
++
++    def test_12_actual_Guard_calls_original_callback_once_under_only_verify_lock(self):
++        calls = []
++        marker = {'sentinel': 'actual callback return'}
++        def callback():
++            self.assertTrue(guard.verify_lock._is_owned())
++            self.assertFalse(guard.lock._is_owned())
++            self.assertLessEqual(sys.getswitchinterval(), c.BOUNDARY_SWITCH_INTERVAL)
++            calls.append(True)
++            return marker
++        guard = self.guard(callback)
++        self.assertIs(guard.verify, callback)
++        guard.full_check(True)
++        self.assertEqual(calls, [True])
++        self.assertIs(guard.boundaries[0]['observation'], marker)
++        self.assertEqual(guard.boundaries[0]['verdict'], 'passed')
++        self.assertEqual(sys.getswitchinterval(), self.original)
++        self.assertIsNone(c.VERIFY_LOCAL.stats)
++
++    def test_13_Guard_Stop_stays_fatal_and_interval_restored(self):
++        error = c.Stop('integrity mismatch', 'identity_or_lease_failure')
++        calls = []
++        def callback():
++            calls.append(True)
++            raise error
++        guard = self.guard(callback)
++        with self.assertRaises(c.Stop) as raised:
++            guard.full_check(True)
++        self.assertIs(raised.exception, error)
++        self.assertIs(guard.failure, error)
++        with self.assertRaises(c.Stop) as sticky:
++            guard.full_check(True)
++        self.assertIs(sticky.exception, error)
++        self.assertEqual(calls, [True])
++        self.assertEqual(guard.boundaries[0]['verdict'], 'failed')
++        self.assertEqual(sys.getswitchinterval(), self.original)
++
++    def test_14_Guard_other_BaseException_propagates_latches_Stop_and_restores(self):
++        error = OtherBaseException('integrity callback base exception')
++        guard = self.guard(lambda: (_ for _ in ()).throw(error))
++        with self.assertRaises(OtherBaseException) as raised:
++            guard.full_check(True)
++        self.assertIs(raised.exception, error)
++        self.assertIsInstance(guard.failure, c.Stop)
++        with self.assertRaises(c.Stop):
++            guard.check()
++        self.assertEqual(guard.boundaries[0]['verdict'], 'failed')
++        self.assertNotIn('observation', guard.boundaries[0])
++        self.assertEqual(sys.getswitchinterval(), self.original)
++
++    def test_15_cleanup_exception_cannot_publish_Guard_success(self):
++        real = sys.setswitchinterval
++        calls, injected = [], []
++        error = c.Stop('modeled cleanup interruption', 'cancelled')
++        def setting(value):
++            if value == self.original and not injected:
++                injected.append(True)
++                raise error
++            real(value)
++        guard = self.guard(lambda: calls.append(True))
++        with patch.object(sys, 'setswitchinterval', setting):
++            with self.assertRaises(c.Stop) as raised:
++                guard.full_check(True)
++        self.assertIs(raised.exception, error)
++        self.assertIs(guard.failure, error)
++        self.assertEqual(calls, [True])
++        self.assertEqual(guard.boundaries[0]['verdict'], 'failed')
++        self.assertNotIn('observation', guard.boundaries[0])
++        self.assertEqual(sys.getswitchinterval(), self.original)
++
++    def test_16_nonmain_helper_rejected_before_setter_or_callback(self):
++        errors, callbacks, setters = [], [], []
++        real = sys.setswitchinterval
++        def setting(value):
++            setters.append(value)
++            real(value)
++        def entry():
++            try:
++                with c.boundary_switch_interval():
++                    callbacks.append(True)
++            except BaseException as error:
++                errors.append(error)
++        with patch.object(sys, 'setswitchinterval', setting):
++            thread = threading.Thread(target=entry)
++            thread.start()
++            thread.join(3)
++        self.assertFalse(thread.is_alive())
++        self.assertEqual(len(errors), 1)
++        self.assertIsInstance(errors[0], c.Stop)
++        self.assertIn('main-thread ownership', str(errors[0]))
++        self.assertEqual(callbacks, [])
++        self.assertEqual(setters, [])
++        self.assertEqual(sys.getswitchinterval(), self.original)
++
++    def test_17_nonmain_Guard_forced_failure_and_safety_only_sampler_supported(self):
++        callbacks, errors = [], []
++        guard = self.guard(lambda: callbacks.append(True))
++        def entry():
++            try:
++                guard.sample(full=False)
++                guard.full_check(True)
++            except BaseException as error:
++                errors.append(error)
++        thread = threading.Thread(target=entry)
++        thread.start()
++        thread.join(3)
++        self.assertFalse(thread.is_alive())
++        self.assertEqual(len(errors), 1)
++        self.assertIs(guard.failure, errors[0])
++        self.assertEqual(callbacks, [])
++        self.assertIsNotNone(guard.last_sample)
++        self.assertEqual(guard.boundaries[0]['verdict'], 'failed')
++        self.assertEqual(sys.getswitchinterval(), self.original)
++
++    def test_18_independent_Guards_same_main_thread_restore_outer_then_original(self):
++        values = []
++        inner = self.guard(lambda: values.append(('inner', sys.getswitchinterval())))
++        def outer_callback():
++            outer = sys.getswitchinterval()
++            values.append(('outer', outer))
++            inner.full_check(True)
++            self.assertEqual(sys.getswitchinterval(), outer)
++        outer = self.guard(outer_callback)
++        outer.full_check(True)
++        self.assertEqual(values[0][1], values[1][1])
++        self.assertEqual([x[0] for x in values], ['outer', 'inner'])
++        self.assertEqual(sys.getswitchinterval(), self.original)
++
++    def test_19_exact_candidate_delta_and_protected_bytes(self):
++        current = (H / 'long_d2.py').read_text()
++        original = (BASE / 'long_d2.py').read_text()
++        self.assertEqual(controller_without_r12_delta(current), original)
++        for name in ('long_d2_executor.py', 'lifecycle.py', 'processes.py', 'boundary_integrity.py',
++                     'freeze.py', 'source_equality.py', 'synthetic.py', 'os_checks.py',
++                     'stress.py', 'fixture_guards.py', 'fixture_preconditions.py',
++                     'test_r11.py', 'test_r10.py', 'test_r7.py', 'test_repairs.py', 'test_boundary.py'):
++            self.assertEqual((H / name).read_bytes(), (BASE / name).read_bytes(), name)
++        old_blocks = {n.name: ast.get_source_segment(original, n) for n in ast.parse(original).body
++                      if isinstance(n, (ast.ClassDef, ast.FunctionDef))}
++        new_blocks = {n.name: ast.get_source_segment(current, n) for n in ast.parse(current).body
++                      if isinstance(n, (ast.ClassDef, ast.FunctionDef))}
++        self.assertEqual(set(new_blocks) - set(old_blocks), SCHEDULING_HELPERS)
++        self.assertEqual([name for name in old_blocks if old_blocks[name] != new_blocks[name]], ['Guard'])
++        def methods(text):
++            guard = next(n for n in ast.parse(text).body if isinstance(n, ast.ClassDef) and n.name == 'Guard')
++            return {n.name: ast.get_source_segment(text, n) for n in guard.body if isinstance(n, ast.FunctionDef)}
++        before, after = methods(original), methods(current)
++        self.assertEqual(set(before), set(after))
++        self.assertEqual([name for name in before if before[name] != after[name]], ['full_check'])
++        self.save('exact-delta', dict(controller_projection_byte_equal=True,
++            changed_existing_top_level_blocks=['Guard'], changed_Guard_methods=['full_check'],
++            added_helpers=sorted(SCHEDULING_HELPERS), existing_test_sources_byte_equal=True))
++
++    def test_20_protocol_proposal_only_allowed_fields_and_exact_hash(self):
++        old = json.loads((BASE / 'protocol-r8-proposal.json').read_text())
++        proposed = json.loads((H / 'protocol-r9-proposal.json').read_text())
++        declaration = proposed.pop('boundary_scheduling')
++        proposed['registered_at_utc'] = old['registered_at_utc']
++        normalized = json.loads(json.dumps(proposed).replace(
++            'postovernight-long-D2-boundary-prepare-r12/', 'postovernight-long-D2-boundary-prepare-r11/'))
++        self.assertEqual(normalized, old)
++        self.assertEqual(declaration['interval_seconds'], .0001)
++        self.assertIs(declaration['process_global'], True)
++        self.assertEqual(hashlib.sha256((H / 'protocol-r9-proposal.json').read_bytes()).hexdigest(), c.PROTOCOL_SHA256)
++        self.assertTrue(c.PREPARE_REL.endswith('prepare-r12'))
++        self.assertTrue(c.PROTOCOL_REL.endswith('protocol-r9.json'))
++        self.assertFalse((c.ORIGINAL_ROOT / c.PROTOCOL_REL).exists(), 'Parent owns external publication')
++        self.assertFalse(any((H / name).exists() for name in
++            ('classification.json', 'long-identity.json', 'registration.json', 'capsule-final', 'required-lease.json')))
++
++    def test_21_registered_setter_assumption_and_unchanged_monitor_call_sites(self):
++        protocol = json.loads((BASE / 'protocol-r8-proposal.json').read_text())
++        paths = [BASE / name for name in ('long_d2.py','long_d2_executor.py','lifecycle.py','processes.py','boundary_integrity.py')]
++        paths += [c.ORIGINAL_ROOT / name for name in protocol['base_identity']['sources'] if name.endswith('.py')]
++        for path in paths:
++            self.assertNotIn('setswitchinterval', path.read_text(), str(path))
++        source = (H / 'long_d2.py').read_text()
++        tree = ast.parse(source)
++        guard = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'Guard')
++        start = next(n for n in guard.body if isinstance(n, ast.FunctionDef) and n.name == 'start')
++        monitor = next(n for n in start.body if isinstance(n, ast.FunctionDef) and n.name == 'monitor')
++        self.assertIn('self.sample(full=False)', ast.get_source_segment(source, monitor))
++        self.assertNotIn('full_check', ast.get_source_segment(source, monitor))
++        self.save('ownership', dict(enforced='main-thread scheduling helper entry',
++            registered_source_setters=0, scanned_paths=[str(p) for p in paths],
++            assumption='No cooperating or external concurrent setter during callback; arbitrary third-party/native setters are not proven absent.',
++            per_Guard_lock_is_not_process_global=True))
++
++    def test_22_safety_only_and_nonforced_work_never_sets_interval(self):
++        callbacks, setters = [], []
++        real = sys.setswitchinterval
++        def setting(value):
++            setters.append(value)
++            real(value)
++        guard = self.guard(lambda: callbacks.append(True))
++        with patch.object(sys, 'setswitchinterval', setting):
++            guard.check()
++            guard.sample(full=False)
++            guard.full_check(False)
++        self.assertEqual(callbacks, [])
++        self.assertEqual(setters, [])
++        self.assertEqual(sys.getswitchinterval(), self.original)
+--- r11-source/unit_stage.py
++++ r12/unit_stage.py
+@@ -1,111 +1,120 @@
+-"""Exactly one fail-fast stdlib stage; preserves raw output and terminal status."""
++"""Register immutable source and one <=300s fail-fast stdlib invocation."""
+ from pathlib import Path
++import ast
+ import datetime
+-import ast
+-import shutil
+-import sys
+ import hashlib
+ import json
+ import os
++import shutil
+ import subprocess
+ import time
+-H=Path(__file__).resolve().parent
+-ROOT=H.parents[3]
+ 
+-def now():return datetime.datetime.now(datetime.timezone.utc).isoformat()
+-def save(path,value):path.write_text(json.dumps(value,indent=2,sort_keys=True,allow_nan=False)+'\n')
++H = Path(__file__).resolve().parent
++ROOT = H.parents[3]
++MODULES = ('test_r12', 'test_r11', 'test_r10', 'test_r7', 'test_repairs', 'test_boundary')
++
++def now():
++    return datetime.datetime.now(datetime.timezone.utc).isoformat()
++
++def sha(path):
++    return hashlib.sha256(path.read_bytes()).hexdigest()
++
++def save(path, value):
++    with path.open('x') as stream:
++        json.dump(value, stream, indent=2, sort_keys=True, allow_nan=False)
++        stream.write('\n')
++
++def inventory():
++    paths = list(H.glob('*.py')) + [H/'protocol-r9-proposal.json', H/'protocol-r8-proposal.json']
++    for name in ('original-source', 'r6-source', 'r9-source', 'r10-source', 'r11-source'):
++        paths.extend(path for path in (H/name).rglob('*') if path.is_file())
++    paths += [H/'retained-r9-injection.json', H/'preparation-copy.json']
++    return {str(path.relative_to(H)):dict(sha256=sha(path), bytes=path.stat().st_size) for path in sorted(set(paths))}
++
+ def main():
+-    out=H/'unit-stage';out.mkdir()  # No reuse or retry.
+-    cache=out/'fresh-pycache';cache.mkdir();fixtures=out/'fixtures';fixtures.mkdir()
+-    alias='learning/.venv/bin/python'
+-    argv=[alias,'-B',str(H/'run_unit_suite.py')]
+-    env=dict(os.environ,VALIDATION_DIR=str(fixtures),PYTHONDONTWRITEBYTECODE='1',PYTHONPYCACHEPREFIX=str(cache))
+-    relevant={'VALIDATION_DIR','PYTHONDONTWRITEBYTECODE','PYTHONPYCACHEPREFIX','PYTHONPATH','PYTHONHOME','PYTHONSAFEPATH','PATH','PYTORCH_ENABLE_MPS_FALLBACK'}
+-    save(out/'command.json',dict(argv=argv,cwd=str(ROOT),timeout_seconds=300,started_at_utc=now(),
+-        env_values={k:v for k,v in env.items() if k in relevant},
+-        other_env_value_sha256={k:hashlib.sha256(v.encode()).hexdigest() for k,v in env.items() if k not in relevant},
+-        interpreter_alias_preserved=True,ordered_modules=['test_r11','test_r10','test_r7','test_repairs','test_boundary'],
+-        source_sha256={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in H.glob('*.py')}))
+-    source=out/'sources';source.mkdir()
+-    for p in list(H.glob('*.py'))+[H/'protocol-r8-proposal.json',H/'PARENT-NEXT.md']:shutil.copyfile(p,source/p.name)
+-    shutil.copytree(H/'original-source',source/'original-source')
+-    shutil.copytree(H/'r6-source',source/'r6-source')
+-    shutil.copytree(H/'r9-source',source/'r9-source')
+-    shutil.copytree(H/'r10-source',source/'r10-source')
+-    shutil.copyfile(H/'retained-r9-injection.json',source/'retained-r9-injection.json')
+-    shutil.copyfile(H/'preparation-copy.json',source/'preparation-copy.json')
+-    required=[H/name for name in ('test_r11.py','test_r10.py','fixture_preconditions.py','test_r7.py','test_repairs.py','test_boundary.py','run_unit_suite.py','long_d2.py','long_d2_executor.py','lifecycle.py','processes.py','boundary_integrity.py','source_equality.py')]
+-    required += [H/'original-source'/p.name for p in (H/'r6-source').glob('*.py') if (H/'original-source'/p.name).exists()]
+-    required += [H/'original-source'/name for name in ('long_d2.py','boundary_integrity.py')]
+-    required += [H.parent/name/'long_d2.py' for name in ('postovernight-long-D2-guard-prepare-r1','postovernight-long-D2-prepare-r4','postovernight-long-D2-boundary-prepare-r3')]
+-    required += [ROOT/'learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r4.json',ROOT/alias]
+-    expected_original=json.loads((H/'preparation-copy.json').read_text())['original_fixture_files']
+-    fixture_exact={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in (H/'original-source').iterdir() if p.is_file()}==expected_original
+-    precheck=dict(original_fixture_exact=fixture_exact,required_files={str(p):p.is_file() for p in required},argv=argv,
+-                  alias_preserved=argv[0]==alias,validation_dir=str(fixtures),
+-                  validation_dir_empty=not any(fixtures.iterdir()),cache_empty=not any(cache.iterdir()),
+-                  no_old_envelopes=not any((H/name).exists() for name in ('capsule-final','long-identity.json','registration.json','classification.json')))
+-    # Read only fixture registration: evaluate only literal dict/list construction.
+-    namespace={'__builtins__':{},'dict':dict}
+-    tree=ast.parse((H/'fixture_preconditions.py').read_text())
+-    node=next(n for n in tree.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='PHASES' for t in n.targets))
+-    exec(compile(ast.Module(body=[node],type_ignores=[]),'phase-registration','exec'),namespace)
+-    phases=namespace['PHASES']
+-    tree=ast.parse((H/'os_checks.py').read_text())
+-    node=next(n for n in tree.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='CASES' for t in n.targets))
+-    exec(compile(ast.Module(body=[node],type_ignores=[]),'case-registration','exec'),namespace)
+-    cases=namespace['CASES']
+-    precheck['scenario_count']=len(cases)
+-    precheck['phase_registration']={phase:dict(expected_latch_phase=value[0],positive_prerequisites=list(value[1])) for phase,value in phases.items()}
+-    precheck['positive_metadata_valid']=(len(cases)==15 and all(value[0] in ('NORMAL','DEFER') and value[1] and len(set(value[1]))==len(value[1]) for value in phases.values())
+-        and all(not options.get('phase') or options['phase'] in phases for _,options,_ in cases))
+-    precheck['fresh_helper_output_policy']='tempfile.mkdtemp per test and repeated helper; exclusive outputs never reused'
+-    precheck['required_registrations']={str(H/name):(H/name).is_file() for name in ('retained-r9-injection.json','protocol-r8-proposal.json','preparation-copy.json','PARENT-NEXT.md')}
+-    precheck['positive_metadata_valid'] &= all(precheck['required_registrations'].values())
+-    registered=[]
+-    for module in ('test_r11','test_r10','test_r7','test_repairs','test_boundary'):
+-        tree=ast.parse((H/(module+'.py')).read_text())
+-        for cls in tree.body:
+-            if isinstance(cls,ast.ClassDef):
+-                registered.extend(module+'.'+cls.name+'.'+n.name for n in cls.body if isinstance(n,ast.FunctionDef) and n.name.startswith('test_'))
+-    precheck['registered_tests']=registered
+-    precheck['registered_test_count']=len(registered)
+-    precheck['registration_unique']=len(set(registered))==len(registered)
+-    precheck['prior_method_count']=sum(not name.startswith('test_r11.') for name in registered)
+-    precheck['source_syntax']={}
+-    for path in H.glob('*.py'):
+-        compile(path.read_text(),str(path),'exec')
+-        precheck['source_syntax'][path.name]='parsed_only'
+-    import re
+-    controller=(H/'long_d2.py').read_text()
+-    protocol_hash=hashlib.sha256((H/'protocol-r8-proposal.json').read_bytes()).hexdigest()
+-    protocol=json.loads((H/'protocol-r8-proposal.json').read_text())
+-    precheck['exact_protocol_registration']=(re.search(r"PROTOCOL_SHA256 = '([^']+)'",controller).group(1)==protocol_hash
+-        and "postovernight-long-D2-boundary-prepare-r11" in controller
+-        and "postovernight-long-D2-r2-protocol-r8.json" in controller
+-        and protocol['config_sha256']=='2ac814d3842228017d09669364a8391344722da56ad19f41ad9030dbb930c2db')
+-    precheck['retained_fixture_schema']=set(json.loads((H/'retained-r9-injection.json').read_text()))
+-    precheck['retained_fixture_schema']=sorted(precheck['retained_fixture_schema'])
+-    precheck['positive_metadata_valid'] &= (precheck['registration_unique'] and precheck['prior_method_count']==91
+-        and precheck['exact_protocol_registration'] and len(registered)>91)
+-    save(out/'setup-precheck.json',precheck)
+-    if not (precheck['positive_metadata_valid'] and precheck['original_fixture_exact'] and all(precheck['required_files'].values()) and precheck['alias_preserved'] and precheck['validation_dir_empty'] and precheck['cache_empty'] and precheck['no_old_envelopes']):
+-        save(out/'raw-result.json',dict(raw_exit=None,validation_attempts=0,precheck_failed=True,no_retry=True))
+-        raise SystemExit(1)
+-    start=time.monotonic();result={}
++    out = H/'unit-stage'
++    out.mkdir()  # Exclusive, never reused.
++    result = dict(validation_attempts=0, raw_exit=None, no_retry=True)
+     try:
+-        with (out/'stdout.log').open('xb') as stdout,(out/'stderr.log').open('xb') as stderr:
+-            process=subprocess.Popen(argv,cwd=ROOT,env=env,stdout=stdout,stderr=stderr)
++        cache = out/'fresh-pycache'
++        cache.mkdir()
++        fixtures = out/'fixtures'
++        fixtures.mkdir()
++        planned = []
++        for module in MODULES:
++            tree = ast.parse((H/(module+'.py')).read_text())
++            for cls in tree.body:
++                if isinstance(cls, ast.ClassDef):
++                    planned.extend(module+'.'+cls.name+'.'+node.name for node in cls.body
++                        if isinstance(node, ast.FunctionDef) and node.name.startswith('test_'))
++        for path in H.glob('*.py'):
++            compile(path.read_text(), str(path), 'exec')  # Parse only; no candidate import.
++        source = inventory()
++        save(H/'source-manifest.json', dict(schema='r12_source_manifest_v1', files=source,
++            frozen_before_test=True, production_capsule=False))
++        source_snapshot = out/'sources'
++        source_snapshot.mkdir()
++        for name in source:
++            target = source_snapshot/name
++            target.parent.mkdir(parents=True, exist_ok=True)
++            shutil.copyfile(H/name, target)
++        original = json.loads((H/'preparation-copy.json').read_text())['original_fixture_files']
++        observed = {path.name:sha(path) for path in (H/'original-source').iterdir() if path.is_file()}
++        existing = [name for name in planned if not name.startswith('test_r12.')]
++        expected = []
++        for module in MODULES[1:]:
++            tree = ast.parse((H/'r11-source'/(module+'.py')).read_text())
++            for cls in tree.body:
++                if isinstance(cls, ast.ClassDef):
++                    expected.extend(module+'.'+cls.name+'.'+node.name for node in cls.body
++                        if isinstance(node, ast.FunctionDef) and node.name.startswith('test_'))
++        inputs = json.loads((H/'input-manifest.json').read_text())['files']
++        input_match = {name:sha(Path(name)) == value['sha256'] for name,value in inputs.items()}
++        checks = dict(existing_methods_exact=existing == expected and len(existing) == 112,
++            new_methods=len(planned)-len(existing), unique_names=len(planned)==len(set(planned)),
++            original_fixture_exact=original == observed, input_bindings_all_match=all(input_match.values()),
++            cache_empty=not any(cache.iterdir()), fixtures_empty=not any(fixtures.iterdir()),
++            no_current_old_envelopes=not any((H/name).exists() for name in
++                ('classification.json','long-identity.json','registration.json','capsule-final','required-lease.json')),
++            existing_test_sources_exact=all((H/(name+'.py')).read_bytes()==(H/'r11-source'/(name+'.py')).read_bytes() for name in MODULES[1:]),
++            planned_tests=planned, input_rechecks=input_match)
++        save(out/'setup-precheck.json', checks)
++        if not (checks['existing_methods_exact'] and checks['new_methods'] > 0 and checks['unique_names']
++                and checks['original_fixture_exact'] and checks['input_bindings_all_match']
++                and checks['cache_empty'] and checks['fixtures_empty'] and checks['no_current_old_envelopes']
++                and checks['existing_test_sources_exact']):
++            raise RuntimeError('Registered setup precheck failed; no test invocation or retry')
++        argv = ['learning/.venv/bin/python','-B',str(H/'run_unit_suite.py')]
++        env = dict(os.environ, VALIDATION_DIR=str(fixtures), PYTHONDONTWRITEBYTECODE='1',
++                   PYTHONPYCACHEPREFIX=str(cache))
++        save(out/'command.json', dict(argv=argv,cwd=str(ROOT), timeout_seconds=300,
++            registered_at_utc=now(), source_manifest_sha256=sha(H/'source-manifest.json'),
++            ordered_modules=list(MODULES), failfast=True, retries=0,
++            environment={key:env[key] for key in ('VALIDATION_DIR','PYTHONDONTWRITEBYTECODE','PYTHONPYCACHEPREFIX')},
++            other_environment_sha256={key:hashlib.sha256(value.encode()).hexdigest() for key,value in env.items()
++                if key not in ('VALIDATION_DIR','PYTHONDONTWRITEBYTECODE','PYTHONPYCACHEPREFIX')},
++            historical_static_binding='Four unchanged inherited static methods use exact r11 snapshot and registration constants; all 108 inherited behavioral/source-invariant methods use r12; new exact-delta tests cover r12.'))
++        started = time.monotonic()
++        result.update(validation_attempts=1, started_at_utc=now())
++        with (out/'stdout.log').open('xb') as stdout, (out/'stderr.log').open('xb') as stderr:
++            process = subprocess.Popen(argv, cwd=ROOT, env=env, stdout=stdout, stderr=stderr)
+             try:
+-                raw=process.wait(timeout=300)
+-                result=dict(raw_exit=raw,timed_out=False)
++                raw = process.wait(timeout=300)
++                result.update(raw_exit=raw, timed_out=False)
+             except subprocess.TimeoutExpired:
+-                process.kill();raw=process.wait()
+-                result=dict(raw_exit=raw,timed_out=True,termination='unit stage timeout; no retry')
++                process.kill()
++                raw = process.wait()
++                result.update(raw_exit=raw, timed_out=True, termination='300s test bound; no retry')
++        result.update(elapsed_seconds=time.monotonic()-started, direct_child_reaped=True,
++            completed_at_utc=now(), source_inventory_unchanged=source == inventory(),
++            cache_empty=not any(cache.iterdir()))
++    except BaseException as error:
++        result.update(setup_or_wrapper_error=repr(error), completed_at_utc=now())
+     finally:
+-        result.update(finished_at_utc=now(),elapsed_seconds=time.monotonic()-start,validation_attempts=1,
+-                      no_retry=True,cache_empty=not any(cache.iterdir()))
+-        save(out/'raw-result.json',result)
+-    print(json.dumps(result,sort_keys=True))
+-    raise SystemExit(result['raw_exit'] if not result.get('timed_out') else 124)
+-if __name__=='__main__':main()
++        save(out/'raw-result.json', result)
++    print(json.dumps(result, sort_keys=True))
++    raise SystemExit(0 if result.get('raw_exit') == 0 and not result.get('timed_out')
++        and result.get('source_inventory_unchanged') and result.get('cache_empty') else 1)
++
++if __name__ == '__main__':
++    main()
+--- external-protocol-r8.json
++++ protocol-r9-proposal.json
+@@ -324,6 +324,14 @@
+   },
+   "base_identity_path": "learning/runs/v2/milestone3-D2-freeze-r1/D2-frozen-identity.json",
+   "base_identity_sha256": "56dcf1ba848c2e2acdca967ce8ed5bca9457551659421a9070c2f7c5ba2bc14f",
++  "boundary_scheduling": {
++    "interval_seconds": 0.0001,
++    "ownership": "Registered callbacks run on the main thread; enforce main-thread entry across Guard instances. Cooperating registered code has no competing interval setter. An individual verify_lock does not serialize arbitrary setters.",
++    "permissions": "No new check, cadence, interval of verification, deadline, acceptance, signal, timer or training permission.",
++    "process_global": true,
++    "restoration": "Restore the exact original observed CPython interval, correcting microsecond truncation, on success and BaseException; outer cleanup recovers one asynchronous exception interrupting first cleanup. Repeated asynchronous interruptions are not guaranteed recoverable.",
++    "scope": "Only the forced Guard.full_check verification callback under existing verify_lock; cap at 100us and retain any already shorter interval."
++  },
+   "budget_seconds": 7200,
+   "checkpoint_policy": {
+     "container": "teacher_checkpoint_v1",
+@@ -423,7 +431,7 @@
+   },
+   "config_path": "learning/runs/v2-orchestration/postovernight-long-D2-r2-config.json",
+   "config_sha256": "2ac814d3842228017d09669364a8391344722da56ad19f41ad9030dbb930c2db",
+-  "controller": "learning/runs/v2/postovernight-long-D2-boundary-prepare-r11/long_d2.py",
++  "controller": "learning/runs/v2/postovernight-long-D2-boundary-prepare-r12/long_d2.py",
+   "design": "learning/runs/v2/postovernight-long-D2-terminal-design-codex-r1/plan.json",
+   "design_sha256": "272adb81252f8d071b961f6928dbad9981b4f49b5f73ce4c8636daa3a51b8712",
+   "entry_control": "learning/runs/v2/milestone3-D2-curriculum-r1/checkpoint-000010-candidate.pt.evaluation.json",
+@@ -510,7 +518,7 @@
+     "endpoint_isolation": "Stable supervisor then worker readiness order. Unexpected receive, packet validation and ACK-send errors remain fatal and source-stamped per endpoint before continuing to an already-readable sibling once under current absolute deadline. Retain valid earlier peer failure and ACK once; recompute deadline after each peer. No retry, transport change, blanket close relaxation, reaping from retirement, or recovery/start ACK after failed normal operation. Existing final drain remains until-.25; bounded deduplicated monitor diagnostics at most eight.",
+     "staged_owned_escalation": "Worker TERM immediate and KILL at current min(first+5,until-.5); supervisor TERM immediate. At that original eligibility, supervisor KILL requires validated actual worker_wait or matching actual direct-reaped supervisor leader; otherwise eligible until-.5. child None and absent worker registration prove neither. Recompute each tick; gate exception fallback uses original eligibility. One reason and actual signal-attempt timestamp per role; cooperative scheduling, no exact signal-at-L guarantee."
+   },
+-  "registered_at_utc": "2026-10-25T02:10:57.549957+00:00",
++  "registered_at_utc": "2026-10-25T03:58:46.248090+00:00",
+   "rss_limit_bytes": 6442450944,
+   "run_id": "v2-m3-long-D2-20261024-r2",
+   "runtime_import_policy": {
+@@ -527,7 +535,7 @@
+     "clock_handoff_schema": "long_d2_owned_start_v1",
+     "clock_origin": "executor_T0_before_ordinary_imports",
+     "consumer_direct_reaping": "both exact parent wait reports; normal raw0/2; PIDs/PGIDs/parent chain and finite T0-relative worker/inner cutoffs; parent outer raw/wall and current byte/registration/summary checks retained",
+-    "executor": "learning/runs/v2/postovernight-long-D2-boundary-prepare-r11/long_d2_executor.py",
++    "executor": "learning/runs/v2/postovernight-long-D2-boundary-prepare-r12/long_d2_executor.py",
+     "existing_supervisor_reserve_split_seconds": {
+       "inner": 30,
+       "outer": 30

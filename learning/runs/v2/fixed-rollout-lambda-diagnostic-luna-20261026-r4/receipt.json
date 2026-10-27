@@ -1,0 +1,57 @@
+{
+  "schema": "fixed_rollout_lambda_diagnostic_r4_receipt",
+  "status": "synthetic_controls_passed; parent_review_and_replay_pending",
+  "input_sha256": {
+    "learning/runs/v2/fixed-rollout-lambda-diagnostic-luna-20261026-r3/diagnostic.py": "de763f423f8b1ff5123adce386945f4ee0a268d69c9391a592b0810b109e3da2",
+    "learning/runs/v2/fixed-rollout-lambda-diagnostic-luna-20261026-r3/controls_r3.py": "e7cf931597c94d79f1b1b68ff983b5b957737cdf674d02821fe0fdf5c6eca759",
+    "learning/runs/v2/fixed-rollout-lambda-diagnostic-review-haiku-20261026-r3/review.md": "dde76fc27bdcfb3bded8dbccf91fe7cc1937bd6ab955761a8ffffd6ba3fb4756",
+    "learning/runs/v2/fixed-rollout-lambda-diagnostic-review-haiku-20261026-r3/review.json": "dd1fe11ec772664b7d128b02237537e7ee77f27f0550ab4c799b1b92deef0693",
+    "learning/runs/v2/fixed-rollout-lambda-diagnostic-review-haiku-20261026-r3/receipt.json": "cdbd0bf4f658083a6d5d216f2df4d02fb08298e67261f0b265e1356aed08bfe5",
+    "learning/runs/v2/fixed-rollout-lambda-diagnostic-parent-validation-20261026-r1/validation.json": "42a9a8527acd97aeb4f742504e2bec3c7a648db9908e06595a9cbdf20c342f00",
+    "learning/runs/v2/fixed-rollout-lambda-diagnostic-parent-validation-20261026-r1/review-reconciliation.json": "774ff56adfcffd5451a75968fdcacf744b13c684418496d72bad0657cd76127c"
+  },
+  "output_sha256": {
+    "diagnostic.py": "ee3b1ec123ee1e5fd0ba2bd716ec0566e16c05e53d6b29cacc51f6511a711b27",
+    "controls_r4.py": "bdea9980dd89b64c360eaecf70e2cf6b53139e27019a806527b36dff44638aa0",
+    "controls.py": "d35f55364b93fcbd154ddff4637c49061e2f6d68670de694dee9ec14d4758a77",
+    "CONTRACT.md": "ca3a780f5db96381a713bee473a5a314d732d27f8fac6a70b82a3ad2ebeb3edf",
+    "README.md": "058a4bb029f9db690df3ed9efaab878051abbd082101f07f0f0080812ba10f40",
+    "controls-r4.log": "073099c4db2f84f1883164d8ca3cccc4c98a8b10f426ced287c394d890078a19",
+    "controls-r3-legacy.log": "d5e048c1ab3bb982c771bf7821af5f4eb242bca94c58c8428ee6498e02551e27",
+    "controls-r4-initial-failure.log": "3c3894cac14b51bbd988b465e4449c339394b2f6926edf0fa7b149931f22c9dd",
+    "hash-manifest.json": "44707a15089e2d472f8fae27b6586737603ce940e60e1e4dbc2291872441cd4d"
+  },
+  "controls": {
+    "runtime": "python/.venv/bin/python -B",
+    "PYTHONPATH": "unset",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONPYCACHEPREFIX": "R4-owned empty directory",
+    "CPU_threads": 2,
+    "controls_r4_status": "PASS",
+    "retained_controls_status": "PASS",
+    "production_elementwise_parity_lambdas": [0.95, 0.99],
+    "observed_return_value_and_bucket_assertions": true,
+    "npz_reader_rejections": 21,
+    "partial_other_variant_subsets_checked_per_path": 6,
+    "component_shape_nonfinite_death_identity_rejections": 3,
+    "MPS_used": false
+  },
+  "scope": {
+    "synthetic_only": true,
+    "actual_rollout_or_campaign_read": false,
+    "capture": false,
+    "checkpoint_or_model_decoding": false,
+    "environment": false,
+    "gradients_or_optimizer_steps": false,
+    "source_state_lease_changes": false,
+    "children_spawned": false,
+    "best300_or_accepted_training_affected": false
+  },
+  "limits": [
+    "No actual-rollout parity, critic-quality, EV-gain, causal, or training-gate claim.",
+    "Gamma remains 0.995; reward scale 0.1 is applied once.",
+    "Termination stops bootstrap and trace; truncation bootstraps final next_values and stops trace.",
+    "NPZ loading uses allow_pickle=False.",
+    "Parent review and independent replay remain pending."
+  ]
+}

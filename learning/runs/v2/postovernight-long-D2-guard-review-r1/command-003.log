@@ -1,0 +1,730 @@
+# `SPEC_PRIVILEGED_VIT_RL.md` (v2.0 — Source-Verified Specification)
+
+## 1. Executive Summary & Architectural Overview
+
+### 1.1 Goal
+Train a superhuman **visual-only agent** for `dodge-native` (`d7ad951`, a deterministic Rust port of the PICO-8 game `dodge.p8`) that plays purely from stacked $128 \times 128$ palette-indexed frames while maximizing **game score** (the true highscore metric) alongside survival.
+
+### 1.2 Two-Stage Privileged-to-Visual Architecture
+
+1. **Stage 1 — Privileged Entity-Transformer Teacher (PPO):**
+  - Operates on a newly added **headless stepping path** in `dodge-core` that bypasses framebuffer rendering and `FullState` snapshot clones while strictly preserving RNG parity (`apply_draw_side_effects`).
+  - Models the game as a set of **Typed Box Entities** (`Global/Player`, `Enemy`, `Kamikaze`, `Explosion`, `Powerup-{Explode, Freeze, Shrink}`, `Static-Rect`, `Moving-Rect`) using exact axis-aligned bounding box (AABB) Minkowski gaps and slab time-to-overlap—**strictly excluding clairvoyant hidden timers** (`pattern_timer`, `enemy_timer`, RNG state) so the Teacher only uses facts inferable from a short visual history.
+  - Trains via a built-in curriculum (`difficulty` $1 \to 3$, `patterns_enabled`, `powerups_enabled`) optimizing **$\Delta\text{score}$** plus a small survival term.
+2. **Stage 2 — Visual ViT Student (DAgger + Multi-Channel Box Rasterization):**
+  - Operates strictly on 4 action-repeat-spaced $128 \times 128$ frames of categorical PICO-8 palette indices (`0..15`) embedded via `nn.Embedding(16, C)`.
+  - Trains first with a clean baseline of **Action-KL DAgger**, then adds dense **16×16 Rasterized Spatial Auxiliary Targets** (`lethal_now`, `lethal_soon`, `enemy`, `powerup`, `player` per-patch BCE head) computed directly from exact entity boxes—avoiding point-splat distortion on $127\text{px}$ pattern walls.
+  - Evaluates **Latent Alignment ($L_{\text{latent}}$)** and **Custom-Layer Attention Transfer ($L_{\text{attn}}$)** as controlled ablations, followed by optional Stage 2.5 Asymmetric PPO fine-tuning (Visual Student Actor + Privileged Teacher Critic).
+
+## 2. Verified Engine Mechanics & Constraints (`dodge-core`)
+All implementation work in Rust and Python must obey these exact source-verified mechanics:
+
+| Domain | Source-Verified Behavior | Architectural Consequence |
+| --- | --- | --- |
+| **Timebase** | `_update60` (60 FPS). | Use **Action Repeat $K \in [2, 4]$** (default $K=4 \implies 15\text{ Hz}$ decisions). Space the Student's 4-frame stack by $K$ (covering $16$ raw frames $\approx 267\text{ ms}$) so velocity is visually observable. Set $\gamma = 0.995$ per *decision step* ($\approx 800$ raw frames / $13.3\text{s}$ horizon). |
+| **Player Physics** | Momentum: $v \leftarrow 0.8v \pm 0.5$ per held axis (`PLAYER_FRICTION`, `PLAYER_SPEED`). Terminal speed: $2.5\text{ px/frame}$ cardinal, $\approx 3.5\text{ px/frame}$ diagonal (unnormalized). Time constant $\approx 5$ frames. Clamped to $[2, 125]$. | No artificial action-jitter penalty needed; momentum + action repeat naturally smooth motion. |
+| **Action Space** | 9 actions in `action.rs` locked by `action_order_and_masks_match_training_contract`. `O` and `X` only act on menu/retry screens. | Policy outputs logits over the **9 directional/button actions** (or masks `O`/`X` during `Mode::Game`). |
+| **True Objective & Score** | Score does **not** rise with time. $+0.5$ when an enemy dies (two enemies collide or crushed by a pattern). $+1.0$ for freeze/shrink powerup. $+1.0$ per enemy cleared by explode powerup. Every score increment calls `apply_difficulty` (`spd` $\to 3$, `est` $\to 0.22\text{s}$, tighter bounce caps). | **Never reward survival alone** (a survival-only agent avoids scoring to keep difficulty low). Reward must center on $\Delta\text{score}$. |
+| **Built-in Anti-Camping** | Staying inside the central $8 \times 8$ box for $>50$ frames triggers `update_fyou` (spawns 4 enemies). New enemies spawn at `nearest_corner` to the player. | **Do not add artificial center-bias or wall penalties.** Let the agent learn the native mechanics. |
+| **Rendering Location** | Rendering lives in `dodge-core/src/snapshot.rs` (`render_full_state_into`). `dodge-viewer` is just a `macroquad` window + PGM/PPM export + `PICO8_PALETTE`. | `dodge-rl-env` must only depend on `dodge-core`. Do not link `dodge-viewer` (avoids pulling in `macroquad`/X11/GL). |
+| **Current Step Cost** | `advance_frame` renders the $128 \times 128$ screen and builds a `Snapshot` ($\sim 3$ `FullState` deep clones including nested pattern `Vec`s + multiple $16\text{ KB}$ framebuffer copies) every frame. `step(action, frames)` drops intermediate `FrameResult` rewards/events. | Must add `advance_frame_headless(mask)` and `render_into(&mut [u8; 16384])` in `dodge-core`, and manually accumulate rewards/events across action-repeat frames. |
+| **RNG & Reset Parity** | `reset()` reseeds from private `config.seed` (replaying the identical run). `restart_gameplay` leaks pattern counters across runs. Camera shake (2 RNG calls) and `apply_draw_side_effects` (trail particles) consume RNG every frame. | Start each episode via `NativeGame::new(NativeConfig::new(random_seed))` + internal start sequence (`X` press + $\sim 13$ neutral frames until `Mode::Game`). Headless stepping **must** execute `apply_draw_side_effects`. |
+| **Workspace Lints** | Root `Cargo.toml` & `.cargo/config.toml`: `unsafe_code = "forbid"`, `unwrap_used = "deny"`, `expect_used = "deny"`, `panic = "deny"`, `indexing_slicing = "deny"`, `-Dwarnings`. | `dodge-core` additions must strictly obey all lints. `crates/dodge-rl-env` must define its own `[lints]` table (not `workspace = true`) because PyO3 macros emit code that conflicts with `unsafe_code = "forbid"`. |
+
+## 3. Typed Entity & AABB Geometry Specification
+All entities in `dodge-native` use **Axis-Aligned Bounding Boxes (AABBs)** with type-specific hit offsets (`game.rs::collision_check`), and coordinates routinely travel off-screen (e.g., $-50, 131, 144$).
+
+### 3.1 Entity Categories & Hitbox Rules
+Let player position be $(p_x, p_y)$ and player size be $p_s$ (normally $4$, or $2$ during active shrink powerup for $\sim 600$ frames).
+
+| `type_id` | Entity Category | Source Representation | Player Hitbox Used | Entity Box $[x_{\min}, x_{\max}] \times [y_{\min}, y_{\max}]$ | `beneficial` | `lethal_now` |
+| --- | --- | --- | --- | --- | --- | --- |
+| `0` | **Global / Player Token** | Player state + global scalars | $[p_x - p_s, p_x + p_s]$ | Self | `0.0` | `0.0` |
+| `1` | **Normal Enemy** (`personality == 0`) | Top-left $(x, y)$, side $s \in [1, \text{max\_size} \in \{3..6\}]$ | $p \pm (p_s - 1)$ | $[x, x+s] \times [y, y+s]$ | `0.0` | `1.0` |
+| `2` | **Kamikaze Enemy** (`personality == 1`) | Top-left $(x, y)$, side $s$; slows within $25\text{px}$ of player, spawns explosion on death | $p \pm (p_s - 1)$ | $[x, x+s] \times [y, y+s]$ | `0.0` | `1.0` |
+| `3` | **Kamikaze Explosion** (`personality == -1`) | Centered at death pos, grows to $30\text{px}$ then shrinks (`life = 60` frames) | $p \pm (p_s - 1)$ | $[x, x+s] \times [y, y+s]$ | `0.0` | `1.0` |
+| `4` | **Powerup: Explode** (`personality == 2`) | Center $(x, y)$, fixed $\pm 4$ box (trail colors `{8,9,10}`) | $p \pm p_s$ | $[x-4, x+4] \times [y-4, y+4]$ | `1.0` | `0.0` |
+| `5` | **Powerup: Freeze** (`personality == 3`) | Center $(x, y)$, fixed $\pm 4$ box (trail `{1,13,7}`); sets `freeze_rate = 0.4` for $420$ frames | $p \pm p_s$ | $[x-4, x+4] \times [y-4, y+4]$ | `1.0` | `0.0` |
+| `6` | **Powerup: Shrink** (`personality == 4`) | Center $(x, y)$, fixed $\pm 4$ box (trail `{7}`); sets player `size = 2` for $\sim 600$ frames | $p \pm p_s$ | $[x-4, x+4] \times [y-4, y+4]$ | `1.0` | `0.0` |
+| `7` | **Static Pattern Rect** (`pattern_type == 0`) | Top-left $(x, y)$, $(w, h)$ up to $127\text{px}$; charges `sh` $0 \to 2$ at $0.02 \cdot \text{freeze\_rate}$/frame ($\sim 100$ frames), holds $510$ frames | $p \pm (p_s - 2)$ | $[x, x+w-1] \times [y, y+h-1]$ | `0.0` | `1.0` if `sh >= 2.0` else `0.0` |
+| `8` | **Moving Pattern Rect** (`pattern_type == 1`) | Top-left $(x, y)$, $(w, h)$; starts off-screen, moves at $0.7\text{px/frame}$ or smooth exponential (`pattern 17`) | $p \pm (p_s - 2)$ | $[x, x+w-1] \times [y, y+h-1]$ | `0.0` | `1.0` |
+
+### 3.2 Privileged (But Non-Clairvoyant) Token Features
+**Strict Non-Clairvoyance Rule:** Do **not** include `pattern_timer`, `pattern_delay_frames`, `enemy_timer`, `fyou` internal counter, or `rng` state. Everything exposed to the Teacher must be visually observable or inferable from short frame history.
+
+#### Token 0: Global & Player Token (`GLOBAL_FEAT_DIM = 14`)
+
+1. `px_norm`, `py_norm`: $(p_x - 64.0) / 64.0$, $(p_y - 64.0) / 64.0$
+2. `pvx_norm`, `pvy_norm`: $v_x / 2.5$, $v_y / 2.5$
+3. `psize_norm`: $p_s / 4.0$ (`1.0` normal, `0.5` shrunk)
+4. `freeze_rate`: `0.4` when frozen, `1.0` normal
+5. `game_speed_norm`: `game.speed / 3.0` (visually observable via score / enemy speed)
+6. `enemy_est_norm`: `enemy_est / 2.0` (difficulty spawn interval, tied deterministically to score)
+7. `score_norm`: $\tanh(\text{score} / 50.0)$ (score is drawn in top-left 8 rows)
+8. `pattern_active_flag`: `1.0` if an active pattern is visibly charging/moving, else `0.0`
+9. `dist_left`, `dist_right`, `dist_top`, `dist_bottom`: Distance to the $[2, 125]$ player clamp walls divided by $123.0$.
+
+#### Tokens $1 \dots (M_{\text{enemies}} + M_{\text{rects}})$: Entity Tokens (`ENTITY_FEAT_DIM = 16` + `type_id: u8`)
+Separate buffers with explicit caps: `MAX_ENEMIES = 64` (verify in Milestone 0; if active count $> 64$, sort by `slab_tto` ascending, keep the 64 closest-in-time, and increment `overflow_counter`) and `MAX_RECTS = 16`.
+For each active entity (enemy/explosion/powerup or pattern rect):
+
+1. `cx_norm`, `cy_norm`: Box center squashed via $(c - 64.0) / 128.0$ (handles off-screen coordinates in $[-64, 192]$ cleanly without clipping).
+2. `hx_norm`, `hy_norm`: Box half-extents $(w/2) / 64.0$, $(h/2) / 64.0$.
+3. `rel_cx_norm`, `rel_cy_norm`: $(c_x - p_x) / 128.0$, $(c_y - p_y) / 128.0$.
+4. `dx_frame`, `dy_frame`: True per-frame displacement divided by $4.0$:
+  - **For enemies (`type_id` 1, 2):** Use the exact analytic formula $dx = v_x \cdot \text{game.speed} \cdot \text{freeze\_rate} \cdot \text{enemy.speed}$ (do **not** difference across frames because `Vec` swap/remove shifts indices).
+  - **For pattern rects (`type_id` 7, 8):** Difference box center across consecutive frames (rect indices are stable within an active pattern) or compute directly from the active `Move` target.
+5. `dw_frame`, `dh_frame`: Per-frame half-extent growth rate (captures growing `EnemyState` $1 \to \text{max\_size}$, growing/shrinking kamikaze explosions, and Pattern 17 smooth rect resizing).
+6. `minkowski_gap_x`, `minkowski_gap_y`: Signed per-axis clearance between the player's type-specific hitbox $[p_{x,\min}, p_{x,\max}]$ and the entity box $[e_{x,\min}, e_{x,\max}]$ divided by $64.0$ (negative values mean currently overlapping on that axis).
+7. `slab_tto_norm`: **2D Slab Time-To-Overlap** on the Minkowski-expanded box under constant relative per-frame velocity $(dx - p_{vx}, dy - p_{vy})$, clamped to $[0, 120]$ frames and divided by $120.0$.
+  - Let $[t_{x,\text{enter}}, t_{x,\text{exit}}]$ and $[t_{y,\text{enter}}, t_{y,\text{exit}}]$ be the ray-slab intersection intervals along $X$ and $Y$.
+  - Let $t_{\text{enter}} = \max(0.0, t_{x,\text{enter}}, t_{y,\text{enter}})$ and $t_{\text{exit}} = \min(t_{x,\text{exit}}, t_{y,\text{exit}})$.
+  - If $t_{\text{enter}} \le t_{\text{exit}}$, then $\text{slab\_tto} = \min(120.0, t_{\text{enter}})$; else $120.0$.
+8. `frames_until_lethal_norm`:
+  - For static rects (`type_id == 7`) with $\text{sh} < 2.0$: $\min\left(120.0, \frac{2.0 - \text{sh}}{0.02 \cdot \text{freeze\_rate}}\right) / 120.0$.
+  - For all currently lethal entities: `0.0`. For powerups: `1.0`.
+9. `beneficial_flag`: `1.0` for powerups (`type_id` 4, 5, 6), `0.0` otherwise.
+10. `lethal_now_flag`: `1.0` if touching this entity on this frame kills the player, `0.0` otherwise.
+
+## 4. Engine Instrumentation & PyO3 Binding (`crates/dodge-core` & `crates/dodge-rl-env`)
+
+### 4.1 Required Additions to `crates/dodge-core`
+All changes in `dodge-core` must compile cleanly under `unsafe_code = "forbid"`, `unwrap_used = "deny"`, `expect_used = "deny"`, `panic = "deny"`, `indexing_slicing = "deny"`, and `-Dwarnings`.
+
+1. **Move/Expose `PICO8_PALETTE` in `dodge-core`** (or copy the 16-entry RGB constant into `dodge-rl-env`) so `dodge-viewer` is never linked.
+2. **Add `advance_frame_headless(&mut self, mask: u8) -> HeadlessResult`:**
+  - Runs `update_active_pattern`, `update_player`, enemy/powerup updates, `update_fyou`, `update_camera`, and **must call `apply_draw_side_effects`** so trail particle RNG consumption remains bit-identical to `advance_frame`.
+  - Skips `render_current_frame`, `Snapshot::from_game` (`FullState` clones), and `FrameResult` heap allocations.
+  - Returns lightweight `HeadlessResult { reward: f32, score_delta: f32, score: f32, dead: bool, mode: Mode }`.
+3. **Add `render_into(&mut self, out_buf: &mut [u8; 16384])`:**
+  - Renders the post-remap $128 \times 128$ palette-indexed screen (`0..15`) on demand directly into a caller-supplied buffer.
+  - **Boundary Rule:** Extract privileged features and call `render_into` at the exact same post-`apply_draw_side_effects` frame boundary.
+4. **Add `PrivilegedView<'a>` Borrowed Accessor (`pub fn privileged_view(&'a self) -> PrivilegedView<'a>`):**
+  - Exposes zero-copy borrowed references to player coordinates/velocity/size, `freeze_rate`, `speed`, `enemy_est`, `score`, `enemies: &[EnemyState]`, and active pattern rects (`pattern_type`, `sh`, rect slices) without calling `snapshot()`.
+
+### 4.2 Vectorized Environment Crate (`crates/dodge-rl-env`)
+Create a new crate `crates/dodge-rl-env` with its own `[lints]` section in `Cargo.toml` (`unsafe_code = "allow"` for PyO3 macro compatibility; keep `clippy::all = "warn"`).
+
+- **Episode Initialization & Reset Contract:**
+  - Maintain a per-worker master PRNG in `VecDodgeEnv`. On episode reset for env $i$, sample a fresh `u64` seed, construct `NativeGame::new(NativeConfig { seed, difficulty, patterns_enabled, powerups_enabled, .. })` (pinning the default theme `12/1`), and immediately step through the start sequence (`X` button press followed by neutral frames until `mode == Mode::Game`) before returning the initial observation.
+  - Never call `game.reset()` or use in-game retry.
+  - On `dead == true`, terminate the episode immediately and do **not** emit the Game Over screen into the Student's frame stack.
+- **Action Repeat & Reward Aggregation:**
+  - Step each environment for $K$ frames (default $K=4$) using `advance_frame_headless(action_mask)` (breaking early if `dead == true`).
+  - Accumulate across the $k = 1 \dots K'$ frames actually stepped:$R_{\text{step}} = \sum_{k=1}^{K'} \left( \Delta\text{score}_k + c_{\text{surv}} \right) - 5.0 \cdot \mathbb{I}[\text{dead}]$where $c_{\text{surv}} = 0.01$ per alive frame ($\implies +0.04$ per 4-frame decision step), while a single enemy collision kill gives $+0.50$ and a powerup gives $+1.00$.
+- **Student Frame Stack Spacing:**
+  - When `render_pixels = true`, render 1 frame at the end of each $K$-frame decision step and push it into a 4-slot ring buffer per environment (`[B, 4, 128, 128]` `uint8` values in `0..15`). Thus, the 4 frames are spaced by $K$ raw frames ($4K = 16$ frames total span).
+  - On episode start, fill all 4 slots with the initial `Mode::Game` frame.
+- **Rayon Chunking & GIL Release:**
+  - Wrap `step()` in `py.allow_threads(|| ...)`.
+  - Because a single headless step takes only a few microseconds, use `envs.par_chunks_mut(chunk_size)` (e.g., `chunk_size = 8` or `16` envs per task) and run the entire $K$-frame loop + featurization inside the chunk to avoid Rayon fork/join overhead.
+- **Snapshot Death-Recovery Buffer (Bonus Curriculum Accelerator):**
+  - Maintain a small ring buffer of `Snapshot`s every 60 frames per env. Allow Python to sample a saved `Snapshot` from 60–120 frames before a death via `NativeGame::restore` to practice hard pattern survival scenarios.
+
+## 5. Neural Architectures & Training Pipeline (`python/dodge_rl/`)
+
+### 5.1 Stage 1: `OmniscientEntityTeacher` (`models/teacher.py`)
+
+- **Inputs:**
+  - `global_feats`: `[B, 1, 14]`
+  - `entity_feats`: `[B, M, 16]` where $M = \text{MAX\_ENEMIES} + \text{MAX\_RECTS} = 64 + 16 = 80$
+  - `entity_types`: `[B, M]` (`int64` in `1..8`)
+  - `entity_mask`: `[B, M]` (`bool`, `True` = valid entity, `False` = padding)
+- **Token Embedding (`d_model = 128`):**
+  - Token `0`: `Linear(14, 128) + TypeEmbedding(0)`
+  - Tokens `1..M`: `MLP(16 -> 128 -> 128) + TypeEmbedding(entity_types)`
+- **Custom Pre-Norm Transformer Encoder (`2` Layers, `4` Heads):**
+  - **Important:** Do **not** use stock `nn.TransformerEncoderLayer` (which calls `MultiheadAttention` with `need_weights=False` and triggers fused SDPA kernels that return `None` for attention weights).
+  - Implement `CustomTransformerLayer` that explicitly calls `self.mha(x, x, x, key_padding_mask=pad_mask, need_weights=True, average_attn_weights=True)` so attention weights are always extractable for visualization and Stage 2 ablations.
+  - Token `0` (`Global/Player`) is never masked in `pad_mask`, preventing `NaN`s when 0 entities are on screen.
+- **Outputs:**
+  - Slice Token `0`: $z_{\text{teacher}} \in \mathbb{R}^{B \times 128}$.
+  - `actor_head`: `Linear(128, 128) -> GELU -> Linear(128, 9)`
+  - `critic_head`: `Linear(128, 128) -> GELU -> Linear(128, 1)`
+
+### 5.2 Stage 2: `VisualViTStudent` (`models/student.py`)
+
+- **Categorical Palette Input Embedding:**
+  - Input tensor: `frames_idx` of shape `[B, 4, 128, 128]` (`uint8` indices in `0..15`).
+  - Pass through `self.palette_embed = nn.Embedding(16, 8)` $\rightarrow$ `[B, 4, 128, 128, 8]`, permute and reshape to `[B, 32, 128, 128]`. This cleanly separates identical-luminance colors and preserves the trail color signatures (`{8,9,10}` vs `{1,13,7}` vs `{7}`) that distinguish Explode, Freeze, and Shrink powerups.
+- **Conv Patch Stem ($128 \times 128 \to 16 \times 16$ Grid of $8 \times 8$ Patches):**
+  1. `Conv2d(32, 64, kernel_size=4, stride=4) + GroupNorm(8, 64) + GELU` ($128 \to 32$)
+  2. `Conv2d(64, 128, kernel_size=2, stride=2) + GroupNorm(8, 128) + GELU` ($32 \to 16$)
+  - Flatten spatial grid $(16, 16)$ into `256` visual patch tokens of dimension `d_model = 128`: $E_{\text{patches}} \in \mathbb{R}^{B \times 256 \times 128}$.
+- **ViT Backbone:**
+  - Add learnable 2D positional embedding `pos_embed` `(1, 256, 128)` and prepend `[CLS_student]` `(1, 1, 128)` $\rightarrow$ shape `[B, 257, 128]`.
+  - Pass through `3` `CustomTransformerLayer` blocks (`d_model = 128`, `nhead = 4`, `ffn_dim = 256`).
+- **Output Heads:**
+  1. **Actor Head (`9` actions):** Takes $z_{\text{student}} = \text{out}[:, 0, :] \in \mathbb{R}^{B \times 128}$. Initialized from the trained Teacher's `actor_head` weights, but **kept unfrozen** for end-to-end fine-tuning.
+  2. **Dense Spatial Auxiliary Head (`5` channels per patch):** A lightweight linear projection on the 256 patch tokens `Linear(128, 5)` outputting logits of shape `[B, 5, 16, 16]`.
+
+### 5.3 Multi-Channel Box Rasterization Targets (Replacing Point Gaussian Splats)
+Because pattern walls can be $127 \times 32$ pixels wide, point-based Gaussian splats misrepresent their spatial footprint. Instead, in `crates/dodge-rl-env` (or vectorized PyTorch), rasterize the exact entity AABBs onto the $16 \times 16$ patch grid (each cell $(u, v)$ covers $[8u, 8u+8) \times [8v, 8v+8)$ in screen space) to produce binary target masks $Y_{\text{aux}} \in \{0, 1\}^{B \times 5 \times 16 \times 16}$:
+
+- **Channel 0 (`lethal_now`):** `1.0` if any currently lethal AABB (Enemy, Kamikaze, Explosion, Moving Rect, or Static Rect with $\text{sh} == 2$) overlaps patch $(u, v)$.
+- **Channel 1 (`lethal_soon`):** `1.0` if any charging Static Rect ($0 < \text{sh} < 2$) or warning line overlaps patch $(u, v)$.
+- **Channel 2 (`enemy_body`):** `1.0` if any Normal or Kamikaze enemy overlaps patch $(u, v)$ (helps the Student identify enemy-enemy collision opportunities for $+0.5$ score).
+- **Channel 3 (`powerup`):** `1.0` if any Powerup AABB overlaps patch $(u, v)$.
+- **Channel 4 (`player`):** `1.0` if the Player AABB overlaps patch $(u, v)$.
+
+### 5.4 Staged Distillation & Ablation Protocol
+To ensure every loss term pulls its weight:
+
+1. **Stage 2A (Baseline DAgger):** Train Student with pure Action KL loss:$L_{\text{action}} = D_{\text{KL}}\left(\pi_{\text{teacher}}(\cdot \mid s_{\text{priv}}) \;\parallel\; \pi_{\text{student}}(\cdot \mid o_{\text{vis}})\right)$
+2. **Stage 2B (+ Dense Box Rasterization Auxiliary Loss):** Add per-patch binary cross-entropy over the 5 semantic occupancy maps:$L_{\text{total}} = L_{\text{action}} + \lambda_{\text{aux}} \text{BCEWithLogits}( \hat{Y}_{\text{aux}}, Y_{\text{aux}} )$
+3. **Stage 2C (Controlled Ablations):** Test adding:
+  - **Latent Alignment:** $L_{\text{latent}} = \| z_{\text{student}} - \text{sg}(z_{\text{teacher}}) \|_2^2$
+  - **Attention Transfer:** Project Teacher entity attention $\alpha_{\text{teacher}, i}$ across all patches overlapped by Entity $i$'s AABB (normalized to sum to 1) and minimize $D_{\text{KL}}(M_{\text{box\_attn}} \parallel \alpha_{\text{student}})$.
+  - *Gate:* Only retain $L_{\text{latent}}$ or $L_{\text{attn}}$ in the final config if they measurably improve pure-visual score or survival over Stage 2B.
+4. **Stage 2.5 (Asymmetric PPO Fine-Tuning):** If a distillation gap remains, run on-policy PPO where the Visual Student is the Actor $\pi_\theta(a \mid o_{\text{vis}})$ and the frozen/fine-tuned Privileged Teacher Critic $V_\phi(s_{\text{priv}})$ supplies low-variance GAE advantages.
+
+## 6. Revised 7-Milestone Execution Plan
+
+### Milestone 0: Environment Setup, Baselines & Engine Profiling
+
+1. Update `devenv.nix` (or configure a `uv` virtual environment inside the `devenv` shell with `LD_LIBRARY_PATH` / CUDA wheel support for NixOS) to provide Python 3.11+, `maturin`, `pytest`, `numpy`, and `torch`.
+2. Benchmark the existing `NativeGame::advance_frame` SPS (single-threaded and multi-threaded).
+3. Run 1,000 episodes each of three baseline policies at `difficulty = 2`, `patterns_enabled = true`, `powerups_enabled = true`:
+  - **Random Policy**
+  - **Stand-Still Policy**
+  - **Scripted Heuristic Dodger** (moves away from nearest lethal AABB, moves toward powerups when safe)
+4. Record mean/median/p90 **Game Score**, **Survival Frames (at 60 Hz)**, **Max Simultaneous Enemies**, and **Max Simultaneous Pattern Rects**. Use these empirical numbers to lock `MAX_ENEMIES` and set the Teacher's target score gate.
+
+### Milestone 1: `dodge-core` Headless Path, Accessors & Parity Tests
+
+1. Implement `advance_frame_headless`, `render_into`, and `PrivilegedView` in `crates/dodge-core`.
+2. Write the **Headless Equivalence Test**: across $100$ seeds $\times 2,000$ random-action frames, assert that `full_state()` after `advance_frame_headless` is bit-for-bit identical to `advance_frame` (ignoring `physical_screen`).
+3. Verify all existing parity tests (`v1xx_*`) pass and `cargo clippy --workspace --all-targets` exits with 0 warnings.
+4. Benchmark `advance_frame_headless` vs `advance_frame` and record the speedup.
+
+### Milestone 2: `crates/dodge-rl-env` Vectorized PyO3 Binding
+
+1. Create `crates/dodge-rl-env` (linking **only** `dodge-core`, with its own `[lints]` table).
+2. Implement `VecDodgeEnv` with per-episode seeded `NativeGame::new`, internal start-sequence fast-forwarding (`X` press + neutral until `Mode::Game`), action repeat $K=4$ with summed $\Delta\text{score}$ and survival rewards, AABB Minkowski/slab featurization, 5-channel $16 \times 16$ box rasterization targets, and optional 4-frame $K$-spaced pixel stacks.
+3. Write Python tests verifying shapes, non-clairvoyance, off-screen coordinate handling (no $[0, 128]$ assertions), and zero memory leaks over 100k steps.
+4. Benchmark multi-threaded Rayon chunked throughput (headless SPS and rendered SPS).
+
+### Milestone 3: Stage 1 — Privileged Entity-Transformer Teacher (PPO)
+
+1. Implement `OmniscientEntityTeacher` with `CustomTransformerLayer` in `python/dodge_rl/models/teacher.py`.
+2. Train via PPO (`gamma = 0.995` at $K=4$) using the built-in curriculum:
+  - **Phase A:** `difficulty = 1, patterns = false, powerups = true` (learn movement, enemy-collision baiting, and powerup collection).
+  - **Phase B:** `difficulty = 2, patterns = true, powerups = true` (learn static rect `frames_until_lethal` and moving walls).
+  - **Phase C:** `difficulty = 3, patterns = true, powerups = true` (full chaos + optional `Snapshot::restore` hard-state replays).
+3. **Gate:** Teacher must beat the Milestone 0 Scripted Heuristic Dodger's mean **Score** and **Survival Time** by a clear margin (e.g., $\ge 2\times$ mean score) at Difficulty 2 and 3.
+
+### Milestone 4: Stage 2A & 2B — Visual Student (DAgger + Box Rasterization)
+
+1. Implement `VisualViTStudent` (with `nn.Embedding(16, 8)` palette embedding and $K$-spaced 4-frame Conv stem) in `python/dodge_rl/models/student.py`.
+2. Train Stage 2A (Action-KL DAgger with $\beta$ annealed $1.0 \to 0.0$) and evaluate pure-visual score and survival.
+3. Train Stage 2B (Action-KL + 5-channel $16 \times 16$ Box Rasterization BCE head) and measure the improvement in pure-visual score and survival.
+
+### Milestone 5: Stage 2C & 2.5 — Ablations & Asymmetric PPO Fine-Tuning
+
+1. Run controlled ablations adding $L_{\text{latent}}$ (MSE on `[CLS]`) and $L_{\text{attn}}$ (AABB-projected Teacher attention KL). Retain only terms that improve pure-visual evaluation score.
+2. If the Student trails the Teacher by $>10\%$ in mean score, run Stage 2.5 Asymmetric PPO (Visual Student Actor + Privileged Teacher Critic) to close the gap.
+
+### Milestone 6: Visual Evaluation & Diagnostics (`eval_visual.py`)
+
+1. Build `python/dodge_rl/eval_visual.py` to output quantitative metrics (mean/median/max Score and Survival Seconds across difficulties) and render a 60 FPS diagnostic video showing:
+  - **Panel 1:** Live $128 \times 128$ PICO-8 game frame (mapped via `PICO8_PALETTE`).
+  - **Panel 2:** The Student's predicted $16 \times 16$ semantic occupancy probabilities (`lethal_now`, `lethal_soon`, `powerup`).
+  - **Panel 3:** The Student ViT's `[CLS]` spatial attention heatmap over the $16 \times 16$ grid.
+--- R4/long_d2.py
++++ guard-r1/long_d2.py
+@@ -29,10 +29,10 @@
+ import processes as owned
+ 
+ ORIGINAL_ROOT = Path('/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79')
+-PREPARE_REL = 'learning/runs/v2/postovernight-long-D2-prepare-r4'
++PREPARE_REL = 'learning/runs/v2/postovernight-long-D2-guard-prepare-r1'
+ ROOT = Path(__file__).resolve().parents[4]
+-PROTOCOL_REL = 'learning/runs/v2-orchestration/postovernight-long-D2-r1-protocol-r4.json'
+-PROTOCOL_SHA256 = '66cc36ef1db959bfe4188a3e2d201f8911b3ffc64baeb1d8347be6fd376ab501'
++PROTOCOL_REL = 'learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r1.json'
++PROTOCOL_SHA256 = 'b5329fdf58d984c9e38d36119973e5852601b204265a2422e6e476b0952052da'
+ CONFIG_SHA256 = '2ac814d3842228017d09669364a8391344722da56ad19f41ad9030dbb930c2db'
+ STATE_PATH = ORIGINAL_ROOT / 'learning/runs/v2-orchestration/state.json'
+ LIMIT = 6442450944
+@@ -60,16 +60,23 @@
+ 
+ 
+ HASH_OBSERVER = None
++VERIFY_LOCAL = threading.local()
+ 
+ 
+ def sha(path):
+     digest = hashlib.sha256()
++    bytes_hashed = 0
+     if HASH_OBSERVER is not None:HASH_OBSERVER()
+     with Path(path).open('rb') as stream:
+         for block in iter(lambda: stream.read(1024 * 1024), b''):
+             if HASH_OBSERVER is not None:HASH_OBSERVER()
+             digest.update(block)
++            bytes_hashed += len(block)
+     if HASH_OBSERVER is not None:HASH_OBSERVER()
++    stats = getattr(VERIFY_LOCAL, "stats", None)
++    if stats is not None:
++        stats["files"] += 1
++        stats["bytes"] += bytes_hashed
+     return digest.hexdigest()
+ 
+ 
+@@ -437,6 +444,8 @@
+                  rss=lambda: sampled_rss(os.getpid()), peak=self_peak, mps=lambda: 0):
+         self.deadline, self.lease_check, self.verify, self.stream = deadline, lease_check, verify, stream
+         self.clock, self.rss, self.peak, self.mps = clock, rss, peak, mps
++        self.timings = []
++        self.active_timing = None
+         self.failure = None
+         self.failure_at = None
+         self.maximum_rss = self.maximum_peak = self.maximum_mps = 0
+@@ -455,22 +464,79 @@
+             self.sample(force=True)
+ 
+     def full_check(self, force=False):
++        trigger = self.clock()
+         with self.verify_lock:
+             self.check()
+             at = self.clock()
+-            if not force and self.last_full is not None and at - self.last_full < 4:
++            if not force and self.last_full is not None and at - self.last_full < 2:
+                 return
+-            gap = 0 if self.last_full is None else at - self.last_full
+-            require(gap <= 5, 'Full input verification gap exceeded 5s')
+-            self.verify()
+-            end = self.clock()
+-            # Use consecutive verification starts and include this check's IO.
+-            # This conservatively bounds every pinned byte's revisit interval.
+-            gap = max(gap, end-at if self.last_full is None else end-self.last_full)
+-            self.maximum_full_gap = max(self.maximum_full_gap, gap)
+-            require(gap <= 5, 'Full input verification gap exceeded 5s')
+-            self.last_full = at
+-            self.check()
++            previous = self.last_full
++            due = trigger if previous is None or force else previous + 2
++            row = dict(schema='long_d2_verification_timing_v1', sequence=len(self.timings),
++                       trigger_monotonic=trigger, start_monotonic=at, end_monotonic=None,
++                       forced=bool(force), thread=threading.current_thread().name,
++                       background=threading.current_thread() is self.verify_thread,
++                       previous_successful_start_monotonic=previous,
++                       trigger_delay_seconds=max(0.0, trigger-due),
++                       verify_lock_wait_seconds=at-trigger, components={}, files=0, bytes=0,
++                       status='interrupted',
++                       hash_count_scope='completed controller sha calls; legacy internal file_hash excluded')
++            require(len(self.timings) < 50000, 'Verification telemetry capacity exceeded')
++            self.timings.append(row)
++            self.active_timing = row
++            cpu = time.thread_time()
++            VERIFY_LOCAL.stats = row
++            try:
++                gap = 0 if previous is None else at - previous
++                require(gap <= 5, 'Full input verification gap exceeded 5s')
++                self.verify()
++                end = self.clock()
++                # Use consecutive verification starts and include this check's IO.
++                # This conservatively bounds every pinned byte's revisit interval.
++                gap = max(gap, end-at if previous is None else end-previous)
++                self.maximum_full_gap = max(self.maximum_full_gap, gap)
++                require(gap <= 5, 'Full input verification gap exceeded 5s')
++                self.last_full = at
++                self.check()
++                row['status'] = 'passed'
++            except BaseException as error:
++                row.update(status='failed', error=repr(error))
++                raise
++            finally:
++                end = self.clock()
++                row.update(end_monotonic=end, duration_seconds=end-at,
++                           thread_cpu_seconds=time.thread_time()-cpu,
++                           full_gap_seconds=end-at if previous is None else end-previous)
++                VERIFY_LOCAL.stats = None
++                self.active_timing = None
++
++    def persist_timing(self, path, deadline, permission=lambda: None):
++        """Main-thread IO only, after owned verifier teardown. No telemetry thread.
++
++        Rows stay in bounded memory during verification; IO never takes either
++        resource lock or runs on the independent resource monitor. A killed
++        process can lose unflushed rows; partial/failure receipts retain what is
++        safely available. The process lifetime deadline still owns every write.
++        """
++        require(all(t is None or not t.is_alive() for t in (self.thread,self.verify_thread)),
++                'Timing persistence requires owned Guard thread absence')
++        permission(); life.remaining(deadline)
++        path = Path(path)
++        path.parent.mkdir(parents=False, exist_ok=True)
++        permission(); life.remaining(deadline)
++        with path.open('x') as stream:
++            for row in self.timings:
++                permission(); life.remaining(deadline)
++                emit(stream, row)
++                life.remaining(deadline); permission()
++        life.remaining(deadline); permission()
++        manifest = dict(schema='long_d2_verification_output_v1', path=str(path),
++                        sha256=sha(path), rows=len(self.timings), owned_threads_absent=True,
++                        complete=all(r.get('end_monotonic') is not None for r in self.timings))
++        permission(); life.remaining(deadline)
++        save(path.with_suffix('.manifest.json'), manifest)
++        life.remaining(deadline); permission()
++        return manifest
+ 
+     def sample(self, force=False, *, full=True):
+         with self.lock:
+@@ -507,7 +573,7 @@
+                         require(self.clock()-self.last_full <= 5, 'Full input verification gap exceeded 5s')
+                 except BaseException as error:
+                     self.failure_at = self.failure_at or self.clock()
+-                    self.failure = error if isinstance(error, Stop) else Stop(repr(error))
++                    self.failure = self.failure or (error if isinstance(error, Stop) else Stop(repr(error)))
+                     return
+         self.thread = threading.Thread(target=monitor, daemon=True, name='long-D2-guard')
+         life.start_thread(self.thread)
+@@ -518,7 +584,7 @@
+                     self.full_check()
+                 except BaseException as error:
+                     self.failure_at = self.failure_at or self.clock()
+-                    self.failure = error if isinstance(error, Stop) else Stop(repr(error))
++                    self.failure = self.failure or (error if isinstance(error, Stop) else Stop(repr(error)))
+                     return
+         self.verify_thread = threading.Thread(target=verify_monitor, daemon=True, name='long-D2-inputs')
+         life.start_thread(self.verify_thread)
+@@ -537,7 +603,9 @@
+                     maximum_sample_gap_seconds=self.maximum_sample_gap,
+                     maximum_full_input_gap_seconds=self.maximum_full_gap,
+                     last_sample_monotonic=self.last_sample, last_full_verification_monotonic=self.last_full,
+-                    latched_failure=None if self.failure is None else repr(self.failure))
++                    latched_failure=None if self.failure is None else repr(self.failure),
++                    verification_pass_count=len(self.timings),
++                    interrupted_verification=self.active_timing)
+ 
+ 
+ 
+@@ -774,9 +842,47 @@
+         record('cadence_evaluation',gate_passed=passed)
+ 
+ 
++@contextmanager
++def verification_component(name):
++    row = getattr(VERIFY_LOCAL, 'stats', None)
++    start, cpu = time.monotonic(), time.thread_time()
++    before = None if row is None else (row['files'], row['bytes'])
++    status = 'failed'
++    try:
++        yield
++        status = 'passed'
++    finally:
++        if row is not None:
++            row['components'][name] = dict(duration_seconds=time.monotonic()-start,
++                                          thread_cpu_seconds=time.thread_time()-cpu, status=status,
++                                          observed_hash_files=row['files']-before[0],
++                                          observed_hash_bytes=row['bytes']-before[1])
++
++
++def primary_error(error, guard):
++    # A monitor failure can precede delivery to the main thread. Preserve it
++    # only when it predates the first recorded signal; user cancellation first
++    # remains cancellation. This is ordering evidence, not inferred user intent.
++    first_signal = None if life.ACTIVE is None else life.ACTIVE.first_at
++    if (guard is not None and guard.failure is not None and guard.failure_at is not None
++            and (first_signal is None or guard.failure_at <= first_signal)):
++        return guard.failure
++    return error
++
++
++def record_primary_failure(result, error):
++    """First failure owns outcome/error. Later cleanup signals are evidence only."""
++    if 'primary_failure' not in result:
++        primary = dict(outcome=failure_outcome(error), error=repr(error))
++        result.update(outcome_fields(primary['outcome']), error=primary['error'], primary_failure=primary)
++    else:
++        result.setdefault('secondary_failures', []).append(
++            dict(outcome=failure_outcome(error), error=repr(error)))
++
++
+ def worker_failure(error, args, guard, learner, result, permission):
+     """Memory-first failure latch; a failed ACK permanently forbids new writes."""
+-    result.update(outcome_fields(failure_outcome(error)), error=repr(error))
++    record_primary_failure(result, primary_error(error, guard))
+     permission['failed'] = True
+     permission['acknowledged_until'] = None
+     now = time.monotonic()
+@@ -842,12 +948,17 @@
+         require(os.getppid()==args.supervisor_pid,'Supervisor disappeared')
+         assert_lease(args.state_path,lease)
+     def verify():
+-        verify_files(pins)
+-        assert_readonly_capsule(ROOT,read_json(ROOT/'capsule-manifest.json'))
+-        if imported:
+-            imported['identity'].check_frozen(ORIGINAL_ROOT/p['base_identity_path'],
+-                 p['base_identity_sha256'],base,ORIGINAL_ROOT)
+-            check_module_origins(identity,ROOT)
++        with verification_component('full_pins'):
++            verify_files(pins)
++        with verification_component('capsule_walks'):
++            assert_readonly_capsule(ROOT,read_json(ROOT/'capsule-manifest.json'))
++        with verification_component('legacy_frozen_rebuild'):
++            if imported:
++                imported['identity'].check_frozen(ORIGINAL_ROOT/p['base_identity_path'],
++                     p['base_identity_sha256'],base,ORIGINAL_ROOT)
++        with verification_component('origins'):
++            if imported:
++                check_module_origins(identity,ROOT)
+     with cancellation_signals() as cancel:
+         try:
+             resources=streams.enter_context((args.output/'worker-resources.jsonl').open('x'))
+@@ -903,7 +1014,7 @@
+             guard.check(force=True)
+         except BaseException as error:
+             worker_failure(error, args, guard, learner, result, permission)
+-            result.update(outcome_fields(failure_outcome(error)),error=repr(error),traceback=traceback.format_exc())
++            result['traceback'] = traceback.format_exc()
+         finally:
+             cancel()  # Every later signal is still latched.
+             if learner is not None and learner.model is not None and result_code(result)==1:
+@@ -926,18 +1037,19 @@
+                 require(time.monotonic()<life.POOL.deadline(args.started+WORKER_SECONDS),'Worker finalization crossed absolute deadline','wall_guard')
+             except BaseException as error:
+                 worker_failure(error, args, guard, learner, result, permission)
+-                result.update(outcome_fields(failure_outcome(error)),final_verification_error=repr(error))
++                result['final_verification_error'] = repr(error)
+             try:
+                 streams.close()
+             except BaseException as error:
+                 worker_failure(error, args, guard, learner, result, permission)
+-                result.update(outcome_fields('publication_failure'),stream_close_error=repr(error))
++                result['stream_close_error'] = repr(error)
+             if guard:
+                 result['worker_resources']=guard.receipt()
+     if cancel.cancellation_requests:
+         worker_failure(Stop('Cancellation latched','cancelled'),args,guard,learner,result,permission)
+-        result.update(outcome_fields('cancelled'),cancellation_requests=cancel.cancellation_requests,
+-                      cancellation_signal=signal.Signals(cancel.requested_signal).name)
++        result.update(cancellation_requests=cancel.cancellation_requests,
++                      cancellation_signal=signal.Signals(cancel.requested_signal).name,
++                      cancellation_secondary=result['outcome'] != 'cancelled')
+     result.update(run_id=p['run_id'],protocol_sha256=PROTOCOL_SHA256,
+                   config_document_sha256=CONFIG_SHA256,identity_document_sha256=lease['identity_sha256'],
+                   checkpoint_identity_semantic_sha256=semantic_hash(identity),
+@@ -946,12 +1058,17 @@
+                   worker_wall_seconds_lower_bound=time.monotonic()-args.started,
+                   worker_result_write_and_process_exit_not_timed=True)
+     if time.monotonic()>=life.POOL.deadline(args.started+WORKER_SECONDS):
+-        result.update(outcome_fields('wall_guard'),deadline_expired=True)
++        record_primary_failure(result, Stop('Worker deadline expired','wall_guard'))
++        result['deadline_expired'] = True
+     if result_code(result)==1 and not permission['failed']:
+         worker_failure(Stop(result['outcome']),args,guard,learner,result,permission)
+     if permission.get('ack_failed'):
+         return 1
+     try:
++        if guard is not None:
++            guard.persist_timing(args.output/'worker-verification.jsonl',
++                life.POOL.deadline(args.started+WORKER_SECONDS),
++                lambda: worker_write_permission(args,result,permission,learner))
+         if learner is not None:
+             worker_write_permission(args,result,permission,learner)
+             save(args.output/'checkpoint-index.json',learner.checkpoints)
+@@ -1058,10 +1175,13 @@
+         def lease_check():
+             assert_lease(args.state_path,lease)
+         def verify():
+-            verify_files(pins)
+-            assert_readonly_capsule(ROOT,read_json(ROOT/'capsule-manifest.json'))
+-            if 'legacy_module_origins' in identity:
+-                check_module_origins(identity,ROOT)
++            with verification_component('full_pins'):
++                verify_files(pins)
++            with verification_component('capsule_walks'):
++                assert_readonly_capsule(ROOT,read_json(ROOT/'capsule-manifest.json'))
++            with verification_component('origins'):
++                if 'legacy_module_origins' in identity:
++                    check_module_origins(identity,ROOT)
+         guard=guard_factory(deadline,lease_check,verify,stream)
+         guard.start()
+         def authority(force=False):
+@@ -1144,6 +1264,8 @@
+         global HASH_OBSERVER
+         HASH_OBSERVER=final_hash_observer
+         authority(True)
++        guard.persist_timing(ORIGINAL_ROOT/Path(p['terminal_lifecycle']['acceptance_receipt']).parent/'inner-verification.jsonl',
++                             deadline,lambda: authority(False))
+         return code,guard
+     except BaseException as error:
+         # No ordinary verification or artifact hash after first failure.
+@@ -1170,6 +1292,7 @@
+             gate.close()
+             life.remaining(until)
+             if args.output.is_dir():
++                guard.persist_timing(ORIGINAL_ROOT/Path(p['terminal_lifecycle']['acceptance_receipt']).parent/'inner-verification.jsonl',until)
+                 replace_json(args.output/'inner-failure.json',result)
+             life.remaining(until)
+             life.CHANNEL.sock.close()
+--- R4/long_d2_executor.py
++++ guard-r1/long_d2_executor.py
+@@ -82,6 +82,7 @@
+     c.require(actual==set(manifest)|{'artifact-manifest.json','finalization-result.json'}, 'Output inventory differs')
+     fixed={'long-worker-result.json','long-run-result.json','worker.stdout.log','worker.stderr.log',
+            'supervisor-guard.jsonl','worker-resources.jsonl','training-episodes.jsonl','training-metrics.jsonl',
++           'worker-verification.jsonl','worker-verification.manifest.json',
+            'entry-restoration.json','entry-control.json','parent-lineage.json','actual-import-origins.json',
+            'long-config.json','long-identity.json','checkpoint-index.json','schedule.jsonl'}
+     c.require(fixed<=set(manifest), 'Required output evidence missing')
+@@ -344,9 +345,11 @@
+             c.assert_lease(self.registration['state_path'],lease)
+             c.require(not receipt_path.exists() and not Path(self.registration['output']).exists(), 'Single-use output/receipt already exists')
+             def verify():
+-                c.verify_files(pins)
+-                c.verify_files(self.registration['pins'])
+-                c.assert_readonly_capsule(c.ROOT,c.read_json(c.ROOT/'capsule-manifest.json'))
++                with c.verification_component('full_pins'):
++                    c.verify_files(pins)
++                    c.verify_files(self.registration['pins'])
++                with c.verification_component('capsule_walks'):
++                    c.assert_readonly_capsule(c.ROOT,c.read_json(c.ROOT/'capsule-manifest.json'))
+             self.guard=self.guard_factory(self.t0+NORMAL_SECONDS,
+                 lambda:c.assert_lease(self.registration['state_path'],lease),verify,None)
+             self.guard.start()
+@@ -420,6 +423,8 @@
+                 if time.monotonic()-self.guard.last_sample>=.15:self.guard.sample(full=False)
+             c.HASH_OBSERVER=final_hash_observer
+             self.authority(True)  # Includes watchdog and endpoint close.
++            self.guard.persist_timing(receipt_path.parent/'outer-verification.jsonl',
++                                      self.t0+NORMAL_SECONDS,lambda: self.authority(False))
+             self.closed=True
+         except BaseException as error:
+             self.fail(error,self.guard.failure_at if self.guard is not None else None)
+@@ -449,6 +454,8 @@
+                     teacher_qualified=False,training_parent_eligible=False,limitations=LIMITATIONS)
+                 life.remaining(self.pool.until)
+                 receipt_path.parent.mkdir(parents=False,exist_ok=True)
++                if self.guard is not None:
++                    self.guard.persist_timing(receipt_path.parent/'outer-verification.jsonl',self.pool.until)
+                 c.replace_json(receipt_path,result)
+                 life.remaining(self.pool.until)
+                 self.stop.set()
+{
+  "added_controller_blocks": [
+    "primary_error",
+    "record_primary_failure",
+    "verification_component"
+  ],
+  "allowed_registration_constants": [
+    "PREPARE_REL",
+    "PROTOCOL_REL",
+    "PROTOCOL_SHA256"
+  ],
+  "changed_controller_blocks": [
+    "Guard",
+    "sha",
+    "supervise_owned",
+    "worker",
+    "worker_failure"
+  ],
+  "changed_executor_blocks": [
+    "Execution",
+    "validate_artifacts"
+  ],
+  "config_r1_r2_byte_equal": true,
+  "helper_byte_equal": {
+    "lifecycle.py": true,
+    "processes.py": true
+  },
+  "legacy75_pins": {
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/.cargo/config.toml": "6ccc6fe87a01199a87210f687271e21b5b57984f92e58d01cc0649aedc23a23c",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/Cargo.lock": "71f583c7fd42558fa9c87e26cf010f40fff131aedf70a0405be21dcb09aa7219",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/Cargo.toml": "7f837074b9d42f0531b2dd9268a0854a3fa2a98ffbafe8bba31789557feb154f",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/assets/dodge.p8": "7453a9658fd32577385ad72672a54ad84ff70567fadbde75ba6634aa5cc684a3",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-core/Cargo.toml": "93ec079346a6c846cb8816989c56fc4ebd1a240fc083cbc7ac85609aae326d9b",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-core/build.rs": "d430c56f6d13bbbbbb01c336587dd85570529133624fb00f2bd2f03096e347ce",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-core/examples/headless_profile.rs": "a53ffd29b1541b40893b6c0f5b51978291771b6bf5c2eae975c8b1dd0b833e7d",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-core/src/action.rs": "3bc9e8f4f73380c7176e1584630c036fcffe58173185e2285c530e25cc072e94",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-core/src/config.rs": "70a04b58804c15821e0b6536ac6b806405d61ea07c1a7ac0898eec8c225c62bd",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-core/src/enemy_rows.rs": "0535c311ad1f2c5faec77a063d9f3adfd8530ebc333dd2cb996a0e8483d4a30b",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-core/src/error.rs": "f151767dc3297a41878e62033013aadd4c7f0dad15e5753cbea5e41371051d12",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-core/src/fixed.rs": "feb6e551df787bf98da2a054b68b1515385c522728709e1b6f209d851737b557",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-core/src/game.rs": "e781973c0390fde26342ec24113abdbfa3a8e9ef98844d41cf33c1977ecdccbd",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-core/src/headless.rs": "e2cab9d281b81bcf4e50e7e7bcdec6e6172776a75459302348d0f86a2905a600",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-core/src/headless_tests.rs": "1dff4888fbbdd5c634bb33205f29b7943ead2d555bb52ae19a73fd10b2305b7e",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-core/src/input.rs": "d7f16d311cbf9b68a60033bbba6cbe22aba2edf159b4c6d9d624b1ad40410014",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-core/src/lib.rs": "ecd23d6fbafb2da7b1ffe708eade2f0c39374f41b20ee1fecea04515510f0920",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-core/src/lifecycle.rs": "5ea52dc32ab0a28509775119ed39d6669631ee1c27a4670c7413386c7068aed6",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-core/src/observation_tests.rs": "7bda3328cf8c1dfdfee14c5eedd7a4dcfc89562131ec731cb3daf7a7393f0cb1",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-core/src/patterns.rs": "d478af5f7867dbd6b4808f600e8c627b46f88fe3cd8c65a85f1a53c69276d7ac",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-core/src/rng.rs": "6e5bfcf9d241332fcae2357f5dd420829ed8e8d19330803a5062c817a771b050",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-core/src/snapshot.rs": "c63d89617eedc830e1a58abb8f700f55df0720a60b13c54fb7626c4af036c447",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-core/src/state.rs": "51887e9809c53b77b95b38144ea4099a8ea9bcda6ca5ad9d967f74df96e8e566",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-native-runner/Cargo.toml": "9ce7345a30b4eb35edd85896380d2673de28372887da824585cd69ababf3f09b",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-native-runner/src/main.rs": "9802e2ce6982ca75001376fbb632f144411583308e378ba8c2f0b9d96e0292ac",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-rl-env/Cargo.toml": "d344f7dd8b44f5558a694222460aa03f2dc8fc7f0593603f0861c27604031aeb",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-rl-env/src/config.rs": "49d631bed0bd99fc195de102508a84730381d891c5c55be7c9ed81f48f8d7ac6",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-rl-env/src/env.rs": "d4a9182720beb2d8cf77f9ad5b2f859db2aa479ebcd610d691a3f7bf61afd17a",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-rl-env/src/features.rs": "78d72ee29fdcf2c0828e26d0a4265b50809f4c9899183332a4c48fb326dc006c",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-rl-env/src/geometry.rs": "5b04907b9d87b336b685922ac0c7f235174e347e5a5308b1ebb1645c6014c171",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-rl-env/src/lib.rs": "7c4b73d1f37990524dcad2a77038987da9e87540e90ce5023927dffec4d13b1c",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-rl-env/src/python.rs": "3b5f8c388b33721f47050e2a99606ad2f34debbf74ca763b50fb5590f1d428ff",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-rl-env/src/qualification_replay_tests.rs": "c8730ff4f9f77098cd01b5985ad8b7577e0ef5d9be55a57422c192e1c5fbc29d",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-rl-env/src/raster.rs": "a48c80a0a549e76e7e77bdd79ef2aa0b6171669d761770c6b33b3ea0921a6927",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-rl-env/src/seed.rs": "239cb9d88a61fff7d63c3c13c80e4552caafe814729160f8fb2948d3c1498832",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-rl-env/src/seed_extension_tests.rs": "abe564cdef23107f2e4e35ed314d0264862cba2f8c6674a34c3df470a2c0626b",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-rl-env/src/seed_reservation_tests.rs": "2efd1a93f62c80d3fa7ec1c40934716a7f46e659d5979add70deaf929cd7098e",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-rl-env/src/tests.rs": "84eb459c7ec761e0de21e79e0556598b737e82a5d76edf408a98970cd35fcdfd",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-rl-env/tests/primitives.rs": "588bc397427f992f8ddf75b8b2811f59bc4f570ea316876f55db30a6de4c80fd",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-rl-env/tests/support/m0_expected.rs": "4615b8249f33640f70f8e38c47cd05fa3c437fa0dd4d497d904352e60ad4dc3f",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-rl-env/tests/support/m0_policy.rs": "eeae605299b1018437a54df66f4eabf6e6d4defc20334c1baf93692900601b85",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-rl-env/tests/support/qualification_expected.rs": "ad03726da0c294498750d8b56c27861b2e1c233b44eab326496b3aff2c8f0938",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-rl-env/tests/support/wire_fixture.rs": "a25d4e7114fe76080e3051cb1391f2239089174aae2e849572ef819af28cd556",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-viewer/Cargo.toml": "2265692c0df6c5422ad80cc29cdb00df7cbf8d006748bfe58f2654f83e3e659f",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-viewer/src/lib.rs": "904060a629e4bcf4050666a6d19c22b4a428055f336f4f83a44794aa2aecadc2",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-viewer/src/main.rs": "3326a2d418788c1a879e5ab076f72c6bf9953a7e46e9bca5b1553b05b395c8eb",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/docs/SPEC_PRIVILEGED_VIT_RL.md": "02230eea7a3b36c786d3deeb31471baf8270efb09c3c1e77b7a77c7cfae240f3",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/docs/implementation-plan-v2.md": "a034a45408ebea580882bf931c156288100c120ef78806bb7c87dce0597445aa",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/docs/teacher-qualification-v2.json": "e091f8a2fad0a307d289a6d306112606b15df8f8aa0f3a75707ac7cfb2cee803",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/docs/v2-environment-contract.md": "79e953f20487bb442888fe40cee5f43226ae2cfc7ef0b9ef0fc3a377db4e01aa",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/docs/v2-m3-component-contract.md": "a1051d82527a9aec1f7967ff8ab217c30263240e032991aeff7b993fd975ba47",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/docs/v2-m3-run-protocol.json": "9e0d82028011f83e0cf6ddaef5f5e118591158d8a557f6698c82c150d5a69bab",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/docs/v2-teacher-training-plan.md": "36e1c5aef5fdcc4f5863d9adfef505ee3f4163ba4fbaf5ed2bb1ef282dac9338",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/dodge_rl/__init__.py": "2bf56a8151b512d78a228d604fdac67c529c8ebfd3fa233c71c2dd4f882b44dc",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/dodge_rl/_native.cpython-312-darwin.so": "967c7249acd52339d1818dcbe94e63ee734aea914c3497eb59a7e945a6e95583",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/dodge_rl/checkpoints.py": "807141943a742c6e9fdd34274c191b3c318134cc7fb0c1c6256874cadee1cbc3",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/dodge_rl/dev_eval.py": "5ba01250bb68b75340e8ef35968ad88027103c334ae8f38e2ab83ec7676097b7",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/dodge_rl/identity.py": "50775b2e7c30e53757dd3134d11613f716733cee8e6a96cc18b62e8ff2a4a053",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/dodge_rl/models/__init__.py": "b28b2623443e31d9e9cb81350f89e9fb7d285abe3e2a74c007be8e4cfff432dc",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/dodge_rl/models/teacher.py": "e4d7f597a2824c2b0d4ba261dddc9d7d1ee1d5592c2fc966a44c54b5ec417e35",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/dodge_rl/ppo.py": "533055b0832b87f3eccd6d005437583c074b525fc5f1d002e0e84e06b4239a58",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/dodge_rl/supervision.py": "45a5714d70d956371442cc3b5ebd1d56d5c498658296afa7e9c9d4c13f2a9b70",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/dodge_rl/train_teacher.py": "1d134bfb221ff52139e1243c9e4f9c3063432942a3274c567b71db4d7669c0cf",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/pyproject.toml": "77aba0bf695d802ef90662a2bf08c46090377f88ecd85d3da24421a762438698",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/requirements-local-mac.txt": "a02ffb8e053dfc7a6d3e7a0d1333e0907982a944593ef1cd4572353cbb71f34a",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/tests/test_checkpoints.py": "150d9156d8cbdfac3f3b5e301f12a0e2a7c8a6b503f23464125234cda16aab40",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/tests/test_env.py": "dd1a8e653988e3870a5a7b01b03a0664536d4b14f3d00a6a36328d31cb8b6c4e",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/tests/test_ppo.py": "948c0a89388a10aaebb55e11950a0a97f323fb23ea2d0c7bf63556f3234da642",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/tests/test_runtime_repair.py": "16217691daff15742dbf551d953cc500dd713542a41a5fb6392cb6aea8beae1e",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/tests/test_runtime_repair_signals.py": "f6d702924f49238a400281e837cf57aaa617fcd363106dd445ac7a260dba34be",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/tests/test_teacher.py": "d37f96a8ecb49b7bd1895e80299f90f299d808543887900af31b642676db6d03",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/tests/test_teacher_runner.py": "15f2aaed105733d93701eeba442b86b52c64e8f8a6518e7c1d70838edf73ec06",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/tests/test_terminal_eligibility.py": "377013687de88cfe597af5a5086b5e53c5c297b0cf5784f9e34bcca24c33ce9a",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/tests/test_terminal_runtime.py": "2a31994728c7c76dbe3ed230c309b1ea735c1744e5b5e85fbe9d8bc19279a52d",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/rust-toolchain.toml": "6c81c3c6bddc472074c879c21b48558154247502ef96ccc10b2e0971ef688e72"
+  },
+  "legacy_original_sources_verified": 75,
+  "new_timing_state": "VERIFY_LOCAL",
+  "note": "Function source and AST retained; complete diffs expose module-level changes for review",
+  "protected_source_equal": {
+    "Learner": true,
+    "Schedule": true,
+    "assert_equal_tree": true,
+    "assert_lease": true,
+    "check_module_origins": true,
+    "compare_control": true,
+    "counter_report": true,
+    "environment_kwargs": true,
+    "expected_lease": true,
+    "outcome_fields": true,
+    "result_code": true,
+    "run_schedule": true,
+    "tree_fingerprint": true,
+    "validate_long_config": true
+  },
+  "worker_ML_try_byte_equal": true
+}

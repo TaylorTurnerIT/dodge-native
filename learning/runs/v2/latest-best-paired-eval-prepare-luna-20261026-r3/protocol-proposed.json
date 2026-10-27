@@ -1,0 +1,315 @@
+{
+  "architecture": {
+    "activation": "gelu",
+    "actor_head": [
+      128,
+      128,
+      9
+    ],
+    "attention": "full_self_attention",
+    "average_attn_weights": true,
+    "class": "OmniscientEntityTeacher",
+    "critic_head": [
+      128,
+      128,
+      1
+    ],
+    "dropout": 0.0,
+    "entity_embedding": [
+      16,
+      128,
+      128
+    ],
+    "entity_mask_true_means_valid": true,
+    "entity_position_embeddings": false,
+    "entity_shape": [
+      80,
+      16
+    ],
+    "entity_type_vocab_size": 9,
+    "entity_valid_types": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "ffn_dim": 256,
+    "global_embedding": [
+      14,
+      128
+    ],
+    "global_shape": [
+      1,
+      14
+    ],
+    "head_initialization": {
+      "actor_final_gain": 0.01,
+      "critic_final_gain": 1.0,
+      "hidden_gain": 1.4142135623730951,
+      "method": "orthogonal_weights_zero_biases"
+    },
+    "layernorm_eps": 1e-05,
+    "model_dim": 128,
+    "need_weights": true,
+    "normalization": "pre_norm_plus_final_layernorm",
+    "num_heads": 4,
+    "num_layers": 2,
+    "parameter_count": 321290,
+    "token_count": 81,
+    "trunk_initialization": "pytorch_default",
+    "version": "omniscient_entity_teacher_full_attention_v1"
+  },
+  "checkpoints": {
+    "best180": {
+      "audit_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/d2-gradient-parent-terminal-audit-20261025-r2/audit.json",
+      "audit_sha256": "a93fe6abd35e715c538522dff1bf381a52b8c60f79e30914aa7b953b4f2864af",
+      "development_jsonl": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-alignment-20261025-r2/development-000180.jsonl",
+      "development_sha256": "33e7859274c65cbefb627e595006e4c64650a653ccace1e059bc9e46a8df76f1",
+      "expected_argmax_alive_frames": {
+        "bottom16_mean": 585.625,
+        "mean64": 1854.46875,
+        "top16_mean": 3502.5625
+      },
+      "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-alignment-20261025-r2/checkpoint-000180-candidate.pt",
+      "phase_update": 180,
+      "receipt_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/d2-gradient-parent-terminal-audit-20261025-r2/parent-terminal-receipt.json",
+      "receipt_sha256": "7968a62b6e601fab971e4145dbaebfa1995c8f696e6df442ab70fc0435b74903",
+      "sha256": "105e0f7a83e154116bd9f0d5eaaf573a896886468c9038f548f5ce7e6377c7ea"
+    },
+    "latest252": {
+      "audit_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/d2-continuation252-parent-terminal-audit-20261026-r1/audit.json",
+      "audit_sha256": "08eb63b4c6d199bfb44e3abdafd1d773ab921de3687c04641c6df596ad7313b2",
+      "development_jsonl": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-continuation-20261025-r2/development-000252.jsonl",
+      "development_sha256": "dd02551520977ceb26cddec7a7d9437265d3fbfd58917a79bbc52cc1f5929d36",
+      "expected_argmax_alive_frames": {
+        "bottom16_mean": 532.8125,
+        "mean64": 1604.078125,
+        "top16_mean": 3192.3125
+      },
+      "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-continuation-20261025-r2/checkpoint-000252-candidate.pt",
+      "phase_update": 252,
+      "receipt_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/d2-continuation252-parent-terminal-audit-20261026-r1/parent-terminal-receipt.json",
+      "receipt_sha256": "25f2744d39e2c48e48333088c78855af1ad3b65f1053f576d70f9ac38b5d4096",
+      "sha256": "cbdc65d0f3b2e32644ba64ada80093f20c7a6bceb8730f2eecac7a188504254b"
+    }
+  },
+  "cohort": {
+    "count": 64,
+    "first_seed": 3489660928,
+    "last_seed": 3489660991,
+    "scope": "existing D development seeds, already excluded from training; diagnostic only",
+    "seeds_sha256": "a6f9163a2208b90c75f6bd367529be7a20b033928927a85ee9cfa668e6b86944",
+    "source": "frozen dev_eval.development_seeds()"
+  },
+  "environment": {
+    "action_repeat": 4,
+    "difficulty": 2,
+    "layout": "64 independent B1 envs; batched policy over sorted shrinking active slots; no reset",
+    "patterns_enabled": true,
+    "powerups_enabled": true,
+    "raw_frame_cap_per_episode": 18000,
+    "render_pixels": false,
+    "stage": "D2"
+  },
+  "harness_sha256": "f872d57259409782dad658f32702879a84d1c770da7fd14b5bc1d0fd1c91370c",
+  "input_files_sha256": {
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/docs/SPEC_PRIVILEGED_VIT_RL.md": "02230eea7a3b36c786d3deeb31471baf8270efb09c3c1e77b7a77c7cfae240f3",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/docs/implementation-plan-v2.md": "a034a45408ebea580882bf931c156288100c120ef78806bb7c87dce0597445aa",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2-orchestration/postovernight-action-mode-r3-protocol.json": "90e3ae1cc8ba253e2e64a708f9b66ed59762e85668a15197d04d9265180ea741",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-continuation-20261025-r2/checkpoint-000252-candidate.pt": "cbdc65d0f3b2e32644ba64ada80093f20c7a6bceb8730f2eecac7a188504254b",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-continuation-20261025-r2/development-000252.jsonl": "dd02551520977ceb26cddec7a7d9437265d3fbfd58917a79bbc52cc1f5929d36",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-alignment-20261025-r2/checkpoint-000180-candidate.pt": "105e0f7a83e154116bd9f0d5eaaf573a896886468c9038f548f5ce7e6377c7ea",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-alignment-20261025-r2/development-000180.jsonl": "33e7859274c65cbefb627e595006e4c64650a653ccace1e059bc9e46a8df76f1",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/critic-diagnostic-parent-prepare-20261025-r1/dependency-inventory.json": "2957832457c39751998012f4aeb4440f5d7570250ae9ab072ee10d86dd970ed6",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/d2-continuation252-parent-terminal-audit-20261026-r1/audit.json": "08eb63b4c6d199bfb44e3abdafd1d773ab921de3687c04641c6df596ad7313b2",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/d2-continuation252-parent-terminal-audit-20261026-r1/canonical-performance-correction.json": "22ea28a115382abca1fa45a2023bd92132c6c0e7a99767db8a090663747e33a0",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/d2-continuation252-parent-terminal-audit-20261026-r1/parent-terminal-receipt.json": "25f2744d39e2c48e48333088c78855af1ad3b65f1053f576d70f9ac38b5d4096",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/d2-gradient-parent-terminal-audit-20261025-r2/audit.json": "a93fe6abd35e715c538522dff1bf381a52b8c60f79e30914aa7b953b4f2864af",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/d2-gradient-parent-terminal-audit-20261025-r2/parent-terminal-receipt.json": "7968a62b6e601fab971e4145dbaebfa1995c8f696e6df442ab70fc0435b74903",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/latest-best-paired-eval-design-haiku-20261026-r1/plan.json": "65104a03192f0f040551f8a86c7886dbffba526aa2f41ecbfc89cbfd76a55087",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/latest-best-paired-eval-frozen-review-haiku-20261026-r2-native/review.json": "c13e20003212b58f4dbecc78f520ddc9ae4099664bb14c0e9745c22e37d50036",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/latest-best-paired-eval-frozen-review-haiku-20261026-r2-native/review.md": "e87e7a46823c1f12bad70203f57c665dde492cf5522498938cdc18e230af240c",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/latest-best-paired-eval-parent-plan-20261026-r1/reconciliation.json": "ca9ec2ad5ca0aaf5ff899229256b08306f1e56072e6e2f221f106737c142bd0f",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/latest-best-paired-eval-parent-preflight-20261026-r2/review-reconciliation.json": "7a6142bbbf55d90e5ed1481e0e0a3c552b409ff803f59b7c14e2c9b2e8523716",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/latest-best-paired-eval-parent-terminal-audit-20261026-r2/audit.json": "ea62d1803b522506f30a152c4c5f1e0a291138c24542a182c90ee405b97dcfc9"
+  },
+  "launch_state": {
+    "campaign_launched": false,
+    "frozen_independent_review_required": true,
+    "game_episodes_executed": false,
+    "parent_reconciliation_required": true,
+    "training_executed": false
+  },
+  "lease_contract": {
+    "active_inference_diagnostic": {
+      "authorization": "inference_only_paired_diagnostic",
+      "campaign_launch_authorized": true,
+      "cancel_requested": false,
+      "harness_sha256": "f872d57259409782dad658f32702879a84d1c770da7fd14b5bc1d0fd1c91370c",
+      "input_manifest_sha256": "exact input-manifest.json hash",
+      "kind": "M3_latest_best_paired_eval",
+      "no_concurrent_long_mps_training": true,
+      "parent_reconciliation_sha256": "64 lowercase hex chars",
+      "protocol_sha256": "exact protocol file hash",
+      "review_provider": "explicit provider identifier",
+      "review_receipt_sha256": "64 lowercase hex chars",
+      "review_status": "reviewed",
+      "run_id": "latest-best-paired-eval-20261026-r3"
+    },
+    "active_long_campaign": null,
+    "lease_lifecycle": "Parent installs/clears lease; worker never writes state.json or lease.",
+    "parent_owned_only": true,
+    "required_review_fields": [
+      "review_receipt_sha256",
+      "parent_reconciliation_sha256"
+    ],
+    "required_review_provider_field": "review_provider",
+    "state_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2-orchestration/state.json"
+  },
+  "primary_question": "Does the latest-versus-best difference change under sampled versus argmax actions on the same current D development cohort?",
+  "purpose": "Inference-only exploratory D2 paired evaluation of checkpoint-by-action-mode interaction.",
+  "resources": {
+    "aggregate_owned_rss_bytes": 6442450944,
+    "cleanup_seconds": 10,
+    "mps_driver_bytes": 6442450944,
+    "no_concurrent_long_mps_training": true,
+    "no_hashing_on_monitor_timer": true,
+    "outer_wall_seconds": 600,
+    "sample_seconds": 0.25,
+    "work_seconds": 590
+  },
+  "review_provenance": {
+    "prior_r1_provider": "Claude Sonnet 5.5 fallback; Haiku unavailable",
+    "prior_r1_review_receipt": "learning/runs/v2/latest-best-paired-eval-frozen-review-sonnet-20261026-r1/receipt.json",
+    "prior_r1_review_receipt_sha256": "e402f5b1fb2e28a919de429d84ffe6914637d4391ac48b839df76e1b5af23f11",
+    "r2_parent_reconciliation": "learning/runs/v2/latest-best-paired-eval-parent-preflight-20261026-r2/review-reconciliation.json",
+    "r2_review_status": "closed_by_parent_reconciliation",
+    "r3_review_provider_must_be_named_exactly": true,
+    "r3_review_status": "pending_frozen_review"
+  },
+  "run_id": "latest-best-paired-eval-20261026-r3",
+  "runtime": {
+    "helpers": [
+      "development_environment_config",
+      "development_seeds",
+      "death_fields",
+      "OBSERVATION_KEYS",
+      "checkpoints.load_checkpoint",
+      "checkpoints.require_complete_update",
+      "OmniscientEntityTeacher",
+      "VecDodgeEnv"
+    ],
+    "interpreter": {
+      "lexical_venv_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+      "resolved_target": "/Users/taylor/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/bin/python3.12",
+      "symlink_target": "/Users/taylor/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
+      "target_sha256": "8dcafa7835e861e88a8f8ac7e61effbf5a987f32b0ec47bb1f3c9987caf9216d"
+    },
+    "native_extension": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/_native.cpython-312-darwin.so",
+    "native_extension_sha256": "022d41dde9bace0b4f4c4c06b9b4ed007bc2c60013cd98734086e587d7bb997e",
+    "root": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime",
+    "tree_sha256": "a19d97bce7c6a2459f2e8e05f37f89cb7facf0562028957254e5c4de1001a5ea"
+  },
+  "sampler": {
+    "common_uniforms_across_checkpoints": true,
+    "exact_boundary": "uniform equal to a cumulative edge selects the next positive bin",
+    "final_bin": "if accumulated CDF ends below 1, choose last positive-probability bin",
+    "historical_difference": "New registered CPU inverse-CDF sampler differs from historical MPS torch.distributions.Categorical; no global-generator or shrinking-batch RNG coupling.",
+    "key": "SHA256(ASCII(version|replicate_seed|actual_game_seed)); first 8 bytes big-endian state",
+    "key_excludes_checkpoint_and_active_batch_position": true,
+    "probabilities": "float32 policy logits copied to CPU float64; stable torch.softmax float64; normalize by math.fsum float64 before CDF accumulation",
+    "stream": "increment modulo 2^64 by 0x9E3779B97F4A7C15; SplitMix64 finalizer; upper 53 bits divided by 2^53",
+    "version": "paired-eval-splitmix64-v1",
+    "zero_probability": "zero-width bins skipped"
+  },
+  "schedule": {
+    "argmax_episodes_per_checkpoint": 64,
+    "argmax_first": [
+      "best180",
+      "latest252"
+    ],
+    "canonical_row_fields": [
+      "episode_index",
+      "seed",
+      "score_raw_fixed",
+      "score",
+      "alive_frames",
+      "gameplay_frames",
+      "terminated",
+      "truncated",
+      "objective_return",
+      "death_cause",
+      "fatal_gameplay_frame",
+      "death_observed_lethal_contacts"
+    ],
+    "censoring": "Keep all episodes. Report cap counts, denominators, right-censoring, and uncensored restricted summaries. Any cap marks primary campaign incomplete.",
+    "control": "Both argmax controls run first. Compare entire canonical rows, including death telemetry, to saved JSONL sorted by seed. First mismatch stops full campaign; no retry.",
+    "episodes": 512,
+    "sampled_episodes_per_checkpoint": 192,
+    "sampled_order": "replicate seed ascending, then best180, latest252; each arm uses sorted 64 D seeds",
+    "sampled_replicates": [
+      64001,
+      64002,
+      64003
+    ]
+  },
+  "schema": "latest_best_paired_eval_protocol_v1",
+  "scope": {
+    "B_E_qualification": false,
+    "D3": false,
+    "checkpoint_writes": 0,
+    "gradients": false,
+    "held_out_claim": false,
+    "inference_only": true,
+    "new_seed_cohort": false,
+    "optimizer_instantiation": false,
+    "qualification_claim": false,
+    "rollback": false,
+    "student": false,
+    "training": false,
+    "training_exclusion_config_change": false,
+    "training_parent_selection": false
+  },
+  "statistics": {
+    "bootstrap": {
+      "draws": 10000,
+      "method": "One 10000x64 cluster-index matrix reused across all contrasts; percentile CI with linear interpolation.",
+      "rng": "NumPy default_rng PCG64",
+      "seed": 764002,
+      "unit": "64 paired game-seed clusters"
+    },
+    "contrasts": {
+      "C1": "latest252_argmax - best180_argmax per seed",
+      "C2": "best180_sampled_mean3 - best180_argmax per seed",
+      "C3": "latest252_sampled_mean3 - latest252_argmax per seed",
+      "C4_PRIMARY": "C3 - C2 per seed",
+      "C5": "latest252_sampled_mean3 - best180_sampled_mean3 per seed"
+    },
+    "death_denominators": {
+      "argmax": 64,
+      "sampled": 192
+    },
+    "decision": {
+      "exploratory_clear_difference": "95% CI excludes 0 and absolute mean difference is at least 100 frames.",
+      "otherwise": "Inconclusive; wide CI including zero does not disprove a theory.",
+      "practically_similar": "Whole 95% CI within [-100,+100] alive frames."
+    },
+    "replicates": "Report each replicate separately, including score/alive summaries and death counts/denominators; report median and max seed-level sample SD.",
+    "sampled_primary": "Mean 3 replicates within each seed, then sorted bottom/top 16 means and mean across 64 seed-level values.",
+    "scope": "Report all five contrasts; no qualification or multiple-comparison claim. CIs condition on fixed checkpoint pair and cohort, not training-replicate uncertainty."
+  },
+  "status": "frozen_proposed_pending_independent_review_and_parent_reconciliation",
+  "supervisor": {
+    "child": "start_new_session; retain raw exit/cancellation/publication lineage; terminate exact owned process group; directly reap child and prove group absence; never signal after proven absence.",
+    "finalization": "Close stdout, stderr, episode, and resource streams before hashing and receipt publication; perform full preflight, postflight, and postpublication checks.",
+    "future_output": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/latest-best-paired-eval-prepare-luna-20261026-r3/campaign-output",
+    "launch_count": 1,
+    "retry": false,
+    "single_owned_campaign": true,
+    "status_limit": "complete_pending_parent_acceptance is diagnostic only; parent acceptance remains required."
+  }
+}

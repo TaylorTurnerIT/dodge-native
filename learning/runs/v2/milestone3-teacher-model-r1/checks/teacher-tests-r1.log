@@ -1,0 +1,25 @@
+..........F........                                                      [100%]
+=================================== FAILURES ===================================
+________________ test_registered_head_initialization_and_biases ________________
+
+    def test_registered_head_initialization_and_biases():
+        model = make_model()
+        for head, final_gain in ((model.actor_head, 0.01), (model.critic_head, 1.0)):
+            for index, gain_squared in ((0, 2.0), (2, final_gain**2)):
+                weight = head[index].weight.detach()
+>               torch.testing.assert_close(
+                    weight @ weight.T,
+                    torch.eye(weight.shape[0]) * gain_squared,
+                    rtol=2e-5,
+                    atol=1e-7,
+                )
+E               AssertionError: Tensor-likes are not close!
+E               
+E               Mismatched elements: 2638 / 16384 (16.1%)
+E               Greatest absolute difference: 2.852711133982666e-07 at index (27, 35) (up to 1e-07 allowed)
+E               Greatest relative difference: inf at index (0, 2) (up to 2e-05 allowed)
+
+python/tests/test_teacher.py:200: AssertionError
+=========================== short test summary info ============================
+FAILED python/tests/test_teacher.py::test_registered_head_initialization_and_biases
+1 failed, 18 passed in 1.62s

@@ -1,0 +1,188 @@
+{
+  "authorizes_nothing": true,
+  "learning_curve": {
+    "evidence": {
+      "best": {
+        "alive": 2240.0,
+        "ckpt": 50,
+        "score": 20.59375,
+        "update": 320
+      },
+      "final": {
+        "alive": 1654.546875,
+        "ckpt": 58,
+        "score": 14.40625,
+        "update": 384
+      },
+      "gate": {
+        "alive": 3060,
+        "best_fraction_alive": 0.732,
+        "best_fraction_score": 0.412,
+        "score": 50
+      },
+      "ols_20_58": {
+        "alive_per_100_updates": 274,
+        "fitted_at_384": [
+          18.2,
+          2001
+        ],
+        "resid_sd_score": 1.73,
+        "score_per_100_updates": 3.02
+      },
+      "optimizer": {
+        "approx_kl_first20": 0.0152,
+        "approx_kl_last20": 0.0312,
+        "early_stop_updates": 230,
+        "entropy_first20": 1.88,
+        "entropy_last20": 1.745,
+        "explained_variance_first20": 0.598,
+        "explained_variance_last20": 0.317,
+        "first_early_stop_update_index": 68,
+        "grad_norm_gt_max_updates": "384/384",
+        "max_grad_norm": 0.5,
+        "mean_epochs": 3.57,
+        "optimizer_steps_lost_fraction": 0.109,
+        "target_kl": 0.03
+      },
+      "paired_50_minus_58": {
+        "alive": [
+          585,
+          233
+        ],
+        "score": [
+          6.19,
+          2.62
+        ]
+      },
+      "score_per_alive_frame": {
+        "ckpt30": 0.0094,
+        "ckpt50": 0.0092,
+        "ckpt58": 0.0087,
+        "entry": 0.005,
+        "gate_implied": 0.0163
+      },
+      "windows_score": {
+        "12-20": 6.9,
+        "22-32": 10.6,
+        "34-44": 13.3,
+        "46-56": 17.5,
+        "50-58": 18.0
+      }
+    },
+    "hypotheses": {
+      "H1_more_training": "supported by trend, weakened by flat last window/flat score density; ~1440 updates linear extrapolation for score is not evidence",
+      "H2_optimization_throttled": "correlational only",
+      "H3_scoring_rate_limited": "density series only"
+    },
+    "recommended_discriminator": {
+      "estimated_wall_minutes": 28,
+      "frozen_comparison": {
+        "baseline": "retained r2 evals at updates 80/96/112 (ckpt 20/22/24)",
+        "baseline_mean_alive": 1251,
+        "baseline_mean_score": 9.72,
+        "eval_every_updates": 16,
+        "same_run_seed_schedule_and_D2_eval_seeds": "3489660928-3489660991"
+      },
+      "name": "max_grad_norm_0.5_to_1.0_96_update_arm",
+      "preconditions": [
+        "new parent authorization",
+        "eligible D1 parent per existing contract; no failed-weight resume; no old-metadata edit or identity weakening",
+        "observer correction validated",
+        "fresh output dir"
+      ],
+      "rejected": [
+        "target_kl (confounded with clip)",
+        "reward/return normalization",
+        "learning rate",
+        "architecture",
+        "longer continuation",
+        "baseline replicate (noise only)"
+      ],
+      "single_factor": {
+        "ppo.max_grad_norm": {
+          "from": 0.5,
+          "to": 1.0
+        }
+      },
+      "stop": [
+        "hard 96 updates",
+        "non-finite metric",
+        "entropy<1.0",
+        "explained_variance<0",
+        "integrity failure; no retry",
+        "gate pass => stop, no qualification claim"
+      ],
+      "trigger": {
+        "else": "inconclusive; no repeat without baseline replicate",
+        "falsified": "<= +1.5 score",
+        "throttling_implicated": "treatment mean(updates 80,96[,112]) >= baseline +4.0 score AND +400 alive"
+      }
+    },
+    "selection_caveat": "ckpt50 is max of 24 noisy learned evals; smoothed end level ~18"
+  },
+  "limits": [
+    "no future run authorized",
+    "read-only: no source edits, probes, evaluation, training, ML imports, checkpoint decode",
+    "did not read authoritative plan/spec or full ledger"
+  ],
+  "observer_failure": {
+    "hypothesis": {
+      "basis": [
+        "host ps renders exited/transitioning entries as (name): 11716 (ps) and 1641 (python3.12) non-leader rows retained",
+        "supervisor reap poll 20ms",
+        "error-to-reap gap 19.96ms"
+      ],
+      "name": "owned_exit_transition_zombie",
+      "status": "strongly_supported_unproven"
+    },
+    "proved": [
+      "worker completed budget_closed_below_gate exit2 (expected 2) before observer error",
+      "observer error 532106.958840125 precedes supervisor worker reap 532106.97879575 by 19.96ms",
+      "observer SIGTERM to outer 532107.009341416 precedes outer cancel 532107.009817 and IPC loss",
+      "pid unreaped until 532106.97879575 so snapshot row was the worker (no PID reuse possible)"
+    ],
+    "smallest_correction": {
+      "changes": [
+        "add stat= to ps census",
+        "per-key compare; persist full mismatching row, registered identity, diff, timestamp (fsync) before any raise",
+        "accept only owned_exit_transition: same pid/ppid/pgid/start_time, stat starts with Z, argv single token '(name)'; otherwise fatal as today",
+        "transition may persist <=2 consecutive samples (1.0s) then must be absent else fatal"
+      ],
+      "preserved": [
+        "PID reuse/ownership via pid+ppid+pgid+start_time equality",
+        "signal_owned revalidation",
+        "pool_until, 7200s wall, 7210s latest-failure deadlines",
+        "direct-wait reports"
+      ],
+      "scope": "new single-use observer only; frozen executor, acceptance rules, old metadata and identity checks unchanged"
+    },
+    "unproven": [
+      "which of argv/pgid/start_time differed",
+      "ps stat of the row (no stat column)"
+    ],
+    "validation": {
+      "launches_campaign": false,
+      "max_seconds": 30,
+      "os_check": "spawn python3.12 -c pass with start_new_session, no wait, poll ps 5ms until Z; record stat/lstart/pgid/args; waitpid; confirm absent. Refutation => ship logging fix only.",
+      "stdlib_only": true,
+      "unit_cases": [
+        "zombie all-fields-equal Z (python3.12) -> transition",
+        "start_time differs -> fatal",
+        "ppid differs with Z -> fatal",
+        "argv changed state S -> fatal",
+        "multi-token or unparenthesised argv with Z -> fatal",
+        "Z persists 3 samples -> fatal",
+        "mismatch row on disk before exception"
+      ]
+    }
+  },
+  "proposal_only": true,
+  "run_status": {
+    "accepted": false,
+    "mandatory_integrity_summary_present": false,
+    "missing_census_row_fabricated": false,
+    "outer_raw_exit": 1,
+    "retroactive_acceptance": false
+  },
+  "schema": "d2_r2_terminal_diagnosis_plan_v1"
+}

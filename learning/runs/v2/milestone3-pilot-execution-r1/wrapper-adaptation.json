@@ -1,0 +1,196 @@
+{
+  "created_at_utc": "2026-10-24T11:29:27.413764+00:00",
+  "new_wrapper": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone3-pilot-execution-r1/execute_once.py",
+  "new_wrapper_sha256": "3f8561296c495ce4513706a2860d804ac4a1c1f821c7abc48b60a8a62b1f5a80",
+  "original_wrapper": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone3-probe-execution-r1/execute_once.py",
+  "original_wrapper_sha256": "8bfc5e8fe4e489385a77c01f6c0a806c2a3d3afbd54f3b2b5cb3adfe56142bb0",
+  "original_wrapper_unchanged": true,
+  "output_directories_absent_before_creation": true,
+  "substitutions": [
+    {
+      "new": "D1 pilot plan",
+      "occurrences": 1,
+      "old": "device-probe plan"
+    },
+    {
+      "new": "milestone3-pilot-execution-r1",
+      "occurrences": 1,
+      "old": "milestone3-probe-execution-r1"
+    },
+    {
+      "new": "milestone3_D1_pilot_r1-plan.json",
+      "occurrences": 1,
+      "old": "milestone3_device_probe_r1-plan.json"
+    },
+    {
+      "new": "7a7e3aadba3a27d112b068a3df310c03891797ecc0022d11ef1aca096f1d13da",
+      "occurrences": 1,
+      "old": "1348ba10f8e0f4ea05afde19babda635f758f094e742cb846f1d6e77e3d6c315"
+    },
+    {
+      "new": "7d59a77c389abcaa91481be8cd8dd7d1154f29f2544f70badc06c706db543379",
+      "occurrences": 1,
+      "old": "82ad7e95ed3b1a780a826b44d603e2ef2cecc5c1e4057f6ceec4e0ebc3b92267"
+    },
+    {
+      "new": "0c987279795ff2618592dc46fbab723a4341fce290df718475897494f56d19e4",
+      "occurrences": 1,
+      "old": "aa14a822cd8d1cd559d385501c65a93ad828897f1125d071bb90f2d9f06b28b5"
+    },
+    {
+      "new": "2c6a53b34fbfe3fda6783c8a4bdbf707a535dea451270cda2ce64a8b72f8e44c",
+      "occurrences": 1,
+      "old": "c712523fbb96db069ac2c41235bb233d92954e3ceec7fe12a6b9666bc40a0fee"
+    },
+    {
+      "new": "phase='pilot'",
+      "occurrences": 1,
+      "old": "phase='probe'"
+    },
+    {
+      "new": "planned_budget_seconds=300",
+      "occurrences": 1,
+      "old": "planned_budget_seconds=180"
+    },
+    {
+      "new": "Fresh pilot has unexpected parent receipt",
+      "occurrences": 1,
+      "old": "Fresh probe has unexpected parent receipt"
+    },
+    {
+      "new": "v2-m3-pilot-20261024-r1",
+      "occurrences": 1,
+      "old": "v2-m3-probe-20261024-r1"
+    },
+    {
+      "new": "2026-10-24T11:27:35Z",
+      "occurrences": 1,
+      "old": "2026-10-24T11:12:15Z"
+    },
+    {
+      "new": "{'execute_once.py', 'wrapper-adaptation.json'}",
+      "occurrences": 1,
+      "old": "{'execute_once.py'}"
+    },
+    {
+      "new": "'dodge_rl.train_teacher', 'pilot'",
+      "occurrences": 1,
+      "old": "'dodge_rl.train_teacher', 'probe'"
+    },
+    {
+      "new": "plan['phase'] == 'pilot'",
+      "occurrences": 1,
+      "old": "plan['phase'] == 'probe'"
+    },
+    {
+      "new": "plan['planned_budget_seconds'] == 300",
+      "occurrences": 1,
+      "old": "plan['planned_budget_seconds'] == 180"
+    },
+    {
+      "new": "plan['outer_process_timeout_seconds'] == 330",
+      "occurrences": 1,
+      "old": "plan['outer_process_timeout_seconds'] == 210"
+    },
+    {
+      "new": "5562878240475796481",
+      "occurrences": 1,
+      "old": "5562878279179977985"
+    },
+    {
+      "new": "require(config['phase_settings'] == {'budget_seconds': 300, 'difficulty': 1, 'initialization_seed': 23002, 'patterns_enabled': False, 'run_seed': 5562878240475796481}, 'Pilot phase settings mismatch')\n        require(config['phase'] == 'pilot' and config['device'] == 'mps' and config['probe_devices'] == [] and config['parent_checkpoint_sha256'] is None, 'Pilot config mismatch')\n        require(plan['parent_checkpoint'] is None and plan['probe_weights_inherited'] is False and plan['fresh_initialization_seed'] == 23002 and plan['run_seed'] == 5562878240475796481, 'Fresh initialization plan mismatch')\n        require(plan['development_episodes'] == 64 and plan['development_seed_start'] == 3489660928 and plan['development_cap'] == 2000, 'Development plan mismatch')",
+      "occurrences": 1,
+      "old": "require(config['phase_settings']['budget_seconds'] == 180 and config['probe_devices'] == ['cpu', 'mps'], 'Probe config mismatch')"
+    },
+    {
+      "new": "acceptance_path = ROOT / 'learning/runs/v2-orchestration/milestone3-runtime-acceptance-r3.json'",
+      "occurrences": 1,
+      "old": "acceptance_path = ROOT / 'learning/runs/v2-orchestration' / plan['runtime_acceptance']"
+    },
+    {
+      "new": "digest(acceptance_path) == PINS['acceptance']",
+      "occurrences": 1,
+      "old": "digest(acceptance_path) == plan['runtime_acceptance_sha256'] == PINS['acceptance']"
+    },
+    {
+      "new": "require(accepted['source_pins_rechecked'] == 75, 'Runtime acceptance source count mismatch')\n        probe_audit_path = ROOT / plan['probe_acceptance_audit']\n        require(digest(probe_audit_path) == plan['probe_acceptance_audit_sha256'] == '215f9c7b57109a5d293c6cfa8e520b5f76e68156cda8a93a8808a36e39641ee7', 'Probe audit hash mismatch')\n        probe_audit = load(probe_audit_path)\n        require(probe_audit['status'] == 'passed' and not probe_audit['findings'] and probe_audit['verified']['selected_device'] == 'mps', 'Probe not accepted for MPS')\n        capture(probe_audit_path, 'provenance/probe-acceptance-audit.json')",
+      "occurrences": 1,
+      "old": "require(accepted['identity_sha256'] == PINS['identity'] and accepted['raw_config_sha256'] == PINS['config']\n                and accepted['semantic_config_sha256'] == PINS['semantic'] and accepted['source_pins_rechecked'] == 75, 'Acceptance pins mismatch')"
+    },
+    {
+      "new": "digest(manifest_path) == PINS['capsule']",
+      "occurrences": 1,
+      "old": "digest(manifest_path) == plan['capsule_manifest_sha256'] == PINS['capsule']"
+    },
+    {
+      "new": "remaining >= 900",
+      "occurrences": 1,
+      "old": "remaining >= 780"
+    },
+    {
+      "new": "Full 300 seconds plus 600-second receipt reserve",
+      "occurrences": 1,
+      "old": "Full 180 seconds plus 600-second receipt reserve"
+    },
+    {
+      "new": "total_seconds() >= 900",
+      "occurrences": 1,
+      "old": "total_seconds() >= 780"
+    },
+    {
+      "new": "outer_timeout_seconds=330",
+      "occurrences": 1,
+      "old": "outer_timeout_seconds=210"
+    },
+    {
+      "new": "time.monotonic() - started >= 330",
+      "occurrences": 1,
+      "old": "time.monotonic() - started >= 210"
+    },
+    {
+      "new": "if proc.poll() is None:\n        event('supervisor_SIGTERM_only_cleanup_wait', seconds=5)\n    proc.wait(timeout=5)",
+      "occurrences": 1,
+      "old": "if proc.poll() is None:\n        signal_exact(proc.pid, supervisor, signal.SIGKILL, 'supervisor')\n    proc.wait(timeout=5)"
+    },
+    {
+      "new": "pilot_completed_pending_parent_independent_audit",
+      "occurrences": 2,
+      "old": "probe_completed_pending_parent_independent_audit"
+    },
+    {
+      "new": "result['pilot_evaluation'] = None if wr is None else wr.get('evaluation')\n                result['completed_update_counters'] = None if wr is None else wr.get('counters')\n                result['consumed_phase_wall_seconds'] = None if rr is None else rr.get('consumed_phase_wall_seconds')\n                result['registered_criterion'] = plan['pilot_comparison']\n                result['actual_measurements'] = [] if wr is None else wr.get('measurements', [])",
+      "occurrences": 1,
+      "old": "result['actual_measurements'] = [] if wr is None else wr.get('measurements', [])"
+    },
+    {
+      "new": "result['selected_device'] = config['device']",
+      "occurrences": 1,
+      "old": "result['selected_device'] = None if wr is None else wr.get('selected_device')"
+    },
+    {
+      "new": "save('resource-summary.json', resource_summary)\n                result['actual_resource_series_maxima'] = resource_summary",
+      "occurrences": 1,
+      "old": "result['actual_resource_series_maxima'] = resource_summary"
+    },
+    {
+      "new": "remaining_owned = [v for p, v in rows.items() if p in (None if proc is None else proc.pid, None if worker is None else worker['pid']) or ('dodge_rl.train_teacher' in v['command'] and plan['run_id'] in v['command'])]",
+      "occurrences": 1,
+      "old": "remaining_owned = [rows[p] for p in (None if proc is None else proc.pid, None if worker is None else worker['pid']) if p in rows]"
+    },
+    {
+      "new": "output_directories_absent_before_wrapper_creation=load(EVIDENCE / 'wrapper-adaptation.json')['output_directories_absent_before_creation']",
+      "occurrences": 1,
+      "old": "output_directories_absent_before_wrapper_creation=True"
+    },
+    {
+      "new": "wrapper_argv=sys.argv, wrapper_interpreter=sys.executable, wrapper_pid=os.getpid(), wrapper_source_sha256=digest(Path(__file__)))",
+      "occurrences": 1,
+      "old": "wrapper_argv=sys.argv, wrapper_interpreter=sys.executable, wrapper_pid=os.getpid())"
+    }
+  ],
+  "wrapper_argv": [
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+    "-B",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/milestone3-pilot-execution-r1/execute_once.py"
+  ]
+}

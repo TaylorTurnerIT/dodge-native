@@ -1,0 +1,54 @@
+{
+  "at_utc": "2026-10-25T01:36:21.594867+00:00",
+  "failure_policy": "Ordered once-only; stop on first unexpected failure. No cap change, retries or hidden skips. Freeze and static reviews are preparation only.",
+  "lease": "No production lease or training launch in validation; synthetic local fixture state only.",
+  "protocol_path": "learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r5.json",
+  "protocol_sha256": "2296154b2d06ae7c43eff0dd34c0c8908d90b5e5611a9e336a65dc2e37c48379",
+  "schema": "r6_parent_ordered_validation_plan_v1",
+  "source_sha256": {
+    "boundary_integrity.py": "d4aafd463d105967b44151f11ec8e1c5fb5d5b633c6892db8bde829f28eff560",
+    "fixture_guards.py": "edeef069397c4c68ec9cd185ad753f595919eaff012a6a4d1731fce8bf5d184b",
+    "freeze.py": "c04bd6c3402cc920f76c4d4485af2042549329872082c327da09e6c93cb4b1f3",
+    "lifecycle.py": "aab36d678526b6fbd4eecbe1493ad3511365f00064a91d459b85834eaf3e752b",
+    "long_d2.py": "791038b59c9d9a13f769dc67ab5afca8b0c8e6425ce1bc70a2a792738bd6e156",
+    "long_d2_executor.py": "3a14d4c294f20d6a85259570f0bfd92142a29a76fab2417f0fabe9fc107d75f4",
+    "os_checks.py": "466e6d8e5f48068e552b18d622b22bad25bdd5dd228d5d95b1af9aff1c5f5358",
+    "parent_command.py": "cfde69f9c767f8172767208510c83adbc71692a265d428e5878234bb4c7c5eed",
+    "processes.py": "4a80831dd6fbc4cf045b7ce5acd06b62d95088db6a19a307602c5709bf42cdef",
+    "rehearsal.py": "9c4c8a440c24d9f257404830d6119522dba52ba2c72cd7896561b03e8699fa31",
+    "repair.py": "86a184abab796ab75c288808b8042349053ef15528360aaabaa3f19c500da502",
+    "run_unit_suite.py": "6c8f3e3774a841d4a4d2c104cd442b901a5d88964b986409845bf79e2d50f7de",
+    "source_equality.py": "00c830f3d7ea2ff0ced8116be163e70b1bb4560e684f1e97bee5e20140e4ba4c",
+    "stress.py": "cd0da16ef3c865dc02bb0866be755baaf62ffbb7c3978e3ebf6eb0304a4585ee",
+    "synthetic.py": "5a7ed50fe3caee8ad7d18dd9f9d944ac6b3ca6d38972d7a24f2ee9403273535b",
+    "test_boundary.py": "70552f5494c1b0b152dfd8319062eddcfedbad75fd1d99580299a18d9c43a308",
+    "test_repairs.py": "6ce539c19b39be3dadd84619ce565a305c0e60c92c40eb91b20be031134b6a08",
+    "unit_stage.py": "1014b1dac5c88fba3ef170f5873193bab4018aabb08c74855de0dc01afbfefb6"
+  },
+  "stages": [
+    {
+      "cap_seconds": 60,
+      "name": "freeze"
+    },
+    {
+      "cap_seconds": 60,
+      "name": "pure-preflight"
+    },
+    {
+      "cap_seconds": 300,
+      "name": "focused-real-OS"
+    },
+    {
+      "cap_seconds": 120,
+      "name": "changed-source-stdlib-contention"
+    },
+    {
+      "cap_seconds": 120,
+      "name": "real-startup-only"
+    }
+  ],
+  "startup_scope": "Only after prior stages pass: real imports/origins/check_frozen, architecture identity constructor with internal CPU RNG preservation; no D1 deserialize/env/inference/gradients/training.",
+  "stress_justification": "Distinct source replaces repeated resolves/parent stats/two traversals with one fresh scan; unchanged stress load, 12 forced boundaries, byte hashing and resource/cap policy. Old r3 120s failure retained.",
+  "total_validation_cap_seconds": 900,
+  "unit_stage_passed": 39
+}

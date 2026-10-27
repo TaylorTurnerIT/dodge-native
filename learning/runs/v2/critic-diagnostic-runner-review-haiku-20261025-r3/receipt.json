@@ -1,0 +1,103 @@
+{
+  "schema": "critic_diagnostic_runner_review_receipt_v1",
+  "reviewer": "claude-haiku-5-5",
+  "mode": "readonly_fresh_adversarial",
+  "verdict": "no_blocking_findings",
+  "registration": {
+    "path": "learning/runs/v2/critic-diagnostic-parent-prepare-20261025-r2/registration-r3.json",
+    "sha256": "612fd759a9c135ec939646e19686f3ab27d94c4ae8a3843d20046b390aa2188e",
+    "pins_count": 13563
+  },
+  "registration_pin": {
+    "path": "learning/runs/v2/critic-diagnostic-parent-prepare-20261025-r2/registration-r3-pin.json",
+    "sha256": "5c7c2e99a4e821846f460fdb0334cc8ad6be66ac929d2bc51a5e5d45b6cecb96"
+  },
+  "read_sources": {
+    "learning/runs/v2/critic-diagnostic-runner-prepare-20261025-r3/runner.py": "48bde41f4cc71b2ffa973b9cc61da5ea1cee175ca36b4344d520d5765d0699f1",
+    "learning/runs/v2/critic-diagnostic-runner-prepare-20261025-r3/execute_once.py": "6d935fd6081e84bca1b4b22f16573494dd520f7109c65eb46b4e3a5df917f903",
+    "learning/runs/v2/critic-diagnostic-runner-prepare-20261025-r3/test_contract.py": "d8d98676b428d91d53ad11fd857f6737e8d320ffaf48da83ff25e2224768218d",
+    "learning/runs/v2/critic-diagnostic-runner-prepare-20261025-r3/test_torch_restore.py": "faf0c55671fb304deb5f5b0d7720ec502826fa1da675c5032395279c0049b9a9",
+    "learning/runs/v2/critic-diagnostic-runner-prepare-20261025-r3/startup_rehearsal.py": "a60d484843531cbae1e1f0cf35bed14bfb5ef543fb749acf57c417cd5571c711",
+    "learning/runs/v2/critic-diagnostic-runner-prepare-20261025-r3/implementation-result.json": "7a8f02bd311707d098c8e11b82eac750fc3140beea8ffefedb60fdd9df5a6562",
+    "learning/runs/v2/critic-diagnostic-runner-prepare-20261025-r3/startup-rehearsal-result.json": "0d7a8e2d360a6fce4cce41224457bfc79f2c67d89765a20d4fc50941ab80bb16"
+  },
+  "read_not_hashed_in_this_pass": [
+    "learning/runs/v2/critic-diagnostic-parent-prepare-20261025-r2/verify_restoration.py",
+    "learning/runs/v2/critic-diagnostic-parent-prepare-20261025-r2/restoration-validation-result.json",
+    "learning/runs/v2/critic-diagnostic-parent-prepare-20261025-r2/haiku-audit-reconciliation.json"
+  ],
+  "not_inspected_line_by_line": [
+    "learning/runs/v2/critic-diagnostic-runner-prepare-20261025-r3/test_contract.py",
+    "learning/runs/v2/critic-diagnostic-runner-prepare-20261025-r3/test_torch_restore.py",
+    "learning/runs/v2/critic-diagnostic-parent-prepare-20261025-r2/verify_restoration.py"
+  ],
+  "runtime_pycache_inspected_headers_only": {
+    "root": "learning/runs/v2/critic-diagnostic-parent-prepare-20261025-r1/runtime/dodge_rl",
+    "files": [
+      "__pycache__/checkpoints.cpython-312.pyc",
+      "__pycache__/__init__.cpython-312.pyc",
+      "__pycache__/identity.cpython-312.pyc",
+      "models/__pycache__/teacher.cpython-312.pyc",
+      "models/__pycache__/__init__.cpython-312.pyc"
+    ],
+    "header_source_mtime_and_size_match": true,
+    "in_pin_set": false
+  },
+  "findings": [
+    {
+      "id": 1,
+      "severity": "medium-low",
+      "blocking": false,
+      "file": "learning/runs/v2/critic-diagnostic-runner-prepare-20261025-r3/execute_once.py",
+      "line": 138,
+      "summary": "Runtime .pyc files are unpinned and loaded by CPython without hash check.",
+      "trigger": "Worker imports dodge_rl from runtime root containing __pycache__ .pyc files excluded from pins; -B does not stop reads.",
+      "consequence": "Executed bytecode may not match pinned source identity if a pyc is stale or tampered with matching mtime and size."
+    },
+    {
+      "id": 2,
+      "severity": "low",
+      "blocking": false,
+      "file": "learning/runs/v2/critic-diagnostic-runner-prepare-20261025-r3/execute_once.py",
+      "line": 194,
+      "summary": "Budget checks use strict < while brief specifies inclusive 1680/1800 s.",
+      "trigger": "Elapsed exactly equal to budget.",
+      "consequence": "Conservative early failure; no overrun admitted. Inconsistent with validate_outputs inclusive check."
+    },
+    {
+      "id": 3,
+      "severity": "low",
+      "blocking": false,
+      "file": "learning/runs/v2/critic-diagnostic-runner-prepare-20261025-r3/execute_once.py",
+      "line": 219,
+      "summary": "Signal after execution-result status passed leaves that primary status as passed.",
+      "trigger": "Signal raised during publication after execution-result.json write.",
+      "consequence": "Exit 1 and publication-failure.json prohibit acceptance; parent must not accept on status string."
+    },
+    {
+      "id": 4,
+      "severity": "low",
+      "blocking": false,
+      "file": "learning/runs/v2/critic-diagnostic-runner-prepare-20261025-r3/runner.py",
+      "line": 285,
+      "summary": "Peak RSS and MPS are last-sample values with no finalization sample.",
+      "trigger": "RSS spike between last Guard sample and worker exit.",
+      "consequence": "Reported peak can understate; parent-acknowledged evidence limit."
+    }
+  ],
+  "prior_findings_disposition": {
+    "r1_P1_late_publication_cancellation": "fixed_retained",
+    "r1_P2_reused_group_resignal": "fixed_retained",
+    "dict_vs_ordereddict_tags": "canonicalized_no_weakened_content_checks",
+    "haiku_restoration_components_and_tests": "components_persisted_before_gate; tests not run",
+    "haiku_adam_options_advisory": "not_verified_in_this_pass"
+  },
+  "runtime_qualification_claimed": false,
+  "tests_or_rehearsal_executed_by_reviewer": false,
+  "historical_best_development_cohort": {
+    "Q1": 648.25,
+    "Q4": 4508.8125,
+    "mean_alive_frames": 2240,
+    "note": "context only; not evidence for r3"
+  }
+}

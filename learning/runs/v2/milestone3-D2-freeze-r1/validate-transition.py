@@ -1,0 +1,3 @@
+import json,sys,pathlib
+from dodge_rl.checkpoints import validate_transition
+p=pathlib.Path(sys.argv[1]);a=json.loads((p/'accepted-parent-anchor.json').read_text());identity=json.loads((p/'D2-frozen-identity.json').read_text());state,proof=validate_transition(pathlib.Path(sys.argv[2]),identity,terminal_anchor=a);print(json.dumps({'status':'passed','parent_phase':state['identity']['config']['phase'],'target_phase':identity['config']['phase'],'exact_parent_sha256':a['checkpoint_sha256'],'certificate_passed':proof['passed'],'parent_optimizer_steps':state['counters']['optimizer_steps'],'no_learner_restore_or_environment':True}))

@@ -1,0 +1,25 @@
+{
+  "taskId": "node:delegated-task:command%3Amcp%3Addabe9aa-111f-44d8-8b93-9dcd3a4e910d%3Adelegate-task%3Adodge-v2-m3-runtime-control-review-codex-20261024-r2-fullaccess",
+  "childThreadId": "thread:delegated-task:command%3Amcp%3Addabe9aa-111f-44d8-8b93-9dcd3a4e910d%3Adelegate-task%3Adodge-v2-m3-runtime-control-review-codex-20261024-r2-fullaccess",
+  "childRunId": "run:thread:thread%3Adelegated-task%3Acommand%253Amcp%253Addabe9aa-111f-44d8-8b93-9dcd3a4e910d%253Adelegate-task%253Adodge-v2-m3-runtime-control-review-codex-20261024-r2-fullaccess:ordinal:1",
+  "childNodeId": "node:delegated-task:command%3Amcp%3Addabe9aa-111f-44d8-8b93-9dcd3a4e910d%3Adelegate-task%3Adodge-v2-m3-runtime-control-review-codex-20261024-r2-fullaccess",
+  "status": "completed",
+  "workState": "result_available",
+  "hasPendingChildRuns": false,
+  "latestTerminalRunId": "run:thread:thread%3Adelegated-task%3Acommand%253Amcp%253Addabe9aa-111f-44d8-8b93-9dcd3a4e910d%253Adelegate-task%253Adodge-v2-m3-runtime-control-review-codex-20261024-r2-fullaccess:ordinal:1",
+  "latestTerminalStatus": "completed",
+  "latestTerminalSummary": "**P1: Failed/cancelled runs leave transition-eligible candidates.** [train_teacher.py:244](/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m3-runtime-review-r2/python/dodge_rl/train_teacher.py:244) publishes the passing evaluation certificate before its final guard check. If that check expires\u2014or SIGTERM arrives after publication but before completion\u2014the worker records failure and saves a separate diagnostic checkpoint. Original candidate and passing certificate remain eligible: [checkpoints.py:169](/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m3-runtime-review-r2/python/dodge_rl/checkpoints.py:169) checks neither terminal run status nor subsequent cancellation. A registered transition can therefore advance from a failed pilot/stage, bypassing the final guard decision.\n\nOriginal four repair paths close their stated triggers in source. Same-phase resume remains deliberately disabled. No architecture, PPO, protocol, reward, or gate changes found.\n\nFinal rehash: **1,732/1,732 files and 73/73 sources match**; supplied hashes, exact u64 seed, and archive after-bytes verified. Static capsule review only; no execution or training qualification. Finished 10:40:33 UTC.",
+  "latestTerminalResultContextTransferId": "context-transfer:type:subagent_result:source-thread:thread%3Adelegated-task%3Acommand%253Amcp%253Addabe9aa-111f-44d8-8b93-9dcd3a4e910d%253Adelegate-task%253Adodge-v2-m3-runtime-control-review-codex-20261024-r2-fullaccess:target-thread:518b8c2d-01fb-4f39-acc3-f2d9f1f35c4e:ef247640-8816-424e-929d-85aab9ba6477",
+  "providerInstanceId": "codex",
+  "model": "gpt-6.1-sol",
+  "summary": "**P1: Failed/cancelled runs leave transition-eligible candidates.** [train_teacher.py:244](/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m3-runtime-review-r2/python/dodge_rl/train_teacher.py:244) publishes the passing evaluation certificate before its final guard check. If that check expires\u2014or SIGTERM arrives after publication but before completion\u2014the worker records failure and saves a separate diagnostic checkpoint. Original candidate and passing certificate remain eligible: [checkpoints.py:169](/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.cache/v2-m3-runtime-review-r2/python/dodge_rl/checkpoints.py:169) checks neither terminal run status nor subsequent cancellation. A registered transition can therefore advance from a failed pilot/stage, bypassing the final guard decision.\n\nOriginal four repair paths close their stated triggers in source. Same-phase resume remains deliberately disabled. No architecture, PPO, protocol, reward, or gate changes found.\n\nFinal rehash: **1,732/1,732 files and 73/73 sources match**; supplied hashes, exact u64 seed, and archive after-bytes verified. Static capsule review only; no execution or training qualification. Finished 10:40:33 UTC.",
+  "resultContextTransferId": "context-transfer:type:subagent_result:source-thread:thread%3Adelegated-task%3Acommand%253Amcp%253Addabe9aa-111f-44d8-8b93-9dcd3a4e910d%253Adelegate-task%253Adodge-v2-m3-runtime-control-review-codex-20261024-r2-fullaccess:target-thread:518b8c2d-01fb-4f39-acc3-f2d9f1f35c4e:ef247640-8816-424e-929d-85aab9ba6477",
+  "hasPendingQuestion": false,
+  "waitTimedOut": false,
+  "parent_reconciliation": {
+    "status": "accepted_new_P1_against_source",
+    "finding": "candidate_evaluation_certificate_survives_failed_cancelled_parent_run",
+    "original4P1": "closed_in_source",
+    "repair_requires": "successful_terminal_worker_and_supervisor_receipt_plus_parent_authorized_hash_bound_lineage"
+  }
+}

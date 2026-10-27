@@ -1,0 +1,35 @@
+{
+  "at_utc": "2026-10-24T07:51:05.761848+00:00",
+  "review": "milestone2_campaign_review_r1-result.json",
+  "source_capsule_manifest_sha256": "701d153e7281ec1a97c1b648a9abe031757659e8c1d9e78a38a915c8c1b16539",
+  "findings": [
+    {
+      "id": "identity_document_recheck_pin",
+      "severity": "P1",
+      "accepted": true,
+      "source_basis": "check_identity rereads document without comparing bytes to leased identity hash."
+    },
+    {
+      "id": "launch_exit_finalization_time_lease_guards",
+      "severity": "P1",
+      "accepted": true,
+      "source_basis": "Time/cutoff/lease checks only inside running-child polling; no complete launch/exit/final success boundary guards."
+    },
+    {
+      "id": "kill_exit_race_receipts",
+      "severity": "P2",
+      "accepted": true,
+      "source_basis": "ProcessLookupError from SIGKILL after TERM timeout can escape sibling exception handling and skip cleanup receipts."
+    }
+  ],
+  "campaign_executed": false,
+  "unchanged_limits": {
+    "campaign_seconds": 1800,
+    "observed_worker_RSS_bytes": 6442450944,
+    "receipt_reserve_seconds": 600
+  },
+  "receipt_audit": "passed_no_findings_on_pinned_build_only",
+  "receipt_audit_sha256": "fd41ef65d477ce2146de0dc2b41eab80552e9ee9f00dcc90b4eaaf7fef256f4f",
+  "parent_capsule_files_rechecked": 82,
+  "parent_live_source_files_rechecked": 62
+}

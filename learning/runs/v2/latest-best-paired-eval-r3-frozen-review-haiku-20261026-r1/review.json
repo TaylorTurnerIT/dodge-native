@@ -1,0 +1,44 @@
+{
+  "schema": "latest_best_paired_eval_r3_frozen_review_v1",
+  "review_mode": "static_readonly",
+  "reviewed_directory": "learning/runs/v2/latest-best-paired-eval-prepare-luna-20261026-r3",
+  "tests_rerun": false,
+  "freeze_artifacts_run": false,
+  "findings": [
+    {
+      "severity": "high",
+      "file": "learning/runs/v2/latest-best-paired-eval-prepare-luna-20261026-r3/supervisor.py",
+      "lines": [189, 198, 56],
+      "summary": "Freshness check uses a clock value captured before the sample is read, so a sample written in the interval gives negative age and cancels a healthy run.",
+      "failure_scenario": "now=clock() at line 189; _lease_check and ps subprocess (line 197, up to 0.5 s) run; sampler writes a sample at monotonic > now; latest_resource_sample(now=now) computes age < 0 and require(0.0 <= age) at line 56 raises; loop cancels with resource_monitor_failure and final status is failed_postflight_or_publication."
+    },
+    {
+      "severity": "medium",
+      "file": "learning/runs/v2/latest-best-paired-eval-prepare-luna-20261026-r3/supervisor.py",
+      "lines": [199, 425, 426, 485],
+      "summary": "Sampler error before the first complete sample leaves the MPS cap unenforced for the whole run because a missing sample is treated as zero.",
+      "failure_scenario": "_sample raises before its first write (worker.py:425-426 only records the error); every poll gets sample None and mps=0 (supervisor.py:199); the run continues past 6 GiB MPS until the 590 s deadline. Only postflight 'No resource samples retained' fails the final status."
+    },
+    {
+      "severity": "low",
+      "file": "learning/runs/v2/latest-best-paired-eval-prepare-luna-20261026-r3/supervisor.py",
+      "lines": [42, 43, 49],
+      "summary": "Partial-only resource log raises while an empty log returns None, so startup handling is inconsistent.",
+      "failure_scenario": "The first sample line is caught mid-write with no newline; complete is empty after the partial-tail pop and require at line 49 raises, cancelling the run at startup instead of treating it as no sample yet."
+    },
+    {
+      "severity": "low",
+      "file": "learning/runs/v2/latest-best-paired-eval-prepare-luna-20261026-r3/supervisor.py",
+      "lines": [249, 81, 92],
+      "summary": "Postflight parses the resource log with read_text().splitlines() and json.loads, not the partial-tail-tolerant reader, contradicting the R3 claim.",
+      "failure_scenario": "A sampler write cut short by SIGTERM or SIGKILL from stop_owned_child leaves a partial last line; json.loads raises at line 249 and the result records postflight_error instead of ignoring the tail."
+    },
+    {
+      "severity": "low",
+      "file": "learning/runs/v2/latest-best-paired-eval-prepare-luna-20261026-r3/supervisor.py",
+      "lines": [78, 90, 214],
+      "summary": "Process-group cleanup signals only while the direct child is still running, so surviving group members are left alive when the leader has exited.",
+      "failure_scenario": "The worker leader exits while a group member still holds RSS or MPS; poll() is not None so killpg is skipped at lines 78 and 90 and the else branch at 214 is taken; group_absent_after_reap is False, the status fails closed, but the member keeps running."
+    }
+  ]
+}

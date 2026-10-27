@@ -1,0 +1,46 @@
+{
+  "schema": "confirmed324_source_binding_review_v1",
+  "status": "blocking_preparation_finding",
+  "reviewer": {
+    "provider_instance_id": "codex",
+    "model": "gpt-6-luna",
+    "reasoning_effort": "medium"
+  },
+  "target": "learning/runs/v2/confirmed324-source-binding-repair-luna-20261026-r4",
+  "source_hash_manifest": "learning/runs/v2/confirmed324-source-binding-repair-luna-20261026-r4/source-hashes.json",
+  "source_hash_manifest_sha256": "af2d9cff332564eb106fd542ea039840f024c98b905a48e6c2203e2df4df5fde",
+  "verified_source_hashes": {
+    "README.md": "c68a366683202abfd2acff8648382f078423794d60bfc81fc22d0d0aba1c8d58",
+    "attempt_claim.py": "bf993c076c6c3270a3efb89f42d3ca86a070a044da286b42b4803790c3759206",
+    "driver_binding.py": "7f57bc6912eb67ab40fb3e0fb0cec26335fb8e79de8621ea6582e379471b2e48",
+    "fingerprints.py": "6ef9cf3f08fe800f54230801a921a2f5c82e47e5013ef3087ead6499d2533d61",
+    "receipt.json": "6fda5a24ff81adb2be421eb08fcfe93f760a0e7e415259c1b67e5dd0b9025b79",
+    "rng_reference.py": "9abfb7f892fc3a0b62d665a390effcfd7cbf4161ccf1ade3a9240d9392172917",
+    "test_regressions.py": "82a0428798640b7fe7556a6281a0ed008fd50f800c46402ba7f8ef4372cfcd33",
+    "test_transition.py": "dee7ac8916df53f4ca06e6050705890d63eda00a5606b444cf27b9439f0d8b7b",
+    "tests.log": "fd0d7aa9718a0925b83f8debd18e3fe99cf2f401355e22b072d3a6abb273f26d",
+    "transition.py": "bda044d213db3424a3b578c7c63cb30d942e9c8e5527c1e854abe03abcf83e03"
+  },
+  "finding_count": 1,
+  "blocking_finding": {
+    "severity": "high",
+    "path": "driver_binding.py",
+    "lines": "94-98",
+    "summary": "Pinned identity.require code can execute with substituted globals; code equality and filename do not bind its semantics."
+  },
+  "reviewed_upstream_source_pins": {
+    "checkpoints.py": "807141943a742c6e9fdd34274c191b3c318134cc7fb0c1c6256874cadee1cbc3",
+    "identity.py": "50775b2e7c30e53757dd3134d11613f716733cee8e6a96cc18b62e8ff2a4a053",
+    "runner.py": "108ba55ad78aa26166acb14f67cc6466da6293ccee3d272e1fe6e775ebf2ac60",
+    "accepted_parent_checkpoint_sha256": "c10d90ec0e67503afef8f4d90c4968581d430ef2065117a75e81c445a04c8ddc",
+    "accepted_parent_receipt_sha256": "76cb15733e87518cb3b473b7f8ebd847ed206351fb9f17d89b8b92e6bf853f08",
+    "confirmed_acceptance_sha256": "3e84979c4c8da76d0f98666a23f90eb15c1e813ca5edf1001e19daebaf4d5bbd",
+    "preserved_fingerprint_component": "6ef9cf3f08fe800f54230801a921a2f5c82e47e5013ef3087ead6499d2533d61"
+  },
+  "limits": [
+    "Read-only source review; manifest hashes checked; no tests rerun.",
+    "No actual MPS/game/environment imports, production checkpoint deserialization, real RNG reads, training, evaluation, probe, or launch.",
+    "Real RNG reference pending_notrun; constructor and environment application remain deferred.",
+    "No runtime proof, readiness, qualification, launch authority, or parent acceptance; parent owns acceptance."
+  ]
+}

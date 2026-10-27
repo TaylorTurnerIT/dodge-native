@@ -1,0 +1,117 @@
+{
+  "alias_preserved": true,
+  "argv": [
+    "learning/.venv/bin/python",
+    "-B",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/run_unit_suite.py"
+  ],
+  "cache_empty": true,
+  "fresh_helper_output_policy": "tempfile.mkdtemp per test and repeated helper; exclusive outputs never reused",
+  "no_old_envelopes": true,
+  "original_fixture_exact": true,
+  "phase_registration": {
+    "inner:during-worker": {
+      "expected_latch_phase": "NORMAL",
+      "positive_prerequisites": [
+        "worker_spawned",
+        "registration_ack_received"
+      ]
+    },
+    "inner:pending-before": {
+      "expected_latch_phase": "DEFER",
+      "positive_prerequisites": [
+        "worker_spawned",
+        "registration_ack_received",
+        "worker_handshake_complete",
+        "worker_direct_wait_observed",
+        "worker_wait_sent",
+        "normal_terminal_publication",
+        "inner_ready_sent"
+      ]
+    },
+    "inner:spawn-before-registration": {
+      "expected_latch_phase": "NORMAL",
+      "positive_prerequisites": [
+        "worker_spawned"
+      ]
+    },
+    "inner:terminal-after": {
+      "expected_latch_phase": "NORMAL",
+      "positive_prerequisites": [
+        "worker_spawned",
+        "registration_ack_received",
+        "worker_handshake_complete",
+        "worker_direct_wait_observed",
+        "worker_wait_sent",
+        "normal_terminal_publication"
+      ]
+    },
+    "outer:receipt-after": {
+      "expected_latch_phase": "NORMAL",
+      "positive_prerequisites": [
+        "outer_gate_ack_sent",
+        "worker_handshake_complete",
+        "worker_direct_wait_observed",
+        "worker_wait_sent",
+        "inner_ready_sent",
+        "inner_direct_wait_observed",
+        "normal_accepted_publication_prepared",
+        "normal_accepted_publication"
+      ]
+    },
+    "outer:receipt-before": {
+      "expected_latch_phase": "NORMAL",
+      "positive_prerequisites": [
+        "outer_gate_ack_sent",
+        "worker_handshake_complete",
+        "worker_direct_wait_observed",
+        "worker_wait_sent",
+        "inner_ready_sent",
+        "inner_direct_wait_observed",
+        "normal_accepted_publication_prepared"
+      ]
+    }
+  },
+  "positive_metadata_valid": true,
+  "required_files": {
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r4.json": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/boundary_integrity.py": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/fixture_preconditions.py": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/lifecycle.py": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/long_d2.py": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/long_d2_executor.py": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/original-source/boundary_integrity.py": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/original-source/freeze.py": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/original-source/lifecycle.py": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/original-source/long_d2.py": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/original-source/long_d2_executor.py": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/original-source/os_checks.py": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/original-source/parent_command.py": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/original-source/processes.py": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/original-source/rehearsal.py": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/original-source/source_equality.py": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/original-source/stress.py": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/original-source/synthetic.py": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/original-source/test_boundary.py": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/processes.py": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/run_unit_suite.py": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/source_equality.py": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/test_boundary.py": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/test_r10.py": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/test_r7.py": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/test_repairs.py": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r3/long_d2.py": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-guard-prepare-r1/long_d2.py": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-prepare-r4/long_d2.py": true
+  },
+  "required_registrations": {
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/PARENT-NEXT.md": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/preparation-copy.json": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/protocol-r7-proposal.json": true,
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/retained-r9-injection.json": true
+  },
+  "scenario_count": 15,
+  "validation_dir": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r10/unit-stage/fixtures",
+  "validation_dir_empty": true
+}

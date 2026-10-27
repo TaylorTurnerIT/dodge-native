@@ -1,0 +1,26 @@
+{
+  "actual_probe": false,
+  "actual_training": false,
+  "MPS_operations": 0,
+  "scratch_redirection": "tempfile.mkdtemp directory only; production modules unchanged",
+  "command": [
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+    "-B",
+    "-c",
+    "import runpy,sys,tempfile\nfrom pathlib import Path\nfrom unittest.mock import patch\nsource=Path(sys.argv[1]);scratch=Path(sys.argv[2]);original=tempfile.mkdtemp\ndef owned_mkdtemp(suffix=None,prefix=None,dir=None):\n    if dir is not None and Path(dir).resolve()==source.resolve():\n        dir=scratch\n    return original(suffix=suffix,prefix=prefix,dir=dir)\nsys.path.insert(0,str(source));sys.argv=[str(source/'test_calibration_cpu.py'),'-v']\nwith patch.object(tempfile,'mkdtemp',owned_mkdtemp):\n    runpy.run_path(str(source/'test_calibration_cpu.py'),run_name='__main__')\n",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r7",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/current-pair-resource-calibration-parent-validation-20261026-r7/scratch"
+  ],
+  "raw_exit": 0,
+  "log_sha256": "f104737630607db617cda233cb5a1a1bbe17cc6536c135d2c6f128f1caa5bd89",
+  "status": "passed_17_CPU_controls_only_pending_source_review_and_actual_probe",
+  "tests": 17,
+  "frozen_file_count": 125,
+  "frozen_directory_unchanged": true,
+  "empty_cache_after": true,
+  "elapsed_seconds": 9.681626709061675,
+  "source_pin_files_verified": 60,
+  "review_source_files_verified": 17,
+  "preparation_receipt_sha256": "896eb1480f5f18c0bc1cd976185b633669b7da85c6cf172852d68e2b7824a278",
+  "review_source_manifest_sha256": "77a722de1978ed5de8ae8a50da9c1e70b0d3f4196aba6ab0b2cc7cf4796ed0bf"
+}

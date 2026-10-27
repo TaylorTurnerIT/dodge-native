@@ -1,0 +1,216 @@
+{
+  "actual_command_launch_count": 1,
+  "artifact_inventory": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-execution-observer-r2b/command-artifact-inventory.json",
+  "command_receipt": {
+    "accepted": false,
+    "cleanup_complete": true,
+    "cleanup_errors": [
+      "Stop('Unexpected private IPC loss: {\"ancillary_capacity\": 16, \"buffer_bytes\": 60001, \"errno\": 54, \"expected_sender\": null, \"fd\": 3, \"flags\": null, \"next_sequence\": 4, \"operation\": \"recvmsg\", \"raw_length\": null, \"received_sequence\": 3}')"
+    ],
+    "cleanup_until_monotonic": 532117.009817,
+    "error": "Cancellation latched",
+    "events": [
+      {
+        "kind": "bounded_registration_census",
+        "matches": 0,
+        "monotonic": 532107.054565541,
+        "worker_reaping_claimed": false
+      },
+      {
+        "duty": "IPC_supervisor",
+        "error": "Stop('Unexpected private IPC loss: {\"ancillary_capacity\": 16, \"buffer_bytes\": 60001, \"errno\": 54, \"expected_sender\": null, \"fd\": 3, \"flags\": null, \"next_sequence\": 4, \"operation\": \"recvmsg\", \"raw_length\": null, \"received_sequence\": 3}')",
+        "kind": "monitor_error",
+        "source": {
+          "endpoint": "supervisor",
+          "kind": "ipc_endpoint_observation",
+          "outcome": "identity_or_lease_failure",
+          "role": "outer",
+          "signal": null,
+          "timestamp": 532107.198570791,
+          "timing_basis": "endpoint_catch_observation"
+        }
+      }
+    ],
+    "executor_t0_monotonic": 525330.539517833,
+    "expected_exit_code": 1,
+    "experiment_status": "failed",
+    "first_failure_monotonic": 532107.009817,
+    "first_global_failure": {
+      "kind": "cancel",
+      "outcome": "cancelled",
+      "role": "outer",
+      "signal": 15,
+      "timestamp": 532107.009817,
+      "timing_basis": "signal_observed_sender_unknown"
+    },
+    "first_local_failure": {
+      "kind": "cancel",
+      "outcome": "cancelled",
+      "role": "outer",
+      "signal": 15,
+      "timestamp": 532107.009817,
+      "timing_basis": "signal_observed_sender_unknown"
+    },
+    "forwarded_cancellation": [
+      {
+        "record_precedes_forward": true,
+        "recorded_monotonic": 532107.028855583,
+        "signal": 15
+      }
+    ],
+    "inner_wait": {
+      "direct_child_reaped": true,
+      "observed_monotonic": 532107.205709875,
+      "pid": 10188,
+      "raw_wait_status": 256,
+      "reaped_by": 10178,
+      "returncode": 1
+    },
+    "limitations": [
+      "Direct legitimate SIGINT/SIGTERM after a finite pending scan can remain unobserved before _exit.",
+      "Transient lease/input changes between samples and changes after the final finite filesystem read are not guaranteed observable.",
+      "Kernel uninterruptibility and OS scheduling can exceed a bound; raw/wall/unproven cleanup then reject.",
+      "Synthetic stdlib evidence does not qualify teacher, ML runtime, performance or future artifact volume."
+    ],
+    "ownership": {
+      "supervisor": {
+        "argv": [
+          "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+          "-B",
+          "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r14/capsule-final/learning/runs/v2/postovernight-long-D2-boundary-prepare-r14/long_d2.py",
+          "run",
+          "--output",
+          "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-campaign-r2",
+          "--state-path",
+          "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2-orchestration/state.json",
+          "--executor-fd",
+          "4",
+          "--executor-pid",
+          "10178"
+        ],
+        "group_absent": true,
+        "kill_sent": false,
+        "new_session_verified": true,
+        "ownership": "exact_command_parent_T0_capsule_output",
+        "parent_at_registration": 10178,
+        "pgid": 10188,
+        "pid": 10188,
+        "term_sent": true
+      },
+      "worker": {
+        "argv": [
+          "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+          "-B",
+          "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r14/capsule-final/learning/runs/v2/postovernight-long-D2-boundary-prepare-r14/long_d2.py",
+          "worker",
+          "--output",
+          "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-campaign-r2",
+          "--state-path",
+          "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2-orchestration/state.json",
+          "--started",
+          "525330.539517833",
+          "--supervisor-pid",
+          "10188",
+          "--executor-fd",
+          "3",
+          "--executor-pid",
+          "10178"
+        ],
+        "done": true,
+        "gate_ack_attempted": true,
+        "gate_ack_failed": false,
+        "gate_acked": true,
+        "group_absent": true,
+        "kill_sent": false,
+        "new_session_verified": true,
+        "ownership": "exact_command_parent_T0_capsule_output",
+        "parent_at_registration": 10188,
+        "pgid": 10203,
+        "pid": 10203,
+        "term_sent": true
+      }
+    },
+    "reaping": {
+      "supervisor": {
+        "basis": "validated_direct_parent_waitpid_report",
+        "status": "direct_reaped"
+      },
+      "worker": {
+        "basis": "validated_direct_parent_waitpid_report",
+        "status": "direct_reaped"
+      }
+    },
+    "recovery_proven": true,
+    "schema": "long_d2_outer_acceptance_v2",
+    "teacher_qualified": false,
+    "traceback": "Traceback (most recent call last):\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r14/capsule-final/learning/runs/v2/postovernight-long-D2-boundary-prepare-r14/long_d2_executor.py\", line 592, in run\n    with self.ipc_lock:self.pump()\n                       ^^^^^^^^^^^\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r14/capsule-final/learning/runs/v2/postovernight-long-D2-boundary-prepare-r14/long_d2_executor.py\", line 348, in pump\n    readable,_,_=select.select([x.sock for x in channels],[],[],life.remaining(deadline,.005))\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r14/capsule-final/learning/runs/v2/postovernight-long-D2-boundary-prepare-r14/lifecycle.py\", line 118, in handle\n    raise Stop('Lifetime wall alarm' if number == signal.SIGALRM else 'Cancellation latched',\nlifecycle.Stop: Cancellation latched\n",
+    "training_parent_eligible": false,
+    "trigger_error": "Stop('Cancellation latched')",
+    "worker_wait": {
+      "direct_child_reaped": true,
+      "observed_monotonic": 532106.97879575,
+      "pid": 10203,
+      "raw_wait_status": 512,
+      "reaped_by": 10188,
+      "returncode": 2
+    }
+  },
+  "current_input_mismatches": {},
+  "finished_at_utc": "2026-10-25T07:05:16.736986+00:00",
+  "followon_authorized": false,
+  "frozen_accept_observed": false,
+  "lease_clearing_owner": "parent",
+  "lease_retained": true,
+  "limits": {
+    "MPS_bytes": 6442450944,
+    "RSS_bytes": 6442450944,
+    "cleanup_seconds": 10,
+    "inner_seconds": 7170,
+    "latest_failure_seconds": 7210,
+    "lease_interval_seconds": 0.15,
+    "maximum_sample_gap_seconds": 0.5,
+    "outer_seconds": 7200,
+    "resource_interval_seconds": 0.05,
+    "worker_seconds": 7140
+  },
+  "mandatory_integrity_summary_sha256": null,
+  "metrics_evidence": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-execution-observer-r2b/actual-metrics.json",
+  "observed_wall_seconds": 6776.803289790987,
+  "observer_errors": [
+    {
+      "at_monotonic": 532106.958840125,
+      "error": "RuntimeError('Owned identity changed: worker')",
+      "traceback": "Traceback (most recent call last):\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-execution-observer-r2b/execute_once.py\", line 184, in <module>\n    if now-last_observe>=.5:observe();last_observe=now\n                            ^^^^^^^^^\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-execution-observer-r2b/execute_once.py\", line 88, in observe\n    if row is not None:need(all(row[k]==g[k] for k in ('argv','pgid','start_time')),'Owned identity changed: '+role)\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-execution-observer-r2b/execute_once.py\", line 29, in need\n    if not ok: raise RuntimeError(msg)\n               ^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: Owned identity changed: worker\n"
+    }
+  ],
+  "observer_pid": 10177,
+  "observer_sha256": "46c1add704746d78ede5e0696e07371a047f59efe83e528dbc2267f965b5e904",
+  "observer_started_utc": "2026-10-25T05:12:16.796924+00:00",
+  "outer_wait": {
+    "direct_child_reaped": true,
+    "observed_monotonic": 532107.323542041,
+    "pid": 10178,
+    "raw_wait_status": 256,
+    "reaped_by": 10177,
+    "returncode": 1
+  },
+  "owned_groups_positive_absence": true,
+  "postflight_seconds": 1.673695708042942,
+  "primary_failure": {
+    "kind": "cancel",
+    "outcome": "cancelled",
+    "role": "outer",
+    "signal": 15,
+    "timestamp": 532107.009817,
+    "timing_basis": "signal_observed_sender_unknown"
+  },
+  "qualification_status": "teacher_unqualified_no_automatic_followon",
+  "raw_exit": 1,
+  "raw_wait_status": 256,
+  "receipt_present": true,
+  "schema": "long_D2_r2_observed_execution_v1",
+  "status": "failed",
+  "t0_monotonic_hex": "0x1.00825143bae71p+19",
+  "teacher_qualified": false,
+  "training_parent_eligible": false
+}

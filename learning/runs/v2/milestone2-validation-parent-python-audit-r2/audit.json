@@ -1,0 +1,199 @@
+{
+  "checker_sha256": "2b214d68f1bafe499b02b17580e390c735ab6dabcc7138f833289ebfa864355a",
+  "checks": [
+    {
+      "artifact_hashes": 34,
+      "check": "exact_artifacts_identity_plan_and_examined_source",
+      "examined_frozen_sources": 3,
+      "outer_campaign_invocations": 1,
+      "passed": true
+    },
+    {
+      "check": "Python_phase_receipts_time_and_separate_RSS_observations",
+      "passed": true,
+      "phases": 3
+    },
+    {
+      "check": "trajectory_configuration_arithmetic_and_pinned_equality_ownership_assertions",
+      "passed": true
+    },
+    {
+      "check": "memory_RSS_plateau_episode_objectives_seed_stream_and_raw_frame_reconstruction",
+      "passed": true
+    },
+    {
+      "check": "throughput_paired_seed_streams_hash_equality_rates_and_bounds",
+      "passed": true
+    },
+    {
+      "check": "input_preservation",
+      "files": 40,
+      "passed": true
+    }
+  ],
+  "created_at_utc": "2026-10-24T09:04:24.726587+00:00",
+  "failures": [],
+  "findings": [],
+  "frozen_identity_sha256": "eb72ae7efec29f6def72940715ad6ff09e43d09140f0c348f095bdbbf2727448",
+  "limitations": [
+    "No project, NumPy, extension, game, test, native binary, network operation, or subagent was executed.",
+    "Trajectory summaries and pinned successful checking code support equality/ownership; intermediate arrays are not serialized for independent replay.",
+    "Memory stream serializes completed episodes and resets, not every step tensor. Completed-episode objectives and aggregate frames are independently checked; per-call reward/array assertions rely on pinned executed checking code.",
+    "The 101-point memory plateau is empirical under this random short-episode workload, not mathematical zero-leak proof or mature-pattern coverage.",
+    "Throughput action/work/final-neural hashes agree across configurations; raw actions/per-call work/final arrays are not serialized, so their hashes cannot be independently reconstructed here.",
+    "RSS samples and ru_maxrss are separate cooperative observations, not proof of an unsampled hard OS ceiling. No MPS or PPO throughput is measured.",
+    "Parent must reconcile this audit with the separate native/build audit before complete M2 acceptance. No teacher learning or qualification evidence is established."
+  ],
+  "memory": {
+    "OLS_bytes_per_call": 25.123723704135116,
+    "caps": 0,
+    "completed_episodes": 13155,
+    "deaths": 13155,
+    "distinct_actual_seeds": 13163,
+    "empirical_plateau_only": true,
+    "endpoint_samples_each": 11,
+    "first_median_RSS_bytes": 50003968,
+    "independently_reconstructed_total_raw_frames": 3339854,
+    "independently_reconstructed_warmup_raw_frames": 159023,
+    "last_median_RSS_bytes": 53018624,
+    "limit_bytes": 67108864,
+    "measured_calls": 100000,
+    "measured_raw_frames": 3180831,
+    "median_growth_bytes": 3014656,
+    "samples": 101,
+    "seed_assignments_checked": 13163,
+    "status": "passed_retained_evidence",
+    "stream_records": 24859,
+    "warmup_calls": 5000
+  },
+  "resources": {
+    "memory": {
+      "external_peak_RSS_bytes": 53018624,
+      "external_samples": 29,
+      "phase_wall_seconds": 15.397315291978884,
+      "self_ru_maxrss_bytes": 55443456,
+      "worker_wall_seconds": 14.736304665973876
+    },
+    "throughput": {
+      "external_peak_RSS_bytes": 69976064,
+      "external_samples": 8,
+      "phase_wall_seconds": 4.629027042014059,
+      "self_ru_maxrss_bytes": 69976064,
+      "worker_wall_seconds": 3.718233291991055
+    },
+    "trajectory": {
+      "external_peak_RSS_bytes": 53690368,
+      "external_samples": 3,
+      "phase_wall_seconds": 2.077269458968658,
+      "self_ru_maxrss_bytes": 56262656,
+      "worker_wall_seconds": 1.3711015420267358
+    }
+  },
+  "schema": "independent_m2_python_retained_evidence_audit_v1",
+  "scope": "Python trajectory, memory, throughput retained evidence; no project import or execution.",
+  "status": "passed_python_retained_evidence_scope;parent_full_M2_acceptance_required",
+  "throughput": {
+    "hash_equality_for_action_work_final_neural_arrays": true,
+    "independently_recomputed_seed_schedule_sha256": "e1c02ffb70162a5dcb49e68a6dc1e0428d214e57c38be4a364ccf5b90119a87c",
+    "measurements": [
+      {
+        "chunk_size": 1,
+        "environment_decisions_per_second": 264994.94498289534,
+        "public_calls_per_second": 8281.09203071548,
+        "raw_frames_per_second": 1053756.5392704986,
+        "render_pixels": false,
+        "threads": 1,
+        "wall_seconds": 0.24151404097210616
+      },
+      {
+        "chunk_size": 8,
+        "environment_decisions_per_second": 301212.67559205845,
+        "public_calls_per_second": 9412.896112251827,
+        "raw_frames_per_second": 1197776.9109398765,
+        "render_pixels": false,
+        "threads": 4,
+        "wall_seconds": 0.21247445803601295
+      },
+      {
+        "chunk_size": 1,
+        "environment_decisions_per_second": 49551.97719118895,
+        "public_calls_per_second": 1548.4992872246546,
+        "raw_frames_per_second": 197044.21155040647,
+        "render_pixels": true,
+        "threads": 1,
+        "wall_seconds": 1.2915730840177275
+      },
+      {
+        "chunk_size": 8,
+        "environment_decisions_per_second": 111415.10897769261,
+        "public_calls_per_second": 3481.722155552894,
+        "raw_frames_per_second": 443043.92171087244,
+        "render_pixels": true,
+        "threads": 4,
+        "wall_seconds": 0.5744283749954775
+      }
+    ],
+    "public_API_workload_only": true,
+    "raw_frames_per_config": 254497,
+    "same_actual_seed_rows_all4": true,
+    "seed_assignments_per_config": 1112,
+    "status": "passed_retained_evidence",
+    "timed_slot_resets_per_config": 995
+  },
+  "trajectory": {
+    "caps": 40,
+    "cases": [
+      {
+        "caps": 0,
+        "config": {
+          "batch_size": 9,
+          "decisions": 400,
+          "raw_frame_cap": 18000,
+          "thread_chunk_pairs": [
+            [
+              1,
+              1
+            ],
+            [
+              4,
+              3
+            ]
+          ]
+        },
+        "deaths": 48,
+        "explicit_slot_resets": 48,
+        "final_observation_sha256": "6831a078c51de4efb31790d4a3a1b5f0cff5687afe6dce1283786b27caff5327",
+        "ragged_K_endings": 30,
+        "raw_frames_per_path": 14344
+      },
+      {
+        "caps": 40,
+        "config": {
+          "batch_size": 5,
+          "decisions": 40,
+          "raw_frame_cap": 17,
+          "thread_chunk_pairs": [
+            [
+              1,
+              1
+            ],
+            [
+              4,
+              3
+            ]
+          ]
+        },
+        "deaths": 0,
+        "explicit_slot_resets": 40,
+        "final_observation_sha256": "043fa2fcba3237ee709aee49475f2574a93ac0da3aeeae0562a56444863aa7e6",
+        "ragged_K_endings": 40,
+        "raw_frames_per_path": 680
+      }
+    ],
+    "deaths": 48,
+    "evidence_limit": "Summaries plus exact pinned successful assertion code; no intermediate-array archive.",
+    "explicit_slot_resets": 88,
+    "raw_frames_per_path": 15024,
+    "status": "passed_retained_evidence"
+  }
+}

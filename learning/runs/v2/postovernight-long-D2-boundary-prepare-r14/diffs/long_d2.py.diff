@@ -1,0 +1,45 @@
+--- r12-source/long_d2.py
++++ r14/long_d2.py
+@@ -31,10 +31,10 @@
+ import boundary_integrity as integrity
+ 
+ ORIGINAL_ROOT = Path('/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79')
+-PREPARE_REL = 'learning/runs/v2/postovernight-long-D2-boundary-prepare-r12'
++PREPARE_REL = 'learning/runs/v2/postovernight-long-D2-boundary-prepare-r14'
+ ROOT = Path(__file__).resolve().parents[4]
+-PROTOCOL_REL = 'learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r9.json'
+-PROTOCOL_SHA256 = '22110a3cb52c36c86934ce02bb0b5c82e2041dc1a00e39a11bb80dd23697d115'
++PROTOCOL_REL = 'learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r10.json'
++PROTOCOL_SHA256 = 'ff160f8faec7c4d9b165e09db38fc3831e20e3f6609f1a82b63df42a307979ec'
+ CONFIG_SHA256 = '2ac814d3842228017d09669364a8391344722da56ad19f41ad9030dbb930c2db'
+ STATE_PATH = ORIGINAL_ROOT / 'learning/runs/v2-orchestration/state.json'
+ LIMIT = 6442450944
+@@ -551,13 +551,27 @@
+             cpu = time.thread_time()
+             stats = dict(files=0, bytes=0, components={})
+             VERIFY_LOCAL.stats = stats
++            callback_error = None
+             try:
+                 with boundary_switch_interval():
+-                    observation = self.verify()
++                    try:
++                        observation = self.verify()
++                    except BaseException as error:
++                        # Latch at the actual callback catch, before interval
++                        # cleanup can raise a later error that replaces it.
++                        callback_error = error
++                        self.failure_at = self.failure_at or self.clock()
++                        self.failure = self.failure or (error if isinstance(error, Stop) else Stop(repr(error)))
++                        raise
+                 self.last_full = at
+                 self.check()
+                 row.update(verdict='passed', observation=observation)
+             except BaseException as error:
++                if callback_error is not None and error is not callback_error:
++                    # Later cleanup failure stays represented and fatal, but
++                    # the original callback failure remains primary.
++                    row.update(verdict='failed', error=repr(callback_error), cleanup_error=repr(error))
++                    raise callback_error from error
+                 row.update(verdict='failed', error=repr(error))
+                 self.failure_at = self.failure_at or self.clock()
+                 self.failure = self.failure or (error if isinstance(error, Stop) else Stop(repr(error)))

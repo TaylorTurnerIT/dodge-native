@@ -1,0 +1,76 @@
+{
+  "schema": "d2_retained276_continuation_preparation_plan_v1",
+  "status": "prepared_pending_independent_review_parent_registration_and_fresh_preflight",
+  "run_id": "D2-retained276-continuation-20261026-r1",
+  "scope": "CPU-only preparation for one new 72-update same-config D2 iteration. No lease, environment, MPS, training, optimizer step, or launch.",
+  "parent": {
+    "run_id": "D2-retained204-lr1e4-20261026-r1",
+    "phase_update": 276,
+    "checkpoint": "learning/runs/v2/D2-retained204-lr1e4-20261026-r1/checkpoint-000276-candidate.pt",
+    "checkpoint_sha256": "0b5cf72b4eb9629fa4f10ce2cecb3625b56f8787c0eca6395b9fe17161e6b292",
+    "terminal_receipt": "learning/runs/v2/D2-retained204-lr1e4-parent-terminal-audit-20261026-r1/parent-terminal-receipt.json",
+    "terminal_receipt_sha256": "d64d0f803d02a8d2c33da9fa0ba862f06ba7d9c56dcf4f0494e559a49e48fcc4",
+    "cumulative_updates": 324,
+    "effective_learning_rate": 0.0001
+  },
+  "trial": {
+    "phase_start": 276,
+    "phase_end": 348,
+    "updates": 72,
+    "evaluation_updates": [276, 288, 300, 312, 324, 336, 348],
+    "fresh_run_seed": 3791628419,
+    "config_sha256": "f858a63c324fc312f794c0423aa56db2daf60793b62990cd51fa400afe3af628",
+    "algorithm_change": false,
+    "entry_gate": "All 64 deterministic argmax rows must match accepted phase-276 rows before gradients.",
+    "resume": "Restore model, Adam, and full MPS RNG from exact parent checkpoint; preserve parent episode indices, then use fresh environment stream. Record 64 abandoned parent episodes and exclude their frames.",
+    "score": "Reward unchanged; survival gate only. No competence, D3, or student authority."
+  },
+  "wall_accounting": {
+    "selected_checkpoint_reported_trajectory_wall_seconds": 4740.377017625088,
+    "selected_checkpoint_reported_iteration_wall_seconds": 1388.3307809999678,
+    "future_selected_branch_terminal_highwater_baseline_seconds": 4760.062404125177,
+    "completed_campaign_resource_cost_baseline_seconds": 5537.773026792208,
+    "worker_reported_trajectory_end_seconds": 4755.588849625031,
+    "worker_reported_complete_campaign_cost_seconds": 5533.299472292062,
+    "future_checkpoint_formula": "4760.062404125177 + this iteration outer monotonic elapsed",
+    "campaign_cost_formula": "5537.773026792208 + this iteration outer monotonic elapsed"
+  },
+  "limits": {
+    "outer_seconds": 1800,
+    "hard_work_seconds": 1790,
+    "cleanup_reserve_seconds": 10,
+    "planned_work_seconds": 1650,
+    "RSS_bytes": 6442450944,
+    "MPS_bytes": 6442450944,
+    "retries": 0,
+    "fallbacks": 0,
+    "relaxation": false,
+    "optimizer_steps_max": 9216,
+    "previous_full_iteration_outer_seconds": 1408.0161675000563,
+    "scaled_plus_15_percent_seconds": 1619.2185925000646
+  },
+  "runtime": {
+    "runtime_sha256": "2cf10e9f056f41b39dc17845192e9adf553a5f699546d4f5dcea764a23e36b31",
+    "native_sha256": "022d41dde9bace0b4f4c4c06b9b4ed007bc2c60013cd98734086e587d7bb997e",
+    "architecture_parameters": 321290,
+    "layers": 2,
+    "heads": 4,
+    "tokens": 81,
+    "environments": 64,
+    "rollout_steps": 256,
+    "action_repeat": 4,
+    "optimizer_learning_rate": 0.0001
+  },
+  "validation": [
+    "Exact parent CPU model/Adam restore and saved LR check.",
+    "Negative wrong-parent, wrong-receipt, counter, resume-index, config, and optimizer group-LR controls.",
+    "Production checkpoint counter helper covers phase 276 plus all six later checkpoints.",
+    "Registration preflight mocks only exact lease check; all pins, parent authority, runtime and resource validators run normally.",
+    "No MPS RNG claim from CPU-only restore test."
+  ],
+  "pending_parent_actions": [
+    "Fresh independent Haiku review of complete frozen source and registration.",
+    "Parent-owned exact lease registration and unmocked full preflight.",
+    "Parent-owned single launch only after review; parent validates all actual outputs."
+  ]
+}

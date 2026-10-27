@@ -1,0 +1,43 @@
+--- R4/long_d2_executor.py
++++ guard-r1/long_d2_executor.py
+@@ -82,6 +82,7 @@
+     c.require(actual==set(manifest)|{'artifact-manifest.json','finalization-result.json'}, 'Output inventory differs')
+     fixed={'long-worker-result.json','long-run-result.json','worker.stdout.log','worker.stderr.log',
+            'supervisor-guard.jsonl','worker-resources.jsonl','training-episodes.jsonl','training-metrics.jsonl',
++           'worker-verification.jsonl','worker-verification.manifest.json',
+            'entry-restoration.json','entry-control.json','parent-lineage.json','actual-import-origins.json',
+            'long-config.json','long-identity.json','checkpoint-index.json','schedule.jsonl'}
+     c.require(fixed<=set(manifest), 'Required output evidence missing')
+@@ -344,9 +345,11 @@
+             c.assert_lease(self.registration['state_path'],lease)
+             c.require(not receipt_path.exists() and not Path(self.registration['output']).exists(), 'Single-use output/receipt already exists')
+             def verify():
+-                c.verify_files(pins)
+-                c.verify_files(self.registration['pins'])
+-                c.assert_readonly_capsule(c.ROOT,c.read_json(c.ROOT/'capsule-manifest.json'))
++                with c.verification_component('full_pins'):
++                    c.verify_files(pins)
++                    c.verify_files(self.registration['pins'])
++                with c.verification_component('capsule_walks'):
++                    c.assert_readonly_capsule(c.ROOT,c.read_json(c.ROOT/'capsule-manifest.json'))
+             self.guard=self.guard_factory(self.t0+NORMAL_SECONDS,
+                 lambda:c.assert_lease(self.registration['state_path'],lease),verify,None)
+             self.guard.start()
+@@ -420,6 +423,8 @@
+                 if time.monotonic()-self.guard.last_sample>=.15:self.guard.sample(full=False)
+             c.HASH_OBSERVER=final_hash_observer
+             self.authority(True)  # Includes watchdog and endpoint close.
++            self.guard.persist_timing(receipt_path.parent/'outer-verification.jsonl',
++                                      self.t0+NORMAL_SECONDS,lambda: self.authority(False))
+             self.closed=True
+         except BaseException as error:
+             self.fail(error,self.guard.failure_at if self.guard is not None else None)
+@@ -449,6 +454,8 @@
+                     teacher_qualified=False,training_parent_eligible=False,limitations=LIMITATIONS)
+                 life.remaining(self.pool.until)
+                 receipt_path.parent.mkdir(parents=False,exist_ok=True)
++                if self.guard is not None:
++                    self.guard.persist_timing(receipt_path.parent/'outer-verification.jsonl',self.pool.until)
+                 c.replace_json(receipt_path,result)
+                 life.remaining(self.pool.until)
+                 self.stop.set()

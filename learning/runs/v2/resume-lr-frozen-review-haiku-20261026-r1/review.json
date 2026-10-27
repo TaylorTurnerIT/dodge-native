@@ -1,0 +1,95 @@
+{
+  "schema": "resume_lr_frozen_hook_review_v1",
+  "reviewer": "claude-haiku-5-5",
+  "scope": "read-only; CPU only; no environments, training, optimizer steps on game weights, MPS, or writes outside this review directory",
+  "verdict": "findings_in_integration_tests_and_design; hook_validation_and_mutation_scope_hold",
+  "findings": [
+    {
+      "id": 1,
+      "severity": "moderate",
+      "file": "learning/runs/v2/resume-lr-ablation-prepare-luna-20261026-r1/integration.patch",
+      "location": "hunk 'after each PPO update, before metrics/checkpoint publication'",
+      "summary": "No LR assertion before the first update; drift is detected only after optimizer.step() has used the wrong LR.",
+      "fix": "Assert effective LR immediately before each update call, not only after."
+    },
+    {
+      "id": 2,
+      "severity": "moderate",
+      "file": "learning/runs/v2/resume-lr-ablation-prepare-luna-20261026-r1/integration.patch",
+      "location": "transition hunk calling without_group_lr(optimizer.state_dict())",
+      "summary": "without_group_lr is undefined in the frozen runner (fingerprint is at runner.py:375; helper exists only in the test as optimizer_without_lr). Patch fails with NameError.",
+      "fix": "Define or import the helper from one shared module with the same scope as the test."
+    },
+    {
+      "id": 3,
+      "severity": "low",
+      "file": "learning/runs/v2/resume-lr-ablation-prepare-luna-20261026-r1/integration.patch",
+      "location": "need(reg['arm_transition'] == ...) after apply_resume_lr_override(...)",
+      "summary": "Registration check runs after the optimizer LR mutation, so a mismatched registration mutates and then raises.",
+      "fix": "Move the arm_transition check above the apply_resume_lr_override call."
+    },
+    {
+      "id": 4,
+      "severity": "moderate",
+      "file": "learning/runs/v2/resume-lr-ablation-prepare-luna-20261026-r1/integration.patch",
+      "location": "lr-transition.json record and arm_transition check; frozen runner.py:28 and :138 pin CONFIG_SHA",
+      "summary": "No code validator permits only ppo.learning_rate plus arm identity; lr-transition.json omits parent config SHA and arm config SHA, so the parent/arm identity transition is textual only.",
+      "fix": "Add a declared transition validator and record parent config SHA as archived provenance; require it before arm registration."
+    },
+    {
+      "id": 5,
+      "severity": "low",
+      "file": "learning/runs/v2/resume-lr-ablation-prepare-luna-20261026-r1/integration.patch",
+      "location": "hunk headers and paths",
+      "summary": "Patch is a sketch: hunk headers are comments without line numbers, and paths are placeholders (frozen-training-adapter/runner.py, future-registered-arm/runner.py), not git-applicable to the real runner. Anchor is correct at runner.py:596.",
+      "fix": "Label as sketch or regenerate as a real unified diff against the frozen runner."
+    },
+    {
+      "id": 6,
+      "severity": "low",
+      "file": "learning/runs/v2/resume-lr-ablation-prepare-luna-20261026-r1/test_resume_lr_override.py",
+      "location": "test_real_accepted_best180_restore_on_cpu_then_override_only_lr",
+      "summary": "Name and design imply restore coverage, but the test bypasses ckpt.restore_learner, exercises no RNG restore, and its RNG equality assertion is trivially true.",
+      "fix": "Scope claim to exact model/Adam tensors loaded on CPU and hook leaves CPU RNG unchanged."
+    },
+    {
+      "id": 7,
+      "severity": "low",
+      "file": "learning/runs/v2/resume-lr-ablation-prepare-luna-20261026-r1/resume_lr_override.py",
+      "location": "apply_resume_lr_override except BaseException rollback",
+      "summary": "Rollback branch is untested and unreachable for valid finite positive inputs; math.isfinite on non-numeric input raises TypeError rather than ValueError (still pre-mutation).",
+      "fix": "Note rollback as defensive only; rely on pre-mutation checks as the atomicity evidence."
+    },
+    {
+      "id": 8,
+      "severity": "low",
+      "file": "learning/runs/v2/resume-lr-ablation-prepare-luna-20261026-r1/integration.patch",
+      "location": "lr-transition.json fields",
+      "summary": "Design requires full before/after optimizer fingerprints and LR delta; patch records only fingerprints excluding LR.",
+      "fix": "Record full parent and effective optimizer fingerprints alongside the excluding-LR fingerprints and LR delta."
+    },
+    {
+      "id": 9,
+      "severity": "medium",
+      "file": "learning/runs/v2/resume-lr-ablation-prepare-luna-20261026-r1/design.md",
+      "location": "Next registration / power sentence (roughly 620 frames)",
+      "summary": "Design states as fact that one seed per arm cannot resolve effects below roughly 620 frames; the parent ranking reconciliation qualifies this as an illustrative fixed-cohort approximation, not a training-replicate power proof.",
+      "fix": "Restate as an illustrative fixed-cohort approximation per the reconciliation; drop the absolute claim. Reconciliation file not opened in this review."
+    }
+  ],
+  "checked_holding": [
+    "Atomic rejection before first write for config_lr != 1e-4 and any group lr != 3e-4",
+    "Mutation scope limited to optimizer.param_groups[*].lr",
+    "load_state_dict overwrite resets LR and is detected by assert_effective_lr",
+    "Source and receipt hashes match the brief",
+    "PARENT_SHA and PARENT_RECEIPT_SHA checks preserved at runner.py:22 and :24",
+    "Integration anchor at runner.py:596 precedes environment construction"
+  ],
+  "not_inspected": [
+    "post-update check placement within the update loop",
+    "save and emit helpers",
+    "ranking reconciliation file (qualification wording not quoted)"
+  ],
+  "tests_rerun": false,
+  "tests_basis": "parent independent run: 4 passed, learning/runs/v2/resume-lr-ablation-parent-prepare-20261026-r1/validation.json"
+}

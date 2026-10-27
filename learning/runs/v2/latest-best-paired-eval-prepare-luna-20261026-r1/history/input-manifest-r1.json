@@ -1,0 +1,143 @@
+{
+  "absolute_input_paths_sha256": {
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/docs/SPEC_PRIVILEGED_VIT_RL.md": "02230eea7a3b36c786d3deeb31471baf8270efb09c3c1e77b7a77c7cfae240f3",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/docs/implementation-plan-v2.md": "a034a45408ebea580882bf931c156288100c120ef78806bb7c87dce0597445aa",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2-orchestration/postovernight-action-mode-r3-protocol.json": "90e3ae1cc8ba253e2e64a708f9b66ed59762e85668a15197d04d9265180ea741",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-continuation-20261025-r2/checkpoint-000252-candidate.pt": "cbdc65d0f3b2e32644ba64ada80093f20c7a6bceb8730f2eecac7a188504254b",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-continuation-20261025-r2/development-000252.jsonl": "dd02551520977ceb26cddec7a7d9437265d3fbfd58917a79bbc52cc1f5929d36",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-alignment-20261025-r2/checkpoint-000180-candidate.pt": "105e0f7a83e154116bd9f0d5eaaf573a896886468c9038f548f5ce7e6377c7ea",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-alignment-20261025-r2/development-000180.jsonl": "33e7859274c65cbefb627e595006e4c64650a653ccace1e059bc9e46a8df76f1",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/d2-continuation252-parent-terminal-audit-20261026-r1/audit.json": "08eb63b4c6d199bfb44e3abdafd1d773ab921de3687c04641c6df596ad7313b2",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/d2-continuation252-parent-terminal-audit-20261026-r1/canonical-performance-correction.json": "22ea28a115382abca1fa45a2023bd92132c6c0e7a99767db8a090663747e33a0",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/d2-continuation252-parent-terminal-audit-20261026-r1/parent-terminal-receipt.json": "25f2744d39e2c48e48333088c78855af1ad3b65f1053f576d70f9ac38b5d4096",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/d2-gradient-parent-terminal-audit-20261025-r2/audit.json": "a93fe6abd35e715c538522dff1bf381a52b8c60f79e30914aa7b953b4f2864af",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/d2-gradient-parent-terminal-audit-20261025-r2/parent-terminal-receipt.json": "7968a62b6e601fab971e4145dbaebfa1995c8f696e6df442ab70fc0435b74903",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/latest-best-paired-eval-design-haiku-20261026-r1/plan.json": "65104a03192f0f040551f8a86c7886dbffba526aa2f41ecbfc89cbfd76a55087",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/latest-best-paired-eval-parent-plan-20261026-r1/reconciliation.json": "3e6f5207cdbe36cfd75f3ccbe944d58c89d6c16146e67f8bc4efafe3e13729ec"
+  },
+  "architecture": {
+    "activation": "gelu",
+    "actor_head": [
+      128,
+      128,
+      9
+    ],
+    "attention": "full_self_attention",
+    "average_attn_weights": true,
+    "class": "OmniscientEntityTeacher",
+    "critic_head": [
+      128,
+      128,
+      1
+    ],
+    "dropout": 0.0,
+    "entity_embedding": [
+      16,
+      128,
+      128
+    ],
+    "entity_mask_true_means_valid": true,
+    "entity_position_embeddings": false,
+    "entity_shape": [
+      80,
+      16
+    ],
+    "entity_type_vocab_size": 9,
+    "entity_valid_types": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "ffn_dim": 256,
+    "global_embedding": [
+      14,
+      128
+    ],
+    "global_shape": [
+      1,
+      14
+    ],
+    "head_initialization": {
+      "actor_final_gain": 0.01,
+      "critic_final_gain": 1.0,
+      "hidden_gain": 1.4142135623730951,
+      "method": "orthogonal_weights_zero_biases"
+    },
+    "layernorm_eps": 1e-05,
+    "model_dim": 128,
+    "need_weights": true,
+    "normalization": "pre_norm_plus_final_layernorm",
+    "num_heads": 4,
+    "num_layers": 2,
+    "parameter_count": 321290,
+    "token_count": 81,
+    "trunk_initialization": "pytorch_default",
+    "version": "omniscient_entity_teacher_full_attention_v1"
+  },
+  "checkpoint_loader": "Frozen dodge_rl.checkpoints.load_checkpoint plus require_complete_update; strict d2_training_v3_checkpoint_v1, complete-update, identity, registration/runtime/native/policy/counter and accepted receipt/audit bindings.",
+  "frozen_runtime_files": {
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/docs/teacher-qualification-v2.json": "e091f8a2fad0a307d289a6d306112606b15df8f8aa0f3a75707ac7cfb2cee803",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/docs/teacher-qualification-v3.json": "bfcbee1609cec0180495c957cf4b5e0b31356f395e2a706217cc9225647d23ae",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/docs/v2-m3-component-contract.md": "a1051d82527a9aec1f7967ff8ab217c30263240e032991aeff7b993fd975ba47",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/docs/v2-m3-run-protocol.json": "9e0d82028011f83e0cf6ddaef5f5e118591158d8a557f6698c82c150d5a69bab",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/__init__.py": "2bf56a8151b512d78a228d604fdac67c529c8ebfd3fa233c71c2dd4f882b44dc",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/_native.cpython-312-darwin.so": "022d41dde9bace0b4f4c4c06b9b4ed007bc2c60013cd98734086e587d7bb997e",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/checkpoints.py": "807141943a742c6e9fdd34274c191b3c318134cc7fb0c1c6256874cadee1cbc3",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/critic_diagnostics.py": "272059f7c12ebe30e36dc6e9e2388c5b088c11bcd002ee95478459a61e452dbe",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/dev_eval.py": "eecf71936f10938169c0283ed1bb0717b87e46da7ee4ac8636a20d366df3753b",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/gradient_alignment.py": "cd7d16aebe9eed247b0a4747956d8106991b3637ab0b45118ea9e7ebc0c1e25f",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/identity.py": "50775b2e7c30e53757dd3134d11613f716733cee8e6a96cc18b62e8ff2a4a053",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/models/__init__.py": "b28b2623443e31d9e9cb81350f89e9fb7d285abe3e2a74c007be8e4cfff432dc",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/models/teacher.py": "e4d7f597a2824c2b0d4ba261dddc9d7d1ee1d5592c2fc966a44c54b5ec417e35",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/ppo.py": "b3cef91b1293056e9d1820a94fd5730accae4c5728d23566857a6c3a0e1eeac5",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/supervision.py": "45a5714d70d956371442cc3b5ebd1d56d5c498658296afa7e9c9d4c13f2a9b70",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/survival_gate.py": "11257111602f26e49fbc71afc6a51acb79434a3717bd8d6d36d1bbf87dfb8841",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/train_teacher.py": "1d134bfb221ff52139e1243c9e4f9c3063432942a3274c567b71db4d7669c0cf"
+  },
+  "frozen_runtime_root": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime",
+  "harness_sha256": "9ac5385138ab0bf3dff090582e7b760379afb1df05a1b9a6b0b53686dbf56794",
+  "harness_source_files": {
+    "paired_eval.py": "9e1c1bbfc71bc3d3446dd9ec8a8298d41a9e413a25298818371190f97f711705",
+    "supervisor.py": "8833631ee1e48d440c40e08d35508b8161e114ff23ce9d845ce054a7dfd37df4",
+    "tests/test_paired_eval.py": "da4aa7f3ff7bb1313a4ab1bbf392b2f9b1b78897c6249d717539b4961be52d82",
+    "worker.py": "60633b245e0801865346854051cf67ddeee51c3d5b4a15df3760fb2c7257b42f"
+  },
+  "immutability": "No source/runtime/checkpoint/receipt/ledger/docs/lease outside this new preparation directory was modified.",
+  "input_files": {
+    "docs/SPEC_PRIVILEGED_VIT_RL.md": "02230eea7a3b36c786d3deeb31471baf8270efb09c3c1e77b7a77c7cfae240f3",
+    "docs/implementation-plan-v2.md": "a034a45408ebea580882bf931c156288100c120ef78806bb7c87dce0597445aa",
+    "learning/runs/v2-orchestration/postovernight-action-mode-r3-protocol.json": "90e3ae1cc8ba253e2e64a708f9b66ed59762e85668a15197d04d9265180ea741",
+    "learning/runs/v2/D2-continuation-20261025-r2/checkpoint-000252-candidate.pt": "cbdc65d0f3b2e32644ba64ada80093f20c7a6bceb8730f2eecac7a188504254b",
+    "learning/runs/v2/D2-continuation-20261025-r2/development-000252.jsonl": "dd02551520977ceb26cddec7a7d9437265d3fbfd58917a79bbc52cc1f5929d36",
+    "learning/runs/v2/D2-gradient-alignment-20261025-r2/checkpoint-000180-candidate.pt": "105e0f7a83e154116bd9f0d5eaaf573a896886468c9038f548f5ce7e6377c7ea",
+    "learning/runs/v2/D2-gradient-alignment-20261025-r2/development-000180.jsonl": "33e7859274c65cbefb627e595006e4c64650a653ccace1e059bc9e46a8df76f1",
+    "learning/runs/v2/d2-continuation252-parent-terminal-audit-20261026-r1/audit.json": "08eb63b4c6d199bfb44e3abdafd1d773ab921de3687c04641c6df596ad7313b2",
+    "learning/runs/v2/d2-continuation252-parent-terminal-audit-20261026-r1/canonical-performance-correction.json": "22ea28a115382abca1fa45a2023bd92132c6c0e7a99767db8a090663747e33a0",
+    "learning/runs/v2/d2-continuation252-parent-terminal-audit-20261026-r1/parent-terminal-receipt.json": "25f2744d39e2c48e48333088c78855af1ad3b65f1053f576d70f9ac38b5d4096",
+    "learning/runs/v2/d2-gradient-parent-terminal-audit-20261025-r2/audit.json": "a93fe6abd35e715c538522dff1bf381a52b8c60f79e30914aa7b953b4f2864af",
+    "learning/runs/v2/d2-gradient-parent-terminal-audit-20261025-r2/parent-terminal-receipt.json": "7968a62b6e601fab971e4145dbaebfa1995c8f696e6df442ab70fc0435b74903",
+    "learning/runs/v2/latest-best-paired-eval-design-haiku-20261026-r1/plan.json": "65104a03192f0f040551f8a86c7886dbffba526aa2f41ecbfc89cbfd76a55087",
+    "learning/runs/v2/latest-best-paired-eval-parent-plan-20261026-r1/reconciliation.json": "3e6f5207cdbe36cfd75f3ccbe944d58c89d6c16146e67f8bc4efafe3e13729ec"
+  },
+  "interpreter": {
+    "lexical_venv_path": "python/.venv/bin/python",
+    "resolved_target": "/Users/taylor/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/bin/python3.12",
+    "symlink_target": "/Users/taylor/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12",
+    "target_sha256": "8dcafa7835e861e88a8f8ac7e61effbf5a987f32b0ec47bb1f3c9987caf9216d"
+  },
+  "native_extension_sha256": "022d41dde9bace0b4f4c4c06b9b4ed007bc2c60013cd98734086e587d7bb997e",
+  "protocol_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/latest-best-paired-eval-prepare-luna-20261026-r1/protocol-proposed.json",
+  "protocol_sha256": "b71d5ac92af8a2a244deb64687e4d57cbcc6f5fe785c06a9efbb039839c9147f",
+  "runtime_tree_sha256": "409a5ab6a4bf2035115ee7d580b7947f6f21d4ddd6297fa719fcc8e98bfcdd73",
+  "schema": "latest_best_paired_eval_input_manifest_v1",
+  "status": "frozen_source_and_input_manifest_for_review",
+  "support_files": {
+    "README.md": "16073fd29da7afdab5916c44dbe9e5e920b18ed1c0ee5068cb7a4012fd5a705a",
+    "freeze_artifacts.py": "41870212e2796e5012257c562808bf428743d9c3bd3a3b2a9cd817e59391d92c"
+  }
+}

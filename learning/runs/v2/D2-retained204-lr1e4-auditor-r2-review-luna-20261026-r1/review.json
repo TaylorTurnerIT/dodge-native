@@ -1,0 +1,60 @@
+{
+  "authority": {
+    "best_replacement": false,
+    "continuation": false,
+    "selection": false,
+    "terminal_acceptance": false
+  },
+  "checkpoint_decoded_by_review": false,
+  "findings": [
+    {
+      "evidence": [
+        "audit_candidates.py:load_frozen",
+        "audit_candidates.py:bind_environment",
+        "audit_candidates.py:import_runtime",
+        "runner.py:worker"
+      ],
+      "id": "R2-REVIEW-001",
+      "minimal_fix": "Check resolved sys.executable against reg.interpreter; reject or validate preloaded dodge_rl modules; assert exact origins for each imported runtime module; add negative controls.",
+      "severity": "blocker",
+      "title": "Auditor does not bind active interpreter or exact runtime submodule origins"
+    }
+  ],
+  "full_mode": {
+    "frozen_validate_outputs_executed": false,
+    "published_updates": [
+      204,
+      216,
+      228,
+      240,
+      252
+    ],
+    "reason": "Frozen full-mode refusal requires all seven published certificates.",
+    "required_updates": [
+      204,
+      216,
+      228,
+      240,
+      252,
+      264,
+      276
+    ],
+    "status": "pending_run_completion"
+  },
+  "input_sha256": {
+    "audit_candidates.py": "95d31ab00694c760539bd9d4246a29673eca8f9ffa411ee456d3eb3e383fe66f",
+    "receipt.json": "297ad480461bf8208c89e40a44a7b418ca97a89e7dae3dac9027042fd9dcb0aa",
+    "source-manifest.json": "b225cc2b565b90c09583908ed001f3f05c18ba042a13ad9706f5936c6a8b6215",
+    "test_audit_candidates.py": "cdd86de0bf3ae1a10e46662f85b7da3521500615dc55ab8b7834bedf4d9596cd"
+  },
+  "reviewer_scope": "read-only source, test, frozen receipt/manifest, and published metadata review; no checkpoint decode or training execution",
+  "schema": "retained204_auditor_r2_review_v1",
+  "status": "changes_required_provenance_binding",
+  "target": "learning/runs/v2/D2-retained204-lr1e4-all-candidate-auditor-haiku-20261026-r2",
+  "test_evidence": {
+    "logged_result": "OK",
+    "logged_tests": 35,
+    "test_log_sha256": "9fa34eb5ad7f02850c40fa7969b1a40f7e46c43fb138b6ebabfc576e0ca99a42"
+  },
+  "training_changed_by_review": false
+}

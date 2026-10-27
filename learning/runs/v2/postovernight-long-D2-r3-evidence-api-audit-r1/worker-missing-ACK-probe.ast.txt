@@ -1,0 +1,664 @@
+Module(
+  body=[
+    FunctionDef(
+      name='outcome_fields',
+      args=arguments(
+        posonlyargs=[],
+        args=[
+          arg(arg='outcome'),
+          arg(arg='complete')],
+        kwonlyargs=[],
+        kw_defaults=[],
+        defaults=[
+          Constant(value=False)]),
+      body=[
+        Assign(
+          targets=[
+            Name(id='passed', ctx=Store())],
+          value=BoolOp(
+            op=And(),
+            values=[
+              Name(id='complete', ctx=Load()),
+              Compare(
+                left=Name(id='outcome', ctx=Load()),
+                ops=[
+                  Eq()],
+                comparators=[
+                  Constant(value='D2_progress_gate_passed')])])),
+        Return(
+          value=Call(
+            func=Name(id='dict', ctx=Load()),
+            args=[],
+            keywords=[
+              keyword(
+                arg='experiment_status',
+                value=IfExp(
+                  test=Name(id='complete', ctx=Load()),
+                  body=Constant(value='complete'),
+                  orelse=Constant(value='failed'))),
+              keyword(
+                arg='outcome',
+                value=Name(id='outcome', ctx=Load())),
+              keyword(
+                arg='progression_gate_passed',
+                value=Name(id='passed', ctx=Load())),
+              keyword(
+                arg='teacher_qualified',
+                value=Constant(value=False)),
+              keyword(
+                arg='training_parent_eligible',
+                value=Constant(value=False)),
+              keyword(
+                arg='D3_parent_candidate_pending_separate_parent_audit',
+                value=Name(id='passed', ctx=Load())),
+              keyword(
+                arg='B_E_student_D3_opened',
+                value=Constant(value=False)),
+              keyword(
+                arg='automatic_retries',
+                value=Constant(value=0)),
+              keyword(
+                arg='same_phase_resume',
+                value=Constant(value=False)),
+              keyword(
+                arg='expected_exit_code',
+                value=IfExp(
+                  test=Name(id='complete', ctx=Load()),
+                  body=IfExp(
+                    test=Name(id='passed', ctx=Load()),
+                    body=Constant(value=0),
+                    orelse=Constant(value=2)),
+                  orelse=Constant(value=1)))]))],
+      decorator_list=[]),
+    FunctionDef(
+      name='result_code',
+      args=arguments(
+        posonlyargs=[],
+        args=[
+          arg(arg='result')],
+        kwonlyargs=[],
+        kw_defaults=[],
+        defaults=[]),
+      body=[
+        Assign(
+          targets=[
+            Name(id='good', ctx=Store())],
+          value=Compare(
+            left=Call(
+              func=Attribute(
+                value=Name(id='result', ctx=Load()),
+                attr='get',
+                ctx=Load()),
+              args=[
+                Constant(value='experiment_status')],
+              keywords=[]),
+            ops=[
+              Eq()],
+            comparators=[
+              Constant(value='complete')])),
+        If(
+          test=BoolOp(
+            op=And(),
+            values=[
+              Name(id='good', ctx=Load()),
+              Compare(
+                left=Call(
+                  func=Attribute(
+                    value=Name(id='result', ctx=Load()),
+                    attr='get',
+                    ctx=Load()),
+                  args=[
+                    Constant(value='outcome')],
+                  keywords=[]),
+                ops=[
+                  Eq()],
+                comparators=[
+                  Constant(value='D2_progress_gate_passed')]),
+              Compare(
+                left=Call(
+                  func=Attribute(
+                    value=Name(id='result', ctx=Load()),
+                    attr='get',
+                    ctx=Load()),
+                  args=[
+                    Constant(value='progression_gate_passed')],
+                  keywords=[]),
+                ops=[
+                  Is()],
+                comparators=[
+                  Constant(value=True)])]),
+          body=[
+            Return(
+              value=Constant(value=0))],
+          orelse=[]),
+        If(
+          test=BoolOp(
+            op=And(),
+            values=[
+              Name(id='good', ctx=Load()),
+              Compare(
+                left=Call(
+                  func=Attribute(
+                    value=Name(id='result', ctx=Load()),
+                    attr='get',
+                    ctx=Load()),
+                  args=[
+                    Constant(value='outcome')],
+                  keywords=[]),
+                ops=[
+                  Eq()],
+                comparators=[
+                  Constant(value='budget_closed_below_gate')]),
+              Compare(
+                left=Call(
+                  func=Attribute(
+                    value=Name(id='result', ctx=Load()),
+                    attr='get',
+                    ctx=Load()),
+                  args=[
+                    Constant(value='progression_gate_passed')],
+                  keywords=[]),
+                ops=[
+                  Is()],
+                comparators=[
+                  Constant(value=False)])]),
+          body=[
+            Return(
+              value=Constant(value=2))],
+          orelse=[]),
+        Return(
+          value=Constant(value=1))],
+      decorator_list=[]),
+    FunctionDef(
+      name='failure_outcome',
+      args=arguments(
+        posonlyargs=[],
+        args=[
+          arg(arg='error')],
+        kwonlyargs=[],
+        kw_defaults=[],
+        defaults=[]),
+      body=[
+        If(
+          test=Call(
+            func=Name(id='isinstance', ctx=Load()),
+            args=[
+              Name(id='error', ctx=Load()),
+              Name(id='Stop', ctx=Load())],
+            keywords=[]),
+          body=[
+            Return(
+              value=Attribute(
+                value=Name(id='error', ctx=Load()),
+                attr='outcome',
+                ctx=Load()))],
+          orelse=[]),
+        If(
+          test=Call(
+            func=Name(id='isinstance', ctx=Load()),
+            args=[
+              Name(id='error', ctx=Load()),
+              Name(id='KeyboardInterrupt', ctx=Load())],
+            keywords=[]),
+          body=[
+            Return(
+              value=Constant(value='cancelled'))],
+          orelse=[]),
+        Return(
+          value=Constant(value='safety_stop'))],
+      decorator_list=[]),
+    FunctionDef(
+      name='worker_failure',
+      args=arguments(
+        posonlyargs=[],
+        args=[
+          arg(arg='error'),
+          arg(arg='args'),
+          arg(arg='guard'),
+          arg(arg='learner')],
+        kwonlyargs=[],
+        kw_defaults=[],
+        defaults=[]),
+      body=[
+        Assign(
+          targets=[
+            Name(id='at', ctx=Store())],
+          value=IfExp(
+            test=BoolOp(
+              op=And(),
+              values=[
+                Compare(
+                  left=Name(id='guard', ctx=Load()),
+                  ops=[
+                    IsNot()],
+                  comparators=[
+                    Constant(value=None)]),
+                Compare(
+                  left=Attribute(
+                    value=Name(id='guard', ctx=Load()),
+                    attr='failure_at',
+                    ctx=Load()),
+                  ops=[
+                    IsNot()],
+                  comparators=[
+                    Constant(value=None)])]),
+            body=Attribute(
+              value=Name(id='guard', ctx=Load()),
+              attr='failure_at',
+              ctx=Load()),
+            orelse=Constant(value=None))),
+        Assign(
+          targets=[
+            Name(id='deadline', ctx=Store())],
+          value=Call(
+            func=Attribute(
+              value=Name(id='life', ctx=Load()),
+              attr='notify_failure',
+              ctx=Load()),
+            args=[
+              Name(id='error', ctx=Load()),
+              Name(id='at', ctx=Load())],
+            keywords=[])),
+        If(
+          test=Compare(
+            left=Name(id='learner', ctx=Load()),
+            ops=[
+              IsNot()],
+            comparators=[
+              Constant(value=None)]),
+          body=[
+            Assign(
+              targets=[
+                Attribute(
+                  value=Attribute(
+                    value=Name(id='learner', ctx=Load()),
+                    attr='api',
+                    ctx=Load()),
+                  attr='absolute_deadline',
+                  ctx=Store())],
+              value=Name(id='deadline', ctx=Load()))],
+          orelse=[]),
+        Return(
+          value=Name(id='deadline', ctx=Load()))],
+      decorator_list=[]),
+    Try(
+      body=[
+        Raise(
+          exc=Call(
+            func=Name(id='ProbeFailure', ctx=Load()),
+            args=[
+              Constant(value='injected actual worker failure')],
+            keywords=[]))],
+      handlers=[
+        ExceptHandler(
+          type=Name(id='BaseException', ctx=Load()),
+          name='error',
+          body=[
+            Expr(
+              value=Call(
+                func=Name(id='worker_failure', ctx=Load()),
+                args=[
+                  Name(id='error', ctx=Load()),
+                  Name(id='args', ctx=Load()),
+                  Name(id='guard', ctx=Load()),
+                  Name(id='learner', ctx=Load())],
+                keywords=[])),
+            Expr(
+              value=Call(
+                func=Attribute(
+                  value=Name(id='result', ctx=Load()),
+                  attr='update',
+                  ctx=Load()),
+                args=[
+                  Call(
+                    func=Name(id='outcome_fields', ctx=Load()),
+                    args=[
+                      Call(
+                        func=Name(id='failure_outcome', ctx=Load()),
+                        args=[
+                          Name(id='error', ctx=Load())],
+                        keywords=[])],
+                    keywords=[])],
+                keywords=[
+                  keyword(
+                    arg='error',
+                    value=Call(
+                      func=Name(id='repr', ctx=Load()),
+                      args=[
+                        Name(id='error', ctx=Load())],
+                      keywords=[])),
+                  keyword(
+                    arg='traceback',
+                    value=Call(
+                      func=Attribute(
+                        value=Name(id='traceback', ctx=Load()),
+                        attr='format_exc',
+                        ctx=Load()),
+                      args=[],
+                      keywords=[]))]))])],
+      orelse=[],
+      finalbody=[
+        Expr(
+          value=Call(
+            func=Name(id='cancel', ctx=Load()),
+            args=[],
+            keywords=[])),
+        If(
+          test=BoolOp(
+            op=And(),
+            values=[
+              Compare(
+                left=Name(id='learner', ctx=Load()),
+                ops=[
+                  IsNot()],
+                comparators=[
+                  Constant(value=None)]),
+              Compare(
+                left=Attribute(
+                  value=Name(id='learner', ctx=Load()),
+                  attr='model',
+                  ctx=Load()),
+                ops=[
+                  IsNot()],
+                comparators=[
+                  Constant(value=None)]),
+              Compare(
+                left=Call(
+                  func=Name(id='result_code', ctx=Load()),
+                  args=[
+                    Name(id='result', ctx=Load())],
+                  keywords=[]),
+                ops=[
+                  Eq()],
+                comparators=[
+                  Constant(value=1)])]),
+          body=[
+            Try(
+              body=[
+                Assign(
+                  targets=[
+                    Name(id='tag', ctx=Store())],
+                  value=IfExp(
+                    test=Call(
+                      func=Attribute(
+                        value=Attribute(
+                          value=Name(id='learner', ctx=Load()),
+                          attr='progress',
+                          ctx=Load()),
+                        attr='get',
+                        ctx=Load()),
+                      args=[
+                        Constant(value='in_update'),
+                        Constant(value=False)],
+                      keywords=[]),
+                    body=Constant(value='interrupted_mid_update'),
+                    orelse=IfExp(
+                      test=Compare(
+                        left=Subscript(
+                          value=Name(id='result', ctx=Load()),
+                          slice=Constant(value='outcome'),
+                          ctx=Load()),
+                        ops=[
+                          Eq()],
+                        comparators=[
+                          Constant(value='wall_guard')]),
+                      body=Constant(value='timeout'),
+                      orelse=Constant(value='failure')))),
+                Assign(
+                  targets=[
+                    Subscript(
+                      value=Name(id='result', ctx=Load()),
+                      slice=Constant(value='failure_checkpoint'),
+                      ctx=Store())],
+                  value=Call(
+                    func=Attribute(
+                      value=Name(id='learner', ctx=Load()),
+                      attr='checkpoint',
+                      ctx=Load()),
+                    args=[
+                      Name(id='tag', ctx=Load())],
+                    keywords=[
+                      keyword(
+                        arg='emergency',
+                        value=Constant(value=True))]))],
+              handlers=[
+                ExceptHandler(
+                  type=Name(id='BaseException', ctx=Load()),
+                  name='error',
+                  body=[
+                    Assign(
+                      targets=[
+                        Subscript(
+                          value=Name(id='result', ctx=Load()),
+                          slice=Constant(value='failure_checkpoint_unavailable'),
+                          ctx=Store())],
+                      value=Call(
+                        func=Name(id='repr', ctx=Load()),
+                        args=[
+                          Name(id='error', ctx=Load())],
+                        keywords=[]))])],
+              orelse=[],
+              finalbody=[])],
+          orelse=[]),
+        Try(
+          body=[
+            If(
+              test=Compare(
+                left=Name(id='learner', ctx=Load()),
+                ops=[
+                  IsNot()],
+                comparators=[
+                  Constant(value=None)]),
+              body=[
+                Expr(
+                  value=Call(
+                    func=Attribute(
+                      value=Name(id='learner', ctx=Load()),
+                      attr='close',
+                      ctx=Load()),
+                    args=[],
+                    keywords=[])),
+                Assign(
+                  targets=[
+                    Subscript(
+                      value=Name(id='result', ctx=Load()),
+                      slice=Constant(value='counters'),
+                      ctx=Store())],
+                  value=Call(
+                    func=Attribute(
+                      value=Name(id='learner', ctx=Load()),
+                      attr='report',
+                      ctx=Load()),
+                    args=[],
+                    keywords=[])),
+                Expr(
+                  value=Call(
+                    func=Name(id='save', ctx=Load()),
+                    args=[
+                      BinOp(
+                        left=Attribute(
+                          value=Name(id='args', ctx=Load()),
+                          attr='output',
+                          ctx=Load()),
+                        op=Div(),
+                        right=Constant(value='checkpoint-index.json')),
+                      Attribute(
+                        value=Name(id='learner', ctx=Load()),
+                        attr='checkpoints',
+                        ctx=Load())],
+                    keywords=[]))],
+              orelse=[]),
+            If(
+              test=Compare(
+                left=Name(id='guard', ctx=Load()),
+                ops=[
+                  IsNot()],
+                comparators=[
+                  Constant(value=None)]),
+              body=[
+                Expr(
+                  value=Call(
+                    func=Attribute(
+                      value=Name(id='guard', ctx=Load()),
+                      attr='close',
+                      ctx=Load()),
+                    args=[],
+                    keywords=[]))],
+              orelse=[]),
+            If(
+              test=Compare(
+                left=Call(
+                  func=Name(id='result_code', ctx=Load()),
+                  args=[
+                    Name(id='result', ctx=Load())],
+                  keywords=[]),
+                ops=[
+                  NotEq()],
+                comparators=[
+                  Constant(value=1)]),
+              body=[
+                Expr(
+                  value=Call(
+                    func=Name(id='verify', ctx=Load()),
+                    args=[],
+                    keywords=[]))],
+              orelse=[]),
+            Expr(
+              value=Call(
+                func=Name(id='require', ctx=Load()),
+                args=[
+                  Compare(
+                    left=Call(
+                      func=Attribute(
+                        value=Name(id='time', ctx=Load()),
+                        attr='monotonic',
+                        ctx=Load()),
+                      args=[],
+                      keywords=[]),
+                    ops=[
+                      Lt()],
+                    comparators=[
+                      Call(
+                        func=Attribute(
+                          value=Attribute(
+                            value=Name(id='life', ctx=Load()),
+                            attr='POOL',
+                            ctx=Load()),
+                          attr='deadline',
+                          ctx=Load()),
+                        args=[
+                          BinOp(
+                            left=Attribute(
+                              value=Name(id='args', ctx=Load()),
+                              attr='started',
+                              ctx=Load()),
+                            op=Add(),
+                            right=Name(id='WORKER_SECONDS', ctx=Load()))],
+                        keywords=[])]),
+                  Constant(value='Worker finalization crossed absolute deadline'),
+                  Constant(value='wall_guard')],
+                keywords=[]))],
+          handlers=[
+            ExceptHandler(
+              type=Name(id='BaseException', ctx=Load()),
+              name='error',
+              body=[
+                Expr(
+                  value=Call(
+                    func=Name(id='worker_failure', ctx=Load()),
+                    args=[
+                      Name(id='error', ctx=Load()),
+                      Name(id='args', ctx=Load()),
+                      Name(id='guard', ctx=Load()),
+                      Name(id='learner', ctx=Load())],
+                    keywords=[])),
+                Expr(
+                  value=Call(
+                    func=Attribute(
+                      value=Name(id='result', ctx=Load()),
+                      attr='update',
+                      ctx=Load()),
+                    args=[
+                      Call(
+                        func=Name(id='outcome_fields', ctx=Load()),
+                        args=[
+                          Call(
+                            func=Name(id='failure_outcome', ctx=Load()),
+                            args=[
+                              Name(id='error', ctx=Load())],
+                            keywords=[])],
+                        keywords=[])],
+                    keywords=[
+                      keyword(
+                        arg='final_verification_error',
+                        value=Call(
+                          func=Name(id='repr', ctx=Load()),
+                          args=[
+                            Name(id='error', ctx=Load())],
+                          keywords=[]))]))])],
+          orelse=[],
+          finalbody=[]),
+        Try(
+          body=[
+            Expr(
+              value=Call(
+                func=Attribute(
+                  value=Name(id='streams', ctx=Load()),
+                  attr='close',
+                  ctx=Load()),
+                args=[],
+                keywords=[]))],
+          handlers=[
+            ExceptHandler(
+              type=Name(id='BaseException', ctx=Load()),
+              name='error',
+              body=[
+                Expr(
+                  value=Call(
+                    func=Name(id='worker_failure', ctx=Load()),
+                    args=[
+                      Name(id='error', ctx=Load()),
+                      Name(id='args', ctx=Load()),
+                      Name(id='guard', ctx=Load()),
+                      Name(id='learner', ctx=Load())],
+                    keywords=[])),
+                Expr(
+                  value=Call(
+                    func=Attribute(
+                      value=Name(id='result', ctx=Load()),
+                      attr='update',
+                      ctx=Load()),
+                    args=[
+                      Call(
+                        func=Name(id='outcome_fields', ctx=Load()),
+                        args=[
+                          Constant(value='publication_failure')],
+                        keywords=[])],
+                    keywords=[
+                      keyword(
+                        arg='stream_close_error',
+                        value=Call(
+                          func=Name(id='repr', ctx=Load()),
+                          args=[
+                            Name(id='error', ctx=Load())],
+                          keywords=[]))]))])],
+          orelse=[],
+          finalbody=[]),
+        If(
+          test=Name(id='guard', ctx=Load()),
+          body=[
+            Assign(
+              targets=[
+                Subscript(
+                  value=Name(id='result', ctx=Load()),
+                  slice=Constant(value='worker_resources'),
+                  ctx=Store())],
+              value=Call(
+                func=Attribute(
+                  value=Name(id='guard', ctx=Load()),
+                  attr='receipt',
+                  ctx=Load()),
+                args=[],
+                keywords=[]))],
+          orelse=[])])],
+  type_ignores=[])

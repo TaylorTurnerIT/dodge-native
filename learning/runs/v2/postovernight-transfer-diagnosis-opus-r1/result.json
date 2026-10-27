@@ -1,0 +1,214 @@
+{
+ "task": "postovernight-transfer-diagnosis-opus-r1",
+ "model": "claude-opus-5-5",
+ "read_only": true,
+ "executed": "python JSONL/JSON parsing; CPU torch.load(weights_only=True,narrow numpy allowlist) of 6 checkpoints; no forward passes/gradients/gameplay/eval/benchmarks",
+ "decision": [
+  "D2 still learning; budget expiry not behavioral failure; no code defect found",
+  "D2-entry collapse is argmax-extraction specific: argmax 42/64 <=200 alive vs stochastic 1/63 at identical entry weights",
+  "Dominant D2 hazard is patterns absent from D1; pattern inputs provably untrained at entry (embedding rows 7/8 and global col 9 delta 0.0 through D1)",
+  "Next: authorized ~5min inference-only paired argmax-vs-stochastic + death-cause diagnostic on frozen checkpoints; then new registered D2-r2 from eligible D1 final with throughput-sized budget"
+ ],
+ "exact_counts": {
+  "D2_complete_updates": 104,
+  "D2_complete_update_decisions": 1703936,
+  "D2_completed_training_episodes": 7915,
+  "D2_abandoned_parent_episodes": 64,
+  "collection_accepted_rows": 105,
+  "checkpoint_resume_boundary_rows": 15,
+  "D1_curriculum_completed_episodes": 982,
+  "entry_argmax_le200": 42,
+  "entry_argmax_n": 64,
+  "entry_stochastic_first_episodes_le200": 1,
+  "entry_stochastic_first_episodes_n": 63,
+  "entry_stochastic_first_episode_mean_alive": 558.4285714285714,
+  "entry_stochastic_first_episode_median_alive": 541,
+  "entry_stochastic_first_episode_mean_score": 2.484126984126984,
+  "D2_deaths_430_639": 3567,
+  "D2_deaths_430_639_pattern_visible_frac": 0.976731146621811,
+  "D2_terminal_pattern_visible_frac": 0.8491471888818699
+ },
+ "trend": {
+  "alive_slope_per_update_all": [
+   4.86132433116872,
+   0.26146490072575357,
+   634.2455644755748
+  ],
+  "alive_slope_first_half": [
+   6.544398431577213,
+   0.5866490413138858,
+   595.4279314254409
+  ],
+  "alive_slope_second_half": [
+   4.124928759216169,
+   0.8374751716836892,
+   687.215464791615
+  ],
+  "score_slope_per_update_all": [
+   0.04949529015697922,
+   0.0027583239021879004,
+   3.3980656038035524
+  ],
+  "score_slope_second_half": [
+   0.047789921186536286,
+   0.009063847936506943,
+   3.468183511864649
+  ],
+  "first_pattern_window_frac_first8": 0.6861333735969545,
+  "first_pattern_window_frac_last8": 0.3032333839537347,
+  "update_interval_seconds": {
+   "n": 103,
+   "median": 16.913223028182983,
+   "mean": 17.172023611161315,
+   "max": 25.370638847351074,
+   "min": 13.446048974990845
+  },
+  "entropy_first8": 1.8842770112678409,
+  "entropy_last8": 1.7513200374087319,
+  "ev_max": 0.8129095163322131,
+  "ev_last8": 0.5205387547650221,
+  "kl_first8": 0.013880333875931683,
+  "kl_last8": 0.029492417103028856,
+  "clip_last8": 0.23529179890950522,
+  "early_stops": 7,
+  "episodes_per_update_first8": 99.875,
+  "episodes_per_update_last8": 56.625
+ },
+ "dev_noise": {
+  "consecutive_per_seed_alive_pearson": [
+   0.03168647952220906,
+   0.11799324741136676,
+   0.16845145362013944,
+   0.08955419383777237,
+   0.07856388473374101,
+   -0.009070517324897427
+  ],
+  "se_mean_alive_range": [
+   22.97,
+   97.04
+  ]
+ },
+ "hypothesis_verdicts": {
+  "experience_distribution_shift": "supported",
+  "stochastic_argmax_gap": "supported_at_entry;not_shown_later_needs_paired_test",
+  "ppo_value_fit_efficiency": "plausible_secondary_unproven",
+  "observation_timing_accounting_defect": "none_found_in_audited_paths"
+ },
+ "concrete_defects": [],
+ "efficiency_note": "ppo.py:335-336 second forward per step for next_values (~1.8s/buffer vs 14.6s update); not correctness",
+ "never_logged": [
+  "per-step actions/logits/entropy/margins",
+  "argmax-vs-sampled divergence",
+  "killer entity/death cause",
+  "active pattern id/type and time since activation at death",
+  "per-episode pattern exposure",
+  "powerup state at death",
+  "value-vs-return by episode length",
+  "attention",
+  "dev-row diagnostics",
+  "stochastic D-seed eval"
+ ],
+ "projection_linear_unrun": {
+  "updates_to_alive_3060_from_phase96": [
+   393,
+   464
+  ],
+  "updates_to_score_50_from_phase96": 830,
+  "gate_sized_D2r2_from_D1_final_seconds_approx": 17500,
+  "curve_extension_option_seconds": 7200
+ },
+ "ranked_recommendations": [
+  {
+   "rank": 1,
+   "action": "inference-only paired action-mode + death-cause diagnostic (diagnostic-only, new authorization)",
+   "checkpoints_sha256": {
+    "D1_000009": "ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f",
+    "D2_000010": "33262cada7a089e962a5bf816b9a0c8e14ca1d2cf78adb654046d67580e2c64f",
+    "D2_000016": "b988e9e00871d0d87f35449bb4a0f5da7f1d623fa46aa3c139eb13dd95376b6b",
+    "D2_000022": "2d598e1973ded1748ec18d59ed11abe524b2f2a9d68c8796d105266a31d4e8b6",
+    "D2_000023_periodic": "22fa59764aa0c97ce4488d1bb07f51dde6527ed402db8fe09b98c9a123ecb3bf"
+   },
+   "seeds": "64 registered D seeds 0xD0000000..0xD000003F, D2, cap18000, K4",
+   "modes": "argmax control (must reproduce retained rows for 000010/000016/000022) + stochastic x3 registered sampling seeds",
+   "episodes": 1280,
+   "est_raw_frames": 1400000,
+   "est_seconds": 160,
+   "budget": {
+    "wall_s": 600,
+    "rss_bytes": 6442450944,
+    "mps_bytes": 6442450944
+   },
+   "outcomes": {
+    "control_mismatch": "stop; diagnose eval determinism",
+    "A_within_2SE": "proceed to rank2",
+    "B_stochastic_gt_argmax_2SE": "bring separately reviewed entropy/temperature proposal; do not bundle with budget",
+    "death_mix": "pattern>=70% keeps direct D2; enemy-dominant examine score-ramp tradeoff"
+   }
+  },
+  {
+   "rank": 2,
+   "action": "new registered D2-r2 from eligible D1 final; new identity/run_seed/terminal-budget anchor; unchanged learner/source/reward/caps/gate; throughput-sized budget (~17500s gate-sized or 7200s curve-extension) with preregistered tightening futility rule"
+  },
+  {
+   "rank": 3,
+   "rejected": [
+    "additional D1",
+    "bridged curriculum",
+    "source repair",
+    "bundled hyperparameter changes",
+    "relaxed caps/gates/reward/model",
+    "D2-r1 warm start or eligibility reuse"
+   ]
+  }
+ ],
+ "evidence_sha256": {
+  "learning/runs/v2/milestone3-D2-curriculum-r1/training-episodes.jsonl": "77764fef044e13b6a819b1fab0e8c572e97f94ce1b2875815b897b7631ff4a3e",
+  "learning/runs/v2/milestone3-D2-curriculum-r1/training-metrics.jsonl": "c57e5ec5a2b65594ef6af0ac21206312f538de0c11fb936f162b1d255059f734",
+  "learning/runs/v2/milestone3-D1-curriculum-r1/training-episodes.jsonl": "469ed5857f490633398b62677eda92e099793685d927c05aa52f5cf0d11bcb37",
+  "learning/runs/v2/milestone3-D1-curriculum-r1/training-metrics.jsonl": "1c36c0decb00301fb16946726f14436787524018a48c292a7f6be446f8065d17",
+  "learning/runs/v2/milestone3-D2-curriculum-r1/run-result.json": "3b726c8c522e8c44b5d4827abe6b176defc5e4f5653e0e883091eb1e3a9e2250",
+  "learning/runs/v2/milestone3-D2-plateau-diagnosis-r1/parent-reconciliation.json": "8c9542cc95e743bbce05be915eb3e6c2ca1a2c2359020e3dfabf793294e0351f",
+  "learning/runs/v2-orchestration/milestone3_D2_plateau_diagnosis_opus_r1-result.json": "8edc74d3cda8b07eb79d4a634a5fed1732c54e17ecbc42f23a8c06d5f140096d",
+  "docs/v2-m3-run-protocol.json": "9e0d82028011f83e0cf6ddaef5f5e118591158d8a557f6698c82c150d5a69bab",
+  "learning/runs/v2/milestone3-D2-curriculum-r1/checkpoint-000010-candidate-D2-development.jsonl": "b4b3bd5e7ea8b90f06c2f352236881cac38d8cf5a9f221fc07bb17c3c4176585",
+  "learning/runs/v2/milestone3-D2-curriculum-r1/checkpoint-000012-candidate-D2-development.jsonl": "0a8fb60638b5d5a6f7253407e0d26cece2b588d3df833acc5791334b2fa53210",
+  "learning/runs/v2/milestone3-D2-curriculum-r1/checkpoint-000014-candidate-D2-development.jsonl": "51859c6f789c6f72f4287b9f5c38fdedb83494a99fc66e427b4bf67cc88fde23",
+  "learning/runs/v2/milestone3-D2-curriculum-r1/checkpoint-000016-candidate-D2-development.jsonl": "32ab74a8bbf12d36d37b85e55b749a28cbb912a5179eda34c5c75ff9599c9998",
+  "learning/runs/v2/milestone3-D2-curriculum-r1/checkpoint-000018-candidate-D2-development.jsonl": "d36a1b75e11ff2998a379e8a0bcc8092bb5c3c7d6f79101ccb91d2eb53d1aac6",
+  "learning/runs/v2/milestone3-D2-curriculum-r1/checkpoint-000020-candidate-D2-development.jsonl": "8d019889a09020e8e41a651494a3a7ea685bf259050148fde55aeb9cb512d796",
+  "learning/runs/v2/milestone3-D2-curriculum-r1/checkpoint-000022-candidate-D2-development.jsonl": "675d46e795140431e934de8f06fbbb8bd9759fa91552629ddd419f09e50e710e",
+  "learning/runs/v2/milestone3-D1-curriculum-r1/checkpoint-000005-candidate-D1-development.jsonl": "9c7a0afa4f2c0130c9309c9a6832a19d6a7df67e6f2989ff16ea40cf503c4e30",
+  "learning/runs/v2/milestone3-D1-curriculum-r1/checkpoint-000007-candidate-D1-development.jsonl": "d8ed5976a5b463986be0c9e6e560c00637967ab89583c4ea1dc8770171dfab4f",
+  "learning/runs/v2/milestone3-D1-curriculum-r1/checkpoint-000009-candidate-D1-development.jsonl": "f80eda2f833648945964caf24a797bbf83ff40faa217ad6023db0368357590b7",
+  "learning/runs/v2/milestone3-D1-pilot-r1/pilot-before-development.jsonl": "35d4f7df717d1f5ba88e0a60381002fcd67fbd04a8a37fb4d631e66ebd9b47b9",
+  "learning/runs/v2/milestone3-D1-pilot-r1/checkpoint-000001-pilot_initial.pt": "f67315667a6b416df9f5c05ea79c91249d0e7dcced3959de6f08ba20c8c25819",
+  "learning/runs/v2/milestone3-D1-pilot-r1/checkpoint-000004-candidate.pt": "aaafdaaef6c2e79acf7af025714f2d4f9113631743c7b80a7d4fa1b9724e374b",
+  "learning/runs/v2/milestone3-D1-curriculum-r1/checkpoint-000009-candidate.pt": "ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f",
+  "learning/runs/v2/milestone3-D2-curriculum-r1/checkpoint-000010-candidate.pt": "33262cada7a089e962a5bf816b9a0c8e14ca1d2cf78adb654046d67580e2c64f",
+  "learning/runs/v2/milestone3-D2-curriculum-r1/checkpoint-000016-candidate.pt": "b988e9e00871d0d87f35449bb4a0f5da7f1d623fa46aa3c139eb13dd95376b6b",
+  "learning/runs/v2/milestone3-D2-curriculum-r1/checkpoint-000022-candidate.pt": "2d598e1973ded1748ec18d59ed11abe524b2f2a9d68c8796d105266a31d4e8b6",
+  "learning/runs/v2/milestone3-D2-curriculum-r1/checkpoint-000023-periodic.pt": "22fa59764aa0c97ce4488d1bb07f51dde6527ed402db8fe09b98c9a123ecb3bf"
+ },
+ "source_sha256": {
+  "python/dodge_rl/ppo.py": "533055b0832b87f3eccd6d005437583c074b525fc5f1d002e0e84e06b4239a58",
+  "python/dodge_rl/dev_eval.py": "5ba01250bb68b75340e8ef35968ad88027103c334ae8f38e2ab83ec7676097b7",
+  "python/dodge_rl/train_teacher.py": "1d134bfb221ff52139e1243c9e4f9c3063432942a3274c567b71db4d7669c0cf",
+  "python/dodge_rl/models/teacher.py": "e4d7f597a2824c2b0d4ba261dddc9d7d1ee1d5592c2fc966a44c54b5ec417e35",
+  "crates/dodge-rl-env/src/features.rs": "78d72ee29fdcf2c0828e26d0a4265b50809f4c9899183332a4c48fb326dc006c",
+  "crates/dodge-rl-env/src/env.rs": "d4a9182720beb2d8cf77f9ad5b2f859db2aa479ebcd610d691a3f7bf61afd17a",
+  "crates/dodge-core/src/game.rs": "e781973c0390fde26342ec24113abdbfa3a8e9ef98844d41cf33c1977ecdccbd"
+ },
+ "outputs_sha256": {
+  "checkpoint-introspection.json": "6b67e076d73d2957c104be0f7089c20c7316936a1827dcf7c5ab80d8ecb50e70",
+  "death-parse.json": "a46fd9d73511a62a60b42b18b84e004157e1727a7d43e9a5538291f6ab4482fc",
+  "diagnosis.md": "05bea273ff427da852e6adf3fd2195740f3f2ee67136cab86c877a575f8392ab",
+  "eval-parse.json": "414ac59d8b06c2a1596d01846a6c1d3b74c98e12f961dfe0e3ae303e53910e4e",
+  "inspect_checkpoints.py": "cf924d163c5c1a4017ee0634268dfc01c7800740d02505f0cdc225d4a45a1108",
+  "parse_deaths.py": "744295721ddeb0fb6c8fe00fa9d8798e120f7df96eb8689805c94e72387eefb8",
+  "parse_evals.py": "cf3d24b1caaf9ec53e7904dbe735a73e89a3e680f3a96119abcec175eb39c77a",
+  "parse_throughput.py": "7bf00fae6b2d30928c19d047af8489e523e564c148481937b22abd76891506a2",
+  "parse_training.py": "05a8f944523dde09dd22189f4461b4acc1a4f0762c26bbf29ed5efde318f0b3c",
+  "throughput-trend.json": "5ca418effaa643840dea58fd05149baf0aba69700679fb8c67eabe49ee0eb477",
+  "training-parse-milestone3-D2-curriculum-r1.json": "eff6991f456ae7c4883d2cafea8e7271194bbde57d1bd0917d13d0ef3690d766"
+ }
+}

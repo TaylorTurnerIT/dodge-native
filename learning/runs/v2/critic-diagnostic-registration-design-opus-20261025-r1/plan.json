@@ -1,0 +1,119 @@
+{
+ "schema": "critic_diagnostic_registration_design_v1",
+ "design_only": true,
+ "chosen_plan": "one-shot fresh D2 from accepted D1 parent, <=48 updates, same-batch critic instrumentation",
+ "proposed_run_dir": "learning/runs/v2/critic-diagnostic-D2-20261025-r1/",
+ "proposed_identity_schema": "critic_diagnostic_registration_v1",
+ "lineage": {
+  "parent_checkpoint": "learning/runs/v2/milestone3-D1-curriculum-r1/checkpoint-000009-candidate.pt",
+  "parent_sha256": "ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f",
+  "anchor": "learning/runs/v2/milestone3-D2-freeze-r1/accepted-parent-anchor.json",
+  "old_terminal_validation": {
+   "source": "frozen-source.tar.gz extracted task-owned",
+   "script": "validate-transition.py",
+   "native_sha256": "967c7249acd52339d1818dcbe94e63ee734aea914c3497eb59a7e945a6e95583",
+   "expected": "matches transition-validation-receipt.json: exit 0, certificate_passed true",
+   "separate_subprocess": true
+  },
+  "diagnostic_transfer": "restore exactly the model/Adam/RNG set the frozen D2 transition restored; parent records set from frozen source; ambiguity=blocker; post-load tensor hash compare",
+  "failed_long_D2_weights": "ineligible; not decoded; not used"
+ },
+ "runtime": {
+  "native_sha256": "022d41dde9bace0b4f4c4c06b9b4ed007bc2c60013cd98734086e587d7bb997e",
+  "native_path": "learning/runs/v2/death-telemetry-parent-validation-20261025-r1/runtime/dodge_rl/_native.cpython-312-darwin.so",
+  "wheel_sha256": "43f110e395c349554273097c101a194790d3e8302aca89d4c05ff7f2bfc65849",
+  "install": "none; path-scoped to run",
+  "old_extension_must_remain": "967c7249acd52339d1818dcbe94e63ee734aea914c3497eb59a7e945a6e95583"
+ },
+ "source_binding": "sha256 of full python/dodge_rl/*.py + runner + validator + config before launch and after exit; must match",
+ "learner": {
+  "config": "milestone3-D2-freeze-r1/D2-config.json",
+  "config_sha256": "2d8eb5626d0debdf5416d0b89610d78ddd56011c3238a82fec72efabe1bd7fe3",
+  "changes": [
+   "run_seed: fresh u32 stream from OS entropy, recorded pre-launch, excluding B/D/E ranges and 64 fixed dev seeds"
+  ],
+  "unchanged": "architecture,reward,lr,adam,epochs,clip,target_kl,minibatch,rollout,K4,gamma,lambda,coefs,device,dtype"
+ },
+ "caps": {
+  "max_updates": 48,
+  "total_wall_seconds": 1800,
+  "max_rss_bytes": 6442450944,
+  "max_mps_driver_bytes": 6442450944,
+  "retries": 0,
+  "guard": "existing supervision.py cooperative + owned-pgid stop/reap; no new grace/watchdog/IPC"
+ },
+ "estimate": {
+  "reference": "frozen D2 r1: 104 phase updates in 1800.44s incl. evals",
+  "expected_seconds": [
+   1000,
+   1200
+  ]
+ },
+ "metrics_per_update": [
+  "n",
+  "Var(R)",
+  "mean(R)",
+  "Var(V0)",
+  "Cov(R,V0)",
+  "r0 mean/Var/MSE",
+  "EV0 recomputed (==logged within 1e-6)",
+  "V1 same-obs post-final-epoch no_grad",
+  "r1 mean/Var/MSE",
+  "EV1 in-sample",
+  "dV mean/RMS",
+  "corr(dV,r0)",
+  "nonfinite counts",
+  "diag seconds",
+  "peak memory",
+  "optional terminal-window stratum counts/moments"
+ ],
+ "out_of_sample": "pair (EV1_t, EV0_t+1)",
+ "evaluations": {
+  "seeds": "64 fixed D2 dev",
+  "at_updates": [
+   0,
+   24,
+   48
+  ],
+  "report": [
+   "survival Q1",
+   "Q4",
+   "mean frames",
+   "score",
+   "death causes",
+   "caps"
+  ]
+ },
+ "rejected": [
+  "EV>=0.55 threshold",
+  "target-variance proxy from loss+EV",
+  "naive completed-short-episode MC",
+  "causal claims from grad norms",
+  "failed-weight continuation"
+ ],
+ "required_tests": [
+  "diag on/off bitwise params/Adam/RNG equality >=2 updates CPU",
+  "moment identities synthetic",
+  "EV0 recompute equals existing EV"
+ ],
+ "scope": "early D2 regime only; cannot explain late ~384-update EV fall (0.597973->0.317240); late question needs separate authorization (read-only failed-weight inference) or later registered long run from D1",
+ "failure": {
+  "preflight_mismatch": "blocked, no launch",
+  "runtime_cap_or_error": "failed, retain artifacts, reap pgid, no-orphan inventory, no retry"
+ },
+ "checkpoints": "diagnostic-*.pt + sidecar diagnostic_only=true training_eligible=false promotion=none",
+ "forbidden": [
+  "state/doc edits",
+  "promotion",
+  "B/D3/E",
+  "student",
+  "v3 qualification"
+ ],
+ "current_best_cohort": {
+  "checkpoint": "checkpoint-000050",
+  "Q1": 648.25,
+  "Q4": 4508.8125,
+  "mean": 2240.0,
+  "final_old_mean": 1654.546875
+ }
+}

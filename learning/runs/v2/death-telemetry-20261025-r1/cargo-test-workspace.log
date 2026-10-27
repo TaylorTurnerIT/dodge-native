@@ -1,0 +1,238 @@
+   Compiling dodge-core v0.1.0 (/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-core)
+   Compiling dodge-viewer v0.1.0 (/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-viewer)
+   Compiling dodge-rl-env v0.1.0 (/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-rl-env)
+   Compiling dodge-native-runner v0.1.0 (/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-native-runner)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.94s
+     Running unittests src/lib.rs (target/debug/deps/dodge_core-32903b419256eb6a)
+
+running 82 tests
+test fixed::tests::fixed_math_truncates_toward_zero_for_division ... ok
+test action::tests::action_order_and_masks_match_training_contract ... ok
+test fixed::tests::fixed_boundaries_match_probe ... ok
+test enemy_rows::tests::exhaustion_preserves_rows_and_never_recovers_on_clear ... ok
+test enemy_rows::tests::namespace_exhaustion_is_sticky_without_touching_game_rng ... ok
+test game::death_tests::same_frame_contacts_keep_first_cause_and_label_the_rest_observed ... ok
+test game::death_tests::pattern_causes_split_static_and_moving ... ok
+test game::death_tests::each_enemy_cause_is_classified_at_the_lethal_contact ... ok
+test game::death_tests::unknown_enemy_personality_is_unknown_but_still_lethal ... ok
+test game::death_tests::cause_is_stable_after_death_and_cleared_by_restart_and_reset ... ok
+test game::death_tests::diagnostic_is_invisible_to_snapshot_state_equality_and_rng ... ok
+test game::headless_tests::headless_death_input_and_retry_preserve_legacy_reward_and_score_delta ... ok
+test game::death_tests::restore_is_unknown_when_dead_and_empty_when_alive ... ok
+test game::death_tests::headless_and_full_paths_agree_on_cause_state_and_rng ... ok
+test game::headless_tests::headless_death_with_freeze_or_shrink_scores_in_both_collision_orders ... ok
+test game::headless_tests::headless_static_charging_and_moving_rect_death ... ok
+test game::observation_tests::corner_fyou_clear_reset_and_retry_never_reuse_births ... ok
+test game::observation_tests::dying_pair_retains_identity_until_each_actual_removal ... ok
+test game::observation_tests::earlier_removal_requires_serial_matching_for_measured_growth ... ok
+test game::headless_tests::privileged_view_borrows_current_geometry_and_matches_post_method_pixels ... ok
+test game::observation_tests::enemy_append_remove_mutate_and_capacity_do_not_alias ... ok
+test game::observation_tests::explode_chain_keeps_old_explosion_and_new_births ... ok
+test game::observation_tests::life_expiry_and_dying_kamikaze_append_keep_survivors ... ok
+test game::observation_tests::fresh_and_restored_namespaces_preserve_wire_and_logical_state ... ok
+test game::headless_tests::headless_invalid_masks_leave_every_field_unchanged ... ok
+test game::observation_tests::repeated_same_frame_deaths_keep_events_but_headless_dead_is_boolean ... ok
+test game::observation_tests::warning_borrow_staleness_hidden_targets_and_read_immutability ... ok
+test game::headless_tests::headless_start_boundary_preserves_extra_trail_and_cached_pixels ... ok
+test game::tests::action_step_advances_exact_frames_and_neutral_is_zero_mask ... ok
+test game::observation_tests::warning_scene_eligibility_is_separate_from_mode_and_death ... ok
+test game::tests::draw_side_effect_rng_is_consumed_for_powerup_enemy_trails ... ok
+test game::observation_tests::warning_thresholds_type_and_static_charge_match_renderer ... ok
+test game::tests::first_pattern_selection_converts_sample_to_integer_index ... ok
+test game::tests::invalid_input_and_zero_step_fail_without_mutation ... ok
+test game::headless_tests::headless_explode_powerup_kamikaze_and_draw_rng ... ok
+test game::tests::normal_enemy_size_roll_uses_source_thresholds ... ok
+test game::tests::first_friendly_spawn_and_normal_enemy_match_seed_42_slice ... ok
+test game::tests::normal_personality_roll_matches_low_score_source_distribution ... ok
+test game::tests::first_normal_spawn_preserves_source_init_rng_offset ... ok
+test game::tests::normal_enemy_collision_marks_terminal_without_survival_reward ... ok
+test game::tests::reset_starts_at_menu_frame_zero ... ok
+test game::headless_tests::headless_frozen_static_rect_charges_at_current_freeze_rate ... ok
+test game::tests::powerup_collision_applies_size_reward_and_difficulty_without_terminal ... ok
+test game::tests::initial_pattern_rng_branch_is_seed_dependent ... ok
+test game::tests::v102_start_crosses_transition_on_observed_thirteenth_frame ... ok
+test game::tests::player_movement_uses_fixed_friction_and_clamped_bounds ... ok
+test game::tests::v150_difficulty_curve_uses_all_source_tables_and_half_steps ... ok
+test game::tests::v153_powerup_explosion_preserves_source_mutable_list_order ... ok
+test game::tests::v154_powerup_pattern_collision_uses_pre_growth_source_size ... ok
+test game::tests::v109_ordered_enemy_overlap_removes_marked_entries_and_applies_side_effects ... ok
+test game::tests::v157_pattern_targets_warnings_and_completion_follow_source_order ... ok
+test game::tests::v140_kamikaze_speed_updates_once_before_movement ... ok
+test game::tests::v158_settings_change_emits_one_source_sfx ... ok
+test game::tests::v159_trig_bridge_narrows_after_double_evaluation ... ok
+test game::tests::v158_audio_events_preserve_source_order_and_restart_boundary ... ok
+test game::tests::v161_static_pattern_collision_matches_source ... ok
+test game::tests::v149_collision_flags_gate_player_and_enemy_collision ... ok
+test input::tests::frame_finalization_preserves_post_boundary_masks ... ok
+test lifecycle::tests::death_sets_flag_without_changing_update_mode ... ok
+test patterns::tests::v155_special_values_and_automatic_variants_are_independent ... ok
+test game::tests::v162_retry_resets_player_to_center_and_clears_velocity ... ok
+test patterns::tests::v157_source_pattern_inventory_contains_generated_and_dynamic_shapes ... ok
+test rng::tests::checkpoint_restores_stream ... ok
+test rng::tests::rnd_matches_pemsa_probe_strings ... ok
+test rng::tests::seed_42_matches_pemsa_rand_stream ... ok
+test snapshot::tests::camera_pixels_remain_in_source_pget_coordinate_space ... ok
+test snapshot::tests::reset_snapshot_exposes_typed_state_and_indexed_pixels ... ok
+test snapshot::headless_projection_tests::camera_exposed_physical_edges_survive_clear_but_projection_pads_zero ... ok
+test snapshot::tests::truncated_snapshot_is_rejected_before_decode ... ok
+test snapshot::tests::v161_pattern_lerp_preserves_odd_midpoint_before_rasterization ... ok
+test snapshot::tests::rendering_does_not_mutate_simulation_state_or_rng ... ok
+test game::tests::normal_spawn_size_is_reused_by_later_friendly_spawn ... ok
+test snapshot::tests::snapshot_roundtrip_preserves_bytes_state_and_pixel_hash ... ok
+test game::headless_tests::headless_settings_and_transitions_match_in_menu_game_and_death ... ok
+test game::observation_tests::exhausted_metadata_preserves_rendered_headless_gameplay_and_rng ... ok
+test game::tests::v122_restore_replays_the_same_next_frame ... ok
+test game::headless_tests::headless_freeze_shrink_collection_and_expiration ... ok
+test game::headless_tests::headless_configurations_and_post_method_renders_match ... ok
+test game::headless_tests::on_demand_render_cadence_cannot_change_future_state_or_rng ... ok
+test game::headless_tests::legacy_capture_fingerprints ... ok
+test game::headless_tests::headless_all_active_patterns_static_moving_and_completion ... ok
+test game::headless_tests::headless_equivalence_100_seeds_2000_raw_frames has been running for over 60 seconds
+test game::headless_tests::headless_equivalence_100_seeds_2000_raw_frames ... ok
+
+test result: ok. 82 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 160.71s
+
+     Running unittests src/main.rs (target/debug/deps/dodge_native_runner-b1e6bd1f493d4fb8)
+
+running 5 tests
+test tests::invalid_commands_are_rejected_before_game_creation ... ok
+test tests::initial_frame_option_exposes_the_rendered_menu_boundary ... ok
+test tests::p1_duration_rounding_and_boundary_masks_are_deterministic ... ok
+test tests::command_loader_requires_exact_p1_shape ... ok
+test tests::runner_schedule_advances_core_without_emulator_process ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running unittests src/lib.rs (target/debug/deps/dodge_rl_env-994b1b8cf3577250)
+
+running 48 tests
+test qualification_replay_tests::frozen_m0_full_heuristic_d2_d3 ... ignored, parent-owned frozen M2 campaign only; 900-second wall guard
+test seed::tests::rejection_rehashes_reserved_interval_including_both_edges ... ok
+test seed::reservation_tests::forced_b_d_e_edges_rehash_the_same_counter ... ok
+test seed::reservation_tests::normalize_merges_overlap_adjacency_and_preserves_u32_edges ... ok
+test seed_extension_tests::invalid_reservations_indices_and_counter_overflow_fail_before_mutation ... ok
+test seed_extension_tests::evaluation_offsets_do_not_reject_reserved_seeds_or_fall_back ... ok
+test tests::charge_unknown_flat_fading_full_and_moving_phases ... ok
+test seed_extension_tests::known_candidate_is_rejected_before_native_construction ... ok
+test seed_extension_tests::default_seed_identity_offsets_and_reset_continuity ... ok
+test tests::auxiliary_enemy_body_excludes_explosions ... ok
+test tests::final_raw_delta_not_repeat_average_and_every_none_gap_resets ... ok
+test death_tests::diagnostic_cause_never_changes_neural_tensors ... ok
+test tests::actual_rectangle_overflow_after_raw_mutation_poisons_batch ... ok
+test tests::frozen_m0_ten_paired_episodes_per_policy ... ignored, bounded release replay only after parent long-campaign lease ends
+test tests::current_admission_keeps_unclipped_geometry_without_sticky_tracking ... ok
+test tests::caps_apply_after_admission_enemy_ties_use_serial_and_rect_overflow_errors ... ok
+test tests::exact_global_and_entity_normalizations_and_padding ... ok
+test death_tests::live_cap_truncated_and_reset_episodes_have_no_cause ... ok
+test tests::m0_policy::tests::private_seed_reproducibility_and_nine_action_masks ... ok
+test tests::m0_policy::tests::active_rects_use_w_minus_one_charge_and_current_displacement ... ok
+test tests::m0_policy::tests::seeks_powerups_only_with_safe_candidates_and_respects_momentum_clamp ... ok
+test tests::m0_policy::tests::hidden_control_has_no_action_effect_even_for_safe_powerup_choice ... ok
+test tests::m0_policy::tests::charge_forecast_requires_observed_raw_frame_increase_and_resets ... ok
+test tests::half_raw_growth_and_powerup_internal_size_jump ... ok
+test tests::hidden_enemy_rect_and_config_fields_do_not_enter_neural_arrays ... ok
+test tests::explicit_evaluation_exhaustion_does_not_mutate_or_generate_training_seeds ... ok
+test tests::fresh_startup_and_seed_stream_preserve_high_bits_and_reserved_split ... ok
+test tests::m0_policy::tests::shrunk_pattern_player_is_strict_point_with_negative_interior_gap ... ok
+test tests::m0_policy::tests::strict_type_specific_boxes_include_zero_half_extent_player ... ok
+test tests::m0_policy::tests::zero_explosions_narrow_boxes_and_partly_offscreen_geometry_survive ... ok
+test tests::parallel_error_poison_retains_partial_state_and_only_reset_all_recovers ... ok
+test tests::missing_mismatched_or_unordered_serials_fail_closed ... ok
+test tests::real_native_growth_features_use_last_executed_raw_frame ... ok
+test tests::validates_every_config_bound_without_clamping ... ok
+test death_tests::same_frame_contacts_keep_first_cause_with_one_termination_penalty ... ok
+test tests::warnings_do_not_admit_hidden_control_and_shadow_is_onscreen ... ok
+test tests::cap_ragged_steps_alive_bootstrap_and_terminal_stack ... ok
+test tests::stable_serial_merge_survives_earlier_removal_and_new_birth ... ok
+test tests::types_masks_empty_allowlist_and_finite ... ok
+test death_tests::fatal_frame_is_the_gameplay_frame_of_k4_early_termination ... ok
+test tests::returned_buffers_are_owned_and_resets_refill_pixel_history ... ok
+test death_tests::every_cause_reaches_episode_info_with_first_dead_frame ... ok
+test tests::repeated_same_frame_deaths_pickup_both_orders_one_penalty_and_ragged_batch ... ok
+test tests::action_and_reset_requests_validate_whole_batch_before_mutation ... ok
+test tests::renderer_rectangles_and_gated_warning_footprints_match_boundary_fixtures ... ok
+test tests::renderer_entity_differences_stay_inside_current_conservative_footprints ... ok
+test tests::thread_and_chunk_trajectory_invariance_uses_logical_state_not_native_equality ... ok
+test seed_extension_tests::reservations_offsets_and_explicit_resets_are_thread_chunk_invariant ... ok
+
+test result: ok. 46 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.18s
+
+     Running tests/primitives.rs (target/debug/deps/primitives-3786f7d83081ea6e)
+
+running 35 tests
+test admission_keeps_partly_offscreen_unclipped_geometry ... ok
+test cell_floor_and_ceil_are_signed_and_exact_at_extremes ... ok
+test native_endpoint_operations_wrap_before_widening ... ok
+test full_width_wall_fills_all_sixteen_columns_even_with_point_height ... ok
+test geometric_overlap_alone_does_not_assign_hazard_labels ... ok
+test half_raw_centers_and_signed_extents_remain_exact ... ok
+test inverted_boxes_cover_nothing_and_count_axes_without_normalizing ... ok
+test negative_boundary_points_and_partly_offscreen_boxes_follow_patch_rule ... ok
+test native_round_handles_negative_half_ties_and_top_edge_wrap ... ok
+test negative_explosion_collision_is_inverted_but_visual_size_is_clamped ... ok
+test offscreen_control_is_excluded_by_footprint_without_catalog_input ... ok
+test point_player_inside_touching_and_outside_rectangle ... ok
+test player_channel_uses_widest_powerup_box ... ok
+test positive_intervals_are_half_open_and_points_choose_floor_cell ... ok
+test overlapping_channels_are_independent_binary_unions ... ok
+test powerup_admission_includes_body_and_shadow_envelope ... ok
+test rectangle_visual_normalization_does_not_change_collision ... ok
+test rectangle_width_one_is_point_and_zero_is_inverted_literal ... ok
+test signed_gaps_use_widened_subtraction_at_native_extremes ... ok
+test slab_axis_parallel_hit_and_stationary_axis_miss ... ok
+test slab_contact_zero_is_distinct_from_strict_overlap ... ok
+test slab_corner_contact_and_disjoint_time_windows ... ok
+test slab_exact_horizon_and_beyond_are_distinguishable ... ok
+test slab_half_raw_velocity_and_nonfinite_policy ... ok
+test slab_point_players_and_points_preserve_closed_contact ... ok
+test strict_type_edges_are_not_contact_collisions ... ok
+test type_specific_player_half_sizes_and_literal_entity_offsets ... ok
+test visual_floor_differs_from_truncation_for_negative_coordinates ... ok
+test warning_admission_checks_rounded_main_and_shadow ... ok
+test warning_inclusive_endpoint_and_shadow_cross_patch_boundary ... ok
+test warning_negative_boundary_shadow_and_point_rules_are_inclusive ... ok
+test warning_rejects_diagonal_instead_of_filling_enclosing_box ... ok
+test warning_vertical_and_reversed_segments_keep_exact_pixel_cells ... ok
+test zero_explosion_at_exact_patch_boundary_remains_one_patch ... ok
+test zero_explosion_collides_inside_nonzero_player_but_not_at_edge ... ok
+
+test result: ok. 35 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/dodge_viewer-9747d2e87d93f2f7)
+
+running 6 tests
+test tests::viewport_uses_integer_scale_and_centers_square ... ok
+test tests::palette_conversion_preserves_index_order_and_alpha ... ok
+test tests::indexed_capture_is_lossless_and_has_native_dimensions ... ok
+test tests::repeated_presentation_is_byte_identical ... ok
+test tests::canonical_snapshot_hex_roundtrips_at_viewer_boundary ... ok
+test tests::trace_replay_validates_frame_and_hash_metadata ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running unittests src/main.rs (target/debug/deps/dodge_viewer-465cf3b9a46bac46)
+
+running 1 test
+test tests::v162_r_key_aliases_retry_button ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests dodge_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests dodge_rl_env
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests dodge_viewer
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+exit 0

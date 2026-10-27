@@ -1,0 +1,53 @@
+{
+  "accepted_at_utc": "2026-10-24T09:13:32.527775+00:00",
+  "status": "M2_accepted_for_M3_implementation",
+  "campaign": "v2-m2-validation-20261024-r2",
+  "frozen_identity_sha256": "eb72ae7efec29f6def72940715ad6ff09e43d09140f0c348f095bdbbf2727448",
+  "campaign_result_sha256": "40e712a0ab7890e5952828d15735e558de214ad0f5f3d196c2e8910318836a3d",
+  "parent_basic_verification": "34campaign+44ownedoutput hashes;exact62entry inventory;recordedPIDsabsent",
+  "independent_audits": [
+    {
+      "key": "final_native_result_audit",
+      "audit": "learning/runs/v2/milestone2-validation-parent-native-audit-r2/audit.json",
+      "audit_sha256": "1fdda45dbc3e5d7d0ae12dfd0ba3cbb1a33f98a650d48878f7a5053402958b0c",
+      "artifact_manifest": "learning/runs/v2/milestone2-validation-parent-native-audit-r2/artifact-sha256-v2.json",
+      "artifact_manifest_sha256": "01fa346865cd2d02bfc40e3c478d9ec72edeb8825a12aeed7196d03d688aac35",
+      "auditor_artifact_hashes_verified": 14,
+      "limitations": [
+        "This audit covers native phase and provenance; parent must reconcile the separate Python evidence audit before complete M2 acceptance.",
+        "The pinned native test compares every raw frame except physical_screen, but logs serialize final episode state hashes rather than every intermediate state.",
+        "Sampled RSS is cooperative and does not establish an unsampled OS memory ceiling.",
+        "One-invocation assertions are verified against retained outer receipts; no process replay or live PID probe occurs.",
+        "Native use of B seeds is engine regression, not teacher qualification or training."
+      ]
+    },
+    {
+      "key": "final_python_result_audit",
+      "audit": "learning/runs/v2/milestone2-validation-parent-python-audit-r2/audit.json",
+      "audit_sha256": "439a4b141cbf482cfdf898d942e94ebd1a3fca0cd75ba39f330bea2a8821b085",
+      "artifact_manifest": "learning/runs/v2/milestone2-validation-parent-python-audit-r2/artifact-sha256.json",
+      "artifact_manifest_sha256": "b3d9c67d67b7a439a707efa4a26f8fc321785d495242af164f11eae37c694573",
+      "auditor_artifact_hashes_verified": 6,
+      "limitations": [
+        "No project, NumPy, extension, game, test, native binary, network operation, or subagent was executed.",
+        "Trajectory summaries and pinned successful checking code support equality/ownership; intermediate arrays are not serialized for independent replay.",
+        "Memory stream serializes completed episodes and resets, not every step tensor. Completed-episode objectives and aggregate frames are independently checked; per-call reward/array assertions rely on pinned executed checking code.",
+        "The 101-point memory plateau is empirical under this random short-episode workload, not mathematical zero-leak proof or mature-pattern coverage.",
+        "Throughput action/work/final-neural hashes agree across configurations; raw actions/per-call work/final arrays are not serialized, so their hashes cannot be independently reconstructed here.",
+        "RSS samples and ru_maxrss are separate cooperative observations, not proof of an unsampled hard OS ceiling. No MPS or PPO throughput is measured.",
+        "Parent must reconcile this audit with the separate native/build audit before complete M2 acceptance. No teacher learning or qualification evidence is established."
+      ]
+    }
+  ],
+  "native_build_supplement_v2": "learning/runs/v2/milestone2-validation-parent-native-audit-r2/build-lineage-supplement-v2.json",
+  "native_build_supplement_v2_sha256": "70e4d912e3ae75afd97143d9512072c3e21d2b34628da2ca020fd5827d2406ea",
+  "native_episode_comparisons": 2000,
+  "native_raw_frames_per_path": 10146614,
+  "memory_measured_step_calls": 100000,
+  "memory_RSS_samples": 101,
+  "memory_median_growth_bytes": 3014656,
+  "teacher_qualification_opened": false,
+  "teacher_learning_evidence": false,
+  "failed_r1_preserved": true,
+  "scope": "Complete foundation acceptance on pinned M2 source/binaries, not execution proof for later neural code or future gameplay changes."
+}

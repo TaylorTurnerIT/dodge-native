@@ -1,0 +1,54 @@
+# Distinct r12 repair: scoped boundary thread scheduling
+
+Work in `/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79`. Taylor authorized the guard redesign, relevant tests, frozen adversarial review and one held 7,200-second D2 experiment. Latest steering requested Sonnet help. Sonnet's targeted design and the parent's one-shot diagnostic now support a narrow implementation. This task does NOT authorize training or runtime campaigns.
+
+Budget: at most 1,800 seconds including preparation, one stdlib test invocation and evidence publication. Write ONLY within the NEW `learning/runs/v2/postovernight-long-D2-boundary-prepare-r12/`. No `/tmp` markers/scripts. Do not mutate r11 or earlier evidence, original project/runtime/source, docs, ledger, external protocols, leases or caches. No nested delegation, provider calls, OS matrix, stress, startup, ML/native imports, checkpoint decoding, environment/inference/gradients/training, scheduler, commit, PR, deployment or messages. Use `learning/.venv/bin/python` alias, `-B`, fresh owned empty pycache prefix and an explicit `VALIDATION_DIR` for the single test stage. Stop on the first unexpected test/setup failure; preserve source and partial artifacts, with no post-failure patch or retry.
+
+## Read and verify first
+
+Read complete `docs/implementation-plan-v2.md`, `docs/SPEC_PRIVILEGED_VIT_RL.md`, ledger context and these exact authorities:
+
+- Frozen r11 `learning/runs/v2/postovernight-long-D2-boundary-prepare-r11/parent-frozen-pins.json`: verify all eight current byte bindings before copy. Read complete source, `PARENT-NEXT.md`, existing test sources/runner, source-equality machinery and fresh freeze path. No prior test count transfers.
+- `learning/runs/v2-orchestration/postovernight-long-D2-boundary-policy-parent-reconciliation-r1.json`, SHA256 `95977b36b45ad1ea670a601b51bb70198d0c0f37bb76c237b6ac032e535ebe9d`.
+- Current external protocol `learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r8.json`, SHA256 `fe11c08159bdb9ca1f03cb0fb96ffd133ad144d107b2a854d19fc49159aa2db2`.
+- `learning/runs/v2/postovernight-long-D2-contention-design-sonnet-r1/diagnosis.md`, `plan.json`, `receipt.json` and `learning/runs/v2-orchestration/postovernight-long-D2-contention-design-sonnet-r1-parent-reconciliation.json`. Parent qualifications override unsupported claims.
+- `learning/runs/v2/postovernight-long-D2-switchinterval-probe-r1/plan.json`, both scripts, command/wrapper receipts, raw result and parent-reconciliation/evidence manifest. Verify all input/script/output bindings relevant to your proposal.
+- `learning/runs/v2-orchestration/postovernight-long-D2-boundary-review-r11-parent-reconciliation.json` and independent r11 `audit.md`. Preserve all r11 escalation and IPC repairs.
+
+r11 source/synthetic review returned `No findings`. r11 passed 112 stdlib methods and all 15 real-OS lifecycle fixtures, but its first unchanged-120s contention test failed. The following probe is a different fixed-work intervention, not a stress retry or foundation acceptance:
+
+Actual frozen r11 Guard/integrity.verify; unchanged contender; no profiler; one initial uncontended pass, then A1 .005s / B1 .0001s / A2 .005s / B2 .0001s interpreter switch intervals. A1 took 10.802869417s, B1 .210715667s, A2 11.495634917s, B2 .211378125s. Ratios were51.2675187757 and54.3842221921. Every boundary passed273hashes/47,527,648bytes. Interval restored to.005 after every pass and at exit. Max sample gap .348688707978s; RSS35,209,216bytes. Raw0, wrapper23.056664042s, no guardian, direct reap, group/thread absence, one invocation, no retry. This supports scheduling sensitivity under this fixed workload; it is not a production speedup, unique wait-cause, MPS or training claim.
+
+## Exact implementation scope
+
+Prepare a new source-only candidate from r11. Copy required source/test fixtures, with exact `r11-source/` base snapshot and needed earlier fixture directories. Do not copy attempts, runtime outputs, old capsule/classification/identity/registration, leases or caches as current evidence. Preserve old evidence byte for byte. Do not execute historical editor/implementation scripts as preparation or freeze commands.
+
+Only semantic production change: a context-manager helper and fixed `BOUNDARY_SWITCH_INTERVAL = 0.0001` around `observation = self.verify()` in `Guard.full_check`, under the existing verification lock. The helper reduces the process-global CPython interval ONLY while that callback runs. Restore exact original observed interval on success, `Stop`, other `BaseException`, and one asynchronous signal-raised exception interrupting cleanup. Do not change the resource sampler, callback contents or cadence, learner, executor, IPC, lifecycle, acceptance or cleanup rules. Do not hold a resource lock while doing byte IO. No global interval change during training/normal outside-boundary work.
+
+Make restoration correct for CPython's microsecond quantization, including nested entry where `getswitchinterval()` may return `9.999999999999999e-05`. Blindly setting that saved float can truncate another microsecond. Preserve exact observed original interval and prove restoration with meaningful tests. Nested same-thread contexts must restore outer value first, then original. Do not claim arbitrary repeated asynchronous interruptions can always be recovered. No signal masking, handler replacement, timer rearm or ownership change.
+
+The interval is interpreter-wide. An individual Guard's `verify_lock` does not serialize arbitrary setters or other Guard instances. Establish the actual supported ownership assumption from source (real boundaries run on the main thread, no competing registered setter), and make any narrow enforcement explicit and tested. Do not silently broaden or restrict registered callers merely to pass tests; report a blocker if required behavior conflicts. A reader thread must observe the reduced interval during the callback and original afterward. A leaked interval can affect guard outcomes as well as performance, so do not label it harmless.
+
+Keep `boundary_integrity.py`, `lifecycle.py`, `processes.py` and `long_d2_executor.py` byte-identical to frozen r11. Keep all controller top-level function/class bytes identical except the new scheduling helper(s) and the required change inside `Guard.full_check`. Guard's other methods stay byte-identical. Mechanical candidate/protocol constants change to r12 and future protocol-r9. Existing success consumers and complete protected Learner/Schedule/run_schedule/worker ML try stay byte-identical. Keep the existing stress contender,12boundaries,120s limit and all 15 fixtures exactly unchanged.
+
+Produce `protocol-r9-proposal.json` deriving from exact r8. Change only r11 candidate paths to r12, registration timestamp, and an explicit boundary-scheduling declaration:100us only during forced verification callback; process-global; original interval restored; no new check/interval/deadline/acceptance permission. Pin its exact SHA in controller constants for the canonical future `learning/runs/v2-orchestration/postovernight-long-D2-r2-protocol-r9.json`. Do not publish outside your output. Parent owns publication, fresh freeze, registration and subsequent runtime validation.
+
+Classification is derived from changed source bytes and cannot remain byte-identical. Do NOT create a stale envelope to satisfy Sonnet's proposal. Parent will freshly derive classification/manifests/identity/registration and measure all B/R/A/capsule counts. Preserve source-union coverage, disjoint classes and the acyclic hash DAG. No old checkpoint metadata edits or weaker identity checks.
+
+## One stdlib test invocation
+
+Write meaningful tests before starting the registered stage. Then freeze source/commands and run one fail-fast stage, <=300s, with exact raw exit/wall/source inventory and no forbidden imports. Run all112existing methods with unchanged names/assertions/consumers plus focused new scheduling tests. Do not rerun the suite after any failure.
+
+New tests must cover: helper success; callback Stop; callback other BaseException; one signal/exception injected into first cleanup attempt and outer recovery; nested nondefault/short intervals with exact restoration; simultaneous reader observing during/after values; unchanged real Guard invoking the wrapped callback exactly once; guard failure still fatal and original interval restored; and ownership enforcement/assumptions. Use genuine stdlib interval operations where meaningful, source-extracted actual Guard where existing fixture machinery requires it. Disclose modeled signals versus actual signals. Do not infer real-OS cancellation responsiveness or stress performance from unit tests. Synthetic empty/mocked byte checks are not production integrity evidence.
+
+## Protected experiment and integrity contracts
+
+Unchanged config SHA256 `2ac814d3842228017d09669364a8391344722da56ad19f41ad9030dbb930c2db`; seed `5562873868232098305`; only eligible D1 SHA256 `ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f`. D1 model/Adam/RNG restored before environment; exact64-row/nine-field entry before gradients. No changes to teacher/PPO/reward/env/seeds/gates, failed-weight resume, D3, student, B/E qualification, CPU fallback or automatic retry.
+
+Keep full actual B/R/A pre/post endpoints and ALL existing forced active B/genuine legacy check_frozen/origin/runtime/cache checks. No content/stat cache, cadence skip, background verifier thread/process, new integrity deadline or fixed five-second watchdog. Keep original10091/9870/9675 source unions, single-scandir capsule pass and explicit operational no-writer/finite observation limitations. No memory/OS isolation attestation.
+
+7200outer/7140worker/7170inner; shared `min(previous,earliest_failure+10,T0+7210)`; .05/.15/max .5 independent resource/lease timing; separate6GiBRSS/MPS; inner1.0/outer.25 reserves inside existing pool; unchanged chronology/ACK/escalation/direct-parent waits/rawexitwall/positiveabsence/mandatorysummary acceptance. Missing/unknown/unproven remains unproven. Transport cause remains unknown; no descriptor/order/socket/timeout redesign.
+
+## Handoff
+
+Retain all setup/test failures. Produce complete source diff, exact base/input and current source inventories, raw registered test command/exit/wall, per-test results/unrun list, JSON validation, acyclic output manifest and `implementation-result.json`. Snapshot mutable ledger bytes inside your output; do not label routine ledger updates input drift. Give actual elapsed time and any scope deviation. Release source ownership and freeze source bytes at handoff. No production freeze/runtime campaign is authorized here. Parent will reconcile, publish exact protocol proposal, freeze new capsule, request fresh review and register relevant OS/stress/startup stages before considering the single unused training invocation.

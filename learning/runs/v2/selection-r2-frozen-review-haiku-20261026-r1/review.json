@@ -1,0 +1,95 @@
+{
+  "schema": "selection_r2_frozen_review_v1",
+  "reviewer": "haiku-5.5 sub-agent",
+  "mode": "source-only, read-only, no execution or imports",
+  "verdict": "not_acceptable_as_is",
+  "launch_clearance": false,
+  "confirmation_clearance": false,
+  "reviewed_target": "learning/runs/v2/ranking-selection-producer-luna-20261026-r2/",
+  "reviewed_sha256": {
+    "selection.py": "850916152765538f35b4808ec8ab2132fad973ab0127c9fe1d28f76ffeff9d00",
+    "test_selection.py": "7e6bcebca47e884fc4eb25596408769eebcf110bca8340d15de86a0c788be4b0",
+    "README.md": "ccd22c30708387d5e4b40dd1e4f856508bda5b2dad8174561438a3ef7478621a",
+    "integration-patch-proposal.md": "13ccc49a7527d3f1f1f97769037351903216b5fca071bb65b6c70f3f4af1bf6c",
+    "tests.log": "21df4995c6bb7e6b5e0af742188013587a8f27708b24fa429678543a11e2c55a",
+    "manifest.json": "062d8c3a354dc119c12fa9ebf779e5fa9710ffb051fa0d9e9cb8b62e8cb650cf",
+    "expanded-evaluator-publication-repair-parent-20261026-r4/expanded_eval.py": "a3439c33152b082471cd9f9a36ef4bb03783b9544ae7c1e3fe1878e607b128aa",
+    "expanded-runner-integrated-parent-20261026-r5/worker.py": "2b5d25d07c671671e6f9a4fb2c976b02af2cb8372ace30ad2d05544bb18a83e4",
+    "expanded-runner-integrated-parent-20261026-r5/execute_once.py": "b1020bd112dd79ae2c8486424907001292be64e8e81224aad68b38dd044a775c",
+    "expanded-runner-integrated-parent-20261026-r5/build_registration.py": "280650effba15ca1763707bbf054d081f6d4fb662da83f6a70a299243b07e8eb",
+    "expanded-runner-integrated-parent-20261026-r5/receipt.json": "3d7a36380e25fc9d8340a75df584df1d6d8c0528722ce8b09b83a0d44e5268b2",
+    "expanded-runner-integrated-parent-20261026-r5/tests.log": "2f9cde0e5780357d7a0b6877f647b692b6876cdb8471cc92ede943b6d6eecc46",
+    "expanded-evaluation-registration-proposal-parent-20261026-r5/proposal.json": "187e0464ba966b29124b29cf606c831d7097adeea99ccfc0e336598ad3fc9765"
+  },
+  "findings": [
+    {
+      "id": "H-1",
+      "severity": "high",
+      "path": "learning/runs/v2/ranking-selection-producer-luna-20261026-r2/selection.py",
+      "line": 69,
+      "summary": "_row_alive requires gameplay_frames == alive_frames + 1 for every row; valid truncated cap rows have alive == gameplay == 18000.",
+      "trigger": "Any ranking candidate with >=1 truncated episode at the 18000-frame cap.",
+      "consequence": "produce_selection raises ValueError and writes no selection record. Fail-closed availability block; no wrong winner.",
+      "evaluator_ref": "expanded-evaluator-publication-repair-parent-20261026-r4/expanded_eval.py:315-316",
+      "test_gap": "test_selection.py:18-25 builds only terminated rows.",
+      "fix": "Branch _row_alive on terminated/truncated; add truncated accept/reject and end-to-end cap-row tests."
+    },
+    {
+      "id": "M-1",
+      "severity": "medium",
+      "path": "learning/runs/v2/ranking-selection-producer-luna-20261026-r2/selection.py",
+      "line": 222,
+      "summary": "Selection record omits summary and outer-receipt path/sha; validate_selection_record cannot replay postflight proof.",
+      "trigger": "Hand-written or non-producer record plus six valid result files where ranking postflight failed.",
+      "consequence": "Validator accepts a record the producer would refuse. Exposure limited while producer is sole writer.",
+      "fix": "Record and validator carry/pin outer receipt and summary bindings; re-run producer's identity/postflight/artifact checks."
+    },
+    {
+      "id": "B-1",
+      "severity": "boundary",
+      "path": "learning/runs/v2/expanded-runner-integrated-parent-20261026-r5/worker.py",
+      "line": 116,
+      "summary": "Confirmation worker validate_selection does not call validate_selection_record and does not recompute argmax; R4 H-1 remains open at the worker.",
+      "trigger": "Selection record with non-argmax winner, matching pins and six valid refs.",
+      "consequence": "Worker accepts it until the parent-reviewed contract revision wires the validator with externally pinned result bindings.",
+      "fix": "Parent-reviewed revision to worker call site. Not part of this producer."
+    },
+    {
+      "id": "T-1",
+      "severity": "medium",
+      "path": "learning/runs/v2/ranking-selection-producer-luna-20261026-r2/test_selection.py",
+      "line": 19,
+      "summary": "Fixtures diverge from evaluator row shape: startup_frames 0 (evaluator 13); terminated rows lack fatal_gameplay_frame and death_observed_lethal_contacts.",
+      "trigger": "Running the suite.",
+      "consequence": "Suite cannot catch H-1 and claims shape fidelity it does not have.",
+      "fix": "Evaluator-shaped fixtures plus truncated cases."
+    },
+    {
+      "id": "L-1",
+      "severity": "low",
+      "path": "learning/runs/v2/ranking-selection-producer-luna-20261026-r2/selection.py",
+      "line": 63,
+      "summary": "_row_alive checks a subset of _validate_rows: no startup_frames==13, no score_delta_sum check, no alive<=gameplay<=cap bound, no death/cap telemetry rules, loose numeric type on gameplay_frames.",
+      "trigger": "Evaluator regression producing rows the producer should reject.",
+      "consequence": "Producer accepts inconsistent rows; winner-by-alive impact limited.",
+      "fix": "Mirror evaluator rules with one test per rule."
+    },
+    {
+      "id": "L-2",
+      "severity": "low",
+      "path": "learning/runs/v2/ranking-selection-producer-luna-20261026-r2/selection.py",
+      "line": 239,
+      "summary": "Selection record written directly with open('x'); crash leaves partial file.",
+      "trigger": "Crash or kill during write.",
+      "consequence": "Re-run fails with FileExistsError (fail closed); manual cleanup.",
+      "fix": "Temp file in same dir, fsync, then exclusive rename/link."
+    }
+  ],
+  "limits": [
+    "Static review only; no tests run; tests.log read as text.",
+    "No actual ranking, confirmation, or candidate output read.",
+    "Runtime behavior of expanded_eval.py not verified; source only.",
+    "Parent-verified 5 hashes and 7 synthetic tests accepted as stated where not re-derived.",
+    "Supervisor/heartbeat repairs and throughput gate M-5 out of scope."
+  ]
+}

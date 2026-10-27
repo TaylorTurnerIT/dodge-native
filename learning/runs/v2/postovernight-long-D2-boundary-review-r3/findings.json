@@ -1,0 +1,74 @@
+{
+  "findings": [
+    {
+      "consequence": "worker_failure raises Failure descriptor timestamp differs before latching its cleanup pool or attempting the executor ACK. The worker unwinds through finally to main; the fallback reports the descriptor-mismatch exception instead of the initiating failure. Worker result/checkpoint failure evidence is lost and the intended first-failure deadline is not started at the initiating observation. Raw failure remains ineligible; no acceptance bypass is claimed.",
+      "end_line": 938,
+      "fix_direction": "Reuse the selected descriptor timestamp when initializing the worker pool, rather than sampling a new catch time.",
+      "id": "BOUNDARY-R3-WORKER-DESCRIPTOR",
+      "line": 938,
+      "mechanism": "primary_error records catch time in error.first_failure_descriptor at lines 924/837-854. worker_failure then samples a later now at line 928 and explicitly passes that later time to FailurePool.fail at line 938. lifecycle.py:57 rejects it because descriptor.timestamp differs. The call occurs before the ACK try block.",
+      "path": "learning/runs/v2/postovernight-long-D2-boundary-prepare-r3/long_d2.py",
+      "proof": {
+        "execution_limit": "Deterministic clock, exact extracted functions; no lifecycle signals or ML. The original combined shell raw exit is 0; a separate child exit was not retained.",
+        "observation": "descriptor timestamp 100.001; clock 100.00300000000001; pool_first/pool_until null; ACK calls 0; Stop: Failure descriptor timestamp differs",
+        "script": "proof_worker_failure.py",
+        "stderr": "proof-worker-failure.stderr.log",
+        "stdout": "proof-worker-failure.stdout.log"
+      },
+      "severity": "P2",
+      "title": "Ordinary worker exceptions conflict with their own first-failure timestamp",
+      "trigger": "An ordinary worker exception occurs with no previously observed Guard failure, cancellation, or alarm."
+    },
+    {
+      "consequence": "The registered consumer returns True without the mandatory owned-leader reaping/raw-exit proof. This is a consumer-contract hole. The production producer has separate wait checks at lines 392-396; this review does not claim an actual unreaped production process was accepted.",
+      "end_line": 512,
+      "fix_direction": "Require and validate both direct-parent wait reports against raw status, ownership PIDs, matching normal outcome, and worker/inner deadlines.",
+      "id": "BOUNDARY-R3-CONSUMER-REAP",
+      "line": 512,
+      "mechanism": "accept_observed checks only new_session_verified and group_absent booleans in ownership. It never reads either direct-parent wait report, checks their raw status, ties their PIDs to ownership, or validates their per-role cutoff.",
+      "path": "learning/runs/v2/postovernight-long-D2-boundary-prepare-r3/long_d2_executor.py",
+      "proof": {
+        "command": "proof-consumer-command.json",
+        "execution_limit": "Exact source-extracted consumer and real JSON/hash/file/summary validators, with filesystem constants redirected to owned fixtures. No process evidence or ML results fabricated as runtime proof.",
+        "observations": {
+          "both_reports_raw_failure_and_not_reaped": true,
+          "both_wait_reports_missing": true,
+          "control": true,
+          "raw_outer_exit_1_rejected": true
+        },
+        "raw_exit": 0,
+        "results": "consumer-proof-results.json",
+        "script": "proof_accept_observed.py",
+        "stdout": "proof-consumer.stdout.log"
+      },
+      "severity": "P2",
+      "title": "Exact parent consumer accepts missing or failed direct-reap reports",
+      "trigger": "With valid parent registration/summary pins, current artifact hashes, outer raw exit 0, and finite in-budget wall, remove inner_wait and worker_wait from the receipt or change both reports to returncode 1/direct_child_reaped false/raw_wait_status 256."
+    },
+    {
+      "consequence": "The mandatory inner failure receipt is not even attempted until optional telemetry returns. Executor cleanup can terminate the inner process first, losing mandatory failure evidence. Exception swallowing alone does not protect against blocked optional IO. This is the still-unwired inner half of the retained telemetry-before-receipt defect; raw outer failure still rejects.",
+      "end_line": 1338,
+      "fix_direction": "Use mandatory-first failure publication on the actual inner exception path, keeping telemetry independently guarded.",
+      "id": "BOUNDARY-R3-INNER-PUBLICATION-ORDER",
+      "line": 1337,
+      "mechanism": "The actual supervise_owned exception branch invokes optional_timing at line 1337 before replace_json(inner-failure.json) at line 1338. The new failure_publication helper has no call sites in long_d2.py. Outer uses the helper; inner does not.",
+      "path": "learning/runs/v2/postovernight-long-D2-boundary-prepare-r3/long_d2.py",
+      "proof": {
+        "fixture_attempts": [
+          "proof-inner-command.json",
+          "proof-inner-r2-command.json"
+        ],
+        "fixture_limit": "Both extracted attempts observed optional_timing before mandatory replacement. They are not successful end-to-end receipt proofs: first omitted json/os from the extraction namespace; second corrected json but still omitted os and its final assertion failed with raw exit 1. Both attempts and partial files are preserved. No blocked IO, process kill, or acceptance-bypass claim relies on them.",
+        "runtime_suppression_tested": false,
+        "source_order": "source-publication-order.json",
+        "source_snapshot": "source-snapshot/long_d2.py",
+        "static_source_confirmed": true
+      },
+      "severity": "P2",
+      "title": "Inner failure handler still runs optional telemetry before mandatory failure receipt",
+      "trigger": "After an inner failure and cleanup notification, optional inner-verification.jsonl persistence blocks or consumes the remaining shared cleanup allowance."
+    }
+  ],
+  "schema": "frozen_boundary_r3_source_review_v1",
+  "verdict": "changes_required"
+}

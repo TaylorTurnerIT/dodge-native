@@ -1,0 +1,27 @@
+{
+  "schema": "paired_eval_parent_r1_review_reconciliation_v1",
+  "at_utc": "2026-10-26T01:04:52.952537+00:00",
+  "review_receipt_sha256": "e402f5b1fb2e28a919de429d84ffe6914637d4391ac48b839df76e1b5af23f11",
+  "target_preparation_receipt_sha256": "0743556ac3e649afe4a40c842b8701b7ebb8ee7d419b31236a8029431c1b1f26",
+  "actual_game_episodes": 0,
+  "r1_launch_authorized": false,
+  "findings": {
+    "F1": {
+      "accepted": true,
+      "reproduced_error": "Development death telemetry present on a non-terminated episode",
+      "scope": "Direct frozen helper call with live-step info, no native environment. Build rows only at episode end; test live-to-death and live-to-cap."
+    },
+    "F2": {
+      "accepted": true,
+      "qualification": "13513 existing interpreter/Torch/NumPy pins unchanged. Inventory does not cover full stdlib/OS/driver. Add pre/post checks and truthful scope."
+    },
+    "F3": {
+      "accepted": true,
+      "scope": "Test actual run_once lifecycle with harmless child/fakes, no games."
+    }
+  },
+  "review_provider": "claudeAgent/claude-sonnet-5-5",
+  "haiku_failure": "503 auth_unavailable; native Haiku absent from current catalog. No identical retry.",
+  "successor": "learning/runs/v2/latest-best-paired-eval-prepare-luna-20261026-r2",
+  "probe_correction": "Initial reproduction fixture omitted required fatal_gameplay_frame field and raised KeyError; complete live info reproduces reported ValueError."
+}

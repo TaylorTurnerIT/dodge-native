@@ -1,0 +1,16 @@
+{
+  "schema": "d2_best180_candidate_audit_registration_v1",
+  "status": "proposed_parent_authority_required",
+  "candidate_updates": [180, 192, 204, 216, 228, 240, 252],
+  "candidate_rule": "Each complete-update model+Adam checkpoint and its same-update 64-seed evaluation require an exact parent audit receipt before selection.",
+  "evaluation": {
+    "cohort": "same 64 D2 deterministic argmax development seeds",
+    "primary": "mean alive raw frames",
+    "secondary": ["Q1 bottom-16 mean alive raw frames", "Q4 top-16 mean alive raw frames", "death counts by cause", "mean score"],
+    "objective_return": "score delta + 0.01 * alive raw frames - 5 * death"
+  },
+  "selection": "Replace current BEST180 only with a strictly higher primary mean from a completed candidate whose exact checkpoint and evaluation passed parent audit. Otherwise retain BEST180.",
+  "automatic_receipt": false,
+  "training_acceptance_implies_competence": false,
+  "qualification_claim": false
+}

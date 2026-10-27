@@ -1,0 +1,37 @@
+{
+  "evidence_limitations": [
+    "Intermediate extension binaries from early develop builds were overwritten before independent binary hashes/archives were captured. Their source hashes and full build/test logs are retained; only final installed binary and matching wheel are archived."
+  ],
+  "failures": [
+    {
+      "detail": "Freeze checker compared Python test hashes captured during Clippy before the final input-copy test was added. Rust source was unchanged. Retained failing freeze script, then refreshed final Clippy receipt against complete final source.",
+      "exit_code": 1,
+      "kind": "receipt_scope_assertion",
+      "label": "freeze-r1"
+    },
+    {
+      "detail": "Invoking maturin from root with only --manifest-path missed python/pyproject.toml and emitted a missing PyInit_dodge_rl_env warning. Removed only that local venv package, then rebuilt from python/. Logs retained.",
+      "exit_code": 0,
+      "kind": "packaging_config_not_discovered",
+      "label": "build-python-r1"
+    },
+    {
+      "detail": "61 passed before assertion that neutral terminal global features must differ from fresh globals. Neutral position and zero score can match. Corrected test to compare entity features; no gameplay change.",
+      "exit_code": 1,
+      "kind": "incorrect_test_assumption",
+      "label": "pytest-r1"
+    },
+    {
+      "detail": "cfg(test) raw observer closures are Send-only. Binding module registration now excludes only the Rust unit-test artifact. Normal library all-feature Clippy and real extension compile/check binding code. Frozen observer/test sources unchanged.",
+      "exit_code": 101,
+      "kind": "test_only_observer_not_sync",
+      "label": "clippy-r1"
+    },
+    {
+      "detail": "Inline assertion found only orchestration state.json changed since input freeze. Never edited here. Final frozen-input-audit.json separates dynamic ledger drift from unchanged frozen sources.",
+      "exit_code": 1,
+      "kind": "external_dynamic_ledger_drift",
+      "label": "initial-input-audit"
+    }
+  ]
+}

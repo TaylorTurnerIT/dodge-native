@@ -1,0 +1,35 @@
+   Compiling dodge-core v0.1.0 (/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/crates/dodge-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.33s
+     Running unittests src/lib.rs (target/debug/deps/dodge_core-32903b419256eb6a)
+
+running 12 tests
+test game::headless_tests::headless_all_active_patterns_static_moving_smooth_and_completion ... FAILED
+test game::headless_tests::headless_death_input_and_retry_preserve_legacy_reward_and_score_delta ... ok
+test game::headless_tests::headless_equivalence_100_seeds_2000_raw_frames ... ok
+test game::headless_tests::headless_explode_powerup_kamikaze_and_draw_rng ... ok
+test game::headless_tests::headless_freeze_shrink_collection_and_expiration ... ok
+test game::headless_tests::headless_invalid_masks_leave_every_field_unchanged ... ok
+test game::headless_tests::headless_settings_and_transitions_match_in_menu_game_and_death ... ok
+test game::headless_tests::headless_start_boundary_preserves_extra_trail_and_cached_pixels ... ok
+test game::headless_tests::headless_static_charging_and_moving_rect_death ... ok
+test game::headless_tests::legacy_capture_fingerprints ... ok
+test game::headless_tests::on_demand_render_cadence_cannot_change_future_state_or_rng ... ok
+test game::headless_tests::privileged_view_borrows_current_geometry_and_matches_post_method_pixels ... ok
+
+failures:
+
+---- game::headless_tests::headless_all_active_patterns_static_moving_smooth_and_completion stdout ----
+
+thread 'game::headless_tests::headless_all_active_patterns_static_moving_smooth_and_completion' (15609271) panicked at crates/dodge-core/src/headless_tests.rs:275:5:
+assertion `left == right` failed
+  left: 39
+ right: 25
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    game::headless_tests::headless_all_active_patterns_static_moving_smooth_and_completion
+
+test result: FAILED. 11 passed; 1 failed; 0 ignored; 0 measured; 44 filtered out; finished in 164.83s
+
+error: test failed, to rerun pass `-p dodge-core --lib`

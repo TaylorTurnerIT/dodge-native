@@ -1,0 +1,41 @@
+{
+  "schema": "gradient_alignment_mps_diagnosis_receipt_v1",
+  "role": "read-only review sub-agent",
+  "status": "diagnosis_complete_no_fix_applied",
+  "scope": "static inspection of failed prep; no experiments, training, evaluation, rollout, relaunch, lease change, deploy, commit, or messages",
+  "outputs": ["learning/runs/v2/gradient-alignment-MPS-diagnosis-haiku-20261025-r1/diagnosis.md", "learning/runs/v2/gradient-alignment-MPS-diagnosis-haiku-20261025-r1/receipt.json"],
+  "read_inputs_sha256": {
+    "learning/runs/v2/gradient-alignment-prepare-luna-20261025-r1/implementation-result.json": "e87d2d9ef13b37f8e4d8f0463b1a31523f46c05155a79eb5b2a85986345de8b8",
+    "learning/runs/v2/gradient-alignment-prepare-luna-20261025-r1/README.md": "11f4611765dc7a052793cc575cfbb84f51aa53930aeecb6739c14a0440450479",
+    "learning/runs/v2/gradient-alignment-prepare-luna-20261025-r1/own/runtime/dodge_rl/gradient_alignment.py": "53e03f62cfee7039c6dff0280ad608beeb6008b06893845bdc0b1cff08a38876",
+    "learning/runs/v2/gradient-alignment-prepare-luna-20261025-r1/own/runtime/dodge_rl/ppo.py": "0230e6b2e7476d2d741268ec8edb14250ba7887d7bcefd62559cb3dabf019fc7",
+    "learning/runs/v2/gradient-alignment-prepare-luna-20261025-r1/own/tests/parity_fixture.py": "d617f5261776eedba0a34c8b8a0bd46f927e8a01c6d14087f67c78ead667bfde",
+    "learning/runs/v2/gradient-alignment-prepare-luna-20261025-r1/own/tests/test_gradient_alignment.py": "b7793dd17365d83163e9d7f9c61925146778438557c7ee3748a7ccadfd2e950a",
+    "learning/runs/v2/gradient-alignment-prepare-luna-20261025-r1/own/mps.log": "f51b532320b9ae21974df29067e3300db82563669297c5a7d0ecde648e84ece9",
+    "learning/runs/v2/gradient-alignment-prepare-luna-20261025-r1/own/parity.log": "9ef49816daa535735e86c5eb8a049d09753c06ebaba5c391a78a7b48b7e5089a",
+    "learning/runs/v2/gradient-alignment-prepare-luna-20261025-r1/own/benchmark.log": "0d98da4199335f216dc7e07aa55986dc4dabc3aa295a66a46ca9ad6b8fb3519a",
+    "learning/runs/v2/critic-diagnostic-parent-prepare-20261025-r1/runtime/dodge_rl/ppo.py": "abf25f327f9ff749a8a32de4edb07705f12ebcdc5cd0eba8775ad4f693eff1d5",
+    "learning/runs/v2/critic-diagnostic-parent-prepare-20261025-r1/runtime/dodge_rl/models/teacher.py": "e4d7f597a2824c2b0d4ba261dddc9d7d1ee1d5592c2fc966a44c54b5ec417e35",
+    "learning/runs/v2/d2-continuation-parent-terminal-audit-20261025-r1/parent-terminal-receipt.json": "fce4262d97f4cca11d8c28dd68fe4a4ec8fa48ba747c393ab864a380f07f90a3",
+    "learning/runs/v2/critic-diagnostic-runner-prepare-20261025-r3/runner.py": "not_hashed_grep_only_lines_175_185"
+  },
+  "existence_checks": {
+    "learning/runs/v2/gradient-alignment-parent-prepare-20261025-r1/parent-plan.json": "present, 3009 bytes",
+    "learning/runs/v2/d2-continuation-parent-terminal-audit-20261025-r1/parent-terminal-receipt.json": "present, SHA-256 matches brief"
+  },
+  "findings_ranked": [
+    {"id": 1, "severity": "blocker", "claim": "probe emits None for undefined cosine, ratio, zero_norm_reason; runner finite_tree rejects None except explained_variance", "status": "proven_by_reading"},
+    {"id": 2, "severity": "blocker", "claim": "MPS probe output diverges from CPU beyond NaN (layers.1 actor 10.6x off; remaining critic 0 vs 0.378); combined preclip norm insensitive to trunk probe", "status": "observed_in_logs; cause_hypothesis_only"},
+    {"id": 3, "severity": "high", "claim": "no finite guard inside summarize or on alignment_result", "status": "proven_by_reading"},
+    {"id": 4, "severity": "high", "claim": "tests lack None omission, nonfinite rejection, final_norm grouping, ga+gc identity, and MPS-vs-CPU check; MPS evidence script not in own/tests", "status": "proven_by_reading"},
+    {"id": 5, "severity": "medium", "claim": "fixture randint(0,9) puts type 0 on valid rows; production allowlist is 1..8; fixture small (8 transitions, minibatch 4)", "status": "proven_by_reading"},
+    {"id": 6, "severity": "medium", "claim": "rss_max_bytes multiplies ru_maxrss by 1024 on macOS; 353395277824 corresponds to about 329 MiB true value", "status": "arithmetic_verified"},
+    {"id": 7, "severity": "medium", "claim": "74% overhead is one synthetic CPU 512 minibatch, n=3, fixed order, no warm-up; not per-update; no MPS timing", "status": "proven_by_reading"}
+  ],
+  "hypotheses_not_proven": [
+    "MPS .to(device=cpu, dtype=float64) on device tensors corrupts values or yields NaN",
+    "MPS separate autograd.grad with retain_graph and allow_unused produces wrong or zero per-parameter gradients"
+  ],
+  "not_done": ["no experiments", "no MPS run", "no source or test edits", "partial r2 not read", "no commit or deploy"],
+  "accepted_performance_context": "132 updates; Q1=565.8125; Q4=2786.25; mean=1518.75 alive frames; no real-training diagnostic data exists"
+}

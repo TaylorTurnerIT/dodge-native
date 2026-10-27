@@ -1,0 +1,10 @@
+{
+  "prior_attempt": "attempts/units-03",
+  "failure": "AssertionError: 'cancelled' != 'safety_stop'",
+  "cause": "Original worker_failure upfront result.update remained before first-failure recorder",
+  "repair": "Remove that one overwrite; record_primary_failure exclusively owns outcome/error",
+  "controller_before_sha256": "8d8863691f7e7833e39b9682740942da86d062d654a22f73b8be6977739fe849",
+  "controller_after_sha256": "5735b8181d79424944d0c605414f8859a7856b0481c009da3ff5fc6921e42d89",
+  "justification": "New affected actual-worker regression exposed in-scope implementation defect; exact failed source/log/AST/output retained. No limits, trigger, pins, learner changes or stress retry.",
+  "next_attempt": "attempts/units-04"
+}

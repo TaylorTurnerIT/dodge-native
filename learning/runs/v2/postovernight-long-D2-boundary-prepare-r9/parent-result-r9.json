@@ -1,0 +1,235 @@
+{
+  "OS": {
+    "failed_case": "post-gate-persistent-mutation",
+    "failed_predicate": "owned group survived/unproven in receipt",
+    "later_cases_unrun": 8,
+    "observed_command": {
+      "ML_imports": false,
+      "acceptance_scope": "explicit lifecycle fixture only; production consumer tested separately",
+      "argv": [
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+        "-B",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r9/synthetic.py",
+        "executor",
+        "--root",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r9/attempts/attempt-03-focused-OS/cases/post-gate-persistent-mutation"
+      ],
+      "elapsed_seconds": 10.38762733299518,
+      "expected": 1,
+      "harness_kill_required": false,
+      "injection_reached": true,
+      "maximum_wall_seconds": 22.5,
+      "observed_acceptance": false,
+      "positive_group_absence": {
+        "supervisor": true,
+        "worker": true
+      },
+      "raw_wait": {
+        "direct_child_reaped": true,
+        "observed_monotonic": 514572.914211625,
+        "pid": 23339,
+        "raw_wait_status": 256,
+        "reaped_by": 21443,
+        "returncode": 1
+      },
+      "receipt_available": true,
+      "writer_checks": []
+    },
+    "passed_before_failure": 6,
+    "prior_passed_cases": [
+      {
+        "exit": 2,
+        "groups": {
+          "supervisor": true,
+          "worker": true
+        },
+        "injection_reached": false,
+        "name": "normal-closure",
+        "seconds": 2.767292541975621
+      },
+      {
+        "exit": 0,
+        "groups": {
+          "supervisor": true,
+          "worker": true
+        },
+        "injection_reached": false,
+        "name": "normal-fake-gate",
+        "seconds": 2.750394915987272
+      },
+      {
+        "exit": 2,
+        "groups": {
+          "supervisor": true,
+          "worker": true
+        },
+        "injection_reached": false,
+        "name": "inner-optional-timing-error",
+        "seconds": 2.5503707919851877
+      },
+      {
+        "exit": 0,
+        "groups": {
+          "supervisor": true,
+          "worker": true
+        },
+        "injection_reached": false,
+        "name": "outer-optional-timing-error",
+        "seconds": 2.5527050829841755
+      },
+      {
+        "exit": 1,
+        "groups": {
+          "supervisor": true,
+          "worker": true
+        },
+        "injection_reached": true,
+        "name": "inner-failure-with-timing-error",
+        "seconds": 1.1466584170120768
+      },
+      {
+        "exit": 1,
+        "groups": {
+          "supervisor": true,
+          "worker": true
+        },
+        "injection_reached": true,
+        "name": "outer-failure-with-timing-error",
+        "seconds": 2.5836432080250233
+      }
+    ],
+    "raw_result": {
+      "completed_at_utc": "2026-10-25T02:13:00.621026+00:00",
+      "elapsed_seconds": 24.872420333034825,
+      "raw_exit": 1
+    },
+    "receipt_sha256": "7ecc379acc66da2c85441909cbefb3c46e30c3129bb1155c9f19a9138ba1d73b",
+    "receipt_summary": {
+      "accepted": false,
+      "cleanup_complete": false,
+      "cleanup_errors": [
+        "Stop('Unexpected private IPC loss: {\"ancillary_capacity\": 16, \"buffer_bytes\": 60001, \"errno\": 54, \"expected_sender\": null, \"fd\": 3, \"flags\": null, \"next_sequence\": 4, \"operation\": \"recvmsg\", \"raw_length\": null, \"received_sequence\": 3}')",
+        "OSError(39, 'Destination address required')",
+        "OSError(39, 'Destination address required')",
+        "OSError(39, 'Destination address required')",
+        "OSError(39, 'Destination address required')",
+        "OSError(39, 'Destination address required')",
+        "OSError(39, 'Destination address required')",
+        "OSError(39, 'Destination address required')"
+      ],
+      "error": "[Errno 2] No such file or directory: '/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r9/attempts/attempt-03-focused-OS/cases/post-gate-persistent-mutation/campaign/long-worker-result.json'",
+      "first_global_failure": {
+        "kind": "exception_observed",
+        "outcome": "safety_stop",
+        "role": "inner",
+        "signal": null,
+        "timestamp": 514562.910867333,
+        "timing_basis": "catch_observation_not_construction"
+      },
+      "inner_wait": null,
+      "ownership": {
+        "supervisor": {
+          "argv": [
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+            "-B",
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r9/synthetic.py",
+            "run",
+            "--output",
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r9/attempts/attempt-03-focused-OS/cases/post-gate-persistent-mutation/campaign",
+            "--state-path",
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r9/attempts/attempt-03-focused-OS/cases/post-gate-persistent-mutation/state.json",
+            "--executor-fd",
+            "4",
+            "--executor-pid",
+            "23339"
+          ],
+          "group_absent": false,
+          "kill_sent": false,
+          "new_session_verified": true,
+          "ownership": "exact_command_parent_T0_capsule_output",
+          "parent_at_registration": 23339,
+          "pgid": 23342,
+          "pid": 23342,
+          "term_sent": false
+        },
+        "worker": {
+          "argv": [
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+            "-B",
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r9/synthetic.py",
+            "worker",
+            "--output",
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r9/attempts/attempt-03-focused-OS/cases/post-gate-persistent-mutation/campaign",
+            "--state-path",
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-boundary-prepare-r9/attempts/attempt-03-focused-OS/cases/post-gate-persistent-mutation/state.json",
+            "--started",
+            "514562.541264875",
+            "--supervisor-pid",
+            "23342",
+            "--executor-fd",
+            "3",
+            "--executor-pid",
+            "23339"
+          ],
+          "group_absent": false,
+          "kill_sent": false,
+          "new_session_verified": true,
+          "ownership": "exact_command_parent_T0_capsule_output",
+          "parent_at_registration": 23342,
+          "pgid": 23357,
+          "pid": 23357,
+          "term_sent": false
+        }
+      },
+      "reaping": {
+        "supervisor": {
+          "basis": "direct_wait_report_missing",
+          "status": "unproven"
+        },
+        "worker": {
+          "basis": "validated_direct_parent_waitpid_report",
+          "status": "direct_reaped"
+        }
+      },
+      "recovery_proven": true,
+      "trigger_error": "TimeoutError('timed out')",
+      "worker_wait": {
+        "direct_child_reaped": true,
+        "observed_monotonic": 514562.910627875,
+        "pid": 23357,
+        "raw_wait_status": 256,
+        "reaped_by": 23342,
+        "returncode": 1
+      }
+    }
+  },
+  "at_utc": "2026-10-25T02:14:18.188321+00:00",
+  "confirmed_observations": [
+    "Worker received zero-byte datagram, flags0 and sequence0 in worker_gate; truncated-packet diagnosis now has bounded raw metadata.",
+    "Outer start_ack send timed out; inner then failed reading missing worker result. Initiating transport cause remains unproven.",
+    "Failed receipt retained cleanup_complete=false, ownership group_absent=false and inner_wait=null, while independent later probes confirmed both groups absent.",
+    "Monitor calls pump before safety/cleanup inside one broad try; repeated pump failures can prevent later cleanup operations. This source ordering is confirmed; no live watchdog trace retained.",
+    "Requested receipt-before mutation fired during FAILURE publication after unrelated startup error, so intended post-gate mutation scenario was not exercised."
+  ],
+  "freeze": {
+    "completed_at_utc": "2026-10-25T02:11:32.038005+00:00",
+    "elapsed_seconds": 2.372307749988977,
+    "raw_exit": 0
+  },
+  "next": "Read-only targeted IPC/monitor/fixture diagnosis; no repeated OS case or later validation until supported repair and fresh acceptance.",
+  "no_external_harness_kill": true,
+  "preflight": {
+    "completed_at_utc": "2026-10-25T02:11:50.711807+00:00",
+    "elapsed_seconds": 1.6530534589546733,
+    "raw_exit": 0
+  },
+  "review_pending": true,
+  "schema": "boundary_r9_parent_validation_result_v1",
+  "source_unchanged": true,
+  "startup_rehearsal_launched": false,
+  "status": "stopped_on_first_unexpected_OS_failure;candidate_not_accepted",
+  "stress_launched": false,
+  "training_authorization_consumed": false,
+  "training_launched": false,
+  "unit_methods_passed": 69
+}

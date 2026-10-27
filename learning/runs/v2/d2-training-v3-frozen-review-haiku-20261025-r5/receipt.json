@@ -1,0 +1,57 @@
+{
+  "schema": "d2_training_frozen_review_v1",
+  "reviewer": "claude-haiku-5-5",
+  "reviewed_at_utc": "2026-10-25T21:05:00Z",
+  "read_only": true,
+  "verdict": "no_blocking_findings",
+  "reviewed_files": {
+    "learning/runs/v2/d2-training-v3-adapter-prepare-20261025-r5/runner.py": "0176ab99b6762e4d7c9be414461e3406237e0d1cd632d5cde66a0259bd3a0b93",
+    "learning/runs/v2/d2-training-v3-adapter-prepare-20261025-r5/execute_once.py": "9bfc62b1c4eaa0fb103d20710623f37aa53caaf1de8be7bbbbd20c94ec6c843e",
+    "learning/runs/v2/d2-training-v3-adapter-prepare-20261025-r5/README.md": "052e24245dce680fad36389d74923193706a26b0b4b9ff814088f2ce0a82e932",
+    "learning/runs/v2/d2-training-v3-adapter-prepare-20261025-r5/test_contract.py": "9241172c597ca605fe6fabbcbb24261f14f328075e4a66c729dcd49ad45f85e7",
+    "learning/runs/v2/d2-training-v3-adapter-prepare-20261025-r5/test_torch_restore.py": "faf0c55671fb304deb5f5b0d7720ec502826fa1da675c5032395279c0049b9a9",
+    "learning/runs/v2/d2-training-v3-adapter-prepare-20261025-r5/test_normal.py": "2e977329e360e147e516f27bad9d3bf5b8cc9fb9de5243e64bfda2066cceb432",
+    "learning/runs/v2/d2-training-v3-adapter-prepare-20261025-r5/implementation-result.json": "1d871ca875e5a3c10e88c2bee440d7adfe14b749c8d1d775a7fd6d30b77f7086",
+    "learning/runs/v2/d2-training-v3-parent-prepare-20261025-r2/registration-r8.json": "d502c6761064727a610127fc58073e3a4c062fc928ea1e26de5718ad6aee6dcb",
+    "learning/runs/v2/d2-training-v3-parent-prepare-20261025-r2/registration-r8-pin.json": "not_hashed_read_only_contents_checked",
+    "learning/runs/v2/d2-training-v3-parent-prepare-20261025-r2/preparation-final-receipt-r7.json": "not_hashed_read_only_contents_checked",
+    "learning/runs/v2/critic-diagnostic-parent-prepare-20261025-r1/dependency-inventory.json": "2957832457c39751998012f4aeb4440f5d7570250ae9ab072ee10d86dd970ed6",
+    "learning/runs/v2/d2-training-v3-parent-prepare-20261025-r2/previous_preparation_input_drift.json": "b66d032129852c1601d0f90e9573dda180be4931399f5c7d86552f66630e37cd"
+  },
+  "pin_counts": {
+    "registration_pins": 13560,
+    "inventory_pins": 13513,
+    "rehashed_by_reviewer": 0
+  },
+  "findings": [
+    {"id": "F1", "severity": "low", "category": "provenance", "file": "learning/runs/v2/d2-training-v3-adapter-prepare-20261025-r5/implementation-result.json", "lines": "5-11,49", "summary": "Stale runner and validation-script hashes; not read by launcher.", "disposition": "record_or_regenerate"},
+    {"id": "F2", "severity": "low", "category": "receipt-consistency", "file": "learning/runs/v2/d2-training-v3-adapter-prepare-20261025-r5/execute_once.py", "lines": "298-320", "summary": "Signal between primary save (line 299) and return-code logic leaves execution-result.json status passed while publication-failure.json records failure and exit is 1.", "disposition": "record_or_fix_before_acceptance"},
+    {"id": "F3", "severity": "low", "category": "resource-scope", "file": "learning/runs/v2/d2-training-v3-adapter-prepare-20261025-r5/execute_once.py", "lines": "140-147", "summary": "Launcher loads torch and two checkpoints outside Guard RSS/MPS caps; deadline checked only after.", "disposition": "accept_as_limitation"},
+    {"id": "F4", "severity": "limitation", "category": "resource-measurement", "file": "learning/runs/v2/d2-training-v3-adapter-prepare-20261025-r5/runner.py", "lines": "318-326", "summary": "MPS cap uses instantaneous driver_allocated_memory samples, not high-water.", "disposition": "accept_as_limitation"}
+  ],
+  "prior_findings": {
+    "1": "confirmed", "2": "confirmed", "3": "confirmed_in_code_payload_shape_not_runtime_verified",
+    "4": "confirmed", "5": "confirmed", "6": "confirmed", "7": "confirmed_window_noted_F2",
+    "N1": "confirmed", "N2": "confirmed", "N3": "no_real_time_claim_in_code",
+    "N5": "parent_reported_not_remeasured", "N7": "confirmed", "N8": "outside_reviewed_source"
+  },
+  "tests_observed": {
+    "contract_tests_final_log": "Ran 24 tests OK (read from learning/runs/v2/d2-training-v3-parent-prepare-20261025-r2/contract-tests-final.log; tests not rerun)"
+  },
+  "limitations": [
+    "No tests, imports, native, Torch, or checkpoint decode executed.",
+    "dodge_rl package read by grep only (ppo, dev_eval body, checkpoints body, VecDodgeEnv not read).",
+    "torch-fixture.log and restoration-validation-r7.json not read.",
+    "Native binary and 13.5k runtime pins not rehashed; parent-reported.",
+    "Historic 214 tests and 48-update performance not used as validation of the 72-update run."
+  ],
+  "performance_reported_by_parent": {
+    "run": "latest completed 48-update D2",
+    "metric": "alive_frames",
+    "Q1": 521.0625,
+    "Q4": 2401.1875,
+    "mean": 1101.9375,
+    "reviewer_verified": false
+  },
+  "qualification": "Review only. No training, promotion, stage advancement, B/E, D3, or student claim. Normal checkpoint remains provisional pending parent terminal acceptance."
+}

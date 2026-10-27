@@ -1,0 +1,7 @@
+# Independent source review — parent R3
+
+No blocking findings in the reviewed adapter integration.
+
+R3 binds each raw candidate file to the externally pinned registration SHA, requires the locked update 324 against accepted checkpoint 348, verifies both exact result paths and raw hashes in the pinned terminal audit, and rejects missing or foreign registration hashes for either result. Row checks enforce ordered D2000000..D20007FF seeds, integer frame and score accounting, terminal/cap conservation, native death summaries, and finite-cohort paired alive-frame differences. Bootstrap uses one PCG64(4200261026) stream for 20,000 resamples, paired indices, linear 0.05 quantile, and chunk size 128. The tests include a 257-row chunk reference comparison. Source adapter computes statistics only and performs no artifact I/O or runtime/checkpoint imports.
+
+Limits: this is source review of the synthetic adapter and its logged CPU controls. The terminal-audit schema remains provisional pending parent integration. No real ranking proof was rerun; no confirmation outcomes, MPS/game/environment/checkpoint artifacts, launch, acceptance, qualification, or promotion were inspected or established. The separate launch worker and parent audit must validate their own pinned lifecycle and source inputs before adapter use. Logged tests report 8 CPU tests passing under Python 3.12.15 / NumPy 2.5.4; this review did not rerun them.

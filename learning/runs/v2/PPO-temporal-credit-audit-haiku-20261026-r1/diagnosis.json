@@ -1,0 +1,77 @@
+{
+  "scope": "Read-only temporal credit / rollout / reset / GAE audit of the frozen D2 r5 runtime and native env contract. No torch, no checkpoint decode, no training, no gate.",
+  "status": "no_source_bug_reproduced",
+  "source_findings": [],
+  "source_checks": [
+    {"check": "next_values uses post-action final observation, read before reset_done", "where": "ppo.py:333-338; env.rs:242-244 (observation cached at end of advance), env.rs:385-446 (step does not auto-reset)", "result": "correct"},
+    {"check": "terminated: bootstrap zeroed and trace cut", "where": "ppo.py:166-169 (compute_gae), ppo.py:337-338", "result": "correct"},
+    {"check": "truncated: bootstrap from V(final obs), trace cut", "where": "ppo.py:166-169; env.rs:224 truncation at raw_frame_cap", "result": "correct in code; NOT exercised by retained data (0 of 2563 completed training episodes truncated)"},
+    {"check": "GAE carry does not leak across episode reset", "where": "ppo.py:167 continuation=0 on ended; ppo.py:340-362 reset path", "result": "correct"},
+    {"check": "GAE carry across rollout end", "where": "ppo.py:164 carry init zeros; ppo.py:166-171 backward loop; bootstrap via next_values[T-1]", "result": "correct truncated-TD(lambda); long-tail beyond rollout relies on V"},
+    {"check": "observation continuity across updates", "where": "train_teacher.py:274-275 observation carried; ppo.py:366-367 returns current; ppo.py:360-362", "result": "correct"},
+    {"check": "reward scale applied once, after raw float32 reward", "where": "ppo.py:333; ppo.py:440 exact torch.equal audit", "result": "correct"},
+    {"check": "raw reward = score/65536 + alive/100 - 5*terminated", "where": "env.rs step reward; ppo.py:228, 245-249, 435-439", "result": "consistent in all four places"},
+    {"check": "alive count excludes death frame; elapsed = alive + terminated", "where": "env.rs:201-220 advance loop; ppo.py:241-243", "result": "consistent"},
+    {"check": "model has no dropout/BN (train/eval invariant for old_log_probs)", "where": "models/teacher.py LayerNorm only (lines 44, 48, 91)", "result": "no train/eval mismatch"},
+    {"check": "EV residual equals GAE advantage; EV computed on rollout-time values", "where": "ppo.py:449-451, 573-575", "result": "as documented; not a bug"},
+    {"check": "fresh env on resume recreated at [0]*batch", "where": "train_teacher.py:186-187, 195-203", "result": "intended; distribution shift at restore boundary, see distinctions"}
+  ],
+  "measured": {
+    "completed_training_episodes": 2563,
+    "completed_terminated": 2563,
+    "completed_truncated": 0,
+    "completed_decisions_p10_p50_p90_max": [145.25, 389.0, 889.5, 1846.75],
+    "completed_decisions_mean": 451.9,
+    "fraction_completed_gt_18_decisions": 1.0,
+    "fraction_completed_gt_200_decisions": 0.716,
+    "abandoned_parent_episodes_at_resume": 64,
+    "abandoned_decisions_min_median_max": [10.0, 245.0, 1262.0],
+    "source": "D2-retained276-continuation-20261026-r2/training-episodes.jsonl (static)",
+    "retained_r2_update1_EV": 0.4876,
+    "retained_r2_update72_EV": 0.3818,
+    "retained_r2_update_EV_range": [0.3067, 0.4876],
+    "retained_r2_approx_kl_range": [0.0144, 0.0170],
+    "retained_r2_clip_fraction_range": [0.1015, 0.1212],
+    "retained_r2_early_stop_kl_sampled_updates": false
+  },
+  "horizons": {
+    "decision_seconds": 0.25,
+    "raw_frames_per_decision": 4,
+    "timebase_note": "60 raw frames/s taken from task statement; 15 decisions/s derived. Not re-verified against native tick rate in this pass.",
+    "gamma_0.995": {"half_life_decisions": 138.3, "half_life_s": 9.22, "half_life_raw_frames": 553, "e_fold_decisions": 199.5, "e_fold_s": 13.30, "effective_horizon_decisions": 200.0, "effective_horizon_s": 13.33},
+    "gamma_x_lambda_0.94525": {"half_life_decisions": 12.31, "half_life_s": 0.821, "half_life_raw_frames": 49.2, "e_fold_decisions": 17.76, "e_fold_s": 1.184, "e_fold_raw_frames": 71.0, "effective_horizon_decisions": 18.26, "effective_horizon_s": 1.218},
+    "lambda_alone_0.95": {"half_life_decisions": 13.51, "half_life_s": 0.901, "e_fold_decisions": 19.50, "e_fold_s": 1.300},
+    "rollout_256_decisions": {"seconds": 17.07, "raw_frames": 1024, "gamma_power_256": 0.2771, "trace_weight_power_256": 5.49e-7},
+    "death_penalty_discount_at_median_episode_scale": {"decisions_389": 0.1423, "scaled_penalty_at_389": -0.0711, "decisions_145": 0.4834, "decisions_890": 0.0115},
+    "survival_scaled_per_decision_max": 0.004,
+    "survival_discounted_sum_at_gamma_0.995": 0.8
+  },
+  "trace_vs_value_horizon": "GAE trace weight is (gamma*lambda)^k, e-fold about 18 decisions (~1.2 s). Discounted value target weight is gamma^k, e-fold about 200 decisions (~13.3 s). Median completed episode is 389 decisions. For most states, death-related credit beyond ~18 decisions reaches the advantage only through critic bootstrap V. Short trace alone does not show missing long-term credit: V may carry it correctly. Uncertainty kept.",
+  "hypotheses": [
+    {
+      "id": "H1",
+      "claim": "Advantage for hazard-avoidance decisions depends mainly on critic accuracy far from death, because the GAE trace decays in about 18 decisions while episodes last about 389 decisions. Critic error at long time-to-death may dominate Var(advantage) and the EV residual.",
+      "basis": "measured episode lengths (all deaths, 0 truncations) plus derived trace horizon",
+      "falsifier": "Bin Var(advantage) and critic residual by decisions-to-death (0-18, 18-200, 200+). If residual variance does not rise with decisions-to-death, H1 is weakened. Requires rollout tensors with death labels: parent-authorized diagnostic run, not this audit.",
+      "single_change_experiment": "lambda 0.95 -> 0.99 with all else fixed. Trace e-fold rises to 66 decisions (4.4 s). Predicted only if H1 holds: lower Var(advantage) or higher EV on same-policy batches. Proposal only; no run."
+    },
+    {
+      "id": "H2",
+      "claim": "gamma=0.995 gives a 13.3 s horizon that exceeds typical survival scale. Value targets for most states then include large future score and survival mass, inflating Var(returns) and the critic's fitting burden.",
+      "basis": "derived horizons plus measured episode-length distribution; reward decomposition from source",
+      "falsifier": "Decompose Var(returns) at a fixed checkpoint into score, survival, and death components. If the death and score terms are negligible vs survival, H2 is falsified. Requires per-step tensors.",
+      "single_change_experiment": "gamma 0.995 -> 0.99 with lambda fixed. Effective horizon 100 decisions (6.7 s). This changes the objective; proposal only."
+    }
+  ],
+  "distinctions": {
+    "fresh_env_resume_distribution_shift": "Restore recreates the env at episode index 0 for all 64 slots (train_teacher.py:187). 64 partial parent episodes are abandoned (median 245 decisions). The first post-restore rollouts start every slot at episode start. This is a state-distribution shift at the restore boundary. GAE is unaffected: no bootstrap crosses the boundary, and the first observation comes from the new env. Not a GAE bug.",
+    "deterministic_argmax_evaluation_selection": "Development evaluation uses argmax actions (dev_eval.py:137), while training samples from Categorical. Development means (e.g. best276 2483.66) measure greedy performance and the checkpoint selection. Those are evaluation and selection effects, not GAE or reset semantics. The endpoint-348 discard is also selection."
+  },
+  "limitations": [
+    "Static audit only. Nothing run. No torch import or checkpoint decode.",
+    "Horizons use the 60 raw frames/s assumption from the task statement.",
+    "Retained data has no per-step advantage, return, or residual variance. H1 and H2 cannot be tested from these files.",
+    "Explained-variance attribution is unresolved; this audit does not show a critic failure or a benign shift.",
+    "Existing research note 'PPO explained variance diagnosis' cites frozen ppo.py SHA 533055b0; current r5 runtime ppo.py is b3cef91b. Not reconciled here."
+  ]
+}

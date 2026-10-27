@@ -1,0 +1,177 @@
+{
+    "checker_sha256": "6d1e3d4dd80139ee3b35197f652b239fee2d51dd8e097bbb6cd37ddb424866a5",
+    "checks": [
+        {
+            "check": "frozen_manifest",
+            "detail": {
+                "artifact-sha256.json": "artifact_manifest_sha256",
+                "before-manifest.json": "before_manifest_sha256",
+                "result.json": "result_sha256",
+                "source-manifest.json": "source_manifest_sha256",
+                "source.patch": "source_patch_sha256",
+                "source.tar.gz": "source_archive_sha256"
+            },
+            "passed": true
+        },
+        {
+            "check": "exact_artifact_coverage_and_json",
+            "detail": {
+                "artifact_files": 665,
+                "exact_file_coverage": true,
+                "json_files": 421
+            },
+            "passed": true
+        },
+        {
+            "check": "sources_archive_patch",
+            "detail": {
+                "archive_members": 10,
+                "exact_patch_reconstruction": true,
+                "live_runner_sha256": "980a9a08b5561350346a3984cf8b9fae3ec47591a8a907d9b915fdcbb428fa44"
+            },
+            "passed": true
+        },
+        {
+            "check": "protected_files_and_compiled_identity",
+            "detail": {
+                "compiled_inputs_unchanged": 46,
+                "old_build_receipt_binary_and_extension_unchanged": true,
+                "old_identity_unchanged": true,
+                "protected_files": 166
+            },
+            "passed": true
+        },
+        {
+            "check": "unchanged_workloads_budgets_reservations",
+            "detail": {
+                "RSS_limit_bytes": 6442450944,
+                "added_functions": [
+                    "assert_campaign_guard"
+                ],
+                "campaign_seconds": 1800,
+                "changed_functions": [
+                    "campaign",
+                    "check_identity",
+                    "main",
+                    "stop_owned",
+                    "worker"
+                ],
+                "memory_measured_calls": 100000,
+                "memory_warmup_calls": 5000,
+                "module_assignments_unchanged": true,
+                "phase_seconds": {
+                    "memory": 600,
+                    "native_parity": 900,
+                    "throughput": 120,
+                    "trajectory": 120
+                },
+                "plateau_limit_bytes": 67108864,
+                "receipt_reserve_seconds": 600,
+                "reservations": [
+                    [
+                        2952790016,
+                        2952791015
+                    ],
+                    [
+                        3489660928,
+                        3489661055
+                    ],
+                    [
+                        3758096384,
+                        3758097383
+                    ]
+                ],
+                "unchanged_workload_functions": [
+                    "worker_trajectory",
+                    "worker_memory",
+                    "worker_throughput",
+                    "read_plan",
+                    "assert_cutoff_budget",
+                    "assert_lease",
+                    "load_baselines",
+                    "parse_native_output",
+                    "memory_plateau",
+                    "base_config",
+                    "audit_info",
+                    "audit_step"
+                ]
+            },
+            "passed": true
+        },
+        {
+            "check": "retained_mocked_test_receipts",
+            "detail": {
+                "existing-nine-r1": {
+                    "exit_code": 0,
+                    "log_sha256": "7987a129e03a174bad24a384983123f90e4058797b767df1100082423f311554",
+                    "outcomes": {
+                        "ERROR": 0,
+                        "FAIL": 0,
+                        "ok": 9
+                    },
+                    "tests": 9
+                },
+                "original-discrimination-r1": {
+                    "exit_code": 1,
+                    "log_sha256": "ad2b236ef88765f772111bc9ad343b0f5fd3859828071107a2f977e328b44a4d",
+                    "outcomes": {
+                        "ERROR": 2,
+                        "FAIL": 10,
+                        "ok": 0
+                    },
+                    "tests": 12
+                },
+                "repaired-pure-r1": {
+                    "exit_code": 0,
+                    "log_sha256": "32cbf9edc12389129778f01b4a9afec0caceb1a64ad68e037d01667b7f1f5bc3",
+                    "outcomes": {
+                        "ERROR": 0,
+                        "FAIL": 0,
+                        "ok": 37
+                    },
+                    "tests": 37
+                }
+            },
+            "passed": true
+        }
+    ],
+    "created_at_utc": "2026-10-24T08:05:36.161011+00:00",
+    "failures": [],
+    "findings": [
+        {
+            "detail": "Original-discrimination receipt source_sha256 and its retained -source.py capture the repaired live runner, while the command explicitly selects the separately pinned original snapshot via SUPERVISOR_UNDER_TEST. The test loader honors that variable and original-path tracebacks support the executed-source claim. Do not treat this source_sha256 field as the original source identity; use the command plus original snapshot pin.",
+            "id": "original_control_receipt_live_source_field",
+            "severity": "informational"
+        }
+    ],
+    "limitations": [
+        "Retained mocked tests establish guard behavior only; this audit did not rerun them.",
+        "No native executable, extension, project source, training, evaluation, network operation, or subagent was run.",
+        "No full M2 campaign qualification or teacher-training readiness is established.",
+        "The parent must reconcile new build receipts/identity and complete independent frozen-source review before any campaign.",
+        "Preservation verifies current bytes against recorded pre-repair pins; it does not prove historical execution or eliminate cooperative-check races."
+    ],
+    "schema": "m2_supervisor_repair_receipt_audit_v1",
+    "scope": "Independent byte/hash, archive, AST, and retained-log verification only. No audited project code was imported or executed.",
+    "status": "passed_with_provenance_caveat",
+    "target_frozen_manifest": "learning/runs/v2/milestone2-supervisor-repair-r1/frozen-result-manifest.json",
+    "target_frozen_manifest_sha256": "3dce6a14fef6754781683965ac9f470dd2e4735c09fc129f7e9d9193b1b364bb",
+    "verified_counts": {
+        "archive_members": 10,
+        "artifact_files": 665,
+        "before_snapshots": 8,
+        "changed_functions": 5,
+        "existing_mocked_tests_passed": 9,
+        "frozen_manifest_references": 6,
+        "frozen_source_files": 6,
+        "json_files_parsed": 421,
+        "new_mocked_tests_passed": 37,
+        "old_identity_binary_receipt_files": 3,
+        "old_identity_compiled_inputs": 46,
+        "original_controls": 12,
+        "original_expected_assertion_failures": 10,
+        "original_expected_cleanup_errors": 2,
+        "protected_files": 166,
+        "unchanged_functions": 26
+    }
+}

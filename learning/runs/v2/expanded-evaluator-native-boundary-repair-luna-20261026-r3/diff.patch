@@ -1,0 +1,63 @@
+--- ../expanded-evaluator-implementation-parent-20261026-r2/expanded_eval.py	2026-10-26 17:16:02
++++ expanded_eval.py	2026-10-26 17:23:09
+@@ -263,7 +263,8 @@
+         _require(reg["selection_record"] is None, "selection record is only valid for confirmation")
+     output_dir = _absolute(reg["output_dir"], "output_dir")
+     out = _absolute(output_path, "output_path")
+-    _require(out.parent == output_dir and not out.exists(), "output must be new path directly inside registered output_dir")
++    _require(output_dir.is_dir() and out.parent == output_dir and not out.exists(),
++             "output_dir must exist and output must be a new path directly inside it")
+     _require(Path(reg["cancel_path"]).is_absolute() and Path(reg["one_shot_marker"]).is_absolute()
+              and Path(reg["state_path"]).is_absolute(), "worker state paths must be absolute")
+     _require(type(reg["limits"]) is dict and {"outer_seconds", "work_seconds",
+@@ -448,6 +449,10 @@
+     return rows
+ 
+ 
++def _native_excluded_seed_ranges(protocol_bytes: bytes) -> list[tuple[int, int]]:
++    return [tuple(pair) for pair in json.loads(protocol_bytes)["training_excluded_ranges"]]
++
++
+ def evaluate_registered(*, registration_path: str, registration_sha256: str,
+                         candidate_update: int, cohort_name: str, output_path: str,
+                         check_guard: Callable[[], None]) -> dict:
+@@ -515,7 +520,7 @@
+     grad_enabled = torch.is_grad_enabled()
+     mps_rng = torch.mps.get_rng_state() if runtime["backend"] == "mps" else None
+     try:
+-        excluded_ranges = json.loads(PROTOCOL_PATH.read_bytes())["training_excluded_ranges"]
++        excluded_ranges = _native_excluded_seed_ranges(PROTOCOL_PATH.read_bytes())
+         rows = _production_rows(model, dodge_rl.VecDodgeEnv, OBSERVATION_KEYS, death_fields,
+                                 seeds, excluded_ranges, check_guard, batch_size=64)
+     finally:
+@@ -540,7 +545,7 @@
+     _require(_file_sha(checkpoint) == before, "checkpoint bytes changed during inference")
+     check_guard()
+     result = _summarize(rows, seeds, started, candidate["checkpoint_sha256"], candidate_update,
+-                        cohort_name, _sha(Path(reg["cohorts"][cohort_name]["manifest_path"]).read_bytes()))
++                        cohort_name, chosen["manifest_sha256"])
+     result["elapsed_seconds"] = time.monotonic() - started
+     result["registration_sha256"] = registration_sha256
+     result["model_state_dict_sha256"] = model_sha_before
+--- ../expanded-evaluator-implementation-parent-20261026-r2/tests/test_expanded_eval.py	2026-10-26 17:16:03
++++ tests/test_expanded_eval.py	2026-10-26 17:23:13
+@@ -77,6 +77,19 @@
+ 
+ 
+ class ExpandedEvalTests(unittest.TestCase):
++    def test_native_excluded_ranges_use_strict_tuple_boundary(self):
++        protocol = b'{"training_excluded_ranges":[[1,2],[5,8]]}'
++        converted = expanded_eval._native_excluded_seed_ranges(protocol)
++
++        def strict_native_boundary(ranges):
++            if type(ranges) is not list or any(type(pair) is not tuple for pair in ranges):
++                raise TypeError("excluded_seed_ranges requires list[tuple[int, int]]")
++
++        with self.assertRaisesRegex(TypeError, "requires list\\[tuple"):
++            strict_native_boundary(json.loads(protocol)["training_excluded_ranges"])
++        strict_native_boundary(converted)
++        self.assertEqual(converted, [(1, 2), (5, 8)])
++
+     def test_staggered_deaths_keep_original_seed_and_episode_ids_across_chunks(self):
+         seeds = list(range(0xD1002000, 0xD100200c))
+         tracker = {"constructed": []}

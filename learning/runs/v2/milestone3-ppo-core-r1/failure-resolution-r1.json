@@ -1,0 +1,11 @@
+{
+  "failed_check": "cpu-tests-r1",
+  "outcome": "40 passed; 1 loss-isolation fixture precision failure",
+  "actual_policy_loss": 0.12150172144174576,
+  "reference_policy_loss": 0.12150124671851921,
+  "unchanged_absolute_tolerance": 2e-07,
+  "cause": "Loss-isolation test mixed float64 segment-oracle advantages with production float32 GAE/reduction and a permuted minibatch. The general independent float64 GAE test already passes.",
+  "correction": "Use exactly representable alternating -1/+1 advantages and zero discounts in clipping/loss fixture, isolating its intended formula. No production change or tolerance relaxation.",
+  "no_real_game_or_training_execution": true,
+  "original_source_and_log_preserved": "cpu-tests-r1/"
+}

@@ -1,0 +1,135 @@
+{
+  "starved": {
+    "first": 99.75,
+    "until": 109.75,
+    "descriptor": {
+      "timestamp": 99.75,
+      "kind": "direct_wait_observation",
+      "outcome": "publication_failure",
+      "role": "outer",
+      "timing_basis": "successful_direct_waitpid_observation",
+      "signal": null,
+      "pid": 200,
+      "reaped_by": 150
+    },
+    "reads": [
+      "supervisor",
+      "supervisor",
+      "supervisor",
+      "supervisor",
+      "supervisor",
+      "supervisor",
+      "supervisor",
+      "supervisor",
+      "supervisor",
+      "supervisor"
+    ],
+    "sends": [],
+    "pending_worker_failure": true,
+    "diagnostics": [
+      {
+        "kind": "monitor_error",
+        "duty": "IPC",
+        "error": "Stop('Unexpected private IPC loss: {}')"
+      }
+    ],
+    "cleanup_complete": true
+  },
+  "control": {
+    "first": 99.5,
+    "until": 109.5,
+    "descriptor": {
+      "timestamp": 99.5,
+      "kind": "worker_source",
+      "outcome": "resource_stop",
+      "role": "worker",
+      "timing_basis": "synthetic_actual_observation",
+      "signal": null
+    },
+    "reads": [
+      "worker"
+    ],
+    "sends": [
+      {
+        "kind": "failure_ack",
+        "first_monotonic_hex": "0x1.8e00000000000p+6",
+        "cleanup_until_monotonic_hex": "0x1.b600000000000p+6",
+        "t0_monotonic_hex": "0x1.6800000000000p+6",
+        "descriptor": {
+          "timestamp": 99.5,
+          "kind": "worker_source",
+          "outcome": "resource_stop",
+          "role": "worker",
+          "timing_basis": "synthetic_actual_observation",
+          "signal": null
+        }
+      }
+    ],
+    "pending_worker_failure": false,
+    "diagnostics": [],
+    "cleanup_complete": true
+  },
+  "extractions": [
+    {
+      "file": "lifecycle.py",
+      "name": "Stop",
+      "line": 23,
+      "end_line": 26
+    },
+    {
+      "file": "lifecycle.py",
+      "name": "remaining",
+      "line": 29,
+      "end_line": 33
+    },
+    {
+      "file": "lifecycle.py",
+      "name": "FailurePool",
+      "line": 36,
+      "end_line": 70
+    },
+    {
+      "file": "lifecycle.py",
+      "name": "notify_failure",
+      "line": 243,
+      "end_line": 280
+    },
+    {
+      "file": "long_d2.py",
+      "name": "require",
+      "line": 59,
+      "end_line": 61
+    },
+    {
+      "file": "long_d2.py",
+      "name": "failure_outcome",
+      "line": 356,
+      "end_line": 361
+    },
+    {
+      "file": "long_d2.py",
+      "name": "observed_failure",
+      "line": 863,
+      "end_line": 886
+    },
+    {
+      "file": "long_d2.py",
+      "name": "worker_raw_failure",
+      "line": 1233,
+      "end_line": 1243
+    },
+    {
+      "file": "processes.py",
+      "name": "validate_report",
+      "line": 110,
+      "end_line": 127
+    },
+    {
+      "file": "long_d2_executor.py",
+      "name": "Execution",
+      "line": 178,
+      "end_line": 624
+    }
+  ],
+  "limits": "Exact extracted Execution.monitor/pump/fail and FailurePool/observed_failure. Fake channels, readiness, clocks, groups, signal sink and direct reports. No real OS lifecycle, transport or acceptance proof."
+}

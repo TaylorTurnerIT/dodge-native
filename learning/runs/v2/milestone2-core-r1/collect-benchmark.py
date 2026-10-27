@@ -1,0 +1,19 @@
+import hashlib,json,statistics
+from pathlib import Path
+r=Path(__file__).resolve().parent
+before_labels=['before-profile','before-recheck-1','before-recheck-2'];after_labels=['after-profile','after-profile-2','after-profile-3']
+def read(label):
+ receipt=json.loads((r/(label+'.json')).read_text());assert receipt['exit_code']==0;assert not receipt['source_changed_during_check']
+ return json.loads((r/(label+'.log')).read_text())
+before=[read(x) for x in before_labels];after=[read(x) for x in after_labels]
+keys=['seeds','difficulty','patterns_enabled','powerups_enabled','action_repeat','cap_raw_frames','episodes','deaths','raw_frames_per_round','rounds','final_logical_states_match']
+assert all(all(s[k]==before[0][k] for k in keys) for s in before+after)
+summary={}
+for key in ['full_seconds','headless_seconds','headless_render_k4_seconds']:
+ a=[t for x in before for t in x[key]];b=[t for x in after for t in x[key]]
+ ma=statistics.median(a);mb=statistics.median(b)
+ summary[key]={'before_samples':a,'after_samples':b,'before_process_medians':[statistics.median(x[key]) for x in before],'after_process_medians':[statistics.median(x[key]) for x in after],'before_median_seconds':ma,'after_median_seconds':mb,'time_change_percent':100*(mb/ma-1),'before_min_seconds':min(a),'before_max_seconds':max(a),'after_min_seconds':min(b),'after_max_seconds':max(b),'before_median_ns_per_raw_frame':ma/before[0]['raw_frames_per_round']*1e9,'after_median_ns_per_raw_frame':mb/after[0]['raw_frames_per_round']*1e9}
+a=json.loads((r/'before-layout-run.log').read_text());b=json.loads((r/'after-layout-run.log').read_text());assert a['enemy_state_bytes']==b['enemy_state_bytes']==40
+result={'fixture_sha256':hashlib.sha256(Path('crates/dodge-core/examples/headless_profile.rs').read_bytes()).hexdigest(),'fixture':{k:before[0][k] for k in keys},'before_labels':before_labels,'after_labels':after_labels,'primary_statistic':'median of all 15 within-process rounds per source; three processes per source, five rounds each; not a significance test','before_pre_edit_label':'before-profile','followup_order':['after-profile','before-recheck-1','after-profile-2','before-recheck-2','after-profile-3'],'samples':{'before':before,'after':after},'summary':summary,'layout':{'before':a,'after':b,'native_game_fixed_increase_bytes':b['native_game_bytes']-a['native_game_bytes'],'serial_bytes_per_allocated_capacity_slot':16,'capacity_accounting':'Additional identity Vec allocation is 16 * serial capacity bytes plus allocator overhead. Capacity can exceed row count and is retained across clear. No allocation-count or peak-RSS measurement.'},'limits':['Short early-game deterministic random K=4 protocol; all 64 episodes die, mean 252.21875 raw gameplay frames. Initialization and seed setup excluded from timers.','Before/after binaries use identical unmodified headless_profile fixture; each internally checks final FullState parity among its three paths. Cross-binary full trajectory fingerprints are not emitted by this fixture. New workspace legacy goldens and live-state/RNG parity passed separately.','Headless samples are about one millisecond per round summed across 64 episodes. Timer/scheduler/thermal noise overlaps the observed difference; no statistically established causal overhead claim.','Measurements cover single-core stepping, not vectorized environment, PPO, training, long high-entity gameplay, memory leaks, or allocation counts.','The process snapshot is diagnostic only; no exclusive machine lease, core pinning, or CPU frequency control.']}
+(r/'benchmark.json').write_text(json.dumps(result,indent=2)+'\n')
+print(json.dumps({'summary':{k:{f:v for f,v in x.items() if f in ['before_median_seconds','after_median_seconds','time_change_percent']} for k,x in summary.items()},'layout':result['layout']},indent=2))

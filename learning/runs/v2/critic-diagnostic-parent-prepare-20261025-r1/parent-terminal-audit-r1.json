@@ -1,0 +1,66 @@
+{
+  "schema": "critic_diagnostic_parent_terminal_audit_v1",
+  "audited_at_utc": "2026-10-25T19:03:52.049775+00:00",
+  "status": "failed_before_environment_or_training",
+  "accepted": false,
+  "run_id": "critic-diagnostic-D2-20261025-r1",
+  "registration_sha256": "bd1031e98bc4ea94b8fb5c4b0a726c8bf513651ac607e571194c04246c87232d",
+  "actual_launcher_launches": 1,
+  "actual_worker_launches": 1,
+  "outer_raw_exit": 1,
+  "worker_raw_exit": 1,
+  "observed_inclusive_process_wall_seconds": 3.609953417,
+  "worker_reported_elapsed_seconds": 3.209390291944146,
+  "updates_complete": 0,
+  "evaluations_complete": 0,
+  "fresh_performance": null,
+  "fresh_death_causes": null,
+  "first_failure": {
+    "error": "ValueError('D1 state restoration differs')",
+    "kind": "worker_failure",
+    "monotonic": 575116.094181708,
+    "role": "worker"
+  },
+  "sampled_worker_peak_rss_bytes": 219054080,
+  "sampled_worker_peak_mps_driver_bytes": 475136,
+  "resource_evidence_limit": "One retained guard sample; not continuous all-process peak coverage. No resource or time failure reported.",
+  "parent_full_postflight_pins_checked": 13551,
+  "parent_full_postflight_seconds": 1.428449125,
+  "all_frozen_inputs_unchanged": true,
+  "observer_artifact_hashes_verified": true,
+  "original_copied_receipts_match": true,
+  "parent_observed_outer_absent": true,
+  "parent_observed_worker_absent": true,
+  "parent_observed_worker_group_absent": true,
+  "no_signals_sent_by_parent": true,
+  "lease_before_clear": {
+    "authorization": "user_go_frozen_critic_diagnostic",
+    "kind": "critic_diagnostic",
+    "parent_checkpoint_sha256": "ce9c03c8d476f58d5edec9f95946fa808d1d65890728528f9a44993eb0f0544f",
+    "run_id": "critic-diagnostic-D2-20261025-r1"
+  },
+  "retry_performed": false,
+  "source_findings": [
+    {
+      "severity": "P1",
+      "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/critic-diagnostic-runner-prepare-20261025-r2/runner.py",
+      "line": 195,
+      "title": "Container class makes equivalent restored model mappings hash differently",
+      "trigger": "model.state_dict() returns OrderedDict, while original checkpoint _cpu_copy serializes dict; fingerprint hashes concrete type names before mapping entries.",
+      "consequence": "Restoration equality fails before the environment or any update even when keys and values match.",
+      "static_evidence": [
+        "torch/nn/modules/module.py:2260-2261",
+        "legacy/python/dodge_rl/checkpoints.py:45-49,77",
+        "runner.py:187-205,306-309"
+      ],
+      "stdlib_reproduction": {
+        "equal_mapping_values": true,
+        "dict_sha256": "61af636f11c37efb554812a17e18463d4d669d84b66c75b1b7fe59c77b3cba11",
+        "OrderedDict_sha256": "af1109ed59dba3d0b1e42773b59a71cf4dae95d486736b591ec89bda700e49eb",
+        "digests_differ": true
+      },
+      "limitation": "Failure receipt does not retain model/Adam/RNG equality components. This proves a model comparison defect; additional restoration differences remain unmeasured."
+    }
+  ],
+  "next_step": "Prepare a separate corrected comparator and failing-restoration receipt that retains component evidence, validate mapping equivalence and changed-tensor negative controls, then seek/register any new one-shot experiment. No retry authorized by this audit."
+}

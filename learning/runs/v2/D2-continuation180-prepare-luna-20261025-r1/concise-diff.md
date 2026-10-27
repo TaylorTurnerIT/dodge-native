@@ -1,0 +1,3 @@
+D2 continuation adapter r1: updates 180→252 (72); cumulative updates 228→300. Parent authority is accepted phase-180 checkpoint plus exact terminal receipt and registration hashes. Runtime stays at the accepted capsule path; source/runtime member hashes must match exactly. Baseline-to-shadow transition is ancestry evidence only. Tests/validators were copied into this owned directory and references updated for phase-180 parent.
+
+Validation stopped at contract invocation: command ran from workspace root, so unittest could not import modules by bare names. Next fix: run fixed command with `cwd` set to this owned adapter directory, then freeze a distinct candidate; no retry or launch is authorized for this candidate.

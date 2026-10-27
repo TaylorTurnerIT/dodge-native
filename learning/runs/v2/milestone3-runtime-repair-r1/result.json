@@ -1,0 +1,134 @@
+{
+  "active_long_campaign_at_handoff": null,
+  "before_archive_unchanged": true,
+  "changed_files": [
+    "python/dodge_rl/checkpoints.py",
+    "python/dodge_rl/supervision.py",
+    "python/dodge_rl/train_teacher.py",
+    "python/tests/test_runtime_repair.py",
+    "python/tests/test_runtime_repair_signals.py",
+    "python/tests/test_teacher_runner.py"
+  ],
+  "cutoff_utc": "2026-10-24T13:00:00Z",
+  "finished_at_utc": "2026-10-24T10:30:12.221045+00:00",
+  "frozen_capsule_files_unchanged": 818,
+  "frozen_identity_sha256": "464c8a99f65d2223885de5715a0c7b23c8f8dc98510c923409778cffcc21116d",
+  "frozen_review_manifest_sha256": "8ab0084e4f035b27d3972bad60f3aee3136c797015353b4fd4d84de1e724fa23",
+  "identity_or_dev_eval_edits": false,
+  "key_unchanged_pins": {
+    "docs/SPEC_PRIVILEGED_VIT_RL.md": "02230eea7a3b36c786d3deeb31471baf8270efb09c3c1e77b7a77c7cfae240f3",
+    "docs/v2-m3-component-contract.md": "a1051d82527a9aec1f7967ff8ab217c30263240e032991aeff7b993fd975ba47",
+    "docs/v2-m3-run-protocol.json": "9e0d82028011f83e0cf6ddaef5f5e118591158d8a557f6698c82c150d5a69bab",
+    "learning/runs/v2/milestone3-integration-r1/probe-config.json": "aa14a822cd8d1cd559d385501c65a93ad828897f1125d071bb90f2d9f06b28b5",
+    "learning/runs/v2/milestone3-integration-r1/probe-frozen-identity.json": "464c8a99f65d2223885de5715a0c7b23c8f8dc98510c923409778cffcc21116d",
+    "python/dodge_rl/_native.cpython-312-darwin.so": "967c7249acd52339d1818dcbe94e63ee734aea914c3497eb59a7e945a6e95583",
+    "python/dodge_rl/dev_eval.py": "5ba01250bb68b75340e8ef35968ad88027103c334ae8f38e2ab83ec7676097b7",
+    "python/dodge_rl/identity.py": "50775b2e7c30e53757dd3134d11613f716733cee8e6a96cc18b62e8ff2a4a053",
+    "python/dodge_rl/models/teacher.py": "e4d7f597a2824c2b0d4ba261dddc9d7d1ee1d5592c2fc966a44c54b5ec417e35",
+    "python/dodge_rl/ppo.py": "533055b0832b87f3eccd6d005437583c074b525fc5f1d002e0e84e06b4239a58"
+  },
+  "limitations": [
+    "Same-phase fresh_env resume is deliberately unavailable. Parent-owned cumulative terminal receipt/hash anchoring is not implemented; this is the explicitly authorized fail-closed fallback.",
+    "Registered eligible curriculum transitions remain supported; this repair does not authorize a new attempt or relax any lease, deadline, budget, gate or retry policy.",
+    "All execution was synthetic/mocked CPU testing, including plain Python signal subprocesses. No real rollout, device probe, pilot, training, native build, install or model/PPO mutation occurred.",
+    "MPS paths use CPU test doubles; actual MPS inference/update behavior is unqualified.",
+    "Frozen r1 identity is preserved historical evidence. Parent must integrate, freeze repaired inputs and obtain fresh independent review before any campaign.",
+    "No public deployment, PR, commit, external message, provider retry or nested external review occurred. An internal implementation helper owned supervision.py and its new tests."
+  ],
+  "negative_control_semantics": "Expected assertion failures on explicitly loaded frozen r1 bytes, not missing new APIs. One unavailable-device positive control passed. Supplemental negatives cover parent launch and internal worker bypass. No fixture correction was needed.",
+  "owned_after_sha256": {
+    "python/dodge_rl/checkpoints.py": "cd2edd7edfd2c1a4f3f6444e27889f339afbe2d8916b73bb3894bd95ddcc7e12",
+    "python/dodge_rl/supervision.py": "f2b476b27717a34c8f26c55e22598fe75330848beba33d5bd0906f146ecb0c9a",
+    "python/dodge_rl/train_teacher.py": "16e96905712039b2c6c00047a2c2a982f3c991a6eeecf6ec14f0ca7c1958969f",
+    "python/tests/test_checkpoints.py": "99d76820e525d28fdac56d2380974746b0ca0caa51ca41bf210821d258dca7fa",
+    "python/tests/test_runtime_repair.py": "c9e28477e807f84970af96b90428c583afa2a7097f5060e0fbf74e8b661d3120",
+    "python/tests/test_runtime_repair_signals.py": "f6d702924f49238a400281e837cf57aaa617fcd363106dd445ac7a260dba34be",
+    "python/tests/test_teacher_runner.py": "3dc761cc186a3658ae4fe973ad6b48244b1f3d9269ec7b0995d7fdccb3e679e3"
+  },
+  "parent_owned_files_edited": false,
+  "patch": {
+    "path": "repair.patch",
+    "sha256": "0e3cdb61c1ba0befb68d931895c592a8e79f013fd082afccf587d79370749b0c"
+  },
+  "preflight_fixture_correction": "Directory creation initially refused the parent's existing evidence directory. Verified and reused its untouched before/ archive; no source had changed. Failure retained separately from behavioral controls.",
+  "protected_live_inputs_unchanged": 813,
+  "repairs": [
+    {
+      "change": "Catch BaseException in supervisor/worker; temporary SIGTERM/SIGINT handlers restore on every exit. Defer cancellation across Popen PID assignment and cleanup. TERM exact new-session group with five-second checkpoint opportunity, then KILL and bounded reap, including already-exited leaders.",
+      "evidence": "Mocked KeyboardInterrupt/SystemExit/BaseException supervisor paths; real synthetic supervisor SIGTERM; worker SIGTERM and KeyboardInterrupt diagnostic checkpoints; helper signal restoration/defer/group/reap tests.",
+      "finding": "P1 cancellation orphan"
+    },
+    {
+      "change": "Reject interrupted/incomplete updates before construction restores learner; restore_learner also rejects before mutation. Raw diagnostic loading remains possible and immutable.",
+      "evidence": "Frozen r1 restores phase_updates=0 partial learners and reaches candidate; repaired constructor rejects both interrupted tag and incomplete untagged progress before any candidate.",
+      "finding": "P1 interrupted update becomes candidate on resume"
+    },
+    {
+      "change": "Fail closed by rejecting all same-phase resume. Public supervisor, Experiment construction and internal worker paths cannot obtain allowance from a checkpoint or free consumed-time CLI claim. Initial registered full budgets remain unchanged.",
+      "evidence": "1600-second checkpoint after 1800-second terminal receipt; absent/stale/mismatching CLI anchor claims rejected before launch; direct _worker path rejected before identity/candidate.",
+      "finding": "P1 checkpoint-local phase allowance"
+    },
+    {
+      "change": "Retain failed-device JSON and propagate every unexpected measured-device exception. Selector rejects failed rows. Explicit unavailable MPS remains allowed.",
+      "evidence": "Mocked inference NaN, nonfinite PPO loss, reward audit and unexpected measured-device failures all invalidate probe; unavailable MPS still permits CPU comparison.",
+      "finding": "P1 probe correctness failure masked by completed CPU"
+    }
+  ],
+  "retained_failed_attempts": [
+    "frozen-r1-negative",
+    "frozen-r1-parent-resume-negative",
+    "preflight-attempt1-failure.json"
+  ],
+  "source_archive": {
+    "path": "source-before-after.tar.gz",
+    "sha256": "250cabde4d7c3b8104849e868f8dd3e71648fc2ef5a34559fd2e507cbd9ebb7b"
+  },
+  "started_at_utc": "2026-10-24T10:17:33Z",
+  "status": "bounded_implementation_repair_passed_synthetic_CPU_tests_pending_parent_integration_review",
+  "task_budget_seconds": 1800,
+  "task_deadline_utc": "2026-10-24T10:47:33Z",
+  "task_elapsed_seconds": 759.221045,
+  "test_owned_process_audit": "owned-process-audit.json",
+  "test_runs": [
+    {
+      "command_receipt": "frozen-r1-negative/command-result.json",
+      "duration_seconds": 3.5625265410053544,
+      "exit_status": 1,
+      "label": "frozen-r1-negative",
+      "log": "frozen-r1-negative/stdout-stderr.log",
+      "log_sha256": "b2a60b5855181c95536954d59135deb84d0760b17f0d231066d9af9af852a4a1",
+      "source_receipt": "frozen-r1-negative/executed-source.json",
+      "summary": "19 failed, 1 passed"
+    },
+    {
+      "command_receipt": "repaired-cpu-r1/command-result.json",
+      "duration_seconds": 3.887510582979303,
+      "exit_status": 0,
+      "label": "repaired-cpu-r1",
+      "log": "repaired-cpu-r1/stdout-stderr.log",
+      "log_sha256": "429c2efbafc3bf6077f552b5461a83714c0887e9e36975501b2dc56225c4532a",
+      "source_receipt": "repaired-cpu-r1/executed-source.json",
+      "summary": "90 passed"
+    },
+    {
+      "command_receipt": "frozen-r1-parent-resume-negative/command-result.json",
+      "duration_seconds": 2.177822375029791,
+      "exit_status": 1,
+      "label": "frozen-r1-parent-resume-negative",
+      "log": "frozen-r1-parent-resume-negative/stdout-stderr.log",
+      "log_sha256": "7e58c71162cfbb6c65dab2240529ec1cce093fe04d90614e17a5c717a07210e8",
+      "source_receipt": "frozen-r1-parent-resume-negative/executed-source.json",
+      "summary": "5 failed"
+    },
+    {
+      "command_receipt": "repaired-cpu-final/command-result.json",
+      "duration_seconds": 3.8834438750054687,
+      "exit_status": 0,
+      "label": "repaired-cpu-final",
+      "log": "repaired-cpu-final/stdout-stderr.log",
+      "log_sha256": "2af00ecd5672cc72b3c5cea3614958ce484a32210dec7206c1f2dd0c094543d9",
+      "source_receipt": "repaired-cpu-final/executed-source.json",
+      "summary": "94 passed"
+    }
+  ]
+}

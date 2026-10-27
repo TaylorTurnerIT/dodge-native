@@ -1,0 +1,19 @@
+--- r12-source/test_r10.py
++++ r14/test_r10.py
+@@ -353,12 +353,13 @@
+         from source_equality import blocks,body
+         for name in ('lifecycle.py','processes.py','boundary_integrity.py','freeze.py'):
+             self.assertEqual((H/name).read_bytes(),(H/'r9-source'/name).read_bytes(),name)
++        from current_delta import blocks_equal_except_scheduling_delta,SCHEDULING_HELPERS
+         old=blocks(H/'r9-source/long_d2.py');new=blocks(H/'long_d2.py')
+-        for name in old:
+-            if name!='supervise_owned':self.assertEqual(old[name],new[name],name)
++        self.assertEqual(blocks_equal_except_scheduling_delta(old,new,('supervise_owned',),False),sorted(SCHEDULING_HELPERS))
+         self.assertEqual(body(H/'r9-source/long_d2.py'),body(H/'long_d2.py'))
+         old=blocks(H/'r9-source/long_d2_executor.py');new=blocks(H/'long_d2_executor.py')
+         for name in ('validate_wait_reports','accept_observed','validate_artifacts','checked_registration','worker_command'):
+             self.assertEqual(old[name],new[name],name)
+-        self.assertEqual(c.sha(H/'protocol-r8-proposal.json'),c.PROTOCOL_SHA256)
++        self.assertEqual(c.sha(H/'protocol-r10-proposal.json'),c.PROTOCOL_SHA256)
++        self.assertEqual(c.sha(H/'protocol-r8-proposal.json'),'fe11c08159bdb9ca1f03cb0fb96ffd133ad144d107b2a854d19fc49159aa2db2')
+         self.assertIn("'gate_acked'] is True",(H/'long_d2_executor.py').read_text())

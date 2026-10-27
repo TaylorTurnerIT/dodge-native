@@ -1,0 +1,25 @@
+{
+  "candidate_sha256": "d26dd14d844c0e1c7b4414d44a753f913eb1f66560ec9a7cdd0860dec821f73a",
+  "emergency_checkpoint_before_ACK": true,
+  "events": [
+    {
+      "operation": "failure_notify_attempt"
+    },
+    {
+      "ACK_received": false,
+      "deadline": 7140,
+      "operation": "emergency_checkpoint_started"
+    },
+    {
+      "operation": "learner_close"
+    },
+    {
+      "operation": "failure_persistence_write",
+      "path": "checkpoint-index.json"
+    }
+  ],
+  "expected": "Missing ACK must prevent emergency checkpoint and subsequent persistence.",
+  "learner_deadline_after_failure": 7140,
+  "observed_exception": "AckFailure('injected missing/invalid executor ACK')",
+  "scope": "Stdlib AST-preserving worker except/finally execution; try body replaced with a controlled failure injection, no ML imports or real persistence."
+}

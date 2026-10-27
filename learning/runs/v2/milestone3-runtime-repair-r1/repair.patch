@@ -1,0 +1,956 @@
+--- a/python/dodge_rl/checkpoints.py
++++ b/python/dodge_rl/checkpoints.py
+@@ -125,7 +125,17 @@
+     return state
+ 
+ 
++def require_complete_update(state: dict) -> None:
++    """Keep partially applied optimizer updates as immutable diagnostics only."""
++    progress = state.get("update_progress", {})
++    require(state.get("tag") != "interrupted_mid_update"
++            and not progress.get("in_update", False)
++            and (not progress or progress.get("complete") is True),
++            "Interrupted/incomplete update checkpoint cannot restore a learner")
++
++
+ def restore_learner(state: dict, model, optimizer, device="cpu") -> None:
++    require_complete_update(state)
+     model.load_state_dict(state["model"], strict=True)
+     optimizer.load_state_dict(state["optimizer"])
+     restore_rng(state["rng"], device)
+--- a/python/dodge_rl/supervision.py
++++ b/python/dodge_rl/supervision.py
+@@ -1,6 +1,7 @@
+ """Read-only parent leases and cooperative wall/RSS/MPS guards."""
+ from __future__ import annotations
+ 
++from contextlib import contextmanager
+ from datetime import datetime, timedelta, timezone
+ import json
+ import os
+@@ -9,6 +10,7 @@
+ import signal
+ import subprocess
+ import sys
++import threading
+ import time
+ 
+ from .identity import ROOT, require
+@@ -20,6 +22,66 @@
+ 
+ class GuardStop(RuntimeError):
+     pass
++
++
++class SignalCancellation(BaseException):
++    """A handled cancellation signal, retained by the caller's failure receipt."""
++
++    def __init__(self, signal_number: int):
++        self.signal_number = signal_number
++        super().__init__(f"Cancellation requested by {signal.Signals(signal_number).name}")
++
++
++class _CancellationSignals:
++    def __init__(self):
++        self.deferred = False
++        self.signal_number = None
++        self.pending_signal = None
++
++    def defer(self) -> None:
++        """Keep repeated cancellation from interrupting bounded cleanup."""
++        self.deferred = True
++
++    def resume(self) -> None:
++        """Deliver a signal deferred across assignment of an owned worker PID."""
++        if self.pending_signal is not None:
++            number = self.pending_signal
++            self.pending_signal = None
++            self.defer()
++            raise SignalCancellation(number)
++        self.deferred = False
++
++    def handle(self, signal_number, _frame) -> None:
++        if self.signal_number is None:
++            self.signal_number = signal_number
++        if self.deferred:
++            if self.pending_signal is None:
++                self.pending_signal = signal_number
++            return
++        self.defer()
++        raise SignalCancellation(signal_number)
++
++
++@contextmanager
++def cancellation_signals():
++    """Temporarily handle SIGTERM/SIGINT on the foreground main thread.
++
++    The first signal raises through ordinary work; further signals are deferred
++    until the caller finishes bounded cleanup and exits this context. Existing
++    handlers are restored even when setup or the protected call fails.
++    """
++    require(threading.current_thread() is threading.main_thread(),
++            "Teacher signal supervision requires the main thread")
++    cancellation = _CancellationSignals()
++    previous = {}
++    try:
++        for number in (signal.SIGTERM, signal.SIGINT):
++            previous[number] = signal.getsignal(number)
++            signal.signal(number, cancellation.handle)
++        yield cancellation
++    finally:
++        for number, handler in reversed(tuple(previous.items())):
++            signal.signal(number, handler)
+ 
+ 
+ def utc_now() -> datetime:
+@@ -103,29 +165,64 @@
+ 
+ 
+ def stop_owned(process: subprocess.Popen) -> dict:
++    """Terminate the new-session worker's exact process group and reap its leader.
++
++    A leader can exit while children remain in its group, so leader exit never
++    suppresses group termination. SIGTERM allows five seconds for a diagnostic
++    checkpoint; SIGKILL bounds an uncooperative worker's final reap.
++    """
++    require(type(process.pid) is int and process.pid > 1 and process.pid != os.getpgrp(),
++            "Refusing unsafe owned process group")
+     result = {"owned_pid": process.pid, "owned_pgid": process.pid, "errors": []}
+     def poll():
+         try:
+             return process.poll()
+-        except Exception as error:
++        except BaseException as error:
+             result["errors"].append({"operation": "poll", "error": repr(error)})
+             return None
+-    for sig, wait_seconds in ((signal.SIGTERM, 2), (signal.SIGKILL, 5)):
+-        if poll() is not None:
+-            break
++    def group_exists():
++        try:
++            os.killpg(process.pid, 0)
++            return True
++        except ProcessLookupError:
++            return False
++        except BaseException as error:
++            result["errors"].append({"operation": "group_probe", "error": repr(error)})
++            return True
++
++    for sig, wait_seconds in ((signal.SIGTERM, 5), (signal.SIGKILL, 5)):
++        signal_started = time.monotonic()
++        group_gone = False
+         try:
+             os.killpg(process.pid, sig)
+             result[signal.Signals(sig).name] = True
+         except ProcessLookupError:
+             result["exit_signal_race"] = True
+-        except OSError as error:
++            group_gone = True
++        except BaseException as error:
+             result["errors"].append(repr(error))
+         try:
+             process.wait(timeout=wait_seconds)
+         except subprocess.TimeoutExpired:
+             continue
+-        except Exception as error:
++        except BaseException as error:
+             result["errors"].append({"operation": "wait", "error": repr(error)})
++        if sig == signal.SIGTERM and poll() is not None:
++            # wait() can return immediately after leader exit. Preserve the
++            # same bounded cooperative opportunity for any remaining children.
++            for _ in range(50):
++                if group_gone or not group_exists():
++                    group_gone = True
++                    break
++                if time.monotonic() - signal_started >= wait_seconds:
++                    break
++                try:
++                    time.sleep(0.1)
++                except BaseException as error:
++                    result["errors"].append({"operation": "group_grace", "error": repr(error)})
++                    break
++            if group_gone:
++                break
+     code = poll()
+     result.update(exit_code=code, reaped=code is not None)
+     return result
+--- a/python/dodge_rl/train_teacher.py
++++ b/python/dodge_rl/train_teacher.py
+@@ -31,7 +31,7 @@
+ from .models.teacher import OmniscientEntityTeacher
+ from .ppo import PPOConfig, collect_rollout, ppo_update
+ from .supervision import (CUTOFF, RSS_LIMIT, Guard, GuardStop, assert_lease, check_budget,
+-                          current_rss_bytes, emit, stop_owned, utc_now)
++                          cancellation_signals, current_rss_bytes, emit, stop_owned, utc_now)
+ 
+ 
+ def save_json(path: Path, value) -> None:
+@@ -82,15 +82,17 @@
+ 
+ 
+ def remaining_phase_budget(config: dict, resume_state: dict | None) -> tuple[float, float]:
+-    used = 0.0 if resume_state is None else resume_state.get("run_context", {}).get("consumed_wall_seconds")
+-    require(isinstance(used, (int, float)) and not isinstance(used, bool)
+-            and math.isfinite(used) and used >= 0, "Resume checkpoint has no valid consumed phase wall time")
+-    remaining = config["phase_settings"]["budget_seconds"] - used
+-    require(remaining > 0, "Registered phase wall budget already consumed; resume cannot restart it")
+-    return float(used), float(remaining)
++    # A checkpoint cannot account for worker time consumed after its publication.
++    # Until parent-owned terminal receipt anchoring exists, no same-phase restart
++    # may derive a new allowance from checkpoint-local consumption counters.
++    require(resume_state is None,
++            "Same-phase resume disabled: no parent-owned cumulative terminal receipt budget anchor")
++    return 0.0, float(config["phase_settings"]["budget_seconds"])
+ 
+ 
+ def choose_probe_device(measurements: list[dict]) -> tuple[str, list[str]]:
++    require(all(row["status"] in {"completed", "unavailable"} for row in measurements),
++            "Device probe correctness failure prevents device selection")
+     completed = [row for row in measurements if row["status"] == "completed"]
+     require(bool(completed), "No complete device measurement")
+     reference = next((row for row in completed if row["device"] == "cpu"), completed[0])
+@@ -130,6 +132,10 @@
+     def __init__(self, args, config: dict, identity: dict, guard: Guard):
+         self.args, self.config, self.identity, self.guard = args, config, identity, guard
+         self.directory = args.run_dir
++        if args.resume_checkpoint is not None:
++            state = ckpt.load_checkpoint(args.resume_checkpoint, identity, args.resume_checkpoint_sha256)
++            ckpt.require_complete_update(state)
++            remaining_phase_budget(config, state)
+         self.device = torch.device(config["device"])
+         require(self.device.type == "cpu" or torch.backends.mps.is_available(), "MPS is unavailable")
+         self.model = OmniscientEntityTeacher().to(self.device)
+@@ -147,26 +153,7 @@
+         self.episodes = (self.directory / "training-episodes.jsonl").open("x")
+         self.metrics = (self.directory / "training-metrics.jsonl").open("x")
+         self.guard.check(force=True)
+-        if args.resume_checkpoint is not None:
+-            require(config["phase"] != "probe", "Probe checkpoints cannot resume training")
+-            state = ckpt.load_checkpoint(args.resume_checkpoint, identity, args.resume_checkpoint_sha256)
+-            used, _ = remaining_phase_budget(config, state)
+-            require(used == args.consumed_wall_seconds, "Resume consumed wall-time anchor differs")
+-            ckpt.restore_learner(state, self.model, self.optimizer, self.device)
+-            self.counters = copy.deepcopy(state["counters"])
+-            self.context = copy.deepcopy(state.get("run_context", self.context))
+-            self.actor_gradient_seen = self.context.get("actor_gradient_seen", False)
+-            self.critic_gradient_seen = self.context.get("critic_gradient_seen", False)
+-            self.large_kl_iterations = self.context.get("large_kl_iterations", 0)
+-            self.last_metrics = self.context.get("last_metrics")
+-            self.counters["optimizer_steps"] += int(state["update_progress"].get("optimizer_steps", 0)) \
+-                if state["update_progress"].get("in_update", False) else 0
+-            for abandoned in state["abandoned_episodes"]:
+-                emit(self.episodes, abandoned)
+-            save_json(self.directory / "resume-lineage.json", {"checkpoint": str(args.resume_checkpoint),
+-                      "checkpoint_sha256": file_hash(args.resume_checkpoint), "mode": "fresh_env"})
+-            self.make_environment(state["next_episode_indices"])
+-        elif args.parent_checkpoint is not None:
++        if args.parent_checkpoint is not None:
+             state, certificate = ckpt.validate_transition(args.parent_checkpoint, identity)
+             ckpt.restore_learner(state, self.model, self.optimizer, self.device)
+             self.counters = copy.deepcopy(state["counters"])
+@@ -407,6 +394,7 @@
+                            "traceback": traceback.format_exc(), "automatic_retry": False}
+                 save_json(self.directory / f"probe-{device_name}-failure.json", failure)
+                 measurements.append(failure)
++                raise
+         selected, incomparable = choose_probe_device(measurements)
+         self.guard.check(force=True)
+         return {"status": "passed", "phase": "probe", "selected_device": selected,
+@@ -419,9 +407,18 @@
+ 
+ 
+ def worker(args) -> int:
++    with cancellation_signals() as cancellation:
++        return _run_worker(args, cancellation)
++
++
++def _run_worker(args, cancellation) -> int:
+     started = time.monotonic()
+     config = read_config(args.config, args.config_sha256)
+     require(config["phase"] == args.phase, "Command and registered phase differ")
++    require(getattr(args, "resume_checkpoint", None) is None,
++            "Same-phase resume disabled: no parent-owned cumulative terminal receipt budget anchor")
++    require(args.consumed_wall_seconds == 0,
++            "Worker cannot accept checkpoint-local consumed phase budget")
+     require(0 <= args.consumed_wall_seconds < config["phase_settings"]["budget_seconds"]
+             and args.execution_started_monotonic <= time.monotonic()
+             and abs(args.deadline_monotonic - args.execution_started_monotonic
+@@ -456,7 +453,8 @@
+                           maximum_MPS_driver_bytes=guard.maximum_mps)
+             save_json(args.run_dir / "worker-result.json", result)
+             return 0 if result["status"] == "passed" else 1
+-        except Exception as error:
++        except BaseException as error:
++            cancellation.defer()
+             result = {"status": "failed", "phase": args.phase, "error": repr(error),
+                       "traceback": traceback.format_exc(), "identity_sha256": args.identity_sha256,
+                       "config_sha256": args.config_sha256, "elapsed_seconds": time.monotonic() - started,
+@@ -469,16 +467,22 @@
+                     path, digest = experiment.checkpoint(tag)
+                     result.update(checkpoint=path.name, checkpoint_sha256=digest, checkpoint_tag=tag,
+                                   update_progress=experiment.progress)
+-                except Exception as checkpoint_error:
++                except BaseException as checkpoint_error:
+                     result["checkpoint_error"] = repr(checkpoint_error)
+             save_json(args.run_dir / "worker-result.json", result)
+             return 1
+         finally:
++            cancellation.defer()
+             if experiment is not None:
+                 experiment.close()
+ 
+ 
+ def run_supervised(args) -> int:
++    with cancellation_signals() as cancellation:
++        return _run_supervised(args, cancellation)
++
++
++def _run_supervised(args, cancellation) -> int:
+     started = time.monotonic()
+     config = read_config(args.config)
+     phase = config["phase"]
+@@ -489,6 +493,7 @@
+     if args.resume_checkpoint is not None:
+         args.resume_checkpoint_sha256 = file_hash(args.resume_checkpoint)
+         resume_state = ckpt.load_checkpoint(args.resume_checkpoint, expected_sha256=args.resume_checkpoint_sha256)
++        ckpt.require_complete_update(resume_state)
+     consumed, remaining = remaining_phase_budget(config, resume_state)
+     check_budget(utc_now(), math.ceil(remaining))
+     identity_digest, config_digest = file_hash(args.identity), file_hash(args.config)
+@@ -532,8 +537,10 @@
+                       identity_check=lambda: verify_inputs(args, config), mps=False)
+         try:
+             guard.check(force=True)
++            cancellation.defer()
+             active = subprocess.Popen(command, cwd=ROOT, stdout=stdout, stderr=subprocess.STDOUT,
+                                       start_new_session=True, env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"))
++            cancellation.resume()
+             save_json(args.run_dir / "owned-process.json", {"owned_pid": active.pid, "owned_pgid": active.pid})
+             while active.poll() is None:
+                 guard.check(force=True)
+@@ -558,16 +565,13 @@
+             hashes = {str(p.relative_to(args.run_dir)): file_hash(p) for p in sorted(args.run_dir.rglob("*")) if p.is_file()}
+             guard.check(force=True)
+             result.update(status="passed", worker_result=worker_result)
+-        except Exception as error:
+-            result.update(error=repr(error), traceback=traceback.format_exc())
+-            if active is not None:
+-                if active.poll() is None:
+-                    try:
+-                        active.wait(timeout=5)  # Bounded grace for the cooperative failure checkpoint.
+-                    except subprocess.TimeoutExpired:
+-                        pass
++        except BaseException as error:
++            cancellation.defer()
++            result.update(status="failed", error=repr(error), traceback=traceback.format_exc())
++        finally:
++            cancellation.defer()
++            if active is not None and result["status"] != "passed":
+                 result["owned_process_stop"] = stop_owned(active)
+-        finally:
+             elapsed = time.monotonic() - started
+             result.update(finished_at_utc=utc_now().isoformat(), elapsed_seconds=elapsed,
+                           consumed_phase_wall_seconds=consumed + elapsed,
+--- /dev/null
++++ b/python/tests/test_runtime_repair.py
+@@ -0,0 +1,458 @@
++"""Behavioral regressions for frozen M3 runtime findings; no native campaigns."""
++from __future__ import annotations
++
++import copy
++from datetime import datetime, timezone
++import io
++import json
++import os
++from pathlib import Path
++import signal
++import subprocess
++import sys
++import time
++from types import SimpleNamespace
++
++import pytest
++import torch
++
++from dodge_rl import checkpoints as c
++from dodge_rl import identity as i
++from dodge_rl import train_teacher as t
++
++
++class NoopGuard:
++    maximum_rss = maximum_mps = 0
++
++    def __init__(self, **kwargs):
++        self.deadline = kwargs.get("deadline", 1800)
++
++    def check(self, **kwargs):
++        pass
++
++
++def runner_args(tmp_path, phase="pilot"):
++    config = tmp_path / "config.json"
++    config.write_text(json.dumps(i.default_config(phase, parent_sha256="a" * 64
++                                                if phase.startswith("D") else None)))
++    identity = tmp_path / "identity.json"
++    identity.write_text("{}")
++    return SimpleNamespace(config=config, identity=identity, run_dir=tmp_path / "run",
++                           command=phase if phase == "pilot" else "stage", stage=phase,
++                           run_id="synthetic-repair", resume_checkpoint=None,
++                           parent_checkpoint=None)
++
++
++def mock_authorization(monkeypatch):
++    monkeypatch.setattr(t, "Guard", NoopGuard)
++    monkeypatch.setattr(t, "verify_inputs", lambda *args: {})
++    monkeypatch.setattr(t, "assert_lease", lambda *args: {})
++    monkeypatch.setattr(t, "utc_now", lambda: datetime(2026, 10, 24, 10, tzinfo=timezone.utc))
++
++
++@pytest.mark.parametrize("error", [KeyboardInterrupt("cancelled"), SystemExit(17), BaseException("abort")])
++def test_supervisor_baseexception_keeps_receipt_and_reaps_owned_worker(tmp_path, monkeypatch, error):
++    args = runner_args(tmp_path)
++    mock_authorization(monkeypatch)
++    checks = []
++
++    class InterruptGuard(NoopGuard):
++        def check(self, **kwargs):
++            checks.append(True)
++            if len(checks) == 2:
++                raise error
++
++    class Process:
++        pid = 740101
++
++        def poll(self):
++            return None
++
++    owned = Process()
++    stopped = []
++    monkeypatch.setattr(t, "Guard", InterruptGuard)
++    monkeypatch.setattr(t.subprocess, "Popen", lambda *a, **kw: owned)
++    monkeypatch.setattr(t, "stop_owned", lambda process: stopped.append(process) or {"reaped": True})
++    escaped = None
++    try:
++        status = t.run_supervised(args)
++    except BaseException as caught:
++        escaped = caught
++        status = None
++    assert escaped is None, f"Cancellation escaped before owned-worker cleanup: {escaped!r}"
++    assert status == 1 and stopped == [owned]
++    receipt = json.loads((args.run_dir / "run-result.json").read_text())
++    assert receipt["status"] == "failed" and receipt["owned_process_stop"]["reaped"]
++    assert receipt["automatic_retries"] == 0 and not receipt["limits_relaxed"]
++    assert (args.run_dir / "artifact-sha256.json").exists()
++
++
++def child_bootstrap():
++    """Children execute the same explicitly selected source as the pytest process."""
++    source_root = Path(t.__file__).resolve().parents[2]
++    return f"""
++import importlib.util, pathlib, sys, hashlib
++import dodge_rl
++source_root = pathlib.Path({str(source_root)!r})
++for name in ('supervision', 'checkpoints', 'train_teacher'):
++    path = source_root / 'python/dodge_rl' / (name + '.py')
++    spec = importlib.util.spec_from_file_location('dodge_rl.' + name, path)
++    module = importlib.util.module_from_spec(spec)
++    sys.modules[spec.name] = module
++    setattr(dodge_rl, name, module)
++    spec.loader.exec_module(module)
++    print('EXECUTED_SOURCE', name, str(path), hashlib.sha256(path.read_bytes()).hexdigest(), flush=True)
++"""
++
++
++def wait_file(path, process, seconds=10):
++    deadline = time.monotonic() + seconds
++    while not path.exists() and process.poll() is None and time.monotonic() < deadline:
++        time.sleep(.02)
++    assert path.exists(), f"Synthetic child did not become ready; returncode={process.poll()}"
++
++
++def test_supervisor_real_sigterm_checkpoints_worker_and_keeps_terminal_receipt(tmp_path):
++    script = child_bootstrap() + f"""
++import json, os, signal, subprocess, time
++from datetime import datetime, timezone
++from types import SimpleNamespace
++from dodge_rl import train_teacher as t, identity as i
++directory = pathlib.Path({str(tmp_path)!r})
++config = directory / 'config.json'; config.write_text(json.dumps(i.default_config('pilot')))
++identity = directory / 'identity.json'; identity.write_text('{{}}')
++args = SimpleNamespace(config=config, identity=identity, run_dir=directory/'run',
++    command='pilot',run_id='synthetic-sigterm',resume_checkpoint=None,parent_checkpoint=None)
++class Guard:
++    maximum_rss = maximum_mps = 0
++    def __init__(self, **kwargs): pass
++    def check(self, **kwargs): pass
++t.Guard=Guard; t.assert_lease=lambda *a: {{}}; t.verify_inputs=lambda *a: {{}}
++t.utc_now=lambda:datetime(2026,10,24,10,tzinfo=timezone.utc)
++t.current_rss_bytes=lambda pid:100
++real_popen=subprocess.Popen
++worker_code = '''import os,signal,time,pathlib,sys
++directory=pathlib.Path({str(tmp_path)!r})
++def stop(*args):
++    (directory/'cooperative-diagnostic.pt').write_bytes(b'synthetic checkpoint opportunity')
++    sys.exit(0)
++signal.signal(signal.SIGTERM,stop)
++(directory/'worker-ready').write_text(str(os.getpid()))
++time.sleep(60)
++'''
++t.subprocess.Popen=lambda command, **kwargs:real_popen([sys.executable,'-B','-c',worker_code],**kwargs)
++raise SystemExit(t.run_supervised(args))
++"""
++    script_path = tmp_path / "supervisor.py"
++    script_path.write_text(script)
++    process = subprocess.Popen([sys.executable, "-B", str(script_path)], stdout=subprocess.PIPE,
++                               stderr=subprocess.STDOUT, text=True, start_new_session=True)
++    worker_pid = None
++    try:
++        wait_file(tmp_path / "worker-ready", process)
++        worker_pid = int((tmp_path / "worker-ready").read_text())
++        os.kill(process.pid, signal.SIGTERM)
++        output, _ = process.communicate(timeout=15)
++        (tmp_path / "supervisor-output.log").write_text(output)
++        assert process.returncode == 1, output
++        receipt = json.loads((tmp_path / "run/run-result.json").read_text())
++        assert receipt["status"] == "failed" and receipt["owned_process_stop"]["reaped"]
++        assert receipt["owned_process_stop"]["owned_pid"] == worker_pid
++        assert (tmp_path / "cooperative-diagnostic.pt").exists()
++        with pytest.raises(ProcessLookupError):
++            os.kill(worker_pid, 0)
++    finally:
++        if process.poll() is None:
++            os.killpg(process.pid, signal.SIGKILL)
++            process.wait(timeout=5)
++        # Frozen-source controls intentionally expose an orphan. Clean only the
++        # test-owned group, retaining a record of this harness cleanup.
++        if worker_pid is not None:
++            try:
++                os.killpg(worker_pid, signal.SIGTERM)
++                (tmp_path / "harness-cleanup.json").write_text(json.dumps({"owned_pgid": worker_pid,
++                    "reason": "negative-control orphan or surviving test-owned descendant"}))
++            except ProcessLookupError:
++                pass
++
++
++@pytest.mark.parametrize("interrupt", ["SIGTERM", "KeyboardInterrupt"])
++def test_worker_cancellation_attempts_tagged_diagnostic_checkpoint(tmp_path, interrupt):
++    action = "os.kill(os.getpid(), signal.SIGTERM)" if interrupt == "SIGTERM" else "raise KeyboardInterrupt('cancelled')"
++    script = child_bootstrap() + f"""
++import json, os, signal, time
++from datetime import datetime, timezone
++from types import SimpleNamespace
++from dodge_rl import train_teacher as t, identity as i, checkpoints as c
++directory=pathlib.Path({str(tmp_path)!r})
++config=directory/'config.json';config.write_text(json.dumps(i.default_config('pilot')))
++class Guard:
++    maximum_rss=maximum_mps=0
++    def __init__(self, **kwargs): pass
++    def check(self, **kwargs): pass
++class Experiment:
++    progress={{'in_update':True,'complete':False,'optimizer_steps':1}}
++    def __init__(self,*args): pass
++    def pilot(self):
++        {action}
++    def checkpoint(self,tag):
++        path=directory/(tag+'.pt')
++        return path,c.save_checkpoint(path,{{'tag':tag,'update_progress':self.progress}})
++    def close(self): (directory/'closed').write_text('yes')
++t.Guard=Guard;t.Experiment=Experiment;t.verify_inputs=lambda *a:{{}}
++t.utc_now=lambda:datetime(2026,10,24,10,tzinfo=timezone.utc)
++started=time.monotonic()
++args=SimpleNamespace(config=config,config_sha256=i.file_hash(config),identity_sha256='a'*64,
++    phase='pilot',consumed_wall_seconds=0,execution_started_monotonic=started,
++    deadline_monotonic=started+300,run_dir=directory,run_id='synthetic-worker',resume_checkpoint=None)
++raise SystemExit(t.worker(args))
++"""
++    path = tmp_path / "worker.py"
++    path.write_text(script)
++    result = subprocess.run([sys.executable, "-B", str(path)], capture_output=True, text=True, timeout=15)
++    (tmp_path / "worker-output.log").write_text(result.stdout + result.stderr)
++    assert result.returncode == 1, result.stdout + result.stderr
++    receipt = json.loads((tmp_path / "worker-result.json").read_text())
++    assert receipt["status"] == "failed" and receipt["checkpoint_tag"] == "interrupted_mid_update"
++    assert receipt["update_progress"]["optimizer_steps"] == 1
++    assert i.file_hash(tmp_path / receipt["checkpoint"]) == receipt["checkpoint_sha256"]
++    assert (tmp_path / "closed").exists()
++
++
++@pytest.mark.parametrize("tag,progress", [
++    ("interrupted_mid_update", {"in_update": True, "complete": False, "optimizer_steps": 1}),
++    ("periodic", {"in_update": False, "complete": False, "optimizer_steps": 1}),
++])
++def test_interrupted_resume_rejects_before_stage_entry_candidate(tmp_path, monkeypatch, tag, progress):
++    from test_checkpoints import simple_identity
++    config = i.default_config("D1", parent_sha256="a" * 64)
++    identity = simple_identity(config)
++    model = torch.nn.Linear(2, 1)
++    optimizer = t.make_optimizer(model, config)
++    state = c.make_state(model, optimizer, identity,
++                         {"phase_updates": 0, "updates": 0, "optimizer_steps": 0, "checkpoint_index": 0},
++                         tag=tag, progress=progress)
++    state["run_context"] = {"consumed_wall_seconds": 100}
++    path = tmp_path / "partial.pt"
++    digest = c.save_checkpoint(path, state)
++    original = path.read_bytes()
++    args = SimpleNamespace(run_dir=tmp_path, resume_checkpoint=path,
++                           resume_checkpoint_sha256=digest, parent_checkpoint=None,
++                           consumed_wall_seconds=100)
++    monkeypatch.setattr(t, "OmniscientEntityTeacher", lambda: torch.nn.Linear(2, 1))
++    monkeypatch.setattr(t.Experiment, "make_environment", lambda self, indices: setattr(self, "env", object()))
++    candidates = []
++    monkeypatch.setattr(t.Experiment, "checkpoint", lambda self, tag:
++                        candidates.append(tag) or (tmp_path / "candidate.pt", "digest"))
++    monkeypatch.setattr(t.Experiment, "evaluate_checkpoint", lambda *a, **kw: {"passed": True})
++    experiment = None
++    rejected = None
++    try:
++        experiment = t.Experiment(args, config, identity, NoopGuard())
++        experiment.stage()
++    except ValueError as error:
++        rejected = error
++    finally:
++        if experiment is not None:
++            experiment.close()
++    assert rejected is not None, f"Partially updated learner reached stage candidate: {candidates}"
++    assert "Interrupted/incomplete" in str(rejected)
++    assert candidates == [] and path.read_bytes() == original
++
++
++def test_restore_partial_update_refuses_before_model_mutation(tmp_path):
++    from test_checkpoints import simple_identity
++    model = torch.nn.Linear(2, 1)
++    optimizer = torch.optim.Adam(model.parameters())
++    state = c.make_state(model, optimizer, simple_identity(), {}, tag="interrupted_mid_update",
++                         progress={"in_update": True, "complete": False, "optimizer_steps": 1})
++    state["model"]["weight"].fill_(123)
++    before = copy.deepcopy(model.state_dict())
++    rejected = None
++    try:
++        c.restore_learner(state, model, optimizer)
++    except ValueError as error:
++        rejected = error
++    assert rejected is not None, "Interrupted update restored into a live learner"
++    assert all(torch.equal(value, model.state_dict()[name]) for name, value in before.items())
++
++
++@pytest.mark.parametrize("consumed", [0, 1600, 1799.9])
++def test_checkpoint_time_cannot_grant_same_phase_resume_allowance(consumed):
++    config = i.default_config("D1", parent_sha256="a" * 64)
++    state = {"run_context": {"consumed_wall_seconds": consumed}}
++    with pytest.raises(ValueError, match="Same-phase resume disabled"):
++        t.remaining_phase_budget(config, state)
++    assert t.remaining_phase_budget(config, None) == (0, 1800)
++
++
++@pytest.mark.parametrize("claimed_anchor", [None, "stale", "mismatching"])
++def test_supervisor_rejects_same_phase_resume_before_launch(tmp_path, monkeypatch, claimed_anchor):
++    from test_checkpoints import simple_identity
++    args = runner_args(tmp_path, "D1")
++    config = json.loads(args.config.read_text())
++    model = torch.nn.Linear(2, 1)
++    optimizer = t.make_optimizer(model, config)
++    state = c.make_state(model, optimizer, simple_identity(config), {"phase_updates": 8},
++                         tag="periodic", progress={"in_update": False, "complete": True})
++    state["run_context"] = {"consumed_wall_seconds": 1600}
++    args.resume_checkpoint = tmp_path / "checkpoint-at-1600.pt"
++    c.save_checkpoint(args.resume_checkpoint, state)
++    # Even CLI claims about terminal consumption cannot enable the disabled
++    # path. The real prior attempt used its entire 1800-second allowance.
++    terminal = tmp_path / "prior-run-result.json"
++    terminal.write_text(json.dumps({"consumed_phase_wall_seconds": 1800, "status": "failed"}))
++    args.prior_terminal_receipt = terminal if claimed_anchor is not None else None
++    args.prior_terminal_receipt_sha256 = claimed_anchor
++    mock_authorization(monkeypatch)
++    launched = []
++
++    class Process:
++        pid = 740102
++
++        def poll(self):
++            return 0
++
++        def wait(self, timeout):
++            return 0
++
++    def launch(*a, **kw):
++        launched.append(True)
++        (args.run_dir / "worker-result.json").write_text(json.dumps({"status": "passed",
++            "identity_sha256": i.file_hash(args.identity), "config_sha256": i.file_hash(args.config)}))
++        return Process()
++
++    monkeypatch.setattr(t.subprocess, "Popen", launch)
++    rejected = None
++    try:
++        t.run_supervised(args)
++    except ValueError as error:
++        rejected = error
++    assert rejected is not None, "Supervisor launched a worker using stale checkpoint consumption"
++    assert "Same-phase resume disabled" in str(rejected)
++    assert launched == [] and not args.run_dir.exists()
++
++
++@pytest.mark.parametrize("resume_path", [False, True])
++def test_internal_worker_rejects_unanchored_same_phase_resume_before_identity(tmp_path, monkeypatch, resume_path):
++    args = runner_args(tmp_path, "D1")
++    args.run_dir.mkdir()
++    args.phase = "D1"
++    args.config_sha256 = i.file_hash(args.config)
++    args.identity_sha256 = i.file_hash(args.identity)
++    args.resume_checkpoint = tmp_path / "periodic-at-1600.pt" if resume_path else None
++    args.resume_checkpoint_sha256 = "d" * 64
++    args.consumed_wall_seconds = 1600
++    args.execution_started_monotonic = 0
++    args.deadline_monotonic = 200
++    mock_authorization(monkeypatch)
++    monkeypatch.setattr(t.time, "monotonic", lambda: 1.)
++    entered = []
++    monkeypatch.setattr(t, "verify_inputs", lambda *a: entered.append("identity") or {})
++
++    class FakeExperiment:
++        progress = {}
++
++        def __init__(self, *a):
++            entered.append("experiment")
++
++        def stage(self):
++            entered.append("candidate")
++            return {"status": "passed"}
++
++        def close(self):
++            pass
++
++    monkeypatch.setattr(t, "Experiment", FakeExperiment)
++    rejected = None
++    try:
++        t.worker(args)
++    except ValueError as error:
++        rejected = error
++    assert rejected is not None, f"Internal worker granted extra checkpoint-local allowance: {entered}"
++    assert "Same-phase resume disabled" in str(rejected) or "checkpoint-local" in str(rejected)
++    assert entered == []
++
++
++class ProbePolicy(torch.nn.Module):
++    def __init__(self, failure):
++        super().__init__()
++        self.weight = torch.nn.Parameter(torch.zeros(1))
++        self.measured_device = "cpu"
++        self.failure = failure
++
++    def to(self, device):
++        self.measured_device = str(device)
++        return self
++
++    def forward(self, *args):
++        value = float("nan") if self.measured_device == "mps" and self.failure == "inference" else 0.
++        return SimpleNamespace(logits=torch.full((1, 9), value), values=torch.zeros(1))
++
++
++def probe_fixture(tmp_path, monkeypatch, failure, available=True):
++    experiment = t.Experiment.__new__(t.Experiment)
++    experiment.directory = tmp_path
++    experiment.config = i.default_config("probe")
++    experiment.config["rollout_steps"] = 1
++    experiment.config["probe_devices"] = ["cpu", "mps"]
++    experiment.model = ProbePolicy(failure)
++    experiment.identity = {}
++    experiment.counters = {}
++    experiment.device = torch.device("cpu")
++    experiment.env = object()
++    experiment.ppo = t.PPOConfig()
++    experiment.guard = NoopGuard()
++    experiment.episodes = io.StringIO()
++    experiment.make_environment = lambda: None
++    initial = tmp_path / "initial.pt"
++    initial_digest = c.save_checkpoint(initial, {"tag": "probe_diagnostic"})
++    experiment.checkpoint = lambda tag: (initial, initial_digest)
++    batch = SimpleNamespace(**{name: torch.zeros((1, 1, 1)) for name in t.OBSERVATION_KEYS},
++                            raw_rewards=torch.zeros((1, 1)), score_delta_raw_fixed=torch.zeros((1, 1)),
++                            alive_raw_frames=torch.zeros((1, 1)), elapsed_raw_frames=torch.zeros((1, 1)))
++    collection = SimpleNamespace(batch=batch, completed_episodes=[], reset_info=[])
++    monkeypatch.setattr(t, "collect_rollout", lambda *a, **kw: collection)
++    monkeypatch.setattr(t, "synchronize", lambda *a: None)
++    monkeypatch.setattr(torch.backends.mps, "is_available", lambda: available)
++    monkeypatch.setattr(c, "make_state", lambda *a, **kw: {"tag": "probe_diagnostic"})
++
++    def update(candidate, *args, **kwargs):
++        if candidate.measured_device == "mps" and failure != "inference":
++            raise ValueError({"loss": "Nonfinite PPO loss", "audit": "Raw reward audit failed",
++                              "unexpected": "Unexpected measured-device failure"}[failure])
++        return {"optimizer_steps": 1, "epochs_completed": 1}
++
++    monkeypatch.setattr(t, "ppo_update", update)
++    return experiment
++
++
++@pytest.mark.parametrize("failure", ["inference", "loss", "audit", "unexpected"])
++def test_probe_device_correctness_failure_cannot_become_cpu_pass(tmp_path, monkeypatch, failure):
++    experiment = probe_fixture(tmp_path, monkeypatch, failure)
++    rejected = None
++    result = None
++    try:
++        result = experiment.probe()
++    except ValueError as error:
++        rejected = error
++    assert rejected is not None, f"Measured device failure was masked by selected CPU: {result}"
++    failure_receipt = json.loads((tmp_path / "probe-mps-failure.json").read_text())
++    assert failure_receipt["status"] == "failed" and not failure_receipt["automatic_retry"]
++    assert failure_receipt["traceback"]
++    assert (tmp_path / "probe-cpu-updated.pt").exists() and (tmp_path / "probe-rollout.pt").exists()
++
++
++def test_unavailable_mps_comparison_remains_distinct_from_correctness_failure(tmp_path, monkeypatch):
++    experiment = probe_fixture(tmp_path, monkeypatch, "inference", available=False)
++    result = experiment.probe()
++    assert result["status"] == "passed" and result["selected_device"] == "cpu"
++    assert result["measurements"][1] == {"device": "mps", "status": "unavailable"}
++
++
++def test_device_selector_rejects_failed_rows_even_with_completed_cpu():
++    rows = [{"device": "cpu", "status": "completed", "optimizer_steps": 1,
++             "metrics": {"epochs_completed": 1}, "measured_inference_plus_update_seconds": 1},
++            {"device": "mps", "status": "failed", "error": "Nonfinite device probe"}]
++    with pytest.raises(ValueError, match="correctness failure"):
++        t.choose_probe_device(rows)
+--- /dev/null
++++ b/python/tests/test_runtime_repair_signals.py
+@@ -0,0 +1,123 @@
++"""Synthetic cancellation and exact owned-process cleanup regressions."""
++from __future__ import annotations
++
++import os
++from pathlib import Path
++import select
++import signal
++import subprocess
++import sys
++import threading
++from types import SimpleNamespace
++
++import pytest
++
++from dodge_rl import supervision as s
++
++
++@pytest.mark.parametrize("number", [signal.SIGTERM, signal.SIGINT])
++def test_cancellation_signal_raises_once_and_restores_handlers(number):
++    previous = {sig: signal.getsignal(sig) for sig in (signal.SIGTERM, signal.SIGINT)}
++    with s.cancellation_signals() as cancellation:
++        with pytest.raises(s.SignalCancellation) as caught:
++            signal.raise_signal(number)
++        assert caught.value.signal_number == number
++        assert cancellation.signal_number == number
++        signal.raise_signal(number)  # A repeated signal cannot interrupt receipts.
++    assert {sig: signal.getsignal(sig) for sig in previous} == previous
++
++
++def test_cancellation_deferred_until_owned_pid_assignment_finishes():
++    with s.cancellation_signals() as cancellation:
++        cancellation.defer()
++        signal.raise_signal(signal.SIGTERM)
++        owned_pid = 123456
++        with pytest.raises(s.SignalCancellation) as caught:
++            cancellation.resume()
++        assert owned_pid == 123456 and caught.value.signal_number == signal.SIGTERM
++        signal.raise_signal(signal.SIGINT)
++
++
++def test_cancellation_handlers_restore_after_base_exception():
++    previous = {sig: signal.getsignal(sig) for sig in (signal.SIGTERM, signal.SIGINT)}
++    with pytest.raises(KeyboardInterrupt):
++        with s.cancellation_signals():
++            raise KeyboardInterrupt("synthetic caller cancellation")
++    assert {sig: signal.getsignal(sig) for sig in previous} == previous
++
++
++def test_cancellation_rejects_background_thread_before_handler_mutation(monkeypatch):
++    calls = []
++    monkeypatch.setattr(s.signal, "signal", lambda *args: calls.append(args))
++    failures = []
++
++    def background():
++        try:
++            with s.cancellation_signals():
++                pytest.fail("Background thread obtained process signal ownership")
++        except ValueError as error:
++            failures.append(str(error))
++
++    thread = threading.Thread(target=background)
++    thread.start()
++    thread.join(timeout=2)
++    assert not thread.is_alive()
++    assert failures == ["Teacher signal supervision requires the main thread"]
++    assert calls == []
++
++
++def test_cleanup_terminates_group_even_after_worker_leader_exited(monkeypatch):
++    """Frozen r1 skips both signals because the worker leader already exited."""
++    sent, waited = [], []
++    group = SimpleNamespace(alive=True)
++    process = SimpleNamespace(pid=740004, poll=lambda: 0,
++                              wait=lambda timeout: waited.append(timeout) or 0)
++
++    def killpg(pid, number):
++        assert pid == process.pid
++        if not group.alive:
++            raise ProcessLookupError("group gone")
++        if number:
++            sent.append(number)
++        if number == signal.SIGKILL:
++            group.alive = False
++
++    monkeypatch.setattr(s.os, "killpg", killpg)
++    monkeypatch.setattr(s.time, "sleep", lambda seconds: None)
++    result = s.stop_owned(process)
++    assert sent == [signal.SIGTERM, signal.SIGKILL]
++    assert waited == [5, 5]
++    assert result["reaped"] and result["exit_code"] == 0 and not group.alive
++
++
++def test_cleanup_real_worker_gets_graceful_signal_and_is_reaped(tmp_path):
++    """A plain Python process writes a cancellation diagnostic, with no rollout."""
++    diagnostic = tmp_path / "worker-cancelled.txt"
++    program = """
++import pathlib, signal, sys, time
++def cancelled(number, frame):
++    pathlib.Path(sys.argv[1]).write_text('diagnostic retained')
++    raise SystemExit(0)
++signal.signal(signal.SIGTERM, cancelled)
++print('ready', flush=True)
++while True:
++    time.sleep(.1)
++"""
++    process = subprocess.Popen([sys.executable, "-B", "-c", program, str(diagnostic)],
++                               stdout=subprocess.PIPE, stderr=subprocess.PIPE,
++                               text=True, start_new_session=True)
++    try:
++        ready, _, _ = select.select([process.stdout], [], [], 5)
++        assert ready and process.stdout.readline().strip() == "ready"
++        result = s.stop_owned(process)
++        assert result["reaped"] and result["exit_code"] == 0
++        assert result["SIGTERM"] and "SIGKILL" not in result
++        assert diagnostic.read_text() == "diagnostic retained"
++        with pytest.raises(ChildProcessError):
++            os.waitpid(process.pid, os.WNOHANG)
++    finally:
++        if process.poll() is None:
++            os.killpg(process.pid, signal.SIGKILL)
++            process.wait(timeout=5)
++        process.stdout.close()
++        process.stderr.close()
+--- a/python/tests/test_teacher_runner.py
++++ b/python/tests/test_teacher_runner.py
+@@ -237,10 +237,9 @@
+ 
+ def test_same_phase_resume_cannot_restart_consumed_pilot_budget():
+     cfg=i.default_config("pilot")
+-    used,left=t.remaining_phase_budget(cfg,{"run_context":{"consumed_wall_seconds":299.5}})
+-    assert used==299.5 and left==.5
+-    for value in (300,301,None,-1,float("nan")):
+-        with pytest.raises(ValueError):
++    assert t.remaining_phase_budget(cfg,None)==(0.,300.)
++    for value in (0,299.5,300,301,None,-1,float("nan")):
++        with pytest.raises(ValueError,match="Same-phase resume disabled"):
+             t.remaining_phase_budget(cfg,{"run_context":{"consumed_wall_seconds":value}})
+ 
+ 

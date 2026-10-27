@@ -1,0 +1,73 @@
+{
+  "actual_ML_native_import_deserialization_inference_training_or_tests": false,
+  "confirmed_plan_corrections": [
+    {
+      "classification": "required_parent_qualification",
+      "consequence": "If failure is first reported only at later exit, the executor can start its first_failure+10 pool after the actual first failure, granting extra cleanup time.",
+      "evidence": {
+        "plan": "design.md:138-149 requires acknowledged first failure before local persistence; plan.json source_contract requires byte-identical worker",
+        "source": "r2 long_d2.py:968-986 catches arbitrary BaseException, then writes emergency checkpoint and performs final verification before supervisor observes raw exit."
+      },
+      "id": "PLAN-001",
+      "parent_response": "Parent accepted a minimal documented worker supervision-hook diff by collaboration message; whole-worker byte identity is replaced by unchanged ML AST blocks plus this exact hook.",
+      "required_resolution": "Permit an explicit minimal supervision-only worker except hook (or a proven equivalent helper hook) that reports/acknowledges earliest failure before emergency persistence, and bounds that persistence by the shared deadline. Preserve every ML/learner/counter/environment/reward/control operation.",
+      "severity": "P1",
+      "title": "Unchanged worker body has no first-failure IPC event before emergency persistence"
+    },
+    {
+      "classification": "required_pseudocode_correction",
+      "consequence": "An executor observation can precede arrival of a worker report carrying an earlier failure timestamp. Ignoring that earlier report can grant additional cleanup time.",
+      "evidence": {
+        "plan": "design.md:141-146 sets first_failure only when it is None despite requiring the earliest shared failure time."
+      },
+      "id": "PLAN-002",
+      "parent_response": "Sent to parent before r3 freeze; must be included in implementation requirements.",
+      "required_resolution": "For every validated report set first_failure=min(existing, reported timestamp, now), and cleanup_until=min(existing deadline, first_failure+10, T0+7210). Never extend/reset the pool. Validate reported timestamps against the exact shared T0 and sender/sequence ownership.",
+      "severity": "P1",
+      "title": "Later earlier failure reports must tighten the existing cleanup deadline"
+    }
+  ],
+  "finished_at_utc": "2026-10-24T18:05:35.191095+00:00",
+  "implementation_obligations": [
+    {
+      "id": "REQ-IPC",
+      "requirement": "The executor/supervisor control socket and worker start gate need directed ownership. Do not let supervisor and worker race to consume messages on a shared read endpoint. Worker cannot begin ML before exact executor registration acknowledgment."
+    },
+    {
+      "id": "REQ-MONITOR",
+      "requirement": "During outer hashes, receipt writes and teardown, explicitly preserve <=0.5s lease/resource observations and <=5s full-pin checks. A watchdog checking only child deadlines/IPC/groups is insufficient. Check final observation ages after monitor close and last bounded IO."
+    },
+    {
+      "id": "REQ-REAP",
+      "requirement": "On macOS executor cannot waitpid an orphan worker that was never its direct child. Record inner direct-parent reap evidence separately from executor positive group-absence proof; do not equate absence with observed reaping. Supervisor-loss paths are failed/unproven when direct reap proof is unavailable."
+    },
+    {
+      "id": "REQ-PINS",
+      "requirement": "Preserve the exact 793 r2 pin union and all 75 original legacy inputs while adding r3 helper/executor/test pins. No hash-cycle field may point back from protocol to final self-dependent source/identity/capsule hashes."
+    },
+    {
+      "id": "REQ-EXIT",
+      "requirement": "Production final leaf has no unmask, handler restoration, flush, hash, normal write or context cleanup after finite D. Inner metadata is provisional; parent requires matching outer raw exit, wall and receipt bindings."
+    }
+  ],
+  "input_manifest": "inputs-sha256.json",
+  "limitations": [
+    "Static source and JSON consistency review only; no candidate module, tests, OS probes, Torch/native code, checkpoint, or ML workload executed.",
+    "This does not accept r2 or any future r3 implementation, nor authorize training; frozen code and synthetic/runtime gates remain separate.",
+    "The earlier raw SIGALRM -14 cause remains unproven; no identical replay was performed.",
+    "Finite direct-signal and transient filesystem observation limits remain as documented; they are not proof of perfect cancellation atomicity."
+  ],
+  "positive_consistency_checks": [
+    "7140+30+30=7200; outer acceptance and receipt publication consume the existing 60-second reserve rather than extending normal budget.",
+    "One failure deadline min(first_failure+10,T0+7210) is consistent once it always tightens and all participants share the first timestamp.",
+    "Parent protocol r3 explicitly updates guard.deadline_origin to executor_T0_before_ordinary_imports_shared_by_worker_inner_and_outer, resolving stale supervisor-origin wording in the unqualified plan.",
+    "Strict lease remains 15 fields; executor hash is transitively bound by identity/capsule and directly by external invocation, with task IDs outside the lease.",
+    "Process-lifetime dispositions and no final normal restoration remove the specifically reproduced r1/r2 unmask operation; the plan does not claim impossible atomic observation after finite D.",
+    "Separate worker/supervisor sessions are tracked, and spawn-registration uncertainty is fail-closed rather than permission to clean unrelated groups.",
+    "No proposed learner/config/reward/seed/gate/cadence change is necessary for this lifecycle repair."
+  ],
+  "production_source_protocol_state_docs_edits": false,
+  "registered_protocol_r3_sha256": "6a7ffe59551fd12f4a6fd316c6ab626d03e92a7ec25f77dc34fce30837fa592d",
+  "status": "implementation_requires_listed_parent_qualifications;not_launch_acceptance",
+  "version": "long_D2_terminal_plan_consistency_audit_v1"
+}

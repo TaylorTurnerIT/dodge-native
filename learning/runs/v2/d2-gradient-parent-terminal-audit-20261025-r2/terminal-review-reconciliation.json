@@ -1,0 +1,37 @@
+{
+  "lease_clearance": {
+    "after": null,
+    "after_lease_canonical_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+    "before_lease_canonical_sha256": "67acff68b48040fd862f666162fc58c828ad701d24ec3d53e7cb9ca6355317ec",
+    "cleared_at_utc": "2026-10-25T23:39:16.653337+00:00",
+    "current_postclear_full_state_sha256": "e55b6851b60ca0a6e084969e0327fbb5782a56561cfb8eac84a46052964ff1aa",
+    "evidence_limit": "Exact compare-before-clear parent attestation and observer/audit observations; original full state bytes at clear were not saved.",
+    "expected_before": {
+      "authorization": "user_continue_D2_training_v3",
+      "kind": "D2_gradient_alignment",
+      "parent_checkpoint_sha256": "bf858ed9975e6f994acbca011895b140be6943cf1852c88b54549a9c8db0c1a8",
+      "run_id": "D2-gradient-alignment-20261025-r2"
+    },
+    "run_terminal_full_state_observed_sha256": "1f13fe0bd164d4f19d648ae28bdbba6b98260bb8ca5e3bad17e38e7a318b794c"
+  },
+  "ledger_context_snapshots": {},
+  "measurement_scope_clarifications": [
+    "EV summaries are arithmetic means of per-update EV, not pooled EV.",
+    "First512samples/16384transitions at epoch0 perupdate;48CPUreference probes.",
+    "Global scalar clipping scales raw combined gradient without changing its direction; Adam and CPU-versus-MPS differences prevent treating rawCPUcosine as realized optimizer direction. Only first minibatch clipping was sampled.",
+    "6GiBcaps and1800sinclusive/1600swork;696resourcesamples are separate quantities."
+  ],
+  "recorded_at_utc": "2026-10-25T23:45:31.604613+00:00",
+  "responses": {
+    "cumulative-wall-two-bases": "Parent2952.324712417151s = prior2222.619523167091 + external729.7051892500604. Worker2948.4238147921324 and checkpoint wall are partial/provisional, never future parent wall authority.",
+    "execution-result-elapsed-not-authority": "Launcher elapsed is clock()-started at terminal publication, with started saved in launch-marker.json. External observed full outer-process wall729.7051892500604s includes interpreter startup, later publication/exit and observation cadence; use it for parent cumulative authority.",
+    "final-abandoned-not-journaled": "Final58524 is not a training-episode journal sum. Parent independently decoded final checkpoint and summed64abandoned_current_episodes gameplay_frames to58524; this agrees with rawframes-completed remainder. It is checkpoint-summed evidence, not merely a derived remainder.",
+    "lease-already-null-at-review": "Parent audit/observer verified exact live lease; parent atomically cleared only after state active_long_campaign==expected_lease assertion and process/PGIDabsence. Canonical before/after lease digests recorded below are reconstruction of those field values, not saved full-state snapshots at clear time. Future clears should retain full before/after bytes immediately.",
+    "manifest-omits-execution-result": "Manifest precedes execution-result publication, so cannot include that later receipt. Parent audit artifact map and this separate terminal receipt bind its exact hash; frozen manifest stays unchanged.",
+    "worker-work-window-exceeds-observed-wait": "Worker work uses inherited launcher started_monotonic, not worker-launch observed timestamp. Adding work to worker-launch timestamp double counts preflight/spawn time. observed_monotonic records publication observation, not a spawn anchor. No ps-latency cause is established."
+  },
+  "review_sha256": "17af0bf1bdbb63fd7d572395f735a30d788f44637dea2f03565e2751b5b3e3fb",
+  "schema": "D2_gradient_terminal_review_parent_reconciliation_v1",
+  "verdict": "no_blocking_findings_reconciled",
+  "verified_nonledger_review_input_hashes": 59
+}

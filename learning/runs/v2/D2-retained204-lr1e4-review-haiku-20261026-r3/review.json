@@ -1,0 +1,92 @@
+{
+  "schema": "d2_retained204_lr1e4_frozen_review_v1",
+  "target": "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r3/",
+  "target_registration_sha256": "68063348dede3050c4a8852c6314f4c95fd3a623e89c9499413f2325f4edad44",
+  "target_runner_sha256": "7543ba23a65c03e19b05015894b74a9c68e23e56e49daf1ba3ee3808b368f89d",
+  "target_launcher_sha256": "58bc5cb35ab531455d5218dd3a77dde84d441a12d361a99c9c8a0c83b33e4206",
+  "target_preparation_receipt_sha256": "058a80ba911261af5ba42f8bcbc8639550a7fdcfe0b95e103251d984ba0c9937",
+  "verdict": "no_deterministic_launch_or_terminal_blocker_found",
+  "verdict_scope": "Static review of r3 delta, registration pin check against disk, CPU-only focused tests. Parent-owned gates remain: exact lease install, unmocked full preflight, single launch, full validate_outputs on real output.",
+  "evidence_scope": "Not run: preflight, worker, launcher, MPS, environment, games, training, checkpoint decode, lease install, doc writes.",
+  "prior_findings_status": {
+    "r1_F1_helper_import_before_digest": "closed",
+    "r1_F2_lr_record_live_shared_tensors": "closed",
+    "r1_F3_archival_labels": "closed",
+    "r1_F4_entry_mismatch_found_late": "closed",
+    "r1_F5_status_completed_on_finalization_error": "closed",
+    "r1_F6_marker_comment": "closed",
+    "r1_F7_nonatomic_execution_result": "residual_accepted_unchanged",
+    "r1_F8_final_digest_from_loop_leftover": "closed",
+    "r1_F9_test_coverage": "partly_closed",
+    "r1_F10_mps_rng_untested": "scope_note_unchanged",
+    "r1_F11_estimate_1319s_vs_1600_planned": "scope_note_unchanged",
+    "r1_F12_import_order": "scope_note_unchanged",
+    "r2_prototype_1_transition_module_unpinned": "closed",
+    "r2_prototype_2_lr_evidence": "closed",
+    "r2_prototype_3_archival_parent_label": "closed",
+    "r3_terminal_stopiteration_entry_204": "closed"
+  },
+  "findings": [
+    {
+      "id": "N1",
+      "classification": "hardening_non_blocking",
+      "severity": "low",
+      "category": "error-clarity",
+      "file": "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r3/execute_once.py",
+      "lines": "64-68",
+      "summary": "expected_checkpoint_counters uses bare next(); out-of-range update raises StopIteration instead of a named error.",
+      "failure_scenario": "Production only calls with EVALUATION_UPDATES, so no launch impact; a future caller passing 277 gets StopIteration. test_entry_counter_binding.py accepts StopIteration.",
+      "fix": "Use next((...), None) and r.need(row is not None, ...); tighten test to expect ValueError."
+    },
+    {
+      "id": "N2",
+      "classification": "evidence_gap_non_blocking",
+      "severity": "medium",
+      "category": "test-coverage",
+      "file": "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r3/execute_once.py",
+      "lines": "71-205",
+      "summary": "No full synthetic fixture for validate_outputs; counter lookup and saved-LR assertion only covered by focused helper tests.",
+      "failure_scenario": "A validate_outputs-internal mismatch surfaces only after a real campaign terminal output.",
+      "fix": "Parent decides: build synthetic fixture before launch, or accept gap and run full gate on real output."
+    },
+    {
+      "id": "N3",
+      "classification": "scope_note",
+      "severity": "low",
+      "category": "trust-root",
+      "file": "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r3/execute_once.py",
+      "lines": "17",
+      "summary": "runner module is imported (and runner.py runs as worker script) before any pin verification; launcher/runner bytes rely on frozen dir and parent preflight.",
+      "failure_scenario": "Swapped runner.py before launch bypasses in-process pin checks. Same posture as accepted launcher entrypoint; helper is now post-verify.",
+      "fix": "None required for this review; parent preflight covers."
+    },
+    {
+      "id": "N4",
+      "classification": "residual_runtime_risk",
+      "severity": "medium",
+      "category": "determinism",
+      "file": "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r3/runner.py",
+      "lines": "824",
+      "summary": "Entry gate requires 64 MPS phase-204 rows equal to predecessor rows exactly; only an MPS run confirms reproducibility.",
+      "failure_scenario": "If evaluation is not bit-reproducible on MPS, the single-use lease is consumed by entry evaluation only (fail-fast, not full training).",
+      "fix": "Parent confirms predecessor was produced by the same evaluate path on MPS before lease install."
+    },
+    {
+      "id": "N5",
+      "classification": "carry_over",
+      "severity": "low",
+      "category": "receipt-atomicity",
+      "file": "learning/runs/v2/D2-retained204-lr1e4-prepare-luna-20261026-r3/execute_once.py",
+      "lines": "332-341",
+      "summary": "F7 non-atomic execution-result publication unchanged; F11 estimate unchanged; F12 import order unchanged.",
+      "failure_scenario": "Partial execution-result on cancellation mid-write; failure receipt and nonzero exit remain acceptance barriers.",
+      "fix": "Accepted per r3 notes."
+    }
+  ],
+  "tests_run_cpu_only": {
+    "test_entry_counter_binding.py": "passed",
+    "test_entry_evaluation.py": "passed",
+    "test_source_contract.py": "passed (requires PYTHONPYCACHEPREFIX=<prepare>/empty-pycache-prefix with -B and without -I)"
+  },
+  "blockers": []
+}

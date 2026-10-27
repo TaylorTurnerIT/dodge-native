@@ -1,0 +1,99 @@
+--- r12-source/unit_stage.py
++++ r14/unit_stage.py
+@@ -11,7 +11,7 @@
+ 
+ H = Path(__file__).resolve().parent
+ ROOT = H.parents[3]
+-MODULES = ('test_r12', 'test_r11', 'test_r10', 'test_r7', 'test_repairs', 'test_boundary')
++MODULES = ('test_r14', 'test_r11', 'test_r10', 'test_r7', 'test_repairs', 'test_boundary')
+ 
+ def now():
+     return datetime.datetime.now(datetime.timezone.utc).isoformat()
+@@ -25,8 +25,8 @@
+         stream.write('\n')
+ 
+ def inventory():
+-    paths = list(H.glob('*.py')) + [H/'protocol-r9-proposal.json', H/'protocol-r8-proposal.json']
+-    for name in ('original-source', 'r6-source', 'r9-source', 'r10-source', 'r11-source'):
++    paths = list(H.glob('*.py')) + [H/'protocol-r10-proposal.json', H/'protocol-r9-proposal.json', H/'protocol-r8-proposal.json']
++    for name in ('original-source', 'r6-source', 'r9-source', 'r10-source', 'r11-source', 'r12-source'):
+         paths.extend(path for path in (H/name).rglob('*') if path.is_file())
+     paths += [H/'retained-r9-injection.json', H/'preparation-copy.json']
+     return {str(path.relative_to(H)):dict(sha256=sha(path), bytes=path.stat().st_size) for path in sorted(set(paths))}
+@@ -50,7 +50,7 @@
+         for path in H.glob('*.py'):
+             compile(path.read_text(), str(path), 'exec')  # Parse only; no candidate import.
+         source = inventory()
+-        save(H/'source-manifest.json', dict(schema='r12_source_manifest_v1', files=source,
++        save(H/'source-manifest.json', dict(schema='r14_source_manifest_v1', files=source,
+             frozen_before_test=True, production_capsule=False))
+         source_snapshot = out/'sources'
+         source_snapshot.mkdir()
+@@ -60,7 +60,7 @@
+             shutil.copyfile(H/name, target)
+         original = json.loads((H/'preparation-copy.json').read_text())['original_fixture_files']
+         observed = {path.name:sha(path) for path in (H/'original-source').iterdir() if path.is_file()}
+-        existing = [name for name in planned if not name.startswith('test_r12.')]
++        existing = [name for name in planned if not name.startswith('test_r14.')]
+         expected = []
+         for module in MODULES[1:]:
+             tree = ast.parse((H/'r11-source'/(module+'.py')).read_text())
+@@ -68,15 +68,46 @@
+                 if isinstance(cls, ast.ClassDef):
+                     expected.extend(module+'.'+cls.name+'.'+node.name for node in cls.body
+                         if isinstance(node, ast.FunctionDef) and node.name.startswith('test_'))
+-        inputs = json.loads((H/'input-manifest.json').read_text())['files']
++        manifest = json.loads((H/'input-manifest.json').read_text())
++        inputs = dict(manifest['r12_inputs'], **{k:dict(sha256=v) for k,v in manifest['additional_inputs'].items()})
+         input_match = {name:sha(Path(name)) == value['sha256'] for name,value in inputs.items()}
+-        checks = dict(existing_methods_exact=existing == expected and len(existing) == 112,
++        migrated = {'test_r11': ['test_C01_exact_success_consumers_transport_inner_fixtures_and_old91','test_C02_protocol_only_candidate_paths_and_qualified_semantics'],
++                    'test_r10': ['test_exact_r9_transport_success_consumers_protected_blocks'],
++                    'test_r7': ['test_success_consumers_and_protected_failure_helpers_byte_equal']}
++        def method_texts(path):
++            text = path.read_text(); tree = ast.parse(text); lines = text.splitlines(True); found = {}
++            for cls in tree.body:
++                if isinstance(cls, ast.ClassDef):
++                    for node in cls.body:
++                        if isinstance(node, ast.FunctionDef) and node.name.startswith('test_'):
++                            found[cls.name+'.'+node.name] = ''.join(lines[node.lineno-1:node.end_lineno])
++            return text, lines, found
++        migrated_ok = True; changed_methods = []; unchanged_count = 0
++        for module in MODULES[1:]:
++            now_text, now_lines, now = method_texts(H/(module+'.py'))
++            old_text, old_lines, old = method_texts(H/'r12-source'/(module+'.py'))
++            migrated_ok &= list(now) == list(old)
++            for key in now:
++                if now[key] == old[key]: unchanged_count += 1
++                else: changed_methods.append(module+'.'+key)
++            def strip(text, lines, found, names):
++                out = text
++                for key in names: out = out.replace(found[key], '', 1)
++                return out
++            names = [k for k in now if k.split('.')[1] in migrated.get(module, [])]
++            migrated_ok &= strip(now_text, now_lines, now, names) == strip(old_text, old_lines, old, names)
++            if module not in migrated:
++                migrated_ok &= now_text == old_text
++        expected_changed = sorted(m+'.'+('R11' if m=='test_r11' else 'R10' if m=='test_r10' else 'R7')+'.'+n for m, ns in migrated.items() for n in ns)
++        migrated_ok &= sorted(changed_methods) == expected_changed and unchanged_count == 108
++        checks = dict(changed_inherited_methods=sorted(changed_methods), unchanged_inherited_methods=unchanged_count,
++            existing_methods_exact=existing == expected and len(existing) == 112,
+             new_methods=len(planned)-len(existing), unique_names=len(planned)==len(set(planned)),
+             original_fixture_exact=original == observed, input_bindings_all_match=all(input_match.values()),
+             cache_empty=not any(cache.iterdir()), fixtures_empty=not any(fixtures.iterdir()),
+             no_current_old_envelopes=not any((H/name).exists() for name in
+                 ('classification.json','long-identity.json','registration.json','capsule-final','required-lease.json')),
+-            existing_test_sources_exact=all((H/(name+'.py')).read_bytes()==(H/'r11-source'/(name+'.py')).read_bytes() for name in MODULES[1:]),
++            existing_test_sources_exact=migrated_ok,
+             planned_tests=planned, input_rechecks=input_match)
+         save(out/'setup-precheck.json', checks)
+         if not (checks['existing_methods_exact'] and checks['new_methods'] > 0 and checks['unique_names']
+@@ -93,7 +124,7 @@
+             environment={key:env[key] for key in ('VALIDATION_DIR','PYTHONDONTWRITEBYTECODE','PYTHONPYCACHEPREFIX')},
+             other_environment_sha256={key:hashlib.sha256(value.encode()).hexdigest() for key,value in env.items()
+                 if key not in ('VALIDATION_DIR','PYTHONDONTWRITEBYTECODE','PYTHONPYCACHEPREFIX')},
+-            historical_static_binding='Four unchanged inherited static methods use exact r11 snapshot and registration constants; all 108 inherited behavioral/source-invariant methods use r12; new exact-delta tests cover r12.'))
++            migrated_static_methods='Four named inherited static methods have explicitly migrated expectations and run against the current r14 candidate; 108 inherited method bodies byte-identical to r12/r11; no historical-target rebinding.'))
+         started = time.monotonic()
+         result.update(validation_attempts=1, started_at_utc=now())
+         with (out/'stdout.log').open('xb') as stdout, (out/'stderr.log').open('xb') as stderr:

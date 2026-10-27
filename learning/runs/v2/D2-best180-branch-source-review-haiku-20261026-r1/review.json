@@ -1,0 +1,76 @@
+{
+  "schema": "d2_best180_branch_source_review_v1",
+  "verdict": "conditional",
+  "target": "learning/runs/v2/D2-best180-branch-prepare-luna-20261026-r1/",
+  "readiness_scope": "source mechanics review only; not runtime evidence; not registration, lease, launch, or competence authority",
+  "findings": [
+    {
+      "id": 1,
+      "severity": "medium",
+      "category": "evidence-accuracy",
+      "file": "learning/runs/v2/D2-best180-branch-prepare-luna-20261026-r1/execute_once.py",
+      "line": 208,
+      "summary": "evidence_checks reports evaluations_checked as hardcoded 2 while seven certificates are validated.",
+      "fix": "Use len(r.EVALUATION_UPDATES) and add a test assertion."
+    },
+    {
+      "id": 2,
+      "severity": "medium",
+      "category": "candidate-validation",
+      "file": "learning/runs/v2/D2-best180-branch-prepare-luna-20261026-r1/execute_once.py",
+      "line": 156,
+      "summary": "Intermediate candidate checkpoints 192-240 get only file hash and sidecar checks; embedded phase, counters, cumulative base 228, identity, and abandoned records are validated only for 252.",
+      "fix": "Load each candidate with expected_sha256 and check phase_update, local_update, counters vs metrics row, cumulative = parent_228 + local, identity hashes, update_progress, and 64 abandoned records."
+    },
+    {
+      "id": 3,
+      "severity": "low",
+      "category": "validation-coverage",
+      "file": "learning/runs/v2/D2-best180-branch-prepare-luna-20261026-r1/execute_once.py",
+      "line": 206,
+      "summary": "competence_passed predicate checked only for the final certificate.",
+      "fix": "Move the check inside the per-update loop. Non-blocking because selection uses mean alive frames."
+    },
+    {
+      "id": 4,
+      "severity": "low",
+      "category": "origin-binding",
+      "file": "learning/runs/v2/D2-best180-branch-prepare-luna-20261026-r1/execute_once.py",
+      "line": 17,
+      "summary": "Launcher validates with sibling runner module; worker runs reg[runner_path]; no assertion they are the same file.",
+      "fix": "Assert Path(r.__file__).resolve() == Path(reg['runner_path']).resolve() after load_registration."
+    },
+    {
+      "id": 5,
+      "severity": "low",
+      "category": "fragility",
+      "file": "learning/runs/v2/D2-best180-branch-prepare-luna-20261026-r1/execute_once.py",
+      "line": 170,
+      "summary": "certificate and evaluation variables leak from the last loop iteration; correct only because EVALUATION_UPDATES ends at 252.",
+      "fix": "Read development-000252.json explicitly."
+    }
+  ],
+  "checked_correct": [
+    "evaluation schedule 180..252 step 12 (runner.py:38, trigger runner.py:699-700)",
+    "cumulative counters 228 + local, 300 at end (runner.py:304-316, execute_once.py:193-194)",
+    "seed 3791628417 = 0xE1FFA881 outside excluded ranges (runner.py:119-120)",
+    "model/Adam/RNG restore fingerprinted before env construction (runner.py:582-596)",
+    "frame conservation via gameplay_frames cumulative raw frames (ppo.py:327-328)",
+    "episode index contract next == current+1 (checkpoints.py:57-68)",
+    "inference isolation: no_grad and before/after fingerprints (dev_eval.py:109, dev_eval.py:167, runner.py:625-659)",
+    "eval elapsed ~6 s per certificate; estimate only, no measured full run",
+    "launcher signal, cleanup, publication-failure paths: no defect found by reading",
+    "state.json active_long_campaign None; no lease keys"
+  ],
+  "frozen_source_hash_match": {
+    "runner.py": "8807b5200f10d6d8ba5414a793a1e44ebb34479744744992ef4f5adf0513637b",
+    "execute_once.py": "cd15ee2b1c2148ed6d397fdf019b20ab3cd134652fa68e4fb9878424dc10bb8b",
+    "matches_source_freeze": true
+  },
+  "not_reviewed": [
+    "live registration, pins, and lease (parent-owned)",
+    "partially written Luna registration (excluded by brief)",
+    "parent-accepted 180 checkpoint and receipt (re-validated by parent)",
+    "docs/implementation-plan-v2.md and docs/SPEC_PRIVILEGED_VIT_RL.md beyond grep for BEST180/3060 references"
+  ]
+}

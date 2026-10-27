@@ -1,0 +1,1 @@
+Prepared r2 as a source-only successor. One change binds worker progress to the existing PPO update call. CPU AST regression passed failure, negative-control, and successful boundary cases. Full registration preflight remains lease-mocked; parent must install the exact lease and run unmocked preflight before any launch. No campaign launched.

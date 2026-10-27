@@ -1,0 +1,347 @@
+{
+  "accepted": false,
+  "actual_ML_training_gameplay_inference_Torch_native_import_or_deserialization": false,
+  "blocking_findings": 2,
+  "candidate": {
+    "capsule_manifest_sha256": "b1ccbeefe219c24f33b34db19178f4af68baa9674a058b066738231282ef25a1",
+    "config_sha256": "2ac814d3842228017d09669364a8391344722da56ad19f41ad9030dbb930c2db",
+    "controller_sha256": "0fe9970187e5c4c2576ff2929a475025cd5731a538325ffac78f172304af1d01",
+    "identity_document_sha256": "969d825968e7782bc377cfd4d9312cf186df351e5219bff64d849f3d79781ed0",
+    "protocol_sha256": "f662a4aba18e144098faeb01d398b67f489aea7549a9ebe4a5959f993e1cff09"
+  },
+  "children": false,
+  "execution_receipt": "execution-receipt.json",
+  "findings": [
+    {
+      "blocking": true,
+      "consequence": "Both completion outcomes return complete 2/0 with a correctly bound available manifest despite late lease cancellation, changed input or a crossed absolute deadline.",
+      "evidence": [
+        "probe_final_unmask.py",
+        "delayed-unmask-summary.json",
+        "independent-contract-assertions.log",
+        "delayed-unmask-cancel-closure/final-unmask-event.json",
+        "delayed-unmask-input-pass/independent-observation.json",
+        "delayed-unmask-none-pass/independent-observation.json"
+      ],
+      "expected": "Failure exit 1, revoked complete terminal status and unavailable manifest; authority must cover final outer restoration and normal return.",
+      "id": "SUP-001-R2",
+      "line_refs": [
+        {
+          "end": 465,
+          "path": "learning/runs/v2/postovernight-long-D2-prepare-r2/long_d2.py",
+          "start": 448
+        },
+        {
+          "end": 1297,
+          "path": "learning/runs/v2/postovernight-long-D2-prepare-r2/long_d2.py",
+          "start": 1281
+        },
+        {
+          "end": 1317,
+          "path": "learning/runs/v2/postovernight-long-D2-prepare-r2/long_d2.py",
+          "start": 1302
+        }
+      ],
+      "observations": [
+        {
+          "argv": [
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+            "-B",
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-supervisor-review-r2/probe_final_unmask.py",
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-supervisor-review-r2/delayed-unmask-cancel-closure",
+            "cancel",
+            "closure",
+            "0.65",
+            "7200"
+          ],
+          "budget_seconds": 7200,
+          "cancelled": true,
+          "delay_seconds": 0.65,
+          "injection_event_available": true,
+          "input_matches": true,
+          "manifest_available": true,
+          "manifest_still_matches": true,
+          "name": "delayed-unmask-cancel-closure",
+          "owned_group_positively_absent": true,
+          "process_exit": 2,
+          "return_code": 2,
+          "terminal_status": "complete"
+        },
+        {
+          "argv": [
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+            "-B",
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-supervisor-review-r2/probe_final_unmask.py",
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-supervisor-review-r2/delayed-unmask-cancel-pass",
+            "cancel",
+            "pass",
+            "0.65",
+            "7200"
+          ],
+          "budget_seconds": 7200,
+          "cancelled": true,
+          "delay_seconds": 0.65,
+          "injection_event_available": true,
+          "input_matches": true,
+          "manifest_available": true,
+          "manifest_still_matches": true,
+          "name": "delayed-unmask-cancel-pass",
+          "owned_group_positively_absent": true,
+          "process_exit": 0,
+          "return_code": 0,
+          "terminal_status": "complete"
+        },
+        {
+          "argv": [
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+            "-B",
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-supervisor-review-r2/probe_final_unmask.py",
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-supervisor-review-r2/delayed-unmask-input-closure",
+            "input",
+            "closure",
+            "5.1",
+            "7200"
+          ],
+          "budget_seconds": 7200,
+          "cancelled": false,
+          "delay_seconds": 5.1,
+          "injection_event_available": true,
+          "input_matches": false,
+          "manifest_available": true,
+          "manifest_still_matches": true,
+          "name": "delayed-unmask-input-closure",
+          "owned_group_positively_absent": true,
+          "process_exit": 2,
+          "return_code": 2,
+          "terminal_status": "complete"
+        },
+        {
+          "argv": [
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+            "-B",
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-supervisor-review-r2/probe_final_unmask.py",
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-supervisor-review-r2/delayed-unmask-input-pass",
+            "input",
+            "pass",
+            "5.1",
+            "7200"
+          ],
+          "budget_seconds": 7200,
+          "cancelled": false,
+          "delay_seconds": 5.1,
+          "injection_event_available": true,
+          "input_matches": false,
+          "manifest_available": true,
+          "manifest_still_matches": true,
+          "name": "delayed-unmask-input-pass",
+          "owned_group_positively_absent": true,
+          "process_exit": 0,
+          "return_code": 0,
+          "terminal_status": "complete"
+        },
+        {
+          "argv": [
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+            "-B",
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-supervisor-review-r2/probe_final_unmask.py",
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-supervisor-review-r2/delayed-unmask-none-closure",
+            "none",
+            "closure",
+            "1.0",
+            "0.8"
+          ],
+          "budget_seconds": 0.8,
+          "cancelled": false,
+          "delay_seconds": 1.0,
+          "injection_event_available": true,
+          "input_matches": true,
+          "manifest_available": true,
+          "manifest_still_matches": true,
+          "name": "delayed-unmask-none-closure",
+          "owned_group_positively_absent": true,
+          "process_exit": 2,
+          "return_code": 2,
+          "terminal_status": "complete"
+        },
+        {
+          "argv": [
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+            "-B",
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-supervisor-review-r2/probe_final_unmask.py",
+            "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-supervisor-review-r2/delayed-unmask-none-pass",
+            "none",
+            "pass",
+            "1.0",
+            "0.8"
+          ],
+          "budget_seconds": 0.8,
+          "cancelled": false,
+          "delay_seconds": 1.0,
+          "injection_event_available": true,
+          "input_matches": true,
+          "manifest_available": true,
+          "manifest_still_matches": true,
+          "name": "delayed-unmask-none-pass",
+          "owned_group_positively_absent": true,
+          "process_exit": 0,
+          "return_code": 0,
+          "terminal_status": "complete"
+        }
+      ],
+      "recommended_direction": "Keep final authority effective through the last outer context operation and validate lease/full pins/deadline after that operation before returning a cached completion.",
+      "reproduction": {
+        "argv": [
+          "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+          "-B",
+          "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-supervisor-review-r2/probe_final_unmask.py",
+          "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-supervisor-review-r2/fresh-repro-SUP001",
+          "cancel",
+          "closure",
+          "0.65",
+          "7200"
+        ],
+        "cwd": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79",
+        "environment": {
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "TMPDIR": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-supervisor-review-r2/tmp"
+        },
+        "must_use_new_owned_scenario_directory": true
+      },
+      "scope": "Actual r2 supervise/Guard and owned stdlib OS worker; no ML or production lease. Shortened budget case is synthetic only.",
+      "severity": "P1",
+      "title": "Final outer signal-mask teardown occurs after the last authority check and returns cached success",
+      "trigger": "Mutate the owned synthetic lease or pinned input at the final pthread_sigmask(SIG_SETMASK) call, after the final callback/pending scan and before cancellation_signals returns; optionally delay normal teardown."
+    },
+    {
+      "blocking": true,
+      "consequence": "SIGTERM exits -15 through restored SIG_DFL; SIGINT exits -2 through uncaught default KeyboardInterrupt. Complete authoritative artifacts and manifest survive for closure and gate pass.",
+      "evidence": [
+        "probe_final_unmask.py",
+        "independent-probe-summary.json",
+        "final-unmask-SIGTERM-closure/final-unmask-event.json",
+        "final-unmask-SIGTERM-pass/campaign/finalization-result.json",
+        "final-unmask-SIGINT-closure.log",
+        "independent-contract-assertions.log"
+      ],
+      "expected": "Every request through outer restoration reaches the effective latch, returns failure 1 and revokes complete artifacts.",
+      "id": "SUP-002-R2",
+      "impact_boundary": "A compliant parent rejects raw -15/-2. No claim that the parent accepts a cancelled run; the defect is missing required latching and surviving complete artifacts.",
+      "line_refs": [
+        {
+          "end": 465,
+          "path": "learning/runs/v2/postovernight-long-D2-prepare-r2/long_d2.py",
+          "start": 438
+        },
+        {
+          "end": 1317,
+          "path": "learning/runs/v2/postovernight-long-D2-prepare-r2/long_d2.py",
+          "start": 1302
+        }
+      ],
+      "observations": [
+        {
+          "manifest_available": true,
+          "outcome": "budget_closed_below_gate",
+          "owned_group_positively_absent": true,
+          "process_exit": -2,
+          "scenario": "final-unmask-SIGINT-closure",
+          "terminal_status": "complete"
+        },
+        {
+          "manifest_available": true,
+          "outcome": "D2_progress_gate_passed",
+          "owned_group_positively_absent": true,
+          "process_exit": -2,
+          "scenario": "final-unmask-SIGINT-pass",
+          "terminal_status": "complete"
+        },
+        {
+          "manifest_available": true,
+          "outcome": "budget_closed_below_gate",
+          "owned_group_positively_absent": true,
+          "process_exit": -15,
+          "scenario": "final-unmask-SIGTERM-closure",
+          "terminal_status": "complete"
+        },
+        {
+          "manifest_available": true,
+          "outcome": "D2_progress_gate_passed",
+          "owned_group_positively_absent": true,
+          "process_exit": -15,
+          "scenario": "final-unmask-SIGTERM-pass",
+          "terminal_status": "complete"
+        }
+      ],
+      "recommended_direction": "Avoid restoring default handlers before final unmask while the supervisor still owns the completion contract; the pending-scan-to-unmask interval needs the same effective latch.",
+      "reproduction": {
+        "argv": [
+          "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/.venv/bin/python",
+          "-B",
+          "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-supervisor-review-r2/probe_final_unmask.py",
+          "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-supervisor-review-r2/fresh-repro-SUP002",
+          "SIGTERM",
+          "closure"
+        ],
+        "cwd": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79",
+        "environment": {
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "TMPDIR": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-supervisor-review-r2/tmp"
+        },
+        "intentionally_signals_only_own_synthetic_supervisor": true,
+        "must_use_new_owned_scenario_directory": true
+      },
+      "severity": "P2",
+      "title": "A request queued after the final pending scan escapes the cancellation latch at unmask",
+      "trigger": "Queue real SIGINT or SIGTERM on the owned synthetic supervisor immediately before the final original unmask, after the final sigpending scan."
+    }
+  ],
+  "input_SHA_manifest": {
+    "files": 8917,
+    "final_verification": "input-sha256-verification-after.json",
+    "path": "input-sha256-manifest.json",
+    "preexisting_protected_snapshot_mismatches": [
+      "docs/v2-foundation-progress.md",
+      "learning/runs/v2-orchestration/state.json"
+    ],
+    "review_time_mismatches": [],
+    "sha256": "fba0c461b802719287ebdef5defb9ac5353f7f162fe3cfcc0dd8955b58185643"
+  },
+  "limitations": [
+    "No real MPS model/Adam/RNG restoration, entry equality, throughput, gameplay, PPO or qualification proof.",
+    "Parent must independently check raw exit and real elapsed wall time.",
+    "One unexplained raw SIGALRM exit is retained and not counted as a passed probe.",
+    "Historical negative controls are inspected evidence; their old execution counts are not new execution.",
+    "No D3/B/E/student work or launch approval transfers from this bounded review."
+  ],
+  "nonblocking_findings": 0,
+  "owned_groups": {
+    "all_positively_absent": true,
+    "receipt": "owned-groups-after.json",
+    "retained": 99
+  },
+  "prior_exact_boundaries": "Fresh r2 probes repair old hashing and outer-publication-alarm boundaries; later final-unmask defects remain.",
+  "production_edits_or_lease_creation": false,
+  "review": "review.md",
+  "reviewed_at_utc": "2026-10-24T17:39:57.590179+00:00",
+  "scope": "Independent READONLY stdlib synthetic supervisor/authority/Guard/finalization review; no runtime learner/API acceptance.",
+  "unresolved_executions": [
+    {
+      "evidence": [
+        "old-boundary-summary.json",
+        "old-late-terminal-write-closure.log",
+        "old-late-terminal-write-closure/events.json",
+        "old-late-terminal-write-closure/campaign/finalization-result.json"
+      ],
+      "manifest_available": false,
+      "outcome": "wall_guard",
+      "owned_group_positively_absent": true,
+      "precise_cause_established": false,
+      "raw_process_exit": -14,
+      "retried": false,
+      "scenario": "old-late-terminal-write-closure",
+      "terminal_status": "failed"
+    }
+  ],
+  "verdict": "changes_required",
+  "version": "frozen_long_D2_supervisor_review_r2"
+}

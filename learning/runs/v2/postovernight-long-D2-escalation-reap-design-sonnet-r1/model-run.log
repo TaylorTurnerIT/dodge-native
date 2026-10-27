@@ -1,0 +1,40 @@
+{
+ "A1_old_reproduces_r10_same_tick_and_predicate": true,
+ "A2_proposed_r10_worker_kill_unchanged": true,
+ "A2_proposed_r10_supervisor_after_worker_and_after_wait": true,
+ "A2_proposed_r10_reaping_direct_and_fixture_passes": true,
+ "A2_proposed_r10_within_unchanged_cap": true,
+ "A3_unresponsive_supervisor_fallback_at_until_minus_half": true,
+ "A4_lost_ipc_unproven_not_fabricated": true,
+ "A5_tightening_worker_wait_still_relayed": true,
+ "A6_genuine_parent_death_identical_old_new_and_unproven": true,
+ "A7_worker_dies_on_TERM_old_new_equal_no_kill": true,
+ "A8_late_inside_window_relays": true,
+ "A8_late_after_latest_bound_same_tick_truthfully_unproven": true,
+ "A9_direct_reaped_iff_validated_worker_wait_all_cases": true,
+ "A9b_no_case_labels_orphan_as_direct": true,
+ "A11_all_cases_cleanup_complete_and_before_until": true,
+ "A13_retained_worker_gate_IPC_loss_reproduced_and_does_not_starve_supervisor_channel": true,
+ "A14_escalation_reasons": true,
+ "A12_only_monitor_and_kill_due_differ": true
+}
+== old_frozen
+r10_replay_wedged                      wKILL=[516544.860299] sKILL=[516544.860299] same_tick=True wait=False reap_w={'status': 'unproven', 'basis': 'supervisor_dead_before_report'} clean=True fixture=AssertionError: owned direct reap missing
+production_scale_wedged                wKILL=[8145.0] sKILL=[8145.0] same_tick=True wait=False reap_w={'status': 'unproven', 'basis': 'supervisor_dead_before_report'} clean=True fixture=AssertionError: owned direct reap missing
+unresponsive_supervisor                wKILL=[516544.860299] sKILL=[516544.860299] same_tick=True wait=False reap_w={'status': 'unproven', 'basis': 'supervisor_dead_before_report'} clean=True fixture=-
+lost_ipc_worker_wait_send              wKILL=[516544.860299] sKILL=[516544.860299] same_tick=True wait=False reap_w={'status': 'unproven', 'basis': 'supervisor_dead_before_report'} clean=True fixture=-
+earlier_ack_tightening_after_ack       wKILL=[516544.660299] sKILL=[516544.660299] same_tick=True wait=False reap_w={'status': 'unproven', 'basis': 'supervisor_dead_before_report'} clean=True fixture=-
+genuine_parent_death_orphan            wKILL=[516544.860299] sKILL=[] same_tick=False wait=False reap_w={'status': 'unproven', 'basis': 'supervisor_dead_before_report'} clean=True fixture=-
+worker_dies_on_TERM_normal             wKILL=[] sKILL=[] same_tick=False wait=True reap_w={'status': 'direct_reaped', 'basis': 'validated_direct_parent_waitpid_report'} clean=True fixture=-
+late_observed_inside_reap_window       wKILL=[8206.52] sKILL=[8206.52] same_tick=True wait=False reap_w={'status': 'unproven', 'basis': 'supervisor_dead_before_report'} clean=True fixture=-
+late_observed_after_latest_bound       wKILL=[8209.62] sKILL=[8209.62] same_tick=True wait=False reap_w={'status': 'unproven', 'basis': 'supervisor_dead_before_report'} clean=True fixture=-
+== proposed
+r10_replay_wedged                      wKILL=[516544.860299] sKILL=[516544.900299] same_tick=False wait=True reap_w={'status': 'direct_reaped', 'basis': 'validated_direct_parent_waitpid_report'} clean=True fixture=passed
+production_scale_wedged                wKILL=[8145.0] sKILL=[8145.04] same_tick=False wait=True reap_w={'status': 'direct_reaped', 'basis': 'validated_direct_parent_waitpid_report'} clean=True fixture=passed
+unresponsive_supervisor                wKILL=[516544.860299] sKILL=[516549.360299] same_tick=False wait=False reap_w={'status': 'unproven', 'basis': 'supervisor_dead_before_report'} clean=True fixture=-
+lost_ipc_worker_wait_send              wKILL=[516544.860299] sKILL=[] same_tick=False wait=False reap_w={'status': 'unproven', 'basis': 'supervisor_dead_before_report'} clean=True fixture=-
+earlier_ack_tightening_after_ack       wKILL=[516544.660299] sKILL=[516544.700299] same_tick=False wait=True reap_w={'status': 'direct_reaped', 'basis': 'validated_direct_parent_waitpid_report'} clean=True fixture=-
+genuine_parent_death_orphan            wKILL=[516544.860299] sKILL=[] same_tick=False wait=False reap_w={'status': 'unproven', 'basis': 'supervisor_dead_before_report'} clean=True fixture=-
+worker_dies_on_TERM_normal             wKILL=[] sKILL=[] same_tick=False wait=True reap_w={'status': 'direct_reaped', 'basis': 'validated_direct_parent_waitpid_report'} clean=True fixture=-
+late_observed_inside_reap_window       wKILL=[8206.52] sKILL=[8206.56] same_tick=False wait=True reap_w={'status': 'direct_reaped', 'basis': 'validated_direct_parent_waitpid_report'} clean=True fixture=-
+late_observed_after_latest_bound       wKILL=[8209.62] sKILL=[8209.62] same_tick=True wait=False reap_w={'status': 'unproven', 'basis': 'supervisor_dead_before_report'} clean=True fixture=-

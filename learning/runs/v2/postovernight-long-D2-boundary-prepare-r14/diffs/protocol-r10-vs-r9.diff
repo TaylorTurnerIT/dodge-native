@@ -1,0 +1,41 @@
+--- protocol-r9
++++ protocol-r10
+@@ -431,7 +431,7 @@
+   },
+   "config_path": "learning/runs/v2-orchestration/postovernight-long-D2-r2-config.json",
+   "config_sha256": "2ac814d3842228017d09669364a8391344722da56ad19f41ad9030dbb930c2db",
+-  "controller": "learning/runs/v2/postovernight-long-D2-boundary-prepare-r12/long_d2.py",
++  "controller": "learning/runs/v2/postovernight-long-D2-boundary-prepare-r14/long_d2.py",
+   "design": "learning/runs/v2/postovernight-long-D2-terminal-design-codex-r1/plan.json",
+   "design_sha256": "272adb81252f8d071b961f6928dbad9981b4f49b5f73ce4c8636daa3a51b8712",
+   "entry_control": "learning/runs/v2/milestone3-D2-curriculum-r1/checkpoint-000010-candidate.pt.evaluation.json",
+@@ -449,6 +449,11 @@
+     "seeds_last": 3489660991,
+     "stage": "D2"
+   },
++  "first_callback_failure_chronology": {
++    "cleanup": "A later restoration cancellation or error remains latched, represented as secondary evidence and fatal; it can never replace the original callback failure or publish success. Cleanup-only failure remains fatal.",
++    "permissions": "No new check, cadence, clock origin, exception-construction timestamp, event bus, allowance, handler, timer, mask, ACK or training permission. observed_failure and FailurePool selection are unchanged.",
++    "scope": "Guard.full_check only; the original verification-callback exception, its actual catch timestamp and any valid earlier first_failure_descriptor are latched at the inner catch before the scheduling helper restores the interval."
++  },
+   "guard": {
+     "all_normal_finalization_before_seconds": 7200,
+     "deadline_origin": "executor_T0_before_ordinary_imports_shared_by_worker_inner_and_outer",
+@@ -518,7 +523,7 @@
+     "endpoint_isolation": "Stable supervisor then worker readiness order. Unexpected receive, packet validation and ACK-send errors remain fatal and source-stamped per endpoint before continuing to an already-readable sibling once under current absolute deadline. Retain valid earlier peer failure and ACK once; recompute deadline after each peer. No retry, transport change, blanket close relaxation, reaping from retirement, or recovery/start ACK after failed normal operation. Existing final drain remains until-.25; bounded deduplicated monitor diagnostics at most eight.",
+     "staged_owned_escalation": "Worker TERM immediate and KILL at current min(first+5,until-.5); supervisor TERM immediate. At that original eligibility, supervisor KILL requires validated actual worker_wait or matching actual direct-reaped supervisor leader; otherwise eligible until-.5. child None and absent worker registration prove neither. Recompute each tick; gate exception fallback uses original eligibility. One reason and actual signal-attempt timestamp per role; cooperative scheduling, no exact signal-at-L guarantee."
+   },
+-  "registered_at_utc": "2026-10-25T03:58:46.248090+00:00",
++  "registered_at_utc": "2026-10-25T04:23:22.772558+00:00",
+   "rss_limit_bytes": 6442450944,
+   "run_id": "v2-m3-long-D2-20261024-r2",
+   "runtime_import_policy": {
+@@ -535,7 +540,7 @@
+     "clock_handoff_schema": "long_d2_owned_start_v1",
+     "clock_origin": "executor_T0_before_ordinary_imports",
+     "consumer_direct_reaping": "both exact parent wait reports; normal raw0/2; PIDs/PGIDs/parent chain and finite T0-relative worker/inner cutoffs; parent outer raw/wall and current byte/registration/summary checks retained",
+-    "executor": "learning/runs/v2/postovernight-long-D2-boundary-prepare-r12/long_d2_executor.py",
++    "executor": "learning/runs/v2/postovernight-long-D2-boundary-prepare-r14/long_d2_executor.py",
+     "existing_supervisor_reserve_split_seconds": {
+       "inner": 30,
+       "outer": 30

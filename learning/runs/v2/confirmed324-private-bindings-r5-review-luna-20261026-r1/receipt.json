@@ -1,0 +1,35 @@
+{
+  "schema": "confirmed324_private_bindings_r5_independent_review_v1",
+  "status": "no_blockers_with_limits",
+  "reviewer": {
+    "provider": "OpenAI",
+    "model": "gpt-6-luna"
+  },
+  "reviewed_source_directory": "learning/runs/v2/confirmed324-private-bindings-repair-luna-20261026-r5",
+  "authoritative_parent_manifest": {
+    "path": "learning/runs/v2/confirmed324-private-bindings-r5-parent-validation-20261026-r1/source-manifest.json",
+    "sha256": "2b0caf00a5d5e765726d080fd5647211190e472d74ffb33b3466e477cb2906a9"
+  },
+  "reviewed_source_pins": {
+    "driver_binding.py": "aba05ce927a32fd01c07256d9d798a82bf4a9ff74e4dd0eacbf7de337e055abd",
+    "test_regressions.py": "8192ed51918f8c42c245bbc7913fbe7601e8e4af2eb3860d6bf5e49ca77c761a",
+    "test_transition.py": "dee7ac8916df53f4ca06e6050705890d63eda00a5606b444cf27b9439f0d8b7b",
+    "transition.py": "bda044d213db3424a3b578c7c63cb30d942e9c8e5527c1e854abe03abcf83e03",
+    "receipt.json": "8e01f224c8e8463b788f9b1bf18a2cba73a2d6354d247f1ab0bc1ce137de3f78"
+  },
+  "finding": "R4 caller-controlled globals/builtins and caller namespace function substitution are closed for the specified trusted driver boundary by private functions instantiated from authenticated code objects, canonical builtin snapshot, and callbacks bound to the private function map.",
+  "validation_basis": {
+    "parent_replay": "24 CPU/AST tests passed",
+    "python": "3.12.15",
+    "bytecode_mode": "-B",
+    "cache_empty": true,
+    "reviewer_execution": "read-only source and evidence inspection; no tests rerun"
+  },
+  "limits": [
+    "Not a sandbox against arbitrary code already controlling the same Python process.",
+    "Actual registered MPS reference and driver restore qualification remain deferred.",
+    "Real RNG reference remains pending_notrun; constructor/environment application remains deferred.",
+    "No production callbacks, training, probe, evaluation, or launch executed.",
+    "Review does not grant readiness, qualification, launch authority, or parent acceptance."
+  ]
+}

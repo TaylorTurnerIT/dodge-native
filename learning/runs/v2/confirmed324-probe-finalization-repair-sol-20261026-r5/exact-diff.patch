@@ -1,0 +1,482 @@
+--- learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/finalize_preparation.py
++++ learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/finalize_preparation.py
+@@ -1,4 +1,4 @@
+-"""Generate owned inert preparation artifacts and verify the frozen read set."""
++"""Package owned R5 artifacts; never register, claim, lease or launch real work."""
+ import ast
+ import copy
+ import datetime
+@@ -12,78 +12,119 @@
+ 
+ RUN=Path(__file__).absolute().parent
+ ROOT=RUN.parents[3]
+-OLD=RUN.parent/'confirmed324-probe-venv-source-repair-luna-20261026-r3'
+-PARENT=RUN.parent/'confirmed324-rng-reference-parent-20261026-r1'/'registration-final.json'
+-PARENT_SHA='e0e94321c17dbfc69cbde7da689bab43f8d7088a9c59cda6f30be9727b58f56b'
++BASE=RUN.parent
++OLD=BASE/'confirmed324-probe-signal-postflight-repair-sol-20261026-r4'
++PARENTS=[BASE/f'confirmed324-rng-reference-parent-20261026-r{i}'/'registration-final.json' for i in (1,2)]
++PARENT_PINS=['e0e94321c17dbfc69cbde7da689bab43f8d7088a9c59cda6f30be9727b58f56b','34b35307a9559ca2a7f74f0ca4567c3d30590af4e285b6295e21bbc8ae898895']
++
+ 
+ def sha(p): return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+ def load(p): return json.loads(Path(p).read_text())
++def info(p): return {'path':str(Path(p).absolute()),'bytes':Path(p).stat().st_size,'sha256':sha(p)}
+ def save(name,obj): (RUN/name).write_text(json.dumps(obj,sort_keys=True,indent=2)+'\n')
+-def info(p): return {'path':str(Path(p).absolute()),'bytes':Path(p).stat().st_size,'sha256':sha(p)}
++
+ 
+ def main():
+     assert Path(sys.executable).absolute()==ROOT/'python/.venv/bin/python'
+-    assert sys.prefix==str(ROOT/'python/.venv')
++    assert sys.prefix==str(ROOT/'python/.venv') and sys.version.split()[0]=='3.12.15'
+     assert sys.dont_write_bytecode and os.environ['PYTHONDONTWRITEBYTECODE']=='1'
+     assert os.environ['PYTHONPYCACHEPREFIX']==str(RUN/'empty-pycache')
+-    assert sha(PARENT)==PARENT_SHA
+-    before=load(RUN/'preservation-before.json'); original=load(PARENT)
+-    preservation=[]
+-    for row in before['files']:
+-        try:
+-            actual=sha(row['path'])
+-            preservation.append(dict(row,after_sha256=actual,unchanged=actual==row['sha256']))
+-        except OSError as e: preservation.append(dict(row,unchanged=False,error=str(e)))
+-    parent_states={k:Path(original[k]).exists() for k in ('one_shot_marker','cancel_path','output_dir')}
+-    caches={str(p):{'exists':p.exists(),'is_directory':p.is_dir(),'entries':sorted(x.name for x in p.iterdir()) if p.is_dir() else None} for p in (RUN/'empty-pycache',OLD/'empty-pycache',Path(original['runtime']['empty_cache_path']))}
+-    unchanged=all(x['unchanged'] for x in preservation)
+-    immutable_unchanged=all(x['unchanged'] for x in preservation if x['path']!=original['state_path'])
+-    state_observation=next(x for x in preservation if x['path']==original['state_path'])
+-    save('preservation-after.json',{'files':preservation,'all_snapshotted_files_unchanged':unchanged,'immutable_read_set_unchanged':immutable_unchanged,'state_writes_by_this_task':0,'orchestration_state_observation':state_observation,'parent_paths_exist':parent_states,'caches':caches})
+-    assert immutable_unchanged,'immutable read-set drift: inspect preservation-after.json; do not repair frozen files'
+-    # The independently managed orchestration state is an observation, never our output.
+-    # Preserve its before/after hashes; do not reset it to make preservation pass.
+-    assert not any(parent_states.values())
+-    assert all(row['exists'] and row['is_directory'] and row['entries']==[] for row in caches.values())
++    assert all(sha(p)==pin for p,pin in zip(PARENTS,PARENT_PINS))
++    original,successor=[load(p) for p in PARENTS]
++
++    sources=sorted(RUN.glob('*.py'))
++    for p in sources: ast.parse(p.read_bytes(),filename=str(p))
++    tested=load(RUN/'tested-source-before.json')
++    assert all(sha(row['path'])==row['sha256'] for row in tested['files'])
++    tested_paths={row['path'] for row in tested['files']}
++    assert {str(p) for p in sources}-tested_paths=={str(RUN/'finalize_preparation.py')}
++    unchanged_names=('worker_cli.py','probe.py','build_registration.py','fake_runtime.py','test_campaign.py','test_probe.py')
++    assert all(sha(RUN/name)==sha(OLD/name) for name in unchanged_names)
++
++    log=(RUN/'tests.log').read_text()
++    match=re.search(r'Ran (\d+) tests in ([0-9.]+)s\n\nOK\s*$',log)
++    assert match and int(match[1])==48 and log.count(' ... ok')==48
++    methods=re.findall(r'^(test_\w+) \(([^)]+)\)',log,re.MULTILINE)
++    assert len(methods)==48 and len(set(methods))==48
++    previous=load(OLD/'test-results.json')['tests']
++    prior={(r['method'],r['class']) for r in previous}
++    assert len(prior)==33 and prior<=set(methods)
++    added=set(methods)-prior
++    assert len(added)==15 and all(c.startswith('test_finalization_controls.') for m,c in added)
++    save('test-results.json',{'schema':'synthetic_control_results_v1','passed':48,'failed':0,'r4_controls_replayed':33,'original_r3_controls_included':7,'new_first_signal_controls':15,'elapsed_seconds':float(match[2]),'test_exit_code':0,'attempts':1,'tests':[{'method':m,'class':c} for m,c in methods],'r4_assertion_adjustment':'Exactly nine signals observed before outcome freeze; three publication-time signals now ignored. Child TERM delivery and raw -SIGKILL exit retained.','real_generator_reference_proof':False})
++
++    receipts=[]; focused=[]
++    for p in sorted((RUN/'test-tmp').glob('*/out/outer-receipt.json')):
++        rec=load(p)
++        assert rec['process_group_absent']
++        receipts.append(dict(info(p),status=rec['status'],stop_reason=rec['stop_reason'],raw_worker_exit_code=rec['raw_worker_exit_code'],process_group_absent=rec['process_group_absent'],handled_signals=rec['handled_signals']))
++        driver_path=p.parent.parent/'driver-result.json'
++        if not p.parent.parent.name.startswith('finalization-'): continue
++        evidence=load(driver_path)
++        assert evidence['injections']==1 and evidence['handlers_restored'] and evidence['trace_restored']
++        assert rec['raw_worker_exit_code']==0 and rec['process_group_remaining']==[]
++        assert len(rec['postflight'])==19 and all(row['status']=='pass' for row in rec['postflight'].values())
++        assert evidence['post_return_group_rows']==[] and not evidence['post_return_group_error']
++        assert evidence['publication_sha256']==evidence['receipt_sha256_after_return']==sha(p)
++        if evidence['phase']=='before_freeze':
++            assert rec['status']=='partial_failure_preserved' and not evidence['returned']
++            assert rec['stop_reason']=='supervisor_signal:'+evidence['signal']
++            assert rec['handled_signals']==[evidence['signal']]
++        else:
++            assert rec['status']=='accepted_pending_parent_postflight' and evidence['returned']
++            assert rec['stop_reason'] is None and rec['handled_signals']==[]
++            assert evidence['returned_result']==rec
++        focused.append({'phase':evidence['phase'],'signal':evidence['signal'],'returned':evidence['returned'],'handlers_restored':True,'raw_worker_exit_code':0,'process_group_absent':True,'status':rec['status'],'stop_reason':rec['stop_reason'],'handled_signals':rec['handled_signals'],'receipt':info(p),'driver_evidence':info(driver_path)})
++    assert len(focused)==15
++    assert len({(r['phase'],r['signal']) for r in focused})==15
++    save('synthetic-receipt-index.json',{'scope':'Owned stdlib synthetic fixtures only; no real parent outputs','receipts':receipts,'first_signal_controls':focused})
+ 
+     sys.path.insert(0,str(RUN))
+     import build_registration
+     lease=copy.deepcopy(original['expected_lease'])
+     lease.update(run_id='PENDING_PARENT_UNIQUE_RUN_ID',owner_token='PENDING_PARENT_OWNER_TOKEN',registration_path=str(RUN/'proposed-parent'/'registration-final.json'))
+     draft=build_registration.build(state_path=original['state_path'],expected_lease=lease,marker_path=RUN/'proposed-parent'/'one-shot.claimed',cancel_path=RUN/'proposed-parent'/'CANCEL',output_path=RUN/'proposed-parent'/'outputs',python_path=original['runtime']['python_path'],runtime_root=original['runtime']['runtime_root'],empty_cache_path=RUN/'empty-pycache',expected_venv_prefix=original['runtime']['expected_venv_prefix'])
+-    assert set(draft)==set(original)
+-    unchanged_contract=('schema','study_id','vectors_path','vectors_sha256','vectors','checkpoint_path','checkpoint_sha256','parent_receipt_path','parent_receipt_sha256','acceptance_path','acceptance_sha256','state_path','limits','references')
+-    assert all(draft[k]==original[k] for k in unchanged_contract)
+-    assert {k:v for k,v in draft['runtime'].items() if k!='empty_cache_path'}=={k:v for k,v in original['runtime'].items() if k!='empty_cache_path'}
+-    assert draft['source']['fingerprint_path']==original['source']['fingerprint_path']
+-    assert draft['source']['fingerprint_sha256']==original['source']['fingerprint_sha256']
+-    assert draft['source']['cleanup_primitives_sha256']==original['source']['cleanup_primitives_sha256']
++    preserved=('schema','study_id','vectors_path','vectors_sha256','vectors','checkpoint_path','checkpoint_sha256','parent_receipt_path','parent_receipt_sha256','acceptance_path','acceptance_sha256','state_path','limits','references')
++    assert set(draft)==set(original)==set(successor)
++    for old in (original,successor):
++        assert all(draft[k]==old[k] for k in preserved)
++        assert {k:v for k,v in draft['runtime'].items() if k!='empty_cache_path'}=={k:v for k,v in old['runtime'].items() if k!='empty_cache_path'}
++        assert all(draft['source'][k]==old['source'][k] for k in ('fingerprint_path','fingerprint_sha256','cleanup_primitives_sha256'))
+     assert draft['status']=='draft_parent_review_required'
++    assert not (RUN/'proposed-parent').exists()
+     save('registration-template.json',draft)
+ 
+-    sources=sorted(RUN.glob('*.py'))
+-    for p in sources: ast.parse(p.read_bytes(),filename=str(p))
+-    diff=[]
+-    for p in sources+[RUN/'README.md']:
+-        old=OLD/p.name
+-        a=old.read_text().splitlines(keepends=True) if old.exists() else []
+-        diff.extend(difflib.unified_diff(a,p.read_text().splitlines(keepends=True),fromfile=str(old.relative_to(ROOT)) if old.exists() else '/dev/null',tofile=str(p.relative_to(ROOT))))
+-    (RUN/'exact-diff.patch').write_text(''.join(diff))
+-    external=[Path(original['source']['fingerprint_path']),RUN.parent/'confirmation-proof-binding-parent-repair-20261026-r4'/'execute_once.py']
+-    source_manifest={'schema':'confirmed324_probe_r4_authoritative_source_manifest_v1','authoritative':True,'hash_algorithm':'sha256','source_directory':str(RUN),'files':[info(p) for p in sources],'external_pinned_source':[info(p) for p in external],'probe_unchanged_from_R3':sha(RUN/'probe.py')==sha(OLD/'probe.py'),'interpreter_invocation':info(ROOT/'python/.venv/bin/python')}
+-    save('source-hashes.json',source_manifest)
+-    log=(RUN/'tests.log').read_text(); match=re.search(r'Ran (\d+) tests in ([0-9.]+)s\n\nOK\s*$',log)
+-    assert match and int(match[1])==33
+-    assert log.count(' ... ok')==33
+-    methods=re.findall(r'^(test_\w+) \(([^)]+)\) \.\.\. ok$',log,re.MULTILINE)
+-    save('test-results.json',{'schema':'synthetic_control_results_v1','passed':33,'failed':0,'original_controls_replayed':7,'new_controls':26,'elapsed_seconds':float(match[2]),'tests':[{'method':m,'class':c} for m,c in methods],'final_test_exit_code':0,'initial_development_result':'30 controls; one test-count assertion expected 20 rather than 19; retained tests-initial.log','real_generator_reference_proof':False})
+-    receipts=[]
+-    for p in sorted((RUN/'test-tmp').glob('*/out/outer-receipt.json')):
+-        rec=load(p); receipts.append(dict(info(p),status=rec['status'],stop_reason=rec['stop_reason'],raw_worker_exit_code=rec['raw_worker_exit_code'],process_group_absent=rec['process_group_absent']))
+-    assert all(row['process_group_absent'] for row in receipts)
+-    save('synthetic-receipt-index.json',{'scope':'synthetic-only retained initial and final fixtures; no actual parent outputs','receipts':receipts})
+-    artifacts=['README.md','registration-template.json','exact-diff.patch','source-hashes.json','tests.log','tests-initial.log','test-results.json','synthetic-receipt-index.json','preservation-before.json','preservation-after.json','finalization-initial.log']
+-    save('receipt.json',{'schema':'confirmed324_probe_signal_postflight_repair_preparation_v1','status':'source_prepared_not_registered_not_runtime_qualified','created_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'owned_output':str(RUN),'role':'implementation_sub_agent','findings_repaired':['F1/P1','F2/P1','F3/P2','F4/P2','F5/P2'],'source_manifest':info(RUN/'source-hashes.json'),'original_registration':info(PARENT),'expected_original_registration_sha256':PARENT_SHA,'accepted_checkpoint_sha256':original['checkpoint_sha256'],'accepted_integrity_receipt_sha256':original['parent_receipt_sha256'],'accepted_parent_record_sha256':original['acceptance_sha256'],'contract_fields_preserved':list(unchanged_contract),'runtime_contract_preserved_except_owned_cache_path':True,'limits_unchanged':draft['limits'],'test_summary':load(RUN/'test-results.json'),'actual_interpreter':{'invocation':sys.executable,'version':sys.version,'version_short':sys.version.split()[0],'prefix':sys.prefix,'bytecode_disabled':sys.dont_write_bytecode,'cache':str(RUN/'empty-pycache'),'cache_empty':True},'test_command':'PYTHONDONTWRITEBYTECODE=1 PYTHONPYCACHEPREFIX="'+str(RUN/'empty-pycache')+'" '+str(ROOT/'python/.venv/bin/python')+' -B -m unittest discover -s '+str(RUN)+" -p 'test_*.py' -v",'preservation':{'all_snapshotted_files_unchanged':unchanged,'parent_marker_cancel_output_still_absent':True,'root_README_unchanged':True,'parent_state_unchanged':state_observation['unchanged'],'state_writes_by_this_task':0,'immutable_read_set_unchanged':immutable_unchanged,'orchestration_state_drift_observed':not state_observation['unchanged'],'frozen_predecessors_unchanged':True},'execution_scope':{'stdlib_and_inert_source_only':True,'Torch_NumPy_native_project_imports':0,'checkpoint_deserializations':0,'actual_RNG_MPS_calls':0,'models_environments_training_evaluation':0,'actual_campaign_launches':0,'actual_parent_markers_claimed':0,'actual_leases_installed_or_cleared':0,'subdelegations':0,'synthetic_claims_and_subprocesses_only_below_owned_output':True},'evidence_limits':['Synthetic controls and static source preparation only; no real CPU/MPS reference, timing/resource qualification or runtime dependency version verification.','55-second worker/cleanup decisions do not hard-bound blocking filesystem/hash/fsync/receipt finalization.','Startup imports precede first MPS heartbeat; final forced sampling is implemented and fake-cap tested only.','No package-byte pinning claim; runtime_root remains recorded metadata.','Exclusive final JSON writes may leave partial files; no atomic visibility or directory-fsync crash durability claim.','Snapshot equality covers enumerated read set, not every file in the repository.'],'remaining_gates':['Parent review of delivered exact source hashes and controls','Parent successor identity/destination and final registration freeze','Parent fresh live-state audit, exact-lease installation and complete preflight','Separately authorized exactly-once real run and parent output acceptance'],'artifacts':[info(RUN/name) for name in artifacts]})
+-    print(json.dumps({'status':'prepared','controls_passed':33,'source_files':len(sources),'preservation_observations':len(preservation),'immutable_read_set_unchanged':immutable_unchanged,'orchestration_state_unchanged':state_observation['unchanged'],'source_manifest_sha256':sha(RUN/'source-hashes.json'),'receipt_sha256':sha(RUN/'receipt.json')},sort_keys=True))
++    def diff(paths):
++        result=[]
++        for p in paths:
++            old=OLD/p.name
++            result.extend(difflib.unified_diff(old.read_text().splitlines(keepends=True) if old.exists() else [],p.read_text().splitlines(keepends=True),fromfile=str(old.relative_to(ROOT)) if old.exists() else '/dev/null',tofile=str(p.relative_to(ROOT))))
++        return ''.join(result)
++    (RUN/'production-diff.patch').write_text(diff([RUN/'supervisor_cli.py',RUN/'worker_cli.py',RUN/'probe.py',RUN/'build_registration.py']))
++    (RUN/'exact-diff.patch').write_text(diff(sources+[RUN/'README.md',RUN/'registration-template.json']))
++    external=[Path(original['source']['fingerprint_path']),BASE/'confirmation-proof-binding-parent-repair-20261026-r4'/'execute_once.py']
++    save('source-hashes.json',{'schema':'confirmed324_probe_r5_authoritative_source_manifest_v1','authoritative':True,'hash_algorithm':'sha256','source_directory':str(RUN),'files':[dict(info(p),validation='48-control suite; exact bytes match tested-source-before.json' if str(p) in tested_paths else 'artifact-packaging helper; AST parsed and run after tests') for p in sources],'external_pinned_source':[info(p) for p in external],'byte_identical_to_R4':list(unchanged_names),'only_production_change':'supervisor finalization outcome flag and signal-handler guard','interpreter_invocation':info(ROOT/'python/.venv/bin/python')})
++
++    before=load(RUN/'preservation-before.json')
++    observed=[]
++    for row in before['files']:
++        actual=sha(row['path'])
++        observed.append(dict(row,after_sha256=actual,unchanged=actual==row['sha256']))
++    state=next(row for row in observed if row['path']==original['state_path'])
++    immutable=all(row['unchanged'] for row in observed if row['path']!=original['state_path'])
++    parents=[]
++    for path,reg in zip(PARENTS,(original,successor)):
++        paths_exist={k:Path(reg[k]).exists() for k in ('one_shot_marker','cancel_path','output_dir')}
++        cache=Path(reg['runtime']['empty_cache_path'])
++        assert not any(paths_exist.values()) and cache.is_dir() and not any(cache.iterdir())
++        parents.append({'registration':info(path),'paths_exist':paths_exist,'cache':str(cache),'cache_entries':[]})
++    assert immutable and (RUN/'empty-pycache').is_dir() and not any((RUN/'empty-pycache').iterdir())
++    save('preservation-after.json',{'files':observed,'enumerated_files':len(observed),'immutable_read_set_unchanged':immutable,'state_writes_by_this_task':0,'independently_managed_state':state,'parent_observations':parents,'owned_cache_empty':True})
++
++    boundary=next(i for i,line in enumerate((RUN/'supervisor_cli.py').read_text().splitlines(),1) if line.strip()=='outcome_frozen=True')
++    artifacts=['README.md','production-diff.patch','exact-diff.patch','source-hashes.json','registration-template.json','tests.log','tested-source-before.json','test-results.json','synthetic-receipt-index.json','preservation-before.json','preservation-after.json']
++    save('receipt.json',{'schema':'confirmed324_probe_finalization_repair_preparation_v1','status':'source_prepared_not_registered_not_runtime_qualified','created_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'role':'implementation_sub_agent','owned_output':str(RUN),'repaired_finding':'Fresh R4 review R1/P2: first handled signal during otherwise-successful receipt publication could diverge verdict/history/terminal outcome','source_manifest':info(RUN/'source-hashes.json'),'source_predecessor':str(OLD),'reviews':[info(BASE/name/'review.md') for name in ('confirmed324-probe-r3-frozen-registration-review-sol-20261026-r1','confirmed324-probe-r4-frozen-review-sol-20261026-r2')],'frozen_parent_registrations':[info(p) for p in PARENTS],'outcome_policy':{'path':str(RUN/'supervisor_cli.py'),'boundary_line':boundary,'assignment':'outcome_frozen=True','prerequisites':'Worker cleanup/reap, all 19 checks and decisions, artifact inventory and decisions complete','before_boundary':'Handled signals establish failure and append history','after_boundary':'Installed supervisor handler ignores SIGTERM/SIGHUP/SIGINT without changing reason/history/result','restoration':'Policy stays frozen until each original handler is restored; that original policy then resumes','child_signal_mask_changed':False,'published_receipt_mutated':False,'I/O_failure_semantics':'Unchanged: exclusive publication may fail or leave partial JSON; no hard finalization watchdog'},'test_summary':load(RUN/'test-results.json'),'actual_interpreter':dict(tested['interpreter'],version_short=sys.version.split()[0],interpreter_sha256=sha(sys.executable),owned_cache_empty=True),'test_command':tested['planned_test_command'],'test_environment':{'PYTHONDONTWRITEBYTECODE':'1','PYTHONPYCACHEPREFIX':str(RUN/'empty-pycache')},'contract_fields_preserved':list(preserved),'accepted_checkpoint_sha256':original['checkpoint_sha256'],'accepted_integrity_receipt_sha256':original['parent_receipt_sha256'],'accepted_parent_record_sha256':original['acceptance_sha256'],'runtime_contract_preserved_except_owned_cache_path':True,'limits_unchanged':draft['limits'],'preservation':{'enumerated_files':len(observed),'immutable_read_set_unchanged':immutable,'root_README_unchanged':True,'parent_markers_cancel_outputs_absent':True,'parent_registered_caches_empty':True,'state_writes_by_this_task':0,'independently_managed_state_unchanged':state['unchanged']},'execution_scope':{'stdlib_and_inert_owned_source_only':True,'Torch_NumPy_native_project_imports':0,'actual_RNG_MPS_calls':0,'checkpoint_deserializations':0,'models_environments_training_evaluation':0,'actual_campaign_launches':0,'actual_parent_marker_claims':0,'actual_lease_writes':0,'subdelegations':0,'writes_outside_owned_output':0},'evidence_limits':['Synthetic controls and source preparation only; no real CPU/MPS references, dependency/runtime qualification, or resource/timing qualification.','55-second worker/cleanup decisions do not hard-bound blocking filesystem/hash/fsync/receipt finalization.','Startup imports precede the first MPS heartbeat.','Exclusive final JSON writes can leave partial files; no atomic visibility or directory-fsync crash durability.','Package bytes unpinned; runtime_root remains metadata.','Preservation equality covers the enumerated read set, not every file in the repository.'],'remaining_parent_gates':['Exact-source review','Successor identity/destination and final registration freeze','Fresh state/precondition audit and exact lease installation','Separately authorized exactly-once real run','Parent output acceptance'],'artifacts':[info(RUN/name) for name in artifacts]})
++    print(json.dumps({'status':'prepared_not_registered','controls_passed':48,'original_R4_replayed':33,'new_controls':15,'source_manifest_sha256':sha(RUN/'source-hashes.json'),'receipt_sha256':sha(RUN/'receipt.json'),'immutable_read_set_unchanged':immutable,'independently_managed_state_unchanged':state['unchanged']},sort_keys=True))
++
+ 
+ if __name__=='__main__': main()
+--- learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/supervisor_cli.py
++++ learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/supervisor_cli.py
+@@ -157,9 +157,12 @@
+  reg=read(rp); ns=verified_primitives(); preflight(rp,rsha,reg,worker)
+  start=time.monotonic(); work_deadline=start+45; outer_deadline=start+55; proc=None; reason=None; raw_exit=None; claimed=False; claim_complete=False; claim_identity=None; rows=None
+  log=Path(reg['output_dir'])/'worker.log'; hb=Path(reg['output_dir'])/'worker-heartbeat.json'; receipt_path=Path(reg['output_dir'])/'outer-receipt.json'
+- old={}; received=[]; deferred=True; errors=[]; result=None
++ old={}; received=[]; deferred=True; outcome_frozen=False; errors=[]; result=None
+  def handler(sig,frame):
+   nonlocal reason,deferred
++  # After the outcome boundary, ignore handled signals without changing verdict
++  # or history. Keep this policy until each original handler is restored.
++  if outcome_frozen: return
+   received.append(signal.Signals(sig).name)
+   reason=reason or 'supervisor_signal:'+signal.Signals(sig).name
+   if deferred: return
+@@ -236,6 +239,10 @@
+     artifacts,inventory_errors=inventory(reg['output_dir'])
+     if inventory_errors: reason=reason or 'inventory_failed'
+     rows=checks['process_absence'].get('observed',{}).get('rows')
++    # Finalization commit boundary: cleanup, required checks and inventory are done.
++    # Signals before this assignment still cancel; signals after it are ignored
++    # through receipt publication/restoration. No OS signal mask reaches children.
++    outcome_frozen=True
+     result={'schema':'d2_layerb_rng_reference_probe_outer_receipt_v1','run_id':reg['run_id'],'registration_sha256':rsha,'raw_worker_exit_code':raw_exit,'stop_reason':reason,'process_group_remaining':rows,'process_group_absent':checks['process_absence']['status']=='pass','artifacts':artifacts,'inventory_errors':inventory_errors,'errors':errors,'postflight':checks,'failed_checks':failed,'claim_created':True,'claim_write_completed':claim_complete,'claim_identity':claim_identity,'handled_signals':received,'elapsed_seconds':time.monotonic()-start,'status':'accepted_pending_parent_postflight' if reason is None else 'partial_failure_preserved','bounds_limit':'55-second decisions; filesystem/hash/fsync/receipt finalization lack a hard watchdog'}
+     exclusive_json(receipt_path,result)
+  finally:
+--- learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/test_failure_controls.py
++++ learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/test_failure_controls.py
+@@ -170,7 +170,10 @@
+         self.assertEqual(rec['raw_worker_exit_code'],-signal.SIGKILL)
+         self.assertTrue(rec['process_group_absent'])
+         self.assertEqual(rec['stop_reason'],'supervisor_signal:SIGTERM')
+-        self.assertGreaterEqual(len(rec['handled_signals']),10)
++        # Nine pre-boundary signals remain observations. Three receipt-publication
++        # signals are deliberately ignored after the finalization commit boundary.
++        self.assertEqual(rec['handled_signals'],['SIGTERM','SIGTERM','SIGHUP','SIGINT','SIGHUP','SIGINT','SIGTERM','SIGHUP','SIGINT'])
++        self.assertIn('probe failed: supervisor_signal:SIGTERM',evidence['error'])
+         self.assertEqual((root/'child-signals').read_text().splitlines(),[str(signal.SIGTERM)])
+         self.assertEqual(rec['postflight']['cleanup_source']['status'],'pass')
+         self.assertEqual(rec['postflight']['interpreter_identity']['status'],'pass')
+--- /dev/null
++++ learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/test_finalization_controls.py
+@@ -0,0 +1,167 @@
++"""Real handled signals at the finalization boundary; synthetic worker only."""
++import inspect
++import json
++import os
++from pathlib import Path
++import shutil
++import signal
++import subprocess
++import sys
++import tempfile
++import unittest
++from unittest.mock import patch
++
++import supervisor_cli as supervisor
++from test_failure_controls import fixture, sha, write
++
++RUN=Path(__file__).absolute().parent
++SIGNALS=(signal.SIGTERM,signal.SIGHUP,signal.SIGINT)
++PHASES=('before_freeze','before_serialization','after_serialization','after_fsync','handler_restoration')
++
++
++def driver(root,phase,signame):
++    """Instrument real call sites without changing production source or receipts."""
++    sig=signal.Signals[signame]
++    rp=root/'registration.json'; reg=json.loads(rp.read_text())
++    receipt_path=Path(reg['output_dir'])/'outer-receipt.json'
++    old_handlers={s:signal.getsignal(s) for s in SIGNALS}
++    old_trace=sys.gettrace()
++    # Keep even the cleanup-source pathname owned; verify its unchanged pinned bytes.
++    cleanup=root/'cleanup-source.py'; shutil.copyfile(supervisor.PRIMITIVES,cleanup)
++    supervisor.PRIMITIVES=cleanup
++    original_exclusive=supervisor.exclusive_json
++    original_mkdir=Path.mkdir
++    original_open=os.open
++    original_fsync=os.fsync
++    original_signal=signal.signal
++    evidence={'phase':phase,'signal':signame,'injections':0}
++    publishing=False
++    receipt_fds=set()
++
++    def inject():
++        if evidence['injections']: raise AssertionError('signal injected twice')
++        evidence['injections']+=1
++        # This invokes the installed production Python handler through the OS.
++        os.kill(os.getpid(),sig)
++
++    def exclusive(path,obj,on_created=None):
++        nonlocal publishing
++        if Path(path)!=receipt_path: return original_exclusive(path,obj,on_created)
++        publishing=True
++        try: result=original_exclusive(path,obj,on_created)
++        finally: publishing=False
++        evidence['publication_sha256']=sha(receipt_path)
++        return result
++
++    def mkdir(path,*args,**kwargs):
++        if publishing and Path(path)==receipt_path.parent and phase=='before_serialization': inject()
++        return original_mkdir(path,*args,**kwargs)
++
++    def opened(path,*args,**kwargs):
++        fd=original_open(path,*args,**kwargs)
++        if publishing and Path(path)==receipt_path:
++            receipt_fds.add(fd)
++            # exclusive_json has already constructed its complete encoded raw bytes.
++            if phase=='after_serialization': inject()
++        return fd
++
++    def fsync(fd):
++        result=original_fsync(fd)
++        if publishing and fd in receipt_fds and phase=='after_fsync': inject()
++        return result
++
++    def restore(s,handler):
++        if phase=='handler_restoration' and s==sig and handler==old_handlers[s]: inject()
++        return original_signal(s,handler)
++
++    # A line trace stops immediately BEFORE the actual flag assignment, after all
++    # inventory/check decisions. It neither replaces nor invokes the handler itself.
++    lines,start=inspect.getsourcelines(supervisor.execute)
++    freeze_line=[start+i for i,line in enumerate(lines) if line.strip()=='outcome_frozen=True']
++    assert len(freeze_line)==1
++
++    def trace(frame,event,arg):
++        if frame.f_code is supervisor.execute.__code__:
++            if event=='line' and frame.f_lineno==freeze_line[0] and phase=='before_freeze': inject()
++            return trace
++        return None
++
++    try:
++        with patch.object(supervisor,'exclusive_json',exclusive),patch.object(Path,'mkdir',mkdir),patch.object(os,'open',opened),patch.object(os,'fsync',fsync),patch.object(signal,'signal',restore):
++            if phase=='before_freeze': sys.settrace(trace)
++            try:
++                evidence['returned_result']=supervisor.execute(rp,sha(rp),RUN/'worker_cli.py')
++                evidence['returned']=True
++            except Exception as exc:
++                evidence['returned']=False
++                evidence['error_type']=type(exc).__name__
++                evidence['error']=str(exc)
++            finally: sys.settrace(old_trace)
++    finally:
++        evidence['handlers_restored']=all(signal.getsignal(s)==h for s,h in old_handlers.items())
++        evidence['trace_restored']=sys.gettrace() is old_trace
++    evidence['receipt_sha256_after_return']=sha(receipt_path)
++    # Independently re-sample the actual worker process group after execute ended.
++    pid=json.loads((Path(reg['output_dir'])/'worker-heartbeat.json').read_text())['pid']
++    rows,error=supervisor.verified_primitives()['sample_procs'](pid)
++    evidence.update(worker_pid=pid,post_return_group_rows=rows,post_return_group_error=error)
++    write(root/'driver-result.json',evidence)
++
++
++class FinalizationControls(unittest.TestCase):
++    def check_phase(self,phase,sig):
++        root=Path(tempfile.mkdtemp(prefix=f'finalization-{phase}-{sig.name}-',dir=RUN/'test-tmp'))
++        fixture(root,'normal')
++        env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1',PYTHONPYCACHEPREFIX=str(root/'cache'),RNG_PROBE_SYNTHETIC_TEST='1')
++        process=subprocess.run([sys.executable,'-B',str(Path(__file__).absolute()),'--driver',str(root),phase,sig.name],env=env,capture_output=True,text=True,timeout=22)
++        (root/'driver.log').write_text(process.stdout+process.stderr)
++        self.assertEqual(process.returncode,0,process.stdout+process.stderr)
++        evidence=json.loads((root/'driver-result.json').read_text())
++        rec=json.loads((root/'out'/'outer-receipt.json').read_text())
++        self.assertEqual(evidence['injections'],1)
++        self.assertTrue(evidence['handlers_restored'])
++        self.assertTrue(evidence['trace_restored'])
++        self.assertEqual(evidence['publication_sha256'],evidence['receipt_sha256_after_return'])
++        self.assertEqual(evidence['post_return_group_rows'],[])
++        self.assertFalse(evidence['post_return_group_error'])
++        self.assertEqual(rec['raw_worker_exit_code'],0)
++        self.assertTrue(rec['process_group_absent'])
++        self.assertEqual(rec['process_group_remaining'],[])
++        self.assertEqual(len(rec['postflight']),19)
++        self.assertTrue(all(row['status']=='pass' for row in rec['postflight'].values()))
++        self.assertEqual(rec['failed_checks'],[])
++        self.assertEqual(rec['inventory_errors'],[])
++        self.assertEqual(rec['errors'],[])
++        self.assertTrue(rec['claim_created'] and rec['claim_write_completed'])
++        self.assertEqual(list((root/'cache').iterdir()),[])
++        if phase=='before_freeze':
++            self.assertFalse(evidence['returned'])
++            self.assertNotIn('returned_result',evidence)
++            self.assertEqual(evidence['error_type'],'RuntimeError')
++            self.assertEqual(evidence['error'],f'probe failed: supervisor_signal:{sig.name}; partial receipt preserved')
++            self.assertEqual(rec['status'],'partial_failure_preserved')
++            self.assertEqual(rec['stop_reason'],'supervisor_signal:'+sig.name)
++            self.assertEqual(rec['handled_signals'],[sig.name])
++        else:
++            self.assertTrue(evidence['returned'])
++            self.assertNotIn('error',evidence)
++            self.assertEqual(evidence['returned_result'],rec)
++            self.assertEqual(rec['status'],'accepted_pending_parent_postflight')
++            self.assertIsNone(rec['stop_reason'])
++            self.assertEqual(rec['handled_signals'],[])
++
++
++def control(phase,sig):
++    def test(self): self.check_phase(phase,sig)
++    test.__doc__=f'First {sig.name} at {phase}; verdict, history, return and restoration agree.'
++    return test
++
++
++for _phase in PHASES:
++    for _sig in SIGNALS:
++        setattr(FinalizationControls,f'test_first_{_sig.name}_{_phase}',control(_phase,_sig))
++
++
++if __name__=='__main__':
++    if len(sys.argv)>1 and sys.argv[1]=='--driver': driver(Path(sys.argv[2]),sys.argv[3],sys.argv[4])
++    else: unittest.main()
+--- learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/README.md
++++ learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/README.md
+@@ -1,21 +1,15 @@
+-# Confirmed324 probe R4 source preparation
++# Confirmed324 probe R5 finalization repair
+ 
+-F1–F5 repaired. Final suite: **33 synthetic controls passed**, including the original seven. No real RNG/MPS references, runtime qualification, campaign registration, lease installation, or launch authority.
++Fresh R4 P2 repaired with one outcome flag and an early return in the existing signal handler. **48 synthetic controls passed: all 33 R4 controls plus 15 focused first-signal controls.** Source preparation only; parent registrations R1/R2 remain frozen and unlaunched.
+ 
+-- F1: defer handled signals across marker claim and child-handle assignment; the first interrupt also enables deferral before unwinding. Keep handlers through bounded cleanup, postflight, inventory and receipt fsync, then restore them in an outer `finally`. The real synthetic child ignores the cleanup TERM and dies by KILL; repeated parent signals preserve its raw `-9` exit and receipt. Parent signal deferral does not mask child signals.
+-- F2: set claim ownership immediately after `O_EXCL` returns its FD, before writing. Record creation separately from write/fsync completion. Signal, partial-write and marker-fsync faults preserve partial evidence; an existing marker remains unclaimed and untouched. Never delete or reuse a marker.
+-- F3: check registered cache existence, directory type and emptiness throughout worker checks and before publication; check again in supervisor postflight on success and failure. Controls cover both file creation and directory removal, including after a successful worker.
+-- F4: run 19 individually guarded required postflight checks after cleanup on every claimed exit. Record `pass`, `fail`, or `unavailable` for each registration/source/input/interpreter/lease/marker/cache/cancel/cleanup-source/process/output check. Preserve the first stop cause, every failed check, and inventory errors. Any required failure/unavailability prevents pending acceptance.
+-- F5: independently validate every replica's parent checkpoint, integrity receipt, backend, Torch version, vector, schema and digest; require exact replica inventory. Parse the bytes whose commit hashes were checked. Enforce aggregate schema, study, scope, registered runtime and exact replica-row equivalence. Substituted bundles have valid recomputed commit hashes; their semantic defects still fail.
++The finalization commit boundary is the `outcome_frozen=True` assignment in `execute()`, after worker cleanup/reap, all 19 required integrity checks, inventory and their failure decisions, immediately before receipt construction. Before that assignment, SIGTERM/SIGHUP/SIGINT still record history and establish failure, even when the worker exited 0 and every check passed. After it, the installed supervisor handler ignores those signals without changing `reason`, history, receipt fields or terminal outcome. This applies to both successful and already-failed outcomes through publication, fsync and each handler's restoration. Each original handler's policy resumes when restored. No OS signal mask is introduced or inherited by the child. Receipt publication is not rewritten or retried.
+ 
+-Worker also asserts actual `sys.prefix == expected_venv_prefix` and preserves the unresolved project venv executable path. After capture and heartbeat shutdown, it forces a final RSS/MPS sample before publication. Both separate caps remain 6442450944 bytes; all 45/55/10/12-second and 0.2/2-second settings remain unchanged.
++Each new signal control runs a real stdlib synthetic worker and sends one real OS signal to the supervisor: immediately before the freeze assignment; inside receipt publication before serialization; after encoded bytes exist; after receipt fsync; and immediately before restoring that signal's original handler. All three handled signals cover all five points. Controls check status, reason, raw worker exit 0, all 19 passing checks, process absence, supervisor return/failure, restored handlers, unchanged published receipt hash and returned-result equality on success. The repeated-failure control now requires exactly nine pre-boundary observations; its three publication-time signals are intentionally ignored. Child TERM handling and raw KILL exit remain verified.
+ 
+-The enumerated immutable read set stayed byte-identical. Independently managed orchestration state changed hash during preparation; this task made no state writes. Before/after hashes are retained, and parent must audit current state before any future run.
++Production worker, probe, builder, synthetic API and the original seven tests are byte-identical to R4. Only supervisor finalization and the repeated-signal assertion changed; the focused controls are separate. Review [production-diff.patch](production-diff.patch), complete [exact-diff.patch](exact-diff.patch), authoritative [source-hashes.json](source-hashes.json), [tests.log](tests.log), and [receipt.json](receipt.json). Retained synthetic fixtures and receipts live under `test-tmp/`. The manifest distinguishes tested source bytes from the artifact-packaging helper.
+ 
+-Review [receipt.json](receipt.json), [source-hashes.json](source-hashes.json), [exact-diff.patch](exact-diff.patch), and [tests.log](tests.log). `test-tmp/` retains synthetic failure fixtures, claims, logs and receipts. The initial development log records one failed assertion expecting 20 checks rather than the implemented 19; its tested paths otherwise completed. Final suite passed all 33 controls. Source files tested in that final suite are the delivered production/test files.
++[registration-template.json](registration-template.json) is inert and non-authorizing, with pending parent identity/token, successor source pins and proposed owned paths. The unchanged `build_registration.py` preserves exact full vectors, accepted324 input pins, external source pins, runtime contract and limits: work 45s, outer 55s, cleanup 10s, startup 12s, poll 0.2s, stale 2s; RSS and MPS separately 6442450944 bytes. Parent alone freezes registration, reviews, installs leases and authorizes a run.
+ 
+-`build_registration.py` is inert unless imported and called. [registration-template.json](registration-template.json) is a draft only: pending identity/token, non-authorizing status, successor source pins and owned proposed paths. It preserves the exact original parent contract, input pins, runtime fields and limits. Parent alone chooses its final destination/identity, freezes registration, installs the exact lease, reviews preconditions and authorizes a single real run. Production registration cannot admit synthetic dependency fields.
++Preparation and tests used project `python/.venv/bin/python`, Python 3.12.15, `-B`, `PYTHONDONTWRITEBYTECODE=1` and owned precreated empty caches. Only stdlib and inert copied source ran. No Torch/NumPy/native project imports, actual RNG/MPS calls, checkpoint deserialization, model/environment, training, evaluation or campaign ran. Before/after hashes cover the enumerated frozen read set and root README; independently managed orchestration state is recorded separately, never written here.
+ 
+-Actual preparation/test interpreter: project `python/.venv/bin/python`, Python **3.12.15**, `-B`, `PYTHONDONTWRITEBYTECODE=1`, precreated owned `empty-pycache`. Tests import only stdlib and inert owned Python sources, plus the pinned stdlib cleanup source. Frozen inputs are byte-hashed/read only; faults affect owned copies only. No Torch, NumPy, native project modules, checkpoint deserialization, actual generator APIs, models, environments, training or evaluation ran. `runtime_root` remains recorded metadata; no package-byte identity claim is added.
+-
+-The 55-second bound governs worker/cleanup decisions. Blocking filesystem operations, hashing, fsync and receipt finalization have **no hard total watchdog**. Startup imports precede the first MPS heartbeat. Final-path exclusive JSON writes may leave partial files after I/O failure; they do not provide atomic visibility or directory-fsync crash durability. Complete real CPU/MPS behavior, dependency versions, resource/timing behavior, and reference acceptance remain parent gates.
++Known limits are unchanged: no hard watchdog covers blocking filesystem/hash/fsync/finalization; imports precede the first MPS heartbeat; exclusive final JSON writes may leave partial files and lack atomic visibility or directory-fsync crash durability; package bytes are unpinned and `runtime_root` remains metadata. I/O exceptions can still prevent complete receipt publication. Synthetic controls do not qualify real CPU/MPS references, runtime dependencies or resource/timing behavior.
+--- learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/registration-template.json
++++ learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/registration-template.json
+@@ -2,7 +2,7 @@
+   "acceptance_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/expanded-confirmation-parent-20261026-r1/parent-acceptance.json",
+   "acceptance_sha256": "3e84979c4c8da76d0f98666a23f90eb15c1e813ca5edf1001e19daebaf4d5bbd",
+   "authority": "none_until_parent_registration_review_and_lease_installation",
+-  "cancel_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/proposed-parent/CANCEL",
++  "cancel_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/proposed-parent/CANCEL",
+   "checkpoint_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained300-continuation-20261026-r1/checkpoint-000324-candidate.pt",
+   "checkpoint_sha256": "c10d90ec0e67503afef8f4d90c4968581d430ef2065117a75e81c445a04c8ddc",
+   "expected_lease": {
+@@ -11,7 +11,7 @@
+     "kind": "confirmed324_initial_RNG_state_reference_probe",
+     "owner_token": "PENDING_PARENT_OWNER_TOKEN",
+     "purpose": "one_independent_process_measures3CPU_MPS_generator_references;no_model_environment_training",
+-    "registration_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/proposed-parent/registration-final.json",
++    "registration_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/proposed-parent/registration-final.json",
+     "run_id": "PENDING_PARENT_UNIQUE_RUN_ID"
+   },
+   "limits": {
+@@ -24,8 +24,8 @@
+     "startup_grace_seconds": 12,
+     "work_seconds": 45
+   },
+-  "one_shot_marker": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/proposed-parent/one-shot.claimed",
+-  "output_dir": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/proposed-parent/outputs",
++  "one_shot_marker": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/proposed-parent/one-shot.claimed",
++  "output_dir": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/proposed-parent/outputs",
+   "parent_receipt_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained300-parent-terminal-audit-20261026-r1/retained-best-candidate-receipt.json",
+   "parent_receipt_sha256": "76cb15733e87518cb3b473b7f8ebd847ed206351fb9f17d89b8b92e6bf853f08",
+   "references": {
+@@ -52,7 +52,7 @@
+   },
+   "run_id": "PENDING_PARENT_UNIQUE_RUN_ID",
+   "runtime": {
+-    "empty_cache_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/empty-pycache",
++    "empty_cache_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/empty-pycache",
+     "expected_venv_prefix": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv",
+     "interpreter_sha256": "8dcafa7835e861e88a8f8ac7e61effbf5a987f32b0ec47bb1f3c9987caf9216d",
+     "numpy_version": "2.5.4",
+@@ -67,11 +67,11 @@
+     "cleanup_primitives_sha256": "4a5d084359ee48fe5351c96e0ec4455fdcd95a428a17bbcf59d0653f6922de98",
+     "fingerprint_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-transition-parent-repair-20261026-r3/fingerprints.py",
+     "fingerprint_sha256": "6ef9cf3f08fe800f54230801a921a2f5c82e47e5013ef3087ead6499d2533d61",
+-    "probe_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/probe.py",
++    "probe_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/probe.py",
+     "probe_sha256": "3a8ca22bd4c3c15da41ec4d0919ac5e314edd2d89ff15eca82fc140fb493eca6",
+-    "supervisor_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/supervisor_cli.py",
+-    "supervisor_sha256": "1d5b460cfc033d416b395b19a658e6c0f7f4ef49e996407e9c7d728d768b5b74",
+-    "worker_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-signal-postflight-repair-sol-20261026-r4/worker_cli.py",
++    "supervisor_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/supervisor_cli.py",
++    "supervisor_sha256": "2394ea8ff1a8432f7642616ecca3b40aa615d0d44937b146c54dc33906319b00",
++    "worker_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/confirmed324-probe-finalization-repair-sol-20261026-r5/worker_cli.py",
+     "worker_sha256": "9d016e7ba3e9ab416c2f12e3b823c9a8b140523c77874781ad433f77b9f118dc"
+   },
+   "state_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2-orchestration/state.json",

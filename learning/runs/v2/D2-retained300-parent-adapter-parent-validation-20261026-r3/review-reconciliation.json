@@ -1,0 +1,48 @@
+{
+  "status": "accepted_standalone_CPU_adapter;integrated_runner_review_pending",
+  "review_model": "claude-haiku-5-5",
+  "review": "learning/runs/v2/D2-retained300-parent-adapter-review-haiku-20261026-r3/review.json",
+  "review_sha256": "168993f78fe15837444429776a3af5879168b56b49fe09d435ed0dde4d2d5e23",
+  "receipt_sha256": "0557419885ac4071a742d0fea7425429772334aa7fc9a29900d78c589bcc7e27",
+  "verified_input_sha256": {
+    "learning/runs/v2/D2-retained300-parent-adapter-luna-20261026-r3/parent_adapter.py": "a969f2a5e6af35609f0b2cc9fb4a2f4cd1b369743a1d1cb7ba6c345355a6f2f6",
+    "learning/runs/v2/D2-retained300-parent-adapter-luna-20261026-r3/test_parent_adapter.py": "67c5e2b9b1457a0bb2846e72648b7e80f13f859c39aafeaaf55b56f1dd48c485",
+    "learning/runs/v2/D2-retained300-parent-adapter-luna-20261026-r3/input-output-hashes.json": "611a35751441a44338b8110b90f6ebfe3b9ce804b5e0e63610827da0693c88df",
+    "learning/runs/v2/D2-retained300-parent-adapter-luna-20261026-r3/cpu-tests.log": "2596b2d056343e3574f89286884f640d7c09990f7b99e3029816fea21672d8d7",
+    "learning/runs/v2/D2-retained300-parent-adapter-luna-20261026-r3/retained-best-candidate-receipt.json": "ccc73fbc72c83e9dc061ad11be536b2e0d7cb076319e6d7cff27b9f2a0f8838d",
+    "learning/runs/v2/D2-retained300-parent-adapter-luna-20261026-r3/completed-iteration-receipt.json": "b170f68ce68c98e1a0d7511fed71f978732731895446214966da1402caea863a",
+    "learning/runs/v2/D2-retained300-parent-adapter-luna-20261026-r3/checkpoint-000300-candidate.pt.json": "7d6f5eb8bca5758bbf7bf71a6615eabca823f48703b6d22798587cafced9f8ac",
+    "learning/runs/v2/D2-retained276-lr3em5-20261026-r2/checkpoint-000300-candidate.pt": "e2c8fbe44e23da910686954e90cb7841b38b6d7f60f69ca657a4a69b14214710",
+    "learning/runs/v2/D2-retained276-lr3em5-20261026-r2/checkpoint-000300-candidate.pt.json": "7d6f5eb8bca5758bbf7bf71a6615eabca823f48703b6d22798587cafced9f8ac",
+    "learning/runs/v2/D2-retained276-lr3em5-20261026-r2/checkpoint-000276-candidate.pt": "165ae5c597b73ed3116740d6edd9649f5b37b5d92664b65c316be1e8887079a2",
+    "learning/runs/v2/D2-retained276-lr3em5-parent-terminal-audit-20261026-r2/audit.json": "046cc985ce2ac42cc1ba3d7988da3787c7758df8fe849b7ceb5b9a30f631586b",
+    "learning/runs/v2/D2-retained276-lr3em5-parent-terminal-audit-20261026-r2/completed-iteration-receipt.json": "b170f68ce68c98e1a0d7511fed71f978732731895446214966da1402caea863a",
+    "learning/runs/v2/D2-retained276-lr3em5-parent-terminal-audit-20261026-r2/retained-best-candidate-receipt.json": "ccc73fbc72c83e9dc061ad11be536b2e0d7cb076319e6d7cff27b9f2a0f8838d",
+    "learning/runs/v2/D2-retained276-lr3em5-parent-terminal-audit-20261026-r2/retained-best-decision.json": "58f167f4e93d4e7e9b50dd587db273255c65c56ffb6d7f30ac7bcd938e368fdf",
+    "learning/runs/v2/D2-retained276-lr3em5-prepare-luna-20261026-r2/runner.py": "013ef0b526bfbce89588a429ec01766aece59e3553d08047d0616b3744607267",
+    "learning/runs/v2/D2-retained276-lr3em5-prepare-luna-20261026-r2/registration_schema.py": "f8956515024db261902e541a29d48f8b30e96f9efd05ee618e3759af95f1af9b",
+    "learning/runs/v2/D2-retained276-lr3em5-prepare-luna-20261026-r2/registration.json": "8e17e1188253f091b62a8b60397663a530c4a865166f9568978dd009148308e7",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/checkpoints.py": "807141943a742c6e9fdd34274c191b3c318134cc7fb0c1c6256874cadee1cbc3",
+    "learning/runs/v2/D2-gradient-capsule-parent-freeze-20261025-r5/own/runtime/dodge_rl/models/teacher.py": "e4d7f597a2824c2b0d4ba261dddc9d7d1ee1d5592c2fc966a44c54b5ec417e35",
+    "learning/runs/v2/D2-retained204-lr1e4-parent-terminal-audit-20261026-r1/parent-terminal-receipt.json": "d64d0f803d02a8d2c33da9fa0ba862f06ba7d9c56dcf4f0494e559a49e48fcc4"
+  },
+  "review_receipt_prefix_only_entries_rehashed_fully": [
+    "learning/runs/v2/D2-retained276-lr3em5-20261026-r2/checkpoint-000276-candidate.pt"
+  ],
+  "independent_CPU_validation": "learning/runs/v2/D2-retained300-parent-adapter-parent-validation-20261026-r3/validation.json",
+  "findings": {
+    "F1": "Nonblocking missing receipt phase/local mutation cases; validator explicitly checks both. Add to integration controls if changed.",
+    "F2": "Nonblocking redundant test loop; negative SHA case runs.",
+    "F3": "Nonblocking unused optional fingerprint argument.",
+    "F4": "Adapter is scoped exact-selected-receipt validator, not full lineage validator. Parent has separately verified parent terminal receipt and full producing-run audit; final registered pin set must retain them."
+  },
+  "integration_review_requirements": [
+    "Registration must name selected checkpoint e2c8fbe4 as parent; preserve producing-run ancestor0b5cf72b separately.",
+    "Read immutable external continuation receipt, preserve ineligible sidecar.",
+    "Pin producing-run audit and its upstream terminal receipt in final input set.",
+    "Use fresh monotonic launcher T0 for deadlines; separate selected-trajectory and total-resource accounting baselines.",
+    "Verify actual execute pre-mutation parent acceptance and exact Adam/RNG restoration."
+  ],
+  "launch_authority_granted": false,
+  "actual_training_launched": false
+}

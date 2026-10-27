@@ -1,0 +1,228 @@
+--- D2-retained276-all-candidate-auditor-haiku-20261026-r1/audit_candidates.py	2026-10-25 22:53:09
++++ D2-retained276-all-candidate-auditor-haiku-20261026-r2/audit_candidates.py	2026-10-26 01:01:09
+@@ -20,15 +20,17 @@
+ 
+ ROOT = Path(__file__).resolve().parents[4]
+ OUT = Path(__file__).resolve().parent
+-PREP = ROOT / "learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r1"
+-RUN = ROOT / "learning/runs/v2/D2-retained276-continuation-20261026-r1"
++PREP = ROOT / "learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r2"
++RUN = ROOT / "learning/runs/v2/D2-retained276-continuation-20261026-r2"
++OBSERVER_DIR = ROOT / "learning/runs/v2/D2-retained276-continuation-execution-observer-luna-20261026-r2"
+ PARENT_RUN = ROOT / "learning/runs/v2/D2-retained204-lr1e4-20261026-r1"
+ PARENT_AUDIT = ROOT / "learning/runs/v2/D2-retained204-lr1e4-parent-terminal-audit-20261026-r1"
+ VENV_SITE = ROOT / "python/.venv/lib/python3.12/site-packages"
+ 
+ REG_PATH = PREP / "registration.json"
+-REG_SHA = "30a290809c52190313ac723ebe44dd7ab43f4bf6da6fc0b841f83f979b1e17a7"
+-RUNNER_SHA = "3ed39368b8118e36d84b1554aeea815a3e2bf6ea52c597a07f3ae2c1b4fb1e71"
++REG_SHA = "477217f3c7617ccbe01c651db8932eab01f54ea3924f213e67b413e640cf866c"
++OBSERVER_SHA = "e3782f1c28c05548e995f3cb8c1a41b2a66f77b69d9455cada0be465f950ad95"
++RUNNER_SHA = "db0bb3389ee5562bbb9cc1c550cdf64a077c7a1bf84a4f233df861867113a37b"
+ LAUNCHER_SHA = "6c1ed02b8b29e88491d6f5b7656bed43bfb40bfbb1c327c3ee1d57783e3c3554"
+ CONFIG_SHA = "f858a63c324fc312f794c0423aa56db2daf60793b62990cd51fa400afe3af628"
+ POLICY_SHA = "bfcbee1609cec0180495c957cf4b5e0b31356f395e2a706217cc9225647d23ae"
+@@ -39,7 +41,7 @@
+ PARENT_RUN_ID = "D2-retained204-lr1e4-20261026-r1"
+ PARENT_EVAL_JSON_SHA = "89454dba1753d5cb89eadc4339865780daadecdf78d7d040873e69e2c6d6e974"
+ PARENT_EVAL_JSONL_SHA = "2a3994d5503944318621695081e6482769ae69004d90f22f196ce57c6792eff0"
+-RUN_ID = "D2-retained276-continuation-20261026-r1"
++RUN_ID = "D2-retained276-continuation-20261026-r2"
+ RUN_SEED = 3791628419
+ PHASE_START, PHASE_END = 276, 348
+ UPDATES = tuple(range(PHASE_START, PHASE_END + 1, 12))
+@@ -470,6 +472,15 @@
+     if not eligible:
+         return None
+     return max(eligible, key=lambda u: (eligible[u], -u))
++
++
++def check_observer_dir(observer_dir):
++    """Full mode binds the one registered parent-owned observer directory and its accepted source."""
++    check(Path(observer_dir).resolve() == OBSERVER_DIR.resolve(),
++          "Observer directory differs from the registered parent-owned directory")
++    check(sha_file(OBSERVER_DIR / "observe.py") == OBSERVER_SHA, "Observer source digest differs")
++    instantiation, _ = stable_json(OBSERVER_DIR / "instantiation.json")
++    check(instantiation.get("observer_sha256") == OBSERVER_SHA, "Observer instantiation digest differs")
+ 
+ 
+ def audit(*, provisional, observer_dir=None):
+@@ -488,6 +499,7 @@
+     else:
+         check(tuple(published) == UPDATES, "Full mode requires all seven published certificates")
+         check(observer_dir is not None, "Full mode requires the parent-owned observer directory")
++        check_observer_dir(observer_dir)
+         targets = UPDATES
+ 
+     ctx = build_context(runner, reg, config, ckpt, survival_gate, identity_hash, journal, metrics)
+--- D2-retained276-all-candidate-auditor-haiku-20261026-r1/wrapper.py	2026-10-25 22:53:29
++++ D2-retained276-all-candidate-auditor-haiku-20261026-r2/wrapper.py	2026-10-26 01:01:24
+@@ -18,16 +18,16 @@
+ 
+ ROOT = Path(__file__).resolve().parents[4]
+ OUT = Path(__file__).resolve().parent
+-PREP = ROOT / "learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r1"
+-RUN = ROOT / "learning/runs/v2/D2-retained276-continuation-20261026-r1"
++PREP = ROOT / "learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r2"
++RUN = ROOT / "learning/runs/v2/D2-retained276-continuation-20261026-r2"
+ VENV = ROOT / "python/.venv"
+ VENV_SITE = VENV / "lib/python3.12/site-packages"
+ INTERPRETER = VENV / "bin/python"
+ PYCACHE_PREFIX = PREP / "empty-pycache"
+ REG_PATH = PREP / "registration.json"
+-REG_SHA = "30a290809c52190313ac723ebe44dd7ab43f4bf6da6fc0b841f83f979b1e17a7"
++REG_SHA = "477217f3c7617ccbe01c651db8932eab01f54ea3924f213e67b413e640cf866c"
+ AUD_PATH = OUT / "audit_candidates.py"
+-AUD_SHA = "e5d43d3b4b7d8a4f5a97dd278bbc3d29671f6ccfffddbfb5533854606c1b94ee"
++AUD_SHA = "726318b75981293eafd6dcdd0cf73c951747d4beb8826506072c0563bc6d1dd6"
+ DEP_ORIGINS = {"torch": VENV_SITE / "torch/__init__.py", "numpy": VENV_SITE / "numpy/__init__.py"}
+ AUTHORITY = {"selection": False, "best_replacement": False, "continuation": False,
+              "terminal_acceptance": False, "lease_clear": False, "new_receipt": False, "retained_publication": False}
+@@ -215,6 +215,9 @@
+     origins = bind_dependency_origins(reg)
+ 
+     aud.import_runtime = make_strict_import_runtime(aud.import_runtime, reg)
++    if not provisional:
++        need(observer_dir is not None, "Full mode requires the parent-owned observer directory")
++        aud.check_observer_dir(observer_dir)
+     audit = aud.audit(provisional=provisional, observer_dir=observer_dir)
+     check_versions(reg)
+     dodge_origins = check_loaded_dodge(reg, Path(reg["runtime_root"]).resolve(), reg["runtime_continuity"]["member_sha256"])
+--- D2-retained276-all-candidate-auditor-haiku-20261026-r1/test_audit_candidates.py	2026-10-25 22:55:56
++++ D2-retained276-all-candidate-auditor-haiku-20261026-r2/test_audit_candidates.py	2026-10-26 01:02:18
+@@ -6,6 +6,7 @@
+ Run: PYTHONDONTWRITEBYTECODE=1 PYTHONPYCACHEPREFIX=<prep>/empty-pycache python -B -m unittest test_audit_candidates
+ The live lease is not checked here (enforce_lease=False); the audit and wrapper always check it.
+ """
++import ast
+ import copy
+ import json
+ import math
+@@ -496,7 +497,70 @@
+         self.assertEqual(a.choose_best(means), 312)
+         self.assertEqual(a.retained_best(sorted(means.items())), 312)
+         self.assertNotEqual(a.retained_best(sorted(means.items())), 348)
++
++
++class R2RebindingControls(unittest.TestCase):
++    """R2 differs from frozen R1 only by RUN_ID and progress=progress; real parent rows pass the validator."""
++
++    def parent_rows(self):
++        """Accepted parent metric rows, relabelled to the 276->348 phase window (local counters unchanged)."""
++        rows, _ = a.parse_journal(a.read_stable(a.PARENT_RUN / "training-metrics.jsonl"), strict=True)
++        return [copy.deepcopy({**row, "phase_update": a.PHASE_START + row["local_update"]}) for row in rows]
++
++    def test_runner_delta_from_frozen_r1_is_run_id_and_progress_only(self):
++        r1 = (a.ROOT / "learning/runs/v2/D2-retained276-continuation-prepare-luna-20261026-r1/runner.py").read_bytes()
++        self.assertEqual(a.sha_bytes(r1), "3ed39368b8118e36d84b1554aeea815a3e2bf6ea52c597a07f3ae2c1b4fb1e71")
++        old, new = r1.decode("utf-8").splitlines(), a.read_stable(a.PREP / "runner.py").decode("utf-8").splitlines()
++        self.assertEqual(len(old), len(new))
++        changed = [i for i, (x, y) in enumerate(zip(old, new)) if x != y]
++        self.assertEqual(len(changed), 2)
++        self.assertEqual(old[changed[0]], 'RUN_ID = "D2-retained276-continuation-20261026-r1"')
++        self.assertEqual(new[changed[0]], 'RUN_ID = "D2-retained276-continuation-20261026-r2"')
++        self.assertEqual(old[changed[1]].strip(), "gradient_alignment_diagnostics=True)")
++        self.assertEqual(new[changed[1]].strip(), "gradient_alignment_diagnostics=True, progress=progress)")
++
++    def test_ppo_update_call_receives_progress(self):
++        tree = ast.parse(a.read_stable(a.PREP / "runner.py"))
++        calls = [n for n in ast.walk(tree) if isinstance(n, ast.Call) and getattr(n.func, "id", None) == "ppo_update"]
++        self.assertEqual(len(calls), 1)
++        self.assertIn("progress", {kw.arg for kw in calls[0].keywords})
++
++    def test_registration_pin_count_is_13787(self):
++        self.assertEqual(len(ctx()["reg"]["pins"]), 13787)
++
++    def test_real_parent_metric_rows_pass_frozen_validator(self):
++        c = ctx()
++        self.assertEqual(a.validate_metric_rows(c["runner"], self.parent_rows(), 72), 72 * 128)
+ 
++    def test_parent_transitions_drift_rejected(self):
++        c = ctx()
++        rows = self.parent_rows()
++        rows[9]["metrics"]["transitions"] -= 1
++        with self.assertRaisesRegex(a.AuditError, "Optimizer or rollout counts differ"):
++            a.validate_metric_rows(c["runner"], rows, 72)
+ 
++    def test_stale_progress_rejected(self):
++        """What an R1-style call without progress= leaves behind: the in-update snapshot is not complete."""
++        c = ctx()
++        rows = self.parent_rows()
++        rows[4]["update_progress"] = {**rows[4]["update_progress"], "complete": False, "in_update": True}
++        with self.assertRaisesRegex(a.AuditError, "Metric counter chain differs"):
++            a.validate_metric_rows(c["runner"], rows, 72)
++
++    def test_missing_gradient_alignment_rejected(self):
++        c = ctx()
++        rows = self.parent_rows()
++        del rows[2]["metrics"]["gradient_alignment_diagnostics"]
++        with self.assertRaises(ValueError):
++            a.validate_metric_rows(c["runner"], rows, 72)
++
++    def test_gradient_coverage_drift_rejected(self):
++        c = ctx()
++        rows = self.parent_rows()
++        rows[0]["metrics"]["gradient_alignment_diagnostics"]["coverage"]["critic_used"] -= 1
++        with self.assertRaises(ValueError):
++            a.validate_metric_rows(c["runner"], rows, 72)
++
++
+ if __name__ == "__main__":
+     unittest.main()
+--- D2-retained276-all-candidate-auditor-haiku-20261026-r1/test_terminal_wrapper.py	2026-10-25 22:55:14
++++ D2-retained276-all-candidate-auditor-haiku-20261026-r2/test_terminal_wrapper.py	2026-10-26 01:02:09
+@@ -4,6 +4,7 @@
+ PYTHONPYCACHEPREFIX, so no bytecode can land in the registered prefix. Negative controls that reach
+ the audit fail before any output is written; the output directory listing is compared to prove it.
+ """
++import ast
+ import importlib.util
+ import os
+ import subprocess
+@@ -158,7 +159,7 @@
+     def test_registration_digest_pinned(self):
+         self.assertEqual(wrapper.sha_file(wrapper.REG_PATH), wrapper.REG_SHA)
+         reg = wrapper.load_registration()
+-        self.assertEqual(reg["run_id"], "D2-retained276-continuation-20261026-r1")
++        self.assertEqual(reg["run_id"], "D2-retained276-continuation-20261026-r2")
+ 
+     def test_auditor_digest_pinned(self):
+         self.assertEqual(wrapper.sha_file(wrapper.AUD_PATH), wrapper.AUD_SHA)
+@@ -171,6 +172,37 @@
+             self.assertEqual(item["sha256"], reg["pins"][item["path"]])
+ 
+ 
++class ObserverBindingTests(unittest.TestCase):
++    """Full mode is bound to the one registered observer directory and its accepted source."""
++
++    def setUp(self):
++        self.aud = wrapper.load_auditor()
++
++    def test_registered_observer_dir_passes(self):
++        self.aud.check_observer_dir(self.aud.OBSERVER_DIR)
++
++    def test_other_observer_dir_rejected(self):
++        with self.assertRaisesRegex(self.aud.AuditError, "Observer directory differs"):
++            self.aud.check_observer_dir(HERE)
++
++    def test_observer_source_digest_drift_rejected(self):
++        with mock.patch.object(self.aud, "OBSERVER_SHA", "00" * 32):
++            with self.assertRaisesRegex(self.aud.AuditError, "Observer source digest differs"):
++                self.aud.check_observer_dir(self.aud.OBSERVER_DIR)
++
++    def test_observer_instantiation_digest_drift_rejected(self):
++        with mock.patch.object(self.aud, "stable_json", return_value=({"observer_sha256": "00" * 32}, "x")):
++            with self.assertRaisesRegex(self.aud.AuditError, "Observer instantiation digest differs"):
++                self.aud.check_observer_dir(self.aud.OBSERVER_DIR)
++
++    def test_wrapper_checks_observer_dir_before_audit_call(self):
++        tree = ast.parse(WRAPPER.read_text(encoding="utf-8"))
++        run_audit = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "run_audit")
++        calls = {c.func.attr: c.lineno for c in ast.walk(run_audit)
++                 if isinstance(c, ast.Call) and isinstance(c.func, ast.Attribute)}
++        self.assertLess(calls["check_observer_dir"], calls["audit"])
++
++
+ class SubprocessNegativeControls(unittest.TestCase):
+     def test_wrong_interpreter_fails_before_audit(self):
+         if not BASE_PYTHON.exists():

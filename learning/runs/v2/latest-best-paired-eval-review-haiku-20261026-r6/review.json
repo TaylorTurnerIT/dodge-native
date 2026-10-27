@@ -1,0 +1,123 @@
+{
+  "schema": "latest_best_paired_eval_r6_calibration_review_v1",
+  "reviewer": "haiku-20261026-r6",
+  "scope": "read-only CPU review of frozen R6 preparation and future R2 calibration plan; no hardware, MPS, game, training, checkpoint, lease, or state writes",
+  "verdict": "BLOCK",
+  "verdict_scope": "R2 calibration probe must not be authorized until blockers are fixed and re-frozen",
+  "inspected_sha256": {
+    "r6_preparation_receipt": "d0d9020657412bf2a5b0040fea05c35c5e49df7bd3e48a09aee5c6752ac3193a",
+    "r6_protocol": "547d33a4716b7be7e03c663f06a9c784d2497d212e2155e07ac872e4d1612655",
+    "r6_input_manifest": "4cafb2cf6ccbb6de77d7d3d05ad9c59674a2d621bc8e88235eeb905fdbba3f00",
+    "r6_worker": "c663543638e6bc5aea684a3dd38e27c079bd633f784590219d148d16fa0d190e",
+    "r6_paired_eval": "51b78e6e74dcbaf3d9b04302d6f9ea1e37ea92779e9d237c48dd03ec77946475",
+    "r6_supervisor": "0aacb8e539585312c053f70518a041a487ca09598865d88e111c5a284b4b25bd",
+    "r6_freeze_artifacts": "ecaf765735b9c30a0d8d4efc11bbabeb067f46224964f90003504bfa86ab5e47",
+    "r2_calibration_plan": "54f870a0f28ccd7734acca28ce7daab0fdc937b457addd8b9e0bccec6e2b7485",
+    "r2_source_pins": "2c73e8e79861a5bbed2f78fbbafce7267e5d2d6e1a3d70cbed8e1596a639e69f",
+    "r2_launch_once": "5f4317ec8821c48074139c6c61e5ab3c50270cbd8e7ec39762bb283d6e268ca4",
+    "r2_probe": "1be007d694a5be6c540852c59845c39f2a48ecfa0dc50e64c47c6fa9330ebb72",
+    "r2_cpu_preflight": "020fdc79a0ed3d66a690cb5055c3a79c87076b87ae4975cdee420466d69f73be",
+    "r2_preparation_receipt_per_freeze_output": "32d9ac99fa065acb6657a185944aaa50fdecd8b0209fc1c9571a256934205162"
+  },
+  "not_inspected": [
+    "R5 review.json/review.md, R5 receipt, R1 calibration receipt, parent failure audit",
+    "full 56-file source pin set beyond the anchor hash",
+    "paired_eval.py, supervisor.py bodies beyond anchors",
+    "harness_sha256 anchor recomputation"
+  ],
+  "blockers": [
+    {
+      "id": "B-1",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r2/launch_once.py",
+      "line": 126,
+      "summary": "Launcher reads plan[\"interpreter\"] which is absent from calibration-plan.json; KeyError occurs after the one-shot marker is created at line 119-121.",
+      "failure_scenario": "Parent authorizes the reservation; launcher writes launch-once.marker, then raises KeyError before spawning the probe. The one-shot authorization is consumed with no probe or result written.",
+      "fix": "Add interpreter {resolved_target, sha256} to the plan or pin it in source-pins.json; move marker creation after all pre-spawn checks; re-freeze plan and pins and re-review."
+    },
+    {
+      "id": "B-2",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r2/launch_once.py",
+      "line": 95,
+      "summary": "No live authoritative-state check before hardware; reservation only compares static fields including no_concurrent_long_mps_training.",
+      "failure_scenario": "A long best204 training or campaign lease is active when the reservation file still reads no_concurrent_long_mps_training true; the probe starts MPS work and competes with training.",
+      "fix": "Pin the authoritative state path and hash in the plan; read it in the launcher before the marker and in the probe immediately before the MPS load; require no active_long_campaign, no active training or MPS job, and no cancel request; record the observed state hash."
+    },
+    {
+      "id": "B-3",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r2/launch_once.py",
+      "line": 119,
+      "summary": "One-shot marker path depends on the output parent directory, so a second launch with a different parent passes while the reservation still reads authorized_once true.",
+      "failure_scenario": "Second launch uses a new output parent, creates a fresh marker, and spawns another MPS probe under the same reservation.",
+      "fix": "Use a fixed marker path under the calibration directory, for example HERE / \"launch-once.marker\"."
+    },
+    {
+      "id": "B-4",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r2/probe.py",
+      "line": 191,
+      "summary": "Freshness and interarrival gates default to zero on empty data; resource_sample_count > 0 is the only sample-count gate.",
+      "failure_scenario": "The 8-forward workload finishes in under 1 s with one sample; max gap is 0.0 and max after-read age is 0.0, so the probe passes freshness with no measured steady-state sampling.",
+      "fix": "Require a non-empty gap list, a minimum complete sample count derived from the MPS-active window, and an exact guard count (64 construction guards plus 9 per decision iteration across 8 iterations = 136 with GUARD_ACTION_CHUNK = 8 at worker.py:566). Do not relax the 1.0 s or 10 s thresholds."
+    },
+    {
+      "id": "B-5",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r2/probe.py",
+      "line": 153,
+      "summary": "Probe is an 8-decision smoke test, not representative load; a pass cannot support steady freshness or IO qualification.",
+      "failure_scenario": "Parent treats a single passing 8-forward probe as the representative qualified probe required before the 512-episode campaign.",
+      "fix": "Either label any result smoke_only with representative_qualification false, or write a new plan that repeats the synthetic decision loop until the MPS-active window reaches the target duration within the 90 s budget, with fresh review."
+    }
+  ],
+  "narrow_findings": [
+    {
+      "id": "N-1",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r2/probe.py",
+      "line": 133,
+      "summary": "Pins and reservation are checked before the up-to-10 s first-sample wait, not directly before the MPS model load at line 153.",
+      "fix": "Move verify_pins and check_reservation to directly before the load_inference_model(\"best204\", device=\"mps\") call."
+    },
+    {
+      "id": "N-2",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r2/launch_once.py",
+      "line": 146,
+      "summary": "ps check=True races with child exit; a vanished PID raises in the monitor, which fails a successful run after the marker is consumed.",
+      "fix": "Check process.poll() before each ps call; treat a vanished PID as end of sampling."
+    },
+    {
+      "id": "N-3",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r2/launch_once.py",
+      "line": 140,
+      "summary": "On outer timeout, SIGTERM skips the probe finally block, so probe-result.json and cleanup evidence are not written.",
+      "fix": "Record the timeout disposition in the launcher result path; keep the 10 s cleanup budget."
+    },
+    {
+      "id": "N-4",
+      "file": "learning/runs/v2/latest-best-paired-eval-prepare-luna-20261026-r6/tests/test_paired_eval.py",
+      "line": 1,
+      "summary": "No tests exercise probe.py, launch_once.py, or SyntheticEnv; first execution is the first test.",
+      "fix": "Parent replays focused CPU tests; add a CPU-only dry run of the launcher with stub reservation and stub interpreter in a temp directory, no MPS."
+    }
+  ],
+  "checked_ok": [
+    "R6 receipt, protocol, manifest, plan, and pins anchors match",
+    "cpu-preparation-validation.json: 0 MPS operations, 0 game episodes, strict CPU loads for best204 and latest252",
+    "cpu-preflight.json elapsed 2.29 s; launcher plus probe re-verification fits the 120 s outer bound",
+    "worker.read_latest_resource_sample fails closed on missing, partial, malformed, future, or stale samples",
+    "probe wiring to worker.evaluate matches signature at worker.py:452-455"
+  ],
+  "required_before_rereview": [
+    "Fix B-1 through B-5 and re-freeze plan and pins",
+    "Parent replays focused CPU tests independently",
+    "Parent registers new run ID and client request ID with new exact reservation bound to new plan SHA",
+    "Confirm live authoritative state before any MPS work",
+    "No retry of failed R1 probe"
+  ],
+  "writes": ["learning/runs/v2/latest-best-paired-eval-review-haiku-20261026-r6/review.md", "learning/runs/v2/latest-best-paired-eval-review-haiku-20261026-r6/review.json", "learning/runs/v2/latest-best-paired-eval-review-haiku-20261026-r6/receipt.json"],
+  "claims": {
+    "qualification": false,
+    "d3": false,
+    "b_e": false,
+    "student": false,
+    "held_out": false,
+    "hardware_acceptance": false
+  }
+}

@@ -1,0 +1,459 @@
+{
+  "cancellation_regression_review": {
+    "cleanup_scope": "start_new_session=True remains at runner.py:806-807; stop_owned at 257-313 still signals only the recorded worker process group. The deferred handler returns through cleanup requests; no cleanup target, guard or resource algorithm changed.",
+    "handler_restoration_verified_in_all_independent_cases": true,
+    "latch_survives_context_and_stream_close": true,
+    "operating_system_signal_delivery_tested": false,
+    "publication_evidence": "Independent SIGTERM handler invocation during output hashing raises into publish_terminal failure handling; exit 1, failed/partial run and terminal, candidate stable manifest revoked.",
+    "publication_first_signal_fails_closed": true
+  },
+  "continued_diagnostic_semantics_static_review": [
+    {
+      "area": "Checkpoint scope",
+      "assessment": "Only the three pinned COMPLETE entry/phase96/phase104 failed-run diagnostic checkpoint inputs are accepted. weights_only=True and narrow NumPy safe globals remain. Strict identity/counters/shape/float32/finite checks precede model-only state loading. No optimizer/RNG/episode restoration, eligibility change, training or checkpoint writer is introduced.",
+      "evidence": "runner.py:316-361,643-655"
+    },
+    {
+      "area": "Controls and experiment order",
+      "assessment": "Both historical controls validate and index 64 unique seeds and compare all nine fields before any sampling. Phase104 remains a new baseline. Exactly 12 groups and 768 episodes are required; B/E and student work remain excluded.",
+      "evidence": "runner.py:364-392,527-544,642-661; registered protocol"
+    },
+    {
+      "area": "Device, batching and sampling",
+      "assessment": "MPS float32 full teacher, 64 independent original B1 environments, sorted shrinking active batches, K4, D2 patterns/powerups and cap18000 remain unchanged. One global batched Categorical draw uses controller seeds64001/64002/64003, set once per evaluation after model loading. No CPU inference fallback.",
+      "evidence": "runner.py:415-524,635-655"
+    },
+    {
+      "area": "Paired statistics",
+      "assessment": "Three sampled replicates are averaged within each of 64 paired seed clusters. 10000 shared-index bootstrap draws use fixed seed764002. Margins100 alive frames/1 score, phase104 primary and mixed_or_inconclusive logic remain unchanged; no automatic training or checkpoint selection.",
+      "evidence": "runner.py:547-588"
+    },
+    {
+      "area": "Context and unchanged algorithms",
+      "assessment": "Observation presence and K4 first visibility remain context only; death_cause stays UNKNOWN. Worker, evaluator, model reader, RNG/statistics, guard and owned cleanup ASTs are unchanged. Only cancellation_signals and supervise differ, plus protocol provenance constants.",
+      "evidence": "runner.py:395-412,479-516; AST comparison against exact r2"
+    }
+  ],
+  "execution_authorized_by_this_review": false,
+  "findings": [],
+  "finished_at_utc": "2026-10-24T15:41:55.606916+00:00",
+  "independent_synthetic_review": {
+    "case_count": 17,
+    "cases": [
+      {
+        "cancellation_requests": null,
+        "cleanup_completed": true,
+        "counter_copy_preserved": true,
+        "exit_code": 0,
+        "handlers_restored": true,
+        "manifest_consistent": true,
+        "partial": false,
+        "signals": [],
+        "stable_manifest": true,
+        "stage": "success",
+        "status": "complete",
+        "stimulus": "bounded successful worker, no cancellation",
+        "terminal_status": "complete"
+      },
+      {
+        "cancellation_requests": 1,
+        "cleanup_completed": true,
+        "counter_copy_preserved": true,
+        "exit_code": 1,
+        "handlers_restored": true,
+        "manifest_consistent": true,
+        "partial": true,
+        "signals": [
+          "SIGINT"
+        ],
+        "stable_manifest": true,
+        "stage": "cleanup",
+        "status": "failed",
+        "stimulus": "direct invocation of installed cancellation handler",
+        "terminal_status": "failed"
+      },
+      {
+        "cancellation_requests": 1,
+        "cleanup_completed": true,
+        "counter_copy_preserved": true,
+        "exit_code": 1,
+        "handlers_restored": true,
+        "manifest_consistent": true,
+        "partial": true,
+        "signals": [
+          "SIGTERM"
+        ],
+        "stable_manifest": true,
+        "stage": "cleanup",
+        "status": "failed",
+        "stimulus": "direct invocation of installed cancellation handler",
+        "terminal_status": "failed"
+      },
+      {
+        "cancellation_requests": 1,
+        "cleanup_completed": true,
+        "counter_copy_preserved": true,
+        "exit_code": 1,
+        "handlers_restored": true,
+        "manifest_consistent": true,
+        "partial": true,
+        "signals": [
+          "SIGINT"
+        ],
+        "stable_manifest": true,
+        "stage": "guard_close",
+        "status": "failed",
+        "stimulus": "direct invocation of installed cancellation handler",
+        "terminal_status": "failed"
+      },
+      {
+        "cancellation_requests": 1,
+        "cleanup_completed": true,
+        "counter_copy_preserved": true,
+        "exit_code": 1,
+        "handlers_restored": true,
+        "manifest_consistent": true,
+        "partial": true,
+        "signals": [
+          "SIGTERM"
+        ],
+        "stable_manifest": true,
+        "stage": "guard_close",
+        "status": "failed",
+        "stimulus": "direct invocation of installed cancellation handler",
+        "terminal_status": "failed"
+      },
+      {
+        "cancellation_requests": 1,
+        "cleanup_completed": true,
+        "counter_copy_preserved": true,
+        "exit_code": 1,
+        "handlers_restored": true,
+        "manifest_consistent": true,
+        "partial": true,
+        "signals": [
+          "SIGINT"
+        ],
+        "stable_manifest": true,
+        "stage": "final_verification",
+        "status": "failed",
+        "stimulus": "direct invocation of installed cancellation handler",
+        "terminal_status": "failed"
+      },
+      {
+        "cancellation_requests": 1,
+        "cleanup_completed": true,
+        "counter_copy_preserved": true,
+        "exit_code": 1,
+        "handlers_restored": true,
+        "manifest_consistent": true,
+        "partial": true,
+        "signals": [
+          "SIGTERM"
+        ],
+        "stable_manifest": true,
+        "stage": "final_verification",
+        "status": "failed",
+        "stimulus": "direct invocation of installed cancellation handler",
+        "terminal_status": "failed"
+      },
+      {
+        "cancellation_requests": 1,
+        "cleanup_completed": true,
+        "counter_copy_preserved": true,
+        "exit_code": 1,
+        "handlers_restored": true,
+        "manifest_consistent": true,
+        "partial": true,
+        "signals": [
+          "SIGINT"
+        ],
+        "stable_manifest": true,
+        "stage": "guard_receipt",
+        "status": "failed",
+        "stimulus": "direct invocation of installed cancellation handler",
+        "terminal_status": "failed"
+      },
+      {
+        "cancellation_requests": 1,
+        "cleanup_completed": true,
+        "counter_copy_preserved": true,
+        "exit_code": 1,
+        "handlers_restored": true,
+        "manifest_consistent": true,
+        "partial": true,
+        "signals": [
+          "SIGTERM"
+        ],
+        "stable_manifest": true,
+        "stage": "guard_receipt",
+        "status": "failed",
+        "stimulus": "direct invocation of installed cancellation handler",
+        "terminal_status": "failed"
+      },
+      {
+        "cancellation_requests": 1,
+        "cleanup_completed": true,
+        "counter_copy_preserved": true,
+        "exit_code": 1,
+        "handlers_restored": true,
+        "manifest_consistent": true,
+        "partial": true,
+        "signals": [
+          "SIGINT"
+        ],
+        "stable_manifest": true,
+        "stage": "stream_close",
+        "status": "failed",
+        "stimulus": "direct invocation of installed cancellation handler",
+        "terminal_status": "failed"
+      },
+      {
+        "cancellation_requests": 1,
+        "cleanup_completed": true,
+        "counter_copy_preserved": true,
+        "exit_code": 1,
+        "handlers_restored": true,
+        "manifest_consistent": true,
+        "partial": true,
+        "signals": [
+          "SIGTERM"
+        ],
+        "stable_manifest": true,
+        "stage": "stream_close",
+        "status": "failed",
+        "stimulus": "direct invocation of installed cancellation handler",
+        "terminal_status": "failed"
+      },
+      {
+        "cancellation_requests": 3,
+        "cleanup_completed": true,
+        "counter_copy_preserved": true,
+        "exit_code": 1,
+        "handlers_restored": true,
+        "manifest_consistent": true,
+        "partial": true,
+        "signals": [
+          "SIGTERM",
+          "SIGINT",
+          "SIGTERM"
+        ],
+        "stable_manifest": true,
+        "stage": "cleanup",
+        "status": "failed",
+        "stimulus": "direct invocation of installed cancellation handler",
+        "terminal_status": "failed"
+      },
+      {
+        "cancellation_requests": 2,
+        "cleanup_completed": true,
+        "counter_copy_preserved": true,
+        "exit_code": 1,
+        "handlers_restored": true,
+        "manifest_consistent": true,
+        "partial": true,
+        "signals": [
+          "SIGINT",
+          "SIGTERM"
+        ],
+        "stable_manifest": true,
+        "stage": "stream_close",
+        "status": "failed",
+        "stimulus": "direct invocation of installed cancellation handler",
+        "terminal_status": "failed"
+      },
+      {
+        "cancellation_requests": null,
+        "cleanup_completed": true,
+        "counter_copy_preserved": true,
+        "exit_code": 1,
+        "handlers_restored": true,
+        "manifest_consistent": false,
+        "partial": true,
+        "requested_signals": [
+          "SIGTERM"
+        ],
+        "signals": [],
+        "stable_manifest": false,
+        "stage": "output_hash",
+        "status": "failed",
+        "stimulus": "direct SIGTERM invocation during output hash; handler raises before fixture post-callback event logging",
+        "terminal_status": "failed"
+      },
+      {
+        "cancellation_requests": null,
+        "cleanup_completed": true,
+        "counter_copy_preserved": true,
+        "exit_code": 1,
+        "handlers_restored": true,
+        "manifest_consistent": false,
+        "partial": true,
+        "signals": [],
+        "stable_manifest": false,
+        "stage": "guard_close",
+        "status": "failed",
+        "stimulus": "fixture clock crosses deadline during guard_close",
+        "terminal_status": "failed"
+      },
+      {
+        "cancellation_requests": null,
+        "cleanup_completed": true,
+        "counter_copy_preserved": true,
+        "exit_code": 1,
+        "handlers_restored": true,
+        "manifest_consistent": false,
+        "partial": true,
+        "signals": [],
+        "stable_manifest": false,
+        "stage": "output_hash",
+        "status": "failed",
+        "stimulus": "fixture clock crosses deadline during output_hash",
+        "terminal_status": "failed"
+      },
+      {
+        "cancellation_requests": null,
+        "cleanup_completed": true,
+        "counter_copy_preserved": true,
+        "exit_code": 1,
+        "handlers_restored": true,
+        "manifest_consistent": false,
+        "partial": true,
+        "signals": [],
+        "stable_manifest": false,
+        "stage": "nonempty_group",
+        "status": "failed",
+        "stimulus": "reaped worker leader with unproven empty owned group",
+        "terminal_status": "failed"
+      }
+    ],
+    "method": "Actual frozen supervise/publish_terminal; entirely in-memory filesystem and fake successful worker/clock/guard/cleanup. Real handlers installed/restored; invoked directly, no OS signal or process created. Input verification patched for control-flow isolation; verified separately by hashes.",
+    "torch_imported": false
+  },
+  "prior_finding_closure": [
+    {
+      "evidence": [
+        "runner.py:236-246 exposes the compatible defer callable, latches the first signal and counts requests before the handler decides whether to raise. Deferred requests do not interrupt cleanup.",
+        "runner.py:773 places the stream inside the outer cancellation context. Stream closure precedes handler restoration, so requests during stream close remain on the retained defer callable.",
+        "runner.py:905-910 reads the retained latch after both stream closure and cancellation-context exit, then marks status failed/partial with signal/count before publish_terminal.",
+        "Independent actual-supervisor probes cover SIGINT and SIGTERM during cleanup, guard close, final verification, guard receipt and final stream close, plus repeated mixed requests. All return 1 with failed run and terminal status, preserved counters and completed cleanup.",
+        "A stable manifest for failed/partial evidence is correct when leader reaping and empty-group proof hold; these cancellation cases preserve consistent failed manifests. None publishes a complete terminal."
+      ],
+      "id": "R2-F1",
+      "status": "closed"
+    },
+    {
+      "evidence": [
+        "The r2 current-time finalization checks and publish_terminal are AST-identical. The cleanup reserve does not shift the original deadline.",
+        "Independent guard-close and output-hash probes crossing 600 seconds return 1 with failed terminal status and no stable manifest.",
+        "Timing remains a lower bound through receipt preparation, excluding its own write/process exit. Parent still owns actual exit/wall observation; synchronous operations are checked at boundaries rather than preempted."
+      ],
+      "id": "R1-F1",
+      "status": "remains_closed_for_reported_false_success_defect"
+    },
+    {
+      "evidence": [
+        "runner.py:870-875 requires a reaped leader, group_empty exactly True and no cleanup error/errors before stable hashing.",
+        "Independent reaped-leader/nonempty-group probe returns 1 with failed terminal status and no stable manifest.",
+        "The group-absence cleanup algorithm is AST-identical to reviewed r2."
+      ],
+      "id": "R1-F2",
+      "status": "remains_closed"
+    },
+    {
+      "evidence": "Original counter-copy loop remains unchanged at runner.py:901-904. All independent supervisor probes preserve completed worker counts.",
+      "id": "withdrawn_parent_counter_finding",
+      "status": "remains_withdrawn"
+    }
+  ],
+  "retained_test_evidence": {
+    "evidence_boundary": "Retained 72-case preparation results and 20 semantic negative controls were inspected and hash-verified, not independently rerun. The 17 fresh review probes are separate in-memory standard-library control-flow evidence.",
+    "negative_control_targets_archives_test_sources_commands_and_logs_verified": true,
+    "new_cancellation_cases": 8,
+    "new_test_patch_reviewed": true,
+    "original_cases": 44,
+    "positive_cancellation_cases": "Both SIGINT and SIGTERM in cleanup, guard.close and final verify; repeated requests for both signals in cleanup. Tests require exit 1, failed/partial run and terminal, first signal/count, preserved counters, reaping/group absence, and restored handler.",
+    "positive_execution_sources_match_frozen_capsule": true,
+    "positive_receipt_and_log_hashes_verified": true,
+    "positive_test_count": 72,
+    "prior_finalization_cases": 20,
+    "r1_negative_control_semantic_failures": 12,
+    "r1_negative_control_setup_or_API_errors": 0,
+    "r1_negative_control_target_sha256": "6159ba14637274a56b5324bb195b6f02ef35de5a6e760ee78d628aa95b991e2d",
+    "r2_negative_control_semantic_failures": 8,
+    "r2_negative_control_setup_or_API_errors": 0,
+    "r2_negative_control_target_sha256": "6c190542e142d34f12466d9ad17cfa8867b72111defc58517a37c068561d9dd4",
+    "reason_not_rerun": "The original 44-case suite imports Torch. Review permits only static analysis and bounded standard-library synthetic probes; the actual supervisor was independently probed in memory.",
+    "retained_tests_rerun_by_reviewer": false
+  },
+  "review_round": 3,
+  "reviewed_identity": {
+    "actual_runner_diff_matches_retained_patch": true,
+    "campaign_output_exists_at_review": false,
+    "canonical_inventory": "learning/runs/v2/postovernight-action-mode-prepare-r3/artifact-manifest-final.json",
+    "canonical_inventory_entries_verified": 116,
+    "canonical_inventory_hash_mismatches": [],
+    "canonical_inventory_unlisted_payloads": [],
+    "capsule": "learning/runs/v2/postovernight-action-mode-prepare-r3/source-snapshot",
+    "capsule_all_files_and_directories_readonly": true,
+    "capsule_manifest_sha256": "1b27ce7ec141a124dc880cddc214eee1788ac503a3951005f1200c1873445e50",
+    "capsule_payload_files_verified": 87,
+    "checkout": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79",
+    "checkpoint_byte_hashes_verified_in_original_and_capsule": 3,
+    "existing_function_ast_changes_vs_exact_r2": [
+      "cancellation_signals",
+      "supervise"
+    ],
+    "external_pins_verified": 3,
+    "initial_inventory_mismatches": [
+      "preparation.log"
+    ],
+    "initial_inventory_passed": false,
+    "inventory_correction": "The original artifact-manifest.json is retained and has the declared preparation.log mismatch. Independently verified artifact-manifest-final.json: all 116 entries match, with no unlisted files except the inventory itself. No source or experiment rerun was used.",
+    "new_or_removed_top_level_functions": [],
+    "original_foundation_inputs_verified_in_original_and_capsule": 75,
+    "prior_protected_files_verified_byte_identical": 218,
+    "protocol": "learning/runs/v2-orchestration/postovernight-action-mode-r3-protocol.json",
+    "protocol_changed_fields_only": [
+      "runner",
+      "version",
+      "protocol_revision",
+      "supersedes_protocol"
+    ],
+    "protocol_sha256": "90e3ae1cc8ba253e2e64a708f9b66ed59762e85668a15197d04d9265180ea741",
+    "runner_logical_path": "learning/runs/v2/postovernight-action-mode-prepare-r3/runner.py",
+    "runner_sha256": "8c4be28db13db8df2c4fb647ea10fdd815ef6612139dc497b04b4b6915f9e329",
+    "saved_control_byte_hashes_verified_in_original_and_capsule": 2
+  },
+  "scope_and_limits": {
+    "MPS_inference_calls": 0,
+    "OS_signals_sent": 0,
+    "campaigns_launched": 0,
+    "checkpoint_files_written": 0,
+    "decision": "No findings in the requested frozen review scope. Parent owns launch acceptance and actual exit/wall observation. This review grants no launch, training, qualification or eligibility authority.",
+    "delegated_children": 0,
+    "external_messages": 0,
+    "mode": "Read-only frozen R3 review, focused on R2-F1 closure and cancellation regressions.",
+    "native_environments": 0,
+    "native_imports": 0,
+    "numpy_imports": 0,
+    "only_new_output": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-action-mode-harness-review-r3/result.json",
+    "provider_retries": 0,
+    "real_checkpoint_deserializations": 0,
+    "source_config_ledger_docs_checkpoint_metadata_edits": 0,
+    "subprocess_children_created": 0,
+    "teacher_constructions": 0,
+    "teacher_forwards": 0,
+    "torch_imports": 0,
+    "training_updates": 0,
+    "unverified": [
+      "Actual model/native/MPS execution and sampling behavior",
+      "Historical control replay in the actual campaign",
+      "Actual process-group termination and OS signal delivery",
+      "Resource use and guard sampling cadence under inference",
+      "768-episode completion and 600-second feasibility",
+      "Actual process exit and wall time"
+    ]
+  },
+  "status": "no_findings_with_scope_limits",
+  "version": "frozen_action_mode_harness_adversarial_review_r3"
+}

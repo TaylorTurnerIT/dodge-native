@@ -1,0 +1,208 @@
+--- learning/runs/v2/expanded-eval-runner-pipeline-repair-luna-20261026-r3/execute_once.py	2026-10-26 17:32:15
++++ learning/runs/v2/expanded-supervisor-cleanup-repair-luna-20261026-r1/execute_once.py	2026-10-26 17:37:40
+@@ -17,6 +17,8 @@
+ RANKING_FRAMES=110592000
+ CONFIRMATION_FRAMES=73728000
+ class PreflightError(RuntimeError): pass
++class SupervisorSignal(BaseException):
++ def __init__(self,signum):self.signum=signum
+ 
+ def sha(path):
+  h=hashlib.sha256()
+@@ -40,6 +42,12 @@
+    if len(a)==3 and int(a[1])==pid:rows.append((int(a[0]),int(a[2])*1024))
+   return rows
+  except Exception as e: raise RuntimeError('cannot sample actual owned process group RSS') from e
++def sample_procs(pid):
++ try:return active_procs(pid),None
++ except Exception as e:return None,'process_group_sampling_failed:'+str(e)
++def sample_procs(pid):
++ try:return active_procs(pid),None
++ except Exception as e:return None,'process_group_sampling_failed:'+str(e)
+ def aggregate_rss(pid):
+  rows=active_procs(pid)
+  if not rows:return 0,[]
+@@ -64,10 +72,12 @@
+  if expected[0] is not None and update!=expected[0] or cohort!=expected[1]: raise PreflightError('mode/update/cohort mismatch')
+  if Path(output).resolve().parent!=Path(reg['output_dir']).resolve(): raise PreflightError('output outside registered output directory')
+  planned=[Path(output)]
++ receipt_path=Path(output).with_suffix(Path(output).suffix+'.outer-receipt.json')
++ planned.append(receipt_path)
+  if stage=='benchmark': planned += [Path(output).with_name(Path(output).stem+f'-repeat-{i}'+Path(output).suffix) for i in (1,2)]
+  elif stage=='ranking': planned += [Path(output).with_name(Path(output).stem+f'-candidate-{k}'+Path(output).suffix) for k in sorted(reg.get('candidates',{}),key=int)]
+  elif stage=='confirmation': planned += [Path(output).with_name(Path(output).stem+'-winner'+Path(output).suffix),Path(output).with_name(Path(output).stem+'-incumbent-348'+Path(output).suffix)]
+- if len({str(x.resolve()) for x in planned})!=len(planned) or any(x.exists() for x in planned): raise PreflightError('planned evaluator output exists or collides')
++ if len({str(x.resolve()) for x in planned})!=len(planned) or any(x.exists() for x in planned): raise PreflightError('planned evaluator output or outer receipt exists or collides')
+  if Path(reg['one_shot_marker']).exists(): raise PreflightError('one-shot marker already exists')
+  if Path(output).exists(): raise PreflightError('stage output already exists')
+ 
+@@ -194,59 +204,75 @@
+  marker=Path(reg['one_shot_marker']);atomic_json(marker,{'run_id':reg['run_id'],'registration_sha256':registration_sha256,'pid':os.getpid(),'timestamp_ns':time.time_ns()})
+  start=time.monotonic(); outer=float(reg['limits']['outer_seconds']); deadline=start+outer-CLEANUP
+  heartbeat=Path(reg['output_dir'])/'worker-heartbeat.json';log=Path(reg['output_dir'])/'worker.log'
+- proc=None;reason=None;exit_code=None;rows=[];last=0;cleanup_attempted=False;receipt_path=out.with_suffix(out.suffix+'.outer-receipt.json')
++ proc=None;reason=None;exit_code=None;rows=None;last=0;cleanup_attempted=False;receipt_path=out.with_suffix(out.suffix+'.outer-receipt.json');handling_signal=False
++ previous_handlers={}
++ def on_signal(signum,frame):
++  nonlocal reason
++  if handling_signal:return
++  reason='supervisor_signal:'+signal.Signals(signum).name
++  raise SupervisorSignal(signum)
++ for sig in (signal.SIGTERM,signal.SIGHUP):
++  previous_handlers[sig]=signal.getsignal(sig);signal.signal(sig,on_signal)
+  try:
+-  Path(reg['output_dir']).mkdir(parents=True,exist_ok=True)
+-  exe=next(x['path'] for x in reg['review_records'] if x.get('kind')=='runtime_executable')
+-  cmd=[exe,str(w),'--registration',str(rp),'--registration-sha256',registration_sha256,'--evaluator',str(e),'--output',str(out),'--stage',stage,'--candidate-update',str(candidate_update),'--cohort',cohort,'--heartbeat',str(heartbeat),'--deadline',str(deadline)]
+-  with log.open('xb') as lf:
+-   proc=subprocess.Popen(cmd,start_new_session=True,stdout=lf,stderr=subprocess.STDOUT,close_fds=True)
+-   grace_end=min(deadline,start+float(reg['limits'].get('startup_grace_seconds',START_GRACE)))
+-   while proc.poll() is None:
+-    now=time.monotonic()
+-    if now>=deadline:reason='wall_limit';break
+-    if now-last>=POLL:
+-     rss,rows=aggregate_rss(proc.pid)
+-     if rss>CAP:reason='rss_limit';break
+-     if heartbeat.exists():
+-      try:mps,h=mps_from_heartbeat(heartbeat,proc.pid,reg)
+-      except Exception as ex:reason='heartbeat_invalid:'+str(ex);break
+-      if h['rss_bytes']>CAP:reason='worker_rss_limit';break
+-      if mps>CAP:reason='mps_limit';break
+-     elif now>grace_end:reason='heartbeat_missing';break
+-     if Path(reg['cancel_path']).exists():reason='cancelled';break
+-     try:
+-      mark=read(reg['one_shot_marker'])
+-      if mark.get('run_id')!=reg['run_id'] or mark.get('registration_sha256')!=registration_sha256:raise RuntimeError('one-shot marker lost or changed')
+-      for source_name in ('evaluator','worker','launcher'):
+-       item=reg['source'];require_hash(item[source_name+'_path'],item[source_name+'_sha256'],source_name+' source changed during run')
+-     except Exception as ex:reason='source_or_marker_invalid:'+str(ex);break
+-     state=read(reg['state_path'])
+-     if state.get('active_inference_diagnostic')!=reg['expected_lease'] or state.get('active_long_campaign') not in (None,False) or state.get('active_long') not in (None,False) or state.get('active_inference') not in (None,False):reason='lease_invalid';break
+-     if sha(rp)!=registration_sha256:reason='registration_changed';break
+-     last=now
+-    time.sleep(.02)
+-   if reason:
+-    cleanup_attempted=True;terminate_bounded(proc,deadline);rows=active_procs(proc.pid)
+-   else:exit_code=proc.wait(timeout=max(.01,deadline-time.monotonic()))
+- except BaseException as ex:
+-  if proc is not None and proc.poll() is None and not cleanup_attempted:
+-   cleanup_attempted=True;terminate_bounded(proc,deadline)
+-  if proc is not None:rows=active_procs(proc.pid)
+-  reason=reason or 'supervisor_exception'
+-  if proc is not None:exit_code=proc.poll()
+-  atomic_json(receipt_path,receipt(reg,registration_sha256,stage,candidate_update,cohort,start,reason,exit_code,rows,log))
+-  raise
+- exit_code=proc.returncode if proc else None
+- # Require raw worker exit and no remaining process in owned group.
+- remaining=active_procs(proc.pid) if proc else []
+- rows=remaining
+- if remaining:
+-  if not cleanup_attempted:cleanup_attempted=True;terminate_bounded(proc,deadline)
+-  remaining=active_procs(proc.pid);rows=remaining
++  try:
++   Path(reg['output_dir']).mkdir(parents=True,exist_ok=True)
++   exe=next(x['path'] for x in reg['review_records'] if x.get('kind')=='runtime_executable')
++   cmd=[exe,str(w),'--registration',str(rp),'--registration-sha256',registration_sha256,'--evaluator',str(e),'--output',str(out),'--stage',stage,'--candidate-update',str(candidate_update),'--cohort',cohort,'--heartbeat',str(heartbeat),'--deadline',str(deadline)]
++   with log.open('xb') as lf:
++    proc=subprocess.Popen(cmd,start_new_session=True,stdout=lf,stderr=subprocess.STDOUT,close_fds=True)
++    grace_end=min(deadline,start+float(reg['limits'].get('startup_grace_seconds',START_GRACE)))
++    while proc.poll() is None:
++     now=time.monotonic()
++     if now>=deadline:reason='wall_limit';break
++     if now-last>=POLL:
++      try:rss,rows=aggregate_rss(proc.pid)
++      except Exception as ex:reason='process_group_sampling_failed:'+str(ex);break
++      if rss>CAP:reason='rss_limit';break
++      if heartbeat.exists():
++       try:mps,h=mps_from_heartbeat(heartbeat,proc.pid,reg)
++       except Exception as ex:reason='heartbeat_invalid:'+str(ex);break
++       if h['rss_bytes']>CAP:reason='worker_rss_limit';break
++       if mps>CAP:reason='mps_limit';break
++      elif now>grace_end:reason='heartbeat_missing';break
++      if Path(reg['cancel_path']).exists():reason='cancelled';break
++      try:
++       mark=read(reg['one_shot_marker'])
++       if mark.get('run_id')!=reg['run_id'] or mark.get('registration_sha256')!=registration_sha256:raise RuntimeError('one-shot marker lost or changed')
++       for source_name in ('evaluator','worker','launcher'):
++        item=reg['source'];require_hash(item[source_name+'_path'],item[source_name+'_sha256'],source_name+' source changed during run')
++      except Exception as ex:reason='source_or_marker_invalid:'+str(ex);break
++      state=read(reg['state_path'])
++      if state.get('active_inference_diagnostic')!=reg['expected_lease'] or state.get('active_long_campaign') not in (None,False) or state.get('active_long') not in (None,False) or state.get('active_inference') not in (None,False):reason='lease_invalid';break
++      if sha(rp)!=registration_sha256:reason='registration_changed';break
++      last=now
++     time.sleep(.02)
++    if reason:
++     cleanup_attempted=True;handling_signal=True;terminate_bounded(proc,deadline+CLEANUP)
++    else:exit_code=proc.wait(timeout=max(.01,deadline-time.monotonic()))
++  except BaseException as ex:
++   handling_signal=True
++   if isinstance(ex,SupervisorSignal):reason=reason or 'supervisor_signal:'+signal.Signals(ex.signum).name
++   else:reason=reason or 'supervisor_exception:'+str(ex)
++   if proc is not None and not cleanup_attempted:
++    cleanup_attempted=True;terminate_bounded(proc,deadline+CLEANUP)
++   if proc is not None:exit_code=proc.poll()
++   rows,sample_error=sample_procs(proc.pid) if proc is not None else ([],None)
++   if sample_error:reason+=';'+sample_error
++   try:atomic_json(receipt_path,receipt(reg,registration_sha256,stage,candidate_update,cohort,start,reason,exit_code,rows,log))
++   except Exception as receipt_error:raise RuntimeError(reason+'; outer receipt write failed: '+str(receipt_error)) from ex
++   if isinstance(ex,SupervisorSignal):raise RuntimeError(reason+'; partial receipt preserved') from ex
++   raise
++ finally:
++  for sig,handler in previous_handlers.items():signal.signal(sig,handler)
++ exit_code=proc.returncode if proc else None
++ remaining,sample_error=sample_procs(proc.pid) if proc else ([],None);rows=remaining
++ if sample_error:reason=reason or sample_error
++ if remaining:
++  if not cleanup_attempted:cleanup_attempted=True;terminate_bounded(proc,deadline+CLEANUP)
++  remaining,sample_error=sample_procs(proc.pid);rows=remaining
++  if sample_error:reason=reason or sample_error
+   if reason is None:reason='process_group_survived'
+- passed=not reason and exit_code==0 and not remaining
+- # Recheck every critical registration/source/lease/runtime/cache pin after exit.
++ passed=not reason and exit_code==0 and remaining==[] and sample_error is None
+  try:
+   if sha(rp)!=registration_sha256:raise RuntimeError('registration changed')
+   for name,path in [('worker',w),('evaluator',e),('launcher',Path(__file__))]:require_hash(path,reg['source'][name+'_sha256'],name+' postflight source')
+@@ -269,19 +295,20 @@
+    validate_selection(reg)
+   if Path(reg['runtime']['pycache_prefix']).exists() and any(Path(reg['runtime']['pycache_prefix']).iterdir()):raise RuntimeError('postflight pycache is not empty')
+   if reg.get('cancel_path') and Path(reg['cancel_path']).exists():raise RuntimeError('postflight cancellation')
+- except Exception as ex: passed=False;reason=reason or 'postflight:'+str(ex)
++ except Exception as ex:passed=False;reason=reason or 'postflight:'+str(ex)
+  rec=receipt(reg,registration_sha256,stage,candidate_update,cohort,start,reason,exit_code,rows,log);atomic_json(receipt_path,rec)
+  if not passed:raise RuntimeError('worker stopped: '+str(reason or exit_code)+'; partial receipt preserved')
+  return rec
+ 
+ def terminate_bounded(proc,deadline):
+- end=min(time.monotonic()+CLEANUP,deadline+CLEANUP)
++ end=min(time.monotonic()+CLEANUP,deadline)
+  try:os.killpg(proc.pid,signal.SIGTERM)
+  except ProcessLookupError:pass
+  term_end=min(end,time.monotonic()+5)
+  while time.monotonic()<term_end:
+   proc.poll()  # reap main child while checking its process group
+-  if not active_procs(proc.pid):
++  sampled,_=sample_procs(proc.pid)
++  if sampled==[]:
+    try:proc.wait(timeout=max(.01,term_end-time.monotonic()))
+    except subprocess.TimeoutExpired:pass
+    return proc.poll() is not None
+@@ -290,7 +317,8 @@
+  except ProcessLookupError:pass
+  while time.monotonic()<end:
+   proc.poll()
+-  if not active_procs(proc.pid):
++  sampled,_=sample_procs(proc.pid)
++  if sampled==[]:
+    if proc.poll() is None:
+     try:proc.wait(timeout=max(.01,end-time.monotonic()))
+     except subprocess.TimeoutExpired:break
+@@ -304,7 +332,7 @@
+   if path.is_file() and not path.name.endswith('.outer-receipt.json'):
+    try:artifacts.append({'path':str(path),'bytes':path.stat().st_size,'sha256':sha(path)})
+    except OSError:artifacts.append({'path':str(path),'unreadable':True})
+- return {'schema':'expanded_eval_outer_receipt_v1','run_id':reg['run_id'],'registration_sha256':regsha,'stage':stage,'candidate_update':update,'cohort':cohort,'raw_exit_code':exit_code,'stop_reason':reason,'elapsed_seconds':time.monotonic()-start,'process_group_remaining':rows,'process_group_absent':not bool(rows),'output_artifacts':artifacts,'worker_log_path':str(log),'worker_log_bytes':log.stat().st_size if log.exists() else 0,'worker_sha256':reg['source']['worker_sha256'],'evaluator_sha256':reg['source']['evaluator_sha256']}
++ return {'schema':'expanded_eval_outer_receipt_v1','run_id':reg['run_id'],'registration_sha256':regsha,'stage':stage,'candidate_update':update,'cohort':cohort,'raw_exit_code':exit_code,'stop_reason':reason,'elapsed_seconds':time.monotonic()-start,'process_group_remaining':rows,'process_group_absent':rows==[],'output_artifacts':artifacts,'worker_log_path':str(log),'worker_log_bytes':log.stat().st_size if log.exists() else 0,'worker_sha256':reg['source']['worker_sha256'],'evaluator_sha256':reg['source']['evaluator_sha256']}
+ if __name__=='__main__':
+  p=argparse.ArgumentParser()
+  for n in ('registration','registration-sha256','worker','evaluator','stage','cohort','output'):p.add_argument('--'+n,required=True)

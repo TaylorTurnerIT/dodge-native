@@ -1,0 +1,10 @@
+R4 initial expanded control run: FAIL
+
+Traceback (most recent call last):
+  File "learning/runs/v2/fixed-rollout-lambda-diagnostic-luna-20261026-r4/controls_r4.py", line 122, in <module>
+    np.savez(p,**(common|comp));assert d.analyze(d.load_npz(p))["lambda_comparison"]["0.95"]
+  File "learning/runs/v2/fixed-rollout-lambda-diagnostic-luna-20261026-r4/diagnostic.py", line 99, in analyze
+    raise ValueError("scaled death reward must equal -0.5 * terminated")
+ValueError: scaled death reward must equal -0.5 * terminated
+
+Correction: component fixtures now set death_reward to -0.5 * terminated. Final controls-r4.log records the passing rerun.

@@ -1,0 +1,35 @@
+{
+  "schema": "critic_restoration_haiku_parent_reconciliation_v1",
+  "reconciled_at_utc": "2026-10-25T19:26:54.263852+00:00",
+  "audit_receipt_sha256": "f1953de2af295c25a77471937b019310c518fe412668f4ad662943adb3150280",
+  "audited_inputs_hashes_checked": 8,
+  "new_blocking_defects_beyond_known_comparator": 0,
+  "findings": [
+    {
+      "id": "equality-components-not-recorded",
+      "disposition": "Confirmed in r2 source; already required in active Luna r3 brief. Final source review must verify persistence precedes failure."
+    },
+    {
+      "id": "no-fingerprint-contract-tests",
+      "disposition": "Confirmed by full parent source read plus grep; already required in Luna brief, including genuine changed-content negative controls."
+    },
+    {
+      "id": "restored-optimizer-group-values-from-checkpoint",
+      "disposition": "Confirmed PyTorch load semantics. Original D1/D2 registered PPO dictionaries match exactly. Actual restored lr/eps and other optimizer options still require rehearsal/final review evidence; do not normalize differences."
+    },
+    {
+      "id": "adam-step-device-dtype",
+      "disposition": "Unverified hypothesis; real restoration rehearsal must settle byte/shape/dtype equality."
+    },
+    {
+      "id": "mps-rng-capture-side-effect",
+      "disposition": "Unverified hypothesis; require exact capture/restore evidence."
+    }
+  ],
+  "review_limitations": [
+    "Haiku did not reread launcher or full contract suite. Final frozen review must inspect complete changed runner, launcher, tests, registration and rehearsal evidence.",
+    "Source claim that comparator is the only possible failure is not established; additional mismatches require actual rehearsal."
+  ],
+  "active_repair_ownership_preserved": true,
+  "actual_new_campaign_launches": 0
+}

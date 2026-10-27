@@ -1,0 +1,73 @@
+{
+  "artifacts": {
+    "README.md": "90166caa62fae8fb498f4edd4aa140dd74c73c7b2403bd9ac9f55fb2e42009bf",
+    "dependency-preflight.log": "d90505926a2235ebf9c4072993d5164f4b5603c41418e1abf6852a04596322ed",
+    "final-tests.log": "0ff78034fac23acec5076acd19558a37be1e4aad4cf9eebd30a9808628613e07",
+    "freeze_artifacts.py": "98e8181b9eb9721f32a55dff48fb0ba9ab1f5fb0380ae62c61a1e012269b9e8e",
+    "history/draft-failures.md": "670a9879c665fe84216e002832226f97fbaa67f64b15b883fd25907a52c88ca4",
+    "paired_eval.py": "bfa025936cdbcbf1b04efa51189ad3f17645d193802fe079dbe1a0ca555b3cd7",
+    "r1-provenance.json": "8adb86a60dd1e827ad377b1a19ca06e7e4030a4313b833be9f3061a5fa54c0a0",
+    "supervisor.py": "b6468214317ec978d40b2d7bda382f05c3c3d991c63c35e0d67c27dd54c20b31",
+    "tests/test_paired_eval.py": "c33bb4ae9f2b88d68e7a1d6c2f4585d28af5b50b00a0007c68f17d81d124ce8d",
+    "worker.py": "37c0ed8ae2ed42bb8eaf1156642dd0b473cc78342d20e48a16758dc60b7d3957"
+  },
+  "changes": [
+    "death telemetry row now built only after terminate/truncate; per-step identity/objective checks retained",
+    "bind and verify existing interpreter/Torch/NumPy inventory by hash, size, and exact installed package membership",
+    "verify Torch/NumPy/helper origins and versions before inference",
+    "reuse one successful preflight inventory result while loading both inference checkpoints",
+    "add real run_once lifecycle wiring tests with injected harmless child"
+  ],
+  "dependency_closure": {
+    "path": "learning/runs/v2/critic-diagnostic-parent-prepare-20261025-r1/dependency-inventory.json",
+    "pins": 13513,
+    "scope": "Interpreter and installed Torch/NumPy package files excluding bytecode caches; OS frameworks and driver binaries not fully inventoried.",
+    "sha256": "2957832457c39751998012f4aeb4440f5d7570250ae9ab072ee10d86dd970ed6",
+    "torch_numpy_package_files": 13512
+  },
+  "limitations": [
+    "No full OS framework or driver inventory.",
+    "No campaign output, episode metric, or game-performance evidence."
+  ],
+  "owned_directory": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/latest-best-paired-eval-prepare-luna-20261026-r2",
+  "parent_reconciliation": {
+    "path": "../latest-best-paired-eval-parent-plan-20261026-r1/reconciliation.json",
+    "sha256": "ca9ec2ad5ca0aaf5ff899229256b08306f1e56072e6e2f221f106737c142bd0f"
+  },
+  "pins": {
+    "harness_sha256": "8d5a56509f5b44171f4cfa222064a9ad3eaf61a9408787018b9da1623b3db10a",
+    "input_manifest_sha256": "ca1cfbe01b6cfdb06e65aa17b5c974ec8e59167e7bbf33d2480324b2a3e1f227",
+    "protocol_sha256": "5b6910133b33cd5e8350581e42230864fa9902bf18b0617f9af233a65b2ee954",
+    "runtime_tree_sha256": "409a5ab6a4bf2035115ee7d580b7947f6f21d4ddd6297fa719fcc8e98bfcdd73"
+  },
+  "prior_r1_review": {
+    "findings_reconciled": [
+      "F1 live-step death_fields timing",
+      "F2 Torch/NumPy dependency pins",
+      "F3 run_once lifecycle coverage"
+    ],
+    "provider": "Claude Sonnet 5.5 fallback; Haiku unavailable",
+    "receipt_path": "../latest-best-paired-eval-frozen-review-sonnet-20261026-r1/receipt.json",
+    "receipt_sha256": "e402f5b1fb2e28a919de429d84ffe6914637d4391ac48b839df76e1b5af23f11"
+  },
+  "r2_review": {
+    "provider": "must be named exactly in parent-owned review lease; no Haiku substitution",
+    "status": "pending_frozen_review"
+  },
+  "schema": "latest_best_paired_eval_preparation_receipt_v2",
+  "scope": {
+    "campaign_launched": false,
+    "checkpoint_or_ledger_or_lease_written": false,
+    "game_episodes_executed": false,
+    "optimizer_or_gradient": false,
+    "training_executed": false
+  },
+  "status": "prepared_frozen_pending_independent_review_and_parent_reconciliation",
+  "validation": {
+    "command": "python/.venv/bin/python -B -m unittest -v tests.test_paired_eval",
+    "dependency_preflight_log_sha256": "d90505926a2235ebf9c4072993d5164f4b5603c41418e1abf6852a04596322ed",
+    "final_test_log_sha256": "0ff78034fac23acec5076acd19558a37be1e4aad4cf9eebd30a9808628613e07",
+    "json_and_parent_reconciliation": "passed",
+    "tests_passed": 12
+  }
+}

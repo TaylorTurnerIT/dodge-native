@@ -1,0 +1,48 @@
+test_deferred_cancellation_is_counted (__main__.RepairedBoundaryChecks.test_deferred_cancellation_is_counted) ... ok
+test_late_artifact_hash_revokes_completion (__main__.RepairedBoundaryChecks.test_late_artifact_hash_revokes_completion) ... ok
+test_late_final_verification_revokes_completion (__main__.RepairedBoundaryChecks.test_late_final_verification_revokes_completion) ... ok
+test_unproven_group_blocks_manifest (__main__.RepairedBoundaryChecks.test_unproven_group_blocks_manifest) ... ok
+test_late_parent_cancellation_must_revoke_clean_closure (__main__.UnmetPublicationContract.test_late_parent_cancellation_must_revoke_clean_closure) ... FAIL
+test_late_parent_cancellation_must_revoke_gate_pass (__main__.UnmetPublicationContract.test_late_parent_cancellation_must_revoke_gate_pass) ... FAIL
+test_late_pinned_input_change_must_revoke_completion (__main__.UnmetPublicationContract.test_late_pinned_input_change_must_revoke_completion) ... FAIL
+test_outer_context_SIGTERM_must_revoke_complete_terminal (__main__.UnmetPublicationContract.test_outer_context_SIGTERM_must_revoke_complete_terminal) ... FAIL
+
+======================================================================
+FAIL: test_late_parent_cancellation_must_revoke_clean_closure (__main__.UnmetPublicationContract.test_late_parent_cancellation_must_revoke_clean_closure)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-supervisor-review-r1/test_recorded_contract.py", line 48, in test_late_parent_cancellation_must_revoke_clean_closure
+    self.assertEqual(value['return_code'], 1, 'Cancellation after guard close cannot return complete exit 2')
+AssertionError: 2 != 1 : Cancellation after guard close cannot return complete exit 2
+
+======================================================================
+FAIL: test_late_parent_cancellation_must_revoke_gate_pass (__main__.UnmetPublicationContract.test_late_parent_cancellation_must_revoke_gate_pass)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-supervisor-review-r1/test_recorded_contract.py", line 53, in test_late_parent_cancellation_must_revoke_gate_pass
+    self.assertEqual(value['return_code'], 1, 'Cancellation during hashing cannot return gate-pass exit 0')
+AssertionError: 0 != 1 : Cancellation during hashing cannot return gate-pass exit 0
+
+======================================================================
+FAIL: test_late_pinned_input_change_must_revoke_completion (__main__.UnmetPublicationContract.test_late_pinned_input_change_must_revoke_completion)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-supervisor-review-r1/test_recorded_contract.py", line 58, in test_late_pinned_input_change_must_revoke_completion
+    self.assertEqual(value['return_code'], 1, 'Changed pinned inputs cannot return complete exit 2')
+AssertionError: 2 != 1 : Changed pinned inputs cannot return complete exit 2
+
+======================================================================
+FAIL: test_outer_context_SIGTERM_must_revoke_complete_terminal (__main__.UnmetPublicationContract.test_outer_context_SIGTERM_must_revoke_complete_terminal)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/postovernight-long-D2-supervisor-review-r1/test_recorded_contract.py", line 66, in test_outer_context_SIGTERM_must_revoke_complete_terminal
+    self.assertEqual(terminal['experiment_status'], 'failed',
+AssertionError: 'complete' != 'failed'
+- complete
++ failed
+ : SIGTERM at outer publication context exit leaves a complete authoritative receipt
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.003s
+
+FAILED (failures=4)

@@ -1,0 +1,98 @@
+{
+  "checked_ok": [
+    "The 58 current source-pin file hashes match the frozen pinset.",
+    "The plan distinguishes historical R6 best204/latest252 from current best276 and makes no current-pair comparison claim.",
+    "The source uses 136 guards per worker.evaluate pass; retained evidence reports two actual CPU evaluator passes, 272 guards, 128 synthetic rows, and 16 CPU forwards.",
+    "R4 uses the lexical virtual-environment interpreter, suppresses bytecode writes, checks strict CPU checkpoint loads, and checks distinct reservation/live-state fields before marker and at guard boundaries.",
+    "No hardware probe or training acceptance is claimed."
+  ],
+  "claims": {
+    "hardware_acceptance": false,
+    "probe_authorized": false,
+    "qualification": false,
+    "training_blocked_by_findings": false,
+    "training_result": false
+  },
+  "evidence_scope": {
+    "actual_probe_launched": false,
+    "launch_marker_exists_at_freeze": false,
+    "parent_reservation_exists_at_freeze": false,
+    "recorded_cpu_controls": "7 passed in retained cpu-tests-final.log; not rerun during this review.",
+    "recorded_cpu_preflight": "Passed; strict CPU loads reported for best204 and latest252; mps_operations=0.",
+    "runtime_acceptance": "Not established. Synthetic CPU guard reproduction and predicate tests do not establish MPS workload feasibility or hardware acceptance."
+  },
+  "findings": [
+    {
+      "consequence": "The identity-capture branch calls process.communicate() without a timeout or signal. The PGID-mismatch branch also waits without a timeout. A hung child can exceed the 120-second outer bound, and cleanup/result evidence is not guaranteed. This violates the registered deadline and exact owned-process cleanup gate and can consume the one-shot marker without a usable calibration receipt.",
+      "evidence": "launch_once.py:181-193 claims the marker and spawns the child before identity capture. Lines 231-242 contain unbounded communicate() calls and no cleanup path on these errors.",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r4/launch_once.py",
+      "id": "B-1",
+      "lines": [
+        231,
+        237,
+        240,
+        242
+      ],
+      "required_resolution": "Handle every post-spawn failure under the outer deadline. Reap or terminate the still-owned direct child safely, use group signaling only after identity validation, and persist cleanup evidence. Re-freeze and re-review.",
+      "severity": "P1",
+      "title": "Spawn identity failure bypasses bounded cleanup",
+      "trigger": "After Popen succeeds and the one-shot marker is claimed, ps identity capture returns a nonzero exit, malformed output, or a PGID different from the expected leader PID."
+    },
+    {
+      "consequence": "The completed workload fails at the final measurement gate despite later valid positive MPS measurements. The calibration result is rejected and its one-shot marker is already consumed. The current negative control tests only an all-zero list; it misses mixed startup-zero/positive data.",
+      "evidence": "probe.py:195-219 starts the sampler, waits for its first complete sample, then loads best204 on MPS. Pinned R6 worker.py:569-573 queries current-process MPS driver allocation. probe.py:114-118 rejects every zero. test_calibration_cpu.py:118-137 covers all-zero but not mixed values.",
+      "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r4/probe.py",
+      "id": "B-2",
+      "lines": [
+        114,
+        118,
+        195,
+        219
+      ],
+      "related_files": [
+        {
+          "file": "learning/runs/v2/latest-best-paired-eval-prepare-luna-20261026-r6/worker.py",
+          "lines": [
+            569,
+            573,
+            586,
+            595
+          ]
+        },
+        {
+          "file": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r4/test_calibration_cpu.py",
+          "lines": [
+            118,
+            137
+          ]
+        }
+      ],
+      "required_resolution": "Keep every sample present, numeric, finite, and nonnegative; require positive measured allocation during the representative MPS workload (or define an explicit post-load acceptance window). Add a mixed startup-zero/positive predicate control. Re-freeze and re-review.",
+      "severity": "P1",
+      "title": "MPS gate rejects any zero sample, including startup",
+      "trigger": "The sampler starts and writes its first sample before best204 is loaded onto MPS. If that valid startup query reports zero, while later samples report positive allocation, validation still runs all(value > 0 for value in mps_samples)."
+    }
+  ],
+  "limitations": [
+    "No runtime MPS, hardware, probe, or training operation was performed.",
+    "CPU predicate fixtures do not establish whether 240 MPS forwards fit the proposed 30\u201345 second active window.",
+    "The R4 plan records the historical cache mtimes in UTC as 2026-10-26T03:16:57Z. This review makes no historical edits and does not attribute those cache files to the separate resolved training-cache incident."
+  ],
+  "pin_verification": {
+    "current_file_mismatches": 0,
+    "note": "Recomputed SHA-256 for all 58 files named by source-pins.json. All matched. No directory pins are declared.",
+    "pinned_file_count": 58
+  },
+  "reviewer": "gpt-6-luna-r4-r2",
+  "schema": "current_pair_resource_calibration_frozen_review_v1",
+  "scope": "Independent source-only adversarial review of the exact frozen R4 calibration proposal and listed retained evidence. No source, state, lease, reservation, checkpoint, environment, bytecode, probe, MPS, training, or game writes or operations.",
+  "target": {
+    "freeze_manifest_sha256": "8ef0b450767334bb45c56b273974e232cca8a9f9e695a2c42d840685fd08f4d5",
+    "path": "learning/runs/v2/current-pair-resource-calibration-prepare-luna-20261026-r4",
+    "plan_sha256": "b2216ad4ac619db865354018946716902d5af5d644a9be8878cf2f341f658b58",
+    "review_source_manifest_sha256": "f7f81a31868ca99deee279b40ced5187281798a9da2ef399f546ffd4759f4d1c",
+    "source_pins_sha256": "2e5499c8d00234aa57bb296d409990194ca750fcc689c2d72ff585f45f464d75"
+  },
+  "verdict": "BLOCK",
+  "verdict_scope": "Do not parent-register or authorize this calibration probe until both findings are fixed in a new frozen set and reviewed. These findings do not block actual training; the parent retains training priority."
+}
