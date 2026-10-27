@@ -1,0 +1,1609 @@
+--- originals/execute_once.py
++++ execute_once.py
+@@ -1,22 +1,19 @@
+-"""Parent-owned one-use launcher. It never edits or clears the parent lease."""
++"""Adapted D2 one-use launcher. Parent owns marker, lease and acceptance.
++
++Only control files are written here. The accepted worker creates its own output.
++"""
+ from __future__ import annotations
+-
+ import argparse
+ import json
+-import math
+ import os
+ from pathlib import Path
+ import signal
+ import subprocess
+ import sys
+-import threading
+ import time
+ import traceback
+-
+-
+-import runner as r
+-import registration_schema
+-
++import binding as r
++import terminal
+ 
+ def group_exists(pgid):
+     try:
+@@ -61,242 +58,16 @@
+     return result
+ 
+ 
+-
+-def expected_checkpoint_counters(update, metrics):
+-    """Return exact counters at entry or a registered 12-update boundary."""
+-    r.need(update in r.EVALUATION_UPDATES, "Checkpoint update is not a registered boundary")
+-    if update == r.PHASE_START:
+-        return {"updates": 0, "optimizer_steps": 0, "environment_decisions": 0, "raw_frames": 0}
+-    matches = [item["counters"] for item in metrics if item.get("phase_update") == update]
+-    r.need(len(matches) == 1, "Checkpoint metric boundary missing or duplicated")
+-    return matches[0]
+-
+-
+-def validate_terminal_candidate_binding(state, phase_update, expected_counters):
+-    """Production boundary validator for entry and each registered evaluation checkpoint."""
+-    local = phase_update - r.PHASE_START
+-    r.need(phase_update in r.EVALUATION_UPDATES and state.get("phase_update") == phase_update
+-           and state.get("local_update") == local
+-           and state.get("update_progress", {}).get("complete") is True
+-           and state.get("update_progress", {}).get("in_update") is False
+-           and state.get("update_progress", {}).get("completed_updates") == local
+-           and state.get("counters") == expected_counters,
+-           "Candidate update/counter boundary differs")
+-    r.assert_saved_optimizer_lr(state, 0.00003)
+-
+-
+-def validate_outputs(reg, worker, registration_sha):
+-    """Validate completed normal training separately from stage competence."""
+-    r.need(r.valid_worker_result(worker), "Worker did not complete registered training")
+-    r.need(0 <= worker["work_elapsed_seconds"] < r.LIMITS["work_seconds"]
+-           and worker["work_elapsed_seconds"] <= worker["elapsed_seconds"] < r.LIMITS["total_seconds"],
+-           "Worker work/finalization budgets differ")
+-    r.need(worker["parent_selected_checkpoint_reported_trajectory_wall_seconds"] == r.PARENT_SELECTED_TRAJECTORY_REPORTED_SECONDS
+-           and worker["parent_selected_checkpoint_reported_iteration_wall_seconds"] == r.PARENT_SELECTED_ITERATION_REPORTED_SECONDS
+-           and worker["parent_worker_reported_trajectory_end_seconds"] == r.PARENT_WORKER_TRAJECTORY_REPORTED_SECONDS
+-           and worker["parent_worker_reported_complete_campaign_cost_seconds"] == r.PARENT_WORKER_CAMPAIGN_REPORTED_SECONDS,
+-           "Parent narrow reported clocks were not preserved separately")
+-    r.need(worker["selected_parent_checkpoint_trajectory_baseline_seconds"] == r.SELECTED_TRAJECTORY_BASELINE_SECONDS
+-           and worker["parent_completed_campaign_cost_baseline_seconds"] == r.COMPLETED_CAMPAIGN_COST_BASELINE_SECONDS
+-           and worker["current_iteration_observed_outer_seconds"] <= worker["elapsed_seconds"]
+-           and math.isclose(worker["cumulative_selected_checkpoint_trajectory_wall_seconds"],
+-                            r.SELECTED_TRAJECTORY_BASELINE_SECONDS + worker["current_iteration_observed_outer_seconds"], rel_tol=0, abs_tol=0.01)
+-           and math.isclose(worker["cumulative_successful_ancestor_and_completed_campaign_cost_seconds"],
+-                            r.COMPLETED_CAMPAIGN_COST_BASELINE_SECONDS + worker["current_iteration_observed_outer_seconds"], rel_tol=0, abs_tol=0.01),
+-           "Worker trajectory and complete-campaign wall accounting differ")
+-    r.need(worker["peak_rss_bytes"] <= r.LIMITS["RSS_bytes"]
+-           and worker["peak_mps_driver_bytes"] <= r.LIMITS["MPS_bytes"], "Worker exceeded resources")
+-    out = Path(reg["output"])
+-    r.check_import_cache(reg)
+-    sys.path.insert(0, reg["runtime_root"])
+-    from dodge_rl import checkpoints as ckpt
+-    parent_state = ckpt.load_checkpoint(Path(reg["parent"]["path"]), expected_sha256=r.PARENT_SHA)
+-    r.need(parent_state["phase_update"] == r.PHASE_START
+-           and parent_state["local_update"] == r.PARENT_LOCAL_UPDATES
+-           and parent_state["cumulative_counters"]["updates"] == r.PARENT_TOTAL_UPDATES,
+-           "Selected entry parent update and inherited counters differ")
+-    entry_restore = r.read(out / "entry-restoration.json")
+-    r.need(entry_restore.get("before_environment_or_gradients") is True
+-           and entry_restore.get("parent_sha256") == r.PARENT_SHA
+-           and entry_restore.get("matched") == {"model": True, "Adam": True, "RNG": True},
+-           "Entry model/Adam/RNG restoration receipt differs")
+-    for component in ("model", "Adam", "RNG"):
+-        record = entry_restore.get("components", {}).get(component, {})
+-        r.need(record.get("matched") is True and record.get("mismatch_paths") == []
+-               and record.get("expected_sha256") == record.get("restored_sha256"),
+-               "Entry component restoration differs: " + component)
+-    entry_certificate = r.read(out / f"development-{r.PHASE_START:06d}.json")
+-    entry_state = ckpt.load_checkpoint(out / entry_certificate["checkpoint"],
+-                                       expected_sha256=entry_certificate["checkpoint_sha256"])
+-    ckpt.require_complete_update(entry_state)
+-    r.assert_saved_optimizer_lr(parent_state, r.LEARNING_RATE)
+-    r.assert_saved_optimizer_lr(entry_state, r.LEARNING_RATE)
+-    metrics = [json.loads(line) for line in (out / "training-metrics.jsonl").read_text().splitlines()]
+-    r.need([row["phase_update"] for row in metrics] == list(range(r.PHASE_START + 1, r.PHASE_END + 1)), "Update journal incomplete")
+-    steps = 0
+-    for local_update, row in enumerate(metrics, 1):
+-        update = r.PHASE_START + local_update
+-        value = row["metrics"]; r.finite_tree(value)
+-        r.need(0 < value["optimizer_steps"] <= 128 and value["transitions"] == 16384,
+-               "Optimizer or rollout counts differ")
+-        steps += value["optimizer_steps"]
+-        r.need(row.get("local_update") == local_update and row["counters"]["updates"] == local_update
+-               and row["counters"]["optimizer_steps"] == steps
+-               and row["counters"]["environment_decisions"] == local_update * 16384
+-               and row["update_progress"]["completed_updates"] == local_update
+-               and row["update_progress"]["complete"] is True
+-               and row["update_progress"]["in_update"] is False, "Counter/update boundary differs")
+-        diag = value["critic_diagnostics"]
+-        r.need(diag["version"] == "same_batch_critic_diagnostics_v1", "Wrong diagnostic schema")
+-        pre, post = diag["pre_update"], diag["post_update"]
+-        for moments in (pre, post):
+-            r.need(moments["count"] == 16384 and moments["target_variance"] >= 0
+-                   and moments["residual_variance"] >= 0 and moments["residual_mse"] >= 0,
+-                   "Invalid critic moments")
+-            r.need(math.isclose(moments["residual_mse"], moments["residual_variance"]
+-                               + moments["residual_mean"] ** 2, rel_tol=1e-9, abs_tol=1e-12),
+-                   "Residual moment identity differs")
+-            var = moments["target_variance"]
+-            expected = None if var <= 1e-12 else 1 - moments["residual_variance"] / var
+-            r.need((expected is None and moments["explained_variance"] is None)
+-                   or (expected is not None and math.isclose(expected, moments["explained_variance"],
+-                                                            rel_tol=1e-9, abs_tol=1e-12)),
+-                   "Explained variance identity differs")
+-        r.need(pre["target_mean"] == post["target_mean"]
+-               and pre["target_variance"] == post["target_variance"], "Diagnostic targets changed")
+-        r.validate_gradient_alignment(value.get("gradient_alignment_diagnostics"))
+-        old, direct = value["explained_variance"], pre["explained_variance"]
+-        r.need((old is None and direct is None) or (old is not None and direct is not None
+-               and math.isclose(old, direct, rel_tol=1e-6, abs_tol=1e-6)), "Legacy EV differs")
+-    r.need(worker["counters"] == metrics[-1]["counters"], "Terminal counters differ")
+-    journal = [json.loads(line) for line in (out / "training-episodes.jsonl").read_text().splitlines()]
+-    parent_abandoned = [row for row in journal if row["kind"] == "abandoned_parent_episode"]
+-    r.need(len(parent_abandoned) == 64
+-           and sorted(row["info"]["slot"] for row in parent_abandoned) == list(range(64))
+-           and sorted((row["info"] for row in parent_abandoned), key=lambda item: item["slot"])
+-               == sorted(parent_state["abandoned_current_episodes"], key=lambda item: item["slot"])
+-           and all(row["reason"] == "fresh_environment_at_saved_next_episode_index"
+-                   and row["parent_checkpoint_sha256"] == r.PARENT_SHA for row in parent_abandoned),
+-           "Accepted parent abandoned-episode records were not preserved exactly")
+-    episodes = r.validate_episode_journal(journal, parent_state["next_episode_indices"])
+-    r.need(worker["phase_updates"] == list(r.EVALUATION_UPDATES)
+-           and episodes["next_episode_indices"] == worker["final_resume_next_episode_indices"],
+-           "Final resume seed indices differ from journal")
+-    for update in r.EVALUATION_UPDATES:
+-        certificate = r.read(out / f"development-{update:06d}.json")
+-        evaluation = certificate["evaluation"]; rows = evaluation["rows"]
+-        r.need(evaluation["complete"] is True and len(rows) == 64
+-               and sorted(row["seed"] for row in rows) == list(range(0xD0000000, 0xD0000040)),
+-               "Development cohort incomplete or changed")
+-        r.need(certificate["performance"] == r.performance(evaluation)
+-               and evaluation["mean_alive_frames"] == sum(row["alive_frames"] for row in rows) / 64
+-               and evaluation["mean_score"] == sum(row["score"] for row in rows) / 64,
+-               "Development summary differs")
+-        causes = {}
+-        for row in rows:
+-            r.need(row["terminated"] != row["truncated"], "Invalid episode termination")
+-            if row["terminated"]:
+-                causes[row["death_cause"]] = causes.get(row["death_cause"], 0) + 1
+-            r.need(math.isclose(row["objective_return"], row["score"] + .01 * row["alive_frames"]
+-                               - (5 if row["terminated"] else 0), abs_tol=1e-9), "Episode reward differs")
+-        r.need(causes == {key: count for key, count in evaluation["death_causes"].items() if count}
+-               and evaluation["deaths"] + evaluation["caps"] == 64, "Death/cap attribution differs")
+-        r.need(certificate["normal_training_iteration"] is True and certificate["training_eligible"] is False
+-               and certificate["promoted"] is False and certificate["training_state_unchanged"] is True,
+-               "Evaluation eligibility/state flags differ")
+-        path = out / certificate["checkpoint"]
+-        r.need(path.parent == out and path.name == f"checkpoint-{update:06d}-candidate.pt"
+-               and r.sha(path) == certificate["checkpoint_sha256"], "Checkpoint identity differs")
+-        sidecar = r.read(Path(str(path) + ".json"))
+-        r.need(sidecar["eligibility_status"] == "provisional_pending_parent_terminal_receipt"
+-               and sidecar["training_eligible"] is False and sidecar["promoted"] is False
+-               and sidecar["checkpoint_sha256"] == r.sha(path), "Checkpoint sidecar differs")
+-        embedded = ckpt.load_checkpoint(path, expected_sha256=certificate["checkpoint_sha256"])
+-        ckpt.require_complete_update(embedded)
+-        expected_local = update - r.PHASE_START
+-        expected_counters = expected_checkpoint_counters(update, metrics)
+-        validate_terminal_candidate_binding(embedded, update, expected_counters)
+-        r.need(embedded["inherited_counters"] == parent_state["cumulative_counters"]
+-               and len(embedded["next_episode_indices"]) == 64
+-               and all(type(index) is int and index >= 0 for index in embedded["next_episode_indices"])
+-               and embedded["registration_sha256"] == registration_sha
+-               and embedded["parent_checkpoint_sha256"] == r.PARENT_SHA
+-               and embedded["config_sha256"] == reg["config_sha256"],
+-               "Embedded checkpoint resume state or identity differs")
+-        r.need(certificate["evaluation"]["complete"] is True
+-               and certificate["phase_update"] == update
+-               and certificate["evaluation"]["mean_alive_frames"] == sum(item["alive_frames"] for item in rows) / 64
+-               and certificate["performance"] == r.performance(certificate["evaluation"]),
+-               "Checkpoint evaluation certificate binding differs")
+-    entry = r.read(out / f"development-{r.PHASE_START:06d}.json")["evaluation"]
+-    predecessor = r.read(reg["parent"]["source_evaluation_path"])["evaluation"]
+-    entry_rows = sorted(entry["rows"], key=lambda item: item["seed"])
+-    predecessor_rows = sorted(predecessor["rows"], key=lambda item: item["seed"])
+-    r.need(entry_rows == predecessor_rows, "Entry evaluation differs from selected phase-300 candidate receipt")
+-    final = out / f"checkpoint-{r.PHASE_END:06d}-candidate.pt"
+-    # File digest and registration digest are distinct authorities.
+-    final_certificate = r.read(out / f"development-{r.PHASE_END:06d}.json")
+-    state = ckpt.load_checkpoint(final, expected_sha256=final_certificate["checkpoint_sha256"])
+-    ckpt.require_complete_update(state)
+-    parent = ckpt.load_checkpoint(Path(reg["parent"]["path"]), expected_sha256=r.PARENT_SHA)
+-    r.validate_parent_checkpoint_for_restore(parent, r.PARENT_SHA, r.read(reg["parent"]["terminal_receipt_path"]))
+-    r.need(state["schema"] == "d2_training_v3_checkpoint_v1"
+-           and state["eligibility_status"] == "provisional_pending_parent_terminal_receipt"
+-           and state["registration_sha256"] == registration_sha
+-           and state["config_sha256"] == reg["config_sha256"]
+-           and state["policy_sha256"] == r.POLICY_SHA
+-           and state["runtime_sha256"] == reg["runtime_sha256"]
+-           and state["native_sha256"] == reg["native"]["sha256"]
+-           and state["parent_sha256"] == r.PARENT_SHA and state["run_seed"] == reg["run_seed"]
+-           and state["identity"]["registration_sha256"] == registration_sha
+-           and state["identity"]["run_seed"] == reg["run_seed"]
+-           and state["training_eligible"] is False and state["promoted"] is False,
+-           "Normal candidate frozen identity differs")
+-    r.need(state["counters"] == worker["counters"]
+-           and state["inherited_counters"] == parent["cumulative_counters"] == worker["inherited_counters"]
+-           and state["next_episode_indices"] == episodes["next_episode_indices"]
+-           and state["update_progress"]["completed_updates"] == r.NEW_UPDATES and state["phase_update"] == r.PHASE_END
+-           and state["local_update"] == r.NEW_UPDATES and state["selected_parent_checkpoint_trajectory_baseline_seconds"] == r.SELECTED_TRAJECTORY_BASELINE_SECONDS
+-           and state["parent_completed_campaign_cost_baseline_seconds"] == r.COMPLETED_CAMPAIGN_COST_BASELINE_SECONDS
+-           and state["current_iteration_observed_outer_seconds"] <= worker["elapsed_seconds"]
+-           and state["parent_checkpoint_sha256"] == r.PARENT_SHA
+-           and state["cumulative_selected_checkpoint_trajectory_wall_seconds"] == r.SELECTED_TRAJECTORY_BASELINE_SECONDS + state["current_iteration_observed_outer_seconds"]
+-           and state["cumulative_successful_ancestor_and_completed_campaign_cost_seconds"] == r.COMPLETED_CAMPAIGN_COST_BASELINE_SECONDS + state["current_iteration_observed_outer_seconds"],
+-           "Candidate counters, inheritance or next indices differ")
+-    cumulative = r.continuation_cumulative_counters(parent["cumulative_counters"], worker["counters"])
+-    r.need(state["cumulative_counters"] == cumulative == worker["cumulative_counters"]
+-           and cumulative["updates"] == r.EXPECTED_TOTAL, "Cumulative counters differ")
+-    abandoned = state["abandoned_current_episodes"]
+-    r.need(len(abandoned) == 64
+-           and sorted(item["slot"] for item in abandoned) == list(range(64)),
+-           "Final live episode abandonment records missing or duplicated")
+-    for item in abandoned:
+-        r.need(item["seed"]["episode"] == episodes["current_episode_indices"][item["slot"]]
+-               and 0 <= item["gameplay_frames"] < 18000,
+-               "Final live episode seed/frame state differs")
+-    completed_frames = sum(row["info"]["gameplay_frames"] for row in journal if row["kind"] == "completed")
+-    r.need(completed_frames + sum(item["gameplay_frames"] for item in abandoned)
+-           == worker["counters"]["raw_frames"], "Training episode raw-frame conservation differs")
+-    r.need(certificate["competence_passed"] == (evaluation["mean_alive_frames"] >= 3060),
+-           "V3 competence predicate differs")
+-    return {"updates_checked": r.NEW_UPDATES, "evaluations_checked": len(r.EVALUATION_UPDATES), "optimizer_steps_checked": steps,
+-            "competence_passed": certificate["competence_passed"],
+-            "final_checkpoint_sha256": r.sha(final), "cumulative_counters": cumulative,
+-            "episode_journal": episodes}
+-
+-
+-def execute(registration, registration_sha, *, clock=time.monotonic, popen=subprocess.Popen,
++def execute(envelope_path, envelope_sha, *, clock=time.monotonic, popen=subprocess.Popen,
+             sleep=time.sleep):
+-    started = clock()
+-    # Validate identity and every pinned source/lease before any output mutation.
+-    reg = r.read(registration)
+-    registration_schema.validate_identity(reg)
+-    reg, _ = r.load_registration(registration, registration_sha)
+-    r.need(clock() - started < r.LIMITS["work_seconds"], "Preflight deadline exhausted")
+-    out = Path(reg["output"])
+-    out.mkdir(parents=True, exist_ok=True)
+-    r.save(out / "launch-marker.json", {"registration_sha256": registration_sha,
+-           "started_monotonic": started, "launcher_pid": os.getpid(), "single_use": True})
++    envelope, reg = r.load_envelope(envelope_path, envelope_sha)
++    started = envelope['started']
++    registration_sha = envelope['registration_sha256']
++    out, control = Path(reg['output']), Path(envelope['control'])
++    r.need(r.read(control/'dispatch.claimed')['envelope_sha256'] == envelope_sha,
++           'external observer dispatch claim missing')
++    r.save(control/'supervisor.claimed', {'envelope_sha256': envelope_sha, 'pid': os.getpid()})
++    r.verify_bound(envelope, reg, preflight=True)
+     result = {"status": "failed", "actual_worker_launch_count": 0, "normal_training_iteration": True,
+               "training_eligible": False, "promoted": False, "registration_sha256": registration_sha}
+     process = None
+@@ -317,26 +88,25 @@
+     for n in previous:
+         signal.signal(n, handle)
+     try:
+-        r.need(Path(reg["launcher_path"]).resolve() == Path(__file__).resolve(), "Launcher origin differs")
+-        r.need(signal_event is None and clock() - started < r.LIMITS["work_seconds"], "Cancelled or preflight expired")
+-        command = [reg["interpreter"], "-B", reg["runner_path"], "--registration", str(registration),
+-                   "--registration-sha256", registration_sha, "--started", repr(started)]
++        r.need(signal_event is None and clock() - started < r.LIMITS['work_seconds'], 'Cancelled or preflight expired')
++        command = r.worker_command(envelope, reg)
+         env = os.environ.copy()
+         env["PYTHONPATH"] = reg["runtime_root"]
+         env["PYTHONPYCACHEPREFIX"] = reg["import_policy"]["pycache_prefix"]
+         env["PYTHONDONTWRITEBYTECODE"] = "1"
+-        with (out / "worker.log").open("x") as log:
+-            process = popen(command, env=env, cwd=reg["root"], start_new_session=True,
++        with (control / "worker.log").open("x") as log:
++            process = popen(command, env=env, cwd=r.ROOT, start_new_session=True,
+                             stdout=log, stderr=subprocess.STDOUT)
+             result.update(actual_worker_launch_count=1, command=command, worker_pid=process.pid,
+                           owned_pgid=process.pid, start_new_session=True)
+-            r.save(out / "worker-launch.json", {"worker_pid": process.pid,
++            r.save(control / "worker-launch.json", {"worker_pid": process.pid,
+                    "owned_pgid": process.pid, "launcher_pid": os.getpid(),
+                    "command": command, "start_new_session": True,
+                    "observed_monotonic": clock(), "registration_sha256": registration_sha})
+             while True:
+                 r.need(signal_event is None, "Parent cancellation latched")
+-                r.need(0 <= clock() - started < r.LIMITS["total_seconds"], "Parent total deadline exhausted")
++                r.need(0 <= clock() - started < r.LIMITS["work_seconds"], "Parent work deadline exhausted")
++                r.need(not os.path.lexists(envelope["cancel_path"]), "Parent cancel marker present")
+                 r.check_lease(reg)
+                 code = process.poll()
+                 if code is not None:
+@@ -350,17 +120,18 @@
+         r.need(code == 0, "Worker raw exit was not zero")
+         worker = r.read(out / "worker-result.json")
+         result["worker_result"] = worker
+-        result["evidence_checks"] = validate_outputs(reg, worker, registration_sha)
++        result["evidence_checks"] = terminal.validate_outputs(reg, worker, registration_sha)
+         r.need(signal_event is None and clock() - started < r.LIMITS["total_seconds"], "Cancelled or total budget exhausted")
+         # Recheck the externally anchored registration, every source/runtime
+         # byte, old native binary and exact lease after the worker has exited.
+-        r.load_registration(registration, registration_sha)
++        r.verify_bound(envelope, reg, preflight=False)
++        r.need(r.sha(envelope_path) == envelope_sha, 'envelope changed during execution')
+         result["postflight_inputs_unchanged"] = True
+         r.need(signal_event is None and clock() - started < r.LIMITS["total_seconds"], "Finalization budget exhausted")
+         files = {str(p.relative_to(out)): r.sha(p) for p in out.iterdir() if p.is_file()}
+-        r.save(out / "artifact-manifest.json", files)
++        r.save(control / "artifact-manifest.json", files)
+         r.need(signal_event is None and clock() - started < r.LIMITS["total_seconds"], "Publication budget exhausted")
+-        result["status"] = "passed"
++        result["status"] = "completed_pending_parent_audit"
+     except BaseException as error:
+         result.update(error=repr(error), traceback=traceback.format_exc(), failure_observed_monotonic=clock())
+         if process is not None and result.get("owned_group_absent") is not True:
+@@ -387,18 +158,22 @@
+                 failures.append(signal_event)
+             worker_failure = result.get("worker_result", {}).get("first_failure")
+             if worker_failure is not None:
+-                failure = dict(worker_failure, role="worker")
+-                failure.setdefault("kind", "worker_failure")
+-                failures.append(failure)
++                failures.append({"monotonic": result.get("direct_wait_observed_monotonic", clock()),
++                                 "kind": "worker_failure_observed", "raw_first_failure": worker_failure})
+             if "failure_observed_monotonic" in result:
+                 failures.append({"monotonic": result["failure_observed_monotonic"], "kind": "parent_failure",
+                                  "error": result["error"]})
+             result["first_observed_failure"] = min(failures, key=lambda v: v["monotonic"]) if failures else None
+-            r.save(out / "execution-result.json", result)
+-            return_code = 0 if (result["status"] == "passed" and signal_event is None
++            try:
++                result["terminal_accounting"] = terminal.accounting(out, result.get("worker_result", {}))
++            except BaseException as accounting_error:
++                result["accounting_error"] = repr(accounting_error)
++                result["status"] = "failed"
++            r.save(control / "execution-result.json", result)
++            return_code = 0 if (result["status"] == "completed_pending_parent_audit" and signal_event is None
+                                  and clock() - started < r.LIMITS["total_seconds"]) else 1
+-            if return_code != 0 and result["status"] == "passed":
+-                r.save(out / "publication-failure.json", {"status": "failed",
++            if return_code != 0 and result["status"] == "completed_pending_parent_audit":
++                r.save(control / "publication-failure.json", {"status": "failed",
+                        "reason": "Absolute budget exceeded during receipt publication",
+                        "elapsed_seconds": clock() - started})
+         except r.Cancelled as error:
+@@ -411,8 +186,8 @@
+                 failures.append(earlier)
+             worker_failure = result.get("worker_result", {}).get("first_failure")
+             if worker_failure is not None:
+-                failures.append(worker_failure)
+-            r.save(out / "publication-failure.json", {"status": "failed", "error": repr(error),
++                failures.append({"monotonic": clock(), "kind": "worker_failure_observed", "raw_first_failure": worker_failure})
++            r.save(control / "publication-failure.json", {"status": "failed", "error": repr(error),
+                    "parent_signal": signal_event,
+                    "first_observed_failure": min(failures, key=lambda v: v["monotonic"]),
+                    "elapsed_seconds": clock() - started})
+@@ -425,10 +200,9 @@
+                 signal.signal(n, handler)
+     return return_code
+ 
+-
+-if __name__ == "__main__":
++if __name__ == '__main__':
+     parser = argparse.ArgumentParser()
+-    parser.add_argument("--registration", required=True)
+-    parser.add_argument("--registration-sha256", required=True)
++    parser.add_argument('--envelope', required=True)
++    parser.add_argument('--envelope-sha256', required=True)
+     args = parser.parse_args()
+-    raise SystemExit(execute(args.registration, args.registration_sha256))
++    raise SystemExit(execute(args.envelope, args.envelope_sha256))
+--- originals/observe.py
++++ observe.py
+@@ -1,60 +1,21 @@
+-"""One-shot external observer for the registered retained BEST300 same-LR3e-5 D2 continuation."""
+-import datetime
+-import hashlib
++"""External one-shot watchdog, adapted from the retained300 parent observer.
++
++Parent installs marker/lease/approval before invoking this observer. No launch
++approval, worker output, lease, checkpoint or source is created or changed here.
++"""
++import argparse
+ import json
+ import os
+ from pathlib import Path
++import resource
+ import signal
+ import subprocess
+ import sys
+ import time
+-
+-ROOT = Path('/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79')
+-OWN = ROOT / 'learning/runs/v2/D2-retained300-execution-observer-parent-20261026-r1'
+-REG_PATH = ROOT / 'learning/runs/v2/D2-retained300-continuation-freeze-20261026-r5/registration.json'
+-REG_SHA = '8a60dc80f1ebe03c43bf18eebf75199e14f207b677570ac2d6d4368ddfcb0f79'
+-WALL_LIMIT = 1800.0
+-WORK_LIMIT = 1790.0
+-RSS_LIMIT = MPS_LIMIT = 6442450944
+-
+-
+-def digest(path):
+-    h = hashlib.sha256()
+-    with open(path, 'rb') as f:
+-        for chunk in iter(lambda: f.read(1024 * 1024), b''):
+-            h.update(chunk)
+-    return h.hexdigest()
+-
+-
+-def save(name, value):
+-    (OWN / name).write_text(json.dumps(value, sort_keys=True, indent=2) + '\n')
+-
+-
+-def check_pins(reg):
+-    checked = 0
+-    failures = []
+-    for path, expected in reg['pins'].items():
+-        try:
+-            actual = digest(path)
+-        except BaseException as e:
+-            actual = 'ERROR:' + repr(e)
+-        checked += 1
+-        if actual != expected:
+-            failures.append({'path': path, 'expected': expected, 'actual': actual})
+-    return {'checked': checked, 'expected': len(reg['pins']), 'failures': failures}
+-
+-
+-def state_check(reg):
+-    state = json.loads(Path(reg['state_path']).read_text())
+-    return {
+-        'active_long_campaign_exact': state.get('active_long_campaign') == reg['expected_lease'],
+-        'active_long_campaign': state.get('active_long_campaign'),
+-        'active_inference_campaign': state.get('active_inference_campaign'),
+-        'active_inference_diagnostic': state.get('active_inference_diagnostic'),
+-        'active_inference_lease': state.get('active_inference_lease'),
+-        'state_sha256': digest(reg['state_path']),
+-    }
+-
++import traceback
++import binding as b
++from execute_once import group_exists
++import terminal
+ 
+ def process_rows():
+     result = subprocess.run(['/bin/ps', '-axo', 'pid=,ppid=,pgid=,rss=,lstart=,command='],
+@@ -86,26 +47,6 @@
+     return [rows[p] for p in found if p in rows]
+ 
+ 
+-def worker_resources(out):
+-    path = out / 'resources.jsonl'
+-    if not path.is_file():
+-        return {'present': False, 'samples': 0, 'peak_rss_bytes': None, 'peak_mps_driver_bytes': None}
+-    peak_rss = peak_mps = 0
+-    count = 0
+-    with path.open() as f:
+-        for line in f:
+-            if not line.strip():
+-                continue
+-            if not line.endswith('\n'):
+-                break
+-            row = json.loads(line)
+-            count += 1
+-            peak_rss = max(peak_rss, int(row.get('peak_rss_bytes', 0)))
+-            peak_mps = max(peak_mps, int(row.get('mps_driver_bytes', 0)))
+-    return {'present': True, 'samples': count, 'peak_rss_bytes': peak_rss,
+-            'peak_mps_driver_bytes': peak_mps}
+-
+-
+ def exact_signal(rows, pid, prior, expected_pgid, sig, record):
+     current = process_rows().get(pid)
+     if (pid <= 1 or prior is None or current is None
+@@ -122,211 +63,179 @@
+     return True
+ 
+ 
+-def main():
+-    # O_EXCL marker makes this observer non-retryable, including preflight failures.
+-    with (OWN / 'one-launch-marker.json').open('x') as marker:
+-        marker.write(json.dumps({'created_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+-                                 'registration_sha256': REG_SHA, 'single_attempt': True}) + '\n')
+-    reg_bytes = REG_PATH.read_bytes()
+-    reg = json.loads(reg_bytes)
+-    out = Path(reg['output'])
+-    cache = Path(reg['import_policy']['pycache_prefix'])
+-    interpreter_real = Path(reg['interpreter']).resolve(strict=True)
+-    cmd = ['/usr/bin/env', 'PYTHONPYCACHEPREFIX=' + str(cache), 'PYTHONDONTWRITEBYTECODE=1',
+-           reg['interpreter'], '-B', reg['launcher_path'], '--registration', str(REG_PATH),
+-           '--registration-sha256', REG_SHA]
+-    pre = {
+-        'registration_sha256': hashlib.sha256(reg_bytes).hexdigest(),
+-        'pins': check_pins(reg),
+-        'lease': state_check(reg),
+-        'output_absent': not os.path.lexists(out),
+-        'cancel_absent': not os.path.lexists(reg['cancel_path']),
+-        'cache_path': str(cache),
+-        'cache_empty_before': cache.is_dir() and not any(cache.iterdir()),
+-        'interpreter_lexical': reg['interpreter'],
+-        'interpreter_resolved': str(interpreter_real),
+-        'interpreter_resolved_sha256': digest(interpreter_real),
+-        'interpreter_pin_sha256': reg['pins'].get(str(interpreter_real)),
+-        'command': cmd,
+-        'cwd': str(ROOT),
+-        'limits': reg['limits'],
+-        'registration_pins_expected': 13827,
+-    }
+-    save('prelaunch.json', pre)
+-    assert pre['registration_sha256'] == REG_SHA
+-    assert pre['pins']['checked'] == pre['pins']['expected'] == 13827 and not pre['pins']['failures']
+-    assert pre['lease']['active_long_campaign_exact'] and pre['lease']['active_inference_campaign'] is None
+-    assert pre['lease']['active_inference_lease'] is None
+-    assert pre['lease']['active_inference_diagnostic'] is None
+-    assert pre['output_absent'] and pre['cancel_absent'] and pre['cache_empty_before']
+-    assert pre['interpreter_resolved_sha256'] == pre['interpreter_pin_sha256']
+-    assert reg['limits'] == {'MPS_bytes': MPS_LIMIT, 'RSS_bytes': RSS_LIMIT,
+-                             'eval_updates': [300, 312, 324, 336, 348, 360],
+-                             'max_updates': 60, 'retries': 0, 'planned_seconds': 1750, 'cleanup_seconds': 10,
+-                             'total_seconds': 1800, 'work_seconds': 1790}
+-    assert cmd[3] == reg['interpreter'] and cmd[5] == reg['launcher_path']
+-
+-    record = {'registration_sha256': REG_SHA, 'command': cmd, 'cwd': str(ROOT),
+-              'observer_pid': os.getpid(), 'observer_started_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+-              'outer_limit_seconds': WALL_LIMIT, 'work_limit_seconds': WORK_LIMIT,
+-              'cleanup_window_seconds': WALL_LIMIT - WORK_LIMIT, 'aggregate_rss_limit_bytes': RSS_LIMIT,
+-              'mps_limit_bytes': MPS_LIMIT, 'launch_count': 1, 'prelaunch': pre,
+-              'cleanup_signals': [], 'first_event': None}
+-    outer_start = time.monotonic()
+-    record['outer_started_monotonic'] = outer_start
+-    record['outer_started_utc'] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+-    stdout_path, stderr_path = OWN / 'stdout.log', OWN / 'stderr.log'
+-    with stdout_path.open('x') as stdout, stderr_path.open('x') as stderr, (OWN / 'resources.jsonl').open('x') as samples:
++def signal_group(pgid, anchors, sig, record):
++    """Signal only a fresh matching member of an observed owned session group."""
++    b.need(type(pgid) is int and pgid > 1 and pgid != os.getpgrp(), 'unsafe observer group')
++    current = process_rows()
++    members = [row for row in current.values() if row['pgid'] == pgid]
++    proven = any(row['pid'] in anchors and row['start_identity'] == anchors[row['pid']]['start_identity']
++                 and row['command'] == anchors[row['pid']]['command'] for row in members)
++    if members and not proven:
++        raise RuntimeError('owned group identity no longer proven; no broad cleanup')
++    if not members:
++        return
++    try:
++        os.killpg(pgid, sig)
++    except ProcessLookupError:
++        return
++    record['cleanup_signals'].append(dict(owned_pgid=pgid,signal=signal.Signals(sig).name,
++                                           monotonic=time.monotonic(),members=members))
++
++
++def main(envelope_path, envelope_sha):
++    envelope, reg = b.load_envelope(envelope_path,envelope_sha)
++    control = Path(envelope['control']); out = Path(reg['output'])
++    # A failed dispatch is spent. Neither marker is inside the worker output.
++    control.mkdir(parents=True,exist_ok=False)
++    b.save(control/'dispatch.claimed',dict(envelope_sha256=envelope_sha,observer_pid=os.getpid()))
++    record = dict(status='failed',launch_count=0,cleanup_signals=[],first_event=None,
++                  registration_sha256=envelope['registration_sha256'],envelope_sha256=envelope_sha,
++                  training_eligible=False,promoted=False,parent_terminal_audit_required=True)
++    proc = None; worker_pid = None; outer_anchors = {}; worker_anchors = {}
++    previous = {n:signal.getsignal(n) for n in (signal.SIGINT,signal.SIGTERM)}
++    publication = False
++    def latch(kind, **values):
++        if record['first_event'] is None:
++            record['first_event'] = dict(kind=kind,monotonic=time.monotonic(),**values)
++    def handle(number,_frame):
++        latch('observer_cancelled',signal=number)
++        if publication:
++            raise b.Cancelled('observer cancellation during terminal publication')
++    for n in previous: signal.signal(n,handle)
++    started = envelope['started']; term_at = started+b.LIMITS['work_seconds']; hard_at = started+b.LIMITS['total_seconds']
++    peak_aggregate = 0; term_sent = None; kill_sent = False
++    try:
++        b.verify_bound(envelope,reg,preflight=True)
++        b.need(time.monotonic() < term_at and record['first_event'] is None, 'dispatch cancelled or expired')
++        command = [reg['interpreter'],'-B',str(b.HERE/'execute_once.py'),'--envelope',str(envelope_path),'--envelope-sha256',envelope_sha]
+         env = os.environ.copy()
+-        proc = subprocess.Popen(cmd, cwd=ROOT, env=env, stdout=stdout, stderr=stderr)
+-        record['outer_pid'] = proc.pid
+-        record['outer_process_initial'] = process_rows().get(proc.pid)
+-        record['outer_process_group'] = record['outer_process_initial']['pgid'] if record['outer_process_initial'] else None
+-        save('launch.json', record)
+-        peak_aggregate = peak_sample = 0
+-        term_at = outer_start + WORK_LIMIT
+-        hard_at = outer_start + WALL_LIMIT
+-        while True:
+-            now = time.monotonic()
+-            code = proc.poll()
+-            rows = process_rows()
+-            owned = descendants(rows, proc.pid)
+-            observer_row = rows.get(os.getpid())
+-            aggregate = sum(x['rss_bytes'] for x in owned) + (observer_row['rss_bytes'] if observer_row else 0)
+-            sample = {'monotonic': now, 'utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+-                      'elapsed_outer_seconds': now - outer_start, 'outer_pid': proc.pid,
+-                      'owned_processes': owned, 'observer_process': observer_row,
+-                      'aggregate_rss_bytes': aggregate}
+-            sample['lease_observation'] = state_check(reg)
+-            worker_launch_path = out / 'worker-launch.json'
+-            worker_pid = None
+-            worker_prior = None
+-            if worker_launch_path.is_file():
+-                try:
+-                    wl = json.loads(worker_launch_path.read_text())
+-                    worker_pid = wl.get('worker_pid')
+-                    worker_prior = rows.get(worker_pid)
+-                    sample['worker_launch'] = wl
+-                    sample['worker_process'] = worker_prior
+-                    sample['worker_group'] = wl.get('owned_pgid')
+-                except BaseException as e:
+-                    sample['worker_observation_error'] = repr(e)
+-            wr = worker_resources(out)
+-            sample['worker_resources'] = wr
+-            if aggregate > peak_aggregate:
+-                peak_aggregate, peak_sample = aggregate, sample
+-            samples.write(json.dumps(sample, sort_keys=True) + '\n')
+-            samples.flush()
+-            record.update(max_aggregate_rss_bytes=peak_aggregate, max_aggregate_sample=peak_sample,
+-                          latest_worker_resources=wr)
+-            if aggregate > RSS_LIMIT and record['first_event'] is None:
+-                record['first_event'] = {'kind': 'aggregate_rss_limit', 'bytes': aggregate,
+-                                         'monotonic': now}
+-            if os.path.lexists(reg['cancel_path']) and record['first_event'] is None:
+-                record['first_event'] = {'kind': 'cancel_marker', 'monotonic': now}
+-            if not sample['lease_observation']['active_long_campaign_exact'] and record['first_event'] is None:
+-                record['first_event'] = {'kind': 'lease_identity_changed', 'monotonic': now,
+-                                         'lease': sample['lease_observation']}
+-            if (now >= term_at or record['first_event'] is not None) and code is None:
+-                if record['first_event'] is None:
+-                    record['first_event'] = {'kind': 'external_work_deadline', 'monotonic': now}
+-                if worker_pid is not None:
+-                    exact_signal(rows, worker_pid, worker_prior, worker_pid, signal.SIGTERM, record)
+-                try:
+-                    proc.wait(timeout=max(0.1, min(5.0, hard_at - time.monotonic() - 1.0)))
+-                except subprocess.TimeoutExpired:
+-                    outer_prior = record.get('outer_process_initial')
+-                    exact_signal(rows, proc.pid, outer_prior, record.get('outer_process_group'), signal.SIGTERM, record)
+-                    try:
+-                        proc.wait(timeout=max(0.1, hard_at - time.monotonic() - 0.5))
+-                    except subprocess.TimeoutExpired:
+-                        current_rows = process_rows()
+-                        current_worker = current_rows.get(worker_pid) if worker_pid else None
+-                        if current_worker and worker_prior and current_worker['start_identity'] == worker_prior['start_identity'] and current_worker['pgid'] == worker_pid:
+-                            exact_signal(current_rows, worker_pid, worker_prior, worker_pid, signal.SIGKILL, record)
+-                        current_outer = current_rows.get(proc.pid)
+-                        if current_outer and outer_prior and current_outer['start_identity'] == outer_prior['start_identity']:
+-                            exact_signal(current_rows, proc.pid, outer_prior, record.get('outer_process_group'), signal.SIGKILL, record)
+-                code = proc.poll()
+-            if code is not None:
+-                code = proc.wait()
+-                break
++        env.update(PYTHONDONTWRITEBYTECODE='1',PYTHONPYCACHEPREFIX=reg['import_policy']['pycache_prefix'],PYTHONPATH=reg['runtime_root'])
++        with (control/'stdout.log').open('x') as stdout, (control/'stderr.log').open('x') as stderr, (control/'observer-resources.jsonl').open('x') as samples:
++            proc = subprocess.Popen(command,cwd=b.ROOT,env=env,stdout=stdout,stderr=stderr,start_new_session=True)
++            record.update(launch_count=1,outer_pid=proc.pid,owned_outer_pgid=proc.pid,command=command)
++            b.save(control/'observer-launch.json',record)
++            while True:
++                now = time.monotonic(); code = proc.poll(); current = process_rows()
++                owned = descendants(current,proc.pid)
++                for row in owned:
++                    if row['pgid'] == proc.pid: outer_anchors[row['pid']] = row
++                launch_path = control/'worker-launch.json'
++                if launch_path.is_file():
++                    launch = b.read(launch_path)
++                    b.need(launch['command'] == b.worker_command(envelope,reg) and launch['launcher_pid'] == proc.pid
++                           and launch['owned_pgid'] == launch['worker_pid'] and launch['start_new_session'] is True,
++                           'worker owned group binding differs')
++                    worker_pid = launch['worker_pid']
++                    # Only descendants of our Popen are initial ownership anchors.
++                    for row in owned:
++                        if row['pgid'] == worker_pid: worker_anchors[row['pid']] = row
++                group_rows = [r for r in current.values() if r['pgid'] in {proc.pid,worker_pid}]
++                own_row = current.get(os.getpid())
++                all_owned = {row['pid']:row for row in owned+group_rows}
++                aggregate = sum(r['rss_bytes'] for r in all_owned.values())+(own_row['rss_bytes'] if own_row else 0)
++                peak_aggregate = max(aggregate,peak_aggregate)
++                resources = b.worker_resources(out)
++                sample = dict(monotonic=now,elapsed_seconds=now-started,owned_processes=group_rows,
++                              observer_process=own_row,aggregate_rss_bytes=aggregate,worker_resources=resources)
++                samples.write(json.dumps(sample,sort_keys=True)+'\n'); samples.flush()
++                if aggregate > b.LIMITS['rss_bytes']: latch('aggregate_rss_limit',bytes=aggregate)
++                if resources['samples'] and resources['peak_mps_driver_bytes'] > b.LIMITS['mps_bytes']: latch('sampled_mps_limit',bytes=resources['peak_mps_driver_bytes'])
++                if resources['samples'] and resources['peak_rss_bytes'] > b.LIMITS['rss_bytes']: latch('sampled_worker_rss_limit',bytes=resources['peak_rss_bytes'])
++                if os.path.lexists(envelope['cancel_path']): latch('cancel_marker')
++                try: b.check_lease(reg)
++                except BaseException as error: latch('lease_changed',error=repr(error))
++                if code is not None and group_rows: latch('owned_group_survived_launcher')
++                if now >= term_at: latch('external_work_deadline')
++                if record['first_event'] is not None and term_sent is None:
++                    if worker_pid is not None: signal_group(worker_pid,worker_anchors,signal.SIGTERM,record)
++                    if code is None: signal_group(proc.pid,outer_anchors,signal.SIGTERM,record)
++                    term_sent = time.monotonic()
++                if ((term_sent is not None and now-term_sent >= 5) or now >= hard_at-.25) and not kill_sent:
++                    if worker_pid is not None: signal_group(worker_pid,worker_anchors,signal.SIGKILL,record)
++                    signal_group(proc.pid,outer_anchors,signal.SIGKILL,record); kill_sent = True
++                if code is not None and not group_rows:
++                    record['outer_raw_exit'] = proc.wait(timeout=0)
++                    break
++                if now >= hard_at:
++                    latch('external_total_deadline')
++                    # Bounded reap. A surviving group is explicit failure evidence.
++                    try: record['outer_raw_exit'] = proc.wait(timeout=.1)
++                    except subprocess.TimeoutExpired: record['outer_raw_exit'] = None
++                    break
++                time.sleep(min(.1,max(.001,hard_at-now)))
++        record['max_aggregate_rss_bytes'] = peak_aggregate
++        b.need(record['first_event'] is None and record['outer_raw_exit'] == 0, 'observer event or nonzero launcher exit')
++        execution = b.read(control/'execution-result.json')
++        record['execution_result'] = execution
++        b.need(execution['status'] == 'completed_pending_parent_audit' and execution['observed_worker_raw_exit'] == 0
++               and execution['actual_worker_launch_count'] == 1 and execution['directly_reaped'] is True
++               and execution['owned_group_absent'] is True and execution['postflight_inputs_unchanged'] is True,
++               'launcher terminal evidence differs')
++        b.verify_bound(envelope,reg,preflight=False)
++        b.need(b.sha(envelope_path) == envelope_sha, 'envelope changed during observation')
++        record['postflight_inputs_unchanged'] = True
++        b.need(time.monotonic() < hard_at and record['first_event'] is None, 'observer postflight deadline/cancellation')
++        record['status'] = 'completed_pending_parent_audit'
++    except BaseException as error:
++        latch('observer_failure',error=repr(error))
++        record.update(error=repr(error),traceback=traceback.format_exc())
++        # Exceptional monitor failures still use the same bounded TERM/KILL policy.
++        if proc is not None and (proc.poll() is None or group_exists(proc.pid)
++                                 or (worker_pid is not None and group_exists(worker_pid))):
++            for sig in (signal.SIGTERM,signal.SIGKILL):
++                for pgid,anchors in ((worker_pid,worker_anchors),(proc.pid,outer_anchors)):
++                    if pgid is None: continue
++                    try: signal_group(pgid,anchors,sig,record)
++                    except BaseException as cleanup_error:
++                        record.setdefault('cleanup_errors',[]).append(repr(cleanup_error))
++                        # A still-live Popen child is an independent ownership
++                        # proof if ps itself failed before the first snapshot.
++                        if pgid == proc.pid and proc.poll() is None:
++                            try:
++                                os.killpg(proc.pid,sig)
++                                record['cleanup_signals'].append(dict(owned_pgid=proc.pid,signal=signal.Signals(sig).name,
++                                    ownership='live directly owned Popen with start_new_session=True'))
++                            except ProcessLookupError: pass
++                try: proc.wait(timeout=min(5,max(.001,hard_at-time.monotonic())))
++                except subprocess.TimeoutExpired: pass
++            record['outer_raw_exit'] = proc.poll()
++    finally:
++        try:
++            publication = True
++            record.update(elapsed_seconds=time.monotonic()-started,max_aggregate_rss_bytes=peak_aggregate,
++                          outer_group_absent=proc is None or not group_exists(proc.pid),
++                          worker_group_absent=worker_pid is None or not group_exists(worker_pid))
++            if proc is not None: record['outer_raw_exit'] = proc.poll()
++            for name in ('execution-result.json','publication-failure.json'):
++                if (control/name).is_file():
++                    try: record[name] = b.read(control/name)
++                    except BaseException as error: record[name+'-read-error'] = repr(error)
++            if (out/'worker-result.json').is_file():
++                try: record['worker_result'] = b.read(out/'worker-result.json')
++                except BaseException as error: record['worker_result_read_error'] = repr(error)
++            try: record['terminal_accounting'] = terminal.accounting(out,record.get('worker_result',{}))
++            except BaseException as error: record['accounting_error'] = repr(error)
++            record['final_observer_peak_rss_bytes'] = int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)*(1 if sys.platform == 'darwin' else 1024)
++            if (record['first_event'] is not None or record['elapsed_seconds'] >= b.LIMITS['total_seconds']
++                    or not record['outer_group_absent'] or not record['worker_group_absent']
++                    or record['final_observer_peak_rss_bytes'] > b.LIMITS['rss_bytes']
++                    or (control/'publication-failure.json').exists()): record['status'] = 'failed'
++            b.save(control/'observation.json',record)
+             if time.monotonic() >= hard_at:
+-                current_rows = process_rows()
+-                current_worker = current_rows.get(worker_pid) if worker_pid else None
+-                if current_worker and current_worker['pgid'] == worker_pid:
+-                    exact_signal(current_rows, worker_pid, current_worker, worker_pid, signal.SIGKILL, record)
+-                current_outer = current_rows.get(proc.pid)
+-                if current_outer:
+-                    exact_signal(current_rows, proc.pid, current_outer,
+-                                 record.get('outer_process_group'), signal.SIGKILL, record)
+-                while proc.poll() is None:
+-                    time.sleep(0.1)
+-                code = proc.wait()
+-                break
+-            time.sleep(min(1.0, max(0.02, hard_at - now)))
+-        ended = time.monotonic()
+-        record.update(outer_raw_exit=code, outer_ended_monotonic=ended,
+-                      outer_ended_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+-                      outer_inclusive_wall_seconds=ended - outer_start,
+-                      max_aggregate_rss_bytes=peak_aggregate, max_aggregate_sample=peak_sample)
+-
+-    # Log writers are closed. Full postflight pin checks stay outside the timed monitor.
+-    post_rows = process_rows()
+-    record['outer_process_absent'] = proc.pid not in post_rows
+-    worker_result_path = out / 'execution-result.json'
+-    worker_launch_path = out / 'worker-launch.json'
+-    record['execution_result'] = json.loads(worker_result_path.read_text()) if worker_result_path.is_file() else None
+-    record['worker_launch'] = json.loads(worker_launch_path.read_text()) if worker_launch_path.is_file() else None
+-    record['worker_result'] = json.loads((out / 'worker-result.json').read_text()) if (out / 'worker-result.json').is_file() else None
+-    record['worker_raw_exit'] = (record['execution_result'] or {}).get('observed_worker_raw_exit')
+-    record['worker_resources'] = worker_resources(out)
+-    worker_pid = (record['worker_launch'] or {}).get('worker_pid')
+-    worker_group = (record['worker_launch'] or {}).get('owned_pgid')
+-    post_rows = process_rows()
+-    record['worker_process_absent'] = worker_pid is None or worker_pid not in post_rows
+-    record['worker_group_absent'] = worker_group is None or not any(row['pgid'] == worker_group for row in post_rows.values())
+-    state_after = state_check(reg)
+-    pins_after = check_pins(reg)
+-    record['postflight'] = {'lease': state_after, 'pins': pins_after,
+-                            'cache_empty_after': cache.is_dir() and not any(cache.iterdir()),
+-                            'publication_failure_absent': not os.path.lexists(out / 'publication-failure.json'),
+-                            'stdout_sha256': digest(stdout_path), 'stderr_sha256': digest(stderr_path),
+-                            'resources_sha256': digest(OWN / 'resources.jsonl')}
+-    record['success_authoritative'] = (
+-        record['outer_raw_exit'] == 0 and record['worker_raw_exit'] == 0
+-        and record['outer_inclusive_wall_seconds'] <= WALL_LIMIT
+-        and record['first_event'] is None and record['outer_process_absent']
+-        and record['worker_process_absent'] and record['worker_group_absent']
+-        and record['postflight']['lease']['active_long_campaign_exact']
+-        and record['postflight']['lease']['active_inference_campaign'] is None
+-        and record['postflight']['lease']['active_inference_lease'] is None
+-        and record['postflight']['lease']['active_inference_diagnostic'] is None
+-        and record['postflight']['pins']['checked'] == 13827
+-        and not record['postflight']['pins']['failures']
+-        and record['postflight']['cache_empty_after']
+-        and record['postflight']['publication_failure_absent']
+-        and record['max_aggregate_rss_bytes'] <= RSS_LIMIT
+-        and record['worker_resources']['peak_rss_bytes'] <= RSS_LIMIT
+-        and record['worker_resources']['peak_mps_driver_bytes'] <= MPS_LIMIT)
+-    record['observer_ended_utc'] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+-    save('observation.json', record)
+-    print(json.dumps({'outer_raw_exit': record['outer_raw_exit'], 'worker_raw_exit': record['worker_raw_exit'],
+-                      'outer_wall_seconds': record['outer_inclusive_wall_seconds'],
+-                      'peak_aggregate_rss_bytes': record['max_aggregate_rss_bytes'],
+-                      'worker_peak_rss_bytes': record['worker_resources']['peak_rss_bytes'],
+-                      'worker_peak_mps_driver_bytes': record['worker_resources']['peak_mps_driver_bytes'],
+-                      'success_authoritative': record['success_authoritative']}, sort_keys=True), flush=True)
+-    return 0 if record['success_authoritative'] else 1
++                b.save(control/'observer-publication-failure.json',dict(status='failed',reason='absolute publication deadline'))
++                return 1
++            return 0 if record['status'] == 'completed_pending_parent_audit' else 1
++        except BaseException as error:
++            b.save(control/'observer-publication-failure.json',dict(status='failed',error=repr(error),first_event=record['first_event']))
++            return 1
++        finally:
++            for n,handler in previous.items(): signal.signal(n,handler)
+ 
+ 
+ if __name__ == '__main__':
+-    try:
+-        exit_code = main()
+-    except BaseException as e:
+-        (OWN / 'observer-error.json').write_text(json.dumps({'error': repr(e),
+-            'traceback': __import__('traceback').format_exc(),
+-            'at_utc': datetime.datetime.now(datetime.timezone.utc).isoformat()}, indent=2) + '\n')
+-        raise
+-
+-    raise SystemExit(exit_code)
++    parser = argparse.ArgumentParser()
++    parser.add_argument('--envelope',required=True)
++    parser.add_argument('--envelope-sha256',required=True)
++    args = parser.parse_args()
++    raise SystemExit(main(args.envelope,args.envelope_sha256))
++
+--- /dev/null
++++ binding.py
+@@ -0,0 +1,181 @@
++"""Stdlib adapters for the accepted worker; no restore or training implementation."""
++from __future__ import annotations
++
++import hashlib
++import json
++import math
++import os
++from pathlib import Path
++import sys
++import time
++
++HERE = Path(__file__).resolve().parent
++ROOT = HERE.parents[3]
++SOURCE = ROOT / 'learning/runs/v2/progressive1000-shared-runtime-staticmethod-repair-sol-20261026-r2'
++SOURCE_SHA = 'be7b8b3c9ef90d1e820df417f54863b6943fb746c451105078923916f19a04a2'
++LIMITS = dict(work_seconds=1790, total_seconds=1800, cleanup_seconds=10,
++              rss_bytes=6*1024**3, mps_bytes=6*1024**3,
++              raw_frames=64*13 + 983040*(4+13), resets=983040, retries=0)
++
++
++class Cancelled(RuntimeError):
++    pass
++
++
++def need(ok, message):
++    if not ok:
++        raise ValueError(message)
++
++
++def sha(path):
++    value = hashlib.sha256()
++    with Path(path).open('rb') as stream:
++        for block in iter(lambda: stream.read(1048576), b''):
++            value.update(block)
++    return value.hexdigest()
++
++
++def read(path):
++    def unique(items):
++        result = {}
++        for key, value in items:
++            need(key not in result, 'duplicate JSON field: '+key)
++            result[key] = value
++        return result
++    return json.loads(Path(path).read_bytes(), object_pairs_hook=unique,
++                      parse_constant=lambda value: (_ for _ in ()).throw(ValueError(value)))
++
++
++def save(path, value):
++    """Exclusive durable control publication; never overwrite a first receipt."""
++    with Path(path).open('x') as stream:
++        json.dump(value, stream, sort_keys=True, indent=2, allow_nan=False)
++        stream.write('\n'); stream.flush(); os.fsync(stream.fileno())
++
++
++def contracts():
++    # Authenticate executable source before importing even its stdlib definitions.
++    need(sha(SOURCE/'source-manifest.json') == SOURCE_SHA, 'accepted source manifest differs')
++    for rel, digest in read(SOURCE/'source-manifest.json')['files'].items():
++        path = SOURCE/rel
++        need(path.resolve().is_relative_to(SOURCE) and not path.is_symlink(), 'source path escapes')
++        need(sha(path) == digest, 'accepted source differs: '+rel)
++    sys.path.insert(0, str(SOURCE))
++    import contracts as c
++    need(Path(c.__file__).resolve() == SOURCE/'contracts.py', 'contracts import origin differs')
++    return c
++
++
++def load_envelope(path, digest):
++    need(sha(path) == digest, 'envelope external SHA differs')
++    value = read(path)
++    need(set(value) == {'schema','status','registration','registration_sha256','launch_approval',
++         'launch_approval_sha256','source_acceptance','source_acceptance_sha256','control',
++         'cancel_path','started','pins','interpreter_resolved','interpreter_sha256'}, 'envelope fields differ')
++    need(value['schema'] == 'progressive1000_existing_supervisor_envelope_v1'
++         and value['status'] == 'parent_bound_exactly_one_run', 'inert envelope has no launch authority')
++    need(type(value['started']) in (int,float) and math.isfinite(value['started']), 'start must be finite')
++    control = Path(value['control'])
++    need(control.is_absolute() and control.resolve().is_relative_to(HERE/'dispatch'), 'control must be owned dispatch path')
++    for name in ('registration','launch_approval','source_acceptance','cancel_path'):
++        need(Path(value[name]).is_absolute(), 'absolute envelope path required: '+name)
++    required = {str(HERE/name) for name in ('binding.py','terminal.py','execute_once.py','observe.py','dependency-binding.json')}
++    need(required <= set(value['pins']), 'supervisor code pins missing')
++    check_pins(value)
++    reg = read(value['registration'])
++    need(control == HERE/'dispatch'/reg['run_id'], 'one fixed dispatch directory per registered run required')
++    need(reg['limits'] == LIMITS and LIMITS['raw_frames'] == 16712512, 'inherited bounds differ')
++    out = Path(reg['output']).resolve()
++    need(not control.resolve().is_relative_to(out) and not out.is_relative_to(control.resolve()), 'control/output overlap')
++    need(not Path(value['cancel_path']).resolve().is_relative_to(out), 'cancel path inside worker output')
++    return value, reg
++
++
++def check_pins(envelope):
++    for path, digest in envelope['pins'].items():
++        need(sha(path) == digest, 'envelope pin drift: '+path)
++    need(sha(envelope['registration']) == envelope['registration_sha256'], 'registration drift')
++    need(sha(envelope['launch_approval']) == envelope['launch_approval_sha256'], 'launch approval drift')
++    need(sha(envelope['source_acceptance']) == envelope['source_acceptance_sha256'], 'source acceptance drift')
++
++
++def check_lease(reg):
++    state = read(reg['state_path'])
++    need(state.get('active_long_campaign') == reg['expected_lease'], 'parent lease changed')
++    need(all(state.get(k) is None for k in ('active_inference_campaign','active_inference_diagnostic',
++                                          'active_inference_lease')), 'conflicting inference lease')
++
++
++def verify_dependencies(reg):
++    """Reuse the proven launcher's installed Torch/NumPy inventory, hash only."""
++    binding = read(HERE/'dependency-binding.json')
++    need(sha(binding['registration_path']) == binding['registration_sha256']
++         and sha(binding['inventory_path']) == binding['inventory_sha256'], 'historical dependency anchor drift')
++    old = read(binding['registration_path']); inventory = read(binding['inventory_path'])
++    need(reg['interpreter'] == old['interpreter'], 'dependency interpreter origin differs')
++    for path, item in inventory['pins'].items():
++        need(old['pins'].get(path) == item['sha256'] == sha(path), 'installed dependency pin drift: '+path)
++    need(sha(Path(reg['interpreter']).resolve(strict=True)) == old['pins'][str(Path(reg['interpreter']).resolve(strict=True))],
++         'resolved interpreter differs from historical pin')
++    return dict(checked=len(inventory['pins']),scope=inventory['scope'])
++
++
++def verify_bound(envelope, reg, *, preflight):
++    c = contracts()
++    check_pins(envelope)
++    accepted = read(envelope['source_acceptance'])
++    need(accepted['schema'] == 'parent_progressive1000_shared_source_acceptance_v1'
++         and accepted['source_path'] == str(SOURCE)
++         and accepted['source_manifest_sha256'] == reg['source_manifest_sha256'] == SOURCE_SHA
++         and accepted['runtime_manifest_sha256'] == reg['runtime_manifest_sha256'], 'source acceptance binding differs')
++    need(reg['limits'] == LIMITS, 'inherited limits differ')
++    check_lease(reg)
++    need(not os.path.lexists(envelope['cancel_path']), 'parent cancel marker present')
++    need(str(Path(reg['interpreter']).resolve(strict=True)) == envelope['interpreter_resolved']
++         and sha(envelope['interpreter_resolved']) == envelope['interpreter_sha256'], 'interpreter pin differs')
++    verify_dependencies(reg)
++    if preflight:
++        c.preflight(envelope['registration'], envelope['registration_sha256'],
++                    envelope['launch_approval'], envelope['launch_approval_sha256'], envelope['started'])
++    else:
++        # validate_static intentionally rejects spent output/claim. Recheck its
++        # immutable inputs directly after exit, without pretending they are absent.
++        c.verify_inputs()
++        c.verify_manifest(SOURCE/'source-manifest.json', reg['source_manifest_sha256'], SOURCE)
++        c.verify_manifest(SOURCE/'runtime-manifest.json', reg['runtime_manifest_sha256'], SOURCE/'runtime', exact=True)
++        need(c.sha(SOURCE/'input-manifest.json') == reg['input_manifest_sha256'], 'input manifest drift')
++        for path, digest in ((reg['reference']['receipt_path'],reg['reference']['receipt_sha256']),
++                             (reg['reference_approval']['path'],reg['reference_approval']['sha256']),
++                             (ROOT/c.PARENT_RECEIPT,reg['parent_receipt_sha256'])):
++            need(sha(path) == digest, 'external input drift: '+str(path))
++        parent = read(ROOT/c.PARENT_RECEIPT)
++        need(sha(parent['checkpoint_path']) == reg['parent_checkpoint_sha256'], 'parent checkpoint byte drift')
++        need(read(reg['launch_marker_path']) == dict(schema='progressive1000_parent_spent_launch_marker_v1',
++             registration_sha256=envelope['registration_sha256'],run_id=reg['run_id'],started=envelope['started']), 'parent marker drift')
++        c.cache_check(reg)
++    check_pins(envelope)
++
++
++def worker_command(envelope, reg):
++    return [reg['interpreter'], '-B', str(SOURCE/'worker_cli.py'),
++            '--registration', envelope['registration'], '--registration-sha256', envelope['registration_sha256'],
++            '--source-acceptance', envelope['launch_approval'],
++            '--source-acceptance-sha256', envelope['launch_approval_sha256'], '--started', repr(envelope['started'])]
++
++
++def worker_resources(out, *, strict=False):
++    """Read only complete sampled lines; new worker uses rss_bytes, not peak_rss_bytes."""
++    path = Path(out)/'resources.jsonl'
++    result = dict(samples=0, peak_rss_bytes=None, peak_mps_driver_bytes=None)
++    if not path.is_file():
++        return result
++    for line in path.read_text().splitlines(keepends=True):
++        if not line.endswith('\n'):
++            need(not strict, 'torn terminal resource journal')
++            break
++        row = json.loads(line)
++        need(all(type(row[k]) is int and row[k] >= 0 for k in ('rss_bytes','mps_driver_bytes')), 'invalid resource sample')
++        result['samples'] += 1
++        result['peak_rss_bytes'] = max(result['peak_rss_bytes'] or 0, row['rss_bytes'])
++        result['peak_mps_driver_bytes'] = max(result['peak_mps_driver_bytes'] or 0, row['mps_driver_bytes'])
++    return result
+--- /dev/null
++++ terminal.py
+@@ -0,0 +1,213 @@
++"""JSON/hash terminal accounting. Embedded checkpoints remain a parent audit gate."""
++from __future__ import annotations
++from dataclasses import asdict
++import importlib.util
++import json
++from pathlib import Path
++import sys
++
++import binding as b
++
++
++def rows(path, *, strict=False):
++    """Retain complete journal prefixes after failure; never repair a torn line."""
++    if not Path(path).is_file():
++        return
++    with Path(path).open() as stream:
++        for line in stream:
++            if not line.endswith('\n'):
++                b.need(not strict, 'torn terminal journal: '+str(path))
++                break
++            yield json.loads(line)
++
++
++def accounting(out, worker):
++    metrics = list(rows(Path(out)/'training-metrics.jsonl'))
++    snapshot = worker.get('final_snapshot') or {}
++    env = snapshot.get('environment') or {}
++    gameplay = startup = initial_cost = initial_count = steps = decisions = resets = 0
++    for event in rows(Path(out)/'training-events.jsonl'):
++        if event['kind'] == 'returned_step_cost':
++            steps += 1; decisions += len(event['elapsed_raw_frames']); gameplay += sum(event['elapsed_raw_frames'])
++        elif event['kind'] == 'returned_reset':
++            resets += len(event['indices']); startup += sum(info['startup_frames'] for info in event['info'])
++        elif event['kind'] == 'initial':
++            initial_count += 1; initial_cost += sum(info['startup_frames'] for info in event['info'])
++    return dict(completed_updates_journaled=len(metrics),
++        completed_optimizer_steps_journaled=sum(e['metrics']['optimizer_steps'] for e in metrics),
++        actual_optimizer_steps_including_failed_update=snapshot.get('actual_optimizer_steps_including_failed_update'),
++        last_update_progress=snapshot.get('last_update_progress'),
++        optimizer_count_scope='snapshot includes partial PPO; journal includes only published completed updates; missing snapshot is unknown',
++        returned_vector_steps=steps,returned_environment_decisions=decisions,
++        returned_native_gameplay_frames=gameplay,initial_startup_frames=initial_cost if initial_count else None,
++        snapshot_initial_startup_frames=env.get('initial_construction_startup_frames'),
++        returned_cost_scope='Complete journal prefix only; absent construction journal or unreturned native calls leave actual cost unknown.',
++        returned_reset_startup_frames=startup,returned_reset_count=resets,
++        journaled_raw_frames_including_startup=gameplay+initial_cost+startup,
++        snapshot_raw_frames_including_startup=env.get('raw_frames_total_including_returned_unaudited_work'),
++        native_exception_without_returned_result_cost='unknown; no invented native cost',
++        completed_counters=worker.get('counters'),snapshot_state=snapshot.get('state'),
++        raw_worker_first_failure=worker.get('first_failure'),raw_worker_finalization_error=worker.get('finalization_error'))
++
++
++def scheduler_module():
++    path = b.SOURCE/'runtime/dodge_rl/scheduler_reference.py'
++    spec = importlib.util.spec_from_file_location('_supervisor_scheduler_reference', path)
++    module = importlib.util.module_from_spec(spec)
++    sys.modules[spec.name] = module
++    spec.loader.exec_module(module)
++    return module
++
++
++def validate_outputs(reg, worker, registration_sha):
++    """Require complete JSON accounting; never deserialize a checkpoint here."""
++    c = b.contracts()
++    out = Path(reg['output'])
++    b.need(worker.get('status') == 'completed' and worker.get('updates') == 60
++           and worker.get('run_id') == reg['run_id'] and worker.get('registration_sha256') == registration_sha,
++           'worker did not complete registered global60')
++    b.need(all(worker.get(k) is False for k in ('training_eligible','promoted','automatic_selection'))
++           and worker.get('evaluated_updates') == [] and worker.get('phase_update') == 384
++           and worker.get('cumulative_update') == 432, 'terminal identity/eligibility differs')
++    b.need(0 <= worker['elapsed_seconds'] < b.LIMITS['total_seconds'], 'worker elapsed budget differs')
++    entry = b.read(out/'entry-restoration.json')
++    b.need(entry['study_id'] == reg['study_id'] and entry['pair_id'] == reg['pair_id']
++           and entry['replica'] == reg['replica'] and entry['arm'] == reg['arm'] and entry['backend'] == reg['backend']
++           and entry['seed_vector'] == reg['vector']['seeds'] and entry['vector_sha256'] == reg['vector']['vector_sha256']
++           and entry['parent_fingerprints'] == reg['expected_parent_fingerprints'], 'entry full vector/parent binding differs')
++    # The worker already authenticates the reference schema and its full vector.
++    expected_ref = c.references.load_bound_reference(receipt_path=reg['reference']['receipt_path'],
++        expected_receipt_sha256=reg['reference']['receipt_sha256'],expected_study_id=reg['study_id'],
++        expected_replica=reg['replica'],expected_seed_vector=reg['vector']['seeds'],
++        expected_vector_sha256=reg['vector']['vector_sha256'],expected_torch_version=reg['runtime_versions']['torch'])
++    b.need(entry['seed_evidence']['torch_cpu_rng_state_sha256'] == expected_ref['torch_cpu_global_seed']
++           and entry['seed_evidence']['torch_mps_rng_state_sha256'] == expected_ref['action_sampler_torch_mps_seed']
++           and entry['seed_evidence']['torch_cpu_initial_seed'] == reg['vector']['seeds']['torch_cpu_global_seed'], 'entry RNG reference differs')
++    b.need(entry['new_controller'] == dict(kind='constant',origin=372,horizon=60,first_update=373,
++           last_update=432,start_lr=3e-5,end_lr=3e-5), 'controller binding differs')
++    b.need(all(entry['post_lr_fingerprints'][k] == reg['expected_parent_fingerprints'][k] for k in ('model','Adam'))
++           and entry['adapter_post_reseed_components']['torch_cpu'] == expected_ref['torch_cpu_global_seed']
++           and entry['adapter_post_reseed_components']['torch_mps'] == expected_ref['action_sampler_torch_mps_seed'],
++           'post-transition model/Adam/RNG binding differs')
++    metrics = list(rows(out/'training-metrics.jsonl',strict=True))
++    b.need([e['global_update'] for e in metrics] == list(range(1,61)), 'update journal incomplete/duplicated')
++    optimizer = raw = 0
++    for local, row in enumerate(metrics,1):
++        value = row['metrics']; progress = row['progress']
++        b.need(type(value['optimizer_steps']) is int and 0 < value['optimizer_steps'] <= 128
++               and value['transitions'] == 16384, 'actual optimizer/decision counts differ')
++        optimizer += value['optimizer_steps']
++        counters = row['counters']
++        b.need(type(counters['raw_frames']) is int and raw <= counters['raw_frames'] <= local*16384*4, 'raw metric counters differ')
++        raw = counters['raw_frames']
++        b.need(counters == dict(updates=local,optimizer_steps=optimizer,environment_decisions=local*16384,raw_frames=raw)
++               and row['phase_update'] == 324+local and row['cumulative_update'] == 372+local
++               and row['effective_learning_rate'] == 3e-5 and progress.get('complete') is True
++               and progress.get('in_update') is False and progress['optimizer_steps'] == value['optimizer_steps'], 'update counters/progress differ')
++    b.need(worker['counters'] == metrics[-1]['counters'], 'terminal counters differ')
++    report = accounting(out,worker)
++    b.need(report['returned_vector_steps'] == 60*256 and report['returned_environment_decisions'] == 983040
++           and report['returned_native_gameplay_frames'] == raw and report['initial_startup_frames'] == 64*13
++           and report['returned_reset_count'] <= b.LIMITS['resets']
++           and report['journaled_raw_frames_including_startup'] <= b.LIMITS['raw_frames'], 'native/raw/startup accounting differs')
++    snap = worker['final_snapshot']; env = snap['environment']
++    b.need(snap['state'] == 'ready' and snap['completed_optimizer_steps'] == optimizer
++           and snap['actual_optimizer_steps_including_failed_update'] == optimizer
++           and env['completed_updates'] == 60 and env['pending_update'] is None
++           and env['returned_work_not_accepted_by_audit'] == 0
++           and env['returned_native_gameplay_frames_unaudited'] == env['gameplay_frames_including_fatal'] == raw
++           and env['returned_native_vector_steps'] == report['returned_vector_steps']
++           and env['initial_construction_startup_frames'] == report['initial_startup_frames']
++           and env['normal_reset_count'] == report['returned_reset_count']
++           and env['returned_reset_startup_frames_unaudited'] == env['reset_startup_frames'] == report['returned_reset_startup_frames']
++           and env['accepted_raw_frames_total'] == report['snapshot_raw_frames_including_startup'] == report['journaled_raw_frames_including_startup']
++           and worker['curriculum_snapshot'] == snap, 'snapshot/accounting binding differs')
++    events = iter(rows(out/'training-events.jsonl',strict=True))
++    initial = next(events)
++    b.need(initial['kind'] == 'initial' and len(initial['info']) == 64, 'initial identity journal missing')
++    module = scheduler_module()
++    scheduler = module.Scheduler(reg['vector']['vector_sha256']) if reg['curriculum_enabled'] else None
++    next_indices = list(reg['initial_episode_indices']); active = {}; seeds = set()
++    assignment_count = completion_count = reset_count = 0
++    def assign(row):
++        nonlocal assignment_count
++        slot = row['slot']; seed = row['seed']; episode = next_indices[slot]
++        metadata = c.seed_metadata(reg['vector']['seeds']['env_master_seed'],slot,episode,reg['exclusion_union'])
++        b.need(seed == dict(slot=slot,episode=episode,actual_seed=metadata['first_actual_seed'],counter=metadata['rejection_counter'],evaluation=False)
++               and seed['actual_seed'] not in seeds, 'episode tuple/full vector identity or collision differs')
++        expected = scheduler.assign() if scheduler else (None,18000,None)
++        b.need((row['generation'],row['horizon'],row['ordinal']) == expected
++               and row['vector_hash'] == (reg['vector']['vector_sha256'] if scheduler else None), 'assignment scheduler/vector identity differs')
++        seeds.add(seed['actual_seed']); next_indices[slot] += 1; active[slot] = row
++        b.need(row == env['assignments'][assignment_count], 'snapshot assignment differs')
++        assignment_count += 1
++    b.need([e['slot'] for e in initial['assignments']] == list(range(64)), 'initial slots differ')
++    for row in initial['assignments']: assign(row)
++    deaths = cutoffs = ordinary_caps = 0
++    event = next(events,None)
++    for local,row in enumerate(metrics,1):
++        finished = []; decisions = []; collection_seen = False; local_raw = 0
++        while event is not None:
++            update = event.get('update',event.get('global_update'))
++            if update != local: break
++            kind = event['kind']
++            if kind == 'returned_step_cost':
++                b.need(not collection_seen and len(event['elapsed_raw_frames']) == 64
++                       and all(type(v) is int and 0 <= v <= 4 for v in event['elapsed_raw_frames']), 'returned native vector cost differs')
++                decisions.append(event['decision'])
++                local_raw += sum(event['elapsed_raw_frames'])
++            elif kind == 'completion':
++                slot = event['slot']; assignment = active[slot]; info = event['native_info']
++                b.need(info['seed'] == assignment['seed'] and info['terminated'] != info['truncated']
++                       and all(event[k] == assignment[k] for k in ('generation','horizon','ordinal'))
++                       and event['success'] == (info['alive_frames'] >= event['horizon']), 'completion/episode identity differs')
++                if info['terminated']: deaths += 1
++                elif event['horizon'] < 18000:
++                    b.need(reg['curriculum_enabled'] and info['gameplay_frames'] == event['horizon'], 'practice cutoff differs')
++                    cutoffs += 1
++                else:
++                    b.need(info['gameplay_frames'] == 18000, 'ordinary cap differs'); ordinary_caps += 1
++                finished.append(event)
++                b.need(env['completions'][completion_count] == {k:v for k,v in event.items() if k != 'kind'}, 'snapshot completion differs')
++                completion_count += 1
++            elif kind == 'reset_assignment': assign({k:v for k,v in event.items() if k != 'kind'})
++            elif kind == 'collection_complete_before_PPO':
++                b.need(not collection_seen, 'duplicate collection boundary'); collection_seen = True
++            elif kind == 'returned_reset':
++                b.need(env['returned_resets'][reset_count] == {k:v for k,v in event.items() if k != 'kind'}, 'returned reset receipt binding differs')
++                reset_count += 1
++            else: raise ValueError('unexpected training event kind: '+kind)
++            event = next(events,None)
++        b.need(decisions == list(range(256)) and collection_seen, 'collection decision order differs')
++        previous_raw = metrics[local-2]['counters']['raw_frames'] if local > 1 else 0
++        b.need(row['counters']['raw_frames'] == previous_raw+local_raw, 'per-update returned raw cost differs')
++        boundary = (scheduler.finish_update(local,[module.Completion(e['decision'],e['slot'],e['generation'],e['horizon'],e['success']) for e in finished])
++                    if scheduler else dict(completed_update=local,promoted=False,generation_after_boundary=None))
++        b.need(row['scheduler_boundary'] == boundary and env['boundaries'][local-1] == boundary, 'post-PPO scheduler boundary differs')
++    b.need(event is None and len(env['assignments']) == assignment_count and len(env['completions']) == completion_count
++           and len(env['returned_resets']) == reset_count
++           and env['consumed_actual_seed_union'] == sorted(seeds)
++           and worker['final_resume_next_episode_indices'] == next_indices, 'terminal episodes/assignments differ')
++    expected_scheduler = json.loads(json.dumps(asdict(scheduler))) if scheduler else None
++    b.need(env['scheduler'] == expected_scheduler, 'terminal scheduler ledger differs')
++    b.need(len(env['in_flight']) == 64 and sorted(e['slot'] for e in env['in_flight']) == list(range(64)), 'in-flight slots differ')
++    for row in env['in_flight']:
++        b.need(row['assignment_status'] == 'assigned' and row['native_info']['seed'] == active[row['slot']]['seed']
++               and not row['native_info']['terminated'] and not row['native_info']['truncated'], 'in-flight episode identity differs')
++    b.need(sum(e['native_info']['gameplay_frames'] for e in env['completions'])+sum(e['native_info']['gameplay_frames'] for e in env['in_flight']) == raw,
++           'episode raw-frame conservation differs')
++    checkpoints = worker['integrity_checkpoints']
++    b.need([e['global_update'] for e in checkpoints] == [12,24,36,48,60]
++           and worker['formal_comparison_endpoint'] == checkpoints[-1], 'five integrity endpoints differ')
++    for record in checkpoints:
++        local = record['global_update']; path = out/f'checkpoint-global-{local:03d}-integrity.pt'
++        b.need(record == dict(path=str(path),sha256=b.sha(path),global_update=local,phase_update=324+local,
++               cumulative_update=372+local,formal_comparison_endpoint=(local==60),training_eligible=False,promoted=False,automatic_selection=False)
++               and b.read(str(path)+'.json') == record, 'integrity file/sidecar identity differs')
++    resources = b.worker_resources(out,strict=True)
++    b.need(resources['samples'] > 0 and resources['peak_rss_bytes'] <= worker['peak_rss_bytes'] <= b.LIMITS['rss_bytes']
++           and resources['peak_mps_driver_bytes'] <= worker['peak_mps_driver_bytes'] <= b.LIMITS['mps_bytes'], 'sampled RSS/MPS limits differ')
++    report.update(deaths=deaths,practice_cutoffs=cutoffs,ordinary_caps=ordinary_caps,
++        integrity_files_checked=5,embedded_checkpoint_audit='not performed; parent must audit identities/counters/LR/full vector',
++        status='completed_JSON_and_hash_checks_pending_parent_terminal_audit',automatic_promotion=False)
++    return report
+--- /dev/null
++++ tests/test_bindings.py
+@@ -0,0 +1,268 @@
++"""Bounded stdlib controls only. Fixtures are never launch/qualification evidence."""
++import copy
++import json
++import os
++from pathlib import Path
++import signal
++import subprocess
++import sys
++import tempfile
++import time
++import unittest
++from unittest.mock import patch
++
++OWN = Path(__file__).resolve().parents[1]
++sys.path.insert(0,str(OWN))
++import binding as b
++import execute_once as launcher
++import observe
++import terminal
++
++ASSEMBLY = b.ROOT/'learning/runs/v2/progressive1000-matched-run-parent-assembly-20261026-r1/assembly.json'
++
++
++class Controls(unittest.TestCase):
++    def setUp(self):
++        self.temp = tempfile.TemporaryDirectory(dir=OWN/'tests',prefix='synthetic-')
++        self.home = Path(self.temp.name)
++        self.reg = b.read(b.read(ASSEMBLY)['runs'][0]['registration_path'])
++        self.reg['output'] = str(self.home/'worker-output')
++        self.envelope = dict(started=time.monotonic(),registration_sha256='synthetic-registration',
++            registration='synthetic-registration-path',launch_approval='synthetic-launch-approval',
++            launch_approval_sha256='synthetic-approval-sha',source_acceptance='separate-source-acceptance',
++            control=str(self.home/'control'),cancel_path=str(self.home/'cancel'))
++
++    def tearDown(self):
++        self.temp.cleanup()
++
++    def test_cli_binds_launch_approval_and_shared_start(self):
++        cmd = b.worker_command(self.envelope,self.reg)
++        self.assertEqual(cmd[:3],[self.reg['interpreter'],'-B',str(b.SOURCE/'worker_cli.py')])
++        flags = dict(zip(cmd[3::2],cmd[4::2]))
++        self.assertEqual(set(flags),{'--registration','--registration-sha256','--source-acceptance','--source-acceptance-sha256','--started'})
++        self.assertEqual(flags['--source-acceptance'],'synthetic-launch-approval')
++        self.assertEqual(float(flags['--started']),self.envelope['started'])
++
++    def test_exact_parent_marker_and_gate_contract(self):
++        c = b.contracts(); digest = 'd'*64; approval_sha = 'a'*64; started = time.monotonic()
++        approval = dict(schema='progressive1000_parent_launch_approval_v1',status='approved_exactly_one_registered_run',
++            registration_sha256=digest,source_manifest_sha256=self.reg['source_manifest_sha256'],
++            runtime_manifest_sha256=self.reg['runtime_manifest_sha256'],run_id=self.reg['run_id'],gates=dict.fromkeys(c.GATES,'passed'))
++        marker = dict(schema='progressive1000_parent_spent_launch_marker_v1',registration_sha256=digest,run_id=self.reg['run_id'],started=started)
++        # These approval/marker objects exist only in this mocked CPU control.
++        def read(path): return self.reg if path == 'registration' else approval if path == 'approval' else marker
++        with patch.object(c,'sha',side_effect=lambda p:digest if p == 'registration' else approval_sha), patch.object(c,'read',side_effect=read), patch.object(c,'validate_static',return_value={}), patch.object(c,'cache_check'):
++            self.assertEqual(c.preflight('registration',digest,'approval',approval_sha,started)[0],self.reg)
++            marker['started_monotonic'] = marker.pop('started')
++            with self.assertRaisesRegex(ValueError,'parent-spent launch marker differs'):
++                c.preflight('registration',digest,'approval',approval_sha,started)
++            marker['started'] = marker.pop('started_monotonic'); approval['gates'].pop(c.GATES[-1])
++            with self.assertRaisesRegex(ValueError,'later parent gates missing'):
++                c.preflight('registration',digest,'approval',approval_sha,started)
++
++    def test_inert_envelope_rejected_without_control_creation(self):
++        path = self.home/'inert.json'
++        envelope = dict(schema='progressive1000_existing_supervisor_envelope_v1',status='DRAFT_NO_LAUNCH',
++            registration='x',registration_sha256='x',launch_approval='x',launch_approval_sha256='x',
++            source_acceptance='x',source_acceptance_sha256='x',control=str(self.home/'control'),cancel_path='x',
++            started=None,pins={},interpreter_resolved='x',interpreter_sha256='x')
++        b.save(path,envelope)
++        with self.assertRaisesRegex(ValueError,'inert envelope'):
++            observe.main(path,b.sha(path))
++        self.assertFalse((self.home/'control').exists())
++
++    def test_sampled_rss_new_field_and_torn_tail(self):
++        out = Path(self.reg['output']);out.mkdir()
++        (out/'resources.jsonl').write_text('{"rss_bytes":19,"mps_driver_bytes":23}\n{"rss_bytes":999')
++        self.assertEqual(b.worker_resources(out),dict(samples=1,peak_rss_bytes=19,peak_mps_driver_bytes=23))
++        with self.assertRaisesRegex(ValueError,'torn terminal resource journal'):
++            b.worker_resources(out,strict=True)
++
++    def test_failed_worker_preserves_raw_exit_string_and_partial_optimizer(self):
++        control = Path(self.envelope['control']);control.mkdir(); b.save(control/'dispatch.claimed',dict(envelope_sha256='synthetic'))
++        out = Path(self.reg['output']);out.mkdir()
++        failure = dict(status='failed',first_failure="RuntimeError('original PPO failure')",finalization_error='later cleanup failure',
++            final_snapshot=dict(state='failed',completed_optimizer_steps=4,
++                actual_optimizer_steps_including_failed_update=7,last_update_progress=dict(optimizer_steps=3,in_update=True,complete=False)))
++        b.save(out/'worker-result.json',failure)
++        (out/'training-metrics.jsonl').write_text(json.dumps(dict(metrics=dict(optimizer_steps=4)))+'\n')
++        class Fake:
++            pid = 987654321
++            def poll(self): return 7
++            def wait(self,timeout=None): return 7
++        with patch.object(b,'load_envelope',return_value=(self.envelope,self.reg)), patch.object(b,'verify_bound'), patch.object(b,'check_lease'), patch.object(launcher,'group_exists',return_value=False):
++            code = launcher.execute('unused','synthetic',popen=lambda *a,**k:Fake())
++            self.assertEqual(code,1)
++            with self.assertRaises(FileExistsError): launcher.execute('unused','synthetic',popen=lambda *a,**k:self.fail('retry'))
++        receipt = b.read(control/'execution-result.json')
++        self.assertEqual(receipt['observed_worker_raw_exit'],7)
++        self.assertEqual(receipt['worker_result']['first_failure'],failure['first_failure'])
++        self.assertEqual(receipt['terminal_accounting']['actual_optimizer_steps_including_failed_update'],7)
++        self.assertEqual(receipt['terminal_accounting']['last_update_progress']['optimizer_steps'],3)
++        self.assertIsNone(receipt['terminal_accounting']['initial_startup_frames'])
++        self.assertEqual(sorted(p.name for p in out.iterdir()),['training-metrics.jsonl','worker-result.json'])
++
++    def test_cancellation_cleans_exact_owned_group_once(self):
++        control = Path(self.envelope['control']);control.mkdir();b.save(control/'dispatch.claimed',dict(envelope_sha256='synthetic'))
++        class Fake:
++            pid = 987654321
++            code = None
++            def poll(self): return self.code
++            def wait(self,timeout=None): return self.code
++        process = Fake(); called = []
++        def stop(p): called.append(p.pid);p.code=-15;return dict(reaped=True,exit_code=-15)
++        Path(self.envelope['cancel_path']).touch()
++        with patch.object(b,'load_envelope',return_value=(self.envelope,self.reg)), patch.object(b,'verify_bound'), patch.object(launcher,'group_exists',return_value=False), patch.object(launcher,'stop_owned',side_effect=stop):
++            self.assertEqual(launcher.execute('unused','synthetic',popen=lambda *a,**k:process),1)
++        receipt = b.read(control/'execution-result.json')
++        self.assertEqual(called,[process.pid]);self.assertEqual(receipt['observed_worker_raw_exit'],-15)
++        self.assertFalse(Path(self.reg['output']).exists())
++
++    def test_original_cleanup_term_kill_with_fake_process(self):
++        class Fake:
++            pid = 987654321
++            calls = 0
++            code = None
++            def wait(self,timeout=None):
++                self.calls += 1
++                if self.calls == 1: raise subprocess.TimeoutExpired('stdlib-fake',timeout)
++                self.code = -9
++            def poll(self): return self.code
++        with patch.object(launcher.os,'killpg') as kill:
++            result = launcher.stop_owned(Fake())
++        self.assertEqual([c.args for c in kill.call_args_list],[(987654321,signal.SIGTERM),(987654321,signal.SIGKILL)])
++        self.assertEqual(result['exit_code'],-9);self.assertTrue(result['reaped'])
++
++    def test_observer_refuses_stale_identity(self):
++        row = dict(pid=987654321,pgid=987654321,start_identity='original',command='stdlib-fake')
++        current = dict(row,start_identity='reused')
++        with patch.object(observe,'process_rows',return_value={row['pid']:current}), patch.object(os,'killpg') as kill:
++            with self.assertRaisesRegex(RuntimeError,'identity no longer proven'):
++                observe.signal_group(row['pgid'],{row['pid']:row},signal.SIGKILL,dict(cleanup_signals=[]))
++            kill.assert_not_called()
++
++    def test_external_watchdog_term_kill_and_raw_exit(self):
++        # Fake process table and clock exercise the external monitor, not training.
++        self.envelope['started']=0
++        class Clock:
++            now=1789.0
++            def monotonic(self): return self.now
++            def sleep(self,seconds): self.now+=1
++        clock=Clock()
++        class Fake:
++            pid=987654321
++            code=None
++            def poll(self): return self.code
++            def wait(self,timeout=None):
++                if self.code is None: raise subprocess.TimeoutExpired('stdlib-fake',timeout)
++                return self.code
++        process=Fake()
++        row=dict(pid=process.pid,ppid=os.getpid(),pgid=process.pid,rss_bytes=1,start_identity='synthetic',command='stdlib-fake')
++        def table(): return {process.pid:row} if process.code is None else {}
++        signals=[]
++        def group(pgid,anchors,sig,record):
++            signals.append((pgid,sig))
++            record['cleanup_signals'].append(dict(owned_pgid=pgid,signal=signal.Signals(sig).name))
++            if sig==signal.SIGKILL:process.code=-9
++        with patch.object(b,'load_envelope',return_value=(self.envelope,self.reg)), patch.object(b,'verify_bound'), patch.object(b,'check_lease'), patch.object(observe.subprocess,'Popen',return_value=process), patch.object(observe,'process_rows',side_effect=table), patch.object(observe,'signal_group',side_effect=group), patch.object(observe,'group_exists',return_value=False), patch.object(observe.time,'monotonic',side_effect=clock.monotonic), patch.object(observe.time,'sleep',side_effect=clock.sleep):
++            self.assertEqual(observe.main('unused','synthetic'),1)
++        receipt=b.read(Path(self.envelope['control'])/'observation.json')
++        self.assertEqual(receipt['first_event']['kind'],'external_work_deadline')
++        self.assertEqual(receipt['outer_raw_exit'],-9)
++        self.assertEqual(signals,[(process.pid,signal.SIGTERM),(process.pid,signal.SIGKILL)])
++        self.assertEqual(receipt['launch_count'],1)
++        self.assertLess(receipt['elapsed_seconds'],1800)
++
++    def test_lease_drift_fails_before_worker_dispatch(self):
++        control=Path(self.envelope['control']);control.mkdir();b.save(control/'dispatch.claimed',dict(envelope_sha256='synthetic'))
++        with patch.object(b,'load_envelope',return_value=(self.envelope,self.reg)), patch.object(b,'verify_bound',side_effect=ValueError('parent lease changed')):
++            with self.assertRaisesRegex(ValueError,'parent lease changed'):
++                launcher.execute('unused','synthetic',popen=lambda *a,**k:self.fail('unauthorized dispatch'))
++        self.assertTrue((control/'supervisor.claimed').is_file())
++        self.assertFalse(Path(self.reg['output']).exists())
++
++    def test_completed_global60_json_and_hash_binding(self):
++        worker = self.completed_fixture()
++        report = terminal.validate_outputs(self.reg,worker,self.envelope['registration_sha256'])
++        self.assertEqual(report['completed_updates_journaled'],60)
++        self.assertEqual(report['returned_environment_decisions'],983040)
++        self.assertEqual(report['completed_optimizer_steps_journaled'],60)
++        self.assertEqual(report['integrity_files_checked'],5)
++        self.assertEqual(report['ordinary_caps'],192)
++        bad = copy.deepcopy(worker);bad['integrity_checkpoints'][-1]['phase_update']=432
++        with self.assertRaisesRegex(ValueError,'integrity file/sidecar identity differs'):
++            terminal.validate_outputs(self.reg,bad,self.envelope['registration_sha256'])
++        bad = copy.deepcopy(worker);bad['final_resume_next_episode_indices'][0]+=1
++        with self.assertRaisesRegex(ValueError,'terminal episodes/assignments differ'):
++            terminal.validate_outputs(self.reg,bad,self.envelope['registration_sha256'])
++
++    def completed_fixture(self):
++        """A tiny deterministic JSON producer, never an environment or trainer."""
++        c = b.contracts();out=Path(self.reg['output']);out.mkdir()
++        next_indices=list(self.reg['initial_episode_indices']); assignments=[];active={}; frames=[0]*64;completions=[];resets=[]
++        def assign(slot,update,decision):
++            episode=next_indices[slot];next_indices[slot]+=1
++            md=c.seed_metadata(self.reg['vector']['seeds']['env_master_seed'],slot,episode,self.reg['exclusion_union'])
++            seed=dict(slot=slot,episode=episode,actual_seed=md['first_actual_seed'],counter=md['rejection_counter'],evaluation=False)
++            row=dict(update=update,decision=decision,slot=slot,generation=None,horizon=18000,ordinal=None,seed=seed,block=None,position=None,vector_hash=None)
++            active[slot]=row;assignments.append(row);return row
++        def info(slot,ended=False):
++            return dict(seed=active[slot]['seed'],startup_frames=13,gameplay_frames=frames[slot],alive_frames=frames[slot],terminated=False,truncated=ended)
++        initial_assign=[assign(s,0,-1) for s in range(64)]
++        events=[dict(kind='initial',info=[info(s) for s in range(64)],assignments=initial_assign)]
++        metrics=[];boundaries=[]
++        for local in range(1,61):
++            for decision in range(256):
++                events.append(dict(kind='returned_step_cost',update=local,decision=decision,elapsed_raw_frames=[4]*64))
++                frames=[f+4 for f in frames]
++                if frames[0]==18000:
++                    for s in range(64):
++                        row=dict(update=local,decision=decision,slot=s,generation=None,horizon=18000,ordinal=None,success=True,scheduler_generation=None,native_info=info(s,True))
++                        completions.append(row);events.append(dict(kind='completion',**row))
++                    frames=[0]*64
++                    # Native reset reports the next episode before adapter assignment.
++                    new_rows=[assign(s,local,decision) for s in range(64)]
++                    reset=dict(update=local,decision=decision,indices=list(range(64)),info=[info(s) for s in range(64)])
++                    resets.append(reset);events.append(dict(kind='returned_reset',**reset))
++                    events.extend(dict(kind='reset_assignment',**r) for r in new_rows)
++            events.append(dict(kind='collection_complete_before_PPO',global_update=local))
++            boundary=dict(completed_update=local,promoted=False,generation_after_boundary=None);boundaries.append(boundary)
++            counters=dict(updates=local,optimizer_steps=local,environment_decisions=local*16384,raw_frames=local*65536)
++            metrics.append(dict(global_update=local,phase_update=324+local,cumulative_update=372+local,effective_learning_rate=3e-5,
++                metrics=dict(optimizer_steps=1,transitions=16384),progress=dict(complete=True,in_update=False,optimizer_steps=1),counters=counters,scheduler_boundary=boundary))
++        reset_count=sum(len(r['indices']) for r in resets);raw=60*65536;total=raw+832+reset_count*13
++        env=dict(completed_updates=60,pending_update=None,returned_work_not_accepted_by_audit=0,
++            returned_native_gameplay_frames_unaudited=raw,gameplay_frames_including_fatal=raw,returned_native_vector_steps=60*256,
++            initial_construction_startup_frames=832,normal_reset_count=reset_count,returned_reset_startup_frames_unaudited=reset_count*13,
++            reset_startup_frames=reset_count*13,accepted_raw_frames_total=total,raw_frames_total_including_returned_unaudited_work=total,
++            returned_resets=resets,assignments=assignments,completions=completions,boundaries=boundaries,scheduler=None,
++            consumed_actual_seed_union=sorted(r['seed']['actual_seed'] for r in assignments),
++            in_flight=[dict(slot=s,assignment_status='assigned',native_info=info(s)) for s in range(64)])
++        snapshot=dict(state='ready',completed_optimizer_steps=60,actual_optimizer_steps_including_failed_update=60,environment=env)
++        checkpoints=[]
++        for local in (12,24,36,48,60):
++            path=out/f'checkpoint-global-{local:03d}-integrity.pt';path.write_bytes(b'SYNTHETIC JSON CONTROL - NOT A CHECKPOINT')
++            record=dict(path=str(path),sha256=b.sha(path),global_update=local,phase_update=324+local,cumulative_update=372+local,
++                formal_comparison_endpoint=local==60,training_eligible=False,promoted=False,automatic_selection=False)
++            b.save(str(path)+'.json',record);checkpoints.append(record)
++        worker=dict(status='completed',updates=60,run_id=self.reg['run_id'],registration_sha256=self.envelope['registration_sha256'],
++            training_eligible=False,promoted=False,automatic_selection=False,evaluated_updates=[],phase_update=384,cumulative_update=432,
++            elapsed_seconds=1,counters=counters,final_snapshot=snapshot,curriculum_snapshot=snapshot,final_resume_next_episode_indices=next_indices,
++            integrity_checkpoints=checkpoints,formal_comparison_endpoint=checkpoints[-1],peak_rss_bytes=1,peak_mps_driver_bytes=1)
++        ref=c.references.load_bound_reference(receipt_path=self.reg['reference']['receipt_path'],expected_receipt_sha256=self.reg['reference']['receipt_sha256'],
++            expected_study_id=self.reg['study_id'],expected_replica=self.reg['replica'],expected_seed_vector=self.reg['vector']['seeds'],
++            expected_vector_sha256=self.reg['vector']['vector_sha256'],expected_torch_version=self.reg['runtime_versions']['torch'])
++        entry=dict(study_id=self.reg['study_id'],pair_id=self.reg['pair_id'],replica=self.reg['replica'],arm=self.reg['arm'],backend=self.reg['backend'],
++            seed_vector=self.reg['vector']['seeds'],vector_sha256=self.reg['vector']['vector_sha256'],parent_fingerprints=self.reg['expected_parent_fingerprints'],
++            seed_evidence=dict(torch_cpu_rng_state_sha256=ref['torch_cpu_global_seed'],torch_mps_rng_state_sha256=ref['action_sampler_torch_mps_seed'],torch_cpu_initial_seed=self.reg['vector']['seeds']['torch_cpu_global_seed']),
++            new_controller=dict(kind='constant',origin=372,horizon=60,first_update=373,last_update=432,start_lr=3e-5,end_lr=3e-5),
++            post_lr_fingerprints=self.reg['expected_parent_fingerprints'],adapter_post_reseed_components=dict(torch_cpu=ref['torch_cpu_global_seed'],torch_mps=ref['action_sampler_torch_mps_seed']))
++        b.save(out/'entry-restoration.json',entry)
++        (out/'training-events.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in events))
++        (out/'training-metrics.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in metrics))
++        (out/'resources.jsonl').write_text('{"rss_bytes":1,"mps_driver_bytes":1}\n')
++        return worker
++
++
++if __name__ == '__main__':
++    unittest.main(verbosity=2)
+--- /dev/null
++++ tests/run_controls.py
+@@ -0,0 +1,44 @@
++"""Run only this binding's bounded stdlib controls, with import/spawn guards."""
++import io
++import json
++from pathlib import Path
++import sys
++import time
++import unittest
++
++HERE = Path(__file__).resolve().parent
++OWN = HERE.parent
++sys.path.insert(0,str(HERE))
++forbidden = []
++spawns = []
++
++
++class NoRuntime:
++    def find_spec(self, fullname, path=None, target=None):
++        if fullname.split('.')[0] in {'numpy','torch','dodge_rl'}:
++            forbidden.append(fullname)
++            raise RuntimeError('Forbidden runtime import in stdlib controls: '+fullname)
++
++
++def audit(event,args):
++    if event == 'subprocess.Popen':
++        spawns.append(str(args[0]))
++        raise RuntimeError('Real subprocess launch forbidden in fake-process controls')
++
++
++sys.meta_path.insert(0,NoRuntime())
++sys.addaudithook(audit)
++started = time.monotonic()
++suite = unittest.defaultTestLoader.discover(str(HERE),pattern='test_bindings.py')
++log = io.StringIO()
++result = unittest.TextTestRunner(stream=log,verbosity=2).run(suite)
++text = log.getvalue()
++(OWN/'controls.log').write_text(text)
++receipt = dict(schema='progressive1000_supervisor_stdlib_controls_v1',tests_run=result.testsRun,
++    failures=len(result.failures),errors=len(result.errors),successful=result.wasSuccessful(),
++    raw_exit=0 if result.wasSuccessful() else 1,elapsed_seconds=time.monotonic()-started,
++    actual_subprocess_launches=spawns,forbidden_runtime_imports=forbidden,
++    scope='Synthetic process objects and JSON/hash controls only; no actual restore, runtime, cleanup or campaign qualification.')
++(OWN/'test-receipt.json').write_text(json.dumps(receipt,sort_keys=True,indent=2)+'\n')
++print(text,end='')
++raise SystemExit(receipt['raw_exit'])
+--- /dev/null
++++ dependency-binding.json
+@@ -0,0 +1,8 @@
++{
++  "inventory_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/critic-diagnostic-parent-prepare-20261025-r1/dependency-inventory.json",
++  "inventory_sha256": "2957832457c39751998012f4aeb4440f5d7570250ae9ab072ee10d86dd970ed6",
++  "registration_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/D2-retained300-continuation-freeze-20261026-r5/registration.json",
++  "registration_sha256": "8a60dc80f1ebe03c43bf18eebf75199e14f207b677570ac2d6d4368ddfcb0f79",
++  "schema": "reused_D2_dependency_inventory_binding_v1",
++  "scope": "Existing installed Torch/NumPy/interpreter file pins, hash only; OS frameworks and driver binaries not fully inventoried."
++}
