@@ -1,0 +1,46 @@
+{
+  "schema": "dodge_fullgame_seed_priority_experiment_v1",
+  "study_id": "fullgame-seed-priority-luna-20261027-r1",
+  "status": "source_preparation_parent_review_required",
+  "launch_authority": false,
+  "objective": "Test whether frozen training-only opening-hard seed selection improves early survival without reducing later survival.",
+  "arms": {
+    "uniform": "Uniform sampling with replacement from the frozen shared training-only pool.",
+    "opening_priority": "50% uniform floor plus 50% sampling from the frozen opening-hard stratum of the same pool."
+  },
+  "priority_source": "Historical completed full-game training episodes only; freeze labels before either arm. No current or future evaluation seed contributes to pool or labels.",
+  "native_seed_profile": {
+    "constructor": "Existing explicit seeds_by_slot API.",
+    "native_metadata": "Retain seed_mode.mode=evaluation and seed.evaluation=true exactly as native returns. Python adapter separately authenticates role=training_only through pool manifest membership.",
+    "rollouts": "All PPO transitions are newly collected from the current policy in normal-start full-game episodes. No historical transitions or behavior cloning."
+  },
+  "design": {
+    "replicas": 3,
+    "matched_rng_vectors": "Six-key vectors paired across arms; proposal artifact separately recorded.",
+    "updates_per_run": 60,
+    "batch_size": 64,
+    "decisions_per_slot_per_update": 256,
+    "decisions_per_arm": 983040,
+    "action_repeat": 4,
+    "full_game_cap_raw_frames": 18000,
+    "cutoffs": false,
+    "checkpoint": "Accepted parent324, restore model and Adam, then LR 3e-5.",
+    "reward": "score delta + 0.01 per alive frame - 5 on true death; unchanged.",
+    "architecture": "321k-parameter entity transformer; unchanged."
+  },
+  "sampling": {
+    "pool_target": 512,
+    "strata": "256 opening-hard and 256 easier comparison seeds, selected by the parent deterministic stratified hash over training-only control completions.",
+    "selection_probability": "Each pool seed has uniform-arm probability 1/N. Hard-seed treatment has 0.5/N + 0.5/H for hard seeds and 0.5/N for other seeds; relative hard-seed multiplier 1.5, below proposed cap 4.",
+    "stream": "Deterministic SHA-256 derivation from study, replica, env master seed, slot and episode. Treatment uniform component shares exact draws with paired control; hard component uses separate domain label.",
+    "fault_policy": "No retries, replacement seeds, or dynamic stream edits. Repeated pool visits are part of the registered sampling policy."
+  },
+  "metrics": ["opening survival through 1000 frames", "age-binned raw gameplay frames", "priority and uniform assignment counts", "per-seed outcomes", "full-run Worst/Q1/Mean/Q4/Best", "milestone rates", "death causes"],
+  "evaluation": {
+    "terminal": "Update60 only; sample categorical actions; normal starts; cap18000; no cutoff.",
+    "cohort": "Fresh parent-reserved D4 shared across arms; D5 reserved separately for confirmation. Current D300 is consumed.",
+    "interpretation": "Descriptive three-pair pilot. Full-game assignment does not guarantee late-age exposure; earlier death can lower later-age frames. No checkpoint promotion or automatic selection."
+  },
+  "limits": {"rss_bytes": 6442450944, "mps_driver_bytes": 6442450944, "retries": 0},
+  "unresolved_gates": ["parent-accepted pool and history closure", "fresh D4/D5 reservation", "independent RNG reference", "runtime/source review", "resource calibration", "parent registration and execution authorization"]
+}

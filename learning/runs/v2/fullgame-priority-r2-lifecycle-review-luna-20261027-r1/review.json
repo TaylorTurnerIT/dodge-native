@@ -1,0 +1,63 @@
+{
+  "schema": "fullgame_priority_r2_lifecycle_review_v1",
+  "status": "no_blocking_static_lifecycle_findings_parent_gates_pending",
+  "scope": "Read-only review of full-game seed-priority r2 source lifecycle wiring and six draft registrations.",
+  "source_manifest_sha256": "eba881154e3807c089eb0e3d2031ed6c8237dab1a57da3698d70ab6c6a91d1a4",
+  "source_manifest_members": 50,
+  "source_member_pin_drift": 0,
+  "runtime_manifest_sha256": "e032a5ab1d609512461e287d372375f1bf28800fb2b13d9c5cf98e20768de986",
+  "runtime_manifest_members": 14,
+  "runtime_member_pin_drift": 0,
+  "runtime_extra_or_missing_members": 0,
+  "lifecycle_repairs_verified": [
+    "Worker receives parent launch approval and digest; source acceptance remains separately checked by observer binding.",
+    "Observer and worker use shared exact launch-approval validation.",
+    "Parent audit CLI consumes observer and parent execution receipts using producer field names.",
+    "Terminal checkpoint identity validator follows nested successor_runtime manifest hashes.",
+    "Startup checks unspent paths; completed audit checks output manifest, receipts, process absence, and exact lease before release.",
+    "Matched-pair declared differences equal actual differences, including arm-specific seed and component stream hashes."
+  ],
+  "worker_group_absence_receipt": {
+    "status": "satisfiable_on_success",
+    "evidence": "observe.py:325-333 is a finally block and sets worker_group_absent from a fresh group-absence probe before receipt publication.",
+    "success_precondition": "observe.py:300-303 already requires worker group absence.",
+    "actual_producer_receipt": {
+      "source": "learning/runs/v2/progressive1000-full-run-evaluator-parent-20261027-r2/dispatch/progressive1000-fixed-terminal-full-evaluation-20261027-r2/observation.json",
+      "observer_source_sha256": "95b8758eea4607f5f0812064f44ad5a26615a8a455ec0bf43d9c65bae991f81d",
+      "observation_sha256": "263cb7611c6767e52e478b080cb4780a719935111ff567cef28e39543ec1c518",
+      "same_observer_bytes_as_reviewed_r2": true,
+      "receipt_fields_verified": {
+        "status": "completed_pending_parent_audit",
+        "observed_worker_raw_exit": 0,
+        "directly_reaped": true,
+        "owned_group_absent": true,
+        "worker_group_absent": true,
+        "postflight_inputs_unchanged": true
+      }
+    }
+  },
+  "registration_review": {
+    "registration_directories": [
+      "registrations-gated-r2-final-20261027",
+      "registrations-gated-r2-20261027"
+    ],
+    "draft_count_per_index": 6,
+    "draft_index_pin_drift": 0,
+    "all_launch_authority_false": true,
+    "actual_matched_pair_differences": [
+      "arm",
+      "attempt_claim_path",
+      "launch_marker_path",
+      "output",
+      "run_id",
+      "slot_component_sha256",
+      "slot_stream_sha256"
+    ]
+  },
+  "limits": [
+    "Runtime remains copied-release-binary / modified-Python and is not release-parity qualified.",
+    "Evaluation contract records history BLOCKED, new cohort PENDING_NOT_RESERVED, and launch_authority false.",
+    "Reviewed registrations are inert drafts, not final parent registrations.",
+    "No tests, preflight, launch, Torch/MPS/native imports, model construction, or checkpoint loads were performed in this r2 review."
+  ]
+}

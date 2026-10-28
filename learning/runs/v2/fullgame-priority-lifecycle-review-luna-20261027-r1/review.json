@@ -1,0 +1,50 @@
+{
+  "schema": "fullgame_priority_lifecycle_review_v1",
+  "status": "blocking_source_findings",
+  "scope": "Read-only static lifecycle review of frozen full-game seed-priority package and six r4 draft registrations.",
+  "registration_index_sha256": "b39d78f8ab1d470e5fdf2e6915c9842cf1da18a6c4062b73168715721de06ab3",
+  "findings": [
+    {
+      "severity": "P1",
+      "title": "Worker receives source acceptance where preflight requires launch approval",
+      "evidence": [
+        "learning/runs/v2/fullgame-seed-priority-experiment-luna-20261027-r1/binding.py:88-91",
+        "learning/runs/v2/fullgame-seed-priority-experiment-luna-20261027-r1/worker_cli.py:13-18",
+        "learning/runs/v2/fullgame-seed-priority-experiment-luna-20261027-r1/contracts.py:226-234"
+      ],
+      "trigger": "Observer dispatch reaches worker.",
+      "consequence": "Worker treats independent source-acceptance document as launch approval and fails before runtime import/construction."
+    },
+    {
+      "severity": "P1",
+      "title": "Parent launch-approval gate schema conflicts across preflights",
+      "evidence": [
+        "learning/runs/v2/fullgame-seed-priority-experiment-luna-20261027-r1/binding.py:11-13,70-78",
+        "learning/runs/v2/fullgame-seed-priority-experiment-luna-20261027-r1/contracts.py:28-31,231-234"
+      ],
+      "trigger": "One launch-approval file is supplied to observer and worker preflight.",
+      "consequence": "Exact dictionary checks require different gate-name sets; one preflight rejects any shared document."
+    },
+    {
+      "severity": "P1",
+      "title": "Terminal audit expects exit fields observer never writes",
+      "evidence": [
+        "learning/runs/v2/fullgame-seed-priority-experiment-luna-20261027-r1/audit.py:21-24",
+        "learning/runs/v2/fullgame-seed-priority-experiment-luna-20261027-r1/observe.py:286-288,313-318,372-379"
+      ],
+      "trigger": "Parent runs audit after an otherwise successful observer run.",
+      "consequence": "Audit raises `raw worker/observer exit differs` and rejects the completed run."
+    }
+  ],
+  "qualification_limits": [
+    "Runtime manifest describes copied release binary and modified Python runtime; release parity is not qualified.",
+    "Evaluation contract says history BLOCKED, new cohort PENDING_NOT_RESERVED, and launch_authority false.",
+    "All six r4 registrations are inert drafts; no launch authority was present.",
+    "No tests, preflight, launch, Torch/MPS/native imports, or frozen-input mutations were performed."
+  ],
+  "supervisor_comparison": {
+    "source": "learning/runs/v2/progressive1000-opening-maintenance-supervisor-parent-20261027-r1/observe.py",
+    "source_sha256": "95b8758eea4607f5f0812064f44ad5a26615a8a455ec0bf43d9c65bae991f81d",
+    "copied_bytes_match": true
+  }
+}
