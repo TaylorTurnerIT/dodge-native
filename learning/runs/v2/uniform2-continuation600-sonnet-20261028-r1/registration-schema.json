@@ -1,0 +1,30 @@
+{
+  "schema": "uniform2_continuation600_registration_schema_v1",
+  "launch_authority": false,
+  "registration_schema": "uniform2_continuation600_registration_v1",
+  "draft_status": "source_review_pending",
+  "final_status": "parent_registered",
+  "produced_by": {"draft": "build_registration.py (hash-only; refuses unless every pinned parent artifact is exact)",
+                  "final": "finalize_registration.py (copies an unchanged draft; sets status and calibration acceptance only)"},
+  "fields": "binding.REG_FIELDS",
+  "fixed": {
+    "run_id": "uniform2-continuation600-sonnet-20261028-r1",
+    "study_id": "uniform2-continuation600-20261028-r1",
+    "parent": "replica-2-uniform terminal60 checkpoint 041b4a9e..., identity/fingerprints/next_episode_indices from the parent restore qualification (pinned)",
+    "schedule": "binding.SCHEDULE: 600 updates = 10 segments x 60, cumulative 433..1032, phase 385..984, boundaries 60..600, evaluations at 0,60,...,600",
+    "cohort": "D6 0xD6000000..0xD60003FF, 1024 seeds, evaluation RNG 2026102803, 11 policies (parent reservation pinned)",
+    "exclusion_union": "nine ranges from the parent reservation (historical + D4 + D5 + D6)",
+    "limits": "work 28800, cleanup 10, postflight 120, total 28930, RSS=MPS=6GiB, retries 0; training and evaluation role budgets in binding.TRAINING_LIMITS / EVALUATION_LIMITS",
+    "authorization": "pinned user authorization and the pinned battery power override record",
+    "no_promotion": "official parent324 promotion, automatic selection, D5/B/E and training eligibility all false"
+  },
+  "parent_supplied_before_launch": [
+    "independent source acceptance: binding.source_acceptance_document(source_manifest_sha256)",
+    "calibration acceptance file named by finalize_registration.py",
+    "gate acceptance: binding.approval_document(...), schema uniform2_continuation600_gate_acceptance_v1, every binding.GATES entry passed, pins",
+    "main ledger active_long_campaign null at launch (launch.py installs the exact lease, audit.py clears it)"
+  ],
+  "gates": ["independent_source_review", "restore_qualification", "cohort_reservation_and_freshness", "seed_stream_extension",
+            "selection_rule", "battery_override_and_native_root_caffeinate", "resource_calibration", "main_lease_and_ledger",
+            "supervisor_cleanup", "registration", "exactly_once"]
+}

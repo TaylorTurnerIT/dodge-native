@@ -1,0 +1,818 @@
+{
+  "attempt_claim_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/uniform2-continuation600-sonnet-20261028-r1/attempt.claimed",
+  "authorization": {
+    "battery_override_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/uniform2-continuation600-parent-20261028-r1/battery-power-override.json",
+    "battery_override_sha256": "58085a78814ca5d595c1220d5ea2c4bf185a8c1a64a87e1e1ebbdc175958b29d",
+    "user_authorization_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/uniform2-continuation600-parent-20261028-r1/user-authorization.json",
+    "user_authorization_sha256": "beadf1de26f099f184b9a594aa595fac401704f370bec89c38c55a0a7a1e5692"
+  },
+  "backend": "mps",
+  "calibration": {
+    "basis": "Work cap is the user maximum (28800 s). Training uses the selected run's measured 60-update wall time; evaluation uses the accepted D4 evaluator's measured seconds per raw frame (taken while training shared the GPU) at the selected model's D4 mean survival, and, as a worst case, with every episode at the 18000 cap. total = work + cleanup (10) + postflight (120). The worst-case sum stays under the cap; the observer SIGALRM stops the run at work_seconds. Raw-frame/constructor/step/reset budgets are structural ceilings, not expected cost: training 4 gameplay + 13 startup frames per slot-decision; evaluation 18000 + 13 per episode. Roles are accounted separately. Not a fresh throughput probe; the parent must accept it.",
+    "derived": {
+      "evaluation_seconds_per_raw_frame": 8.628168083489773e-05,
+      "expected_evaluation_raw_frames": 25020809,
+      "margin_over_expected": 2.298293590953128,
+      "projected_evaluation_seconds_every_episode_capped": 17507,
+      "projected_evaluation_seconds_expected": 2159,
+      "projected_total_expected_seconds": 12532,
+      "projected_total_worst_case_seconds": 27879,
+      "projected_training_seconds": 10373
+    },
+    "inputs": {
+      "evaluation_prior_peak_mps_driver_bytes": 193429504,
+      "evaluation_prior_peak_rss_bytes": 600031232,
+      "evaluation_prior_raw_frames": 6720672,
+      "evaluation_prior_seconds": 579.8708765000338,
+      "evaluation_source": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-priority-D4-first-three-evaluator-sonnet-20261028-r1/worker-output/worker-result.json",
+      "expected_mean_alive_frames": 2208.3076171875,
+      "expected_mean_source": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-priority-D4-last-three-parent-validation-20261028-r1/lower-quarter-selection.json",
+      "training_peak_mps_driver_bytes": 2382184448,
+      "training_peak_rss_bytes": 1256718336,
+      "training_seconds_per_60_updates": 1037.2198662500596,
+      "training_source": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1/fullgame-seed-priority-luna-20261027-r1-replica-2-uniform/worker-output/worker-result.json"
+    },
+    "parent_acceptance_path": null,
+    "parent_acceptance_sha256": null,
+    "parent_accepted": false,
+    "proposed_work_seconds": 28800
+  },
+  "cohort": {
+    "count": 1024,
+    "evaluation_rng_seed": 2026102803,
+    "name": "D6",
+    "policies": 11,
+    "range": [
+      3590324224,
+      3590325247
+    ],
+    "reservation_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/uniform2-continuation600-parent-20261028-r1/development-cohort-reservation.json",
+    "reservation_sha256": "e817dba9ee6e546ccaa425d0dc599cda1894427e6a2eb14df0680a65371bd3c8",
+    "seed_vector_sha256_u32be": "a82b0a3124573406279f4167ccab4bc72e37d206d403d3238eeb167890bfd4e7",
+    "total_episodes": 11264
+  },
+  "evaluation": {
+    "action_mode": "sampled_categorical",
+    "comparison": "starting model evaluated on the same D6 cohort; no confidence claim: one training trajectory",
+    "cutoff_enabled": false,
+    "episodes_per_policy": 1024,
+    "metrics": [
+      "Worst",
+      "Q1",
+      "Mean",
+      "Q4",
+      "Best",
+      "milestone success"
+    ],
+    "milestones": [
+      1000,
+      2000,
+      4000,
+      8000,
+      12000,
+      18000
+    ],
+    "normal_start": true,
+    "policies": 11,
+    "rng_seed": 2026102803,
+    "rng_semantics": "Before each policy: random, numpy, torch and torch.mps are reseeded with rng_seed; categorical sampling uses the global MPS stream in fixed seed-batch order. The learner RNG, python/numpy/torch CPU+MPS states, gradient mode and every learner module train/eval flag are captured before and restored exactly after every evaluation; the evaluated model is a separate instance loaded from the immutable saved checkpoint.",
+    "selection": "largest Q1 (bottom-256 mean), then largest Mean, exact tie keeps the earlier checkpoint; the starting model (update 0) is a candidate; no official parent324 promotion"
+  },
+  "evaluator_source": {
+    "note": "accepted _production_rows, byte-identical to the producer package copy",
+    "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-opening-maintenance-runtime-parent-20261027-r1"
+  },
+  "exclusion_union": [
+    [
+      2952790016,
+      2952791015
+    ],
+    [
+      3489660928,
+      3489661055
+    ],
+    [
+      3506438144,
+      3506439167
+    ],
+    [
+      3523215360,
+      3523217407
+    ],
+    [
+      3539992576,
+      3539993599
+    ],
+    [
+      3556769792,
+      3556770815
+    ],
+    [
+      3573547008,
+      3573549055
+    ],
+    [
+      3590324224,
+      3590325247
+    ],
+    [
+      3758096384,
+      3758097383
+    ]
+  ],
+  "expected_lease": {
+    "MPS_driver_bytes": 6442450944,
+    "RSS_bytes": 6442450944,
+    "kind": "uniform2_continuation600_attempt",
+    "owner_token": "1bfc1249a9eb4424b2ce94286ea21c93",
+    "run_id": "uniform2-continuation600-sonnet-20261028-r1",
+    "study_id": "uniform2-continuation600-20261028-r1"
+  },
+  "frozen_source": {
+    "evaluator_source": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-opening-maintenance-runtime-parent-20261027-r1",
+    "evaluator_source_manifest_sha256": "51aa867e43b3a047f057ef07069c9939615d4a1db2939e484d0f974cac87b85e",
+    "expanded_eval_sha256": "3fd6c1e25b11c7214eff5d4d83ae7a18e3c2b109ce1750db634196075cfc56a0",
+    "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-seed-priority-experiment-luna-20261027-r3",
+    "source_manifest_sha256": "a29e25b285d2d4651a2d74699929a27578860cfdd9a8d7980ca47c72824d41e2"
+  },
+  "import_policy": {
+    "dont_write_bytecode": true,
+    "pycache_prefix": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/uniform2-continuation600-sonnet-20261028-r1/empty-pycache"
+  },
+  "input_pins": {
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-priority-D4-first-three-evaluator-sonnet-20261028-r1/worker-output/worker-result.json": "3de41d4566c6d5f09d2c823f4c8869da0d384264287400e385c84985c09d33c0",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-priority-D4-last-three-parent-validation-20261028-r1/continuation-proposal.json": "9141885556b08d1351f417a4071b1e6732daedc91bcbf671341565aa3baf834f",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-priority-D4-last-three-parent-validation-20261028-r1/lower-quarter-selection.json": "5a16b026f5e1aac8f793ad4aea3bbeff31a93e8abaf41037caea8f2ddf9149b1",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1/fullgame-seed-priority-luna-20261027-r1-replica-2-uniform/dispatch/artifact-manifest.json": "4d21d9f976fdc2dadd6cb2ff29ebd832b6d01c9aaa4a262b7feab73e17878017",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1/fullgame-seed-priority-luna-20261027-r1-replica-2-uniform/lease-release.json": "2bd08d7d8b3b45209e43c387c1e15b1c01c4cb113aa6ed81bb7f8994826fb34f",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1/fullgame-seed-priority-luna-20261027-r1-replica-2-uniform/parent-terminal-audit.json": "2a9f1125a4567048e7b332fce481582cd0b8ee86fdfc5bce6a8611a4471cca47",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1/fullgame-seed-priority-luna-20261027-r1-replica-2-uniform/registration-final.json": "6b52eab9d2e01e81fded6b3a89a95ff53ded6711ef87c8214d09ca573c78ef59",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1/fullgame-seed-priority-luna-20261027-r1-replica-2-uniform/worker-output/checkpoint-global-060-integrity.pt": "041b4a9ed4cba2e3d0665d1fa9b4615870a9f3c1fe353397a5199dcf9e87f011",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1/fullgame-seed-priority-luna-20261027-r1-replica-2-uniform/worker-output/checkpoint-global-060-integrity.pt.json": "f405e893175a92688b4134117f34353dec1ca184e0cee88fa64d81a658546641",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1/fullgame-seed-priority-luna-20261027-r1-replica-2-uniform/worker-output/worker-result.json": "596302d59f781b91ce5e927e8269f8d75571f0fa6d1ac57c489f78df887298c5",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-seed-priority-experiment-luna-20261027-r3/runtime-manifest.json": "e032a5ab1d609512461e287d372375f1bf28800fb2b13d9c5cf98e20768de986",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-seed-priority-experiment-luna-20261027-r3/source-manifest.json": "a29e25b285d2d4651a2d74699929a27578860cfdd9a8d7980ca47c72824d41e2",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-opening-maintenance-runtime-parent-20261027-r1/expanded_eval.py": "3fd6c1e25b11c7214eff5d4d83ae7a18e3c2b109ce1750db634196075cfc56a0",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-opening-maintenance-runtime-parent-20261027-r1/source-manifest.json": "51aa867e43b3a047f057ef07069c9939615d4a1db2939e484d0f974cac87b85e",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/rl-next-experiments-parent-20261027-r1/training-pool512-accepted.json": "5093727c2fdabd794267ccbc44a43b1fb29747b545cff645b66b0ad578180f04",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/uniform2-continuation600-parent-20261028-r1/battery-power-override.json": "58085a78814ca5d595c1220d5ea2c4bf185a8c1a64a87e1e1ebbdc175958b29d",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/uniform2-continuation600-parent-20261028-r1/development-cohort-reservation.json": "e817dba9ee6e546ccaa425d0dc599cda1894427e6a2eb14df0680a65371bd3c8",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/uniform2-continuation600-parent-20261028-r1/qualify_restore.py": "2256c5a27d0d9ec7cada16e5a313320498d48b8767615675c6aea8cca0a74ba8",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/uniform2-continuation600-parent-20261028-r1/restore-qualification-registration.json": "46153eec66902c7aa12889d9424326c04829ea07396df2324d52f6e6d7e2d08e",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/uniform2-continuation600-parent-20261028-r1/restore-qualification.json": "6abc63a60bdc80282fdba12ba366c4d50d610b4c184e712dc5b4308160c6f95b",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/uniform2-continuation600-parent-20261028-r1/user-authorization.json": "beadf1de26f099f184b9a594aa595fac401704f370bec89c38c55a0a7a1e5692"
+  },
+  "interpreter": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+  "launch_authority": false,
+  "launch_marker_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/uniform2-continuation600-sonnet-20261028-r1/launch.claimed",
+  "limits": {
+    "cleanup_seconds": 10,
+    "evaluation": {
+      "constructors": 11264,
+      "native_steps": 202752000,
+      "raw_frames": 202898432,
+      "resets": 0
+    },
+    "mps_bytes": 6442450944,
+    "postflight_seconds": 120,
+    "retries": 0,
+    "rss_bytes": 6442450944,
+    "total_seconds": 28930,
+    "training": {
+      "constructors": 10,
+      "native_steps": 153600,
+      "raw_frames": 167125120,
+      "resets": 9830400
+    },
+    "work_seconds": 28800
+  },
+  "no_promotion": {
+    "automatic_selection": false,
+    "d5_b_e_opened": false,
+    "official_parent324_promotion": false,
+    "training_eligible": false
+  },
+  "output": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/uniform2-continuation600-sonnet-20261028-r1/worker-output",
+  "parent": {
+    "abandoned_current_episodes_sha256": "4ba14949265c57f600e6ed2685a197ef6136cabb35549189a63137b3438ab348",
+    "checkpoint_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1/fullgame-seed-priority-luna-20261027-r1-replica-2-uniform/worker-output/checkpoint-global-060-integrity.pt",
+    "checkpoint_sha256": "041b4a9ed4cba2e3d0665d1fa9b4615870a9f3c1fe353397a5199dcf9e87f011",
+    "counters": {
+      "environment_decisions": 983040,
+      "optimizer_steps": 7680,
+      "raw_frames": 3929264,
+      "updates": 60
+    },
+    "cumulative_update": 432,
+    "expected_identity": {
+      "arm": "uniform",
+      "backend": "mps",
+      "exclusion_union": [
+        [
+          2952790016,
+          2952791015
+        ],
+        [
+          3489660928,
+          3489661055
+        ],
+        [
+          3506438144,
+          3506439167
+        ],
+        [
+          3523215360,
+          3523217407
+        ],
+        [
+          3539992576,
+          3539993599
+        ],
+        [
+          3758096384,
+          3758097383
+        ],
+        [
+          3556769792,
+          3556770815
+        ],
+        [
+          3573547008,
+          3573549055
+        ]
+      ],
+      "native_seed_mode": "evaluation_explicit_seed_list",
+      "neural_inputs": [
+        "global_feats",
+        "entity_feats",
+        "entity_types",
+        "entity_mask"
+      ],
+      "pair_id": "fullgame-seed-priority-luna-20261027-r1-replica-2",
+      "parent_lineage": {
+        "checkpoint_sha256": "c10d90ec0e67503afef8f4d90c4968581d430ef2065117a75e81c445a04c8ddc",
+        "cumulative_update": 372,
+        "fingerprints": {
+          "Adam": "cf5e2a7ac5d3f7f131a26f7c2b8b778b7692850cff606a0ea9080941b960451c",
+          "RNG": "cb96ee8d2c40114a51abb8031dc7457a6da6d1be7262c6a4859bd34cab5813af",
+          "model": "3b72815fef4d8fa0084044739f5a5eaf9f74971b36dff9d8b26ed3bea5c562bc"
+        },
+        "phase_update": 324,
+        "receipt_sha256": "76cb15733e87518cb3b473b7f8ebd847ed206351fb9f17d89b8b92e6bf853f08"
+      },
+      "registration_sha256": "6b52eab9d2e01e81fded6b3a89a95ff53ded6711ef87c8214d09ca573c78ef59",
+      "replica": 2,
+      "run_id": "fullgame-seed-priority-luna-20261027-r1-replica-2-uniform",
+      "schedule": {
+        "candidate_selection": false,
+        "cumulative_first": 373,
+        "cumulative_last": 432,
+        "cumulative_origin": 372,
+        "final_drain": false,
+        "formal_evaluation_local_updates": [
+          60
+        ],
+        "integrity_local_updates": [
+          12,
+          24,
+          36,
+          48,
+          60
+        ],
+        "phase_end": 384,
+        "phase_start": 325,
+        "promotion": false,
+        "updates": 60
+      },
+      "schema": "dodge_fullgame_seed_priority_learner_identity_v1",
+      "seed_vector": {
+        "attempts": {
+          "action_sampler_torch_mps_seed": 3,
+          "constructor_init_seed": 0,
+          "env_master_seed": 0,
+          "numpy_global_seed": 0,
+          "python_random_seed": 0,
+          "torch_cpu_global_seed": 1
+        },
+        "replica": 2,
+        "seeds": {
+          "action_sampler_torch_mps_seed": 4941148191284300052,
+          "constructor_init_seed": 2789439187,
+          "env_master_seed": 11644207240444663193,
+          "numpy_global_seed": 4109326888,
+          "python_random_seed": 6040893670895947720,
+          "torch_cpu_global_seed": 8141223387399726203
+        },
+        "vector_sha256": "32cf3cef07ea1b72072212e2a3130de76441d6e3a77e291016dac45d6c0cb963"
+      },
+      "shared_config": {
+        "batch_size": 64,
+        "environment": {
+          "action_repeat": 4,
+          "cutoff_enabled": false,
+          "difficulty": 2,
+          "normal_start": true,
+          "patterns_enabled": true,
+          "powerups_enabled": true,
+          "raw_frame_cap": 18000
+        },
+        "evaluation": {
+          "action_mode": "sampled_categorical",
+          "cohort": "fresh parent-reserved D4",
+          "terminal_update": 60
+        },
+        "global_updates": 60,
+        "learning_rate": 3e-05,
+        "model": "accepted OmniscientEntityTeacher, unchanged",
+        "optimizer": "restore accepted Adam state; no reset; constant LR 3e-5",
+        "ppo": {
+          "adam_eps": 1e-05,
+          "clip_coef": 0.2,
+          "ent_coef": 0.01,
+          "gae_lambda": 0.95,
+          "gamma": 0.995,
+          "learning_rate": 3e-05,
+          "max_grad_norm": 0.5,
+          "minibatch_size": 512,
+          "reward_scale": 0.1,
+          "target_kl": 0.03,
+          "update_epochs": 4,
+          "vf_coef": 0.5
+        },
+        "reward": "score delta + alive_frames/100 - 5 on true death",
+        "rollout_steps": 256,
+        "sampling": {
+          "control": "uniform shared pool",
+          "fresh_ppo_rollouts": true,
+          "pool_role": "training_only",
+          "treatment": "50% uniform floor + 50% frozen hard stratum"
+        },
+        "schema": "dodge_fullgame_seed_priority_shared_config_v1"
+      },
+      "slot_stream_sha256": [
+        "9d38d1cecf042ebec026f613f04199d3572aff217400ce670c4a5254b4a2bb3e",
+        "37736abfe9c443575f6d97d32940fcd1889b673a5c53340e3f295ac7b5e6ed99",
+        "f61a1781f2fbe65011573f5dc33c3ef2de7b7e2249a4b9cd2a3ffa5a340750e8",
+        "8df68d8f64ddbf1f6796c56973b8a331450e3499d6e7224c16a91f63193f1316",
+        "eec2a2c8867ea171492540c6c38e8af1437226f5effabb57adc13e87f0c92f3a",
+        "59e39a453b39003bd95e97750f201a28100f9de241e6380aff0dd1665a2acc40",
+        "aa2b56271e40f3afc0f16a2f2f4db1de36447d23c2bba0d5547331536bab9138",
+        "48c799d2b1f384e7c68c10cd5ff89f8d90b6423e26b5a0fa74ff628c3c25b927",
+        "d49dbe6bb7a7b535c3ffc60471cf3ae2d6680839341a7e59f0c6f12a7c93e96a",
+        "995d45c51dd326f9c44d25de19a36777080706f131d54c69f9449226516f1079",
+        "de28ee1621cd2972ad3e007666a0b159a5d410ddfbac20681a50d38e386a53b9",
+        "8a3bb8dcfc6e0debaeba12c953da537e9aef60f80ee58d19497ea42e8b464896",
+        "e1b8b9ccf6ccc1543097c458d61e073adc4fa5dfa3dee808e993836a36ead0ac",
+        "e15c0fcfa705bae77e0912bd84ee0a224aeb2e963c0f0a95381aface83642eda",
+        "fb5f559df5f840280ef5df5bfee6a4efa425a7bc1873a19e1d45efedb900db4e",
+        "07a404c848b651ce94c1437574b1aaccf4f2dd0a4986b24a2b2198c6d17c5ba3",
+        "25a6f5dcf5e7d22a41013fd8e257813fff9e9558c1919d58039caeef4c299bb3",
+        "ef375c2d4bb4554466e2d88cca2b2bc07d7f37fcde479db36be2f4fd58323113",
+        "f2a9867f39ffeaa2ef89b78a9ebe5f7b22da39bfc57b14dca4ec5b544297a064",
+        "e9f89d6f41aa5143e25fbcbf9b19e2146e47862535b9a0bc2afb00ee3017e958",
+        "5d0eb84afb80a0f9515f6ae12b0dbd35936ef653356f1887b9cce52fd7f6e764",
+        "5d1e33e30c84fb12f717a5534d805cc3c642ed8d0b167f8c966e1d532ea79e5d",
+        "3ff061b79e1ed1de6c839049b042ff00943d7cc2ab163865fd53b59d05e99fee",
+        "ccadc2daf1e69a36f28b5aca9163ceff302fab15443738ce47cedf1ea35d088d",
+        "ca89d3b62c8b2a61eab3c9ec309006244ec62c8ff86621e93111b52e7d02a0a8",
+        "26fc68a57931b26d0846653e28710d34dba8bbb6d49195b0653e36b5956a1eb4",
+        "a33d1f9037e1034aa4f40ec3cac36ce8121f10a63c1d3cf3c9f79e95789dd26c",
+        "a5dc44c88423a6b96b3e4b658d9456ffb5a48175fc587518906e2ffa2df39c89",
+        "c2b1dcdd3191776bbb18b2e8c2a9fcb3cf59476cf2ffbb8e617757f8df161774",
+        "aa63e3675c6d55645891ac8b6b007989292e15f5f49d0c3d5ee37e51323b88d8",
+        "bc93543acef04b69f205b5f405690f65b59be1c8a28380cb7b988cef08f02dfd",
+        "c594dc54a107373b233fcd6296ef18509eac96082fe872eb4358a6ad62e59bd2",
+        "a6da9145f76d53463ea398b8d0a5af1b2aa5176a3ea99a125971cebb5adde904",
+        "7e2f1eaf6567a05d63341ea096227ec37c96d07bd66eaedec38c919b2409f395",
+        "17af34e1f649694b4b87f620ebd15cb01ec8cf5b35f73304833af2c1a7880a9f",
+        "2cd96272f6a38b69640a5dda86c7e7d5f3b9439b8355cb830c1fe44d8bc0fbd3",
+        "8909d4d7e9aa388b6de69c945a7e8119c6e1f1894fcbdaa4bfcc85e8b55364a1",
+        "8b9930995062069ac50dbb16537b574b273fa84396176f88b016ebabe3185aa4",
+        "bde121f67cef7fea9a155d81ba0a0757c53b21a1550f86733be78323c5b893ca",
+        "a12e4cf8a9846e2bf249b9c25b050d1b76877f5c5bb62928cc2389be2889412a",
+        "af3eb7d343fb71a882fc1aa4f30d237c2c88c5b20229a5fd14145d557a3ae5ef",
+        "e5e08f9ca6396f21d4bd84f930f8cd31c006ed6b247ac1f6eeefa19b3611e3c1",
+        "c3772ab3548710ec1839c19879cfaa7354122af18d804acf00e610c6bd74b47e",
+        "8a260b813056ff3a557bfe4522624777248de8b231d8a85f1c2576bd7ff9e005",
+        "291efd2bc128c2ce334c57720fcf8d9d9a57956dfbe0c8d21b0ba2df625f8570",
+        "137d49c545a8f64160f5c80d428def384ee9f4ffdb581335421261cb86aeb3f9",
+        "6a36ed03cd307894cdcba056f108aa929c428f68bf9a5e0496bd854a7d873483",
+        "17758e73b95c961e5862bf998673932a75b5421b68a2ef91e4f63a500af587f6",
+        "a587b46e3199c05f6d87c6d1d9fac1628994a0af3043d95a5b03c95bc225f1a0",
+        "574f74e2a30ff475f5fce21eb161e6f48286508e9f8e0fa0bf6dd8a0211b00a5",
+        "6795d68dcb4a42839675ac565f4f62376fde7e5e71ac7e62dca863c11b629aeb",
+        "432c29cff4bb349ad2b66b9607d0dc1c9eb22fd2e2a1ad16c81386f2b68272fa",
+        "0f5ecb62cf73a3e1a58e95058c783cc0b75b6146b59879db72dfb851036a9a09",
+        "59ab9328ab269f65126d17de8ba0e7061dcb25509499f5fb9a3f2e83668923e1",
+        "55aa094685a884c49f132d7de4bf2183575edb862cc0e4435b8fe71adbdf2285",
+        "9f889c66f99a52771beca2bd25cb0a0e0dd7e44f2162f4fbae3bdd2250697757",
+        "80983f633a75fdce7fda1f864c2c45ef92c9fcf3a488b3fabd523694981c3003",
+        "06f33695559514a146b1e45c128b651380a3f648ebdd7c713fcb68e190e40b55",
+        "95cfcfbafc4fae8100d89842c535146e17734ff02cdc7f3b552a1fdba3cf984a",
+        "fb2a25e71c9b138ab8336b86a435928e67c2ecea1b83093a89cb75ba07bbd4eb",
+        "e769f16503c29a069f80cb0630622ff7384583106e39d8e0b679504b137d979b",
+        "c68ff7c46fe3e6a70e819384792387a30b7a65fb9338146c04957591f502d791",
+        "48b14cb621b637739d9d4e3fce8658c410003bbd44f92be8d3744a9fa038dd50",
+        "042d0bea4b8f8547669f04946c77ba300b5137f3aa593a944bc54fdef853a702"
+      ],
+      "study_id": "fullgame-seed-priority-luna-20261027-r1",
+      "successor_runtime": {
+        "runtime_manifest_sha256": "e032a5ab1d609512461e287d372375f1bf28800fb2b13d9c5cf98e20768de986",
+        "runtime_versions": {
+          "numpy": "2.5.4",
+          "python": "3.12.15",
+          "torch": "2.14.1"
+        },
+        "source_manifest_sha256": "a29e25b285d2d4651a2d74699929a27578860cfdd9a8d7980ca47c72824d41e2"
+      },
+      "training_pool_role": "training_only",
+      "training_pool_sha256": "5ed500167f97f17092fe8ca0fd581d3342366dde09f68f1fd8130db56e4f522f"
+    },
+    "global_update": 60,
+    "identity_sha256": "f0d01b855caf33298e5b0b3a2eb832f09ae204cd709afc41c854212b31f2fd4a",
+    "initial_episode_indices": [
+      302,
+      308,
+      299,
+      310,
+      325,
+      302,
+      321,
+      310,
+      334,
+      309,
+      319,
+      320,
+      302,
+      317,
+      322,
+      318,
+      328,
+      321,
+      314,
+      292,
+      321,
+      315,
+      294,
+      318,
+      300,
+      333,
+      316,
+      312,
+      293,
+      297,
+      313,
+      313,
+      314,
+      334,
+      326,
+      303,
+      299,
+      313,
+      320,
+      309,
+      318,
+      323,
+      308,
+      299,
+      309,
+      307,
+      296,
+      324,
+      327,
+      300,
+      313,
+      321,
+      313,
+      314,
+      306,
+      326,
+      313,
+      324,
+      315,
+      317,
+      290,
+      317,
+      310,
+      334
+    ],
+    "model": "replica-2-uniform",
+    "official_retained_parent": 324,
+    "phase_update": 384,
+    "restore_fingerprints": {
+      "Adam": "326fa903319b69b62d4f36202809e55398c85e9d185a03e6b895c8c6df72a4fc",
+      "RNG": "1fe4081944a777501311db46dbe7289071c318b86df81dfac32b40f26fe65838",
+      "model": "6edaa227f31d05df8afb3328d12a063803bb85dad268721189599d48c20f237c"
+    },
+    "run_id": "fullgame-seed-priority-luna-20261027-r1-replica-2-uniform",
+    "schema": "progressive1000_integrity_checkpoint_v1"
+  },
+  "power": {
+    "ac_required": false,
+    "battery_override_pinned": true,
+    "guard": "power_guard.py (owned successor; historical guard unmodified)",
+    "helper_ownership": "direct child of dispatcher, same process group",
+    "native_root_command_prefix": "/usr/bin/caffeinate -ims",
+    "on_ac_assertions": [
+      "PreventUserIdleSystemSleep",
+      "PreventSystemSleep"
+    ],
+    "on_battery_assertions": [
+      "PreventUserIdleSystemSleep"
+    ],
+    "os_power_settings_changed": false,
+    "scope": "this campaign only"
+  },
+  "provenance": {
+    "claim": "D6 is disjoint from the recorded accepted324 entity-teacher lineage, related recorded attempts and checkpoint selection/evaluation history (including D4, which informed the selection). Not a universal workspace nonuse claim.",
+    "d5_b_e": "closed; no qualification or promotion",
+    "d6_role": "repeated development evaluation of the starting model and ten fixed boundaries; not confirmation",
+    "scope": "parent_accepted_recorded_accepted324_learner_family_history",
+    "universal_workspace_nonuse_claim": false
+  },
+  "recipe": {
+    "architecture": "accepted OmniscientEntityTeacher, unchanged",
+    "batch_size": 64,
+    "environment": {
+      "action_repeat": 4,
+      "cutoff_enabled": false,
+      "difficulty": 2,
+      "normal_start": true,
+      "patterns_enabled": true,
+      "powerups_enabled": true,
+      "raw_frame_cap": 18000
+    },
+    "learning_rate": 3e-05,
+    "ppo": {
+      "adam_eps": 1e-05,
+      "clip_coef": 0.2,
+      "ent_coef": 0.01,
+      "gae_lambda": 0.95,
+      "gamma": 0.995,
+      "learning_rate": 3e-05,
+      "max_grad_norm": 0.5,
+      "minibatch_size": 512,
+      "reward_scale": 0.1,
+      "target_kl": 0.03,
+      "update_epochs": 4,
+      "vf_coef": 0.5
+    },
+    "reset_optimizer": false,
+    "restore_optimizer": true,
+    "restore_rng": true,
+    "reward": "score delta + alive_frames/100 - 5 on true death",
+    "rollout_steps": 256,
+    "shared_config": {
+      "batch_size": 64,
+      "environment": {
+        "action_repeat": 4,
+        "cutoff_enabled": false,
+        "difficulty": 2,
+        "normal_start": true,
+        "patterns_enabled": true,
+        "powerups_enabled": true,
+        "raw_frame_cap": 18000
+      },
+      "evaluation": {
+        "action_mode": "sampled_categorical",
+        "cohort": "fresh parent-reserved D4",
+        "terminal_update": 60
+      },
+      "global_updates": 60,
+      "learning_rate": 3e-05,
+      "model": "accepted OmniscientEntityTeacher, unchanged",
+      "optimizer": "restore accepted Adam state; no reset; constant LR 3e-5",
+      "ppo": {
+        "adam_eps": 1e-05,
+        "clip_coef": 0.2,
+        "ent_coef": 0.01,
+        "gae_lambda": 0.95,
+        "gamma": 0.995,
+        "learning_rate": 3e-05,
+        "max_grad_norm": 0.5,
+        "minibatch_size": 512,
+        "reward_scale": 0.1,
+        "target_kl": 0.03,
+        "update_epochs": 4,
+        "vf_coef": 0.5
+      },
+      "reward": "score delta + alive_frames/100 - 5 on true death",
+      "rollout_steps": 256,
+      "sampling": {
+        "control": "uniform shared pool",
+        "fresh_ppo_rollouts": true,
+        "pool_role": "training_only",
+        "treatment": "50% uniform floor + 50% frozen hard stratum"
+      },
+      "schema": "dodge_fullgame_seed_priority_shared_config_v1"
+    }
+  },
+  "restore_qualification": {
+    "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/uniform2-continuation600-parent-20261028-r1/restore-qualification.json",
+    "registration_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/uniform2-continuation600-parent-20261028-r1/restore-qualification-registration.json",
+    "registration_sha256": "46153eec66902c7aa12889d9424326c04829ea07396df2324d52f6e6d7e2d08e",
+    "sha256": "6abc63a60bdc80282fdba12ba366c4d50d610b4c184e712dc5b4308160c6f95b",
+    "source_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/uniform2-continuation600-parent-20261028-r1/qualify_restore.py",
+    "source_sha256": "2256c5a27d0d9ec7cada16e5a313320498d48b8767615675c6aea8cca0a74ba8"
+  },
+  "run_id": "uniform2-continuation600-sonnet-20261028-r1",
+  "runtime_manifest_sha256": "e032a5ab1d609512461e287d372375f1bf28800fb2b13d9c5cf98e20768de986",
+  "runtime_root": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-seed-priority-experiment-luna-20261027-r3/runtime",
+  "runtime_versions": {
+    "numpy": "2.5.4",
+    "python": "3.12.15",
+    "torch": "2.14.1"
+  },
+  "schedule": {
+    "checkpoint_global_updates": [
+      60,
+      120,
+      180,
+      240,
+      300,
+      360,
+      420,
+      480,
+      540,
+      600
+    ],
+    "constant_learning_rate": 3e-05,
+    "cumulative_first": 433,
+    "cumulative_last": 1032,
+    "decisions_per_update": 16384,
+    "decisions_total": 9830400,
+    "evaluation_global_updates": [
+      0,
+      60,
+      120,
+      180,
+      240,
+      300,
+      360,
+      420,
+      480,
+      540,
+      600
+    ],
+    "final_drain": false,
+    "fresh_environment_per_segment": true,
+    "phase_first": 385,
+    "phase_last": 984,
+    "promotion": false,
+    "segment_updates": 60,
+    "segments": 10,
+    "updates": 600
+  },
+  "schema": "uniform2_continuation600_registration_v1",
+  "source_manifest_sha256": "71a7658a912c75d97a7763ad700ac94d445bc86021ee1632a3446646115a1e1d",
+  "state_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2-orchestration/state.json",
+  "status": "source_review_pending",
+  "streams": {
+    "arm": "uniform",
+    "episodes_per_segment": 15361,
+    "first_segment_slot_component_sha256": [
+      "4d5fae2035d0d45c7f42d69c195ce0d1edb85795fea18875932bc1c04f8c7b1d",
+      "6966d81a7fe14698dec0ac52cf70990710951b1719540f05ff1a9752dfde606a",
+      "6d004c70bbeb167422f232a3c1e9a24c36b47aae6e166d1aa8f6b6e8aae7af3d",
+      "b7445d707144658ee43991f1aff80e7f1bc004a0faab112609f9db91071363af",
+      "b9f7e800260f48a5abd5ddb07b6825f7fa7f95889ccfd705279c11479993f9a1",
+      "4d5fae2035d0d45c7f42d69c195ce0d1edb85795fea18875932bc1c04f8c7b1d",
+      "fc7e551fb578f97d60145f392644060c01a528d7a0efe3ceb0e8fd4145040a4e",
+      "b7445d707144658ee43991f1aff80e7f1bc004a0faab112609f9db91071363af",
+      "96ce796019ec31a2f95024db1c8cdd4ad885ac08f6d940a7440cb66b591ed995",
+      "4a9595b42c48d2a6af1e08de1874fa5c55878f84b16ca91780692b812ecbd0c0",
+      "bdb70ede2aa5ea10d51c685d2a7820cf8a7910b3fd38dfde0a5c5685511c05e1",
+      "1be72b1981fe9ab88c4f4d9f477eef49f7e8aeda7ba5f0971e98843d5a4d22d2",
+      "4d5fae2035d0d45c7f42d69c195ce0d1edb85795fea18875932bc1c04f8c7b1d",
+      "ed736a23b5d93ed5684400849cdb84611dc90bd18f24f3c917d94458530e0cf3",
+      "fb0f4157bc3a098e3598a57fb3be9e00c0d4ba2f1b8f3c348902cb2aff648c4f",
+      "5b26dbce9bfc12ec0c11261692b400fe9ce1467b8915f60f22dd07e98ca4f11e",
+      "1a3e77033d63f6cd7993e16132f7cca286065e440e2b1eae1e7f3b1e89cb7b8b",
+      "fc7e551fb578f97d60145f392644060c01a528d7a0efe3ceb0e8fd4145040a4e",
+      "fe4c4067b9374dedc32041df4c1d1324cedcf1e6dfe35eded4e78a6de1937f80",
+      "c1bf93ee6ad6cb11a6ecce2bf05867c02a121d10c536de1e0f4eb1952b7b4113",
+      "fc7e551fb578f97d60145f392644060c01a528d7a0efe3ceb0e8fd4145040a4e",
+      "a421942f197a13c83a60ceafc347c672a3337a85674c08209c4383056d60fcd4",
+      "d378e870682f5d1efa4fe8899ef647083a4ad9312a3459ab54856639bb7a9f00",
+      "5b26dbce9bfc12ec0c11261692b400fe9ce1467b8915f60f22dd07e98ca4f11e",
+      "082b53dcdaab02a1e59f36649624c29ebe9ab95e10402d09f63ad0dbc9af0b7f",
+      "b709311b815563f56499567e9de92577cf4184af5203391451c69a49b77ea0a3",
+      "171dc81211b9002cd888a447090fd66a5b58b81696930b197577b360be7e12d6",
+      "4b7c276bcb98b3263b9c6f7b7e40593e04de8f82e8a65ed53926af56678f5ec9",
+      "9898ddef0829af7aeb3269a344f91a806a37bbad5371d3a28e520443b545679d",
+      "5404492ce87c00b7b9fa379b0df89861a00c4a5f2a4c45edbb6d24b223d43c94",
+      "1a4ae8de64ab87244112a67e72e8751fd2565deea274c50ecd1f027640d0c202",
+      "1a4ae8de64ab87244112a67e72e8751fd2565deea274c50ecd1f027640d0c202",
+      "fe4c4067b9374dedc32041df4c1d1324cedcf1e6dfe35eded4e78a6de1937f80",
+      "96ce796019ec31a2f95024db1c8cdd4ad885ac08f6d940a7440cb66b591ed995",
+      "ff8302d5e5f2a009452db6509c04840ca4946f2c0aac72050f83310cacec9ee3",
+      "44fe76277ffb9aeca402369fbe2e02dc96c471714adc96e278f26ceddb61b219",
+      "6d004c70bbeb167422f232a3c1e9a24c36b47aae6e166d1aa8f6b6e8aae7af3d",
+      "1a4ae8de64ab87244112a67e72e8751fd2565deea274c50ecd1f027640d0c202",
+      "1be72b1981fe9ab88c4f4d9f477eef49f7e8aeda7ba5f0971e98843d5a4d22d2",
+      "4a9595b42c48d2a6af1e08de1874fa5c55878f84b16ca91780692b812ecbd0c0",
+      "5b26dbce9bfc12ec0c11261692b400fe9ce1467b8915f60f22dd07e98ca4f11e",
+      "6e90d061f3751f9b3b32405183b6b162e3ed24642d8255d7e0ed0dd90b814bb2",
+      "6966d81a7fe14698dec0ac52cf70990710951b1719540f05ff1a9752dfde606a",
+      "6d004c70bbeb167422f232a3c1e9a24c36b47aae6e166d1aa8f6b6e8aae7af3d",
+      "4a9595b42c48d2a6af1e08de1874fa5c55878f84b16ca91780692b812ecbd0c0",
+      "a84d0fb973b5a2a29b70bcf481abd54b95776b37dfe425703ee9250a370cfe84",
+      "02b2a2b1419c2bb2577126ec46b340cd14d84cc71892fd36410a1140f84387e6",
+      "5601ba33ac28f88cda6d9c89382c0713fb727bb69b966459edac1303cfccc7b6",
+      "2f6442126c35762cc9660734e30a6ffcf1bb7feac193e7b97d1713edc37ec72d",
+      "082b53dcdaab02a1e59f36649624c29ebe9ab95e10402d09f63ad0dbc9af0b7f",
+      "1a4ae8de64ab87244112a67e72e8751fd2565deea274c50ecd1f027640d0c202",
+      "fc7e551fb578f97d60145f392644060c01a528d7a0efe3ceb0e8fd4145040a4e",
+      "1a4ae8de64ab87244112a67e72e8751fd2565deea274c50ecd1f027640d0c202",
+      "fe4c4067b9374dedc32041df4c1d1324cedcf1e6dfe35eded4e78a6de1937f80",
+      "8bd63a6673c403715c51e05d0ce1ea4f598dc005d533dffafd62557db3d02055",
+      "ff8302d5e5f2a009452db6509c04840ca4946f2c0aac72050f83310cacec9ee3",
+      "1a4ae8de64ab87244112a67e72e8751fd2565deea274c50ecd1f027640d0c202",
+      "5601ba33ac28f88cda6d9c89382c0713fb727bb69b966459edac1303cfccc7b6",
+      "a421942f197a13c83a60ceafc347c672a3337a85674c08209c4383056d60fcd4",
+      "ed736a23b5d93ed5684400849cdb84611dc90bd18f24f3c917d94458530e0cf3",
+      "dac9171cee796ca45d919f64b5eca822cc99836473941b67f875c73215ebd2c1",
+      "ed736a23b5d93ed5684400849cdb84611dc90bd18f24f3c917d94458530e0cf3",
+      "b7445d707144658ee43991f1aff80e7f1bc004a0faab112609f9db91071363af",
+      "96ce796019ec31a2f95024db1c8cdd4ad885ac08f6d940a7440cb66b591ed995"
+    ],
+    "first_segment_slot_stream_sha256": [
+      "ab8b63b3db004b30eeb26827444041a9ad93b7dd2a91d8858edef58f10b500f5",
+      "84f02e1a32c2ac2ee99ae3f5dfed06d08b48e3572ee6acce498dff5bb42960a4",
+      "fe6d044c49ba2da6fb8a4221b6756b4b845d49cff90cdb20e7ca435a15b8fd4b",
+      "3df07baba1455dea2803547bce209aa1ca39cc21426fdc7b75904f2846be0e96",
+      "0298baf247a242dd9265a1f3dce8e2065f34cb47f3e671357daf19f941cadac0",
+      "debdde4c5000a73b3063300359d0364141d7de5e45c99bf871bfb640c16d9903",
+      "df97158b902ff4b57e0746227908cf9151903db63b8ced87f5cc8bd14394f900",
+      "3b1a536ca6901b234dd50447845cfe5c6cc030709cf437c0987ed370566c5776",
+      "255b68dcba2ab3395078e879a0d64b7ad229bded06450b5af4a75e0ea714c22e",
+      "3a843ae67c2a7a4f07f5748adb0e0e98cd713d80b7540c3fe14626e3b82e2d47",
+      "b9bd465b51de1301d353b080c7f527e0bbcf7b7fa93372a7f964d0820b29b089",
+      "d5c681d69b0dcd582a1b39d9a88fc7080bb3edaa58b1fdb3ba16b987d4f2ab53",
+      "b4c37c147ce93177cd769a70dad363fb05b192df26f3c3556edaeb42f40e9f03",
+      "736e5701454b417e100507af1fabaa57a41d57b284ef68b6726ad46120e678cb",
+      "795f679e5cc370406196feed804c3d4539bb9698904e206938c0bd7857920b76",
+      "694eaf54bab9e80f506554db9205c8807407d93b15a3dcb32155575c83285d3a",
+      "71e36b45402a685614e2cd51316c13820840157550dafd315f3ce79b5fb2e98b",
+      "a540c98980f4e94fad7a28084a4531436bfefa169727343eb219768eb2e26eb6",
+      "873207fa3c1abf87debf7a7db7bf84cc235c479015311797df60d5e3628b4c9f",
+      "295682576b99cea07fedf0295257f182643bf69cca2a1662826a634f2cba9664",
+      "3be2a93657dea71fe573fd546e56ea055669e3cfb6d48da9f2aebfb1d44c8345",
+      "c6062e46e4aedf893b80785a9906d76d03b16d7f0b5be648df930abed16fd10a",
+      "7f0fdf447ede67709bb2e990f91d05e21da28430d7c34eabd0e1aa39a69d332b",
+      "c72171e2155bf4d6e04e0045d8540bce9da3677315c0edc9758f93cc92770a08",
+      "41cc7ac224ecd35358bf1364dcfdb93b020c693143400b50fe8d9bc1460a798a",
+      "79b825fb30f4bd0c138969139fc32c374307112e7ec5743c84a9aaec89b63a38",
+      "43c2987425ad3a1c9a43ddf7dbd792ba45d47873b41426b40b9d312bd2bdff4d",
+      "d437383ddb20be3b656675dda4f7fc87e132e7276124a3b68a6aacc4e61ab9b6",
+      "742ef57657eeb23ab20abad8b13ead3f623adcaad5c529925f0bbcf5ab81962b",
+      "750541611f3df4b32758abed56290bf992d69cc8dc9c056549f0218017b87f77",
+      "2688b0462c32a38ecce56454beba92cc596a121af77aef0c2991993189261c2c",
+      "5342d51f96de9b2edb8d745f7470e74725837ab22279480efad76aa6e84bcc56",
+      "9ab2641a86108f5bc85649cb3c188e83ac9376bc9f5d06aed2297f96635bee61",
+      "f23c956f1922d4eb4787928c38d4474c7580067a7c24699b7ce88e825868d72b",
+      "d8335d5fcf894a585a51741498e06192e9d22a8c694b98374b428f8697c4202c",
+      "55e405d90f3f41168b97391b8e03a3dca30e064bfc32e5e3de4bdf5c1086d3ff",
+      "ba932c809bc3b65b25e7393fa2e7bdd75fe939d33668f7f8ef8f328f82837853",
+      "2efc3cf613d11c4038c232f0399ea34670d2ddcb36599f3fcb97c17de907489b",
+      "bc8bd43a55b2432b3e7bb111e11f8c549269db45d22c6171c1d42e8db726e14f",
+      "144571d12f96e95dcc1693e86c4fdb6618e2749e20b4ed623cfed939d7b80b23",
+      "9fe453f2ca4462f60e53276fb511ef5fc495ec2e76345fca06b8ffd44b4b154f",
+      "598651d50d22633ed75391f029789d071cb252a6c61d930d5bfde6cd1283649b",
+      "011379ef7ccb73beaafb04b0f7b3939576297e098ebfdffc20c295a928e05857",
+      "6d188ed76cb856d02ebd1cc82f45dc15ea000a3d7022d3a21767a6bf09e1c64f",
+      "e7659ac44d9ccfb3c13f2614062eaac0a88a9575329d1b5b23eef5cc166e312f",
+      "48755c74b4eaa3b5a76deaf0ede6e098656fbbd42c684de59d265bab434589c4",
+      "f3d6f7763404017efca3bc98b9fe10e5bfae94987a51c72aeb3937746de7cc1e",
+      "4bac8e30c9978e8ea763492b412fd12cfc969296994f62a95db851076f820905",
+      "a150cb93e575fbc9e46909cc342e74478b3e932719b89f1bfb57cd754189e8aa",
+      "077c5042c4c3831cbc89639c40abf682493a54aafd45925c71b6f50bbd935823",
+      "54166497c914d3d10a0708f8bfb68f45dffad0843b6e7046c2351b09d370dae1",
+      "e765b5b6f37a98228f3f3ac9ba3f588473e4c5fa3d70819c811e2a2a3e03bfbe",
+      "4cc54556a379123ff004d66e8add6b21d252866b50f4ba8f35e103f6a88823c4",
+      "a5011663d648f5931842fcd3de99385299edb119a76cb8ebb75c675dbd8badb2",
+      "1f257da9c3fa99f8a842e50e0161a3b36c522b98bcbfb630e9cd53d5c94a11aa",
+      "54752c5e54c003a9c27ad7b0083cbadcc2745fb220572ac00f10da4d48f82ff1",
+      "c586c7ba158d2e7bae840ccb831bdd5216f05aa10bc9c7311f669466ae1a8223",
+      "1cadebd29b4fd4e3c82f7f97485fcbbfa703c32cd1cb94129ddd6fde0812c744",
+      "c51e89f76eb74946103099634310afce0fee1e5ebb53e8739827889f7131d3f6",
+      "4965d253623405696920a566ab88a27285366dde19e664a2a3a35ad9200afa0b",
+      "475916705a9a290c693c4043084c824ee67e82b9c522e43b4641898dc554b747",
+      "86fbc730e2b0fbeaaa49f8ea2034fc67b4cf443d9ef4843ffe14dd48f60fbc5a",
+      "e8b03c93305ca5ddda34ae1ebe8319d79126d6c5dc09bfd87d24a40efa0ab4d3",
+      "28a5af97fbec30ee24879b637315005ff721af5c1d11e7bd4bf09ca71464b32e"
+    ],
+    "identity": {
+      "master": 11644207240444663193,
+      "replica": 2,
+      "study_id": "fullgame-seed-priority-luna-20261027-r1"
+    },
+    "later_segments": "derived from the actual saved next episode indices; every segment digest is journaled and re-derived by the audit",
+    "owned_extension": "seeds.py: same hash recipe as frozen seed_priority without the 16384 bound; per 60-update segment start+15361 entries per slot from the saved next episode indices; frozen helper cross-checked when it fits",
+    "recipe_schema": "dodge_seed_priority_stream_v1",
+    "training_pool_file_sha256": "5093727c2fdabd794267ccbc44a43b1fb29747b545cff645b66b0ad578180f04",
+    "training_pool_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/rl-next-experiments-parent-20261027-r1/training-pool512-accepted.json",
+    "training_pool_sha256": "5ed500167f97f17092fe8ca0fd581d3342366dde09f68f1fd8130db56e4f522f"
+  },
+  "study_id": "uniform2-continuation600-20261028-r1"
+}
