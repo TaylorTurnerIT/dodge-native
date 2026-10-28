@@ -1,0 +1,36 @@
+# D4 terminal60 full-run evaluation (seed-priority study), revision r2
+
+Successor to `fullgame-priority-D4-evaluator-sonnet-20261028-r1` (source SHA `f766afb8...`, left untouched with its review `fullgame-priority-D4-review-haiku-20261028-r1`). r2 repairs review findings M1 (postflight headroom) and M2 (no integration test) and the per-episode cap (L3). Eval run ID is now `...-evaluation-sonnet-20261028-r2`; r1 ID/paths are not reused. Everything else (contract, statistics, producer chain, supervisor bytes) is r1.
+
+Preparation only. No launch authority. Nothing here loaded a model or checkpoint, constructed a native environment, opened D4 outcomes or touched D5.
+
+Study `fullgame-seed-priority-luna-20261027-r1`: six fixed terminal60 endpoints (`replica-{1,2,3}-{uniform,opening_priority}`) plus accepted parent324, each evaluated once on the same 1,024 seeds `0xD4000000..0xD40003FF`. D5 `0xD5000000..0xD50007FF` stays unopened (and inside the exclusion union). D4 ranking is development evidence, not D5 confirmation.
+
+Reused unchanged from the proven progressive1000 evaluator: clean common evaluator source/runtime (`progressive1000-opening-maintenance-runtime-parent-20261027-r1`), copied supervisor (`observe.py`, `execute_once.py` byte-identical), launcher shape, lifecycle/audit flow, dependency binding, native evaluation loop. New: study/cohort/lineage binding, six-producer audit chain, six-milestone priority-minus-uniform statistics, constructor/step budgets, unsorted-union normalization.
+
+## Fixed contract
+- Normal full starts, difficulty 2, patterns/powerups on, cap 18000, action repeat 4, sampled categorical actions, no cutoff, unchanged reward/transformer. Inference on MPS; native simulation on CPU.
+- Sampling RNG: `evaluation_rng_seed` 2026102802; random/numpy/torch/mps are reseeded before each policy (same stream start, not per-seed draws). Bootstrap seed 2026102801, 2000 draws, 95%, paired over evaluation seeds.
+- Limits: RSS = MPS = 6 GiB; raw frames 7168x(18000+13); constructors 7168; native steps 7168x18000; resets 0; retries 0. Work = ceil(3 x 684.92 s / 15,487,746 frames x raw ceiling + 10) = 17,141 s (unchanged); cleanup 10 s (unchanged); **postflight 120 s (new, separate)**; total = work + 10 + 120 = 17,271 s (r1: 17,151). Worker guard, observer watchdog and terminal journal audit each enforce independently.
+- Report: Worst=min, Q1=bottom-256 mean, Mean, Q4=top-256 mean, Best=max; milestones 1000/2000/4000/8000/12000/18000; cause of death. Primary: priority minus uniform per replica; three-pair descriptive summary; parent comparisons descriptive. No selection, best-of-N or promotion.
+- Provenance: disjointness proof covers recorded accepted324 learner-family history only; 122 historical roles remain unresolved; no universal nonuse claim; the live ledger is not pinned as immutable history.
+
+## r2 wall budget (M1)
+- Worker guard and observer `term_at` use `work_seconds` (17,141); observer SIGTERM at `term_at`, KILL by `term_sent+10`; `hard_at` = `total_seconds`. Frozen `observe.py` already reads both fields per registration, so it is byte-identical to r1 (sha `95b8758e...`). Only `binding`/`build_registration`/schema/plan changed.
+- Postflight = observer work after worker exit: terminal output validation (full strict journal), `verify_bound`, envelope hash, artifact hashing, then journal accounting in the finalizer. Prior accepted evaluator: observer 694.32 s - worker 684.92 s = 9.40 s at 15,487,746 frames. Scaled linearly to the raw ceiling: 9.40 x 129,117,184 / 15,487,746 = 78.4 s. 120 s = 1.53 x that (journal parse is the scaled part; fixed costs make the linear scale conservative).
+- Success path: worker may end up to `work`; postflight then has `total - work` = 130 s (10 s cleanup slack + 120 s). Timeout path: TERM at `work`, cleanup bounded 10 s after TERM, unchanged; the 120 s is not extra cleanup or work and a still-running worker never gets it, only the failure-record accounting does.
+- Worst-case bound, not expected runtime. Expected comparable evaluation: worker ~685 s (prior cost, if survival is similar) + ~10 s postflight, about 12 min; linear 22,612 frames/s at the raw ceiling would be ~5,710 s. Actual scope: 7 policies x 1,024 seeds; the bound covers the registered ceiling of 7,168 x 18,013 raw frames, far above any plausible outcome. No fresh calibration of these six policies exists.
+
+## Files
+`policy-plan.json` predeclared run IDs and terminal60 paths. `registration-schema.json` field contract. `binding.py` contract, producer chain, limits. `comparison.py`, `paired_statistics.py` statistics. `worker.py`, `terminal.py`, `audit.py`, `launch.py`, `observe.py`, `execute_once.py` execution. `build_registration.py`, `finalize_registration.py` hash-only registration. `monitor.py` read-only counts. `seal.py`, `source-manifest.json`. `tests.py` (68 tests: r1 plus per-episode cap, postflight arithmetic, `WorkerRun` driving real `worker.run` over fake evaluator/model/checkpoint/numpy/torch facades with real terminal validation, `ObserverRun` driving real `observe.main` with injected clock/sleep/popen and a stub child).
+
+Test limits (honest scope): the native `_production_rows` loop, real torch/MPS/numpy, checkpoint deserialization, `authenticate_runtime` and `binding.contracts()` are replaced by fakes; the observer test uses a real stub child with fake time, Darwin arm64 only. These do not prove first-load behaviour of the six real producer checkpoints.
+
+## Finalization once all six producer audits exist (parent)
+1. `python -B monitor.py readiness`, or `build_registration.py --check`: all six must print `ready`.
+2. With the lexical venv interpreter, `-B`, `PYTHONDONTWRITEBYTECODE=1`, `PYTHONPYCACHEPREFIX=<package>/empty-pycache`: `build_registration.py --output <package>/registration-draft.json`. It refuses (exit 3) until every audit is accepted, then pins each registration, audit, worker result, sidecar, artifact manifest, lease release, parent execution/exit, producer manifests and checkpoint hash.
+3. Independent source review of `source-manifest.json`; then write source acceptance `{status: accepted_source_review_only, source_manifest_sha256}`.
+4. Accept the wall/resource calibration in a pinned record; run `finalize_registration.py --draft ... --draft-sha256 ... --calibration-acceptance ... --calibration-acceptance-sha256 ...`. It copies the unchanged draft to `registration-final.json` with `status: parent_registered`.
+5. Write gate acceptance (`fullgame_priority_d4_evaluation_gate_acceptance_v1`, status `approved_exactly_once_fixed_terminal60_d4_evaluation`, every `binding.GATES` entry `passed`, exact `registration_sha256`, byte-pinned review records in `pins`).
+6. Launch: `launch.py --registration ... --registration-sha256 ... --gate ... --gate-sha256 ... --source-acceptance ... --source-acceptance-sha256 ...`. It refuses if any campaign lease is active, installs the lease and marker, and waits on the watchdog.
+7. After terminal exit run `audit.py --envelope <package>/launch-envelope.json --envelope-sha256 <SHA>`; it proves process-group absence, cache and input identity, journal cost conservation, all 7,168 rows, comparison and bootstrap reconstruction, then releases only this lease. A failed run needs parent incident handling; never retry.

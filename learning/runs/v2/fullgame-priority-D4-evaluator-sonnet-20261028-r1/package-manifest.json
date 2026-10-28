@@ -1,0 +1,43 @@
+{
+  "files": {
+    "README.md": "e63918f1a38887ac57e02c11f938cea7a0dd14474ec2c2c4059fdb136d4fb649",
+    "audit.py": "8cefc2380b08356bec4234d9d7a39041c74fae8be2f352eabece5510bede8154",
+    "binding.py": "cd24d641af4b64322fdca4effbe1c737af7b05b42f47eb2d7cdf2fad59e8574c",
+    "build_registration.py": "40b7b640a94cac0f2a45ce0fa455526675d398c8207e964ccd21db2833421fc0",
+    "comparison.py": "5d4fa5b28ba18936f16e87bd7722217c253a3a1a81419317e1b777034b2ff0c1",
+    "dependency-binding.json": "561f5ef8dbde87539aeeb73726c9be34ee1e2ecca2e828c46e2595cf50ff38e3",
+    "execute_once.py": "484405674d981ea7db6b5c940d70ffe353a89cff4c3a9f9a810fb25dc219aa3d",
+    "finalize_registration.py": "87b981a7048761e1d6432347ad069afeae4508d2b23f4222402128c1394cc313",
+    "launch.py": "815ea8d6b3ca4cb4bb3555ca4314bc969f220090809126db6c6dcd79cbc8c980",
+    "monitor.py": "a90570198492d3c04155b6e3d111de07d99c2812b1a0fdbfa2567bf5ac0266b6",
+    "observe.py": "95b8758eea4607f5f0812064f44ad5a26615a8a455ec0bf43d9c65bae991f81d",
+    "paired_statistics.py": "d9913415e4550237a44d401c1624cab4c5d152467b8de74e561abd76975ccbca",
+    "policy-plan.json": "36922405dab479e3ec19fcb2761366e80a2968639bc2c3bec90b19be2377ed5d",
+    "registration-schema.json": "29ac10d389340a12650a03aea72ee4172f5b20d383427752ffaefbd260765a2b",
+    "seal.py": "656cf7b7d4e3251c0c7e9448b24f86efbd2623dd64e0d66699c6dab5dbcd9f22",
+    "source-manifest.json": "f766afb84bfce0e6f2cbdd25a233781da1382dd73d1cd54ae949a43aed995c04",
+    "terminal.py": "3c8e3c581d0a3d09d89d8283e5030c6b52b8b44101e7139c5eeb680836139f35",
+    "tests.py": "a6092fc4a690d51f35aac35b4fb9399afd63c02260bbc700e1106b4b7d5c50a7",
+    "worker.py": "3c6d136314ede9a1bdc299c62b636a938f2ebc77fadb69004fd857de18b4a85b"
+  },
+  "launch_authority": false,
+  "prepared_at_utc": "2026-10-28T05:32:13.382479+00:00",
+  "readiness_at_preparation": "1 of 6 producer audits accepted (replica-1-uniform); builder correctly refuses (exit 3)",
+  "schema": "fullgame_priority_d4_package_manifest_v1",
+  "source_manifest_sha256": "f766afb84bfce0e6f2cbdd25a233781da1382dd73d1cd54ae949a43aed995c04",
+  "tests": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPYCACHEPREFIX=<package>/tests-pycache <lexical venv python> -B tests.py",
+    "ran": 53,
+    "result": "OK",
+    "scope": "stdlib CPU fakes; no torch/numpy/native import, no model, seed, cohort or checkpoint deserialization",
+    "skipped": 0
+  },
+  "unresolved_blockers": [
+    "five producer terminal audits not yet present (replica-1-opening_priority, replica-2-uniform, replica-2-opening_priority, replica-3-uniform, replica-3-opening_priority)",
+    "independent review of this package source-manifest.json, then source acceptance",
+    "parent acceptance of wall/resource calibration (17141 s is a 3x projection from the proven evaluator, not a fresh calibration of these policies)",
+    "inference compatibility of seed-priority checkpoints in the clean runtime is established by byte-identical checkpoint/model/identity members and identical checkpoint schema, not by loading; first load happens inside the once-only run",
+    "parent gate acceptance and exactly-once launch authority; operator must write audits at the predeclared <home>/parent-terminal-audit.json paths",
+    "registration-final.json for five remaining runs is currently a candidate; builder pins the promoted registration-final.json bytes"
+  ]
+}

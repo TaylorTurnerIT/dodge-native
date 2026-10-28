@@ -1,0 +1,167 @@
+{
+ "schema": "fullgame_priority_d4_evaluator_independent_review_v1",
+ "revision": "r2",
+ "reviewer": "claude-haiku-5-5 review sub-agent (read-only, narrow successor review)",
+ "reviewed_package": "learning/runs/v2/fullgame-priority-D4-evaluator-sonnet-20261028-r2",
+ "predecessor_review": "learning/runs/v2/fullgame-priority-D4-review-haiku-20261028-r1",
+ "source_manifest_sha256": "daaa54babd0537f712a6bf45b936b9d5c52b6531598c4f264890eda9b1cafacf",
+ "package_manifest_sha256": "3e3e55276b329e3cac634bddcee2077ce45b92f49c28c53412cf51a3385c05a8",
+ "package_file_sha256": {
+  "README.md": "7ac411e562c52e957b20965d77a039fe66aaa7b642b1ac14dee6a63a60f295a2",
+  "audit.py": "8cefc2380b08356bec4234d9d7a39041c74fae8be2f352eabece5510bede8154",
+  "binding.py": "636866355ecf455628dfb58db0aea91d62c2a5dca2790865b4e2677670b94d29",
+  "build_registration.py": "216b034352c41713d44f7936706e459cc27b7a67aa1137a66203987a73e86d73",
+  "comparison.py": "5d4fa5b28ba18936f16e87bd7722217c253a3a1a81419317e1b777034b2ff0c1",
+  "dependency-binding.json": "561f5ef8dbde87539aeeb73726c9be34ee1e2ecca2e828c46e2595cf50ff38e3",
+  "execute_once.py": "484405674d981ea7db6b5c940d70ffe353a89cff4c3a9f9a810fb25dc219aa3d",
+  "finalize_registration.py": "87b981a7048761e1d6432347ad069afeae4508d2b23f4222402128c1394cc313",
+  "launch.py": "815ea8d6b3ca4cb4bb3555ca4314bc969f220090809126db6c6dcd79cbc8c980",
+  "monitor.py": "a90570198492d3c04155b6e3d111de07d99c2812b1a0fdbfa2567bf5ac0266b6",
+  "observe.py": "95b8758eea4607f5f0812064f44ad5a26615a8a455ec0bf43d9c65bae991f81d",
+  "paired_statistics.py": "d9913415e4550237a44d401c1624cab4c5d152467b8de74e561abd76975ccbca",
+  "policy-plan.json": "dd6ece9cec6a2152771ce820d8a7ae7ea281b480bc949be80e611b096997aeb4",
+  "registration-schema.json": "64eb35580268b33a52f6ac01436b3fc7bc647e534d410472644272d433510f11",
+  "seal.py": "656cf7b7d4e3251c0c7e9448b24f86efbd2623dd64e0d66699c6dab5dbcd9f22",
+  "source-manifest.json": "daaa54babd0537f712a6bf45b936b9d5c52b6531598c4f264890eda9b1cafacf",
+  "terminal.py": "3c8e3c581d0a3d09d89d8283e5030c6b52b8b44101e7139c5eeb680836139f35",
+  "tests.py": "2622c412edca9777eb4594bfa077032218a219acd7b42038e240c4904d5eee3d",
+  "worker.py": "92ac737856d34f7701553324bc6dc86933498b9d5430bc7ed84d6a807e51e5e0"
+ },
+ "verdict": "no_blocking_findings",
+ "launch_authority": false,
+ "tests_executed_by_reviewer": false,
+ "tests_reported": {
+  "ran": 68,
+  "result": "OK",
+  "skipped": 0,
+  "source": "package-manifest.json tests field; def test_ count 68 verified"
+ },
+ "prior_findings_disposition": {
+  "M1_postflight_outside_wall_budget": "resolved_static",
+  "M2_no_worker_or_observer_integration_tests": "largely_resolved_real_timer_path_untested",
+  "L3_per_episode_cap_post_run_only": "resolved"
+ },
+ "findings": [
+  {
+   "id": 1,
+   "severity": "low",
+   "blocking": false,
+   "category": "test-determinism",
+   "file": "learning/runs/v2/fullgame-priority-D4-evaluator-sonnet-20261028-r2/tests.py",
+   "lines": [
+    1049,
+    1007,
+    1010
+   ],
+   "summary": "ObserverRun success case passes only if the stub child is reaped before the first observer poll; the fake clock then jumps 970 to 1020 past term_at=1000 and latches external_work_deadline (observe.py:279).",
+   "trigger": "Child start-up plus ps exceed the first loop iteration, e.g. under load while the training operator runs.",
+   "consequence": "Flaky test failure (exit 1, first_event external_work_deadline).",
+   "fix": "Smaller clock steps near term_at, or wait for child exit before the first observer poll in the test."
+  },
+  {
+   "id": 2,
+   "severity": "low",
+   "blocking": false,
+   "category": "test-coverage",
+   "file": "learning/runs/v2/fullgame-priority-D4-evaluator-sonnet-20261028-r2/observe.py",
+   "lines": [
+    168,
+    220,
+    222,
+    298,
+    316,
+    317,
+    391,
+    395
+   ],
+   "summary": "All ObserverRun cases inject clock, so use_timer is False and the real ITIMER_REAL/SIGALRM arm, post-loop re-arm to hard_at, failure re-arm and restore are not exercised. Read-verified alignment only.",
+   "trigger": "A defect in the real timer path (e.g. success-path postflight cut at work) on the first real run.",
+   "consequence": "Successful run marked failed after the full work period, requiring incident handling.",
+   "fix": "Add Darwin real-timer timeout case with work=2 s (expect elapsed <= work+10) and a real-timer success case; test-only, observe.py byte-identical."
+  },
+  {
+   "id": 3,
+   "severity": "low",
+   "blocking": false,
+   "category": "acceptance-content",
+   "file": "learning/runs/v2/fullgame-priority-D4-evaluator-sonnet-20261028-r2/finalize_registration.py",
+   "lines": [],
+   "summary": "Calibration acceptance checked by hash only; it need not restate work 17141, postflight 120 or total 17271.",
+   "trigger": "Parent records an acceptance with different or unlabelled wall values.",
+   "consequence": "Registered wall budget not reviewed as intended (carried r1 finding 9, now with postflight).",
+   "fix": "Require the acceptance to carry work, postflight and total values and compare them with the draft before copying."
+  },
+  {
+   "id": 4,
+   "severity": "info",
+   "blocking": false,
+   "category": "test-coverage",
+   "file": "learning/runs/v2/fullgame-priority-D4-evaluator-sonnet-20261028-r2/tests.py",
+   "lines": [
+    105,
+    121,
+    162,
+    944,
+    1063
+   ],
+   "summary": "No mutation-style tests exist; behavioural tests do fail if the per-episode check or the postflight term is removed.",
+   "trigger": "n/a",
+   "consequence": "None beyond coverage style.",
+   "fix": "Optional."
+  },
+  {
+   "id": 5,
+   "severity": "info",
+   "blocking": false,
+   "category": "calibration",
+   "file": "learning/runs/v2/fullgame-priority-D4-evaluator-sonnet-20261028-r2/build_registration.py",
+   "lines": [
+    100
+   ],
+   "summary": "120 s postflight allowance rests on one prior sample (9.40 s gap, 15.5M frames), scaled linearly to 78.4 s; 1.53x margin.",
+   "trigger": "Postflight cost above linear scaling at full journal size.",
+   "consequence": "Fail-closed deadline_consumed incident.",
+   "fix": "Accept as worst-case bound with the calibration record."
+  },
+  {
+   "id": 6,
+   "severity": "info",
+   "blocking": false,
+   "category": "wall-budget",
+   "file": "learning/runs/v2/fullgame-priority-D4-evaluator-sonnet-20261028-r2/observe.py",
+   "lines": [
+    341,
+    346
+   ],
+   "summary": "Timeout path can reach work+130 total because failure accounting in finally runs up to hard_at; the worker never receives this time.",
+   "trigger": "Timeout with a large journal.",
+   "consequence": "Expected wall-time note only.",
+   "fix": "None."
+  }
+ ],
+ "carried_limits_accepted": [
+  "receipt contents pinned by hash only (binding.py:241-275)",
+  "reset0 by construction",
+  "self-reported MPS",
+  "quadratic resources.jsonl reads (observe.py:268)",
+  "journal disk about 15.7 GB worst case",
+  "parent acceptances hash-only"
+ ],
+ "required_checks": [
+  "six producer audits accepted; build_registration --check shows 2 of 6 ready at review time, builder refuses until all six",
+  "draft limits work 17141, total 17271, cleanup 10, postflight_allowance 120, source_manifest_sha256 daaa54ba...",
+  "independent source acceptance of source-manifest daaa54ba... and the 18 member hashes",
+  "calibration acceptance hash-pinned, restating work 17141, postflight 120, total 17271",
+  "gate acceptance with exact registration_sha256, all GATES passed, byte-pinned review records",
+  "live preflight: operator quiescent, lease free, marker absent, cancel absent, disk free space",
+  "recommended before launch: real-timer timeout test and ObserverRun success under load",
+  "re-run tests.py once in a clean environment with the recorded command"
+ ],
+ "limits": [
+  "static and fake-facade evidence only",
+  "six producer checkpoints not deserialized",
+  "native _production_rows, torch/MPS, real checkpoint loader and runtime authenticator not exercised",
+  "real SIGALRM path not covered by tests",
+  "source proof, not runtime qualification"
+ ]
+}

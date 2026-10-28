@@ -1,0 +1,40 @@
+{
+  "schema": "fullgame_priority_d4_registration_schema_v1",
+  "launch_authority": false,
+  "registration_schema": "fullgame_priority_d4_terminal60_registration_v1",
+  "draft_status": "source_review_pending",
+  "final_status": "parent_registered",
+  "produced_by": {
+    "draft": "build_registration.py (refuses until all six producer terminal receipts are accepted)",
+    "final": "finalize_registration.py (copies an unchanged draft; sets status and calibration acceptance only)"
+  },
+  "fixed_fields": {
+    "schema": "fullgame_priority_d4_terminal60_registration_v1",
+    "study_id": "fullgame-seed-priority-luna-20261027-r1",
+    "run_id": "fullgame-priority-D4-terminal60-evaluation-sonnet-20261028-r1",
+    "backend": "mps",
+    "seeds": "0xD4000000..0xD40003FF, 1024 unique, list order = episode order",
+    "cohort": "D4 range, count 1024, D5 range 0xD5000000..0xD50007FF state unopened",
+    "evaluation_rng_seed": 2026102802,
+    "bootstrap": {"seed": 2026102801, "draws": 2000, "confidence": 0.95, "unit": "paired_evaluation_seed"},
+    "semantics": "binding.SEMANTICS (difficulty 2, normal starts, patterns/powerups on, cap 18000, action repeat 4, no cutoff, sampled categorical, 7 policies x 1024 = 7168 episodes)",
+    "limits": "work=ceil(3*prior_elapsed/prior_raw_frames*raw_frames+10), total=work+10, cleanup=10, RSS=MPS=6GiB, raw_frames=7168*18013, constructors=7168, native_steps=7168*18000, resets=0, retries=0",
+    "evaluator_source": "progressive1000-opening-maintenance-runtime-parent-20261027-r1 (clean common evaluator, manifest 51aa867e..., runtime 84e730ee...)",
+    "provenance": "binding.PROVENANCE (bounded accepted324 learner-family history; 122 historical roles unresolved; no universal nonuse; live ledger not pinned as history)"
+  },
+  "per_policy": {
+    "id": "replica-{1,2,3}-{uniform,opening_priority} in that order, then parent324",
+    "checkpoint_path": "<producer home>/worker-output/checkpoint-global-060-integrity.pt (predeclared in policy-plan.json)",
+    "checkpoint_sha256": "from the producer worker result endpoint, re-hashed from bytes",
+    "producer": {
+      "pins": "registration-final, terminal audit, worker result, sidecar, observer artifact manifest, lease release, parent execution, execution exit, producer source/runtime manifests",
+      "expected_identity": "reproduced from the producer registration; must equal the sidecar and the loaded checkpoint identity"
+    },
+    "parent324": "producer=null; sha c10d90ec0e67503afef8f4d90c4968581d430ef2065117a75e81c445a04c8ddc; evaluated once"
+  },
+  "parent_supplied_before_launch": [
+    "independent source acceptance: {status: accepted_source_review_only, source_manifest_sha256}",
+    "gate acceptance, schema fullgame_priority_d4_evaluation_gate_acceptance_v1, status approved_exactly_once_fixed_terminal60_d4_evaluation, gates binding.GATES all passed, pins",
+    "calibration acceptance file named by finalize_registration.py"
+  ]
+}

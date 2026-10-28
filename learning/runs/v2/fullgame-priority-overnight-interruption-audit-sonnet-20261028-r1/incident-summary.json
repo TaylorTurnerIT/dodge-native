@@ -1,0 +1,22 @@
+{
+  "activated": false,
+  "audit_sha256": "032e681c1f0d9393c86f64438deed81c2af2f18d980e56244de8458de1ac4414",
+  "classification": "failed_interrupted_spent_incomplete_attempt; not comparison eligible",
+  "lease_release_sha256": "149827465d03621ab31c2aac16cdac1b25fe62e47b3cd6207ee5f97a881e8b84",
+  "proposed_operational_fix": [
+    "Run each authorized process under a scoped `caffeinate -ims` (AC only) tied to the observer PID so idle/system sleep is blocked for its lifetime.",
+    "Launch from a root native exec session with a timeout above registered total_seconds+cleanup+postflight (or run_in_background with explicit long timeout), never the default 30 min.",
+    "Keep trainer and frozen source unchanged; no system sleep settings changed."
+  ],
+  "registration_sha256": "db2da67332b51c3cb3839bc8cc08afd1bcca105f64023a47cb8d8da2a0006658",
+  "residual_unknowns": [
+    "terminating signal",
+    "raw exit codes",
+    "direct reap",
+    "whether sleep alone or the wrapper kill ended the processes"
+  ],
+  "run_id": "fullgame-seed-priority-luna-20261027-r1-replica-2-opening_priority",
+  "schema": "dodge_overnight_interruption_incident_summary_v1",
+  "sequence": "Aborted on fault. 3/6 planned training endpoints complete; replica-3 uniform and opening_priority unstarted. No further launches, retries, or seed replacement authorized.",
+  "what_happened": "Run 3 stopped at 5/60 updates (~110 s active). Wrapper tool task hit its 30 min default timeout ([killed]) at wall ~1826 s; machine had repeated Idle/Maintenance Sleep on AC during the window. Observer and worker groups gone; no exit, reap, or terminal receipts exist."
+}
