@@ -1,0 +1,58 @@
+{
+  "accepted_scope": "240 recovery updates from360 to600, five full-run D6 evaluations, four fresh-environment segments; explicitly authorized recovery after power loss.",
+  "limitations": "No fresh PPO throughput measurement. Observed prior training and evaluation costs estimate time; hard limits stay enforced.",
+  "limits": {
+    "cleanup_seconds": 10,
+    "evaluation": {
+      "constructors": 5120,
+      "native_steps": 92160000,
+      "raw_frames": 92226560,
+      "resets": 0
+    },
+    "mps_bytes": 6442450944,
+    "postflight_seconds": 120,
+    "retries": 0,
+    "rss_bytes": 6442450944,
+    "total_seconds": 14530,
+    "training": {
+      "constructors": 4,
+      "native_steps": 61440,
+      "raw_frames": 66850048,
+      "resets": 3932160
+    },
+    "work_seconds": 14400
+  },
+  "measured_basis": {
+    "basis": "Work cap is 14,400 s. Training uses the same producer measured 60-update wall time for four recovery segments. Evaluation uses the accepted D4 evaluator measured seconds per raw frame and the registered 18,000-frame cap for every episode. No evaluation score enters checkpoint choice or the expected evaluation frame estimate. Cleanup is 10 s and postflight is 120 s. The observer SIGALRM stops work at the registered cap. Raw-frame, constructor, step, and reset budgets are structural ceilings; parent acceptance is still required.",
+    "derived": {
+      "evaluation_seconds_per_raw_frame": 8.628168083489773e-05,
+      "expected_evaluation_raw_frames": 92226560,
+      "margin_over_expected": 1.1894592029146556,
+      "projected_evaluation_seconds_every_episode_capped": 7958,
+      "projected_evaluation_seconds_expected": 7958,
+      "projected_total_expected_seconds": 12107,
+      "projected_total_worst_case_seconds": 12107,
+      "projected_training_seconds": 4149
+    },
+    "inputs": {
+      "evaluation_prior_peak_mps_driver_bytes": 193429504,
+      "evaluation_prior_peak_rss_bytes": 600031232,
+      "evaluation_prior_raw_frames": 6720672,
+      "evaluation_prior_seconds": 579.8708765000338,
+      "evaluation_source": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-priority-D4-first-three-evaluator-sonnet-20261028-r1/worker-output/worker-result.json",
+      "expected_mean_alive_frames": 18000,
+      "expected_mean_source": "registered 18000 raw-frame cap (conservative planning bound)",
+      "training_peak_mps_driver_bytes": 2382184448,
+      "training_peak_rss_bytes": 1256718336,
+      "training_seconds_per_60_updates": 1037.2198662500596,
+      "training_source": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1/fullgame-seed-priority-luna-20261027-r1-replica-2-uniform/worker-output/worker-result.json"
+    },
+    "parent_acceptance_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/uniform2-recovery240-parent-20261028-r1/calibration-acceptance.json",
+    "parent_acceptance_sha256": null,
+    "parent_accepted": false,
+    "proposed_work_seconds": 14400
+  },
+  "native_qualification_sha256": "d5fac0ed191a9e5132498dc1de944dc45126df07fbd31d9d045e2dc19e046335",
+  "registration_draft_sha256": "cece1a7720d53345b7874cbe2fa84213020bff62be2bf1979ced381d06c38ab6",
+  "status": "accepted_parent_resource_calibration"
+}

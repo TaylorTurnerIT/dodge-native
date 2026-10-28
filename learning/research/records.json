@@ -1,11 +1,29 @@
 {
   "experiments": [
     {
-      "actual": "In progress. The 2026-10-28 18:35:04 UTC check counted 191 of 600 completed updates. That is progress evidence, not a final performance result. Record the eleven evaluated models and the audited selection here after completion. No interim performance conclusion is recorded in this plan.",
+      "actual": "Original attempt stopped after400 journaled updates on power loss; latest durable checkpoint360 survived intact. Separately registered recovery DODGE-011 launched once for240 updates from360, retaining optimizer and RNG. Effective target remains600; interrupted update401 work and40 lost completed updates are recorded. No performance conclusion or official promotion yet.",
       "actual_kind": "progress",
       "created_at": "2026-10-28T18:53:33.226355+00:00",
       "doing": "Continue Uniform #2 for 600 PPO updates, evaluating the starting model and every 60-update saved model on the registered full-game D6 cohort. Keep architecture, reward, uniform training pool, and learning rate unchanged. This is the existing running experiment; its registration governs execution.",
       "evidence": [
+        {
+          "experiment_id": "DODGE-001",
+          "id": "continuation600-power-loss",
+          "kind": "audit",
+          "label": "Power-loss interruption and exact dead-lease disposition",
+          "recorded_at": "2026-10-28T20:33:23.483562+00:00",
+          "sha256": "470210f49c28d3a231410c8e1b5556fdfa23f68aef7291fd41caf9df72104898",
+          "uri": "learning/runs/v2/uniform2-recovery240-parent-20261028-r1/incident-audit.json"
+        },
+        {
+          "experiment_id": "DODGE-001",
+          "id": "continuation600-recovery-launch",
+          "kind": "progress",
+          "label": "Recovery launched once from durable checkpoint360 on AC",
+          "recorded_at": "2026-10-28T20:52:25.460442+00:00",
+          "sha256": "1a7585fb2d8895bfa2575aa357ae56b859fa3766c5daf9cde703a14ab68be44c",
+          "uri": "learning/runs/v2/uniform2-recovery240-parent-20261028-r1/parent-dispatch-receipt.json"
+        },
         {
           "experiment_id": "DODGE-001",
           "id": "plan-1",
@@ -64,6 +82,127 @@
             "updated_at": "2026-10-28T18:53:33.226355+00:00",
             "why": "Sustained Q1 gains would support continuing this recipe. A plateau would motivate investigating control, representation, or objective limitations. Later regression would motivate tests of interference or optimization behavior. A single trajectory cannot distinguish those causes by itself. Compare against this run's D6 starting-model evaluation, rather than treating its earlier D4 score as the baseline."
           }
+        },
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-001",
+          "reason": "Record power-loss interruption without treating partial work as completed experiment",
+          "recorded_at": "2026-10-28T20:33:23.483183+00:00",
+          "revision": 2,
+          "snapshot": {
+            "actual": "The Mac lost power. Original attempt journaled 400 completed updates and collection401, then stopped without terminal receipts. Latest durable model/Adam/RNG checkpoint is update360; 40 journaled updates cannot be restored. No performance conclusion or checkpoint promotion. User authorized recovery from360 for240 updates.",
+            "actual_kind": "progress",
+            "created_at": "2026-10-28T18:53:33.226355+00:00",
+            "doing": "Continue Uniform #2 for 600 PPO updates, evaluating the starting model and every 60-update saved model on the registered full-game D6 cohort. Keep architecture, reward, uniform training pool, and learning rate unchanged. This is the existing running experiment; its registration governs execution.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-001",
+                "id": "continuation600-power-loss",
+                "kind": "audit",
+                "label": "Power-loss interruption and exact dead-lease disposition",
+                "recorded_at": "2026-10-28T20:33:23.483562+00:00",
+                "sha256": "470210f49c28d3a231410c8e1b5556fdfa23f68aef7291fd41caf9df72104898",
+                "uri": "learning/runs/v2/uniform2-recovery240-parent-20261028-r1/incident-audit.json"
+              },
+              {
+                "experiment_id": "DODGE-001",
+                "id": "plan-1",
+                "kind": "plan",
+                "label": "Original four-question iteration plan",
+                "recorded_at": "2026-10-28T18:53:33.226430+00:00",
+                "sha256": "9998f0cdda0945daec4f6b0905de8c8d404578580580e84237319dccfaf95f00",
+                "uri": "git:3d4398884919832c5d6857834c7f29b10cddb187:docs/dodge-research-iteration-plan.md"
+              }
+            ],
+            "expected": "If insufficient training is a major bottleneck, Q1 should rise above the starting model and improvements should persist across several checkpoints. Competing predictions are a plateau, temporary gains followed by regression, or gains in mean survival without gains in Q1. We are testing whether additional training is useful, not assuming that it must be.",
+            "id": "DODGE-001",
+            "measurements": [],
+            "metadata": {
+              "imported_from": "git:3d4398884919832c5d6857834c7f29b10cddb187:docs/dodge-research-iteration-plan.md",
+              "source_section": 1,
+              "unobserved_result_prompt": null,
+              "why_is_hypothesis": true
+            },
+            "next_step": "Prepare and independently review a separate exactly-once 240-update recovery to original global600.",
+            "parent_id": "DODGE-010",
+            "prediction_timing": "during_run",
+            "project": "dodge-native",
+            "revision": 2,
+            "status": "blocked",
+            "tags": [
+              "research-plan",
+              "Q1",
+              "continuation"
+            ],
+            "title": "Finish the current 600-update continuation",
+            "updated_at": "2026-10-28T20:33:23.483183+00:00",
+            "why": "Sustained Q1 gains would support continuing this recipe. A plateau would motivate investigating control, representation, or objective limitations. Later regression would motivate tests of interference or optimization behavior. A single trajectory cannot distinguish those causes by itself. Compare against this run's D6 starting-model evaluation, rather than treating its earlier D4 score as the baseline."
+          }
+        },
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-001",
+          "reason": "Continue research experiment through explicitly authorized separate recovery",
+          "recorded_at": "2026-10-28T20:52:25.460351+00:00",
+          "revision": 3,
+          "snapshot": {
+            "actual": "Original attempt stopped after400 journaled updates on power loss; latest durable checkpoint360 survived intact. Separately registered recovery DODGE-011 launched once for240 updates from360, retaining optimizer and RNG. Effective target remains600; interrupted update401 work and40 lost completed updates are recorded. No performance conclusion or official promotion yet.",
+            "actual_kind": "progress",
+            "created_at": "2026-10-28T18:53:33.226355+00:00",
+            "doing": "Continue Uniform #2 for 600 PPO updates, evaluating the starting model and every 60-update saved model on the registered full-game D6 cohort. Keep architecture, reward, uniform training pool, and learning rate unchanged. This is the existing running experiment; its registration governs execution.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-001",
+                "id": "continuation600-power-loss",
+                "kind": "audit",
+                "label": "Power-loss interruption and exact dead-lease disposition",
+                "recorded_at": "2026-10-28T20:33:23.483562+00:00",
+                "sha256": "470210f49c28d3a231410c8e1b5556fdfa23f68aef7291fd41caf9df72104898",
+                "uri": "learning/runs/v2/uniform2-recovery240-parent-20261028-r1/incident-audit.json"
+              },
+              {
+                "experiment_id": "DODGE-001",
+                "id": "continuation600-recovery-launch",
+                "kind": "progress",
+                "label": "Recovery launched once from durable checkpoint360 on AC",
+                "recorded_at": "2026-10-28T20:52:25.460442+00:00",
+                "sha256": "1a7585fb2d8895bfa2575aa357ae56b859fa3766c5daf9cde703a14ab68be44c",
+                "uri": "learning/runs/v2/uniform2-recovery240-parent-20261028-r1/parent-dispatch-receipt.json"
+              },
+              {
+                "experiment_id": "DODGE-001",
+                "id": "plan-1",
+                "kind": "plan",
+                "label": "Original four-question iteration plan",
+                "recorded_at": "2026-10-28T18:53:33.226430+00:00",
+                "sha256": "9998f0cdda0945daec4f6b0905de8c8d404578580580e84237319dccfaf95f00",
+                "uri": "git:3d4398884919832c5d6857834c7f29b10cddb187:docs/dodge-research-iteration-plan.md"
+              }
+            ],
+            "expected": "If insufficient training is a major bottleneck, Q1 should rise above the starting model and improvements should persist across several checkpoints. Competing predictions are a plateau, temporary gains followed by regression, or gains in mean survival without gains in Q1. We are testing whether additional training is useful, not assuming that it must be.",
+            "id": "DODGE-001",
+            "measurements": [],
+            "metadata": {
+              "imported_from": "git:3d4398884919832c5d6857834c7f29b10cddb187:docs/dodge-research-iteration-plan.md",
+              "source_section": 1,
+              "unobserved_result_prompt": null,
+              "why_is_hypothesis": true
+            },
+            "next_step": "Audit recovery completion, then qualify preserved original evaluations and select across original global0..600 by Q1.",
+            "parent_id": "DODGE-010",
+            "prediction_timing": "during_run",
+            "project": "dodge-native",
+            "revision": 3,
+            "status": "running",
+            "tags": [
+              "research-plan",
+              "Q1",
+              "continuation"
+            ],
+            "title": "Finish the current 600-update continuation",
+            "updated_at": "2026-10-28T20:52:25.460351+00:00",
+            "why": "Sustained Q1 gains would support continuing this recipe. A plateau would motivate investigating control, representation, or objective limitations. Later regression would motivate tests of interference or optimization behavior. A single trajectory cannot distinguish those causes by itself. Compare against this run's D6 starting-model evaluation, rather than treating its earlier D4 score as the baseline."
+          }
         }
       ],
       "id": "DODGE-001",
@@ -74,11 +213,11 @@
         "unobserved_result_prompt": null,
         "why_is_hypothesis": true
       },
-      "next_step": null,
+      "next_step": "Audit recovery completion, then qualify preserved original evaluations and select across original global0..600 by Q1.",
       "parent_id": "DODGE-010",
       "prediction_timing": "during_run",
       "project": "dodge-native",
-      "revision": 1,
+      "revision": 3,
       "status": "running",
       "tags": [
         "research-plan",
@@ -86,7 +225,7 @@
         "continuation"
       ],
       "title": "Finish the current 600-update continuation",
-      "updated_at": "2026-10-28T18:53:33.226355+00:00",
+      "updated_at": "2026-10-28T20:52:25.460351+00:00",
       "why": "Sustained Q1 gains would support continuing this recipe. A plateau would motivate investigating control, representation, or objective limitations. Later regression would motivate tests of interference or optimization behavior. A single trajectory cannot distinguish those causes by itself. Compare against this run's D6 starting-model evaluation, rather than treating its earlier D4 score as the baseline."
     },
     {
@@ -4387,6 +4526,160 @@
       "title": "Full-game uniform versus static hard-seed priority",
       "updated_at": "2026-10-28T18:53:33.225096+00:00",
       "why": "Historical hard labels may identify poor learning opportunities, become outdated, or alter training exposure. Shared-policy interference is another hypothesis. These results do not distinguish those mechanisms."
+    },
+    {
+      "actual": "Recovery launched exactly once after 20 CPU tests, two independent source reviews, exact checkpoint restore, and actual runtime/native constructor/save-reload qualification. Restores checkpoint360 for240 updates; completes original global600 if successful. AC power confirmed. No performance result or promotion yet.",
+      "actual_kind": "progress",
+      "created_at": "2026-10-28T20:33:23.484039+00:00",
+      "doing": "Restore latest durable checkpoint360 model/Adam/RNG and per-slot episode indices. Train four new 60-update segments with unchanged PPO, transformer, reward, 4-frame control and training seed stream. Reach original global600; preserve failed attempt and explicitly account40 lost updates plus unconfirmed optimizer work401. Use original D6 development evaluation settings and original global checkpoints360,420,480,540,600; no confirmation or official promotion.",
+      "evidence": [
+        {
+          "experiment_id": "DODGE-011",
+          "id": "c785c01a979b4f80907a4b3fde9444c7",
+          "kind": "progress",
+          "label": "Recovery launched once from durable checkpoint360 on AC",
+          "recorded_at": "2026-10-28T20:52:25.459635+00:00",
+          "sha256": "1a7585fb2d8895bfa2575aa357ae56b859fa3766c5daf9cde703a14ab68be44c",
+          "uri": "learning/runs/v2/uniform2-recovery240-parent-20261028-r1/parent-dispatch-receipt.json"
+        },
+        {
+          "experiment_id": "DODGE-011",
+          "id": "recovery240-incident",
+          "kind": "audit",
+          "label": "Power-loss interruption and exact dead-lease disposition",
+          "recorded_at": "2026-10-28T20:33:23.484162+00:00",
+          "sha256": "470210f49c28d3a231410c8e1b5556fdfa23f68aef7291fd41caf9df72104898",
+          "uri": "learning/runs/v2/uniform2-recovery240-parent-20261028-r1/incident-audit.json"
+        }
+      ],
+      "expected": "Additional training may improve Q1, plateau, or regress. Recovery should preserve exact saved learner state and the same recipe; it does not claim an uninterrupted trajectory. No interim evaluation scores inform checkpoint choice or launch.",
+      "history": [
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-011",
+          "reason": "Register explicitly authorized recovery before training",
+          "recorded_at": "2026-10-28T20:33:23.484039+00:00",
+          "revision": 1,
+          "snapshot": {
+            "actual": null,
+            "actual_kind": "unobserved",
+            "created_at": "2026-10-28T20:33:23.484039+00:00",
+            "doing": "Restore latest durable checkpoint360 model/Adam/RNG and per-slot episode indices. Train four new 60-update segments with unchanged PPO, transformer, reward, 4-frame control and training seed stream. Reach original global600; preserve failed attempt and explicitly account40 lost updates plus unconfirmed optimizer work401. Use original D6 development evaluation settings and original global checkpoints360,420,480,540,600; no confirmation or official promotion.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-011",
+                "id": "recovery240-incident",
+                "kind": "audit",
+                "label": "Power-loss interruption and exact dead-lease disposition",
+                "recorded_at": "2026-10-28T20:33:23.484162+00:00",
+                "sha256": "470210f49c28d3a231410c8e1b5556fdfa23f68aef7291fd41caf9df72104898",
+                "uri": "learning/runs/v2/uniform2-recovery240-parent-20261028-r1/incident-audit.json"
+              }
+            ],
+            "expected": "Additional training may improve Q1, plateau, or regress. Recovery should preserve exact saved learner state and the same recipe; it does not claim an uninterrupted trajectory. No interim evaluation scores inform checkpoint choice or launch.",
+            "id": "DODGE-011",
+            "measurements": [],
+            "metadata": {
+              "attempted_completed_updates_if_complete": 640,
+              "new_updates": 240,
+              "original_completed_updates": 400,
+              "resume_from": 360
+            },
+            "next_step": "Complete restore and source/resource/registration checks, launch once, then audit before interpreting results.",
+            "parent_id": "DODGE-001",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 1,
+            "status": "planned",
+            "tags": [
+              "recovery",
+              "continuation",
+              "Q1"
+            ],
+            "title": "Recover Uniform2 continuation from saved update360",
+            "updated_at": "2026-10-28T20:33:23.484039+00:00",
+            "why": "External power loss explains the interruption. It provides no evidence about the learning hypothesis."
+          }
+        },
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-011",
+          "reason": "Record actual launch after all concrete recovery gates passed",
+          "recorded_at": "2026-10-28T20:52:25.459396+00:00",
+          "revision": 2,
+          "snapshot": {
+            "actual": "Recovery launched exactly once after 20 CPU tests, two independent source reviews, exact checkpoint restore, and actual runtime/native constructor/save-reload qualification. Restores checkpoint360 for240 updates; completes original global600 if successful. AC power confirmed. No performance result or promotion yet.",
+            "actual_kind": "progress",
+            "created_at": "2026-10-28T20:33:23.484039+00:00",
+            "doing": "Restore latest durable checkpoint360 model/Adam/RNG and per-slot episode indices. Train four new 60-update segments with unchanged PPO, transformer, reward, 4-frame control and training seed stream. Reach original global600; preserve failed attempt and explicitly account40 lost updates plus unconfirmed optimizer work401. Use original D6 development evaluation settings and original global checkpoints360,420,480,540,600; no confirmation or official promotion.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-011",
+                "id": "c785c01a979b4f80907a4b3fde9444c7",
+                "kind": "progress",
+                "label": "Recovery launched once from durable checkpoint360 on AC",
+                "recorded_at": "2026-10-28T20:52:25.459635+00:00",
+                "sha256": "1a7585fb2d8895bfa2575aa357ae56b859fa3766c5daf9cde703a14ab68be44c",
+                "uri": "learning/runs/v2/uniform2-recovery240-parent-20261028-r1/parent-dispatch-receipt.json"
+              },
+              {
+                "experiment_id": "DODGE-011",
+                "id": "recovery240-incident",
+                "kind": "audit",
+                "label": "Power-loss interruption and exact dead-lease disposition",
+                "recorded_at": "2026-10-28T20:33:23.484162+00:00",
+                "sha256": "470210f49c28d3a231410c8e1b5556fdfa23f68aef7291fd41caf9df72104898",
+                "uri": "learning/runs/v2/uniform2-recovery240-parent-20261028-r1/incident-audit.json"
+              }
+            ],
+            "expected": "Additional training may improve Q1, plateau, or regress. Recovery should preserve exact saved learner state and the same recipe; it does not claim an uninterrupted trajectory. No interim evaluation scores inform checkpoint choice or launch.",
+            "id": "DODGE-011",
+            "measurements": [],
+            "metadata": {
+              "attempted_completed_updates_if_complete": 640,
+              "new_updates": 240,
+              "original_completed_updates": 400,
+              "resume_from": 360
+            },
+            "next_step": "Complete restore and source/resource/registration checks, launch once, then audit before interpreting results.",
+            "parent_id": "DODGE-001",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 2,
+            "status": "running",
+            "tags": [
+              "recovery",
+              "continuation",
+              "Q1"
+            ],
+            "title": "Recover Uniform2 continuation from saved update360",
+            "updated_at": "2026-10-28T20:52:25.459396+00:00",
+            "why": "External power loss explains the interruption. It provides no evidence about the learning hypothesis."
+          }
+        }
+      ],
+      "id": "DODGE-011",
+      "measurements": [],
+      "metadata": {
+        "attempted_completed_updates_if_complete": 640,
+        "new_updates": 240,
+        "original_completed_updates": 400,
+        "resume_from": 360
+      },
+      "next_step": "Complete restore and source/resource/registration checks, launch once, then audit before interpreting results.",
+      "parent_id": "DODGE-001",
+      "prediction_timing": "before_run",
+      "project": "dodge-native",
+      "revision": 2,
+      "status": "running",
+      "tags": [
+        "recovery",
+        "continuation",
+        "Q1"
+      ],
+      "title": "Recover Uniform2 continuation from saved update360",
+      "updated_at": "2026-10-28T20:52:25.459396+00:00",
+      "why": "External power loss explains the interruption. It provides no evidence about the learning hypothesis."
     }
   ],
   "project_context": [

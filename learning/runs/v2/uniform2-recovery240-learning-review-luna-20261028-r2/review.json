@@ -1,0 +1,62 @@
+{
+  "schema": "uniform2_recovery240_learning_review_v2",
+  "status": "no_blocking_findings",
+  "review_scope": "Narrow source-only revalidation of changes after r1 review: parent checkpoint loader, starting-model selection labels, terminal selection recomputation, output manifest anchoring, merged study identity/pin checks, and the separate runtime-r2 source gate.",
+  "source_manifest_sha256": "87dfc84a6e3e943577568c42efd5dad132979d77f584ed0d87900f50d8ad0724",
+  "registration_draft_sha256": "cece1a7720d53345b7874cbe2fa84213020bff62be2bf1979ced381d06c38ab6",
+  "prior_review_path": "learning/runs/v2/uniform2-recovery240-learning-review-luna-20261028-r1/review.json",
+  "reviewed_file_sha256": {
+    "learning/runs/v2/uniform2-recovery240-luna-20261028-r1/source-manifest.json": "87dfc84a6e3e943577568c42efd5dad132979d77f584ed0d87900f50d8ad0724",
+    "learning/runs/v2/uniform2-recovery240-luna-20261028-r1/registration-draft.json": "cece1a7720d53345b7874cbe2fa84213020bff62be2bf1979ced381d06c38ab6",
+    "learning/runs/v2/uniform2-recovery240-luna-20261028-r1/worker.py": "fd262f473bf1c7b78ed69691a5a6354d7ebcb403bc891e2c51bdf38f7a691508",
+    "learning/runs/v2/uniform2-recovery240-luna-20261028-r1/metrics.py": "e787c221c0dcbff43959eb1c265576744354125563e913eef831388b61e63256",
+    "learning/runs/v2/uniform2-recovery240-luna-20261028-r1/terminal.py": "2eae5671aaa2ac53681988b299b2c2f4ce762bae7650d969afaffd42ade1617c",
+    "learning/runs/v2/uniform2-recovery240-luna-20261028-r1/audit.py": "4842cdca86226892bb554ae4c0514522ed65e301c406c032cd7f2845c948300f",
+    "learning/runs/v2/uniform2-recovery240-luna-20261028-r1/binding.py": "f37896bad968b86783a2648605a5fbbcb77468ddd0dffbf30562b177fd7cc22c",
+    "learning/runs/v2/uniform2-recovery240-luna-20261028-r1/seeds.py": "98a8825e82dd30204a477c6c30dd3a5c6f3236b9ec38e28c4b9106510774db61",
+    "learning/runs/v2/uniform2-recovery240-luna-20261028-r1/audit_streams.py": "3099c2d0335417f3d47dccfc98ac4e6da6bfef20ebe0b29e194b060970495c5d",
+    "learning/runs/v2/uniform2-recovery240-parent-20261028-r1/finalize_parent_acceptance.py": "2c8921f96cae6f94467ddc812e8c4315a8355e7b003cbd1ea5d0a39a37ccac13",
+    "learning/runs/v2/uniform2-recovery240-parent-20261028-r1/finalize_recovered_study.py": "ad6ef53a2cde462b5566d6d8db181d7ea608935775bbc0d33533f4f8c1ed3a89",
+    "learning/runs/v2/uniform2-recovery240-parent-20261028-r1/qualify_runtime_r2.py": "eefcfaef44c427066b3b50e507d001970170d4f6e7821cc4e5ae6d9da29f4929",
+    "learning/runs/v2/uniform2-recovery240-parent-20261028-r1/runtime-qualification-r2-registration.json": "8b0e84c760c45249504070ad526e642a201a8afe8d588084d9592d589fce3fe7"
+  },
+  "findings": [],
+  "revalidated_changes": [
+    {
+      "path": "learning/runs/v2/uniform2-recovery240-luna-20261028-r1/worker.py",
+      "lines": [97, 323],
+      "result": "load_parent passes CAMPAIGN_BASE (360) to validate_eval_state; that branch binds the frozen parent schema, identity, digest, and global/phase/cumulative counters before recovery continues."
+    },
+    {
+      "path": "learning/runs/v2/uniform2-recovery240-luna-20261028-r1/metrics.py",
+      "lines": [33, 58],
+      "result": "Selection accepts a starting_update. Recovery worker and terminal recomputation pass 360, so update360 is labeled as starting model and excluded from best_trained_only; merged study retains default starting_update 0."
+    },
+    {
+      "path": "learning/runs/v2/uniform2-recovery240-luna-20261028-r1/audit.py",
+      "lines": [98, 118],
+      "result": "Accepted terminal audit records exact artifact manifest path and SHA after enforcing exact output member set and pins."
+    },
+    {
+      "path": "learning/runs/v2/uniform2-recovery240-parent-20261028-r1/finalize_recovered_study.py",
+      "lines": [21, 39],
+      "result": "Before reading evaluation receipts, merger requires accepted audit schema/status, exact final registration and source manifest identities, matching anchored artifact manifest path/SHA, all recovery output pins, and original artifact pins. It selects original0..360 plus recovery420..600; repeated recovery360 stays a comparison only."
+    },
+    {
+      "path": "learning/runs/v2/uniform2-recovery240-parent-20261028-r1/finalize_parent_acceptance.py",
+      "lines": [28, 40],
+      "result": "Launch gate requires the distinct runtime-qualification-r2 receipt with exact pass status, current source manifest, matching r2 registration SHA, matching qualifier source SHA, and all registration pins. Preserved r1 failure cannot satisfy this gate."
+    }
+  ],
+  "unchanged_invariants": {
+    "restore_and_timeline": "Draft pins checkpoint360 SHA f0f651b8aa87c73b64b9f855c794925a278bb7fac82b7b05ae6f6918cd9898bb and qualified counters global360/phase744/cumulative792; 240 recovery updates produce global361..600, phase745..984, cumulative793..1032.",
+    "segments_and_evaluations": "Draft specifies four fresh-environment 60-update segments and five D6 development evaluations at 360/420/480/540/600, 1024 episodes each.",
+    "seeds_rng_accounting": "Binding, seed stream helper, and stream auditor hashes match r1 review. The prior review covered saved-index continuation, tuple exclusions, evaluation RNG/model/Adam restoration, assignment/reset accounting, and original-prefix audit."
+  },
+  "operational_gate": "Runtime qualification r2 outcome was not re-executed or independently reviewed here. Source requires its distinct passing receipt before parent acceptance; parent owns that operational gate.",
+  "limits": [
+    "No tests run by this reviewer; parent reported final CPU suite passed 20/20.",
+    "No native/GPU imports, checkpoint deserialization, environment construction, launch, marker or ledger edits, or evaluation score inspection.",
+    "The review is pinned to the listed frozen source and draft hashes."
+  ]
+}

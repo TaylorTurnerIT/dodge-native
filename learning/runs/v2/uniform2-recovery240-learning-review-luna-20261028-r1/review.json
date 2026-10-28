@@ -1,0 +1,47 @@
+{
+  "schema": "uniform2_recovery240_learning_review_v1",
+  "status": "blocking_parent_runtime_gate_and_one_nonblocking_selection_label_defect",
+  "scope": "Read-only learning timeline, restore, seed stream, evaluation, and parent terminal/merge flow review. No native imports, checkpoint deserialization, game construction, launch, marker/ledger edits, or evaluation outcome inspection.",
+  "source_manifest_sha256": "3b23c79844fccd82164bf92b73b564b09a02cdeeec7e32f73b110a11bfc26140",
+  "registration_draft_sha256": "ff257228eafdab822bbc0e55d6073d3f85ec8af01291a936f8e37d2cde516763",
+  "reviewed_file_sha256": {
+    "learning/runs/v2/uniform2-recovery240-luna-20261028-r1/worker.py": "f2b908e81e3024ee2495b978a718fe9b9a94fb6c4530952b93baf7104fee3f65",
+    "learning/runs/v2/uniform2-recovery240-luna-20261028-r1/metrics.py": "8706ff51e04f46e3d09b5ccdc828eb703085cbb922e0f3ef4b8d707b0501a635",
+    "learning/runs/v2/uniform2-recovery240-luna-20261028-r1/seeds.py": "98a8825e82dd30204a477c6c30dd3a5c6f3236b9ec38e28c4b9106510774db61",
+    "learning/runs/v2/uniform2-recovery240-luna-20261028-r1/audit_streams.py": "3099c2d0335417f3d47dccfc98ac4e6da6bfef20ebe0b29e194b060970495c5d",
+    "learning/runs/v2/uniform2-recovery240-luna-20261028-r1/binding.py": "f37896bad968b86783a2648605a5fbbcb77468ddd0dffbf30562b177fd7cc22c",
+    "learning/runs/v2/uniform2-recovery240-luna-20261028-r1/registration-draft.json": "ff257228eafdab822bbc0e55d6073d3f85ec8af01291a936f8e37d2cde516763",
+    "learning/runs/v2/uniform2-recovery240-parent-20261028-r1/restore-qualification.json": "ae4a6cec59e1039226c2436390ee3e1c261ef13f235daa1bdcea7fbd0f42ba2c",
+    "learning/runs/v2/uniform2-recovery240-parent-20261028-r1/runtime-qualification.json": "948eefb354aefa0f242985c65ffc4517413a983cd010697d448b980904dfcc26",
+    "learning/runs/v2/uniform2-recovery240-parent-20261028-r1/finalize_parent_acceptance.py": "5111245330ba0420eab8e97f542c00927cb8fa1a5622a77e6fca1ab4cfa4e708",
+    "learning/runs/v2/uniform2-recovery240-parent-20261028-r1/finalize_recovered_study.py": "8bd9151971ae8360df0856f8765de488a03d0db0f903a4b17b65f5e4d5a69e13"
+  },
+  "findings": [
+    {
+      "severity": "blocking_current_parent_gate",
+      "path": "learning/runs/v2/uniform2-recovery240-parent-20261028-r1/runtime-qualification.json",
+      "line": 11,
+      "trigger": "Current receipt records status failed and error ValueError('continuation checkpoint identity differs').",
+      "consequence": "Parent finalize_parent_acceptance.py requires runtime status passed_actual_runtime_restore_native_constructor_and_scratch_isolation (lines 35-37); it cannot accept this receipt or authorize launch. Preserve failed receipt and require a separately pinned passing qualification."
+    },
+    {
+      "severity": "medium",
+      "path": "learning/runs/v2/uniform2-recovery240-luna-20261028-r1/metrics.py",
+      "line": 49,
+      "trigger": "Recovery report includes starting global update 360, but best_trained_only filters only global_update > 0; selected_is_starting_model likewise checks only update 0 (line 56). campaign() evaluates 360 as its starting checkpoint (worker.py:157).",
+      "consequence": "If 360 wins the recovery-only ranking, report labels it as a trained candidate and reports selected_is_starting_model=false. This makes the provisional recovery selection metadata wrong; parent merged finalizer correctly recomputes original 0..360 plus recovery 420..600 and treats repeated 360 as fixed baseline."
+    }
+  ],
+  "review_checks": {
+    "timeline": "Restore receipt counters and identity agree with checkpoint sidecar: global360, phase744, cumulative792; recovery boundaries 420/480/540/600 yield local updates 60/120/180/240 and phase/cumulative 804..984 / 852..1032.",
+    "restore": "Pinned read-only qualification reports exact model/Adam/RNG fingerprints, 64 next episode indices, and zero environment constructors, game steps, or optimizer steps. Worker restores saved model, Adam, and RNG without optimizer reset and checks LR 3e-5.",
+    "seeds": "Recovery derives streams from saved next episode indices; exclusions use tuple ranges at native constructor boundary. Parent original-prefix audit reports complete verified streams through global360. Recovery terminal stream audit is specified to re-derive each segment, assignments, resets, and exclusions.",
+    "evaluation": "Five policies, 1024 episodes each, 5120 total; ceilings use 18000 raw frames plus 13 startup frames per episode. Evaluation uses separate model instance, fixed scratch RNG seeding, and finally restores/verifies learner RNG, Adam/model fingerprints, gradient mode, and module flags.",
+    "selection_merge": "Recovery local set is 360/420/480/540/600. Parent merge uses original 0..360 plus recovery 420..600, fixes original360, applies largest Q1 then Mean with earlier tie, and keeps parent324 unpromoted."
+  },
+  "limits": [
+    "Did not deserialize checkpoints, import Torch/native modules, instantiate environments, or run training/evaluation.",
+    "Did not inspect evaluation outcome files or performance summaries. One inspection output incidentally displayed abandoned-episode score_raw_fixed fields in the restore receipt; no outcome scores were read or used.",
+    "No tests run; task owner reports source package tests already run."
+  ]
+}
