@@ -1,0 +1,56 @@
+{
+  "schema": "control_screen_science_review_v2",
+  "review": "narrow_final_source_revalidation_science_collector_stats",
+  "source_package": {
+    "path": "learning/runs/v2/control-frequency-screen-luna-20261028-r1",
+    "source_manifest_sha256": "6923014bdf26a10bc8b06bdaddc46b9f09b0223a4fa97d28c3df7f3c6d8e9de0",
+    "registration_draft_sha256": "ad24ac39c534b76fe23f4f7165f6b249f6d07ea87a325026e30ed7fa461a7b50"
+  },
+  "reviewed_file_sha256": {
+    "learning/runs/v2/control-frequency-screen-luna-20261028-r1/screen.py": "0dec8432a886f8d7216ee56352c0e6f8c7d5851ccf0401427c8d6ab5336bd8e2",
+    "learning/runs/v2/control-frequency-screen-luna-20261028-r1/worker.py": "4f9c226b9d49803eca3e402097210fe7619280c8cbaafef04e1953912f15169a",
+    "learning/runs/v2/control-frequency-screen-luna-20261028-r1/audit.py": "d68b9f4220881e1ff77d0687557804f65e90b27438e04f5b11e5bf6b2870bad2",
+    "learning/runs/v2/control-frequency-screen-luna-20261028-r1/terminal.py": "cc4192970a4998ce8604d7eb2b80771c4145e145062be71bbe0eee53b03570d4",
+    "learning/runs/v2/control-frequency-screen-luna-20261028-r1/test_worker_terminal.py": "c49d57c3df6255b107255b3fe5dd99734cf56f1dbde48c163f3ede75416d3b74",
+    "learning/runs/v2/control-frequency-screen-luna-20261028-r1/run_tests.py": "ef2e4656444c39fbee6ebb1b982863d45893fbfb6e730f5a707743506915f51c",
+    "learning/runs/v2/control-frequency-screen-luna-20261028-r1/death_telemetry.py": "300e93a227dd63963e41474f068c3cd00a0c7ef63c22a15e65343472eed46432",
+    "learning/runs/v2/control-frequency-screen-luna-20261028-r1/binding.py": "d46601be8f4abfc58ddd80f0f8775d944843ec88fb95ec8151ea60f83fb84a28",
+    "learning/runs/v2/control-frequency-screen-luna-20261028-r1/build_registration.py": "04e63182e49d0f06bb64cbc96f6045c178218c299b5383935db0919297264fd6",
+    "learning/runs/v2/control-frequency-screen-parent-20261028-r1/finalize_parent.py": "d5bff37f34a1ff6b03c7711b3c687d1cd2676c3b3fd95a43c31a0069412c1b09",
+    "learning/runs/v2/control-frequency-screen-parent-20261028-r1/accept_terminal.py": "9f5e2dc380aca302585f09172974df8a0e81eb2cf4d96de250c13b7aeda32ec9",
+    "learning/runs/v2/control-frequency-screen-parent-20261028-r1/actual-runtime-qualification-r5.json": "9c0a4491c163eb13c7475f3523eee516b930479d3bc0f3532bde3baa0cc6a989"
+  },
+  "source_manifest_integrity": {
+    "entries": 22,
+    "mismatches": 0
+  },
+  "severity": "no_blocking_findings",
+  "findings": [],
+  "revalidated": [
+    "Source manifest and registration draft match requested final source and draft pins.",
+    "All 22 source-manifest file hashes match current package files.",
+    "Local death telemetry helper has no legacy helper imports; synthetic AST comparison confirms death_fields body matches accepted helper body.",
+    "screen.NEURAL_INPUTS declares the four registered model inputs without importing legacy evaluation/contracts modules.",
+    "Evaluation exclusions normalize into tuple-of-tuples before native environment construction.",
+    "Builder checks the resolved interpreter identity while registration retains the lexical project-venv interpreter path; binding enforces that lexical path.",
+    "Audit locates execution-result.json under the observer control directory and checks that directory identity against the registered run path.",
+    "Worker records comparison_elapsed_seconds once in comparison and worker receipts; terminal recomputation checks its bounds instead of requiring volatile elapsed-time equality.",
+    "Scientific estimand remains pooled-game Q1 per condition, with sampled repetitions kept distinct descriptively and together within each seed-cluster bootstrap; factorial contrasts and interaction remain registered."
+  ],
+  "synthetic_tests": {
+    "command": "python3 learning/runs/v2/control-frequency-screen-luna-20261028-r1/run_tests.py",
+    "result": "passed",
+    "coverage": "screen statistics plus synthetic worker publication, all eight groups and 2048 rows, event journal accounting, terminal recomputation, audit control-path resolution and local helper AST parity"
+  },
+  "runtime_qualification_record": {
+    "path": "learning/runs/v2/control-frequency-screen-parent-20261028-r1/actual-runtime-qualification-r5.json",
+    "status": "passed_actual_worker_model_native_and_four_collector_conditions",
+    "scope": "four 8-frame probes, 32 gameplay frames total; not full-game timing or D7 outcomes"
+  },
+  "limits": [
+    "Static review and synthetic tests only for this review; no GPU, native runtime, launch, checkpoint, or D7 outcome access.",
+    "Q5 qualification receipt is reviewed as bounded evidence only. It does not qualify full-game throughput or D7 results.",
+    "Does not replace parent authorization, exact-once launch gates, source acceptance, live resource controls, terminal execution audit or parent acceptance.",
+    "One frozen checkpoint and one seed cohort remain development evidence; sampled controller repetitions are not training replicas."
+  ]
+}

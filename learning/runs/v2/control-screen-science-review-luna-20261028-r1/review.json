@@ -1,0 +1,38 @@
+{
+  "schema": "control_screen_science_review_v1",
+  "review": "read_only_scientific_collector_stats",
+  "source_package": {
+    "path": "learning/runs/v2/control-frequency-screen-luna-20261028-r1",
+    "source_manifest_sha256": "cc8dddd07e9fc6ec6c74a061899b2e0e39ae9d2004026e857369406bca5154e1",
+    "registration_draft_sha256": "12a0f8522028a1387f46fc7d0e9b887462803d074088865f7fcb3a3f780a2f4a"
+  },
+  "reviewed_file_sha256": {
+    "learning/runs/v2/control-frequency-screen-luna-20261028-r1/screen.py": "b900f9a12be820b0cf4bfc8613ee881af7f5ed2ff9f8d0118a586607d7b9fe50",
+    "learning/runs/v2/control-frequency-screen-luna-20261028-r1/worker.py": "12b3125381c12c82d804e6b05410b33d23a3eeb3a7a6aeb270c361d130955870",
+    "learning/runs/v2/control-frequency-screen-luna-20261028-r1/test_screen.py": "38e00d599f87c11a0f6a26ce914da8c20ec69c580dce06d1ecdc082fca0a71aa",
+    "learning/runs/v2/control-frequency-screen-parent-20261028-r1/protocol.json": "bc961aa2f21f79e7ccc4c3830274dbd661eb3cbae3ff97789fe8a1897810fd1f"
+  },
+  "severity": "no_blocking_findings",
+  "findings": [],
+  "reviewed": [
+    "condition-to-action mapping and eight-group order",
+    "256 ordered game seeds per condition; sampled groups use three repetitions and argmax groups one",
+    "actual-seed and episode-index alignment, row completeness, raw/gameplay/startup frame accounting, decision counts, boundaries, score accumulation and objective identity",
+    "death metadata carried from native info with unavailable telemetry preserved as unavailable",
+    "frozen-policy loading contract at update 420, float32 backend check and model fingerprint; no optimizer path",
+    "sampled categorical and argmax behavior, including lowest-index tie break",
+    "pooled sampled-game Q1 denominator 768, argmax Q1 denominator 256, separate sampled-repetition summaries",
+    "shared 256-seed cluster bootstrap retaining all three sampled repetitions within each resampled seed; all five registered contrasts and interaction",
+    "result labels prevent automatic selection, promotion or training eligibility"
+  ],
+  "synthetic_test": {
+    "command": "python3 learning/runs/v2/control-frequency-screen-luna-20261028-r1/test_screen.py",
+    "result": "passed",
+    "output": "synthetic screen tests passed"
+  },
+  "limits": [
+    "Static source review plus stdlib synthetic tests only; no Torch, native module, checkpoint, game, D7 outcome or runtime execution inspected.",
+    "Does not certify parent protocol/cohort/authorization, runtime binding, MPS RNG behavior on the deployed build, native parity, startup qualification, launch gates, resource qualification, terminal audit or parent acceptance.",
+    "Statistics describe one frozen checkpoint and one game-seed cohort. Three sampled-controller repetitions are not training replicas; bootstrap intervals are conditional on this checkpoint and cohort design."
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "schema": "control_screen_execution_review_v2",
+  "status": "blocking_findings",
+  "scope": "narrow_changed_path_source_and_native_binding_review",
+  "reviewed_package": "learning/runs/v2/control-frequency-screen-luna-20261028-r1",
+  "reviewed_pins": {
+    "source_manifest.json": "511c40c608b0a706c2518279b2c3cc9a4f03c8f8b9e301d3efab21cb5e6f5d26",
+    "registration-draft.json": "1e5620812bc28306b5f04059d4e73fa09b0c53ec9cea0feeb0abe90dca5364b6",
+    "death_telemetry.py": "300e93a227dd63963e41474f068c3cd00a0c7ef63c22a15e65343472eed46432",
+    "screen.py": "a2c461ac6f9f6eb0d16c62492f8aa606a8ce2516da15546dff33567348b4cc2e",
+    "worker.py": "4f9c226b9d49803eca3e402097210fe7619280c8cbaafef04e1953912f15169a",
+    "terminal.py": "cc4192970a4998ce8604d7eb2b80771c4145e145062be71bbe0eee53b03570d4",
+    "audit.py": "d68b9f4220881e1ff77d0687557804f65e90b27438e04f5b11e5bf6b2870bad2",
+    "test_worker_terminal.py": "cd7005483b50b0db070866835b6287cabd774834d10b70e1abb1694ea07a0210",
+    "actual_runtime_qualification_r2_registration.json": "b43bb8e45bba36b768f732228884f35910a7637fdc57c29bc5faa9fefe2603c8",
+    "actual_runtime_qualification_r2.json": "2b6aad9cf6dbe7a16becd944d66ec8dd031fde062fb7d58342d41d3d8a3eaafd"
+  },
+  "repaired_prior_findings": [
+    {
+      "finding": "Death telemetry helper previously imported expanded_eval and contracts transitively.",
+      "review": "Repaired in the frozen package helper; it imports local screen.DEATH_CAUSES and binding.need. Test source AST-compares death_fields with the prior helper body and checks legacy modules are not imported."
+    },
+    {
+      "finding": "Local audit previously read observer execution result from package root.",
+      "review": "Repaired: audit derives the control directory from saved envelope, validates it against the exact dispatch path, then reads control/execution-result.json. Added a focused path regression test."
+    },
+    {
+      "finding": "Comparison report elapsed time differed from later worker-result elapsed time.",
+      "review": "Repaired: worker stores comparison_elapsed_seconds in both receipts; terminal recomputes that stable field and bounds it by worker elapsed_seconds. Added full synthetic worker-to-terminal accounting test source."
+    }
+  ],
+  "findings": [
+    {
+      "severity": "blocker",
+      "path": "learning/runs/v2/control-frequency-screen-luna-20261028-r1/screen.py",
+      "line": 70,
+      "trigger": "The exact-source actual runtime qualification reached native VecDodgeEnv construction and failed with TypeError(\"argument 'excluded_seed_ranges': 'list' object cannot be cast as 'tuple'\"). normalize_excluded_ranges currently returns an outer list containing tuple pairs.",
+      "consequence": "Native environment construction fails before any gameplay frame. The actual MPS startup qualification did not pass, so the parent execution gate remains unsatisfied and this source freeze cannot qualify for launch."
+    }
+  ],
+  "qualification_evidence": {
+    "registration_source_manifest_sha256": "511c40c608b0a706c2518279b2c3cc9a4f03c8f8b9e301d3efab21cb5e6f5d26",
+    "receipt_status": "failed",
+    "receipt_error": "TypeError(\"argument 'excluded_seed_ranges': 'list' object cannot be cast as 'tuple'\")",
+    "constructors": 1,
+    "gameplay_frames": 0,
+    "native_steps": 0,
+    "training_seed_only": 3591426,
+    "D7_games": 0,
+    "optimizer_steps": 0,
+    "checkpoint_writes": 0
+  },
+  "limits": [
+    "Source review inspected changed paths and the synthetic integration test source; this review did not rerun tests.",
+    "Actual runtime qualification receipt is source-specific and failed at the native constructor boundary; it supplies no successful MPS startup evidence.",
+    "No D7 seed was used by this review; no screen launch, marker consumption, checkpoint selection, or lease mutation occurred.",
+    "The three repaired source defects are not treated as runtime qualification or launch authority."
+  ]
+}

@@ -4814,8 +4814,53 @@
       "actual": null,
       "actual_kind": "unobserved",
       "created_at": "2026-10-28T18:53:33.226719+00:00",
-      "doing": "Freeze Uniform #2 and compare four conditions on the same newly reserved development game seeds: four-frame sampled actions, four-frame argmax, one-frame sampled actions, and one-frame argmax. Proposed screening budget: 256 game seeds, three fixed controller-randomness repetitions per sampled condition, and one evaluation per argmax condition: 2,048 complete games. Record actual frame counts and use the same 18,000-frame cap. No weights or reward change. Reserve seeds and calibrate resources before execution.",
+      "doing": "Freeze the Q1-selected continuation update 420 and compare sampled versus highest-probability actions at one- and four-frame decisions. Use 256 new shared D7 game seeds, three fixed controller repetitions per sampled condition and one argmax evaluation: 2,048 complete normal-start games. Both arms use the same isolated native successor, whose only production change permits action_repeat=1. Keep model weights, reward, observations, difficulty, and 18,000-frame cap unchanged.",
       "evidence": [
+        {
+          "experiment_id": "DODGE-002",
+          "id": "2bdbd13ade2a45f0a2c04ec924842cd9",
+          "kind": "registration",
+          "label": "D7 accepted-family seed reservation",
+          "recorded_at": "2026-10-28T22:30:37.780254+00:00",
+          "sha256": "8d5f9a3d420b4958ddce91c52994564bc55077c8f55ae69c7c8fa8106e5a0bad",
+          "uri": "learning/runs/v2/control-frequency-screen-parent-20261028-r1/cohort-reservation.json"
+        },
+        {
+          "experiment_id": "DODGE-002",
+          "id": "5d1276e0681e46a8806d8279e17cd666",
+          "kind": "registration",
+          "label": "Frozen-weight selector by frequency protocol",
+          "recorded_at": "2026-10-28T22:30:37.780111+00:00",
+          "sha256": "bc961aa2f21f79e7ccc4c3830274dbd661eb3cbae3ff97789fe8a1897810fd1f",
+          "uri": "learning/runs/v2/control-frequency-screen-parent-20261028-r1/protocol.json"
+        },
+        {
+          "experiment_id": "DODGE-002",
+          "id": "715069e59bc44c0faa994f2073571040",
+          "kind": "registration",
+          "label": "Independent reviews accepted and final launch gates published",
+          "recorded_at": "2026-10-28T23:08:03.354547+00:00",
+          "sha256": "f81787e2e9c93bb80915138ee08161ef89b4870332fe064a5f70ca8a0e072aeb",
+          "uri": "learning/runs/v2/control-frequency-screen-parent-20261028-r1/authorization-ready.json"
+        },
+        {
+          "experiment_id": "DODGE-002",
+          "id": "85534be48674447b9f369c1b286348f7",
+          "kind": "audit",
+          "label": "Power preflight blocked before any screen launch or D7 use",
+          "recorded_at": "2026-10-28T23:08:03.354518+00:00",
+          "sha256": "dafe35d7aa13bb4b92902c75bd679faa17e4f58b4baf96854daf588830721ccf",
+          "uri": "learning/runs/v2/control-frequency-screen-parent-20261028-r1/prelaunch-power-block-20261028-r1.json"
+        },
+        {
+          "experiment_id": "DODGE-002",
+          "id": "be73821e000347f88a6abfe064e73cde",
+          "kind": "registration",
+          "label": "Common native successor and preserved Python runtime",
+          "recorded_at": "2026-10-28T22:30:37.780266+00:00",
+          "sha256": "c53644fd07ccd386cd81358d32d60b10d4ea36a35d3674f6bb8fe41107d85039",
+          "uri": "learning/runs/v2/control-frequency-screen-parent-20261028-r1/runtime-binding.json"
+        },
         {
           "experiment_id": "DODGE-002",
           "id": "plan-2",
@@ -4874,21 +4919,217 @@
             "updated_at": "2026-10-28T18:53:33.226719+00:00",
             "why": "Distinguish latency, action-selection randomness, and closed-loop distribution changes. An argmax gain would show that changing the selector changes performance; it would not identify the entropy coefficient as the cause. A one-frame gain with frozen weights would show useful control is available without retraining. Repeat the promising comparison on a separate cohort before choosing a lasting change."
           }
+        },
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-002",
+          "reason": "Use the Q1-selected completed continuation and register the approved frozen-policy screen before execution",
+          "recorded_at": "2026-10-28T22:30:37.778952+00:00",
+          "revision": 2,
+          "snapshot": {
+            "actual": null,
+            "actual_kind": "unobserved",
+            "created_at": "2026-10-28T18:53:33.226719+00:00",
+            "doing": "Freeze the Q1-selected continuation update 420 and compare sampled versus highest-probability actions at one- and four-frame decisions. Use 256 new shared D7 game seeds, three fixed controller repetitions per sampled condition and one argmax evaluation: 2,048 complete normal-start games. Both arms use the same isolated native successor, whose only production change permits action_repeat=1. Keep model weights, reward, observations, difficulty, and 18,000-frame cap unchanged.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-002",
+                "id": "2bdbd13ade2a45f0a2c04ec924842cd9",
+                "kind": "registration",
+                "label": "D7 accepted-family seed reservation",
+                "recorded_at": "2026-10-28T22:30:37.780254+00:00",
+                "sha256": "8d5f9a3d420b4958ddce91c52994564bc55077c8f55ae69c7c8fa8106e5a0bad",
+                "uri": "learning/runs/v2/control-frequency-screen-parent-20261028-r1/cohort-reservation.json"
+              },
+              {
+                "experiment_id": "DODGE-002",
+                "id": "5d1276e0681e46a8806d8279e17cd666",
+                "kind": "registration",
+                "label": "Frozen-weight selector by frequency protocol",
+                "recorded_at": "2026-10-28T22:30:37.780111+00:00",
+                "sha256": "bc961aa2f21f79e7ccc4c3830274dbd661eb3cbae3ff97789fe8a1897810fd1f",
+                "uri": "learning/runs/v2/control-frequency-screen-parent-20261028-r1/protocol.json"
+              },
+              {
+                "experiment_id": "DODGE-002",
+                "id": "be73821e000347f88a6abfe064e73cde",
+                "kind": "registration",
+                "label": "Common native successor and preserved Python runtime",
+                "recorded_at": "2026-10-28T22:30:37.780266+00:00",
+                "sha256": "c53644fd07ccd386cd81358d32d60b10d4ea36a35d3674f6bb8fe41107d85039",
+                "uri": "learning/runs/v2/control-frequency-screen-parent-20261028-r1/runtime-binding.json"
+              },
+              {
+                "experiment_id": "DODGE-002",
+                "id": "plan-2",
+                "kind": "plan",
+                "label": "Original four-question iteration plan",
+                "recorded_at": "2026-10-28T18:53:33.226771+00:00",
+                "sha256": "9998f0cdda0945daec4f6b0905de8c8d404578580580e84237319dccfaf95f00",
+                "uri": "git:3d4398884919832c5d6857834c7f29b10cddb187:docs/dodge-research-iteration-plan.md"
+              }
+            ],
+            "expected": "Our leading prediction is an interaction: faster control may help argmax more than sampling because it offers both quicker reactions and more chances to sample a harmful action. If argmax helps at both repeat settings, action selection is a stronger lead. If both one-frame conditions help, four-frame control timing is a stronger lead. If only one-frame argmax helps, the interaction becomes the next target. If none improves, investigate the policy's decisions and information rather than treating this as proof that one-frame training cannot help.",
+            "id": "DODGE-002",
+            "measurements": [],
+            "metadata": {
+              "checkpoint_sha256": "7e0de8640f1337261412d91cde6bc692772ff212fbd360f5aad415dc6bc7ed4b",
+              "checkpoint_update": 420,
+              "cohort": "D7",
+              "imported_from": "git:3d4398884919832c5d6857834c7f29b10cddb187:docs/dodge-research-iteration-plan.md",
+              "primary_Q1": "Pooled worst25% complete games per condition; bootstrap shared game-seed clusters.",
+              "protocol": "learning/runs/v2/control-frequency-screen-parent-20261028-r1/protocol.json",
+              "seed_range": [
+                3607101440,
+                3607101695
+              ],
+              "source_section": 2,
+              "unchanged_expected_prediction": true,
+              "unobserved_result_prompt": "Not run. Fill in all four conditions, Q1 differences, milestone rates, and consistency across controller repetitions. Keep the repetitions grouped by game seed; do not present them as additional independent game seeds or training replicas.",
+              "why_is_hypothesis": true
+            },
+            "next_step": "Finish independent review and actual MPS/native startup qualification, then execute the registered screen exactly once.",
+            "parent_id": null,
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 2,
+            "status": "planned",
+            "tags": [
+              "research-plan",
+              "Q1",
+              "diagnostic"
+            ],
+            "title": "Separate action sampling from control frequency",
+            "updated_at": "2026-10-28T22:30:37.778952+00:00",
+            "why": "Distinguish latency, action-selection randomness, and closed-loop distribution changes. An argmax gain would show that changing the selector changes performance; it would not identify the entropy coefficient as the cause. A one-frame gain with frozen weights would show useful control is available without retraining. Repeat the promising comparison on a separate cohort before choosing a lasting change."
+          }
+        },
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-002",
+          "reason": "Record failed power preflight with all D7 games and campaign markers unspent",
+          "recorded_at": "2026-10-28T23:08:03.354179+00:00",
+          "revision": 3,
+          "snapshot": {
+            "actual": null,
+            "actual_kind": "unobserved",
+            "created_at": "2026-10-28T18:53:33.226719+00:00",
+            "doing": "Freeze the Q1-selected continuation update 420 and compare sampled versus highest-probability actions at one- and four-frame decisions. Use 256 new shared D7 game seeds, three fixed controller repetitions per sampled condition and one argmax evaluation: 2,048 complete normal-start games. Both arms use the same isolated native successor, whose only production change permits action_repeat=1. Keep model weights, reward, observations, difficulty, and 18,000-frame cap unchanged.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-002",
+                "id": "2bdbd13ade2a45f0a2c04ec924842cd9",
+                "kind": "registration",
+                "label": "D7 accepted-family seed reservation",
+                "recorded_at": "2026-10-28T22:30:37.780254+00:00",
+                "sha256": "8d5f9a3d420b4958ddce91c52994564bc55077c8f55ae69c7c8fa8106e5a0bad",
+                "uri": "learning/runs/v2/control-frequency-screen-parent-20261028-r1/cohort-reservation.json"
+              },
+              {
+                "experiment_id": "DODGE-002",
+                "id": "5d1276e0681e46a8806d8279e17cd666",
+                "kind": "registration",
+                "label": "Frozen-weight selector by frequency protocol",
+                "recorded_at": "2026-10-28T22:30:37.780111+00:00",
+                "sha256": "bc961aa2f21f79e7ccc4c3830274dbd661eb3cbae3ff97789fe8a1897810fd1f",
+                "uri": "learning/runs/v2/control-frequency-screen-parent-20261028-r1/protocol.json"
+              },
+              {
+                "experiment_id": "DODGE-002",
+                "id": "715069e59bc44c0faa994f2073571040",
+                "kind": "registration",
+                "label": "Independent reviews accepted and final launch gates published",
+                "recorded_at": "2026-10-28T23:08:03.354547+00:00",
+                "sha256": "f81787e2e9c93bb80915138ee08161ef89b4870332fe064a5f70ca8a0e072aeb",
+                "uri": "learning/runs/v2/control-frequency-screen-parent-20261028-r1/authorization-ready.json"
+              },
+              {
+                "experiment_id": "DODGE-002",
+                "id": "85534be48674447b9f369c1b286348f7",
+                "kind": "audit",
+                "label": "Power preflight blocked before any screen launch or D7 use",
+                "recorded_at": "2026-10-28T23:08:03.354518+00:00",
+                "sha256": "dafe35d7aa13bb4b92902c75bd679faa17e4f58b4baf96854daf588830721ccf",
+                "uri": "learning/runs/v2/control-frequency-screen-parent-20261028-r1/prelaunch-power-block-20261028-r1.json"
+              },
+              {
+                "experiment_id": "DODGE-002",
+                "id": "be73821e000347f88a6abfe064e73cde",
+                "kind": "registration",
+                "label": "Common native successor and preserved Python runtime",
+                "recorded_at": "2026-10-28T22:30:37.780266+00:00",
+                "sha256": "c53644fd07ccd386cd81358d32d60b10d4ea36a35d3674f6bb8fe41107d85039",
+                "uri": "learning/runs/v2/control-frequency-screen-parent-20261028-r1/runtime-binding.json"
+              },
+              {
+                "experiment_id": "DODGE-002",
+                "id": "plan-2",
+                "kind": "plan",
+                "label": "Original four-question iteration plan",
+                "recorded_at": "2026-10-28T18:53:33.226771+00:00",
+                "sha256": "9998f0cdda0945daec4f6b0905de8c8d404578580580e84237319dccfaf95f00",
+                "uri": "git:3d4398884919832c5d6857834c7f29b10cddb187:docs/dodge-research-iteration-plan.md"
+              }
+            ],
+            "expected": "Our leading prediction is an interaction: faster control may help argmax more than sampling because it offers both quicker reactions and more chances to sample a harmful action. If argmax helps at both repeat settings, action selection is a stronger lead. If both one-frame conditions help, four-frame control timing is a stronger lead. If only one-frame argmax helps, the interaction becomes the next target. If none improves, investigate the policy's decisions and information rather than treating this as proof that one-frame training cannot help.",
+            "id": "DODGE-002",
+            "measurements": [],
+            "metadata": {
+              "checkpoint_sha256": "7e0de8640f1337261412d91cde6bc692772ff212fbd360f5aad415dc6bc7ed4b",
+              "checkpoint_update": 420,
+              "cohort": "D7",
+              "imported_from": "git:3d4398884919832c5d6857834c7f29b10cddb187:docs/dodge-research-iteration-plan.md",
+              "primary_Q1": "Pooled worst25% complete games per condition; bootstrap shared game-seed clusters.",
+              "protocol": "learning/runs/v2/control-frequency-screen-parent-20261028-r1/protocol.json",
+              "seed_range": [
+                3607101440,
+                3607101695
+              ],
+              "source_section": 2,
+              "unchanged_expected_prediction": true,
+              "unobserved_result_prompt": "Not run. Fill in all four conditions, Q1 differences, milestone rates, and consistency across controller repetitions. Keep the repetitions grouped by game seed; do not present them as additional independent game seeds or training replicas.",
+              "why_is_hypothesis": true
+            },
+            "next_step": "Connect AC power, then invoke the accepted screen launcher once. First launch invocation failed its power preflight before any marker, lease, observer, or D7 game; preserve incident receipt and do not auto-retry.",
+            "parent_id": null,
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 3,
+            "status": "planned",
+            "tags": [
+              "research-plan",
+              "Q1",
+              "diagnostic"
+            ],
+            "title": "Separate action sampling from control frequency",
+            "updated_at": "2026-10-28T23:08:03.354179+00:00",
+            "why": "Distinguish latency, action-selection randomness, and closed-loop distribution changes. An argmax gain would show that changing the selector changes performance; it would not identify the entropy coefficient as the cause. A one-frame gain with frozen weights would show useful control is available without retraining. Repeat the promising comparison on a separate cohort before choosing a lasting change."
+          }
         }
       ],
       "id": "DODGE-002",
       "measurements": [],
       "metadata": {
+        "checkpoint_sha256": "7e0de8640f1337261412d91cde6bc692772ff212fbd360f5aad415dc6bc7ed4b",
+        "checkpoint_update": 420,
+        "cohort": "D7",
         "imported_from": "git:3d4398884919832c5d6857834c7f29b10cddb187:docs/dodge-research-iteration-plan.md",
+        "primary_Q1": "Pooled worst25% complete games per condition; bootstrap shared game-seed clusters.",
+        "protocol": "learning/runs/v2/control-frequency-screen-parent-20261028-r1/protocol.json",
+        "seed_range": [
+          3607101440,
+          3607101695
+        ],
         "source_section": 2,
+        "unchanged_expected_prediction": true,
         "unobserved_result_prompt": "Not run. Fill in all four conditions, Q1 differences, milestone rates, and consistency across controller repetitions. Keep the repetitions grouped by game seed; do not present them as additional independent game seeds or training replicas.",
         "why_is_hypothesis": true
       },
-      "next_step": null,
+      "next_step": "Connect AC power, then invoke the accepted screen launcher once. First launch invocation failed its power preflight before any marker, lease, observer, or D7 game; preserve incident receipt and do not auto-retry.",
       "parent_id": null,
       "prediction_timing": "before_run",
       "project": "dodge-native",
-      "revision": 1,
+      "revision": 3,
       "status": "planned",
       "tags": [
         "research-plan",
@@ -4896,7 +5137,7 @@
         "diagnostic"
       ],
       "title": "Separate action sampling from control frequency",
-      "updated_at": "2026-10-28T18:53:33.226719+00:00",
+      "updated_at": "2026-10-28T23:08:03.354179+00:00",
       "why": "Distinguish latency, action-selection randomness, and closed-loop distribution changes. An argmax gain would show that changing the selector changes performance; it would not identify the entropy coefficient as the cause. A one-frame gain with frozen weights would show useful control is available without retraining. Repeat the promising comparison on a separate cohort before choosing a lasting change."
     },
     {

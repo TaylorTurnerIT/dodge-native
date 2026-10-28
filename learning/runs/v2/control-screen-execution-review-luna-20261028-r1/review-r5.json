@@ -1,0 +1,45 @@
+{
+  "schema": "control_screen_execution_review_v5",
+  "status": "no_blocking_findings",
+  "scope": "final_frozen_source_parent_acceptance_and_bounded_runtime_receipt_review",
+  "reviewed_package": "learning/runs/v2/control-frequency-screen-luna-20261028-r1",
+  "reviewed_pins": {
+    "source_manifest.json": "6923014bdf26a10bc8b06bdaddc46b9f09b0223a4fa97d28c3df7f3c6d8e9de0",
+    "registration-draft.json": "ad24ac39c534b76fe23f4f7165f6b249f6d07ea87a325026e30ed7fa461a7b50",
+    "screen.py": "0dec8432a886f8d7216ee56352c0e6f8c7d5851ccf0401427c8d6ab5336bd8e2",
+    "worker.py": "4f9c226b9d49803eca3e402097210fe7619280c8cbaafef04e1953912f15169a",
+    "terminal.py": "cc4192970a4998ce8604d7eb2b80771c4145e145062be71bbe0eee53b03570d4",
+    "audit.py": "d68b9f4220881e1ff77d0687557804f65e90b27438e04f5b11e5bf6b2870bad2",
+    "death_telemetry.py": "300e93a227dd63963e41474f068c3cd00a0c7ef63c22a15e65343472eed46432",
+    "test_worker_terminal.py": "c49d57c3df6255b107255b3fe5dd99734cf56f1dbde48c163f3ede75416d3b74",
+    "finalize_parent.py": "d5bff37f34a1ff6b03c7711b3c687d1cd2676c3b3fd95a43c31a0069412c1b09",
+    "accept_terminal.py": "9f5e2dc380aca302585f09172974df8a0e81eb2cf4d96de250c13b7aeda32ec9",
+    "actual-runtime-qualification-r5.json": "9c0a4491c163eb13c7475f3523eee516b930479d3bc0f3532bde3baa0cc6a989",
+    "actual-runtime-qualification-r5-registration.json": "eb16f3bb9f2c719110b7ae4b58187474048d91e95e032b93c1e0b8d465fcd3cd",
+    "qualify_startup_r5.py": "5f9f4e8d56609558319daa8c8d3ab3b7debe5fcf5fc1000b888b23123aaf6f70"
+  },
+  "checks": {
+    "source_manifest_members": "All 22 listed package source members matched their SHA-256 pins.",
+    "draft_and_source_pins": "Current source manifest and registration draft hashes match supplied final pins.",
+    "q5_binding": "Qualification source, source manifest, runtime manifest, model fingerprint, interpreter, Python prefix, and registration digest match the registered draft; all 51 q5 registration input pins verified.",
+    "q5_result": "Passed actual worker/model/native and four collector conditions: 4 constructors, 32 gameplay frames, 20 native steps, 0 optimizer steps, 0 checkpoint writes, and 0 development-seed games.",
+    "synthetic_tests": "Ran `PYTHONDONTWRITEBYTECODE=1 python3 learning/runs/v2/control-frequency-screen-luna-20261028-r1/run_tests.py`; synthetic screen tests and 2048-episode fake worker-to-terminal integration passed.",
+    "parent_finalization": "finalize_parent.py requires two independent reviews pinned to source/draft, exact-source q5 receipt and pins, runtime parity, accepted calibration, exact lease availability, and fresh output/marker paths before authorizing final registration.",
+    "parent_terminal_acceptance": "accept_terminal.py checks exact registration/envelope binding, worker and observer direct reap, owned process-group absence, time/resource limits, output manifest file hashes, bytecode cache state, local terminal audit, 2048 episodes/eight groups, then durably writes parent audit before clearing only the exact inference lease."
+  },
+  "findings": [
+    {
+      "severity": "medium",
+      "path": "learning/runs/v2/control-frequency-screen-parent-20261028-r1/accept_terminal.py",
+      "line": 51,
+      "trigger": "The output member set includes regular files only; line 52 rejects symlinks but does not reject directories beneath worker-output.",
+      "consequence": "An unexpected directory can remain outside the exact artifact-manifest member comparison while parent acceptance succeeds. Normal worker output is flat, and this does not invalidate the validated result files, but the output-tree check is not fully exact."
+    }
+  ],
+  "limits": [
+    "Actual q5 receipt is bounded to four eight-frame probes on one already-used training seed; it is not a full-game throughput or D7 outcome qualification.",
+    "Native parity remains limited to the accepted CPU probe scope; the successful q5 receipt establishes actual MPS model/native startup and four collector conditions only.",
+    "Synthetic tests used fake runtime, model, collector, and temporary output; they do not qualify production execution or supervisor lifecycle.",
+    "No launch, native runtime, GPU, D7 seed, marker, checkpoint, or live state was touched in this review. Screen remains unlaunched and unspent."
+  ]
+}
