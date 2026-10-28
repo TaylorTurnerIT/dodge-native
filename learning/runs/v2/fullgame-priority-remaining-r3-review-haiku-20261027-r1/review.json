@@ -1,0 +1,205 @@
+{
+  "schema": "fullgame_priority_remaining_r3_independent_review_v1",
+  "reviewer": "Haiku 5.5 review sub-agent (read-only)",
+  "date": "2026-10-27",
+  "reviewed_package": "learning/runs/v2/fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1",
+  "reviewed_package_manifest_sha256": "730a516f2dc8bd01ea6fd4d0f12827072fa02efd6a353f99d895158a199b3b7e",
+  "verdict": "no_blocking_findings_in_packet; not launch-ready until parent dispositions below are recorded and a fresh user go names one run",
+  "launch_authority": false,
+  "scope_notes": [
+    "Read-only. No commits, launches, GPU/native/torch imports, checkpoint loads, heldout or D4/D5 access, ledger/lease/marker changes, or edits outside this review directory.",
+    "The 33 stdlib/fake tests were not re-run: run_tests.py rewrites logs/test-summary.json and the test fixtures write under packet tmp/, both inside the sealed package. Test coverage was assessed by reading names and bodies.",
+    "Read-only independent checks performed: stream recomputation for five candidates, r3 contracts.validate_static(startup=False) for five candidates, pool-versus-exclusion disjointness, draft-versus-candidate field diff, replica pairing diff, live ledger state read, first-run resource and elapsed read."
+  ],
+  "reviewed_files_sha256": {
+    "packet/start_remaining_one.py": "4fc7595b6de91e1959937a4e64772bb92bf4ee2345040039c9cf0ccf332b82e0",
+    "packet/remaining_plan.py": "d6b02860872ffbb37230500318048c5b45f9c4bf743205967f79f2a9b0b1a583",
+    "packet/build_remaining_bindings.py": "e62afffd1e8fbb01f2b4c1bacefbafc7a40fea8ac8d6a9458b1269fcae6e20c2",
+    "packet/watch_progress.py": "477e1f98778dc14bb0d560f15f2eb964e0669486bef5f29e0743313f8c91e962",
+    "packet/run_tests.py": "4b93134529132760af30aa983897c990b9075bc241da315fe1f1c9694e05550b",
+    "packet/tests/test_remaining_bindings.py": "325f6e79aef75e3632b836527b2e2c1a1cc61817dfb09b0a46650fa68681e565",
+    "packet/README.md": "4ae5d1e39ec798365098304c8468f69485c5bc8ba15921ba67d39076343f815b",
+    "packet/launch-blockers.json": "3b59de5e8bb94e76337880a9f5ae1c33a449e5b347eb5b5f387b1ca25ef8960d",
+    "packet/build-receipt.json": "0424f78f0f01c279036cd2f2e056d390d7ad3e372f214f3edf6197baa2fe0eae",
+    "packet/logs/test-summary.json": "eafb8aaf3799608085d0dbd5970a625bbc0a4290e724f23ff2f05dc751b1b582",
+    "packet/registration-index-proposal.json": "6f9d729e3d2ab6901cf28e31ce123866c21e763f8cdf67368968c194f6b4eff1",
+    "packet/parent-gates-proposal.json": "37c2cbe4a5a77e3de1e2fb2b961796af8ff7a4f2acda980a6e506901eeb61bbd",
+    "packet/candidate/replica-1-opening_priority": "aedda9e03c229432deeb39c4fa71814f769bc315c559e341fbf3a8bfe9b1347e",
+    "packet/candidate/replica-2-uniform": "6b52eab9d2e01e81fded6b3a89a95ff53ded6711ef87c8214d09ca573c78ef59",
+    "packet/candidate/replica-2-opening_priority": "db2da67332b51c3cb3839bc8cc08afd1bcca105f64023a47cb8d8da2a0006658",
+    "packet/candidate/replica-3-uniform": "39e1aaacfacc6fe614a8053b64bef9aff2f6ebea08db26a79555a75b57ac2397",
+    "packet/candidate/replica-3-opening_priority": "455442b216aad1501a7c702c0d2563dc0d1e40db46face80c1f74bbcbed7ada9",
+    "r3/contracts.py": "a9ff026d43067948998579aa34075a1de9f55c75369906e36a151c1ef807abf0",
+    "r3/binding.py": "a283e4ffd5a82bbafb79194b8bb16ef8d4306493f489a7b634ef88921bbc4f45",
+    "r3/observe.py": "95b8758eea4607f5f0812064f44ad5a26615a8a455ec0bf43d9c65bae991f81d",
+    "r3/launch.py": "3c84f73e210de08ab762ecbe67f208356658487fe4cf102d3f0a956c383f3ae7",
+    "r3/execute_once.py": "484405674d981ea7db6b5c940d70ffe353a89cff4c3a9f9a810fb25dc219aa3d",
+    "r3/progress_monitor.py": "1475f54b05b25295252fdfeb648c747fa6e139f3825307c7d0fe3b78c1a9aa29",
+    "r3/terminal.py": "35b062c2de68cde920014d60d432f0291ee9a2421aa9b1b33841b9cb43c47188",
+    "r3/seed_priority.py": "066df376efb2b8fc001ff4531782417527689235424b5f749b9f09f97c666a9b",
+    "r3/worker.py": "96dac1cf5b7c7302b16f977f237a2405abe22534e5edf7835c7dcc788389a77b",
+    "r3/attempt_claim.py": "bf993c076c6c3270a3efb89f42d3ca86a070a044da286b42b4803790c3759206",
+    "r3/source-manifest.json": "a29e25b285d2d4651a2d74699929a27578860cfdd9a8d7980ca47c72824d41e2",
+    "r3/runtime-manifest.json": "e032a5ab1d609512461e287d372375f1bf28800fb2b13d9c5cf98e20768de986",
+    "prior/start_one.py": "d39673f8ea56c7b9b62b32e9e30d3aa5b8191bd06d4b7d80c3affd72fcf1d57f",
+    "prior/source-acceptance.json": "9b2a4bde33ac81453f0aa15079e7dd59a8c746da3de2ad56b352e8a83f8dfb03",
+    "prior/calibration-and-runtime-acceptance.json": "fa1e2e597281d2352a1d0f3ecd27135f65f60a3276385fd59af380cd89036ca6",
+    "prior/fullgame-replica-1-uniform/registration-final.json": "015464219f2da1f6f69867c94558d5b406f82ee70b7dffa1a38d3c9ab9c820fa",
+    "prior/fullgame-replica-1-uniform/parent-terminal-audit.json": "9d3902d8469d5910d594aeaecd659efd9bd1e970ffd1b9832fb1f00dcd9ef6ac",
+    "prior/fullgame-replica-1-uniform/lease-release.json": "6a0ba593bd1759bed03c78c18fd8a1b1991b30851bb456240cd944f4904f81a0",
+    "parent-validation/reuse-acceptance.json": "bf20ffde60fb86f86e589ffce812b7527d576828d7f67dd4a7e49995cb0b9afc",
+    "parent-validation/validation.json": "e59b26f3f83681a56d7164fa1e9f6c309992f1ebfe93e86a57aded23afda06d9"
+  },
+  "checks_passed": [
+    "Five candidates differ from their r3 drafts only in: attempt_claim_path, output, launch_marker_path, expected_lease, import_policy.pycache_prefix, launch_authority (false to true), pending_parent_fields (to []), status (inert to parent_registered), and priority (three keys kept; frozen_labels, online_refresh, stale_transition_replay dropped). The priority drop matches the first run's byte-exact transform and r3 contracts.validate_static, which requires exactly three priority keys.",
+    "Vectors, initial_episode_indices, exclusion_union, training_pool_sha256, limits, ppo (learning_rate 3e-05), schedule (60 updates), shared_config, reference and reference_approval are identical to the r3 drafts. Candidate replica-1 opening_priority matches the first-run registration except declared pair fields.",
+    "Pairs: within each replica, uniform and opening_priority share the vector and differ only in declared matched_pair_differences plus lease/path bookkeeping.",
+    "Independent recomputation of slot_stream_sha256 and slot_component_sha256 over 64 slots: all five match.",
+    "Training pool (512 seeds) has zero members in the exclusion union.",
+    "contracts.validate_static(reg, startup=False) passes for all five candidates. Run with -I -B; torch, numpy and dodge_rl not imported.",
+    "Live ledger read: active_long_campaign null, training_hold inactive, current_launch_authorized false, first uniform lease released. Packet never pins state.json (launcher gate line 65-66; builder assertion line 116).",
+    "No candidate path points into r3 attempts, launch-markers, worker-output or dispatch trees; run homes contain only the candidate and an empty-pycache directory.",
+    "Launcher gate_check (start_remaining_one.py:36-104) is read-only and refuses before any write unless: index and gates exist with pinned SHA arguments; index is promoted and equals the proposal rows; run is in the index and is not replica-1 uniform; gates are approved, carry proposal_sha256 and every proposal pin, and pin the authorization document; the authorization names exactly {run_id, registration_sha256}, retries 0, non-empty user_message; candidate SHA pinned; output, attempt, marker and home-level spent paths absent; active_long_campaign null; no active hold."
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "medium",
+      "category": "fault-handling-inherited",
+      "file": "learning/runs/v2/fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1/start_remaining_one.py",
+      "lines": "129-138, 153-156",
+      "summary": "Failure between the first durable spend-path write and the launch marker leaves the run spent and, if state.json was replaced, the ledger lease set with no worker.",
+      "trigger": "Any exception after launch-approval.json and parent-preflight.json are written (line 129-132) and before launch.claimed (line 153). Examples: state replace fails on a stale state.seed-priority-remaining.pending.json (binding.py:29 os.link raises); validate_static(startup=True) raises at line 139; load_envelope or verify_bound raises at lines 155-156.",
+      "consequence": "No training starts. The registration is burned: launch-approval.json is in the spent-path list, so the same run cannot be relaunched under the no-retry rule. If state.json was already replaced, active_long_campaign stays set and every later launch is refused at line 101-102 until the parent restores the ledger by hand.",
+      "inherited_from": "fullgame-seed-priority-fresh-attempt-proposal-parent-20261027-r1/start_one.py:66-76 and 90-93 use the same order. This packet does not add it.",
+      "disposition": "Accept and document a recovery procedure, or fix in a reviewed patch that writes a pre-spend failure receipt and restores the exact prior state bytes. Either way, decide before the first remaining run."
+    },
+    {
+      "id": "F2",
+      "severity": "medium",
+      "category": "fault-handling-inherited",
+      "file": "learning/runs/v2/fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1/start_remaining_one.py",
+      "lines": "162-199",
+      "summary": "The observer runs in its own session (start_new_session=True, line 162). Launcher interruption or exception after spawn leaves it running, unmonitored and unsignalled.",
+      "trigger": "Ctrl-C in the launching terminal (SIGINT reaches only the launcher's foreground group), or any exception in the monitoring loop (lines 169-195) or the post-loop write (196-198).",
+      "consequence": "The worker keeps running until its own work or total deadline (3780 s work, 3790 s total). No execution-exit.json is written. The only cancel mechanism is manual creation of <run>/cancel (observe.py:275). The active lease stays set, so a second launch is refused at line 101-102. This is a protective property.",
+      "inherited_from": "start_one.py:99-130 is identical in structure.",
+      "disposition": "Parent must not interrupt the launcher. Preferred fix before the first remaining run: a finally clause that creates <run>/cancel on KeyboardInterrupt or launcher exception, then waits on the observer. That is a code change and needs re-review."
+    },
+    {
+      "id": "F3",
+      "severity": "low",
+      "category": "fault-handling",
+      "file": "learning/runs/v2/fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1/start_remaining_one.py",
+      "lines": "170",
+      "summary": "progress-reports.jsonl is opened with 'x' after Popen (line 162), and it is not in the spent-path list (lines 97-99).",
+      "trigger": "A progress-reports.jsonl already exists in the run home. Nothing in the packet creates it, so this needs manual or stray creation.",
+      "consequence": "FileExistsError is raised after the observer has started. The run is unmonitored and execution-exit.json is not written, the same as F2.",
+      "inherited_from": "start_one.py:107 is identical.",
+      "disposition": "Create the file before Popen and add it to the spent-path list. Low priority."
+    },
+    {
+      "id": "F4",
+      "severity": "low",
+      "category": "gate-binding",
+      "file": "learning/runs/v2/fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1/start_remaining_one.py",
+      "lines": "44-46",
+      "summary": "gate_check reads registration-index-proposal.json from disk and compares it only with the promoted index. It never checks its SHA against gates.registration_index_proposal_sha256 (builder line 124 and 134).",
+      "trigger": "The proposal file is edited together with the promoted index after review.",
+      "consequence": "The reviewed run list is not bound to the gates. Each candidate is still bound by its pin (gates pins include all five candidate SHAs), so no unreviewed registration can run. The gap is the run list.",
+      "disposition": "Add one check: b.sha(base/'registration-index-proposal.json') == gates['registration_index_proposal_sha256']. Cheap; recommend before promotion."
+    },
+    {
+      "id": "F5",
+      "severity": "low",
+      "category": "authorization-trust-boundary",
+      "file": "learning/runs/v2/fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1/start_remaining_one.py",
+      "lines": "71-79",
+      "summary": "The authorization check accepts any non-empty user_message string and does not bind the document to the reviewed packet or gates proposal.",
+      "trigger": "The parent writes the authorization document itself; the launcher cannot authenticate who wrote it.",
+      "consequence": "Trust in the user's go rests on the parent copying the user's message verbatim. The launcher enforces exact run and SHA binding, not user authority.",
+      "disposition": "Parent copies the user's message verbatim into user_message, and records the reviewed packet manifest SHA (730a516f...) in the document. No launcher change needed to proceed."
+    },
+    {
+      "id": "F6",
+      "severity": "low",
+      "category": "self-attested-evidence-inherited",
+      "file": "learning/runs/v2/fullgame-seed-priority-experiment-luna-20261027-r3/contracts.py",
+      "lines": "230-241",
+      "summary": "launch_approval_document hard-codes all eleven GATES as 'passed'. The observer validates by equality, so the approval artifact carries no independent evidence.",
+      "trigger": "Always, for every launch.",
+      "consequence": "The real evidence is the parent gate pins and the reviewed packet, not the approval file. Recording this prevents reading the approval as proof.",
+      "inherited_from": "Shared r3 source; the first run used it.",
+      "disposition": "Limit only. Note in the parent audit."
+    },
+    {
+      "id": "F7",
+      "severity": "low",
+      "category": "concurrency-inherited",
+      "file": "learning/runs/v2/fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1/start_remaining_one.py",
+      "lines": "25-33, 119-138",
+      "summary": "state.json is replaced without a lock. Two launcher processes can both pass gate_check and last-writer-wins on active_long_campaign.",
+      "trigger": "Two launches started at the same time.",
+      "consequence": "The earlier run sees lease_changed and is cancelled (observe.py:277, Guard lease check). No silent corruption, but a training run is lost. Operator must serialize launches.",
+      "inherited_from": "start_one.py:24-33 identical.",
+      "disposition": "Operator rule: one launcher process at a time. Limit only."
+    },
+    {
+      "id": "F8",
+      "severity": "low",
+      "category": "test-coverage",
+      "file": "learning/runs/v2/fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1/tests/test_remaining_bindings.py",
+      "lines": "305-395",
+      "summary": "The 33 tests cover gate refusals and a read-only positive gate_check. launch() (start_remaining_one.py:119-200), including the state write, envelope, marker, Popen and progress loop, has no test.",
+      "trigger": "A regression in launch ordering.",
+      "consequence": "Not caught by the packet tests. The launch body differs from the proven start_one.py only in the materialize step, so the risk is small.",
+      "disposition": "Limit. Accept, or add a fake-observer launch test before the first remaining run."
+    },
+    {
+      "id": "F9",
+      "severity": "info",
+      "category": "documentation-hygiene",
+      "file": "learning/runs/v2/fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1/watch_progress.py",
+      "lines": "1, 63",
+      "summary": "The docstring says completion wakes the controlling thread, but the code only prints and returns. A second invocation raises FileExistsError at the 'x' open of progress-alert.json. Also an empty tmp/ directory exists in the package, not in package-manifest.json.",
+      "trigger": "Reading the docstring, or running the monitor twice.",
+      "consequence": "Misleading wording only. The monitor never signals training, changes caps, or clears leases.",
+      "disposition": "Correct wording and remove tmp/ in a later hygiene pass. Not blocking."
+    }
+  ],
+  "b_items": {
+    "B1_fresh_user_authorization": {
+      "assessment": "A fresh user go is a genuine boundary. The earlier Go was consumed. Each run uses about 23 minutes and 6 GiB MPS. The ledger note says each concrete run still requires its registered gates. The user does not need to type the 64-hex SHA strings. The go must name the one run ID and the reviewed packet identity. The parent then copies the registration SHA from registration-index-proposal.json, and the launcher checks it mechanically (start_remaining_one.py:76-79).",
+      "suggested_user_message_shape": "Go: launch exactly one run, fullgame-seed-priority-luna-20261027-r1-replica-1-opening_priority, from the reviewed remaining r3 package (manifest SHA 730a516f...), no retries.",
+      "limit": "Authority is parent-written (F5)."
+    },
+    "B2_independent_review": {
+      "assessment": "This review satisfies B2 as independent review of the packet. No blocking findings. Findings F1-F9 are listed above. Re-review needed only if F1, F2 or F4 are fixed in code."
+    },
+    "B3_promotion": {
+      "assessment": "Not performed by this review. Required: registration-index.json (status reviewed_exact_registrations_parent_promoted, launch_authority false, runs equal to proposal rows); parent-gates.json (status approved_exactly_once_per_registered_run; proposal_sha256 = 37c2cbe4...; authorization_path and authorization_sha256 pinned); fresh-user-authorization.json in the package directory with schema, retries 0, verbatim user_message, source_manifest_sha256 a29e25b2..., and runs = exact pairs. Apply F4 before promotion."
+    },
+    "B4_acceptance_reuse": {
+      "assessment": "Source acceptance covers all five runs. Calibration covers budgets and bytes, with one scope caveat, and the packet's B4 text is now stale: the parent's reuse-acceptance already records first-run peaks (MPS 2,382,184,448 B, worker RSS 1,231,126,528 B, aggregate RSS 1,283,686,400 B, elapsed 1367.4 s) against 6 GiB caps and a 3780 s work limit. See parent dispositions."
+    },
+    "B5_launch_time_conditions": {
+      "assessment": "Checked by the launcher. Live state at review time satisfied them: active_long_campaign null, training_hold inactive. Empty pycache directories exist for all five. Process cache policy is enforced by contracts.cache_check (contracts.py:219-227) only if PYTHONPYCACHEPREFIX equals the registered path and the interpreter is exactly the registered path."
+    }
+  },
+  "parent_dispositions_required": [
+    "D1 Promote the index and gates exactly as the README describes. Add the authorization document to gates pins before computing authorization_sha256.",
+    "D2 Apply the F4 one-line check, or record it as accepted risk.",
+    "D3 Record in the reuse acceptance that the source acceptance (9b2a4bde..., study-level, exact source a29e25b2...) covers all five remaining registrations.",
+    "D4 Record that the calibration doc's 'first registered trial establishes new seeded-profile execution' was satisfied for the uniform arm only. The opening_priority first run is the first execution of priority-sampled seed lists on MPS. The native explicit-seed path and the 64-slot stream construction are identical across arms; only the seed integers differ (seed_priority.py:70-98). Accept that scope explicitly, or treat the first priority run as a monitored first run.",
+    "D5 Close B4 by citing the first-run peaks already in reuse-acceptance.json. No calibration change is needed.",
+    "D6 Decide the F1 and F2 handling before the first remaining run. Do not interrupt the launcher with Ctrl-C.",
+    "D7 Launch one run per fresh go. The suggested first run is replica-1 opening_priority. After each run: watch_progress.py, then execution-exit.json, then audit.py, then exact lease release. Do not start the next run until the lease is released."
+  ],
+  "limits": [
+    "Not executed: the 33 stdlib tests, native, torch, MPS, checkpoint restore, training, evaluation.",
+    "The launcher trusts parent-written promotion and authorization files (F5). It enforces pins and exact binding, not user authority.",
+    "Training-return results are not interpreted here. No heldout, D4 or D5 access.",
+    "Priority-arm MPS execution is unexercised (D4). Residual risk is the native and terminal path for priority-sampled lists, which fake tests cover only.",
+    "Absolute paths in candidate registrations assume the worktree is not moved."
+  ]
+}
