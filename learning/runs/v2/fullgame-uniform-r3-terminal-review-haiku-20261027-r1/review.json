@@ -1,0 +1,70 @@
+{
+  "schema": "dodge_fullgame_uniform_r3_terminal_review_v1",
+  "reviewer": "claude-haiku-5-5",
+  "review_date": "2026-10-27",
+  "mode": "read_only_independent_terminal_review",
+  "reviewed_run": "learning/runs/v2/fullgame-seed-priority-fresh-attempt-proposal-parent-20261027-r1/fullgame-seed-priority-luna-20261027-r1-replica-1-uniform",
+  "source_package": "learning/runs/v2/fullgame-seed-priority-experiment-luna-20261027-r3",
+  "verdict": "no_blocking_findings",
+  "hashes": {
+    "registration_final_sha256": "015464219f2da1f6f69867c94558d5b406f82ee70b7dffa1a38d3c9ab9c820fa",
+    "launch_envelope_sha256": "744b840b06f74af4e7ea922213b6347dfe6d471df71c211203f681d364f429b6",
+    "launch_approval_sha256": "216ee26588762edba60c5dc0e55b0b803f5b1369b53e4ef5c44069ac67dfefab",
+    "parent_terminal_audit_sha256": "9d3902d8469d5910d594aeaecd659efd9bd1e970ffd1b9832fb1f00dcd9ef6ac",
+    "source_manifest_sha256": "a29e25b285d2d4651a2d74699929a27578860cfdd9a8d7980ca47c72824d41e2",
+    "runtime_manifest_sha256": "e032a5ab1d609512461e287d372375f1bf28800fb2b13d9c5cf98e20768de986",
+    "artifact_manifest_sha256": "57e6f6142c799dba42bd0c7b131b8436dfdfead5994c1ee4c7c0e2223598e970",
+    "checkpoint_global_060_sha256": "4f4a954a137a57e87a6e38b7c50211a360056f714b479c9528062056a46a76b0",
+    "checkpoint_global_060_identity_sha256": "3c1e83eb2ec71356a087642a6bd582b2708df0a1ecdcaf59e504c976b211b68d",
+    "parent_checkpoint_sha256": "c10d90ec0e67503afef8f4d90c4968581d430ef2065117a75e81c445a04c8ddc",
+    "parent_registry_sha256": "544037dd8e452d01660438fefbfed6990f34ce81572ccf678a539d9dc73c8172",
+    "training_pool_sha256": "5ed500167f97f17092fe8ca0fd581d3342366dde09f68f1fd8130db56e4f522f"
+  },
+  "checks_passed": [
+    "registration, envelope, approval, parent audit, source, runtime, and artifact-manifest hashes match recorded values",
+    "all 51 source-manifest files and 14 runtime-manifest files match their recorded SHA-256",
+    "all 15 output artifacts match artifact-manifest.json",
+    "launch.claimed/attempt.claimed/execution-exit/observation/parent-execution agree on registration, envelope, and observer pgid",
+    "no process or process group remains for observer pgid 44138 or worker pgid 44144",
+    "state.json active_long_campaign is null; fullgame_seed_priority_work has promoted=false and training_eligible=false",
+    "checkpoint global60 receipt: global_update 60, phase_update 384, cumulative_update 432, parent checkpoint c10d90ec..., promoted false, training_eligible false",
+    "training-metrics.jsonl: 60 rows, global_update 1..60 contiguous, all finite, max approx_kl 0.00813, no early KL stop",
+    "training-events.jsonl: 34421 lines; 15360 returned_step_cost calls, each with 64 raw-frame entries, all in 1..4, sum 3929189",
+    "returned_step_cost calls 15360 = 60 updates x 256 vector calls; x64 envs = 983040 scalar decisions = counters.environment_decisions",
+    "age-binned frames sum 3929189 = raw frames; 1929 completed + 64 in-flight = 1993 assignments = 64 initial + 1929 seeded_reset",
+    "assignments: uniform 1993, hard_priority 0, uniform_floor 0; hard 979 / easy 1014; 498 unique completed pool seeds",
+    "pool: 512 seeds, 256 hard; priority relative cap 1.5 <= required 4.0 (informational; arm is uniform)",
+    "wall time 1367 s under work limit 3780 s; max aggregate RSS 1283686400 B under 6 GiB per-process limit",
+    "empty worker bytecode cache; no held-out D4/D5 files were opened"
+  ],
+  "findings": [
+    {
+      "severity": "low",
+      "file": "learning/runs/v2/rl-next-experiments-parent-20261027-r1/seed-priority-parent-registry.json",
+      "line": 81,
+      "summary": "Registry status still reads source_and_registration_review_still_required although gates show independent_source_review and registration passed; registry sha unchanged since registration.",
+      "trigger": "Anyone reading the registry status field alone.",
+      "consequence": "Stale status string; no effect on this run's authority, which rests on registration-final.json and launch-approval.json.",
+      "blocking": false
+    },
+    {
+      "severity": "info",
+      "file": "learning/runs/v2/fullgame-seed-priority-experiment-luna-20261027-r3/runtime-manifest.json",
+      "line": 19,
+      "summary": "Runtime profile is copied_release_binary_python_runtime_modified, not a clean release tag.",
+      "trigger": "Citing this run as a release-runtime result.",
+      "consequence": "Scientific claims are bound to the manifest hashes only; do not describe the runtime as a pristine release build.",
+      "blocking": false
+    }
+  ],
+  "runtime_vs_scientific": {
+    "runtime_established": "Single launch; observer and worker raw exit 0; both groups reaped and absent; lease cleared after durable audit; counters and frame accounting self-consistent; work and RSS limits respected.",
+    "scientific_scope": "Training-only, uniform-arm, endpoint-60 receipt. training_eligible=false, promoted=false, automatic_selection=false. The run produced no held-out result. D4 is the reserved future ranking cohort and D5 the later confirmation cohort; neither was opened. Training episode returns are not evaluation evidence. Parent remains phase_update 324."
+  },
+  "limits": [
+    "Read-only review. No commit, launch, ledger/lease/marker write, torch checkpoint load, MPS run, or audit rerun.",
+    "Checkpoint .pt files were hashed as bytes, not deserialized; learner identity was checked via the .pt.json sidecar and the artifact manifest.",
+    "Frame-count check verifies per-call elements are 1..4 and sums match; it does not independently re-simulate the native environment.",
+    "Parent terminal audit was not re-executed; its output was checked for consistency against the underlying evidence."
+  ]
+}
