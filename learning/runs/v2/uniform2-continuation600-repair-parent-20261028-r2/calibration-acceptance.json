@@ -1,0 +1,58 @@
+{
+  "accepted_scope": "600 updates, eleven full-run D6 evaluations, ten fresh-environment segments; user-authorized battery execution.",
+  "limitations": "No fresh PPO throughput measurement. Observed prior training and evaluation costs estimate time; hard limits stay enforced.",
+  "limits": {
+    "cleanup_seconds": 10,
+    "evaluation": {
+      "constructors": 11264,
+      "native_steps": 202752000,
+      "raw_frames": 202898432,
+      "resets": 0
+    },
+    "mps_bytes": 6442450944,
+    "postflight_seconds": 120,
+    "retries": 0,
+    "rss_bytes": 6442450944,
+    "total_seconds": 28930,
+    "training": {
+      "constructors": 10,
+      "native_steps": 153600,
+      "raw_frames": 167125120,
+      "resets": 9830400
+    },
+    "work_seconds": 28800
+  },
+  "measured_basis": {
+    "basis": "Work cap is the user maximum (28800 s). Training uses the selected run's measured 60-update wall time; evaluation uses the accepted D4 evaluator's measured seconds per raw frame (taken while training shared the GPU) at the selected model's D4 mean survival, and, as a worst case, with every episode at the 18000 cap. total = work + cleanup (10) + postflight (120). The worst-case sum stays under the cap; the observer SIGALRM stops the run at work_seconds. Raw-frame/constructor/step/reset budgets are structural ceilings, not expected cost: training 4 gameplay + 13 startup frames per slot-decision; evaluation 18000 + 13 per episode. Roles are accounted separately. Not a fresh throughput probe; the parent must accept it.",
+    "derived": {
+      "evaluation_seconds_per_raw_frame": 8.628168083489773e-05,
+      "expected_evaluation_raw_frames": 25020809,
+      "margin_over_expected": 2.298293590953128,
+      "projected_evaluation_seconds_every_episode_capped": 17507,
+      "projected_evaluation_seconds_expected": 2159,
+      "projected_total_expected_seconds": 12532,
+      "projected_total_worst_case_seconds": 27879,
+      "projected_training_seconds": 10373
+    },
+    "inputs": {
+      "evaluation_prior_peak_mps_driver_bytes": 193429504,
+      "evaluation_prior_peak_rss_bytes": 600031232,
+      "evaluation_prior_raw_frames": 6720672,
+      "evaluation_prior_seconds": 579.8708765000338,
+      "evaluation_source": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-priority-D4-first-three-evaluator-sonnet-20261028-r1/worker-output/worker-result.json",
+      "expected_mean_alive_frames": 2208.3076171875,
+      "expected_mean_source": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-priority-D4-last-three-parent-validation-20261028-r1/lower-quarter-selection.json",
+      "training_peak_mps_driver_bytes": 2382184448,
+      "training_peak_rss_bytes": 1256718336,
+      "training_seconds_per_60_updates": 1037.2198662500596,
+      "training_source": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1/fullgame-seed-priority-luna-20261027-r1-replica-2-uniform/worker-output/worker-result.json"
+    },
+    "parent_acceptance_path": null,
+    "parent_acceptance_sha256": null,
+    "parent_accepted": false,
+    "proposed_work_seconds": 28800
+  },
+  "native_qualification_sha256": "88a10066b3b8fcf82b988536752501679dbc1582fbf93d2c1a3b86e8b1df46d2",
+  "registration_draft_sha256": "6a9578f3ea6162fab1f40abb49f374ad65e62d3a2b8ed590ad26f36f73e1699d",
+  "status": "accepted_parent_resource_calibration"
+}

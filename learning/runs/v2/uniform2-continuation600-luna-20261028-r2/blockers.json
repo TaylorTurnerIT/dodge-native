@@ -1,0 +1,15 @@
+{
+  "schema": "uniform2_continuation600_blockers_v1",
+  "launch_authority": false,
+  "remaining": [
+    {"id": "terminal_stream_receipt", "need": "Parent must run the source-pinned terminal stream checker after worker success; package audit requires its matching receipt before lease clear."},
+    {"id": "source_review", "need": "Independent review of source-manifest.json and a source acceptance document (binding.source_acceptance_document). Not minted here."},
+    {"id": "gate_acceptance", "need": "Parent gate document with all binding.GATES passed and pins; calibration acceptance for finalize_registration.py. Not minted here."},
+    {"id": "segmented_training_scope", "need": "Parent must accept the design choice: ten fresh-environment segments of 60 updates with the 64 in-flight episodes abandoned explicitly at each boundary (a single env needs ~154k-entry per-slot seed lists whose native batch_info copy is returned on every call). Learner state, RNG and Adam continue unbroken."},
+    {"id": "native_long_stream_qualification", "need": "Not exercised: native VecDodgeEnv with 64 lists of ~15.7k-16k entries (and later segments), ten constructions, memory/time. Producer ran the same shape once (15,361+offset)."},
+    {"id": "real_runtime_paths_unexecuted", "need": "RealRuntime (authenticate_module/class, learner_snapshot/learner_restore on real torch module flags and MPS RNG, checkpoint save/reload) has never run; only CPU fakes cover orchestration. Parent may scope a read-only qualification or accept first-execution risk."},
+    {"id": "power", "need": "Battery execution is allowed only by the pinned override record; the guard checks at launch only and does not monitor battery level during the run (caffeinate -ims helper ownership is required on battery and AC)."},
+    {"id": "ledger_state", "need": "Main ledger active_long_campaign must be null, no active inference lease and no training hold at launch; the exact lease is installed and cleared by launch.py/audit.py."},
+    {"id": "calibration_acceptance", "need": "Wall projection uses the selected run's measured 1037.22 s/60 updates and the accepted D4 evaluator rate (taken while training shared the GPU); no fresh throughput probe. Cap is the user maximum 28800 s."}
+  ]
+}

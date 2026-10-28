@@ -1,0 +1,43 @@
+{
+  "schema": "uniform2_continuation600_independent_launch_review_v1",
+  "status": "blocking_findings",
+  "reviewed_package": "learning/runs/v2/uniform2-continuation600-sonnet-20261028-r1",
+  "source_manifest_sha256": "71a7658a912c75d97a7763ad700ac94d445bc86021ee1632a3446646115a1e1d",
+  "registration_draft_sha256": "d99a8da781aea965c5d2a94dcff3e51b95424cbfa4f168bed793fec5beda57fb",
+  "scope": [
+    "binding.py",
+    "launch.py",
+    "observe.py",
+    "execute_once.py",
+    "seeds.py",
+    "power_guard.py",
+    "audit.py",
+    "parent audit_segment_streams.py"
+  ],
+  "findings": [
+    {
+      "severity": "P1",
+      "path": "learning/runs/v2/uniform2-continuation600-sonnet-20261028-r1/audit.py",
+      "line": 77,
+      "trigger": "Parent invokes audit.py without first running audit_segment_streams.py, or the independent checker fails.",
+      "consequence": "audit.py writes the accepted terminal audit and clears the exact main-ledger lease without requiring the parent stream-audit receipt. The declared pre-release stream gate is therefore bypassable.",
+      "required_fix": "Make audit.py require and validate the parent stream-audit receipt, including registration and journal hashes and all ten verified segments, before writing parent-terminal-audit.json or clearing the lease."
+    },
+    {
+      "severity": "P1",
+      "path": "learning/runs/v2/uniform2-continuation600-parent-20261028-r1/audit_segment_streams.py",
+      "line": 58,
+      "trigger": "An assignment event or its rows are omitted from the hashed training journal while segment boundary records remain complete.",
+      "consequence": "Checker accepts zero or incomplete actual assignments: it validates each row present but never proves complete slot/episode assignment coverage. A partial stream audit can be marked passed, then used to release the lease.",
+      "required_fix": "Derive expected slot/episode assignments from each segment's start/end indices and require exact one-to-one coverage before publishing the passed receipt."
+    }
+  ],
+  "limits": {
+    "review_type": "static source and registration hash review",
+    "runtime_or_launch_performed": false,
+    "tests_run": false,
+    "native_runtime_or_checkpoint_loaded": false,
+    "training_or_evaluation_performed": false,
+    "source_acceptance_or_launch_authority_granted": false
+  }
+}
