@@ -1,0 +1,82 @@
+{
+  "evaluation": {
+    "also": [
+      "Worst",
+      "Mean",
+      "Q4",
+      "Best",
+      "milestone success"
+    ],
+    "compare_against": "Selected saved model evaluated on the same new cohort",
+    "d5_b_e": "Remain closed; no automatic qualification or promotion",
+    "development_cohort": "Reserve a new excluded development cohort before launch; D4 has informed selection.",
+    "normal_full_runs": true,
+    "primary": "worst-quarter mean survival",
+    "sampled_actions": true
+  },
+  "launch_authority": false,
+  "official_retained_parent": 324,
+  "parent_audit_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1/fullgame-seed-priority-luna-20261027-r1-replica-2-uniform/parent-terminal-audit.json",
+  "parent_audit_sha256": "2a9f1125a4567048e7b332fce481582cd0b8ee86fdfc5bce6a8611a4471cca47",
+  "parent_checkpoint_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1/fullgame-seed-priority-luna-20261027-r1-replica-2-uniform/worker-output/checkpoint-global-060-integrity.pt",
+  "parent_checkpoint_sha256": "041b4a9ed4cba2e3d0665d1fa9b4615870a9f3c1fe353397a5199dcf9e87f011",
+  "parent_sidecar_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1/fullgame-seed-priority-luna-20261027-r1-replica-2-uniform/worker-output/checkpoint-global-060-integrity.pt.json",
+  "promoted": false,
+  "proposed_budget": {
+    "cumulative_first": 433,
+    "cumulative_last": 492,
+    "decisions_per_update": 16384,
+    "decisions_total": 983040,
+    "maximum_action_repeat": 4,
+    "phase_first": 385,
+    "phase_last": 444,
+    "updates": 60
+  },
+  "rationale": "Continue the model ranked highest on the user-selected worst-quarter mean; keep recipe fixed to isolate added training.",
+  "recipe": {
+    "architecture": "accepted OmniscientEntityTeacher, unchanged",
+    "environment": {
+      "action_repeat": 4,
+      "cutoff_enabled": false,
+      "difficulty": 2,
+      "normal_start": true,
+      "patterns_enabled": true,
+      "powerups_enabled": true,
+      "raw_frame_cap": 18000
+    },
+    "learning_rate": 3e-05,
+    "ppo": {
+      "adam_eps": 1e-05,
+      "clip_coef": 0.2,
+      "ent_coef": 0.01,
+      "gae_lambda": 0.95,
+      "gamma": 0.995,
+      "learning_rate": 3e-05,
+      "max_grad_norm": 0.5,
+      "minibatch_size": 512,
+      "reward_scale": 0.1,
+      "target_kl": 0.03,
+      "update_epochs": 4,
+      "vf_coef": 0.5
+    },
+    "reset_optimizer": false,
+    "restore_optimizer": true,
+    "reward": "score delta + alive_frames/100 - 5 on true death",
+    "sampling_arm": "uniform",
+    "sampling_change": false,
+    "training_pool_file_sha256": "5093727c2fdabd794267ccbc44a43b1fb29747b545cff645b66b0ad578180f04",
+    "training_pool_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/rl-next-experiments-parent-20261027-r1/training-pool512-accepted.json"
+  },
+  "remaining_requirements": [
+    "Successor-only adapter must validate and restore the selected terminal60 model and Adam state; existing parent324-only loader stays frozen.",
+    "Register continuation RNG and exact pool slot-stream suffix; include all evaluation seed exclusions.",
+    "Inspect actual checkpoint metadata and reproduce model/Adam fingerprints before any launch.",
+    "Freeze source/runtime, calibration, native caffeinate supervision, exact-once marker, resource lease, independent review and parent acceptance.",
+    "Keep outputs and weights isolated; publish source and compact evidence only."
+  ],
+  "schema": "dodge_lower_quarter_winner_continuation_proposal_v1",
+  "selected_model": "replica-2-uniform",
+  "selection_sha256": "5a16b026f5e1aac8f793ad4aea3bbeff31a93e8abaf41037caea8f2ddf9149b1",
+  "status": "concrete_recipe_pending_restore_integration_registration_and_review",
+  "training_launched": false
+}

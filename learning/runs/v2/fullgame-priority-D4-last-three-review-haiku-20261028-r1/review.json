@@ -1,0 +1,199 @@
+{
+  "schema": "fullgame_priority_d4_last3_evaluator_independent_review_v1",
+  "revision": "r1",
+  "reviewer": "claude-haiku-5-5 review sub-agent (read-only, focused)",
+  "reviewed_package": "learning/runs/v2/fullgame-priority-D4-last-three-evaluator-sonnet-20261028-r1",
+  "predecessor_reviewed_package": "learning/runs/v2/fullgame-priority-D4-first-three-evaluator-sonnet-20261028-r1",
+  "predecessor_source_manifest_sha256": "489708daa2f225a3ce68cdae9ca0c0665636917e961309525e97cdb5093edc5b",
+  "source_manifest_sha256": "31a9c03e2e2524cbd522a44312923b021d0a3df20c596e1c7e14217ce3d568d4",
+  "package_manifest_sha256": "dea1e10724aa76f2ddadffd26cb1eb0c6b4e286a221307954735ee4d1db69c54",
+  "registration_draft_sha256": "2ee3b511ed1cb2d39f2993e2e8f71dcded30a251ffbfb0bad3d3cd31f4bea87b",
+  "verdict": "no_blocking_findings",
+  "launch_authority": false,
+  "launch_authorized_by_this_review": false,
+  "recommended_before_launch": [
+    "F1",
+    "F2",
+    "F3",
+    "F4"
+  ],
+  "recommended_scope_note": "F1-F4 all touch source-manifest members or the registration pins. Source is still source_review_pending, so they are cheapest now: a fix needs re-seal, draft rebuild, validate_static, and a re-run of 97 tests.",
+  "tests_executed_by_reviewer": {
+    "run": true,
+    "method": "in place, python3 -I -B runner over tests and merge_tests; evaluator directory sha256 unchanged before/after",
+    "ran": 97,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "reported_by_package": {
+      "tests": 86,
+      "merge_tests": 11,
+      "skipped": 0
+    }
+  },
+  "producer_hash_checks": {
+    "scope": "JSON-level chain for all six producers (first part from its registration-final, last part from the draft); checkpoint bytes NOT rehashed",
+    "result": "all six pass: registration identity, audit accepted, exit codes 0, observer reaped, terminal_update 60, lease released after durable audit, output manifest sha, manifest checkpoint/sidecar/worker-result sha, endpoint == sidecar, endpoint identity sha, promoted/automatic_selection/training_eligible False"
+  },
+  "identity_checks": {
+    "result": "learner_identity reproduced for all six producers",
+    "producers": [
+      "replica-1-uniform",
+      "replica-1-opening_priority",
+      "replica-2-uniform",
+      "replica-2-opening_priority",
+      "replica-3-uniform",
+      "replica-3-opening_priority"
+    ]
+  },
+  "first_part_chain": {
+    "result": "verify_part(first, FIRST_PART_POLICIES, pins=FIRST_PART_PINS, producers=False) passes on real artifacts",
+    "registration_final_sha256": "6912f25e5e47ea2c5489dda9d60611e0db17e779ebd9997606f1b27093675228",
+    "parent_terminal_audit_sha256": "f9fff56a650c03860f4ea483743a19f8ec915958df0145426eabd770e90c8767",
+    "comparison_sha256": "f08e8d7db7b55f3bf6e5b3551f8da7dee1d0ae15ad51c25698ad667434baca95",
+    "source_manifest_sha256": "489708daa2f225a3ce68cdae9ca0c0665636917e961309525e97cdb5093edc5b",
+    "journal": "evaluation_step 1671390, evaluation_constructor 3072, evaluation_completed 3072; 1024 constructors and completions per policy"
+  },
+  "package_file_sha256": {
+    "README.md": "ddd693e3de678db08547c793dc8a2e7dbe6e41dec9e90c42b5eabd660c0de8f4",
+    "audit.py": "75fa6e65208e82d2e30e7852088050d71438278fef20bf91d100f30bd9316227",
+    "binding.py": "b784b8ea024972a3d5d12a5b56688b46b4fc7a7fcb3cd5f82102ef2ec9a5c1be",
+    "build_registration.py": "8d927bbebfeefa6d796471fbea1183f785de544a1b79cdc26fff0df5ecb2aa57",
+    "comparison.py": "9ddd79e792e3124934302e35353234821ada83ae8a69b8cfce3821828fa1a370",
+    "dependency-binding.json": "561f5ef8dbde87539aeeb73726c9be34ee1e2ecca2e828c46e2595cf50ff38e3",
+    "execute_once.py": "484405674d981ea7db6b5c940d70ffe353a89cff4c3a9f9a810fb25dc219aa3d",
+    "finalize_registration.py": "87b981a7048761e1d6432347ad069afeae4508d2b23f4222402128c1394cc313",
+    "launch.py": "acecfa50bc94d46aa5476622b3c7c53bac710c8c0bfa4502926928047506ab2d",
+    "merge.py": "6b2e140625a8f11ccc66699a1f15e0680bc09b5ec754c2a98da091e329f83681",
+    "merge_tests.py": "7ba4c1713ee05e9da09f167f36385d5ba50d872da918160dc91419af37facb96",
+    "monitor.py": "1f0cc06549042385a649e867360509c8f58d1a57309a133ad6948f44be736434",
+    "observe.py": "95b8758eea4607f5f0812064f44ad5a26615a8a455ec0bf43d9c65bae991f81d",
+    "paired_statistics.py": "6d5b74907a832953115279674c3b9075558065d2c6e18eb428eb1b9f5fb1c6c3",
+    "policy-plan.json": "8be75089f29c96f9f4fd9f0f5bf7942c8c2de24529baec6260eec91914dadaca",
+    "power_guard.py": "83a410ae62f813a68d392b6e1eae0a3f47df1a37ea33dba0b34554bbf01c4efb",
+    "registration-schema.json": "11c4d0fb03d237560ddf6dda566abba2d8bee75b2c3adba9470fb82fb5b61b5f",
+    "seal.py": "9bd04434631fe68bb6d26bee01fc686b7d0e6958fa60cd8f9a7fb298f2659715",
+    "terminal.py": "3779196079320dcd4eca24a81f3d17cf29ccc00bec0d83d98b4ca235e79a029c",
+    "tests.py": "5b917ef1eda87714eaf239d8590c6c5c68ecdea27271ac2d98560c4ec86833a5",
+    "worker.py": "c835de39b5e3b120320e8d890f54951f40abcf07b88d5b54c364144152e7239d"
+  },
+  "checked_ok": [
+    "validate_static(draft, require_registered=False, runtime_files=True) passes with python/.venv/bin/python and PYTHONPYCACHEPREFIX=<pkg>/empty-pycache (the cache and interpreter checks are process-level; a plain python3 fails them, which is an invocation issue, not a draft defect)",
+    "check_staging(draft) and check_layouts_against_remap() pass",
+    "draft fixed fields (all 20 merge.FIXED_REG_FIELDS) identical to the accepted first part; draft keys identical to registration-final keys",
+    "draft input_pins: 21 entries, 0 drift; draft source_manifest_sha256 equals source-manifest sha",
+    "source-manifest: 21 entries, 0 mismatches; merge.py, merge_tests.py, README.md, tests.py included",
+    "supervisor files observe.py, execute_once.py, power_guard.py, dependency-binding.json byte-identical to first part (tests.MinimalDiff)",
+    "work limit 7352 reproduces: ceil(3*684.92/15487746*55335936+10)",
+    "main-state RSS/MPS cap check (binding.py:246-248) matches the recovery training lease shape (remaining_plan.py:152-153, cap 6442450944)",
+    "merge stored-interval reproduction logic (merge.py:228-234) and bootstrap index sharing (merge.py:200-225) match paired_statistics.py arithmetic (same RNG draw order, same milestone identity: count(alive>=h) difference)",
+    "per-model summaries: Worst, Q1 (bottom 256), Mean, Q4 (top 256), Best, milestones 1000..18000, death causes, caps match comparison.summarize",
+    "merge refuses (NotReady, exit 3) while the last part has no parent-terminal-audit.json",
+    "no torch/native/checkpoint deserialization in merge or build path (contracts -> rng_reference, transition: stdlib)",
+    "observe.py/worker.py/terminal.py/audit.py/launch.py schema-name-only changes; no behavioural change in observer, worker or launcher"
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "medium",
+      "blocking": false,
+      "recommended_before_launch": true,
+      "category": "merge-equivalence",
+      "file": "learning/runs/v2/fullgame-priority-D4-last-three-evaluator-sonnet-20261028-r1/merge.py",
+      "lines": [
+        136,
+        149,
+        152
+      ],
+      "summary": "cross_check does not require the six producers to share source, runtime, interpreter, runtime_versions or training_pool. The directive asks for runtime equivalence across all six producers.",
+      "trigger": "A producer registration whose source_manifest_sha256 or runtime_manifest_sha256 differs from the others (or a different interpreter or training pool). verify_producer returns these values (merge.py:62-63) but cross_check never compares them.",
+      "consequence": "The merge accepts a mixed-runtime six-model table and publishes it as one fixed-runtime comparison. Current data is uniform (producer source a29e25b285d2..., runtime e032a5ab1d60..., one interpreter), so this is a missing guard, not a present error.",
+      "fix": "Add equality asserts for producer_source_manifest_sha256, producer_runtime_manifest_sha256, interpreter, runtime_versions and training_pool_sha256 across the six in cross_check, plus a merge_tests case that mutates one producer. Re-seal and rebuild the draft if this lands before source acceptance."
+    },
+    {
+      "id": "F2",
+      "severity": "low",
+      "blocking": false,
+      "recommended_before_launch": true,
+      "category": "test-coverage",
+      "file": "learning/runs/v2/fullgame-priority-D4-last-three-evaluator-sonnet-20261028-r1/merge_tests.py",
+      "lines": [
+        20,
+        162,
+        266
+      ],
+      "summary": "The merge fixtures use a constant shift per pair (DELTAS), so every bootstrap interval collapses to low == high == delta. The stored-interval reproduction and the shared-index resampling are therefore not exercised on non-degenerate data.",
+      "trigger": "Real per-seed variation in which merge.bootstrap (merge.py:200-225) and paired_statistics.paired_intervals consume the RNG or sort in a different order.",
+      "consequence": "The merge refuses at check_against_stored (merge.py:228-234) after both parts are spent. The result is fail-closed (no wrong table is published), but the final output is blocked until a debug cycle.",
+      "fix": "Add a deterministic per-seed-varying fixture (for example seeded integer noise on the opening_priority arm). Assert that pair-1 and pair-3 merge intervals equal the part-stored intervals with nonzero width, and add a tamper case for the first-part stored interval, since test_stored_part_interval_mismatch_refused edits only the last part."
+    },
+    {
+      "id": "F3",
+      "severity": "low",
+      "blocking": false,
+      "recommended_before_launch": true,
+      "category": "test-coverage",
+      "file": "learning/runs/v2/fullgame-priority-D4-last-three-evaluator-sonnet-20261028-r1/tests.py",
+      "lines": [
+        569,
+        579
+      ],
+      "summary": "test_real_accepted_producer_chains_pass_hash_only pins audit hashes for only two of the three last-part producers (replica-3-opening_priority is unpinned) and silently continues when an audit file is missing.",
+      "trigger": "An audit file is deleted or replaced for replica-3-opening_priority, or any listed audit is replaced. The test still passes as long as at least two producers were checked (checked >= 2).",
+      "consequence": "The real-chain test is weaker than its name. All six audits exist now, so the gap is in the test, not the data.",
+      "fix": "Pin the replica-3-opening_priority audit sha256 too, and assert that all three layouts exist instead of continuing."
+    },
+    {
+      "id": "F4",
+      "severity": "low",
+      "blocking": false,
+      "recommended_before_launch": true,
+      "category": "stale-documentation",
+      "file": "learning/runs/v2/fullgame-priority-D4-last-three-evaluator-sonnet-20261028-r1/README.md",
+      "lines": [
+        34,
+        36
+      ],
+      "summary": "README and package-manifest describe the pre-audit state, and the README skip claim is false.",
+      "trigger": "README line 34 says two sealed-package tests skip until sealing. The run has 0 skipped because source-manifest.json exists, so FullRegistrationPath runs (tests.py:651-656). README Activation step 1 and package-manifest readiness_at_preparation and unresolved_blockers still say replica-3-opening_priority is training and no draft exists; all six audits are accepted and the draft exists.",
+      "consequence": "Stale claims in the reviewed package. Nothing in code depends on them, but a reader would conclude the package is not yet built.",
+      "fix": "Update README and package-manifest. package-manifest is not pinned by the draft, so it can be fixed without a rebuild. README is a source-manifest member, so editing it needs a re-seal and draft rebuild, and should land in the same pass as F1-F3."
+    },
+    {
+      "id": "F5",
+      "severity": "low",
+      "blocking": false,
+      "recommended_before_launch": false,
+      "category": "calibration-margin",
+      "file": "learning/runs/v2/fullgame-priority-D4-last-three-evaluator-sonnet-20261028-r1/binding.py",
+      "lines": [
+        216
+      ],
+      "summary": "The 3x factor is calibrated against the older seven-policy run. The most recent measured rate (the accepted first part) is about 1.95x slower per raw frame, so the effective margin over that rate is about 1.54x, not 3x.",
+      "trigger": "Prior run: 684.92 s / 15,487,746 raw frames = 44.2 us/frame. First part: 579.87 s / 6,720,672 raw frames = 86.3 us/frame. Scaled to RAW_CAP (55,335,936) the first-part rate gives about 4,775 s against the 7,352 s work limit.",
+      "consequence": "No launch blocker: the expected run is about 10 minutes, so the 7,352 s hard stop is generous. If it does trip, the single attempt is spent (fail-closed). The parent should record the effective margin in calibration acceptance.",
+      "fix": "None required. Record the effective margin (about 1.54x against the first-part rate) in calibration acceptance, or raise the factor if the parent wants 3x against the latest rate."
+    }
+  ],
+  "carried_not_reopened": [
+    "Torn read of state.json latching lease_changed (prior first-part F1): code unchanged (observe.py and worker.py identical in behaviour). Parent accepts resolution via the writer protocol. Verified: recovery replace_state writes pending, then os.replace, then fsync (start_remaining_one.py:32-40). git status shows state.json clean at review time. Required check: no non-atomic writer touches learning/runs/v2-orchestration/state.json during the window.",
+    "Prior F2-F7 (timing-sensitive observer tests, real-timer coverage, stuck own lease after audit crash, module shadow, main-state full parse every poll, 3x factor not measured under concurrent training) unchanged, not reopened."
+  ],
+  "limits": [
+    "Merge was not run on real D4 rows (outside scope). Only the first-part chain (verify_part, producers=False) and the producer JSON chains were checked on real artifacts.",
+    "Checkpoint bytes were not rehashed by this review. The manifest hashes were cross-checked, and the in-package test test_identity_reproduces_completed_uniform_sidecar hashes the replica-3-uniform checkpoint.",
+    "No checkpoint deserialization, no torch, no native import, no MPS, no evaluation run, no new D4 or D5 outcomes read.",
+    "Live preflight not executed (power, disk, process cache, active inference fields, own ledger/markers absence, caffeinate wrapper).",
+    "External orchestrator writers of state.json are outside this repo and were not inspected."
+  ],
+  "finalization_requirements": [
+    "Decide F1-F4. If any lands, re-seal source-manifest, rebuild the draft (build_registration.py --output), re-run validate_static and the 97 tests, then request source review of the new hash.",
+    "Source acceptance pinned to the final source-manifest sha256 (31a9c03e... if unchanged) and to the final draft sha256.",
+    "Calibration acceptance restating work 7352, cleanup 10, postflight 120, total 7482, prior 684.92 s / 15,487,746 frames, first-part context 579.87 s / 6,720,672 frames, and the effective margin in F5.",
+    "Gate document: schema fullgame_priority_d4_last3_evaluation_gate_acceptance_v1, every binding.GATES entry passed, registration_sha256 of the final registration, and user_parallel_exception recorded as not used (no training is running).",
+    "Final registration built only by build_registration.py after all six producer audits are accepted (all six are accepted now). Its status must be parent_registered; ledger and main state are not pinned.",
+    "Live preflight: main state active_long_campaign null (checked: null), no active_inference_* leases, own ledger / attempt.claimed / launch.claimed / output absent, AC power, launch as /usr/bin/caffeinate -ims <python> -B launch.py from the native root session, disk checked against the worst-case journal (first-part evaluation-events.jsonl is about 177 MB).",
+    "Re-run tests.py and merge_tests.py in a clean environment with the recorded command before launch if the source changes.",
+    "Confirm no non-atomic writer touches state.json during the run window."
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "basis": {
+    "first_part_context": {
+      "elapsed_seconds": 579.8708765000338,
+      "note": "contextual actual cost of the accepted first part (ran while training); no projection input, no throughput probe",
+      "peak_mps_driver_bytes": 193429504,
+      "peak_rss_bytes": 600031232,
+      "raw_frames": 6720672,
+      "worker_result_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-priority-D4-first-three-evaluator-sonnet-20261028-r1/worker-output/worker-result.json",
+      "worker_result_sha256": "3de41d4566c6d5f09d2c823f4c8869da0d384264287400e385c84985c09d33c0"
+    },
+    "limitation": "Same evaluator flow and runtime but different policies, three not seven, run while training shares the GPU; wall time scales with surviving frames and small late batches. Factor 3 covers that, not a fresh per-policy calibration. Hard SIGALRM stop at work_seconds.",
+    "parent_acceptance_path": null,
+    "parent_acceptance_sha256": null,
+    "parent_accepted": false,
+    "postflight_allowance_seconds": 120,
+    "postflight_basis": "total=work+cleanup(10)+postflight; prior observer-minus-worker 9.40 s x (RAW_CAP/prior frames 3.57) = 33.6 s; reviewed 120 s allowance kept. Worst-case bound, not expected runtime.",
+    "prior_measurement": {
+      "elapsed_seconds": 684.9216058750171,
+      "peak_mps_driver_bytes": 193429504,
+      "peak_rss_bytes": 759955456,
+      "raw_frames": 15487746,
+      "receipt_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-full-run-evaluator-parent-20261027-r2/worker-output/worker-result.json",
+      "receipt_sha256": "c812d7144538102d9f33f96145a53938dc56407846f664bb3e8cb454cb4c74cf",
+      "terminal_audit_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/progressive1000-full-run-evaluator-parent-20261027-r2/parent-terminal-audit.json"
+    },
+    "projection": "ceil(factor*prior_elapsed/prior_raw_frames*maximum_raw_frames+10)",
+    "projection_factor": 3,
+    "proposed_work_seconds": 7352
+  },
+  "cleanup_seconds": 10,
+  "concurrent_training": false,
+  "constructors": 3072,
+  "episodes": 3072,
+  "limits": {
+    "cleanup_seconds": 10,
+    "constructors": 3072,
+    "mps_bytes": 6442450944,
+    "native_steps": 55296000,
+    "raw_frames": 55335936,
+    "resets": 0,
+    "retries": 0,
+    "rss_bytes": 6442450944,
+    "total_seconds": 7482,
+    "work_seconds": 7352
+  },
+  "mps_bytes": 6442450944,
+  "native_steps": 55296000,
+  "postflight_seconds": 120,
+  "raw_frames": 55335936,
+  "resets": 0,
+  "retries": 0,
+  "rss_bytes": 6442450944,
+  "status": "accepted_parent_resource_calibration",
+  "total_seconds": 7482,
+  "work_seconds": 7352
+}
