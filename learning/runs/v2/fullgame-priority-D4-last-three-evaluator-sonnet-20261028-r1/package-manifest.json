@@ -1,0 +1,62 @@
+{
+  "byte_identical_to_first_part": [
+    "observe.py",
+    "execute_once.py",
+    "power_guard.py",
+    "dependency-binding.json"
+  ],
+  "files": {
+    "README.md": "ddd693e3de678db08547c793dc8a2e7dbe6e41dec9e90c42b5eabd660c0de8f4",
+    "audit.py": "75fa6e65208e82d2e30e7852088050d71438278fef20bf91d100f30bd9316227",
+    "binding.py": "b784b8ea024972a3d5d12a5b56688b46b4fc7a7fcb3cd5f82102ef2ec9a5c1be",
+    "build_registration.py": "8d927bbebfeefa6d796471fbea1183f785de544a1b79cdc26fff0df5ecb2aa57",
+    "comparison.py": "9ddd79e792e3124934302e35353234821ada83ae8a69b8cfce3821828fa1a370",
+    "dependency-binding.json": "561f5ef8dbde87539aeeb73726c9be34ee1e2ecca2e828c46e2595cf50ff38e3",
+    "execute_once.py": "484405674d981ea7db6b5c940d70ffe353a89cff4c3a9f9a810fb25dc219aa3d",
+    "finalize_registration.py": "87b981a7048761e1d6432347ad069afeae4508d2b23f4222402128c1394cc313",
+    "launch.py": "acecfa50bc94d46aa5476622b3c7c53bac710c8c0bfa4502926928047506ab2d",
+    "merge.py": "6b2e140625a8f11ccc66699a1f15e0680bc09b5ec754c2a98da091e329f83681",
+    "merge_tests.py": "7ba4c1713ee05e9da09f167f36385d5ba50d872da918160dc91419af37facb96",
+    "monitor.py": "1f0cc06549042385a649e867360509c8f58d1a57309a133ad6948f44be736434",
+    "observe.py": "95b8758eea4607f5f0812064f44ad5a26615a8a455ec0bf43d9c65bae991f81d",
+    "paired_statistics.py": "6d5b74907a832953115279674c3b9075558065d2c6e18eb428eb1b9f5fb1c6c3",
+    "policy-plan.json": "8be75089f29c96f9f4fd9f0f5bf7942c8c2de24529baec6260eec91914dadaca",
+    "power_guard.py": "83a410ae62f813a68d392b6e1eae0a3f47df1a37ea33dba0b34554bbf01c4efb",
+    "registration-schema.json": "11c4d0fb03d237560ddf6dda566abba2d8bee75b2c3adba9470fb82fb5b61b5f",
+    "seal.py": "9bd04434631fe68bb6d26bee01fc686b7d0e6958fa60cd8f9a7fb298f2659715",
+    "source-manifest.json": "31a9c03e2e2524cbd522a44312923b021d0a3df20c596e1c7e14217ce3d568d4",
+    "terminal.py": "3779196079320dcd4eca24a81f3d17cf29ccc00bec0d83d98b4ca235e79a029c",
+    "tests.py": "5b917ef1eda87714eaf239d8590c6c5c68ecdea27271ac2d98560c4ec86833a5",
+    "worker.py": "c835de39b5e3b120320e8d890f54951f40abcf07b88d5b54c364144152e7239d"
+  },
+  "launch_authority": false,
+  "predecessor": {
+    "audit_status": "accepted_complete_fixed_terminal60_d4_evaluation",
+    "comparison_sha256": "f08e8d7db7b55f3bf6e5b3551f8da7dee1d0ae15ad51c25698ad667434baca95",
+    "path": "learning/runs/v2/fullgame-priority-D4-first-three-evaluator-sonnet-20261028-r1",
+    "registration_final_sha256": "6912f25e5e47ea2c5489dda9d60611e0db17e779ebd9997606f1b27093675228",
+    "run_id": "fullgame-priority-D4-first-three-terminal60-evaluation-sonnet-20261028-r1",
+    "source_manifest_sha256": "489708daa2f225a3ce68cdae9ca0c0665636917e961309525e97cdb5093edc5b"
+  },
+  "prepared_at_utc": "2026-10-28T15:55:24.875133+00:00",
+  "readiness_at_preparation": "2 of 3 producer audits ready and accepted (replica-2-opening_priority, replica-3-uniform); replica-3-opening_priority still training; builder refuses (exit 3); no registration draft exists",
+  "schema": "fullgame_priority_d4_last3_package_manifest_v1",
+  "source_manifest_sha256": "31a9c03e2e2524cbd522a44312923b021d0a3df20c596e1c7e14217ce3d568d4",
+  "tests": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPYCACHEPREFIX=<package>/tests-pycache python/.venv/bin/python -B tests.py | merge_tests.py",
+    "ran": {
+      "merge_tests": 11,
+      "tests": 86
+    },
+    "result": "OK",
+    "scope": "stdlib CPU fakes; real worker.run/observe.main over fakes; real chains for the 2 accepted producers; fake two-part six-model merge; no torch/numpy/native import, no checkpoint deserialization, no real D4 outcome read",
+    "skipped": 0
+  },
+  "unresolved_blockers": [
+    "replica-3-opening_priority training and its accepted terminal audit (builder refuses until then)",
+    "build_registration.py --output registration-draft.json, independent source review/acceptance of source-manifest.json (re-seal if source changes)",
+    "parent calibration acceptance, finalize, gate acceptance (binding.GATES), exactly-once launch under native-root caffeinate",
+    "first load of the last-three checkpoints and real native _production_rows are exercised only inside the once-only run",
+    "offline merge is only fake-tested; it runs after both part audits"
+  ]
+}
