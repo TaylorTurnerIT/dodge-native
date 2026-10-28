@@ -1,5 +1,8 @@
 # Dodge Native: research and iteration plan
 
+Archived snapshot from commit `3d43988`, migrated to the [local SQLite research notebook](../learning/research/README.md).
+Use `learning/scripts/research_log.py` for current plans and results; the text below preserves the original discussion record.
+
 Agreed format, 2026-10-28. Each experiment records four things: what we do, what we predict before running it, what we measure, and which explanations the measurements support or weaken. The explanation must lead to the next test. Discussion stays in chat; this file holds the durable plan and result links.
 
 The goal is to improve the weakest games, with Q1 defined as mean survival in the worst 25% of games. Also report Worst, Mean, Q4, Best, score, and milestone success. Keep game frames, policy decisions, PPO updates, optimizer steps, and wall time separate.
