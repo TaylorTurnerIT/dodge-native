@@ -1,0 +1,14 @@
+{
+  "schema": "dodge_fullgame_seed_priority_shared_config_v1",
+  "batch_size": 64,
+  "rollout_steps": 256,
+  "global_updates": 60,
+  "learning_rate": 0.00003,
+  "optimizer": "restore accepted Adam state; no reset; constant LR 3e-5",
+  "ppo": {"gamma":0.995,"gae_lambda":0.95,"learning_rate":0.00003,"adam_eps":0.00001,"clip_coef":0.2,"vf_coef":0.5,"ent_coef":0.01,"max_grad_norm":0.5,"update_epochs":4,"minibatch_size":512,"target_kl":0.03,"reward_scale":0.1},
+  "environment": {"action_repeat":4,"difficulty":2,"patterns_enabled":true,"powerups_enabled":true,"raw_frame_cap":18000,"cutoff_enabled":false,"normal_start":true},
+  "reward": "score delta + alive_frames/100 - 5 on true death",
+  "model": "accepted OmniscientEntityTeacher, unchanged",
+  "sampling": {"control":"uniform shared pool","treatment":"50% uniform floor + 50% frozen hard stratum","fresh_ppo_rollouts":true,"pool_role":"training_only"},
+  "evaluation": {"terminal_update":60,"action_mode":"sampled_categorical","cohort":"fresh parent-reserved D4"}
+}

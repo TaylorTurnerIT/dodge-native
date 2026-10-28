@@ -1,0 +1,54 @@
+{
+  "schema": "fullgame_priority_first_attempt_failure_review_v1",
+  "status": "failure_cutpoint_confirmed_no_training_update",
+  "scope": "Read-only source and receipt trace for the first uniform run; no retry or new execution.",
+  "failure": {
+    "run_id": "fullgame-seed-priority-luna-20261027-r1-replica-1-uniform",
+    "first_failure": "ValueError('checkpoint module origin mismatch')",
+    "worker_status": "failed",
+    "worker_updates": 0,
+    "worker_exit_code": 1,
+    "observer_directly_reaped": true,
+    "worker_group_absent": true,
+    "actual_worker_launch_count": 1,
+    "worker_result_path": "learning/runs/v2/fullgame-seed-priority-parent-execution-20261027-r1/fullgame-seed-priority-luna-20261027-r1-replica-1-uniform/worker-output/worker-result.json",
+    "worker_result_sha256": "121df26a8feec736c87214a1767c41e5e137539da4eda024d2fed11fb0719558",
+    "observation_path": "learning/runs/v2/fullgame-seed-priority-experiment-luna-20261027-r2/dispatch/fullgame-seed-priority-luna-20261027-r1-replica-1-uniform/observation.json",
+    "observation_sha256": "ce4b82d84b22b8747e67ce66172100889cb27ceede327e78f3b8db372b04662c"
+  },
+  "cause": {
+    "driver_binding_pins_checkpoint_origin": "learning/runs/v2/progressive1000-opening-maintenance-runtime-parent-20261027-r1/runtime/dodge_rl/checkpoints.py",
+    "actual_checkpoint_module_origin": "learning/runs/v2/fullgame-seed-priority-experiment-luna-20261027-r2/runtime/dodge_rl/checkpoints.py",
+    "checkpoint_bytes_identical": true,
+    "checkpoint_sha256": "807141943a742c6e9fdd34274c191b3c318134cc7fb0c1c6256874cadee1cbc3",
+    "raise_site": "learning/runs/v2/fullgame-seed-priority-experiment-luna-20261027-r2/driver_binding.py:92-93"
+  },
+  "cutpoint": {
+    "accepted_checkpoint_deserialized_and_validated": true,
+    "disposable_constructor_seed_applied": true,
+    "disposable_model_and_adam_constructed": true,
+    "callback_origin_authentication_failed": true,
+    "transition_called": false,
+    "attempt_claim_constructed_or_written": false,
+    "accepted_state_restored_into_new_learner": false,
+    "environment_created_or_stepped": false,
+    "ppo_or_optimizer_step": false,
+    "global_updates": 0,
+    "entry_restoration_receipt": false,
+    "training_event_metric_checkpoint_outputs": false,
+    "peak_mps_driver_bytes": 8863744,
+    "peak_rss_bytes": 330350592
+  },
+  "one_shot_state": {
+    "parent_preflight_claim_consumed": false,
+    "attempt_claim_path_exists": false,
+    "parent_launch_marker_exists_and_spent": true,
+    "reviewer_changed_any_run_state": false,
+    "retry_or_replacement_launch": false
+  },
+  "limits": [
+    "Actual attempt loaded and validated accepted checkpoint bytes but did not restore them into the disposable learner.",
+    "MPS/RSS values are startup/bootstrap/finalization receipts, not learning work.",
+    "No Torch/MPS/native/model/checkpoint operations or source/input/state writes were performed during this review."
+  ]
+}
