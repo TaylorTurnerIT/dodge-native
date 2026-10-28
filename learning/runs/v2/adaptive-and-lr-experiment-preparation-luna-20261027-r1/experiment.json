@@ -1,0 +1,111 @@
+{
+  "adaptive_curriculum": {
+    "adaptive_rule": {
+      "block_permutation": "At each update and each100 new assignments, deterministically SHA256-permute the fixed quota using study vector hash, generation, update, block and position. Assignment hashing consumes no policy/minibatch/environment RNG. Record policy share used, assignment ordinal, horizon, generation, update, block, frame attribution, seed identity and hash.",
+      "boundary_rule": "At each successful completed-update boundary, use cumulative audited exposure through that update. If full-game-assigned frame share >=0.70, assign exactly30 short-stage and70 full-game horizons per next100 newly constructed normal episodes. If share <0.70, assign0 short-stage and100 full-game horizons per next100. Apply only to episodes constructed after the boundary; in-flight assignments never change.",
+      "frame_floor": 0.7,
+      "guarantee_limit": "This is a feedback target, not a mathematical guarantee of future realized frame share: policy death behavior can make even full-game-assigned episodes short. It cannot guarantee age>1000 exposure if policy does not survive. Report realized age-bin frames separately from assignment quota.",
+      "initial_mix": "For update1, assign all newly constructed episodes to full-game horizon18000; this gives a full-game-only initial exposure observation.",
+      "mastery": "Keep current registered gates: at least10 complete updates in generation, at least200 completed eligible stage-horizon episodes, and two consecutive nonoverlapping windows of100 eligible completions each with >=90 successes; promote at most once per update boundary after all rows are processed. Only current-generation episodes assigned current-stage horizon count. Full-game episodes count at stage18000 only.",
+      "measure": "Cumulative audited raw gameplay frames, including fatal frame, attributed by frozen episode assignment to short-stage horizon versus full-game horizon. Exclude startup frames. Update exposure is complete only after its PPO step succeeds.",
+      "stage_horizons": "1000*(generation+1), generation0..17. Short stage assignment includes full normal-start prefix and truncates only at assigned horizon. Full-game horizon18000 is ordinary cap. Earlier-age practice recurs through normal starts.",
+      "starvation": "When measured share is below floor, short-stage assignments are suspended; when at/above floor, maintain30% stage assignments. Log zero-assignment/zero-completion stages. Never force-reset, jump frames, drain, extend, or change active episodes."
+    },
+    "arms": [
+      "fixed_70_short_stage_30_full_game_episode_assignments",
+      "adaptive_exposure_rule"
+    ],
+    "budget": "6 runs, 983040 decisions/run; at most7680 Adam steps/run. No added validation rollouts. Training mastery uses only in-run completed episodes and is not an independent evaluation.",
+    "controls_reuse": "May share a fixed-70/30 control only if parent proves same parent lineage, sampler, vectors, config/runtime pins, decision/optimizer budget, exclusions and evaluation cohort; otherwise run matched independent controls. Never share the opening-seed-priority sampler control implicitly.",
+    "deviation_for_parent_decision": "Initial floor is operationalized as an update-boundary feedback target. Realized frame floor cannot be guaranteed under unknown episode duration. The minimal rule needs exposure attribution in the adapter but no inner policy-evaluation/development cohort.",
+    "hypothesis": "A feedback rule that suspends short practice when realized full-game-assigned frame share falls below70% may protect later-age exposure while retaining stage practice when exposure floor is met.",
+    "observed_baseline": {
+      "fixed_full_game_raw_gameplay_frame_fraction": 0.503,
+      "fixed_short_stage_episode_assignment_fraction": 0.6996,
+      "fixed_short_stage_raw_gameplay_frame_fraction": 0.497,
+      "interpretation": "Existing fixed70/30 pilot produced50.30% of audited raw frames from full-game-assigned episodes. Adaptive target raises this realized full-game share to>=70% when exposure feedback permits. Does not imply70% of frames occur after age1000; survival remains policy-dependent."
+    },
+    "parent_and_training": "Same accepted324 parent, reward, model, PPO, update count, raw-frame cap, normal starts, full six-field matched vectors, batch size64, 256 decisions/update, 60 updates and sample/optimizer limits.",
+    "rank": 2,
+    "semantics": "Use accepted runtime's existing terminal/truncation semantics: true death wins even on horizon; death terminal does not bootstrap; alive practice cutoff truncates and bootstraps actual final observation; no death penalty at practice cutoff; ordinary18000 alive cap remains unchanged."
+  },
+  "authority": "The user authorized these proposals and experimentation. Parent owns assembly, code review, registration, seed reservation, launch, and acceptance. No training/evaluation/model/Torch/native/checkpoint operations in this preparation.",
+  "inherited_holdouts": {
+    "must_reaudit": [
+      "B/E unopened",
+      "D100 opened",
+      "D200 consumed",
+      "prior pilot/control/evaluation/probe/LR seeds",
+      "every current and ancestor consumed seed set"
+    ],
+    "no_authority": [
+      "registration",
+      "launch",
+      "checkpoint selection",
+      "model promotion",
+      "qualification",
+      "parent acceptance"
+    ],
+    "reservation": "Parent owns complete future exclusion union and fresh vectors/cohorts; this preparation reserves none."
+  },
+  "integration_status": "Pure deterministic reference modules only. Existing supervisor may be reused, but runtime adapter, worker, contracts, identity, schedule metrics, manifests, registrations, and parent reference/restore binding still require parent-owned assembly/review. Not launch-ready.",
+  "learning_rate": {
+    "arms": [
+      "constant_3e-5",
+      "linear_3e-5_to_1e-5_over60_updates"
+    ],
+    "budget": "6 runs and5898240 decisions if independent. If rank1 seed-priority study's priority-sampler constant-LR arm matches every parent, vector, sampler, budget, code/runtime and endpoint contract, parent may register an explicitly cross-study paired comparison using those exact control receipts plus three linear-schedule runs (additional2949120 decisions). Otherwise do not reuse controls.",
+    "endpoint": "All run update60 policies; each study gets unique parent-reserved fresh1024 full-game cohort. No intermediate best-of-N selection.",
+    "fallback": "No arm advancement on missing/failed step, metric, schedule counter or receipt. Preserve partial receipt; no retries, replacement seed, budget top-up or endpoint substitution.",
+    "hypothesis": "A linear 3e-5 to1e-5 schedule may reduce late-update movement; evidence is cross-domain and does not establish Dodge benefit.",
+    "optimizer": "Restore accepted full Adam state. Before first override, require every restored param-group LR equals schedule(t=1). Do not reset Adam or moments. Before each PPO update, set every param group to expected lr(t), verify exact effective LR, construct per-update PPOConfig with that same LR, then run PPO. Checkpoint/integrity save records effective LR and schedule index. Resume/replay validation recomputes LR from global local update; never demand a hard-coded constant LR for every update.",
+    "per_update_formula": "lr(t)=3e-5 + (1e-5-3e-5)*(t-1)/59, integer t=1..60; update1 exactly3e-5, update60 exactly1e-5.",
+    "rank": 3,
+    "unchanged": "Same parent/model/Adam restore, six-field paired vectors, update/decision budget, gamma/lambda, epochs4, minibatch512, targetKL.03, optimizer epsilon1e-5, clipping/entropy/value coefficients, reward and sampler within each pair. Only LR schedule changes."
+  },
+  "parent": "accepted clean progressive1000-opening-maintenance-runtime-parent-20261027-r1; exact accepted checkpoint324 model+Adam+RNG lineage; no selection or promotion",
+  "schema": "dodge-adaptive-and-lr-followups-v1",
+  "shared_budget": {
+    "actual_optimizer_steps_may_be_lower_due_to_existing_kl_stop": true,
+    "decisions_per_run": 983040,
+    "decisions_per_update": 16384,
+    "epochs_per_update": 4,
+    "future_eval": "Before registration, parent reserves one new, unique 1024-seed full-game endpoint cohort per study after ancestry audit. Within a study, every arm uses same cohort; no training, mastery gate, tuning, or selection uses it. Keep cohorts disjoint across studies and from every consumed training/dev/probe/benchmark seed. Parent is evaluated once per study cohort as shared baseline. No existing pilot cohort reuse.",
+    "integrity_updates": [
+      12,
+      24,
+      36,
+      48,
+      60
+    ],
+    "maximum_optimizer_steps_per_run": 7680,
+    "maximum_optimizer_steps_per_update": 128,
+    "minibatch_decisions": 512,
+    "paired_runs_per_study": 6,
+    "paired_training_vectors": 3,
+    "planned_decisions_per_study": 5898240,
+    "raw_gameplay_frames_per_decision_max": 4,
+    "reported_endpoints": [
+      "opening-1000 success numerator/1024",
+      "mean alive frames",
+      "Q1 mean of worst256",
+      "Q4 mean of best256",
+      "per-replica paired differences",
+      "age-binned realized gameplay frames by assignment horizon",
+      "actual epochs and Adam steps",
+      "per-update KL, clip fraction, losses, explained variance"
+    ],
+    "seed_policy": "Parent audits complete ancestry and exclusions, reserves three fresh disjoint six-field vectors per study, and pairs vectors within study. No seed replacement/retry. Never assume sampler-specific controls can be shared across studies.",
+    "selection_endpoint": "update60 only; integrity checkpoints are not candidate endpoints",
+    "target_kl": 0.03,
+    "updates": 60
+  },
+  "source_modules": [
+    "adaptive_policy.py",
+    "lr_schedule.py"
+  ],
+  "status": "preparation_only_not_registered_not_launch_ready",
+  "tests": [
+    "tests/test_preparation.py"
+  ]
+}

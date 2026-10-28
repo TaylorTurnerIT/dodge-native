@@ -1,0 +1,92 @@
+{
+  "schema": "dodge_three_followup_experiments_registry_v1",
+  "status": "user_authorized_preparation_and_new_registered_experiments",
+  "authorization": "User: I like all of those suggestions. Let's note them all down all three and begin experimenting.",
+  "created_at_utc": "2026-10-28T02:14:46.832599+00:00",
+  "experiments": [
+    {
+      "id": "E1",
+      "name": "Full-game opening-seed prioritization",
+      "status": "preparing_first_matched_experiment",
+      "control": "Uniform sampling from one frozen training-only seed pool; full games.",
+      "treatment": "Capped opening-priority sampling from the same pool with a uniform floor; full games.",
+      "first_ablation": "Freeze priority labels from historical training-only completions to isolate sampling. Generate all PPO transitions freshly; online priority refresh is a separate follow-up.",
+      "fixed": [
+        "accepted parent324/model+Adam",
+        "reward",
+        "architecture",
+        "constant LR3e-5",
+        "full-game cap18000",
+        "normal starts",
+        "64 environments x256 decisions x60 updates",
+        "three matched training RNG vectors"
+      ],
+      "new_native_seed_profile": "Both arms use existing explicit-seed-list interface with honest native metadata and separate training-only pool role; changed Python collector/source identity requires review.",
+      "evaluate": "Predetermined terminal60 on newly reserved normal-start full-run seeds, shared across arms."
+    },
+    {
+      "id": "E2",
+      "name": "Mastery-gated adaptive curriculum",
+      "status": "queued_source_preparation",
+      "control": "Fixed70/30 episode-assignment curriculum or matched full-game baseline, explicitly pinned before launch.",
+      "treatment": "Adapt short-stage assignment rate using completed-window mastery and measured full-game-assigned decision/frame exposure.",
+      "critical_distinction": "A full-game-assigned exposure floor does not guarantee later-age experience if the policy dies early.",
+      "mastery": "Preregister exact threshold, disjoint windows and separate development cohort; no final evaluation seed reuse.",
+      "fixed": [
+        "same accepted parent",
+        "reward",
+        "architecture",
+        "LR",
+        "experience budget",
+        "normal reachable starts",
+        "correct death/truncation handling"
+      ]
+    },
+    {
+      "id": "E3",
+      "name": "Controlled PPO learning-rate schedule",
+      "status": "queued_after_offline_update_diagnostics",
+      "control": "Constant3e-5.",
+      "treatment": "One linear3e-5 to1e-5 schedule over60updates, applied after Adam restore and before each update.",
+      "fixed": [
+        "same accepted parent/model+Adam",
+        "same matched vectors and sampler",
+        "same reward/architecture",
+        "four PPO epochs",
+        "512minibatches",
+        "same experience budget"
+      ],
+      "no_optimizer_reset": true
+    }
+  ],
+  "first_step": "Offline age/exposure, mastery and PPO-update diagnostics using existing audited runs.",
+  "parent_checkpoint": 324,
+  "parent_cumulative_update": 372,
+  "parent_checkpoint_sha256": "c10d90ec0e67503afef8f4d90c4968581d430ef2065117a75e81c445a04c8ddc",
+  "parent_promotion": false,
+  "reported_metrics": [
+    "Worst",
+    "Q1 bottom-quarter mean",
+    "Mean",
+    "Q4 top-quarter mean",
+    "Best",
+    "milestone success rates",
+    "death causes"
+  ],
+  "future_evaluation": "Reserve fresh cohorts before constructing new training pools/vectors; consumed D3000000..D30003FF remains excluded. Proposed D4/D5 cohorts require historical nonuse reconciliation before acceptance.",
+  "execution": "Fresh named immutable registration, source review, exact one-use claims, measured resource caps and owned lease per run. No retries or automatic checkpoint selection.",
+  "limits": {
+    "RSS_bytes": 6442450944,
+    "MPS_driver_bytes": 6442450944,
+    "retries": 0
+  },
+  "qualification": "B/E, D3 and student work remain closed.",
+  "control_sharing": "Share matched controls only if source, seed pool, sampler, schedule and budgets are identical; otherwise register separate controls.",
+  "launch_authority": "This registry records scope; each concrete launch still needs its existing exact registration and reviews.",
+  "offline_diagnostics": {
+    "directory": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/rl-next-experiments-exposure-parent-20261027-r1",
+    "receipt_sha256": "c6a51a36dbc704c329618d72a52da58e93ee1f71b920035c154983ede92f31b5",
+    "finding": "Short-horizon assignments69.96% contributed50.30%of gameplayframes; age1000-4000 exposure fell about49-50%. All360PPOupdates completed4epochs with zero KL earlystops.",
+    "inference_limit": "Measured exposure change does not establish why late-tail evaluation fell."
+  }
+}
