@@ -1,0 +1,43 @@
+{
+  "blockers": [
+    {
+      "detail": "The earlier Go was consumed by the single uniform replica-1 attempt (scope: exactly one run). A new user message must name the exact run IDs and registration SHA-256 values listed in registration-index-proposal.json.",
+      "id": "B1",
+      "item": "No fresh user authorization."
+    },
+    {
+      "detail": "Five registration candidates, start_remaining_one.py, remaining_plan.py, watch_progress.py and build_remaining_bindings.py are unreviewed. Own tests (33 stdlib/fake) are not an independent review.",
+      "id": "B2",
+      "item": "No independent review of the new packet."
+    },
+    {
+      "detail": "registration-index.json, parent-gates.json and the parent-written fresh-user-authorization.json do not exist. Gates must carry authorization_path/authorization_sha256 (pinned), proposal_sha256 and every proposal pin.",
+      "id": "B3",
+      "item": "Parent promotion not performed."
+    },
+    {
+      "detail": "Exact-source acceptance (a29e25b2..., study-level) and the calibration/runtime acceptance were issued for the first attempt; the parent must confirm they extend to the other runs. Budgets are unchanged; first-run resource peaks and elapsed time were not read here, so no calibration update is claimed.",
+      "id": "B4",
+      "item": "Parent confirmation of reused acceptances."
+    },
+    {
+      "detail": "No active_long_campaign or diagnostic, no training_hold, empty registered pycache, process started with PYTHONPYCACHEPREFIX equal to the run's empty-pycache, spent-path absence. Runs go one at a time; state was clean when prepared (active_long_campaign null, hold inactive).",
+      "id": "B5",
+      "item": "Launch-time conditions (checked by launcher, not satisfied by this packet)."
+    }
+  ],
+  "launch_authority": false,
+  "not_blockers_but_out_of_scope": [
+    "Terminal60 evaluation on reserved D4 is not registered here; D4 and D5 stay unopened.",
+    "No checkpoint selection, promotion or outcome inspection is part of this packet."
+  ],
+  "schema": "fullgame_seed_priority_remaining_launch_blockers_v1",
+  "status": "all_five_runs_blocked_until_every_item_below_is_cleared",
+  "suggested_order": [
+    "fullgame-seed-priority-luna-20261027-r1-replica-1-opening_priority",
+    "fullgame-seed-priority-luna-20261027-r1-replica-2-uniform",
+    "fullgame-seed-priority-luna-20261027-r1-replica-2-opening_priority",
+    "fullgame-seed-priority-luna-20261027-r1-replica-3-uniform",
+    "fullgame-seed-priority-luna-20261027-r1-replica-3-opening_priority"
+  ]
+}
