@@ -1,0 +1,185 @@
+--- ../fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1/remaining_plan.py	2026-10-27 22:59:56
++++ remaining_plan.py	2026-10-28 01:43:44
+@@ -1,4 +1,4 @@
+-"""Shared constants and pure helpers for the remaining seed-priority r3 bindings.
++"""Shared constants and pure helpers for the three-run seed-priority recovery packet.
+ 
+ Stdlib only. Importing this module reads nothing and writes nothing.
+ """
+@@ -12,6 +12,11 @@
+ V2 = ROOT / "learning/runs/v2"
+ R3 = V2 / "fullgame-seed-priority-experiment-luna-20261027-r3"
+ PRIOR = V2 / "fullgame-seed-priority-fresh-attempt-proposal-parent-20261027-r1"
++PARENT_PKG = V2 / "fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1"  # proven thin parent; read-only here
++VALIDATION = V2 / "fullgame-priority-remaining-r3-parent-validation-20261027-r1"
++FAILURE = V2 / "fullgame-priority-overnight-interruption-audit-sonnet-20261028-r1"
++CHECKPOINT = V2 / "D2-retained300-continuation-20261026-r1/checkpoint-000324-candidate.pt"
++PARENT_RECEIPT = V2 / "D2-retained300-parent-terminal-audit-20261026-r1/retained-best-candidate-receipt.json"
+ REF_ROOT = V2 / "fullgame-priority-rng-reference-parent-20261027-r1"
+ PROGRAMME = V2 / "rl-next-experiments-parent-20261027-r1"
+ STUDY = "fullgame-seed-priority-luna-20261027-r1"
+@@ -29,9 +34,28 @@
+ FIRST_LEASE_RELEASE_SHA256 = "6a0ba593bd1759bed03c78c18fd8a1b1991b30851bb456240cd944f4904f81a0"
+ FIRST_OWNER_TOKEN = "13c32efc846e49d19a817a2194566537"
+ 
+-# Order is a suggestion only; the parent chooses and every launch is separate.
+-REMAINING = ((1, "opening_priority"), (2, "uniform"), (2, "opening_priority"),
+-             (3, "uniform"), (3, "opening_priority"))
++FAILURE_AUDIT_SHA256 = "032e681c1f0d9393c86f64438deed81c2af2f18d980e56244de8458de1ac4414"
++FAILURE_RELEASE_SHA256 = "149827465d03621ab31c2aac16cdac1b25fe62e47b3cd6207ee5f97a881e8b84"
++PARENT_RECEIPT_SHA256 = "76cb15733e87518cb3b473b7f8ebd847ed206351fb9f17d89b8b92e6bf853f08"
++FAILED_RUN_ID = STUDY + "-replica-2-opening_priority"
++FAILED_REGISTRATION_SHA256 = "db2da67332b51c3cb3839bc8cc08afd1bcca105f64023a47cb8d8da2a0006658"
++
++# Retained completed endpoints (audited, lease released). They are evidence, never relaunched.
++COMPLETED = ((1, "opening_priority", PARENT_PKG), (2, "uniform", PARENT_PKG))
++
++# The recovery set: the failed arm restarted from the original parent, then replica 3 in order.
++# Order is a suggestion only; every launch is separate.
++REMAINING = ((2, "opening_priority"), (3, "uniform"), (3, "opening_priority"))
++# Registrations of the same run IDs in the proven parent package; their paths and tokens stay spent/unused.
++OLD_CANDIDATE_SHA256 = {
++    (2, "opening_priority"): FAILED_REGISTRATION_SHA256,
++    (3, "uniform"): "39e1aaacfacc6fe614a8053b64bef9aff2f6ebea08db26a79555a75b57ac2397",
++    (3, "opening_priority"): "455442b216aad1501a7c702c0d2563dc0d1e40db46face80c1f74bbcbed7ada9",
++}
++# Consumed user messages; a recovery authorization must be a different, later message.
++CONSUMED_USER_MESSAGES = (
++    "You're good to go. Continue overnight. Be efficient with your usage so we don't run out of codex. Free models and cheap claude.",
++)
+ DRAFT_DIR = R3 / "registrations-gated-r3-20261027"
+ DRAFT_SHA256 = {
+     (1, "uniform"): "9816698ea6d6cf3718695c3d5cf0dce11ba69ecde0bff6c57ad346c7217d4e57",
+@@ -43,16 +67,30 @@
+ }
+ DRAFT_INDEX_SHA256 = "bfb35cca05f7047084a34c3b01f0e5aeb5f36e5788ca114d48fc4e7e47cde803"
+ 
+-LEASE_KIND = "fullgame_seed_priority_remaining_attempt"
++LEASE_KIND = "fullgame_seed_priority_recovery_attempt"
+ INDEX_PROPOSAL_STATUS = "proposal_only_unreviewed_not_promoted_no_launch_authority"
+ INDEX_PROMOTED_STATUS = "reviewed_exact_registrations_parent_promoted"
+ GATES_PROPOSAL_STATUS = "proposal_only_requires_independent_review_and_fresh_user_authorization"
+ GATES_APPROVED_STATUS = "approved_exactly_once_per_registered_run"
+-GATES_SCHEMA = "fullgame_seed_priority_remaining_r3_parent_gates_v1"
+-AUTH_SCHEMA = "fullgame_seed_priority_remaining_user_authorization_v1"
++GATES_SCHEMA = "fullgame_seed_priority_recovery_r3_parent_gates_v1"
++AUTH_SCHEMA = "fullgame_seed_priority_recovery_user_authorization_v1"
+ 
+ # Prior-gate pins that are not carried forward: the broken r2 source bindings and
+ # the authority/dispatch evidence already consumed by the first attempt.
++# Authority and proposal artifacts of earlier packages are never carried into recovery gates.
++STALE_AUTHORITY = {
++    PARENT_PKG / "fresh-user-authorization.json": "consumed five-run authority",
++    PARENT_PKG / "registration-index.json": "old promoted five-run index",
++    PARENT_PKG / "registration-index-proposal.json": "old five-run index proposal",
++    PARENT_PKG / "parent-gates.json": "old approved gates",
++    PARENT_PKG / "parent-gates-proposal.json": "old gates proposal",
++    PARENT_PKG / "package-manifest.json": "old package manifest",
++    VALIDATION / "remaining-campaign-proposal.json": "old five-run proposal",
++    VALIDATION / "authorization-ready.json": "old activation record",
++    PRIOR / "fresh-user-authorization.json": "consumed first-run authority",
++    PRIOR / "registration-index.json": "first-run index",
++    PRIOR / "start_one.py": "first-run launcher",
++}
+ EXCLUDED_PRIOR_PINS = {
+     "fullgame-seed-priority-experiment-luna-20261027-r2/runtime-manifest.json": "broken r2 binding; r3 manifests pinned instead",
+     "fullgame-seed-priority-experiment-luna-20261027-r2/source-manifest.json": "broken r2 binding; r3 manifests pinned instead",
+--- ../fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1/start_remaining_one.py	2026-10-27 23:01:12
++++ start_remaining_one.py	2026-10-28 01:44:16
+@@ -1,4 +1,4 @@
+-"""Parent dispatch for exactly one of the remaining seed-priority r3 runs; no retries.
++"""Parent dispatch for exactly one of the three recovery seed-priority r3 runs; no retries.
+ 
+ PROSPECTIVE: refuses to run until the parent promotes registration-index.json and
+ parent-gates.json and writes a fresh user-authorization document. None exist in
+@@ -15,15 +15,22 @@
+ 
+ sys.dont_write_bytecode = True
+ import remaining_plan as p
++import power_guard
+ 
+ HERE = p.HERE
+ SOURCE = p.R3
+ sys.path.insert(0, str(SOURCE))
+ import binding as b
++if Path(b.__file__).resolve() != SOURCE / "binding.py":
++    raise ImportError("binding origin mismatch")
++PENDING_STATE = "state.seed-priority-remaining.pending.json"
++SPENT_NAMES = ("dispatch", "launch-envelope.json", "launch-approval.json", "parent-preflight.json",
++               "parent-execution.json", "execution-exit.json", "observer.log", "progress-reports.jsonl",
++               "progress-alert.json", "cancel")
+ 
+ 
+ def replace_state(path, state):
+-    pending = Path(path).with_name("state.seed-priority-remaining.pending.json")
++    pending = Path(path).with_name(PENDING_STATE)
+     b.save(pending, state)
+     os.replace(pending, path)
+     descriptor = os.open(Path(path).parent, os.O_RDONLY)
+@@ -62,6 +69,25 @@
+            and all(gates["pins"].get(path) == digest for path, digest in proposal["pins"].items()),
+            "approved gates must carry every reviewed proposal pin")
+     b.check_pins(gates["pins"])
++    b.need(gates.get("registration_index_proposal_sha256") == b.sha(base / "registration-index-proposal.json")
++           and gates["pins"].get(str(base / "registration-index-proposal.json")) == gates["registration_index_proposal_sha256"],
++           "gates must pin the exact index proposal")
++    b.need(gates.get("registration_index_sha256") == index_sha256, "gates must name the promoted index")
++    b.need(not any(Path(path) in p.STALE_AUTHORITY for path in gates["pins"]), "stale authority pinned in gates")
++    b.need(gates["pins"].get(str(p.FAILURE / "audit.json")) == p.FAILURE_AUDIT_SHA256
++           and gates["pins"].get(str(p.FAILURE / "lease-release.json")) == p.FAILURE_RELEASE_SHA256,
++           "failure audit and lease release pins missing")
++    b.need(gates["pins"].get(str(p.CHECKPOINT)) == p.CHECKPOINT_SHA256
++           and gates["pins"].get(str(p.PARENT_RECEIPT)) == p.PARENT_RECEIPT_SHA256,
++           "original parent324 checkpoint and receipt pins missing")
++    manifest_path = base / "package-manifest.json"
++    review = gates.get("independent_review") or {}
++    b.need(review.get("path") and gates["pins"].get(str(manifest_path)) == b.sha(manifest_path)
++           and review.get("package_manifest_sha256") == b.sha(manifest_path)
++           and gates["pins"].get(review["path"]) == review.get("sha256"),
++           "independent review of this exact package manifest must be pinned")
++    for relative, digest in b.read(manifest_path)["files"].items():
++        b.need(b.sha(base / relative) == digest, "package file differs from reviewed manifest: " + relative)
+     b.need(not any(Path(path).name == "state.json" for path in gates["pins"]),
+            "mutable ledger must not be pinned as immutable history")
+     b.need(gates["pins"].get(str(p.SOURCE_ACCEPTANCE)) == p.SOURCE_ACCEPTANCE_SHA256,
+@@ -74,6 +100,10 @@
+     auth = b.read(auth_path)
+     b.need(auth.get("schema") == p.AUTH_SCHEMA and auth.get("retries") == 0
+            and isinstance(auth.get("user_message"), str) and auth["user_message"].strip()
++           and auth["user_message"].strip() not in p.CONSUMED_USER_MESSAGES
++           and auth.get("index_proposal_sha256") == gates["registration_index_proposal_sha256"]
++           and auth.get("failure_audit_sha256") == p.FAILURE_AUDIT_SHA256
++           and datetime.datetime.fromisoformat(auth["at_utc"]) > datetime.datetime.fromisoformat(gates["packet_built_at_utc"])
+            and auth.get("source_manifest_sha256") == p.SOURCE_MANIFEST_SHA256
+            and {"run_id": run_id, "registration_sha256": row["registration_sha256"]} in auth.get("runs", []),
+            "fresh user authorization does not name this exact run and registration")
+@@ -94,9 +124,9 @@
+            "dependency inventory differs")
+     for key in ("output", "attempt_claim_path", "launch_marker_path"):
+         b.need(not os.path.lexists(reg[key]), "one-use path already spent: " + key)
+-    for name in ("dispatch", "launch-envelope.json", "launch-approval.json", "parent-preflight.json",
+-                 "parent-execution.json", "execution-exit.json", "observer.log"):
++    for name in SPENT_NAMES:
+         b.need(not os.path.lexists(home / name), "parent execution path already spent: " + name)
++    b.need(not os.path.lexists(Path(reg["state_path"]).with_name(PENDING_STATE)), "shared state pending path present")
+     state = b.read(state_path or reg["state_path"])
+     b.need(state.get("active_long_campaign") is None and state.get("active_inference_diagnostic") is None,
+            "conflicting campaign")
+@@ -120,6 +150,7 @@
+     row, reg, gates, dependency_inventory = gate_check(HERE, args.run_id, args.index_sha256, args.gates_sha256)
+     home = HERE / args.run_id
+     contracts = b._contracts()
++    power = power_guard.check()
+     contracts.cache_check(reg)
+     dependency_pins = {path: item["sha256"] for path, item in dependency_inventory["pins"].items()}
+     b.check_pins(dependency_pins)
+@@ -128,7 +159,7 @@
+     state = b.read(reg["state_path"])
+     b.save(home / "launch-approval.json", contracts.launch_approval_document(row["registration_sha256"], reg))
+     b.save(home / "parent-preflight.json", dict(registration_sha256=row["registration_sha256"],
+-           static_inputs="passed", dependency_pins_checked=len(dependency_pins), cache="passed",
++           static_inputs="passed", power=power, dependency_pins_checked=len(dependency_pins), cache="passed",
+            parent_gates_sha256=args.gates_sha256, claim_consumed=False))
+     started = time.monotonic()
+     state["active_long_campaign"] = reg["expected_lease"]
+# build_remaining_bindings.py -> build_recovery_bindings.py and the test module are re-scoped rewrites; see files.

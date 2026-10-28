@@ -1,0 +1,169 @@
+{
+  "schema": "fullgame_priority_three_run_recovery_r2_review_v1",
+  "reviewer": "claude-haiku-5-5",
+  "reviewed_package": "learning/runs/v2/fullgame-priority-three-run-recovery-sonnet-20261028-r2/",
+  "reviewed_package_manifest_sha256": "7e5e63e2cc03091af13f8946e3f8cfb333ce2fcdc5599980c0145b00310ab9c6",
+  "verdict": "no_blocking_packet_findings",
+  "pre_launch_conditions": [
+    {
+      "id": "P1",
+      "severity": "high",
+      "summary": "Root native exec_command wall-timeout behaviour for a run longer than 30 minutes is unverified; a dispatcher kill leaves the detached observer running with no power assertion.",
+      "must_be_recorded_before": "fresh user approval"
+    }
+  ],
+  "blocking_findings": [],
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "high",
+      "category": "launch-precondition",
+      "file": "learning/runs/v2/fullgame-priority-three-run-recovery-sonnet-20261028-r2/start_remaining_one.py",
+      "line": 194,
+      "trigger": "Root native exec session (or any caller) enforces a wall timeout shorter than work 3780 + cleanup 10 + postflight, or kills the dispatcher process while the observer is alive. The observer is started with start_new_session=True, so it is outside the dispatcher's process group. The caffeinate helper is a child of the dispatcher and releases its assertions when the dispatcher exits.",
+      "consequence": "After the dispatcher dies, the observer and worker keep training with no PreventSystemSleep or PreventUserIdleSystemSleep. A sleep stalls the worker, and no execution-exit or parent-terminal receipt is written. The lease stays held. This is the same lost-run mode as the 2026-10-27 incident (incident-summary.json: wrapper killed at about 1826 s, Idle/Maintenance Sleep on AC). The incident's own residual_unknowns include whether sleep alone or the wrapper kill ended the processes, so this is not yet excluded.",
+      "evidence": "activation-template.json launch_command_template.notes ('any tool timeout must exceed ... use an explicit bound ... only if the tool supports it; otherwise omit the parameter'). Only a short probe (power-guard-r2-native-probe.json) has been run from the root session; no run longer than 30 minutes has been observed. Test test_launcher_changes_are_only_the_documented_ones (tests/test_recovery_bindings.py:295) pins start_new_session=True as intended, so the detachment is inherited from the proven parent, not new in r2.",
+      "action": "Before fresh approval, root records the native exec session's timeout behaviour and confirms it has no wall kill at or below about 3800 s, or accepts the residual risk in writing. No code change is required to close this as a packet blocker."
+    },
+    {
+      "id": "F2",
+      "severity": "medium",
+      "category": "power-guard-scope",
+      "file": "learning/runs/v2/fullgame-priority-three-run-recovery-sonnet-20261028-r2/start_remaining_one.py",
+      "line": 153,
+      "trigger": "The guard runs once in launch() before spending. Nothing re-checks the caffeinate helper or its assertions during the roughly 63-minute observer wait (start_remaining_one.py lines 202-226).",
+      "consequence": "If the helper dies or its assertions are released mid-run, the run continues unprotected and the dispatcher does not notice. Mitigated only by F1 handling.",
+      "action": "Accept as a limit. Optionally log a periodic pmset assertion snapshot in the wait loop in a later revision (this would change the manifest)."
+    },
+    {
+      "id": "F3",
+      "severity": "medium",
+      "category": "test-coverage",
+      "file": "learning/runs/v2/fullgame-priority-three-run-recovery-sonnet-20261028-r2/tests/test_recovery_bindings.py",
+      "line": 654,
+      "trigger": "launch() itself is not exercised by any of the 54 tests. Coverage is gate_check (LauncherGates), materialize (lines 654-663), the power guard (PowerGuard, lines 341-450), and one static text needle (lines 290-296). The launch order (gate, power check at start_remaining_one.py:153, cache check, materialize, state write, Popen) and the progress relay are only checked by reading.",
+      "consequence": "A regression in the observer loop, progress relay, exit receipt, or power-before-spend order would pass all 54 tests and surface at the first real dispatch.",
+      "action": "Accept for this one-time packet as a limit. A fake-Popen launch test would be the next addition in a later revision."
+    },
+    {
+      "id": "F4",
+      "severity": "low",
+      "category": "stale-documentation",
+      "file": "learning/runs/v2/fullgame-priority-three-run-recovery-sonnet-20261028-r2/launch-blockers.json",
+      "line": 9,
+      "trigger": "launch-blockers.json says 'Own tests (48 stdlib/fake)'. README.md:36 says 54, logs/test-summary.json says tests_run 54, and I counted 54 test functions. README.md:36 and launch-blockers.json B4 (line 20) still say the actual probe is pending, but power-guard-r2-native-probe.json (status passed) exists.",
+      "consequence": "Reviewer and parent confusion only. No gate reads these strings.",
+      "action": "Fix the text in a later revision. Both files are manifest-bound, so this needs a new manifest and review."
+    },
+    {
+      "id": "F5",
+      "severity": "low",
+      "category": "candidate-authority-label",
+      "file": "learning/runs/v2/fullgame-priority-three-run-recovery-sonnet-20261028-r2/fullgame-seed-priority-luna-20261027-r1-replica-2-opening_priority/registration-final-candidate.json",
+      "line": 1,
+      "trigger": "Each candidate file carries status 'parent_registered' and launch_authority true, while README.md, build-receipt.json and package-manifest.json say launch_authority false.",
+      "consequence": "Misreading only. start_remaining_one.py gate_check requires approved gates (start_remaining_one.py:61-62), a fresh authorization (lines 103-106) naming this run, and an approved index. A candidate file alone cannot launch. The field is the same as the proven parent form.",
+      "action": "Note in the parent's disposition. No change needed."
+    },
+    {
+      "id": "F6",
+      "severity": "low",
+      "category": "fail-closed-type-error",
+      "file": "learning/runs/v2/fullgame-priority-three-run-recovery-sonnet-20261028-r2/start_remaining_one.py",
+      "line": 106,
+      "trigger": "auth['at_utc'] has no UTC offset, so it is naive and the comparison with packet_built_at_utc (aware) raises TypeError, not ValueError.",
+      "consequence": "The launch stops with a traceback before any spend. Fail-closed, but the error is less clear. The parent should write at_utc as an aware UTC ISO string (for example from datetime.now(timezone.utc).isoformat()).",
+      "action": "Note in the parent's authorization procedure."
+    },
+    {
+      "id": "F7",
+      "severity": "low",
+      "category": "partial-spend-state",
+      "file": "learning/runs/v2/fullgame-priority-three-run-recovery-sonnet-20261028-r2/start_remaining_one.py",
+      "line": 169,
+      "trigger": "replace_state() sets active_long_campaign, status and current_launch_authorized in the shared ledger before Popen (line 193). An exception after that point (for example in verify_bound or Popen) leaves the ledger claimed with no observer.",
+      "consequence": "Fail-closed. The spent-path check blocks any retry of this run. Recovery needs a manual ledger cleanup and a fresh authorization, which the parent should expect.",
+      "action": "Note in the parent's disposition."
+    },
+    {
+      "id": "F8",
+      "severity": "info",
+      "category": "authorization-freshness",
+      "file": "learning/runs/v2/fullgame-priority-three-run-recovery-sonnet-20261028-r2/start_remaining_one.py",
+      "line": 103,
+      "trigger": "Freshness is enforced by user_message not being in CONSUMED_USER_MESSAGES (remaining_plan.py) and at_utc being after packet_built_at_utc (line 106). Both fields are written by the parent.",
+      "consequence": "A plain future 'Go' is not rejected by this code, because it is not equal to the single consumed message. The gate cannot prove that a real user event occurred. The limit is parent-attested, which matches the stated design. No gratuitous content constraint was found."
+    }
+  ],
+  "checks": {
+    "package_manifest_members_checked": 19,
+    "package_manifest_mismatches": 0,
+    "package_manifest_self_sha256": "7e5e63e2cc03091af13f8946e3f8cfb333ce2fcdc5599980c0145b00310ab9c6",
+    "candidate_sha256": {
+      "replica-2-opening_priority": "651c22f671495a513a0256dea988da6dd0492a31b21cfb1a365a4c7ff88cd750",
+      "replica-3-uniform": "743e81139d529ea4dc05544263ee0bd7f50123dca0ac04d825abb8d0e0cc4efa",
+      "replica-3-opening_priority": "44c0bc4c6ffee5b17691c66991c33f3289a423f1e8f8fbfd93bf93ffeca9a086"
+    },
+    "candidate_vs_proven_parent_differing_keys": [
+      "/attempt_claim_path",
+      "/expected_lease/kind",
+      "/expected_lease/owner_token",
+      "/import_policy/pycache_prefix",
+      "/launch_marker_path",
+      "/output"
+    ],
+    "candidate_differences_identical_for_all_three": true,
+    "index_proposal_sha256": "4756aca3b2b0b4a0715ce483140e5c6cf8b7ef5e6a1613d96c68d8f5d5be38bd",
+    "index_proposal_superseded_sha256_matches_failed_and_old_drafts": true,
+    "gates_proposal_sha256": "5d7855018c6966c429ce5854e6fbf210162eda249285e21e31736956606bfe3f",
+    "gates_proposal_pin_count": 114,
+    "producer_home_remap_sha256": "659597ce8c69935b7172ca97495fd97690c9d1099e7e7c204423e1408d6e1732",
+    "producer_home_remap_endpoints": 3,
+    "d4_policy_plan_sha256_unchanged": "dd6ece9cec6a2152771ce820d8a7ae7ea281b480bc949be80e611b096997aeb4",
+    "power_guard_sha256": "83a410ae62f813a68d392b6e1eae0a3f47df1a37ea33dba0b34554bbf01c4efb",
+    "probe_power_guard_sha256": "8dc57472f4bedba9088217221853e9452080fd5e4031690c8996bed26ec01cbe",
+    "failure_audit_sha256": "032e681c1f0d9393c86f64438deed81c2af2f18d980e56244de8458de1ac4414",
+    "failure_lease_release_sha256": "149827465d03621ab31c2aac16cdac1b25fe62e47b3cd6207ee5f97a881e8b84",
+    "parent_checkpoint_sha256": "c10d90ec0e67503afef8f4d90c4968581d430ef2065117a75e81c445a04c8ddc",
+    "parent_receipt_sha256": "76cb15733e87518cb3b473b7f8ebd847ed206351fb9f17d89b8b92e6bf853f08",
+    "source_manifest_sha256": "a29e25b285d2d4651a2d74699929a27578860cfdd9a8d7980ca47c72824d41e2",
+    "runtime_manifest_sha256": "e032a5ab1d609512461e287d372375f1bf28800fb2b13d9c5cf98e20768de986",
+    "source_acceptance_sha256": "9b2a4bde33ac81453f0aa15079e7dd59a8c746da3de2ad56b352e8a83f8dfb03",
+    "dependency_inventory_sha256": "2957832457c39751998012f4aeb4440f5d7570250ae9ab072ee10d86dd970ed6",
+    "watch_progress_byte_identical_to_parent": true,
+    "ledger_active_long_campaign": null,
+    "ledger_active_inference_diagnostic": null,
+    "ledger_training_hold_active": false,
+    "unit_tests_declared": 54,
+    "unit_tests_counted_statically": 54,
+    "unit_tests_rerun_by_reviewer": false,
+    "power_guard_actual_probe": {
+      "file": "fullgame-priority-three-run-recovery-parent-validation-20261028-r1/power-guard-r2-native-probe.json",
+      "status": "passed",
+      "utility_pid": 10938,
+      "helper_pid": 10939,
+      "assertions": ["PreventDiskIdle", "PreventSystemSleep", "PreventUserIdleSystemSleep"],
+      "on_ac": true,
+      "training_launched": false,
+      "reviewer_reran": false
+    }
+  },
+  "power_guard_coverage": {
+    "static": "power_guard.py and probe_power_guard.py hashes match package manifest; logic read in full (requires exactly one ppid==dispatcher, same-pgid child whose argv is exactly /usr/bin/caffeinate -ims <command>, and PreventUserIdleSystemSleep + PreventSystemSleep owned by that PID in pmset -g assertions; refuses non-AC, global or unrelated owners, wrong flags, missing assertions, zero or multiple helpers).",
+    "fake": "PowerGuard class in tests/test_recovery_bindings.py (10 tests) using a fixture modelled on the observed topology. Negatives cover wrong helper ppid, wrong pgid, -u, -i only, -dims, merged flags, non-caffeinate binary, no wrapped command, two helpers, unrelated pid assertions, same pid with wrong process name, partial and missing assertions, and read-only calls.",
+    "actual_nonlearning": "root native exec_command probe passed (see checks.power_guard_actual_probe). Reviewer did not rerun it.",
+    "runtime_mps": "not exercised. No MPS, native, torch or training run was executed or is required for this review."
+  },
+  "limits": [
+    "run_tests.py was not executed. It rewrites logs/test-summary.json and removes tmp/ inside the package. The 54 count is from a static count of test functions plus the existing summary file.",
+    "The stream hashes were not recomputed, because that needs the r3 seed_priority module. Byte equality with the proven parent candidates, outside the six keys above, means the stream verification inherits from the parent. The build receipt reports stream_recomputation passed for all 64 slots and 3 runs.",
+    "The checkpoint and receipt were hashed only as bytes. Nothing was deserialized.",
+    "No checkpoint loading, no D4/D5 outcome, no held-out evaluation, no selection or promotion was reviewed or performed.",
+    "The live PID state from the probe cannot be verified now. The probe JSON is the only evidence of the power-guard topology."
+  ],
+  "launch_authority_created_by_review": false,
+  "files_written_by_reviewer": [
+    "learning/runs/v2/fullgame-priority-three-run-recovery-r2-review-haiku-20261028-r1/review.json",
+    "learning/runs/v2/fullgame-priority-three-run-recovery-r2-review-haiku-20261028-r1/review.md"
+  ]
+}

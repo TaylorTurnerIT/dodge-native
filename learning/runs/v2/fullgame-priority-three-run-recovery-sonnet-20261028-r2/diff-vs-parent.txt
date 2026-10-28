@@ -1,0 +1,549 @@
+=== r2 vs r1 (unlaunched predecessor) ===
+--- ../fullgame-priority-three-run-recovery-sonnet-20261028-r1/power_guard.py	2026-10-28 01:43:53
++++ power_guard.py	2026-10-28 01:53:10
+@@ -1,35 +1,58 @@
+-"""Read-only preflight: AC power and a scoped caffeinate held by this dispatcher's parent.
++"""Read-only preflight: AC power and a scoped caffeinate helper tied to this dispatcher.
+ 
+ Operational guard only; it changes no power setting. The dispatcher must be started as
+-`/usr/bin/caffeinate -ims <env/python dispatcher>` so the assertion spans the observer wait.
++`/usr/bin/caffeinate -ims <env/python dispatcher>`. macOS caffeinate execs the utility and keeps
++a helper CHILD that owns the assertions, so the helper is a direct child of this process
++(same process group). The dispatcher's own parent is unrelated (e.g. the app server).
+ """
+ import os
+ import re
+ import subprocess
+ 
+ CAFFEINATE = "/usr/bin/caffeinate"
++FLAGS = "-ims"
+ REQUIRED_ASSERTIONS = ("PreventUserIdleSystemSleep", "PreventSystemSleep")
++_ASSERTION = re.compile(r"\s*pid (\d+)\(([^)]*)\):.*?\b(Prevent\w+)\b")
+ 
+ 
+ def _run(argv):
+     return subprocess.run(argv, capture_output=True, text=True, check=True, timeout=20).stdout
+ 
+ 
+-def check(run=_run, pid=None, ppid=None):
++def _processes(text):
++    rows = []
++    for line in text.splitlines():
++        fields = line.split(None, 3)
++        if len(fields) == 4 and all(field.isdigit() for field in fields[:3]):
++            rows.append(dict(pid=int(fields[0]), ppid=int(fields[1]), pgid=int(fields[2]), command=fields[3]))
++    return rows
++
++
++def check(run=_run, pid=None):
+     """Return a receipt dict or raise ValueError. `run` is injectable for fake tests."""
+     pid = os.getpid() if pid is None else pid
+-    ppid = os.getppid() if ppid is None else ppid
+     if "AC Power" not in run(["/usr/bin/pmset", "-g", "batt"]).splitlines()[0]:
+         raise ValueError("not drawing from AC power")
+-    command = run(["/bin/ps", "-o", "command=", "-p", str(ppid)]).strip().split()
+-    if len(command) < 2 or command[0] != CAFFEINATE or command[1] != "-ims":
+-        raise ValueError("dispatcher parent is not exactly `/usr/bin/caffeinate -ims`: " + " ".join(command[:3]))
++    rows = _processes(run(["/bin/ps", "-axo", "pid=,ppid=,pgid=,command="]))
++    me = next((row for row in rows if row["pid"] == pid), None)
++    if me is None:
++        raise ValueError("dispatcher process not found in ps: " + str(pid))
++    helpers = []
++    for row in rows:
++        tokens = row["command"].split()
++        if (row["ppid"] == pid and row["pgid"] == me["pgid"] and len(tokens) > 2
++                and tokens[0] == CAFFEINATE and tokens[1] == FLAGS):
++            helpers.append(row)
++    if len(helpers) != 1:
++        raise ValueError("expected exactly one `/usr/bin/caffeinate -ims <command>` helper child of the dispatcher "
++                         "in its process group, found " + str(len(helpers)))
++    helper = helpers[0]["pid"]
+     held = set()
+     for line in run(["/usr/bin/pmset", "-g", "assertions"]).splitlines():
+-        match = re.match(r"\s*pid (\d+)\(caffeinate\):.*?\b(Prevent\w+)\b", line)
+-        if match and int(match.group(1)) == ppid:
+-            held.add(match.group(2))
++        match = _ASSERTION.match(line)
++        if match and int(match.group(1)) == helper and match.group(2) == "caffeinate":
++            held.add(match.group(3))
+     missing = [name for name in REQUIRED_ASSERTIONS if name not in held]
+     if missing:
+-        raise ValueError("caffeinate assertion not held by dispatcher parent: " + ",".join(missing))
+-    return dict(on_ac=True, caffeinate_pid=ppid, dispatcher_pid=pid, assertions=sorted(held))
++        raise ValueError("caffeinate assertion not held by dispatcher's caffeinate helper: " + ",".join(missing))
++    return dict(on_ac=True, dispatcher_pid=pid, caffeinate_helper_pid=helper, assertions=sorted(held))
+--- ../fullgame-priority-three-run-recovery-sonnet-20261028-r1/build_recovery_bindings.py	2026-10-28 01:45:07
++++ build_recovery_bindings.py	2026-10-28 01:53:53
+@@ -20,7 +20,7 @@
+ TEMPLATE = p.VALIDATION / "reviewed-gates-template.json"
+ PARENT_CODE = ("remaining_plan.py", "start_remaining_one.py", "watch_progress.py", "build_remaining_bindings.py")
+ OWN_CODE = ("remaining_plan.py", "start_remaining_one.py", "watch_progress.py", "power_guard.py",
+-            "build_recovery_bindings.py")
++            "probe_power_guard.py", "build_recovery_bindings.py")
+ # Candidate fields that may differ from the same run's registration in the proven parent package.
+ RUN_PRIVATE = {"output", "attempt_claim_path", "launch_marker_path", "import_policy", "expected_lease"}
+ 
+--- ../fullgame-priority-three-run-recovery-sonnet-20261028-r1/README.md	2026-10-28 01:48:31
++++ README.md	2026-10-28 01:54:31
+@@ -1,15 +1,17 @@
+-# Three-run seed-priority recovery packet (prospective, no launch authority)
++# Three-run seed-priority recovery packet r2 (prospective, no launch authority)
+ 
++Successor of the unlaunched r1 packet (kept untouched); only the read-only `power_guard.py`, its tests/docs and the rebuilt private candidate paths/tokens differ. Other r1 dispatcher/registration semantics are unchanged.
++
+ Study `fullgame-seed-priority-luna-20261027-r1`, six planned terminal60 endpoints. Retained, audited: replica-1 uniform, replica-1 opening_priority, replica-2 uniform. Replica-2 opening_priority was lost after 5 durable updates (Mac slept, tool wall timeout expired; audit `032e681c...`, lease release `14982746...`). The five-run sequence stopped per STOP-ON-FAULT; its Go is consumed. **No user approval exists for anything here.**
+ 
+ ## Candidates (restart from the original accepted parent324 + Adam + same six-key RNG vector)
+ | run_id | registration candidate SHA-256 |
+ |---|---|
+-| `...-replica-2-opening_priority` | `5de0853263606f91b2706f545c98ff98a0ab32fc33b21589b650bf338776752b` |
+-| `...-replica-3-uniform` | `5ce87df408d1e86d834a77393475a41992684670646b237a5981f99d16f8072b` |
+-| `...-replica-3-opening_priority` | `95b1e065db9adad8f57df86a56f79b4c3c79c4fd23d11014698037fe43755600` |
++| `...-replica-2-opening_priority` | `651c22f671495a513a0256dea988da6dd0492a31b21cfb1a365a4c7ff88cd750` |
++| `...-replica-3-uniform` | `743e81139d529ea4dc05544263ee0bd7f50123dca0ac04d825abb8d0e0cc4efa` |
++| `...-replica-3-opening_priority` | `44c0bc4c6ffee5b17691c66991c33f3289a423f1e8f8fbfd93bf93ffeca9a086` |
+ 
+-Index proposal `5089e5c748ecfd243be482add3d41daf45fcd31baa77b566291ae1d47599ea16`; gates proposal `87633f8a2e8317c86fe0a85f025a9d6fbf6bc292509e8e63b0f215533bd880cc` (113 pins). Package manifest: `package-manifest.json` (file SHAs; its own SHA is what the review and gates bind).
++Index proposal `4756aca3b2b0b4a0715ce483140e5c6cf8b7ef5e6a1613d96c68d8f5d5be38bd`; gates proposal `5d7855018c6966c429ce5854e6fbf210162eda249285e21e31736956606bfe3f` (114 pins). Package manifest: `package-manifest.json` (file SHAs; its own SHA is what the review and gates bind).
+ 
+ Same run IDs and seed vectors/references/pool as the parent package's drafts; only private output/claim/marker/pycache paths and a fresh lease token (kind `fullgame_seed_priority_recovery_attempt`) differ (builder asserts exactly these five fields). The 5 discarded updates are extra infrastructure waste: not a continuation, not endpoint selection. Each registration is attempted exactly once, 0 retries.
+ 
+@@ -20,7 +22,7 @@
+ - `watch_progress.py`: byte-identical.
+ - `remaining_plan.py`: run set (3), new lease kind/schemas, recovery constants (failure audit/release, checkpoint, receipt, stale-authority list, consumed user message).
+ - `start_remaining_one.py` (dispatcher, observer/wait logic untouched): binding module-origin assertion; spent-name list adds `progress-reports.jsonl`, `progress-alert.json`, `cancel`; shared pending-state path must be absent; gates must bind index proposal SHA + promoted index SHA, failure audit + release, exact checkpoint + receipt, an independent review pinned to the exact package manifest (and every manifest file still matches), no stale authority pins; authorization must be a different, later message and carry index-proposal and failure-audit SHAs; `power_guard.check()` before anything is spent.
+-- `power_guard.py` (new, read-only): on AC, dispatcher parent is exactly `/usr/bin/caffeinate -ims`, and it holds PreventUserIdleSystemSleep + PreventSystemSleep.
++- `power_guard.py` + `probe_power_guard.py` (new, read-only; repaired in r2): on AC, a fresh `ps -axo pid=,ppid=,pgid=,command=` shows exactly one direct child of the dispatcher process, same process group, whose command starts `/usr/bin/caffeinate -ims <wrapped command>`; `pmset -g assertions` shows PreventUserIdleSystemSleep + PreventSystemSleep owned by that helper PID (name `caffeinate`). macOS caffeinate execs the utility and keeps a helper CHILD, so the dispatcher's parent (the app server) is normal and not inspected. Unrelated global caffeinates, wrong parentage/flags, battery and missing assertions are refused. r1 required the dispatcher PARENT to be caffeinate and failed the actual root probe (`parent-validation-20261028-r1/power-guard-*.json`); no trial was spent.
+ - `build_recovery_bindings.py`, `tests/test_recovery_bindings.py`: re-scoped.
+ - Excluded from gates: old five-run authorization, index, index proposal, gates, manifest, campaign proposal, activation record, first-run authority/launcher. Mutable ledger never pinned.
+ 
+@@ -31,7 +33,7 @@
+ `producer-home-remap.json`: original D4 r2 paths and proposed recovery paths + candidate SHA for the three endpoints only. D4 r2 plan untouched (SHA pinned). Root later makes a reviewed successor/adaptation; all six endpoints stay fixed at 60 before D4 opens; no subset eval.
+ 
+ ## Tests
+-`python -B run_tests.py`: 48 stdlib CPU/fake checks, all pass (`logs/test-summary.json`). No native/torch/MPS/checkpoint deserialization/reference rerun/training. Real caffeinate assertion could not be observed in the sandbox (see B4 in `launch-blockers.json`).
++`python -B run_tests.py`: 54 stdlib CPU/fake checks, all pass (`logs/test-summary.json`). No native/torch/MPS/checkpoint deserialization/reference rerun/training. Fake power-guard tests encode the actual observed helper-child topology plus negatives. The actual scoped probe is pending in the root native session (B4).
+ 
+ ## Activation
+ See `activation-template.json` and `launch-blockers.json`. Final step after independent review: fresh explicit user approval of this concrete three-run plan; parent copies the verbatim text and the run/SHA pairs.
+--- ../fullgame-priority-three-run-recovery-sonnet-20261028-r1/launch-blockers.json	2026-10-28 01:48:11
++++ launch-blockers.json	2026-10-28 01:53:42
+@@ -16,9 +16,9 @@
+       "item": "Parent promotion not performed."
+     },
+     {
+-      "detail": "In the preparation sandbox `caffeinate -ims` assertions were not visible in `pmset -g assertions` (no caffeinate rows), so only fake-runner tests exist. The first real dispatch in the root native session must show AC power and the scoped assertion or the dispatcher refuses before spending anything.",
++      "detail": "r1 guard wrongly required the dispatcher parent to be caffeinate (actual: caffeinate execs the utility and keeps a helper child owning the assertions). r2 guard checks the helper child and its assertions; only fake tests exist. Run the non-learning scoped probe in activation-template.json from the ROOT native exec session (needs no user approval) and report the real result before dispatch; the dispatcher also refuses before spending anything if it fails.",
+       "id": "B4",
+-      "item": "Power guard real-assertion check not exercised."
++      "item": "Repaired power guard not yet exercised on the real Mac."
+     },
+     {
+       "detail": "fullgame-priority-D4-evaluator-sonnet-20261028-r2/policy-plan.json is untouched. Root must create a reviewed successor or registration-binding adaptation from producer-home-remap.json before D4 is opened; all six terminal60 endpoints stay fixed.",
++++ activation-template.json	2026-10-28 01:54:31
+@@ -6,20 +6,20 @@
+       "execution": "Three runs sequentially, exactly once each, in suggested order. Stop on any fault. Audit and release exact lease between runs.",
+       "failure_audit_sha256": "032e681c1f0d9393c86f64438deed81c2af2f18d980e56244de8458de1ac4414",
+       "heldout_evaluation_authorized_by_this_document": false,
+-      "index_proposal_sha256": "5089e5c748ecfd243be482add3d41daf45fcd31baa77b566291ae1d47599ea16",
++      "index_proposal_sha256": "4756aca3b2b0b4a0715ce483140e5c6cf8b7ef5e6a1613d96c68d8f5d5be38bd",
+       "max_registered_training_attempts": 3,
+       "retries": 0,
+       "runs": [
+         {
+-          "registration_sha256": "5de0853263606f91b2706f545c98ff98a0ab32fc33b21589b650bf338776752b",
++          "registration_sha256": "651c22f671495a513a0256dea988da6dd0492a31b21cfb1a365a4c7ff88cd750",
+           "run_id": "fullgame-seed-priority-luna-20261027-r1-replica-2-opening_priority"
+         },
+         {
+-          "registration_sha256": "5ce87df408d1e86d834a77393475a41992684670646b237a5981f99d16f8072b",
++          "registration_sha256": "743e81139d529ea4dc05544263ee0bd7f50123dca0ac04d825abb8d0e0cc4efa",
+           "run_id": "fullgame-seed-priority-luna-20261027-r1-replica-3-uniform"
+         },
+         {
+-          "registration_sha256": "95b1e065db9adad8f57df86a56f79b4c3c79c4fd23d11014698037fe43755600",
++          "registration_sha256": "44c0bc4c6ffee5b17691c66991c33f3289a423f1e8f8fbfd93bf93ffeca9a086",
+           "run_id": "fullgame-seed-priority-luna-20261027-r1-replica-3-opening_priority"
+         }
+       ],
+@@ -38,7 +38,8 @@
+       "Run from a ROOT native exec_command session, not a Claude Bash background wrapper (30 min default kill).",
+       "caffeinate -ims is scoped to this command: it holds assertions through dispatcher start, observer wait and exit receipt; no -u, no display wake, no pmset changes.",
+       "If any tool timeout exists it must exceed work 3780 + cleanup 10 + postflight; use an explicit bound such as 4500 seconds only if the tool supports it; otherwise omit the parameter.",
+-      "Dispatcher refuses unless on AC and its parent is exactly `/usr/bin/caffeinate -ims` holding PreventUserIdleSystemSleep and PreventSystemSleep (power_guard.py).",
++      "Dispatcher refuses unless on AC and exactly one direct child of the dispatcher process, in its process group, is `/usr/bin/caffeinate -ims <command>` and that helper PID holds PreventUserIdleSystemSleep and PreventSystemSleep in `pmset -g assertions` (power_guard.py). macOS caffeinate execs the utility and keeps a helper CHILD, so the dispatcher's own parent (e.g. the app server) is not caffeinate and is not checked.",
++      "Non-learning actual check before the first dispatch (no approval needed, 0 ML, no ledger, no marker): from the same root native exec session run `/usr/bin/caffeinate -ims /usr/bin/env PYTHONDONTWRITEBYTECODE=1 <interpreter> -B <package>/probe_power_guard.py`. Report the root result; a sandbox that hides assertions is not an actual pass.",
+       "Cheap read-only monitor: python -B watch_progress.py --run-id <id> (no new loop code, no signalling)."
+     ],
+     "runs": {
+@@ -47,10 +48,10 @@
+         "-ims",
+         "/usr/bin/env",
+         "PYTHONDONTWRITEBYTECODE=1",
+         "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+         "-B",
+         "--run-id",
+         "fullgame-seed-priority-luna-20261027-r1-replica-2-opening_priority",
+         "--index-sha256",
+@@ -63,10 +64,10 @@
+         "-ims",
+         "/usr/bin/env",
+         "PYTHONDONTWRITEBYTECODE=1",
+         "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+         "-B",
+         "--run-id",
+         "fullgame-seed-priority-luna-20261027-r1-replica-3-opening_priority",
+         "--index-sha256",
+@@ -79,10 +80,10 @@
+         "-ims",
+         "/usr/bin/env",
+         "PYTHONDONTWRITEBYTECODE=1",
+         "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+         "-B",
+         "--run-id",
+         "fullgame-seed-priority-luna-20261027-r1-replica-3-uniform",
+         "--index-sha256",
+=== probe_power_guard.py: new ===
+=== tests: see below ===
+--- ../fullgame-priority-three-run-recovery-sonnet-20261028-r1/tests/test_recovery_bindings.py	2026-10-28 01:47:48
++++ tests/test_recovery_bindings.py	2026-10-28 01:53:53
+@@ -266,7 +266,7 @@
+         for key in p.REMAINING:
+             path = p.run_home(*key) / "registration-final-candidate.json"
+             self.assertEqual(pins[str(path)], p.sha(path))
+-        for name in ("start_remaining_one.py", "remaining_plan.py", "power_guard.py", "watch_progress.py", "producer-home-remap.json"):
++        for name in ("start_remaining_one.py", "remaining_plan.py", "power_guard.py", "probe_power_guard.py", "watch_progress.py", "producer-home-remap.json"):
+             self.assertIn(str(p.HERE / name), pins)
+ 
+     def test_dependency_inventory_still_matches(self):
+@@ -326,6 +326,9 @@
+         self.assertEqual(fields["retries"], 0)
+         self.assertIn("VERBATIM", fields["user_message"])
+         self.assertEqual(fields["index_proposal_sha256"], p.sha(p.HERE / "registration-index-proposal.json"))
++        notes = " ".join(t["launch_command_template"]["notes"])
++        for needle in ("helper CHILD", "pmset -g assertions", "probe_power_guard.py", "root native exec", "no approval needed"):
++            self.assertIn(needle, notes)
+         for run_id, command in t["launch_command_template"]["runs"].items():
+             self.assertEqual(command[:3], ["/usr/bin/caffeinate", "-ims", "/usr/bin/env"])
+             self.assertNotIn("-u", command)
+@@ -336,40 +339,116 @@
+ 
+ 
+ class PowerGuard(unittest.TestCase):
+-    ASSERTIONS = ("Listed by owning process:\n"
+-                  "   pid 500(caffeinate): [0x1] 00:00:01 PreventUserIdleSystemSleep named: \"caffeinate command-line tool\"\n"
+-                  "   pid 500(caffeinate): [0x2] 00:00:01 PreventSystemSleep named: \"caffeinate command-line tool\"\n")
++    """Fake runner encoding the ACTUAL observed macOS topology (root probe 2026-10-28):
++    app server -> utility 7356 (exec'd by caffeinate) -> direct helper child 7357 (owns assertions),
++    same process group; the utility's own parent is the app server, never caffeinate."""
++    UTILITY, HELPER, SERVER = 7356, 7357, 88329
++    HELPER_COMMAND = ("/usr/bin/caffeinate -ims /usr/bin/env PYTHONDONTWRITEBYTECODE=1 PYTHONPYCACHEPREFIX=/x/empty-pycache "
++                      "/x/python -B /x/start_remaining_one.py --run-id r --index-sha256 a --gates-sha256 b")
+ 
+-    def runner(self, batt="Now drawing from 'AC Power'\n", command="/usr/bin/caffeinate -ims /usr/bin/env X=1 py", assertions=None):
++    @staticmethod
++    def assertion_lines(owner, kinds=("PreventUserIdleSystemSleep", "PreventSystemSleep", "PreventDiskIdle"), name="caffeinate"):
++        return "".join(f'   pid {owner}({name}): [0x{i}] 00:00:00 {kind} named: "caffeinate command-line tool"  \n'
++                       for i, kind in enumerate(kinds, 1))
++
++    def rows(self, helper_ppid=None, helper_pgid=None, helper_command=None, extra=()):
++        helper_ppid = self.UTILITY if helper_ppid is None else helper_ppid
++        helper_pgid = self.UTILITY if helper_pgid is None else helper_pgid
++        helper_command = self.HELPER_COMMAND if helper_command is None else helper_command
++        lines = [(self.SERVER, 99204, self.SERVER, "codex app-server"),
++                 (self.UTILITY, self.SERVER, self.UTILITY, "/x/python -B -"),
++                 (self.HELPER, helper_ppid, helper_pgid, helper_command),
++                 (7358, self.UTILITY, self.UTILITY, "/bin/ps -axo pid=,ppid=,pgid=,command=")]
++        lines += list(extra)
++        return "".join(f"{a:>7} {b:>7} {c:>7} {d}\n" for a, b, c, d in lines)
++
++    def runner(self, batt="Now drawing from 'AC Power'\n", rows=None, assertions=None):
+         def run(argv):
+             if argv[0].endswith("pmset") and argv[2] == "batt":
+                 return batt
+             if argv[0].endswith("ps"):
+-                return command + "\n"
+-            return self.ASSERTIONS if assertions is None else assertions
++                self.assertEqual(argv[1:], ["-axo", "pid=,ppid=,pgid=,command="])
++                return self.rows() if rows is None else rows
++            self.assertEqual(argv[1:], ["-g", "assertions"])
++            return ("Listed by owning process:\n" + self.assertion_lines(self.HELPER)) if assertions is None else assertions
+         return run
+ 
+-    def test_pass(self):
+-        receipt = power_guard.check(self.runner(), pid=501, ppid=500)
++    def test_actual_observed_topology_passes(self):
++        receipt = power_guard.check(self.runner(), pid=self.UTILITY)
+         self.assertTrue(receipt["on_ac"])
+-        self.assertEqual(receipt["assertions"], ["PreventSystemSleep", "PreventUserIdleSystemSleep"])
++        self.assertEqual(receipt["caffeinate_helper_pid"], self.HELPER)
++        self.assertEqual(receipt["dispatcher_pid"], self.UTILITY)
++        self.assertEqual(receipt["assertions"], ["PreventDiskIdle", "PreventSystemSleep", "PreventUserIdleSystemSleep"])
+ 
++    def test_utility_parent_being_app_server_is_normal(self):
++        # the dispatcher's own parent is not inspected at all
++        for server_command in ("codex app-server", "/bin/zsh -c x"):
++            rows = self.rows().replace("codex app-server", server_command)
++            self.assertTrue(power_guard.check(self.runner(rows=rows), pid=self.UTILITY)["on_ac"])
++
+     def test_battery_refused(self):
+         with self.assertRaisesRegex(ValueError, "AC"):
+-            power_guard.check(self.runner(batt="Now drawing from 'Battery Power'\n"), pid=501, ppid=500)
++            power_guard.check(self.runner(batt="Now drawing from 'Battery Power'\n"), pid=self.UTILITY)
+ 
+-    def test_wrong_parent_refused(self):
+-        for command in ("/bin/zsh -c x", "/usr/bin/caffeinate -u py", "/usr/bin/caffeinate -i py"):
+-            with self.assertRaisesRegex(ValueError, "exactly"):
+-                power_guard.check(self.runner(command=command), pid=501, ppid=500)
+-
+-    def test_missing_or_foreign_assertion_refused(self):
++    def test_dispatcher_missing_from_ps_refused(self):
++        with self.assertRaisesRegex(ValueError, "not found"):
++            power_guard.check(self.runner(), pid=4242)
++
++    def test_wrong_helper_relationship_or_flags_refused(self):
++        cases = {
++            "global helper not a child": self.rows(helper_ppid=self.SERVER),
++            "helper in another process group": self.rows(helper_pgid=self.SERVER),
++            "other flags -u": self.rows(helper_command=self.HELPER_COMMAND.replace("-ims", "-u")),
++            "only -i": self.rows(helper_command=self.HELPER_COMMAND.replace("-ims", "-i")),
++            "extra flag -dims": self.rows(helper_command=self.HELPER_COMMAND.replace("-ims", "-dims")),
++            "flags merged into other token": self.rows(helper_command=self.HELPER_COMMAND.replace("-ims ", "-ims-x ")),
++            "not caffeinate": self.rows(helper_command=self.HELPER_COMMAND.replace("/usr/bin/caffeinate", "/usr/local/bin/caffeinate")),
++            "no wrapped command": self.rows(helper_command="/usr/bin/caffeinate -ims"),
++            "no helper at all": self.rows(helper_command="/bin/sleep 5"),
++        }
++        for label, rows in cases.items():
++            with self.subTest(label), self.assertRaisesRegex(ValueError, "exactly one"):
++                power_guard.check(self.runner(rows=rows), pid=self.UTILITY)
++
++    def test_two_matching_helpers_refused(self):
++        rows = self.rows(extra=[(7400, self.UTILITY, self.UTILITY, self.HELPER_COMMAND)])
++        with self.assertRaisesRegex(ValueError, "exactly one"):
++            power_guard.check(self.runner(rows=rows), pid=self.UTILITY)
++
++    def test_unrelated_global_caffeinate_assertions_refused(self):
++        unrelated = "Listed by owning process:\n" + self.assertion_lines(9999)
+         with self.assertRaisesRegex(ValueError, "not held"):
+-            power_guard.check(self.runner(assertions="Listed by owning process:\n"), pid=501, ppid=500)
++            power_guard.check(self.runner(assertions=unrelated), pid=self.UTILITY)
++        # assertions owned by the utility pid itself do not count either
+         with self.assertRaisesRegex(ValueError, "not held"):
+-            power_guard.check(self.runner(), pid=501, ppid=499)
++            power_guard.check(self.runner(assertions=self.assertion_lines(self.UTILITY)), pid=self.UTILITY)
++        # right pid but a different process name
++        with self.assertRaisesRegex(ValueError, "not held"):
++            power_guard.check(self.runner(assertions=self.assertion_lines(self.HELPER, name="python")), pid=self.UTILITY)
++
++    def test_unrelated_assertions_cannot_complete_a_partial_set(self):
++        mixed = (self.assertion_lines(self.HELPER, kinds=("PreventUserIdleSystemSleep",))
++                 + self.assertion_lines(9999, kinds=("PreventSystemSleep",)))
++        with self.assertRaisesRegex(ValueError, "PreventSystemSleep"):
++            power_guard.check(self.runner(assertions=mixed), pid=self.UTILITY)
++
++    def test_missing_required_assertion_refused(self):
++        for kinds, missing in ((("PreventDiskIdle",), "PreventUserIdleSystemSleep"),
++                               (("PreventSystemSleep", "PreventDiskIdle"), "PreventUserIdleSystemSleep"),
++                               (("PreventUserIdleSystemSleep",), "PreventSystemSleep")):
++            with self.subTest(kinds), self.assertRaisesRegex(ValueError, missing):
++                power_guard.check(self.runner(assertions=self.assertion_lines(self.HELPER, kinds=kinds)), pid=self.UTILITY)
++        with self.assertRaisesRegex(ValueError, "not held"):
++            power_guard.check(self.runner(assertions="Listed by owning process:\n"), pid=self.UTILITY)
+ 
++    def test_guard_is_read_only(self):
++        seen = []
++        inner = self.runner()
++        power_guard.check(lambda argv: (seen.append(argv), inner(argv))[1], pid=self.UTILITY)
++        self.assertEqual(sorted(a[0] for a in seen), ["/bin/ps", "/usr/bin/pmset", "/usr/bin/pmset"])
++        self.assertTrue(all(a[1:] in (["-g", "batt"], ["-g", "assertions"], ["-axo", "pid=,ppid=,pgid=,command="]) for a in seen))
+ 
++
+ class Fixture:
+     """Temporary promoted packet over real immutable evidence and a fake ledger."""
+     def __init__(self, key=(2, "opening_priority")):
+
+=== r2 vs proven parent package ===
+--- ../fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1/remaining_plan.py	2026-10-27 22:59:56
++++ remaining_plan.py	2026-10-28 01:43:44
+@@ -1,4 +1,4 @@
+-"""Shared constants and pure helpers for the remaining seed-priority r3 bindings.
++"""Shared constants and pure helpers for the three-run seed-priority recovery packet.
+ 
+ Stdlib only. Importing this module reads nothing and writes nothing.
+ """
+@@ -12,6 +12,11 @@
+ V2 = ROOT / "learning/runs/v2"
+ R3 = V2 / "fullgame-seed-priority-experiment-luna-20261027-r3"
+ PRIOR = V2 / "fullgame-seed-priority-fresh-attempt-proposal-parent-20261027-r1"
++PARENT_PKG = V2 / "fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1"  # proven thin parent; read-only here
++VALIDATION = V2 / "fullgame-priority-remaining-r3-parent-validation-20261027-r1"
++FAILURE = V2 / "fullgame-priority-overnight-interruption-audit-sonnet-20261028-r1"
++CHECKPOINT = V2 / "D2-retained300-continuation-20261026-r1/checkpoint-000324-candidate.pt"
++PARENT_RECEIPT = V2 / "D2-retained300-parent-terminal-audit-20261026-r1/retained-best-candidate-receipt.json"
+ REF_ROOT = V2 / "fullgame-priority-rng-reference-parent-20261027-r1"
+ PROGRAMME = V2 / "rl-next-experiments-parent-20261027-r1"
+ STUDY = "fullgame-seed-priority-luna-20261027-r1"
+@@ -29,9 +34,28 @@
+ FIRST_LEASE_RELEASE_SHA256 = "6a0ba593bd1759bed03c78c18fd8a1b1991b30851bb456240cd944f4904f81a0"
+ FIRST_OWNER_TOKEN = "13c32efc846e49d19a817a2194566537"
+ 
+-# Order is a suggestion only; the parent chooses and every launch is separate.
+-REMAINING = ((1, "opening_priority"), (2, "uniform"), (2, "opening_priority"),
+-             (3, "uniform"), (3, "opening_priority"))
++FAILURE_AUDIT_SHA256 = "032e681c1f0d9393c86f64438deed81c2af2f18d980e56244de8458de1ac4414"
++FAILURE_RELEASE_SHA256 = "149827465d03621ab31c2aac16cdac1b25fe62e47b3cd6207ee5f97a881e8b84"
++PARENT_RECEIPT_SHA256 = "76cb15733e87518cb3b473b7f8ebd847ed206351fb9f17d89b8b92e6bf853f08"
++FAILED_RUN_ID = STUDY + "-replica-2-opening_priority"
++FAILED_REGISTRATION_SHA256 = "db2da67332b51c3cb3839bc8cc08afd1bcca105f64023a47cb8d8da2a0006658"
++
++# Retained completed endpoints (audited, lease released). They are evidence, never relaunched.
++COMPLETED = ((1, "opening_priority", PARENT_PKG), (2, "uniform", PARENT_PKG))
++
++# The recovery set: the failed arm restarted from the original parent, then replica 3 in order.
++# Order is a suggestion only; every launch is separate.
++REMAINING = ((2, "opening_priority"), (3, "uniform"), (3, "opening_priority"))
++# Registrations of the same run IDs in the proven parent package; their paths and tokens stay spent/unused.
++OLD_CANDIDATE_SHA256 = {
++    (2, "opening_priority"): FAILED_REGISTRATION_SHA256,
++    (3, "uniform"): "39e1aaacfacc6fe614a8053b64bef9aff2f6ebea08db26a79555a75b57ac2397",
++    (3, "opening_priority"): "455442b216aad1501a7c702c0d2563dc0d1e40db46face80c1f74bbcbed7ada9",
++}
++# Consumed user messages; a recovery authorization must be a different, later message.
++CONSUMED_USER_MESSAGES = (
++    "You're good to go. Continue overnight. Be efficient with your usage so we don't run out of codex. Free models and cheap claude.",
++)
+ DRAFT_DIR = R3 / "registrations-gated-r3-20261027"
+ DRAFT_SHA256 = {
+     (1, "uniform"): "9816698ea6d6cf3718695c3d5cf0dce11ba69ecde0bff6c57ad346c7217d4e57",
+@@ -43,16 +67,30 @@
+ }
+ DRAFT_INDEX_SHA256 = "bfb35cca05f7047084a34c3b01f0e5aeb5f36e5788ca114d48fc4e7e47cde803"
+ 
+-LEASE_KIND = "fullgame_seed_priority_remaining_attempt"
++LEASE_KIND = "fullgame_seed_priority_recovery_attempt"
+ INDEX_PROPOSAL_STATUS = "proposal_only_unreviewed_not_promoted_no_launch_authority"
+ INDEX_PROMOTED_STATUS = "reviewed_exact_registrations_parent_promoted"
+ GATES_PROPOSAL_STATUS = "proposal_only_requires_independent_review_and_fresh_user_authorization"
+ GATES_APPROVED_STATUS = "approved_exactly_once_per_registered_run"
+-GATES_SCHEMA = "fullgame_seed_priority_remaining_r3_parent_gates_v1"
+-AUTH_SCHEMA = "fullgame_seed_priority_remaining_user_authorization_v1"
++GATES_SCHEMA = "fullgame_seed_priority_recovery_r3_parent_gates_v1"
++AUTH_SCHEMA = "fullgame_seed_priority_recovery_user_authorization_v1"
+ 
+ # Prior-gate pins that are not carried forward: the broken r2 source bindings and
+ # the authority/dispatch evidence already consumed by the first attempt.
++# Authority and proposal artifacts of earlier packages are never carried into recovery gates.
++STALE_AUTHORITY = {
++    PARENT_PKG / "fresh-user-authorization.json": "consumed five-run authority",
++    PARENT_PKG / "registration-index.json": "old promoted five-run index",
++    PARENT_PKG / "registration-index-proposal.json": "old five-run index proposal",
++    PARENT_PKG / "parent-gates.json": "old approved gates",
++    PARENT_PKG / "parent-gates-proposal.json": "old gates proposal",
++    PARENT_PKG / "package-manifest.json": "old package manifest",
++    VALIDATION / "remaining-campaign-proposal.json": "old five-run proposal",
++    VALIDATION / "authorization-ready.json": "old activation record",
++    PRIOR / "fresh-user-authorization.json": "consumed first-run authority",
++    PRIOR / "registration-index.json": "first-run index",
++    PRIOR / "start_one.py": "first-run launcher",
++}
+ EXCLUDED_PRIOR_PINS = {
+     "fullgame-seed-priority-experiment-luna-20261027-r2/runtime-manifest.json": "broken r2 binding; r3 manifests pinned instead",
+     "fullgame-seed-priority-experiment-luna-20261027-r2/source-manifest.json": "broken r2 binding; r3 manifests pinned instead",
+--- ../fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1/start_remaining_one.py	2026-10-27 23:01:12
++++ start_remaining_one.py	2026-10-28 01:44:16
+@@ -1,4 +1,4 @@
+-"""Parent dispatch for exactly one of the remaining seed-priority r3 runs; no retries.
++"""Parent dispatch for exactly one of the three recovery seed-priority r3 runs; no retries.
+ 
+ PROSPECTIVE: refuses to run until the parent promotes registration-index.json and
+ parent-gates.json and writes a fresh user-authorization document. None exist in
+@@ -15,15 +15,22 @@
+ 
+ sys.dont_write_bytecode = True
+ import remaining_plan as p
++import power_guard
+ 
+ HERE = p.HERE
+ SOURCE = p.R3
+ sys.path.insert(0, str(SOURCE))
+ import binding as b
++if Path(b.__file__).resolve() != SOURCE / "binding.py":
++    raise ImportError("binding origin mismatch")
++PENDING_STATE = "state.seed-priority-remaining.pending.json"
++SPENT_NAMES = ("dispatch", "launch-envelope.json", "launch-approval.json", "parent-preflight.json",
++               "parent-execution.json", "execution-exit.json", "observer.log", "progress-reports.jsonl",
++               "progress-alert.json", "cancel")
+ 
+ 
+ def replace_state(path, state):
+-    pending = Path(path).with_name("state.seed-priority-remaining.pending.json")
++    pending = Path(path).with_name(PENDING_STATE)
+     b.save(pending, state)
+     os.replace(pending, path)
+     descriptor = os.open(Path(path).parent, os.O_RDONLY)
+@@ -62,6 +69,25 @@
+            and all(gates["pins"].get(path) == digest for path, digest in proposal["pins"].items()),
+            "approved gates must carry every reviewed proposal pin")
+     b.check_pins(gates["pins"])
++    b.need(gates.get("registration_index_proposal_sha256") == b.sha(base / "registration-index-proposal.json")
++           and gates["pins"].get(str(base / "registration-index-proposal.json")) == gates["registration_index_proposal_sha256"],
++           "gates must pin the exact index proposal")
++    b.need(gates.get("registration_index_sha256") == index_sha256, "gates must name the promoted index")
++    b.need(not any(Path(path) in p.STALE_AUTHORITY for path in gates["pins"]), "stale authority pinned in gates")
++    b.need(gates["pins"].get(str(p.FAILURE / "audit.json")) == p.FAILURE_AUDIT_SHA256
++           and gates["pins"].get(str(p.FAILURE / "lease-release.json")) == p.FAILURE_RELEASE_SHA256,
++           "failure audit and lease release pins missing")
++    b.need(gates["pins"].get(str(p.CHECKPOINT)) == p.CHECKPOINT_SHA256
++           and gates["pins"].get(str(p.PARENT_RECEIPT)) == p.PARENT_RECEIPT_SHA256,
++           "original parent324 checkpoint and receipt pins missing")
++    manifest_path = base / "package-manifest.json"
++    review = gates.get("independent_review") or {}
++    b.need(review.get("path") and gates["pins"].get(str(manifest_path)) == b.sha(manifest_path)
++           and review.get("package_manifest_sha256") == b.sha(manifest_path)
++           and gates["pins"].get(review["path"]) == review.get("sha256"),
++           "independent review of this exact package manifest must be pinned")
++    for relative, digest in b.read(manifest_path)["files"].items():
++        b.need(b.sha(base / relative) == digest, "package file differs from reviewed manifest: " + relative)
+     b.need(not any(Path(path).name == "state.json" for path in gates["pins"]),
+            "mutable ledger must not be pinned as immutable history")
+     b.need(gates["pins"].get(str(p.SOURCE_ACCEPTANCE)) == p.SOURCE_ACCEPTANCE_SHA256,
+@@ -74,6 +100,10 @@
+     auth = b.read(auth_path)
+     b.need(auth.get("schema") == p.AUTH_SCHEMA and auth.get("retries") == 0
+            and isinstance(auth.get("user_message"), str) and auth["user_message"].strip()
++           and auth["user_message"].strip() not in p.CONSUMED_USER_MESSAGES
++           and auth.get("index_proposal_sha256") == gates["registration_index_proposal_sha256"]
++           and auth.get("failure_audit_sha256") == p.FAILURE_AUDIT_SHA256
++           and datetime.datetime.fromisoformat(auth["at_utc"]) > datetime.datetime.fromisoformat(gates["packet_built_at_utc"])
+            and auth.get("source_manifest_sha256") == p.SOURCE_MANIFEST_SHA256
+            and {"run_id": run_id, "registration_sha256": row["registration_sha256"]} in auth.get("runs", []),
+            "fresh user authorization does not name this exact run and registration")
+@@ -94,9 +124,9 @@
+            "dependency inventory differs")
+     for key in ("output", "attempt_claim_path", "launch_marker_path"):
+         b.need(not os.path.lexists(reg[key]), "one-use path already spent: " + key)
+-    for name in ("dispatch", "launch-envelope.json", "launch-approval.json", "parent-preflight.json",
+-                 "parent-execution.json", "execution-exit.json", "observer.log"):
++    for name in SPENT_NAMES:
+         b.need(not os.path.lexists(home / name), "parent execution path already spent: " + name)
++    b.need(not os.path.lexists(Path(reg["state_path"]).with_name(PENDING_STATE)), "shared state pending path present")
+     state = b.read(state_path or reg["state_path"])
+     b.need(state.get("active_long_campaign") is None and state.get("active_inference_diagnostic") is None,
+            "conflicting campaign")
+@@ -120,6 +150,7 @@
+     row, reg, gates, dependency_inventory = gate_check(HERE, args.run_id, args.index_sha256, args.gates_sha256)
+     home = HERE / args.run_id
+     contracts = b._contracts()
++    power = power_guard.check()
+     contracts.cache_check(reg)
+     dependency_pins = {path: item["sha256"] for path, item in dependency_inventory["pins"].items()}
+     b.check_pins(dependency_pins)
+@@ -128,7 +159,7 @@
+     state = b.read(reg["state_path"])
+     b.save(home / "launch-approval.json", contracts.launch_approval_document(row["registration_sha256"], reg))
+     b.save(home / "parent-preflight.json", dict(registration_sha256=row["registration_sha256"],
+-           static_inputs="passed", dependency_pins_checked=len(dependency_pins), cache="passed",
++           static_inputs="passed", power=power, dependency_pins_checked=len(dependency_pins), cache="passed",
+            parent_gates_sha256=args.gates_sha256, claim_consumed=False))
+     started = time.monotonic()
+     state["active_long_campaign"] = reg["expected_lease"]

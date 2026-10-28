@@ -1,0 +1,114 @@
+{
+  "authorization_document": {
+    "fields": {
+      "at_utc": "<UTC time parent received it>",
+      "checkpoint_promotion": false,
+      "execution": "Three runs sequentially, exactly once each, in suggested order. Stop on any fault. Audit and release exact lease between runs.",
+      "failure_audit_sha256": "032e681c1f0d9393c86f64438deed81c2af2f18d980e56244de8458de1ac4414",
+      "heldout_evaluation_authorized_by_this_document": false,
+      "index_proposal_sha256": "4756aca3b2b0b4a0715ce483140e5c6cf8b7ef5e6a1613d96c68d8f5d5be38bd",
+      "max_registered_training_attempts": 3,
+      "retries": 0,
+      "runs": [
+        {
+          "registration_sha256": "651c22f671495a513a0256dea988da6dd0492a31b21cfb1a365a4c7ff88cd750",
+          "run_id": "fullgame-seed-priority-luna-20261027-r1-replica-2-opening_priority"
+        },
+        {
+          "registration_sha256": "743e81139d529ea4dc05544263ee0bd7f50123dca0ac04d825abb8d0e0cc4efa",
+          "run_id": "fullgame-seed-priority-luna-20261027-r1-replica-3-uniform"
+        },
+        {
+          "registration_sha256": "44c0bc4c6ffee5b17691c66991c33f3289a423f1e8f8fbfd93bf93ffeca9a086",
+          "run_id": "fullgame-seed-priority-luna-20261027-r1-replica-3-opening_priority"
+        }
+      ],
+      "schema": "fullgame_seed_priority_recovery_user_authorization_v1",
+      "source_manifest_sha256": "a29e25b285d2d4651a2d74699929a27578860cfdd9a8d7980ca47c72824d41e2",
+      "user_message": "<VERBATIM FUTURE USER TEXT>"
+    },
+    "path": "<package>/fresh-user-authorization.json",
+    "schema": "fullgame_seed_priority_recovery_user_authorization_v1"
+  },
+  "d4": "Root creates a reviewed evaluator successor or registration-binding adaptation from producer-home-remap.json after all six endpoints are terminal; D4 r2 plan is not modified.",
+  "launch_authority": false,
+  "launch_command_template": {
+    "cwd": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79",
+    "notes": [
+      "Run from a ROOT native exec_command session, not a Claude Bash background wrapper (30 min default kill).",
+      "caffeinate -ims is scoped to this command: it holds assertions through dispatcher start, observer wait and exit receipt; no -u, no display wake, no pmset changes.",
+      "If any tool timeout exists it must exceed work 3780 + cleanup 10 + postflight; use an explicit bound such as 4500 seconds only if the tool supports it; otherwise omit the parameter.",
+      "Dispatcher refuses unless on AC and exactly one direct child of the dispatcher process, in its process group, is `/usr/bin/caffeinate -ims <command>` and that helper PID holds PreventUserIdleSystemSleep and PreventSystemSleep in `pmset -g assertions` (power_guard.py). macOS caffeinate execs the utility and keeps a helper CHILD, so the dispatcher's own parent (e.g. the app server) is not caffeinate and is not checked.",
+      "Non-learning actual check before the first dispatch (no approval needed, 0 ML, no ledger, no marker): from the same root native exec session run `/usr/bin/caffeinate -ims /usr/bin/env PYTHONDONTWRITEBYTECODE=1 <interpreter> -B <package>/probe_power_guard.py`. Report the root result; a sandbox that hides assertions is not an actual pass.",
+      "Cheap read-only monitor: python -B watch_progress.py --run-id <id> (no new loop code, no signalling)."
+    ],
+    "runs": {
+      "fullgame-seed-priority-luna-20261027-r1-replica-2-opening_priority": [
+        "/usr/bin/caffeinate",
+        "-ims",
+        "/usr/bin/env",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "PYTHONPYCACHEPREFIX=/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-priority-three-run-recovery-sonnet-20261028-r2/fullgame-seed-priority-luna-20261027-r1-replica-2-opening_priority/empty-pycache",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+        "-B",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-priority-three-run-recovery-sonnet-20261028-r2/start_remaining_one.py",
+        "--run-id",
+        "fullgame-seed-priority-luna-20261027-r1-replica-2-opening_priority",
+        "--index-sha256",
+        "<INDEX_SHA256>",
+        "--gates-sha256",
+        "<GATES_SHA256>"
+      ],
+      "fullgame-seed-priority-luna-20261027-r1-replica-3-opening_priority": [
+        "/usr/bin/caffeinate",
+        "-ims",
+        "/usr/bin/env",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "PYTHONPYCACHEPREFIX=/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-priority-three-run-recovery-sonnet-20261028-r2/fullgame-seed-priority-luna-20261027-r1-replica-3-opening_priority/empty-pycache",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+        "-B",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-priority-three-run-recovery-sonnet-20261028-r2/start_remaining_one.py",
+        "--run-id",
+        "fullgame-seed-priority-luna-20261027-r1-replica-3-opening_priority",
+        "--index-sha256",
+        "<INDEX_SHA256>",
+        "--gates-sha256",
+        "<GATES_SHA256>"
+      ],
+      "fullgame-seed-priority-luna-20261027-r1-replica-3-uniform": [
+        "/usr/bin/caffeinate",
+        "-ims",
+        "/usr/bin/env",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "PYTHONPYCACHEPREFIX=/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-priority-three-run-recovery-sonnet-20261028-r2/fullgame-seed-priority-luna-20261027-r1-replica-3-uniform/empty-pycache",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+        "-B",
+        "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/fullgame-priority-three-run-recovery-sonnet-20261028-r2/start_remaining_one.py",
+        "--run-id",
+        "fullgame-seed-priority-luna-20261027-r1-replica-3-uniform",
+        "--index-sha256",
+        "<INDEX_SHA256>",
+        "--gates-sha256",
+        "<GATES_SHA256>"
+      ]
+    }
+  },
+  "preflight_before_each_dispatch": [
+    "all candidate hashes and gate pins (incl. checkpoint c10d90ec..., failure audit 032e681c..., lease release 14982746...)",
+    "spent paths absent: output, attempt.claimed, launch.claimed, dispatch, launch-envelope, launch-approval, parent-preflight, parent-execution, execution-exit, observer.log, progress-reports.jsonl, progress-alert.json, cancel",
+    "shared state.seed-priority-remaining.pending.json absent; serial single writer (no active_long_campaign / diagnostic, no training hold)",
+    "empty registered pycache; dependency inventory pins; source and runtime manifests unchanged",
+    "AC power and scoped caffeinate assertion (power_guard)"
+  ],
+  "rule": "This file is a template. It records no approval. Only a user message received after packet_built_at_utc that approves this concrete three-run plan may be copied verbatim into the authorization; a plain 'Go' naming the plan is enough, no typed hashes. Earlier Go messages are consumed.",
+  "schema": "fullgame_seed_priority_recovery_activation_template_v1",
+  "steps": [
+    "1. Independent review of this package; write review file {path,sha256,package_manifest_sha256}.",
+    "2. After fresh user approval: write authorization document exclusively (verbatim message, at_utc).",
+    "3. parent-gates.json = parent-gates-proposal.json fields + status approved_exactly_once_per_registered_run, proposal_sha256, authorization_path/sha256, registration_index_sha256, independent_review, and pins += authorization, review, package-manifest.json. Written exclusively.",
+    "4. registration-index.json = registration-index-proposal.json rows with status reviewed_exact_registrations_parent_promoted. Written exclusively.",
+    "5. For each run in order: root native exec_command session runs the command below; then r3 audit.py with the launcher's envelope/parent-execution/execution-exit; then exact lease release; then next run.",
+    "6. Stop on any fault; no retry, seed replacement, selection or promotion."
+  ],
+  "user_approval": "NOT_GIVEN"
+}

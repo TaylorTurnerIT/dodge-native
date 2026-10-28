@@ -1,0 +1,107 @@
+{
+  "schema": "dodge_overnight_interruption_review_v1",
+  "reviewer": "claude-haiku-5-5 (read-only review sub-agent)",
+  "reviewed_package": "learning/runs/v2/fullgame-priority-overnight-interruption-audit-sonnet-20261028-r1",
+  "run_id": "fullgame-seed-priority-luna-20261027-r1-replica-2-opening_priority",
+  "verdict": "no_blocking_findings",
+  "scope_limits": [
+    "Read-only. No ledger, state, lease, marker, original-file edits, launches, native/MPS/torch, checkpoint loads, metric or D4 inspection, and no rerun of interruption_audit.py audit/release.",
+    "Proves bookkeeping and evidence consistency only. Does not prove the terminating signal, raw exit codes, direct reap, or whether sleep alone or the wrapper kill ended the processes.",
+    "Source binding is proven for files at review time (pins re-hashed). Runtime behaviour of the run is not proven and is out of scope.",
+    "Missing observer postflight status is NOT labelled proven anywhere in this review."
+  ],
+  "reviewed_hashes": {
+    "interruption_audit.py": "e2bc11848e298e891b1964ed466b2205849098a190ee9708762dd1b3ab2ded53",
+    "audit.json": "032e681c1f0d9393c86f64438deed81c2af2f18d980e56244de8458de1ac4414",
+    "lease-release.json": "149827465d03621ab31c2aac16cdac1b25fe62e47b3cd6207ee5f97a881e8b84",
+    "incident-summary.json": "3cf1fcab119d9d5981981b15d3ae8cd6d42c5d1d994e89ee6a8ce524c0a15f1f",
+    "registration-final.json": "db2da67332b51c3cb3839bc8cc08afd1bcca105f64023a47cb8d8da2a0006658",
+    "registration-final-candidate.json": "db2da67332b51c3cb3839bc8cc08afd1bcca105f64023a47cb8d8da2a0006658",
+    "launch-envelope.json": "0e9f2b9a02a139a5e752c96254b0876d88e15ca3c21015d848a2c4fc195ce25a",
+    "operator-summary.json": "1696512c32894dbc95af86b2ee53db2e6a7845d6eef5a932c92533eda25110b2",
+    "state.json (current, = lease-release state_sha256_after)": "7b4122a451a5094a274f4812ccc30e82dbbbb0f652812c481e9fa847b708d875",
+    "wrapper task output b7u6rvz1o.output": "39bd386548ef62fa2b1c9a2231ea6dafc0c7160319b8ef2a9dafa83767a153f2",
+    "D2 retained-best-candidate-receipt.json": "76cb15733e87518cb3b473b7f8ebd847ed206351fb9f17d89b8b92e6bf853f08",
+    "priority1 parent-terminal-audit.json": "809b21f1928366c8f1246a47689e42345baed22079ce2c3ce7e1e234bc4f5fa9",
+    "uniform2 parent-terminal-audit.json": "2a9f1125a4567048e7b332fce481582cd0b8ee86fdfc5bce6a8611a4471cca47"
+  },
+  "checks_passed": [
+    "Lease owner_token 98c859dbdd6007277e0d18b3ebf49f31 identical in registration-final.json, audit.json expected_lease, and lease-release.json.",
+    "Release clears only active_long_campaign plus the rl/status/next_actions/last_update fields; release() asserts before/after top-level diff subset. Audit sha 032e681c recorded in release and in state.",
+    "Audit file written before lease clear (write_exclusive with fsync, O_EXCL) and lease-release.json references its exact hash.",
+    "Pins: all 13657 envelope pins re-hashed read-only at review time, 0 mismatches. pin_keys_sha256 604f78dd... recomputed and matches.",
+    "Evidence snapshot: 20 files and 3 dirs in audit evidence_snapshot re-verified against recorded sha256/bytes; 0 changed or missing; empty-pycache still empty.",
+    "Process groups 76509 (observer) and 76517 (worker): not alive now; no run-related processes in ps.",
+    "Missing receipts (execution-exit, observation, execution-result, observer-finalization, worker-result) confirmed absent; terminal_update_60 false; first integrity checkpoint at update 12 not present.",
+    "Prior completed-run audits 809b21f1... and 2a9f1125... unchanged. D2 parent receipt 76cb1573... unchanged.",
+    "Unstarted replica-3 dirs contain only empty-pycache and registration-final-candidate.json; no dispatch, claim, or result artifacts.",
+    "Frozen source __pycache__ directory mtime unchanged since 2026-10-27 22:11; audit did not write bytecode into frozen source.",
+    "Timing: pmset sleep durations 354+345+1018 s = 1717 s; 1825.8 s wall minus 1717 s is about 109 s, matching observer monotonic 109.94 s. Each Sleep ends at the next DarkWake time. Supports 'active clock excluded sleep'. Consistent with audit findings; not terminating-signal proof.",
+    "Operator summary still shows stale run-3 entries and ledger run1 claim; audit records this as a reconciliation note and did not edit the summary (hash 1696512c unchanged)."
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "low",
+      "category": "claim-label",
+      "file": "learning/runs/v2/fullgame-priority-overnight-interruption-audit-sonnet-20261028-r1/incident-summary.json",
+      "summary": "what_happened states the wrapper 'hit its 30 min default timeout' as fact.",
+      "trigger": "Reader takes what_happened at face value.",
+      "consequence": "Cause presented as established. Evidence is [killed] marker plus root-reported 1825.8 s wall time; audit.json itself says only 'consistent with'. Terminating mechanism is unproven.",
+      "fix": "Reword to: stopped with [killed] at ~1826 s wall, consistent with the 30 min default timeout (root-reported); sleep correlation not signal proof."
+    },
+    {
+      "id": "F2",
+      "severity": "low",
+      "category": "hardcoded-claims",
+      "file": "learning/runs/v2/fullgame-priority-overnight-interruption-audit-sonnet-20261028-r1/interruption_audit.py",
+      "line": 201,
+      "summary": "Several audit.json booleans/strings are literals, not computed: parent324_unchanged, checkpoint_equals_accepted_constant_via_validate_static, original_summary_preserved (262), unstarted_paths_untouched (265), planned_training_endpoints_complete (264), final_integrity_checkpoint text (213), progress_last_mtime_local (242).",
+      "trigger": "Script runs with these fields hardcoded to True or fixed strings.",
+      "consequence": "Values are true at review time, but the script does not check them. parent324 is only supported indirectly (receipt sha at line 134 and checkpoint constant at line 133). original_summary_preserved and unstarted_paths_untouched were not checked. Labels overstate what the script proved.",
+      "fix": "Compute them, or relabel as expected-value notes. Review verified by read: operator-summary sha matches; replica-3 dirs have no launch artifacts."
+    },
+    {
+      "id": "F3",
+      "severity": "low",
+      "category": "evidence-gap",
+      "file": "learning/runs/v2-orchestration/state.json",
+      "line": 317,
+      "summary": "release() writes state via tempfile.mkstemp, so state.json is now mode 0600 (-rw-------). Sibling v2-orchestration files are 0644. Pre-release mode not recorded.",
+      "trigger": "Any normal mkstemp-based write (also used by binding.save, which gives registration-final.json 0600).",
+      "consequence": "Likely benign and possibly pre-existing, but the release receipt does not record pre-release mode or pre-release hash, so 'unrelated state preserved' is supported only by in-process before/after check, not a receipt.",
+      "fix": "Record pre-release sha and mode in the next receipt; restore mode only if the original is known. Do not blind-restore."
+    },
+    {
+      "id": "F4",
+      "severity": "low",
+      "category": "gate-gap",
+      "file": "learning/runs/v2/fullgame-priority-overnight-interruption-audit-sonnet-20261028-r1/interruption_audit.py",
+      "line": 273,
+      "summary": "release() re-proves process absence and lease identity but does not re-hash the evidence snapshot before clearing the lease.",
+      "trigger": "Evidence changes between audit and release (none observed; snapshot still matches now).",
+      "consequence": "Lease-clear is bound to the audit hash but not to current evidence state. No effect on this run because I verified evidence unchanged after release.",
+      "fix": "Optional: compare current snapshot to audit evidence_snapshot before clear."
+    },
+    {
+      "id": "F5",
+      "severity": "info",
+      "category": "explanatory-gap",
+      "file": "learning/runs/v2/fullgame-priority-overnight-interruption-audit-sonnet-20261028-r1/audit.json",
+      "summary": "Audit does not state the sleep-to-active-clock arithmetic or the post-wake progress alert timing.",
+      "trigger": "Reader wants to know why active time is ~110 s while wall is ~30 min.",
+      "consequence": "Explanation is implicit. Post-wake progress-alert.json (01:27:19 local, elapsed 226.59 s awake) implies about 116 s awake after the 01:25:23 wake with no progress rows. Shows workers did not resume output after wake, but cannot distinguish killed-at-wake from died-in-sleep.",
+      "fix": "Add the arithmetic and alert timing as explicit correlation, labelled as such."
+    },
+    {
+      "id": "F6",
+      "severity": "info",
+      "category": "repo-state",
+      "file": "git",
+      "summary": "HEAD moved during review: a036df4 'Preserve overnight interruption audit and reviewed D4 evaluator sources' (01:40:04 CDT). Committed state.json and audit files match reviewed hashes. Working tree now clean.",
+      "trigger": "Commit landed while review ran.",
+      "consequence": "None found. Recorded so reviewed hashes map to the commit."
+    }
+  ],
+  "blocking_findings": []
+}
