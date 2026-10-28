@@ -1,0 +1,64 @@
+{
+  "schema": "fullgame_priority_rng_reference_hash_review_v1",
+  "status": "no_blocking_static_hash_findings_live_preflight_pending_parent_lease",
+  "scope": "Hash-only independent review of registration, vectors, reused probe source and parent artifact pins; no runtime preflight or launch.",
+  "registration": {
+    "path": "learning/runs/v2/fullgame-priority-rng-reference-parent-20261027-r1/registration-final.json",
+    "sha256_before": "6c0fe9e4adb06c97622111ab74129fb65bfbdad6e05edbb3f227ce66cac33008",
+    "sha256_after": "6c0fe9e4adb06c97622111ab74129fb65bfbdad6e05edbb3f227ce66cac33008",
+    "matches_requested_sha256": true,
+    "exact_top_level_schema_and_keys_match_accepted_registration": true,
+    "changed_fields_within_scope": [
+      "run_id", "study_id", "vectors", "vectors_path", "vectors_sha256",
+      "expected_lease", "one_shot_marker", "cancel_path", "output_dir",
+      "runtime.empty_cache_path"
+    ],
+    "limits_match_accepted_registration": true,
+    "runtime_matches_except_owned_cache_path": true
+  },
+  "vectors": {
+    "source": "learning/runs/v2/fullgame-seed-priority-experiment-luna-20261027-r1/seed-vectors.json",
+    "registration_copy": "learning/runs/v2/fullgame-priority-rng-reference-parent-20261027-r1/reference-vectors.json",
+    "sha256": "9c98e3c0f5e85ffad70da73fda94e4b27f390f755f30640e97c6dc658dc3cb92",
+    "byte_identical_to_source_artifact": true,
+    "probe_validate_vectors_with_new_study_id": "pass",
+    "declared_attempt_derivation_all_18_stream_values": "pass",
+    "bounds_and_per_stream_cross_replica_uniqueness": "pass",
+    "environment_master_seed_reserved_and_prior_exclusions": "pass"
+  },
+  "reused_sources": {
+    "probe.py": "3a8ca22bd4c3c15da41ec4d0919ac5e314edd2d89ff15eca82fc140fb493eca6",
+    "worker_cli.py": "9d016e7ba3e9ab416c2f12e3b823c9a8b140523c77874781ad433f77b9f118dc",
+    "supervisor_cli.py": "2394ea8ff1a8432f7642616ecca3b40aa615d0d44937b146c54dc33906319b00",
+    "fingerprints.py": "6ef9cf3f08fe800f54230801a921a2f5c82e47e5013ef3087ead6499d2533d61",
+    "cleanup_primitives.py_pin": "4a5d084359ee48fe5351c96e0ec4455fdcd95a428a17bbcf59d0653f6922de98",
+    "match_new_registration": true,
+    "match_prior_accepted_registration": true,
+    "dynamic_study_id_supported": true
+  },
+  "parent_artifacts": {
+    "checkpoint_sha256": "c10d90ec0e67503afef8f4d90c4968581d430ef2065117a75e81c445a04c8ddc",
+    "parent_receipt_sha256": "76cb15733e87518cb3b473b7f8ebd847ed206351fb9f17d89b8b92e6bf853f08",
+    "acceptance_sha256": "3e84979c4c8da76d0f98666a23f90eb15c1e813ca5edf1001e19daebaf4d5bbd",
+    "all_actual_file_hashes_match_registration": true,
+    "old_exact_registration_acceptance_matches_old_registration_bytes": true
+  },
+  "runtime_and_lifecycle_snapshot": {
+    "interpreter_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+    "interpreter_file_hash_matches_registration": true,
+    "cache_exists_and_empty": true,
+    "output_directory_exists_and_empty": true,
+    "one_shot_marker_absent": true,
+    "cancel_file_absent": true,
+    "expected_lease_present_in_state_at_review": false,
+    "live_preflight_performed": false
+  },
+  "limits": [
+    "No hard watchdog around filesystem/hash/fsync/receipt finalization in reused supervisor source.",
+    "Prior terminal audit reports sampled resource checks and package bytes are not pinned; only dependency versions are recorded.",
+    "Expected lease is not yet installed; parent must install exact fresh lease and run live preflight before execution."
+  ],
+  "prohibited_actions_not_performed": [
+    "Torch import", "model construction", "checkpoint deserialization", "native import", "game execution", "training", "evaluation", "lease or marker mutation"
+  ]
+}
