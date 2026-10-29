@@ -14,6 +14,7 @@ mod patterns;
 mod rng;
 mod snapshot;
 mod state;
+mod trace;
 
 pub use action::{Action, BUTTON_X_MASK};
 pub use config::NativeConfig;
@@ -32,6 +33,9 @@ pub use snapshot::{
     IndexedFramebuffer, PALETTE_SIZE, RenderState, Snapshot, SnapshotProvenance,
 };
 pub use state::{EnemyState, ParticleState, PlayerState, SettingsState};
+pub use trace::{
+    ActivePatternAtDeath, DeathContext, FyouTrigger, KillerEnemy, PatternSpan, RunTrace,
+};
 
 /// Workspace-level version of native state contract.
 pub const CORE_SCHEMA_VERSION: u32 = 1;

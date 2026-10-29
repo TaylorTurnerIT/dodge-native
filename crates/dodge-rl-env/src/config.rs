@@ -26,6 +26,9 @@ pub struct EnvConfig {
     pub excluded_seed_ranges: Vec<(u32, u32)>,
     /// Fresh construction starts at these per-slot episode indices.
     pub initial_episode_indices: Option<Vec<u64>>,
+    /// Record the observation-only gameplay trace (fyou, patterns, death context).
+    /// Never changes simulation; reported only on ended episodes.
+    pub trace: bool,
 }
 
 impl Default for EnvConfig {
@@ -44,6 +47,7 @@ impl Default for EnvConfig {
             seed_mode: SeedMode::Training { run_seed: 0 },
             excluded_seed_ranges: Vec::new(),
             initial_episode_indices: None,
+            trace: false,
         }
     }
 }
@@ -53,8 +57,8 @@ impl EnvConfig {
         if self.batch_size == 0 {
             return Err(EnvError::Config("batch_size must be positive"));
         }
-        if !(2..=4).contains(&self.action_repeat) {
-            return Err(EnvError::Config("action_repeat must be 2..=4"));
+        if !(1..=4).contains(&self.action_repeat) {
+            return Err(EnvError::Config("action_repeat must be 1..=4"));
         }
         if !(1..=3).contains(&self.difficulty) {
             return Err(EnvError::Config("difficulty must be 1..=3"));

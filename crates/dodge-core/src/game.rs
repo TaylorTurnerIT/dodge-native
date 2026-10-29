@@ -198,6 +198,7 @@ pub struct NativeGame {
     highscores: [PicoFixed; 12],
     frame_audio: Vec<AudioEvent>,
     death: crate::DeathDiagnostic,
+    trace: crate::RunTrace,
 }
 
 impl NativeGame {
@@ -251,6 +252,7 @@ impl NativeGame {
             highscores: config.highscores,
             frame_audio: Vec::new(),
             death: crate::DeathDiagnostic::default(),
+            trace: crate::RunTrace::default(),
         }
     }
 
@@ -297,6 +299,7 @@ impl NativeGame {
         self.transition_from = Mode::Menu;
         self.frame_audio.clear();
         self.death = crate::DeathDiagnostic::default();
+        self.trace = crate::RunTrace::begin(self.trace.enabled(), self.enemies.next_birth());
         self.snapshot()
     }
 
@@ -366,6 +369,7 @@ impl NativeGame {
             highscores: state.highscores,
             frame_audio: Vec::new(),
             death: crate::DeathDiagnostic::restored(state.lifecycle.dead),
+            trace: crate::RunTrace::default(),
         })
     }
 
@@ -502,6 +506,12 @@ impl NativeGame {
             _ => {}
         }
         if game_update_from_draw {
+            // Count only frames that began in `Mode::Game`: the env's gameplay
+            // frames exclude the startup frames that finish the transition.
+            if mode_before == Mode::Game && self.trace.enabled() {
+                let in_center = self.player_in_center();
+                self.trace.begin_frame(in_center);
+            }
             self.update_game_frame(events);
         }
         let game_update_from_transition_draw = self.lifecycle.mode == Mode::TransitionToSettings
@@ -607,6 +617,18 @@ impl NativeGame {
     /// `Unknown` for a game restored dead from a snapshot.
     pub fn death_diagnostic(&self) -> crate::DeathDiagnostic {
         self.death
+    }
+
+    /// Enable the observation-only gameplay trace and restart it. Call before
+    /// gameplay begins; the trace never affects simulation and is absent from
+    /// snapshots and equality. Disabled games record nothing.
+    pub fn set_trace_enabled(&mut self, enabled: bool) {
+        self.trace = crate::RunTrace::begin(enabled, self.enemies.next_birth());
+    }
+
+    /// Diagnostic-only gameplay trace; empty unless `set_trace_enabled(true)`.
+    pub fn run_trace(&self) -> &crate::RunTrace {
+        &self.trace
     }
 
     pub fn enemies(&self) -> &[EnemyState] {
@@ -743,6 +765,7 @@ impl NativeGame {
             self.update_enemies();
             self.update_pattern_schedule();
         }
+        self.trace.end_frame(self.enemies.serials());
     }
 
     fn begin_transition(&mut self, mode: Mode) {
@@ -847,6 +870,7 @@ impl NativeGame {
         self.shake = PicoFixed::ZERO;
         self.enemy_timer = PicoFixed::ZERO;
         self.enemies.clear();
+        self.trace = crate::RunTrace::begin(self.trace.enabled(), self.enemies.next_birth());
         self.particles.clear();
         self.apply_initial_difficulty();
         self.size_timer = PicoFixed::ZERO;
@@ -1056,9 +1080,8 @@ impl NativeGame {
         }
     }
 
-    fn update_fyou(&mut self, events: &mut impl EventSink) {
-        let in_center = self
-            .player
+    fn player_in_center(&self) -> bool {
+        self.player
             .x
             .add(self.player.size)
             .sub(PicoFixed::from_int(2))
@@ -1080,15 +1103,27 @@ impl NativeGame {
                 .y
                 .sub(self.player.size)
                 .add(PicoFixed::from_int(2))
-                < PicoFixed::from_int(68);
-        if !in_center {
+                < PicoFixed::from_int(68)
+    }
+
+    fn update_fyou(&mut self, events: &mut impl EventSink) {
+        if !self.player_in_center() {
             self.friendly_timer = 0;
             return;
         }
         self.friendly_timer += 1;
         if self.friendly_timer > 50 {
             self.friendly_timer = 0;
+            let spawned = self.spawns.len();
             self.add_corner_enemies(events);
+            if self.trace.enabled() {
+                let serials = self.enemies.serials().and_then(|all| {
+                    all.len()
+                        .checked_sub(spawned)
+                        .and_then(|from| all.get(from..))
+                });
+                self.trace.record_fyou(spawned, serials);
+            }
         }
     }
 
@@ -1125,6 +1160,12 @@ impl NativeGame {
             };
             if collision {
                 events.push(FrameEvent::Collision);
+                if enemy.personality < 2 {
+                    self.trace_death(
+                        crate::DeathCause::for_enemy_personality(enemy.personality),
+                        Some(index),
+                    );
+                }
                 self.collide_enemy(index, enemy, events);
             } else {
                 index += 1;
@@ -1166,16 +1207,93 @@ impl NativeGame {
                         .sub(self.player.size)
                         < rect.y.add(rect.height).sub(PicoFixed::ONE)
                 {
-                    self.die(if pattern.pattern_type == 1 {
+                    let cause = if pattern.pattern_type == 1 {
                         crate::DeathCause::MovingPatternRect
                     } else {
                         crate::DeathCause::StaticPatternRect
-                    });
+                    };
+                    self.trace_death(cause, None);
+                    self.die(cause);
                     events.push(FrameEvent::Death);
                     break;
                 }
             }
         }
+    }
+
+    /// Capture the trace context at the first lethal contact. `killer` is the
+    /// index of the colliding enemy, still present in the list.
+    fn trace_death(&mut self, cause: crate::DeathCause, killer: Option<usize>) {
+        if !self.trace.needs_death_context() {
+            return;
+        }
+        let frame = self.trace.frame();
+        let serials = self.enemies.serials();
+        let killer_enemy = killer.and_then(|index| {
+            let enemy = self.enemies.get(index)?;
+            let serial = serials.and_then(|all| all.get(index)).copied();
+            Some(crate::KillerEnemy {
+                personality: enemy.personality,
+                fyou_spawned: serial.and_then(|s| self.trace.is_fyou_birth(s)),
+                age_frames: serial
+                    .and_then(|s| self.trace.birth_frame(s))
+                    .map(|born| frame.saturating_sub(born)),
+            })
+        });
+        let mut enemies_alive = [0_u16; 4];
+        let mut fyou_alive = Some(0_u16);
+        for (index, enemy) in self.enemies.iter().enumerate() {
+            if killer == Some(index) {
+                continue;
+            }
+            let slot = match enemy.personality {
+                0 => 0,
+                1 => 1,
+                -1 => 2,
+                _ => 3,
+            };
+            if let Some(count) = enemies_alive.get_mut(slot) {
+                *count = count.saturating_add(1);
+            }
+            let is_fyou = serials
+                .and_then(|all| all.get(index))
+                .and_then(|s| self.trace.is_fyou_birth(*s));
+            fyou_alive = match (fyou_alive, is_fyou) {
+                (Some(total), Some(true)) => Some(total.saturating_add(1)),
+                (Some(total), Some(false)) => Some(total),
+                _ => None,
+            };
+        }
+        let active_pattern = self.active_pattern.and_then(|index| {
+            let pattern = self.patterns.get(index)?;
+            let start = self.trace.active_span().map_or(frame, |s| s.start_frame);
+            Some(crate::ActivePatternAtDeath {
+                id: pattern.id,
+                pattern_type: pattern.pattern_type,
+                variants: pattern.variants.clone(),
+                start_frame: start,
+                frames_since_start: frame.saturating_sub(start),
+            })
+        });
+        let context = crate::DeathContext {
+            cause,
+            frame,
+            killer: killer_enemy,
+            enemies_alive,
+            fyou_enemies_alive: fyou_alive,
+            player_x_raw: self.player.x.raw(),
+            player_y_raw: self.player.y.raw(),
+            player_vx_raw: self.player.vx.raw(),
+            player_vy_raw: self.player.vy.raw(),
+            player_size_raw: self.player.size.raw(),
+            center_dwell_frames: self.trace.center_dwell_frames(),
+            fyou_timer: self.friendly_timer,
+            fyou_enabled: self.friendly_enabled,
+            active_pattern,
+            last_pattern_end_frame: self.trace.last_pattern_end(),
+            freeze_active: self.freeze_active,
+        };
+        self.trace.set_death(context);
     }
 
     fn collide_enemy(&mut self, index: usize, enemy: EnemyState, events: &mut impl EventSink) {
@@ -1753,6 +1871,9 @@ impl NativeGame {
         };
         self.active_pattern = Some(selected);
         self.pattern_active = true;
+        if let Some(pattern) = self.patterns.get(selected) {
+            self.trace.pattern_start(pattern.id, pattern.pattern_type);
+        }
         let variants = self
             .patterns
             .get(selected)
@@ -1977,6 +2098,7 @@ impl NativeGame {
             }
             self.active_pattern = None;
             self.pattern_active = false;
+            self.trace.pattern_end();
             self.friendly_enabled = true;
             self.spawns = initial_spawns();
         }
@@ -3271,3 +3393,7 @@ mod observation_tests;
 #[cfg(test)]
 #[path = "death_tests.rs"]
 mod death_tests;
+
+#[cfg(test)]
+#[path = "trace_tests.rs"]
+mod trace_tests;

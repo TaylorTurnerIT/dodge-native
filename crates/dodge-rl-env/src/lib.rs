@@ -11,7 +11,7 @@ pub mod raster;
 mod seed;
 
 pub use config::{EnvConfig, SeedMode};
-pub use env::{BatchInfo, DeathInfo, EpisodeInfo, ResetBatch, StepBatch, VecDodgeEnv};
+pub use env::{BatchInfo, DeathInfo, EpisodeInfo, ResetBatch, StepBatch, TraceInfo, VecDodgeEnv};
 pub use features::{
     Diagnostics, ENEMY_SLOTS, ENTITY_DIM, ENTITY_SLOTS, GLOBAL_DIM, MOTION_VERSION, Observation,
     ObservationBatch, RECT_SLOTS,
@@ -68,3 +68,6 @@ mod seed_extension_tests;
 
 #[cfg(test)]
 mod death_tests;
+
+#[cfg(test)]
+mod trace_tests;

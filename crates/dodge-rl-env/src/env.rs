@@ -25,6 +25,18 @@ pub struct BatchInfo {
     pub initial_highscores_raw_fixed: [i32; 12],
 }
 
+/// Observation-only gameplay trace of an ended episode (see `dodge_core::RunTrace`).
+/// Present only when `EnvConfig::trace` is set and the episode ended.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TraceInfo {
+    /// Gameplay frames the trace saw; equals `gameplay_frames` in the env.
+    pub frames: u32,
+    pub center_dwell_frames_at_end: u32,
+    pub fyou_triggers: Vec<dodge_core::FyouTrigger>,
+    pub patterns: Vec<dodge_core::PatternSpan>,
+    pub death: Option<dodge_core::DeathContext>,
+}
+
 /// Diagnostic cause of a terminated episode. Never part of observations.
 ///
 /// `cause` is the first lethal collision in legacy source order on the fatal
@@ -57,6 +69,7 @@ pub struct EpisodeInfo {
     pub bootstrap: bool,
     /// `Some` only for terminated episodes; live and cap-truncated are `None`.
     pub death: Option<DeathInfo>,
+    pub trace: Option<TraceInfo>,
     pub diagnostics: crate::Diagnostics,
 }
 
@@ -110,8 +123,10 @@ impl Slot {
         native.difficulty = config.difficulty;
         native.patterns_enabled = config.patterns_enabled;
         native.powerups_enabled = config.powerups_enabled;
+        let mut game = NativeGame::new(native);
+        game.set_trace_enabled(config.trace);
         Self {
-            game: NativeGame::new(native),
+            game,
             seed,
             history: History::default(),
             observation: None,
@@ -254,6 +269,17 @@ impl Slot {
         }
     }
 
+    fn trace_info(&self) -> Option<TraceInfo> {
+        let trace = self.game.run_trace();
+        (trace.enabled() && (self.terminated || self.truncated)).then(|| TraceInfo {
+            frames: trace.frame(),
+            center_dwell_frames_at_end: trace.center_dwell_frames(),
+            fyou_triggers: trace.fyou_triggers().to_vec(),
+            patterns: trace.patterns().to_vec(),
+            death: trace.death().cloned(),
+        })
+    }
+
     fn info(&self) -> EpisodeInfo {
         let score_raw_fixed = self.game.score().raw();
         let score = f64::from(score_raw_fixed) / 65536.0;
@@ -282,6 +308,7 @@ impl Slot {
             truncated: self.truncated,
             bootstrap: !self.terminated,
             death: self.death,
+            trace: self.trace_info(),
             diagnostics,
         }
     }

@@ -17,6 +17,13 @@ pub struct EnemySerial {
     birth: u64,
 }
 
+impl EnemySerial {
+    /// Birth ordinal within this game's namespace, for the observation-only trace.
+    pub(crate) const fn birth(self) -> u64 {
+        self.birth
+    }
+}
+
 // Reserve the final counter value instead of wrapping or reusing a namespace.
 static NEXT_NAMESPACE: AtomicU64 = AtomicU64::new(0);
 
@@ -77,6 +84,11 @@ impl EnemyRows {
     /// the entire identity view while still inserting the gameplay row.
     pub(crate) fn serials(&self) -> Option<&[EnemySerial]> {
         self.identities.as_ref().map(|ids| ids.serials.as_slice())
+    }
+
+    /// Next birth ordinal, or `None` once identity metadata is exhausted.
+    pub(crate) fn next_birth(&self) -> Option<u64> {
+        self.identities.as_ref().and_then(|ids| ids.next_birth)
     }
 
     pub(crate) fn push(&mut self, row: EnemyState) {

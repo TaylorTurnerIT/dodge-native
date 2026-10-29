@@ -103,7 +103,7 @@ fn validates_every_config_bound_without_clamping() {
             ..good.clone()
         },
         EnvConfig {
-            action_repeat: 1,
+            action_repeat: 0,
             ..good.clone()
         },
         EnvConfig {
@@ -135,7 +135,7 @@ fn validates_every_config_bound_without_clamping() {
     ] {
         assert!(bad.validate().is_err(), "{bad:?}");
     }
-    for k in 2..=4 {
+    for k in 1..=4 {
         for difficulty in 1..=3 {
             assert!(
                 EnvConfig {

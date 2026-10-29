@@ -175,7 +175,7 @@ def test_noncontiguous_int64_inputs_are_copied_in_logical_order():
 
 
 @pytest.mark.parametrize('kwargs', [
-    {'batch_size': 0}, {'action_repeat': 1}, {'action_repeat': 5},
+    {'batch_size': 0}, {'action_repeat': 0}, {'action_repeat': 5},
     {'difficulty': 0}, {'difficulty': 4}, {'raw_frame_cap': 0},
     {'num_threads': 0}, {'chunk_size': 0}, {'run_seed': -1}, {'run_seed': 2**64},
     {'seeds_by_slot': []}, {'seeds_by_slot': [[]]},

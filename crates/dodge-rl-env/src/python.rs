@@ -11,7 +11,7 @@ use pyo3::{
 
 use crate::{
     BatchInfo, Diagnostics, EnvConfig, EnvError, EpisodeInfo, ObservationBatch, ResetBatch,
-    SeedMetadata, SeedMode, StepBatch, VecDodgeEnv,
+    SeedMetadata, SeedMode, StepBatch, TraceInfo, VecDodgeEnv,
 };
 
 fn env_error(error: EnvError) -> PyErr {
@@ -126,7 +126,105 @@ fn episode<'py>(py: Python<'py>, value: EpisodeInfo) -> PyResult<Bound<'py, PyDi
             out.set_item("death_observed_lethal_contacts", py.None())?;
         }
     }
+    match value.trace {
+        Some(trace) => out.set_item("trace", trace_dict(py, trace)?)?,
+        None => out.set_item("trace", py.None())?,
+    }
     out.set_item("diagnostics", diagnostics(py, value.diagnostics)?)?;
+    Ok(out)
+}
+
+fn trace_dict<'py>(py: Python<'py>, value: TraceInfo) -> PyResult<Bound<'py, PyDict>> {
+    let out = PyDict::new(py);
+    out.set_item("frames", value.frames)?;
+    out.set_item(
+        "center_dwell_frames_at_end",
+        value.center_dwell_frames_at_end,
+    )?;
+    out.set_item(
+        "fyou_trigger_frames",
+        value
+            .fyou_triggers
+            .iter()
+            .map(|t| t.frame)
+            .collect::<Vec<_>>(),
+    )?;
+    out.set_item(
+        "fyou_trigger_spawned",
+        value
+            .fyou_triggers
+            .iter()
+            .map(|t| u32::from(t.spawned))
+            .collect::<Vec<_>>(),
+    )?;
+    let patterns = PyList::empty(py);
+    for span in &value.patterns {
+        let item = PyDict::new(py);
+        item.set_item("id", span.id)?;
+        item.set_item("pattern_type", span.pattern_type)?;
+        item.set_item("start_frame", span.start_frame)?;
+        item.set_item("end_frame", span.end_frame)?;
+        patterns.append(item)?;
+    }
+    out.set_item("patterns", patterns)?;
+    match value.death {
+        Some(death) => out.set_item("death", death_dict(py, death)?)?,
+        None => out.set_item("death", py.None())?,
+    }
+    Ok(out)
+}
+
+fn death_dict<'py>(
+    py: Python<'py>,
+    value: dodge_core::DeathContext,
+) -> PyResult<Bound<'py, PyDict>> {
+    let out = PyDict::new(py);
+    out.set_item("cause", value.cause.as_str())?;
+    out.set_item("frame", value.frame)?;
+    match value.killer {
+        Some(killer) => {
+            let item = PyDict::new(py);
+            item.set_item("personality", killer.personality)?;
+            item.set_item("fyou_spawned", killer.fyou_spawned)?;
+            item.set_item("age_frames", killer.age_frames)?;
+            out.set_item("killer", item)?;
+        }
+        None => out.set_item("killer", py.None())?,
+    }
+    out.set_item("enemies_alive_normal", value.enemies_alive[0])?;
+    out.set_item("enemies_alive_kamikaze", value.enemies_alive[1])?;
+    out.set_item("enemies_alive_explosion", value.enemies_alive[2])?;
+    out.set_item("enemies_alive_powerup", value.enemies_alive[3])?;
+    out.set_item("fyou_enemies_alive", value.fyou_enemies_alive)?;
+    out.set_item("player_x_raw", value.player_x_raw)?;
+    out.set_item("player_y_raw", value.player_y_raw)?;
+    out.set_item("player_vx_raw", value.player_vx_raw)?;
+    out.set_item("player_vy_raw", value.player_vy_raw)?;
+    out.set_item("player_size_raw", value.player_size_raw)?;
+    out.set_item("center_dwell_frames", value.center_dwell_frames)?;
+    out.set_item("fyou_timer", value.fyou_timer)?;
+    out.set_item("fyou_enabled", value.fyou_enabled)?;
+    out.set_item("last_pattern_end_frame", value.last_pattern_end_frame)?;
+    out.set_item("freeze_active", value.freeze_active)?;
+    match value.active_pattern {
+        Some(pattern) => {
+            let item = PyDict::new(py);
+            item.set_item("id", pattern.id)?;
+            item.set_item("pattern_type", pattern.pattern_type)?;
+            item.set_item(
+                "variants",
+                pattern
+                    .variants
+                    .iter()
+                    .map(|v| u32::from(*v))
+                    .collect::<Vec<_>>(),
+            )?;
+            item.set_item("start_frame", pattern.start_frame)?;
+            item.set_item("frames_since_start", pattern.frames_since_start)?;
+            out.set_item("active_pattern", item)?;
+        }
+        None => out.set_item("active_pattern", py.None())?,
+    }
     Ok(out)
 }
 
@@ -206,6 +304,7 @@ fn batch_info<'py>(py: Python<'py>, value: BatchInfo) -> PyResult<Bound<'py, PyD
     out.set_item("chunk_size", c.chunk_size)?;
     out.set_item("render_pixels", c.render_pixels)?;
     out.set_item("auxiliary_targets", c.auxiliary_targets)?;
+    out.set_item("trace", c.trace)?;
     let mode = PyDict::new(py);
     match c.seed_mode {
         SeedMode::Training { run_seed } => {
@@ -271,7 +370,7 @@ struct PyVecDodgeEnv {
 #[pymethods]
 impl PyVecDodgeEnv {
     #[new]
-    #[pyo3(signature = (batch_size=1, action_repeat=4, difficulty=2, patterns_enabled=true, powerups_enabled=true, raw_frame_cap=18_000, num_threads=1, chunk_size=8, render_pixels=false, auxiliary_targets=false, run_seed=0, seeds_by_slot=None, excluded_seed_ranges=None, initial_episode_indices=None))]
+    #[pyo3(signature = (batch_size=1, action_repeat=4, difficulty=2, patterns_enabled=true, powerups_enabled=true, raw_frame_cap=18_000, num_threads=1, chunk_size=8, render_pixels=false, auxiliary_targets=false, run_seed=0, seeds_by_slot=None, excluded_seed_ranges=None, initial_episode_indices=None, trace=false))]
     #[allow(clippy::too_many_arguments)]
     fn new(
         py: Python<'_>,
@@ -289,6 +388,7 @@ impl PyVecDodgeEnv {
         seeds_by_slot: Option<Vec<Vec<u32>>>,
         excluded_seed_ranges: Option<Vec<(u32, u32)>>,
         initial_episode_indices: Option<Vec<u64>>,
+        trace: bool,
     ) -> PyResult<Self> {
         let config = EnvConfig {
             batch_size,
@@ -306,6 +406,7 @@ impl PyVecDodgeEnv {
             }),
             excluded_seed_ranges: excluded_seed_ranges.unwrap_or_default(),
             initial_episode_indices,
+            trace,
         };
         // Includes validation, seed preflight, NativeGame::new, bounded startup,
         // initial features, and optional rendering. No Python callbacks occur.
