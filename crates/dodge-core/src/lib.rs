@@ -34,7 +34,8 @@ pub use snapshot::{
 };
 pub use state::{EnemyState, ParticleState, PlayerState, SettingsState};
 pub use trace::{
-    ActivePatternAtDeath, DeathContext, FyouTrigger, KillerEnemy, PatternSpan, RunTrace,
+    ActivePatternAtDeath, DeathContext, EnemyPoint, FrameSample, FyouTrigger, KillerEnemy,
+    PatternSpan, RECENT_FRAMES, RectAtDeath, RunTrace, SAMPLE_EVERY,
 };
 
 /// Workspace-level version of native state contract.

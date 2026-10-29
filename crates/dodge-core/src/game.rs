@@ -766,6 +766,9 @@ impl NativeGame {
             self.update_pattern_schedule();
         }
         self.trace.end_frame(self.enemies.serials());
+        if self.trace.enabled() {
+            self.trace_record_frame();
+        }
     }
 
     fn begin_transition(&mut self, mode: Mode) {
@@ -1221,6 +1224,112 @@ impl NativeGame {
         }
     }
 
+    fn trace_rects(&self) -> Vec<crate::RectAtDeath> {
+        let Some(pattern) = self.active_pattern.and_then(|i| self.patterns.get(i)) else {
+            return Vec::new();
+        };
+        pattern
+            .rects
+            .iter()
+            .map(|rect| crate::RectAtDeath {
+                x: rect.x.raw(),
+                y: rect.y.raw(),
+                width: rect.width.raw(),
+                height: rect.height.raw(),
+                sh: rect.sh.raw(),
+                shown: rect.shown,
+                lethal: pattern.pattern_type == 1 || rect.sh == PicoFixed::from_int(2),
+            })
+            .collect()
+    }
+
+    /// Sample the player's surroundings at the end of a gameplay frame.
+    fn trace_record_frame(&mut self) {
+        let player = self.player;
+        let size = player.size.raw();
+        let (px0, px1) = (
+            player.x.raw() - size + 2 * 65536,
+            player.x.raw() + size - 2 * 65536,
+        );
+        let (py0, py1) = (
+            player.y.raw() - size + 2 * 65536,
+            player.y.raw() + size - 2 * 65536,
+        );
+        let gap =
+            |x0: i32, x1: i32, y0: i32, y1: i32, bx0: i32, bx1: i32, by0: i32, by1: i32| -> i32 {
+                let gx = i64::from((bx0 - x1).max(x0 - bx1).max(0));
+                let gy = i64::from((by0 - y1).max(y0 - by1).max(0));
+                ((gx * gx + gy * gy) as f64).sqrt() as i32
+            };
+        let mut lethal_gap = -1;
+        let mut pending_gap = -1;
+        let mut pattern_id = 0;
+        if let Some(pattern) = self.active_pattern.and_then(|i| self.patterns.get(i)) {
+            pattern_id = pattern.id;
+            for rect in &pattern.rects {
+                if !rect.shown && rect.sh <= PicoFixed::ZERO {
+                    continue;
+                }
+                let (rx, ry) = (rect.x.raw(), rect.y.raw());
+                let value = gap(
+                    px0,
+                    px1,
+                    py0,
+                    py1,
+                    rx,
+                    rx + rect.width.raw() - 65536,
+                    ry,
+                    ry + rect.height.raw() - 65536,
+                );
+                let lethal = pattern.pattern_type == 1 || rect.sh == PicoFixed::from_int(2);
+                let slot = if lethal {
+                    &mut lethal_gap
+                } else {
+                    &mut pending_gap
+                };
+                if *slot < 0 || value < *slot {
+                    *slot = value;
+                }
+            }
+        }
+        let (ex0, ex1) = (player.x.raw() - size + 65536, player.x.raw() + size - 65536);
+        let (ey0, ey1) = (player.y.raw() - size + 65536, player.y.raw() + size - 65536);
+        let mut enemy_gap = -1;
+        let mut points = Vec::new();
+        let serials = self.enemies.serials();
+        for (index, enemy) in self.enemies.iter().enumerate() {
+            if let Some(serial) = serials.and_then(|all| all.get(index)) {
+                points.push(crate::EnemyPoint {
+                    birth: serial.birth(),
+                    x: enemy.x.raw(),
+                    y: enemy.y.raw(),
+                    size: enemy.size.raw(),
+                });
+            }
+            if enemy.personality >= 2 {
+                continue;
+            }
+            let (bx, by, bs) = (enemy.x.raw(), enemy.y.raw(), enemy.size.raw());
+            let value = gap(ex0, ex1, ey0, ey1, bx, bx + bs, by, by + bs);
+            if enemy_gap < 0 || value < enemy_gap {
+                enemy_gap = value;
+            }
+        }
+        let sample = crate::FrameSample {
+            frame: self.trace.frame(),
+            x: player.x.raw(),
+            y: player.y.raw(),
+            vx: player.vx.raw(),
+            vy: player.vy.raw(),
+            lethal_rect_gap: lethal_gap,
+            pending_rect_gap: pending_gap,
+            enemy_gap,
+            enemies: u16::try_from(self.enemies.len()).unwrap_or(u16::MAX),
+            pattern_id,
+        };
+        self.trace.record_frame(sample, points);
+    }
+
     /// Capture the trace context at the first lethal contact. `killer` is the
     /// index of the colliding enemy, still present in the list.
     fn trace_death(&mut self, cause: crate::DeathCause, killer: Option<usize>) {
@@ -1234,6 +1343,9 @@ impl NativeGame {
             let serial = serials.and_then(|all| all.get(index)).copied();
             Some(crate::KillerEnemy {
                 personality: enemy.personality,
+                x: enemy.x.raw(),
+                y: enemy.y.raw(),
+                size: enemy.size.raw(),
                 fyou_spawned: serial.and_then(|s| self.trace.is_fyou_birth(s)),
                 age_frames: serial
                     .and_then(|s| self.trace.birth_frame(s))
@@ -1292,6 +1404,11 @@ impl NativeGame {
             active_pattern,
             last_pattern_end_frame: self.trace.last_pattern_end(),
             freeze_active: self.freeze_active,
+            rects: self.trace_rects(),
+            killer_path: killer
+                .and_then(|index| serials.and_then(|all| all.get(index)))
+                .map_or_else(Vec::new, |serial| self.trace.killer_path(serial.birth())),
+            recent: self.trace.recent(),
         };
         self.trace.set_death(context);
     }

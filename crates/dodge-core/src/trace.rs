@@ -10,7 +10,58 @@
 //! 13 startup frames before `Mode::Game` are not counted, so a death frame
 //! equals the environment's `fatal_gameplay_frame`.
 
+use std::collections::VecDeque;
+
 use crate::{DeathCause, EnemySerial};
+
+/// Frames of player path kept for the death context.
+pub const RECENT_FRAMES: usize = 120;
+/// Frames of enemy positions kept to reconstruct the killer's approach.
+pub const ENEMY_HISTORY_FRAMES: usize = 60;
+/// Spacing of the whole-game samples used as a base rate.
+pub const SAMPLE_EVERY: u32 = 30;
+
+/// Player and surroundings at the end of one gameplay frame, in raw fixed units.
+/// Gaps are the Euclidean distance between the collision box edges (0 means
+/// overlapping); -1 means no such object.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct FrameSample {
+    pub frame: u32,
+    pub x: i32,
+    pub y: i32,
+    pub vx: i32,
+    pub vy: i32,
+    /// Gap to the nearest currently lethal pattern rectangle.
+    pub lethal_rect_gap: i32,
+    /// Gap to the nearest shown but not yet lethal rectangle (static warning).
+    pub pending_rect_gap: i32,
+    /// Gap to the nearest lethal enemy body.
+    pub enemy_gap: i32,
+    pub enemies: u16,
+    /// Active pattern id, 0 when none.
+    pub pattern_id: u8,
+}
+
+/// One enemy position, for reconstructing the killer's approach.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct EnemyPoint {
+    pub birth: u64,
+    pub x: i32,
+    pub y: i32,
+    pub size: i32,
+}
+
+/// A pattern rectangle at the first lethal contact.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct RectAtDeath {
+    pub x: i32,
+    pub y: i32,
+    pub width: i32,
+    pub height: i32,
+    pub sh: i32,
+    pub shown: bool,
+    pub lethal: bool,
+}
 
 /// One `update_fyou` firing.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -34,6 +85,9 @@ pub struct PatternSpan {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct KillerEnemy {
     pub personality: i8,
+    pub x: i32,
+    pub y: i32,
+    pub size: i32,
     /// `None` when identity metadata was exhausted and attribution is unknown.
     pub fyou_spawned: Option<bool>,
     /// Frames between the enemy's birth and the fatal frame, when known.
@@ -77,6 +131,11 @@ pub struct DeathContext {
     /// Frame the most recent pattern ended, if any.
     pub last_pattern_end_frame: Option<u32>,
     pub freeze_active: bool,
+    pub rects: Vec<RectAtDeath>,
+    /// The killer enemy's position over the last frames: (frames before death, x, y).
+    pub killer_path: Vec<(u32, i32, i32)>,
+    /// The player's last frames before the fatal one, oldest first.
+    pub recent: Vec<FrameSample>,
 }
 
 /// Recorder owned by `NativeGame`. Equality is deliberately constant so the
@@ -95,6 +154,9 @@ pub struct RunTrace {
     birth_frames: Vec<u32>,
     identity_lost: bool,
     death: Option<DeathContext>,
+    recent: VecDeque<FrameSample>,
+    recent_enemies: VecDeque<(u32, Vec<EnemyPoint>)>,
+    samples: Vec<FrameSample>,
 }
 
 impl PartialEq for RunTrace {
@@ -132,6 +194,43 @@ impl RunTrace {
 
     pub fn patterns(&self) -> &[PatternSpan] {
         &self.patterns
+    }
+
+    /// Samples every `SAMPLE_EVERY` frames across the whole game.
+    pub fn samples(&self) -> &[FrameSample] {
+        &self.samples
+    }
+
+    pub(crate) fn recent(&self) -> Vec<FrameSample> {
+        self.recent.iter().copied().collect()
+    }
+
+    pub(crate) fn killer_path(&self, birth: u64) -> Vec<(u32, i32, i32)> {
+        let now = self.frame;
+        self.recent_enemies
+            .iter()
+            .filter_map(|(frame, points)| {
+                let point = points.iter().find(|p| p.birth == birth)?;
+                Some((now.saturating_sub(*frame), point.x, point.y))
+            })
+            .collect()
+    }
+
+    pub(crate) fn record_frame(&mut self, sample: FrameSample, enemies: Vec<EnemyPoint>) {
+        if !self.enabled || sample.frame == 0 {
+            return;
+        }
+        if self.recent.len() == RECENT_FRAMES {
+            self.recent.pop_front();
+        }
+        self.recent.push_back(sample);
+        if self.recent_enemies.len() == ENEMY_HISTORY_FRAMES {
+            self.recent_enemies.pop_front();
+        }
+        self.recent_enemies.push_back((sample.frame, enemies));
+        if sample.frame.is_multiple_of(SAMPLE_EVERY) {
+            self.samples.push(sample);
+        }
     }
 
     pub fn death(&self) -> Option<&DeathContext> {

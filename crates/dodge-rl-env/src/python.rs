@@ -167,10 +167,57 @@ fn trace_dict<'py>(py: Python<'py>, value: TraceInfo) -> PyResult<Bound<'py, PyD
         patterns.append(item)?;
     }
     out.set_item("patterns", patterns)?;
+    out.set_item("samples", samples_dict(py, &value.samples)?)?;
     match value.death {
         Some(death) => out.set_item("death", death_dict(py, death)?)?,
         None => out.set_item("death", py.None())?,
     }
+    Ok(out)
+}
+
+/// Column-wise lists keep per-frame samples cheap to build and to convert in Python.
+fn samples_dict<'py>(
+    py: Python<'py>,
+    samples: &[dodge_core::FrameSample],
+) -> PyResult<Bound<'py, PyDict>> {
+    let out = PyDict::new(py);
+    out.set_item("frame", samples.iter().map(|s| s.frame).collect::<Vec<_>>())?;
+    out.set_item("x", samples.iter().map(|s| s.x).collect::<Vec<_>>())?;
+    out.set_item("y", samples.iter().map(|s| s.y).collect::<Vec<_>>())?;
+    out.set_item("vx", samples.iter().map(|s| s.vx).collect::<Vec<_>>())?;
+    out.set_item("vy", samples.iter().map(|s| s.vy).collect::<Vec<_>>())?;
+    out.set_item(
+        "lethal_rect_gap",
+        samples
+            .iter()
+            .map(|s| s.lethal_rect_gap)
+            .collect::<Vec<_>>(),
+    )?;
+    out.set_item(
+        "pending_rect_gap",
+        samples
+            .iter()
+            .map(|s| s.pending_rect_gap)
+            .collect::<Vec<_>>(),
+    )?;
+    out.set_item(
+        "enemy_gap",
+        samples.iter().map(|s| s.enemy_gap).collect::<Vec<_>>(),
+    )?;
+    out.set_item(
+        "enemies",
+        samples
+            .iter()
+            .map(|s| u32::from(s.enemies))
+            .collect::<Vec<_>>(),
+    )?;
+    out.set_item(
+        "pattern_id",
+        samples
+            .iter()
+            .map(|s| u32::from(s.pattern_id))
+            .collect::<Vec<_>>(),
+    )?;
     Ok(out)
 }
 
@@ -187,6 +234,9 @@ fn death_dict<'py>(
             item.set_item("personality", killer.personality)?;
             item.set_item("fyou_spawned", killer.fyou_spawned)?;
             item.set_item("age_frames", killer.age_frames)?;
+            item.set_item("x", killer.x)?;
+            item.set_item("y", killer.y)?;
+            item.set_item("size", killer.size)?;
             out.set_item("killer", item)?;
         }
         None => out.set_item("killer", py.None())?,
@@ -206,6 +256,28 @@ fn death_dict<'py>(
     out.set_item("fyou_enabled", value.fyou_enabled)?;
     out.set_item("last_pattern_end_frame", value.last_pattern_end_frame)?;
     out.set_item("freeze_active", value.freeze_active)?;
+    out.set_item("recent", samples_dict(py, &value.recent)?)?;
+    let rects = PyList::empty(py);
+    for rect in &value.rects {
+        let item = PyDict::new(py);
+        item.set_item("x", rect.x)?;
+        item.set_item("y", rect.y)?;
+        item.set_item("width", rect.width)?;
+        item.set_item("height", rect.height)?;
+        item.set_item("sh", rect.sh)?;
+        item.set_item("shown", rect.shown)?;
+        item.set_item("lethal", rect.lethal)?;
+        rects.append(item)?;
+    }
+    out.set_item("rects", rects)?;
+    out.set_item(
+        "killer_path",
+        value
+            .killer_path
+            .iter()
+            .map(|(a, x, y)| (*a, *x, *y))
+            .collect::<Vec<_>>(),
+    )?;
     match value.active_pattern {
         Some(pattern) => {
             let item = PyDict::new(py);

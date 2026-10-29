@@ -34,6 +34,7 @@ pub struct TraceInfo {
     pub center_dwell_frames_at_end: u32,
     pub fyou_triggers: Vec<dodge_core::FyouTrigger>,
     pub patterns: Vec<dodge_core::PatternSpan>,
+    pub samples: Vec<dodge_core::FrameSample>,
     pub death: Option<dodge_core::DeathContext>,
 }
 
@@ -276,6 +277,7 @@ impl Slot {
             center_dwell_frames_at_end: trace.center_dwell_frames(),
             fyou_triggers: trace.fyou_triggers().to_vec(),
             patterns: trace.patterns().to_vec(),
+            samples: trace.samples().to_vec(),
             death: trace.death().cloned(),
         })
     }

@@ -101,9 +101,10 @@ def collect_rows(model, env_factory, seeds, *, repeat, mode, backend, guard, bat
                  progress=None):
     """Complete normal-start games; same loop and ordering as the saved evaluator."""
     rows = []
+    from collections import deque
     for offset in range(0, len(seeds), batch_size):
         chunk = seeds[offset:offset + batch_size]
-        envs, obs, done, started = {}, {}, {}, {}
+        envs, obs, done, started, history = {}, {}, {}, {}, {}
         for local, seed in enumerate(chunk):
             guard()
             env = env_factory(
@@ -116,6 +117,7 @@ def collect_rows(model, env_factory, seeds, *, repeat, mode, backend, guard, bat
                     and info["startup_frames"] == 13 and info["gameplay_frames"] == 0):
                 raise RuntimeError("constructor seed/startup differs")
             envs[local], obs[local], started[local] = env, env.observations(), time.monotonic()
+            history[local] = deque(maxlen=128)
         while envs:
             guard()
             active = sorted(envs)
@@ -129,6 +131,7 @@ def collect_rows(model, env_factory, seeds, *, repeat, mode, backend, guard, bat
                        if mode == "sampled" else torch.argmax(logits, dim=-1)).cpu().numpy()
             del tensors, logits
             for pos, i in enumerate(active):
+                history[i].append(int(actions[pos]))
                 result = envs[i].step(np.array([actions[pos]], dtype=np.int64))
                 info = result["info"][0]
                 terminated, truncated = bool(result["terminated"][0]), bool(result["truncated"][0])
@@ -142,7 +145,7 @@ def collect_rows(model, env_factory, seeds, *, repeat, mode, backend, guard, bat
                         truncated=truncated, death_cause=info["death_cause"],
                         fatal_gameplay_frame=info["fatal_gameplay_frame"],
                         death_observed_lethal_contacts=info["death_observed_lethal_contacts"],
-                        trace=info["trace"])
+                        trace=info["trace"], last_actions=list(history[i]))
                     del envs[i], obs[i]
                 else:
                     obs[i] = result["observations"]

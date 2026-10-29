@@ -219,6 +219,34 @@ fn natural_deaths_report_pattern_and_cause_consistently() -> Result<(), CoreErro
             let death = trace.death().ok_or(CoreError::InvalidSnapshotValue)?;
             assert_eq!(Some(death.cause), game.death_diagnostic().cause());
             assert_eq!(death.frame, trace.frame());
+            // The path ends at the frame before death and agrees with the death position.
+            let last = death.recent.last().ok_or(CoreError::InvalidSnapshotValue)?;
+            assert_eq!((last.x, last.y), (death.player_x_raw, death.player_y_raw));
+            assert!(
+                death
+                    .recent
+                    .windows(2)
+                    .all(|w| matches!(w, [a, b] if b.frame == a.frame + 1))
+            );
+            assert!(last.frame + 1 == death.frame || death.frame == 1);
+            if let Some(killer) = death.killer {
+                // The killer's last recorded position is where it collided.
+                let end = death
+                    .killer_path
+                    .last()
+                    .ok_or(CoreError::InvalidSnapshotValue)?;
+                assert_eq!(*end, (1, killer.x, killer.y));
+            }
+            if matches!(
+                death.cause,
+                DeathCause::StaticPatternRect | DeathCause::MovingPatternRect
+            ) {
+                assert!(death.rects.iter().any(|r| r.lethal));
+                assert_eq!(
+                    last.lethal_rect_gap, 0,
+                    "inside a lethal rectangle at death"
+                );
+            }
             match death.cause {
                 DeathCause::StaticPatternRect | DeathCause::MovingPatternRect => {
                     let pattern = death
@@ -286,5 +314,18 @@ fn reset_and_restore_clear_the_trace() -> Result<(), CoreError> {
     assert!(game.run_trace().enabled());
     assert!(game.run_trace().fyou_triggers().is_empty());
     assert_eq!(game.run_trace().frame(), 0);
+    Ok(())
+}
+
+#[test]
+fn samples_cover_the_whole_game_every_thirty_frames() -> Result<(), CoreError> {
+    let mut game = running(42, true)?;
+    game.should_collide = false;
+    for frame in 0..400_u64 {
+        game.advance_frame_headless(action_for(5, frame).mask())?;
+    }
+    let frames: Vec<u32> = game.run_trace().samples().iter().map(|s| s.frame).collect();
+    assert_eq!(frames, (1..=13).map(|k| k * 30).collect::<Vec<_>>());
+    assert!(game.run_trace().samples().iter().all(|s| s.enemy_gap >= -1));
     Ok(())
 }
