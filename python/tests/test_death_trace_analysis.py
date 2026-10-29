@@ -49,7 +49,8 @@ def row(seed, alive, terminated=True, cause="normal_enemy", triggers=(), spans=(
         context = dict(cause=cause, frame=end, killer=dict(personality=0, fyou_spawned=True, age_frames=40),
                        enemies_alive_normal=3, enemies_alive_kamikaze=0, enemies_alive_explosion=0,
                        enemies_alive_powerup=0, fyou_enemies_alive=2, center_dwell_frames=60, fyou_timer=0,
-                       fyou_enabled=True, active_pattern=None, last_pattern_end_frame=None, freeze_active=False)
+                       fyou_enabled=True, active_pattern=None, last_pattern_end_frame=None, freeze_active=False,
+                       player_x_raw=64 * 65536, player_y_raw=5 * 65536)
         context.update(death or {})
     return dict(seed=seed, alive_frames=alive, gameplay_frames=end, terminated=terminated, truncated=not terminated,
                 death_cause=cause if terminated else None, fatal_gameplay_frame=end if terminated else None,
@@ -119,3 +120,12 @@ def test_pattern_exposure_partitions_frames_and_matches_death_state():
         assert table.total(f"pexpo|{phase}|active") + table.total(f"pexpo|{phase}|inactive") == \
             table.total(f"expo|{phase}|all")
     assert table.total("died|1k-2k|pat_active") == 1
+
+
+def test_location_classes_use_a_pixel_margin_from_the_field_edge():
+    corner = a.prepare_game(row(1, 100, death=dict(player_x_raw=3 * 65536, player_y_raw=124 * 65536)))
+    edge = a.prepare_game(row(2, 100))  # y = 5 px: near the top edge only
+    interior = a.prepare_game(row(3, 100, death=dict(player_y_raw=64 * 65536)))
+    cols = a.build_columns([corner, edge, interior], {})
+    assert [cols.data[f"died|0-1k|loc|{k}"].tolist() for k in ("corner", "edge", "interior")] == \
+        [[1, 0, 0], [0, 1, 0], [0, 0, 1]]

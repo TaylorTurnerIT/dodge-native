@@ -313,6 +313,39 @@ def contrast(table_a, table_b, num, den, scale=1.0):
     return dict(est=a["est"] - b["est"], lo=float(lo), hi=float(hi), a=a["est"], b=b["est"])
 
 
+def post_fyou_standardized(tables, boot, window_labels=("1-100", "101-300")):
+    """Deaths within 300 frames after a fyou trigger versus deaths expected at each phase's
+    never-triggered rate over the same frames (indirect standardization; pools tables)."""
+    ph_names = [p[0] for p in PHASES]
+
+    def total(kind, ph, label):
+        return sum(t.total(f"{kind}|{ph}|{label}") for t in tables)
+
+    def draws(kind, ph, label):
+        return sum(t.boot_total(f"{kind}|{ph}|{label}") for t in tables)
+
+    def obs_exp(get):
+        observed = sum(get("deathrec", ph, lab) for ph in ph_names for lab in window_labels)
+        expected = 0.0
+        for ph in ph_names:
+            frames = sum(get("expo", ph, lab) for lab in window_labels)
+            denom = get("expo", ph, "never")
+            rate = np.where(denom > 0, get("deathrec", ph, "never") / np.where(denom > 0, denom, 1), 0.0) \
+                if isinstance(denom, np.ndarray) else (get("deathrec", ph, "never") / denom if denom > 0 else 0.0)
+            expected = expected + frames * rate
+        return observed, expected
+
+    observed, expected = obs_exp(total)
+    b_obs, b_exp = obs_exp(draws)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        ratio = np.where(b_exp > 0, b_obs / b_exp, np.nan)
+    lo, hi = np.nanpercentile(ratio, [2.5, 97.5]) if np.isfinite(ratio).any() else (math.nan, math.nan)
+    return dict(window="1-300 frames after the last fyou trigger", observed_deaths=observed, expected_deaths=expected,
+                frames=sum(total("expo", ph, lab) for ph in ph_names for lab in window_labels),
+                observed_over_expected=dict(est=observed / expected if expected > 0 else math.nan,
+                                            lo=float(lo), hi=float(hi)))
+
+
 def build_tables(table: Table, pattern_info):
     out = {}
     ph_names = [p[0] for p in PHASES]
@@ -552,9 +585,16 @@ def main():
                 pattern_active=contrast(a, b, f"{d}|pat_active", d),
                 **{f"cause_{cause}": contrast(a, b, f"{d}|cause|{cause}", d) for cause in CAUSES[:5]})
         contrasts["argmax_r1_minus_r4"] = c
+    post = {}
+    groups = {name: [name] for name in names}
+    pooled = [n for n in names if n.startswith("argmax") or n.startswith("sampled")]
+    if len(pooled) > 1:
+        groups["pooled_all_settings"] = pooled
+    for label, members in groups.items():
+        post[label] = post_fyou_standardized([tabs[m] for m in members], boot)
     result = dict(schema="death_trace_analysis_v1", bootstrap=dict(draws=args.draws, seed=args.seed,
                   unit="game_seed_cluster", n_clusters=len(seeds)), phases=[list(p) for p in PHASES],
-                  pattern_info={str(k): v for k, v in pattern_info.items()}, settings=tables, contrasts=contrasts)
+                  pattern_info={str(k): v for k, v in pattern_info.items()}, settings=tables, contrasts=contrasts, post_fyou_standardized=post)
     args.out.write_text(json.dumps(result, separators=(",", ":"), allow_nan=True))
     if args.records_out:
         records = {name: [dict(seed=g["seed"], alive_frames=g["alive"], fatal_or_end_frame=g["end"],

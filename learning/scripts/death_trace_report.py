@@ -155,18 +155,102 @@ def render_contrasts(contrasts):
     return "\n".join(lines)
 
 
+def render_full_patterns(name, block, info):
+    t = block["tables"]
+    dd = {r["id"]: r for r in t["deaths_by_pattern_id"]}
+    phases = ["0-1k", "1k-2k", "2k-3k", "3k-5k", "5k+"]
+    rows = []
+    for r in t["encounter_rates_by_pattern_id"]:
+        a = r["by_start_phase"]["all"]
+        meta = info[str(r["id"])]
+        gate = f"{meta['mins']:g}-{meta['maxs']:g}" if meta["maxs"] < 30000 else f">={meta['mins']:g}"
+        by_phase = "/".join(str(int(dd[r["id"]]["by_phase"][p]["deaths"])) for p in phases)
+        rows.append([r["id"], r["pattern_type"], r["family"], gate, i(a["encounters"]), i(a["deaths_during"]),
+                     pct(a["death_per_encounter"], 0), pct(a["rect_death_per_encounter"], 0),
+                     num(r["observed_over_expected"]) if a["encounters"] else "n/a", by_phase])
+    return (f"### {name}: all patterns\n\n" + md(
+        ["id", "type", "family", "score gate", "encounters", "deaths during", "death / encounter",
+         "rect death / encounter", "observed / expected", "deaths at death-phase 0-1k/1k-2k/2k-3k/3k-5k/5k+"], rows))
+
+
+def render_post_fyou(block):
+    rows = []
+    for label, v in block.items():
+        o = v["observed_over_expected"]
+        rows.append([label, i(v["observed_deaths"]), f"{v['expected_deaths']:.1f}", i(v["frames"]), num(o)])
+    return md(["setting", "deaths in 1-300 frames after a trigger", "expected at never-triggered rate",
+               "frames", "observed / expected"], rows)
+
+
+def render_headline(data, left="argmax_r1", right="argmax_r4"):
+    """Side-by-side 1-frame (left) versus 4-frame (right) headline tables."""
+    a, b = data["settings"][left]["tables"], data["settings"][right]["tables"]
+    out = []
+    out.append("**Phase hazard.** Games alive at the phase start, P(die in the phase), and deaths per 10k frames lived. "
+               "No game reached the 18,000-frame cap, so every game ends in a death and P(die) in `5k+` is 100% by "
+               "construction; use the per-frame rate there.\n")
+    out.append(md(["phase", "1-frame alive", "1-frame P(die)", "1-frame / 10k frames", "4-frame alive", "4-frame P(die)",
+                   "4-frame / 10k frames"],
+                  [[x["phase"], i(x["at_risk"]), pct(x["hazard"]), num(x["rate_per_10k_frames"]), i(y["at_risk"]),
+                    pct(y["hazard"]), num(y["rate_per_10k_frames"])]
+                   for x, y in zip(a["phase_overview"], b["phase_overview"])]))
+    for title, tb in (("1-frame decisions", a), ("4-frame decisions", b)):
+        causes = list(tb["cause_share"][0]["shares"])[:5]
+        out.append(f"**Cause share of deaths, {title}.**\n")
+        out.append(md(["phase", "deaths"] + [CAUSE_SHORT[c] for c in causes],
+                      [[r["phase"], i(r["deaths"])] + [pct(r["shares"][c], 0) for c in causes] for r in tb["cause_share"]]))
+    out.append("**fyou before death.** Share of each phase's deaths preceded by any fyou trigger (n triggered / deaths), "
+               "and killer enemy spawned by fyou (n / enemy-kill deaths).\n")
+    rows = []
+    for x, y in zip(a["fyou_in_deaths"], b["fyou_in_deaths"]):
+        rows.append([x["phase"],
+                     f"{pct(x['fy_any'])} ({i(x['fy_any']['num'])}/{i(x['deaths'])})",
+                     f"{i(x['killer_fyou_of_enemy_kills']['num'])}/{i(x['killer_fyou_of_enemy_kills']['den'])}",
+                     f"{pct(y['fy_any'])} ({i(y['fy_any']['num'])}/{i(y['deaths'])})",
+                     f"{i(y['killer_fyou_of_enemy_kills']['num'])}/{i(y['killer_fyou_of_enemy_kills']['den'])}"])
+    out.append(md(["phase", "1-frame any trigger", "1-frame fyou killer", "4-frame any trigger", "4-frame fyou killer"], rows))
+    out.append("**Pattern base rate.** Share of frames with a pattern active, share of deaths with a pattern active, "
+               "and death rate per 10k frames lived with a pattern active versus inactive.\n")
+    rows = []
+    for tb, label in ((a, "1-frame"), (b, "4-frame")):
+        for r, d in zip(tb["hazard_by_pattern_state"], tb["pattern_at_death"]):
+            rows.append([label, r["phase"], pct(r["share_of_frames_pattern_active"], 0), pct(d["pattern_active"], 0),
+                         num(r["per_10k_active"]), num(r["per_10k_inactive"])])
+    out.append(md(["decisions", "phase", "frames pattern active", "deaths with pattern active", "deaths / 10k active",
+                   "deaths / 10k inactive"], rows))
+    for title, tb in (("1-frame decisions", a), ("4-frame decisions", b)):
+        out.append(f"**Patterns that kill in each phase, {title}.** Top five pattern ids by deaths with that pattern "
+                   f"active; share of the phase's deaths.\n")
+        rows = []
+        for phase in ("0-1k", "1k-2k", "2k-3k", "3k-5k", "5k+"):
+            top = sorted(tb["deaths_by_pattern_id"], key=lambda r: -r["by_phase"][phase]["deaths"])[:5]
+            rows.append([phase] + [f"{r['id']} ({r['pattern_type'][:3]}): {i(r['by_phase'][phase]['deaths'])} "
+                                   f"({pct(r['by_phase'][phase]['share_of_phase_deaths'], 0).split(' ')[0]})"
+                                   for r in top])
+        out.append(md(["phase", "1st", "2nd", "3rd", "4th", "5th"], rows))
+    return "\n".join(out)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("tables", type=Path)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--setting", action="append", help="restrict/ordering of settings to render")
+    parser.add_argument("--headline-out", type=Path, help="write the compact 1-frame versus 4-frame tables")
     args = parser.parse_args()
     data = json.loads(args.tables.read_text())
     names = args.setting or list(data["settings"])
     parts = [render_setting(n, data["settings"][n]) for n in names]
+    parts.append("## fyou: deaths shortly after a trigger (phase-standardized)\n\n"
+                 + render_post_fyou(data["post_fyou_standardized"]))
+    for n in names:
+        if n.startswith("argmax"):
+            parts.append(render_full_patterns(n, data["settings"][n], data["pattern_info"]))
     if data["contrasts"]:
         parts.append("## 1-frame minus 4-frame contrasts\n\n" + render_contrasts(data["contrasts"]))
     args.out.write_text("\n\n".join(parts))
+    if args.headline_out:
+        args.headline_out.write_text(render_headline(data))
 
 
 if __name__ == "__main__":
