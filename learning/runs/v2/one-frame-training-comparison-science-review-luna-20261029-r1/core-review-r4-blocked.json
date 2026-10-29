@@ -1,0 +1,71 @@
+{
+  "design_sha256": "966c9c0c6a9e72fade2e440519c41b1d0bb2f63fa8a0016e46fede1bcc3e02ad",
+  "findings": [
+    {
+      "consequence": "worker.RealRuntime.save_recovery_snapshot() derives native_episode_indices and in_flight_metadata from adapter.get(\"in_flight\", []), so saved snapshots have empty episode indices and zero in-flight slots even though the 64-slot environment is live. terminal.py accepts the empty pair because it checks only type and matching length. Recovery evidence therefore cannot reconcile the actual native episodes or meet the registered metadata contract.",
+      "evidence_paths": [
+        {
+          "lines": "334-350",
+          "path": "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/worker.py"
+        },
+        {
+          "lines": "103-106",
+          "path": "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/terminal.py"
+        }
+      ],
+      "lines": "185-200",
+      "path": "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/runtime-clean-r2/dodge_rl/seeded_training.py",
+      "required_resolution": "Capture current per-slot native episode and in-flight metadata through read-only episode_info() after successful PPO completion; bind it into snapshot identity and require all 64 slots with matching indices/metadata in terminal audit. Preserve no-step/no-reset/no-evaluation snapshot behavior and no automatic-resume authority.",
+      "severity": "blocking",
+      "trigger": "A formal recovery snapshot is written after a completed PPO transaction. SeededTrainingAdapter.snapshot() omits current native per-slot episode metadata and has no in_flight field."
+    }
+  ],
+  "learning_contract_checks": [
+    "K4 rollout is 64 slots * 256 decisions; K1 is 64 * 1024. Both have 65,536 nominal gameplay frames per full rollout and 128 nominal Adam steps per full rollout (32 effective minibatches per epoch * 4 epochs).",
+    "Collector counts returned elapsed_raw_frames, retains the full vector call that crosses target, slices unused rollout rows, computes final next-values before reset, and skips reset once the frame target is reached. Adapter checks target <= actual frames < target + 64*K. Six CPU tests passed, including the K1 final-vector/no-reset case.",
+    "GAE zeros bootstrap only on termination; it bootstraps truncations and live rollout tails. Recurrence stops at termination or truncation. The boundary test covers terminated, truncated, and continuing rows.",
+    "K1 gamma/lambda fourth roots match K4 discount and GAE-trace decay across four-frame decision boundaries. K4 reward is an undiscounted aggregate of per-frame score/alive increments, so this does not exactly reproduce per-raw-frame reward weighting inside each K4 call; preserve registered reward aggregation and report this interpretation limit.",
+    "PPO normalizes advantages over each full effective macrobatch before microbatching. Each 512 micro-loss is weighted by its sample fraction; gradients accumulate, clip once, and produce one Adam step. The test compares 512-micro accumulation against one 2048 batch. Pinned teacher uses LayerNorm and no batch-normalization/dropout layers.",
+    "KL is recomputed over the full rollout at epoch end and can stop further epochs. Metrics record actual optimizer steps, epochs, transitions, and epoch KL values.",
+    "Seed stream index bounds are relative to each native initial episode index; the test starts at episode index 3. Both arms start fresh at index 0 with the same materialized per-slot streams and reset Python/NumPy/Torch CPU/MPS RNG from the registered pair seed. This is one paired trajectory, not exact environment resume or training-replica uncertainty.",
+    "Recovery snapshots occur only after successful PPO boundaries, carry model/Adam/RNG/counters and are ineligible/no-auto-resume. Qualification path writes zero checkpoints and performs zero evaluation calls."
+  ],
+  "limits": [
+    "Source review only; no MPS qualification, native run, training, D9 outcomes, or automatic recovery was executed. Recovery snapshot in-flight metadata is blocking source acceptance."
+  ],
+  "registration_draft_sha256": "afdde85c8f0b60d4513434b90acf943557368114a7f1057e1c2912d8f6b0dc4d",
+  "reviewed_file_sha256": {
+    "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/README.md": "087e3ba4abb5cedc77f6691fbc7e9cb3c484d7f37abaaba1ee5bf083364cae13",
+    "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/binding.py": "fb93920d39ea35e32b39f9dd2d3eb3212d9ba280f8548bbc50679a7e578690c4",
+    "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/registration-draft-r4.json": "afdde85c8f0b60d4513434b90acf943557368114a7f1057e1c2912d8f6b0dc4d",
+    "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/runtime-clean-r2-manifest.json": "2107469618b9eba595f06e28518cbab2339fd9db5aa8e17db8f809d54376e31d",
+    "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/runtime-clean-r2/dodge_rl/curriculum.py": "d90d0d158a75f6184af9c67839a3b7ad04637dfea33f3f2abad14641e2d20a68",
+    "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/runtime-clean-r2/dodge_rl/models/teacher.py": "e4d7f597a2824c2b0d4ba261dddc9d7d1ee1d5592c2fc966a44c54b5ec417e35",
+    "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/runtime-clean-r2/dodge_rl/ppo.py": "fa550f5868ea6ab64c56d244526821a5230de5e76ec1a3dc0a2c8f0404780787",
+    "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/runtime-clean-r2/dodge_rl/seeded_training.py": "8a781f02bfc7f7603621a91b3cd7a841c1a849b27578ecef22f211bc3f2bea85",
+    "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/runtime-tests/test_registered_ppo.py": "8ee1ecb0851f9deed6d33c5ed4a9ec856e35387f9021bcf030cab4fec198582d",
+    "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/source-clean-r4-manifest.json": "8783f7b53ab850f80fa3d180f50e8b2307628e0c0071e88840c18d573ec1c4ce",
+    "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/terminal.py": "358f989bcd3b2441b7cf0e0ba420dc59f80cbfea0f4eda14852d8570d93f954c",
+    "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/worker.py": "e4468a72429764f330acee8cc67cb3a444c925e9c8659af1e58ac8fb9fe1f8a5",
+    "learning/runs/v2/one-frame-training-comparison-parent-20261029-r1/protocol.json": "c4846a02d11a845cb8a138cd61caf25e264a403f93ea80aba7552071868bc86f",
+    "learning/runs/v2/one-frame-training-comparison-parent-20261029-r1/qualification-protocol.json": "f812ddb2e1f27b997fb170777747beb0078bfa3cf9344cb8c5cf4da50a63098e",
+    "learning/runs/v2/one-frame-training-comparison-parent-20261029-r1/registered-design.json": "966c9c0c6a9e72fade2e440519c41b1d0bb2f63fa8a0016e46fede1bcc3e02ad"
+  },
+  "revision": "r4_pre_recovery_metadata_fix",
+  "runtime_manifest_sha256": "2107469618b9eba595f06e28518cbab2339fd9db5aa8e17db8f809d54376e31d",
+  "schema": "one_frame_training_comparison_core_source_review_v1",
+  "source_manifest_sha256": "8783f7b53ab850f80fa3d180f50e8b2307628e0c0071e88840c18d573ec1c4ce",
+  "status": "blocking_findings",
+  "verification": {
+    "actual_mps_or_training_run": false,
+    "all_source_and_runtime_manifest_members_match": true,
+    "core_test_command": "python/.venv/bin/python -B -m pytest -p no:cacheprovider -q learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/runtime-tests/test_registered_ppo.py",
+    "core_test_result": "6 passed in 0.82s",
+    "manifest_member_counts": {
+      "runtime": 14,
+      "source": 22
+    },
+    "runtime_exact_member_set": true,
+    "runtime_pyc_files": 0
+  }
+}

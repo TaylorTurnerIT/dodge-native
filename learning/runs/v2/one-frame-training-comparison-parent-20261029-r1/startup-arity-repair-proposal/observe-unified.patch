@@ -1,0 +1,11 @@
+--- a/observe.py
++++ b/observe.py
+@@ -235,7 +235,7 @@
+         b.need(0 <= clock()-started < limits['work_seconds'] and record['first_event'] is None,
+                'dispatch cancelled or expired')
+         waitid = nonreaping_waitid()
+-        command = b.worker_command(envelope,reg)
++        command = b.worker_command(envelope)
+         env = os.environ.copy()
+         env.update(PYTHONDONTWRITEBYTECODE='1',PYTHONPYCACHEPREFIX=reg['import_policy']['pycache_prefix'],PYTHONPATH=reg['runtime_root'])
+         with (control/'worker.log').open('x') as log, (control/'observer-resources.jsonl').open('x') as samples:

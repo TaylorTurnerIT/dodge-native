@@ -10,7 +10,7 @@ import torch
 from torch import nn
 from torch.distributions import Categorical
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "runtime"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "runtime-clean-r2"))
 from dodge_rl import ppo
 from dodge_rl.seeded_training import SeededTrainingAdapter
 

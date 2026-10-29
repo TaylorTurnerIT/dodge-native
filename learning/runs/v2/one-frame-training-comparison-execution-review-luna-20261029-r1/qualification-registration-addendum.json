@@ -1,0 +1,44 @@
+{
+  "schema": "one_frame_training_comparison_qualification_registration_addendum_v1",
+  "status": "no_blocking_findings",
+  "experiment_id": "DODGE-013",
+  "phase": "qualification",
+  "qualification_registration_sha256": "fd942fe743e544183c1d4fa636eca51013542db6d2731eb86b0e0a1e115bd51c",
+  "formal_registration_sha256": "28531bdcaf4c023110fdc71f5df4d78ae3f8794f4bd541f055f9cb69256d01ed",
+  "source_manifest_sha256": "6e7c398ac258c3cde29a31bbb7640c8a641a22ef9de57efc7ab801ae16011209",
+  "runtime_manifest_sha256": "2107469618b9eba595f06e28518cbab2339fd9db5aa8e17db8f809d54376e31d",
+  "qualification_protocol_sha256": "f812ddb2e1f27b997fb170777747beb0078bfa3cf9344cb8c5cf4da50a63098e",
+  "runtime_acceptance_sha256": "9dcd552816c1d05b5262a2d1dfa9f393488c495159430a80b89092fe8a4baf4b",
+  "source_acceptance_sha256": "90310d7e8a473512786133a0a5dbd68077c41ff2055b0298f6f950c08ba47022",
+  "parent_review_acceptance_sha256": "463aa0afa17fa26a1cc3f585e87c595689af25d17aec84f0c2dda90f70a5e810",
+  "blocking_findings_remaining": [],
+  "findings": [],
+  "verified": [
+    "Qualification registration fd942fe743e544183c1d4fa636eca51013542db6d2731eb86b0e0a1e115bd51c has 29 input pins; all 29 current-file hashes match. It binds formal registration r6, source manifest r6, runtime manifest r2, and the qualification protocol by exact SHA-256.",
+    "Qualification target 458816 frames per arm, cap 524544, maximum 8 PPO updates, 1800-second work limit, and 1930-second total limit match qualification-protocol.json. Its output, attempt claim, launch marker, and bytecode cache are under the separate qualification-control root.",
+    "The registration pins runtime-acceptance.json. That acceptance is accepted for source/native provenance only, requires actual training qualification before formal resource acceptance, and does not grant launch authority.",
+    "source-acceptance-r6.json matches the registered source manifest and is source-only with launch_authority=false. It is not an input_pins member: launch.py requires the canonical source acceptance as an independent launch argument and requires the exact source-acceptance hash in the phase parent gate. Qualification launch remains gated on that separate registration and gate.",
+    "parent-review-acceptance-r6.json pins formal registration r6 and its execution and learning review documents; it reports actual_training_qualification=false and static source/runtime scope. It is not qualification launch acceptance.",
+    "The qualification protocol forbids checkpoint writes, evaluation-seed use, formal-weight reuse, promotion, and retry. The worker's qualification branch uses the separate qualification streams and has no save or evaluation calls; formal resource acceptance is required only by formal-phase validation after qualification evidence exists."
+  ],
+  "limits": [
+    "Read-only binding and hash review. No tests, launcher, worker, observer, native import, checkpoint deserialization, MPS probe, training qualification, main-state access, lease action, or marker action was performed.",
+    "This review establishes static registration consistency only. It does not establish runtime resource limits or qualification success, source acceptance for this qualification registration, parent registration, or launch authority.",
+    "Frozen source/runtime r6 review was not repeated; this addendum checks their bound manifest hashes and the qualification-specific gates only."
+  ],
+  "reviewed_file_sha256": {
+    "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/qualification-control/registration-draft-r6.json": "fd942fe743e544183c1d4fa636eca51013542db6d2731eb86b0e0a1e115bd51c",
+    "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/registration-draft-r6.json": "28531bdcaf4c023110fdc71f5df4d78ae3f8794f4bd541f055f9cb69256d01ed",
+    "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/source-clean-r6-manifest.json": "6e7c398ac258c3cde29a31bbb7640c8a641a22ef9de57efc7ab801ae16011209",
+    "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/runtime-clean-r2-manifest.json": "2107469618b9eba595f06e28518cbab2339fd9db5aa8e17db8f809d54376e31d",
+    "learning/runs/v2/one-frame-training-comparison-parent-20261029-r1/qualification-protocol.json": "f812ddb2e1f27b997fb170777747beb0078bfa3cf9344cb8c5cf4da50a63098e",
+    "learning/runs/v2/one-frame-training-comparison-parent-20261029-r1/runtime-acceptance.json": "9dcd552816c1d05b5262a2d1dfa9f393488c495159430a80b89092fe8a4baf4b",
+    "learning/runs/v2/one-frame-training-comparison-parent-20261029-r1/source-acceptance-r6.json": "90310d7e8a473512786133a0a5dbd68077c41ff2055b0298f6f950c08ba47022",
+    "learning/runs/v2/one-frame-training-comparison-parent-20261029-r1/parent-review-acceptance-r6.json": "463aa0afa17fa26a1cc3f585e87c595689af25d17aec84f0c2dda90f70a5e810",
+    "learning/runs/v2/one-frame-training-comparison-execution-review-luna-20261029-r1/review.json": "3ddd4a8baa481acec8a7bb1e9be38c6f9438a18ce5d55436504bdafd60743348",
+    "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/binding.py": "148babe5dc2dcf0a78f2f0e6c4fd9f14cc444b137916eb3885badfb0f2a6b682",
+    "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/launch.py": "5636626777cb1028afa8982c18f1cd914ce396404d61355808b86ea8a72972e8",
+    "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/worker.py": "5843ef9f5fbc526ee540566eabbc600d7c4a8f8af44093efd14b4dac56d5d288",
+    "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/build_registration.py": "4414a4fa5edf07d927204f225daa9d56056bdf09cc5ce8f1d7247a268a2092ce"
+  }
+}

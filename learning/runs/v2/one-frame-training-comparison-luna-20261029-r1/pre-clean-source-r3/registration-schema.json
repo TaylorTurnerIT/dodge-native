@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "one_frame_training_comparison_registration_v1",
+  "title": "Inert DODGE-013 training comparison registration",
+  "type": "object",
+  "required": ["schema", "status", "launch_authority", "run_id", "experiment_id", "protocol_path", "protocol_sha256", "source_manifest_path", "source_manifest_sha256", "runtime_root", "runtime_manifest_path", "runtime_manifest_sha256", "checkpoint_path", "checkpoint_sha256", "arms", "gameplay_frame_target_per_arm", "training_pair_seed", "evaluation", "evaluation_seeds", "streams", "limits", "expected_lease", "state_path", "expected_parent_work_identity", "input_pins", "no_promotion", "automatic_selection", "training_eligible"],
+  "properties": {
+    "schema": {"const": "one_frame_training_comparison_registration_v1"},
+    "status": {"enum": ["source_review_pending", "parent_registered"]},
+    "launch_authority": {"const": false},
+    "run_id": {"const": "one-frame-training-comparison-luna-20261029-r1"},
+    "experiment_id": {"const": "DODGE-013"},
+    "gameplay_frame_target_per_arm": {"const": 11796480},
+    "training_pair_seed": {"const": 202610290501},
+    "arms": {"type": "array", "minItems": 2, "maxItems": 2},
+    "evaluation_seeds": {"type": "array", "minItems": 1024, "maxItems": 1024, "items": {"type": "integer", "minimum": 0, "maximum": 4294967295}},
+    "streams": {"type": "object"},
+    "limits": {"type": "object"},
+    "input_pins": {"type": "object", "additionalProperties": {"type": "string", "pattern": "^[0-9a-f]{64}$"}},
+    "no_promotion": {"const": true},
+    "automatic_selection": {"const": false},
+    "training_eligible": {"const": false}
+  },
+  "additionalProperties": true
+}
