@@ -1,0 +1,59 @@
+{
+  "schema": "dodge013_r2_metadata_exception_helper_contract_v1",
+  "status": "source_only_pending_independent_review",
+  "acceptance_mode": "user_authorized_specific_metadata_exception",
+  "scope": {
+    "expected_sha256": "7140b4d41f7b5a8d908462bf46d9848192b0fa0c15698eb4f9f1986ec3a32a90",
+    "actual_sha256": "e1c8890712e656daafd942a320ec8e4f9eb1adafcd6de84af69788fcf18503eb",
+    "reason": "Root mistakenly updated operational live metadata that had been included in frozen gate pins. Independent forensic review confirms every other envelope pin matches and completed worker output/journals remain consistent.",
+    "file": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-parent-20261029-r2/operator-handoff.json"
+  },
+  "authorization_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/qualification-r2-metadata-exception-parent-20261029-r1/user-authorization.json",
+  "proposal_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/qualification-r2-integrity-incident-parent-20261029-r1/metadata-exception-proposal.json",
+  "forensic_review_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-execution-review-luna-20261029-r2/forensic-review-r4.json",
+  "registration_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-luna-20261029-r2/qualification-control/registration-final-r4.json",
+  "envelope_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-luna-20261029-r2/qualification-control/launch-envelope.json",
+  "qualification_protocol_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-parent-20261029-r2/qualification-protocol.json",
+  "source_manifest_sha256": "352d676c30bc42af2309919cb924de028a668a3eb136edb8e15df2458e11c6fb",
+  "runtime_manifest_sha256": "2107469618b9eba595f06e28518cbab2339fd9db5aa8e17db8f809d54376e31d",
+  "expected_registration_sha256": "c61581a609122d01d1fe2c7929e861ba42d74912ac32425105dc1af30aaa03e0",
+  "expected_envelope_sha256": "42b82b1486a8447d9c9595bfcd3c994a8f5d81202bd1fafc6fccec0bd2a1704d",
+  "expected_forensic_review_sha256": "450d673033750d44abcdb5a7a03f40bf77d9a31e893809029fee5212d3ff27e5",
+  "expected_first_failure_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/qualification-r2-integrity-incident-parent-20261029-r1/first-integrity-failure.json",
+  "expected_before_launch_operator_sha256": "7140b4d41f7b5a8d908462bf46d9848192b0fa0c15698eb4f9f1986ec3a32a90",
+  "qualification_run_id": "one-frame-training-resource-qualification-20261029-r2",
+  "formal_run_id": "one-frame-training-comparison-luna-20261029-r2",
+  "allowed_exception_count": 1,
+  "observer_raw_exit_code": 1,
+  "worker_raw_exit_code": 0,
+  "observer_first_event_error": "ValueError('pin drift: /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-parent-20261029-r2/operator-handoff.json')",
+  "observer_exit_limit_seconds": 1930,
+  "worker_work_limit_seconds": 1800,
+  "cleanup_limit_seconds": 10,
+  "rss_limit_bytes": 6442450944,
+  "mps_limit_bytes": 6442450944,
+  "source_member_count": 23,
+  "runtime_member_count": 14,
+  "registration_input_pin_count": 33,
+  "envelope_pin_count": 50,
+  "output_files": [
+    "resources.jsonl",
+    "training.jsonl",
+    "worker-result.json"
+  ],
+  "apply_requires": [
+    "independent review acceptance that pins helper source SHA and check-only input manifest SHA",
+    "the exact user authorization and proposal pins remain current",
+    "all check-only input hashes still match",
+    "parent-terminal-audit.json, lease-release.json, and supervisor artifact-manifest.json are absent",
+    "independent review acceptance matches review-acceptance-schema.json"
+  ],
+  "never": [
+    "restore or rewrite the changed operator metadata",
+    "rewrite failed observer/execution receipts or fabricate a supervisor artifact manifest",
+    "change source, runtime, recipe, seeds, limits, checkpoint or evaluation data",
+    "claim the original strict observer check passed",
+    "authorize formal training, evaluation or promotion"
+  ],
+  "review_acceptance_schema_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/qualification-r2-metadata-exception-parent-20261029-r1/review-acceptance-schema.json"
+}
