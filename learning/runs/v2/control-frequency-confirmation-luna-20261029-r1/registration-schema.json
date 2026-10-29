@@ -1,0 +1,17 @@
+{
+  "schema": "control_frequency_confirmation_registration_v1",
+  "authority": false,
+  "required_status_for_launch": "parent_registered",
+  "required_parent_acceptances": ["source-acceptance.json", "gate-acceptance.json", "parent-review-acceptance.json", "actual-runtime-qualification-registration.json", "actual-runtime-qualification-receipt.json", "parent-accepted-calibration-protocol.json"],
+  "invariants": {"checkpoint_global_update": 420, "training": false, "optimizer": false, "checkpoint_write": false, "official_parent": 324, "automatic_selection": false, "promotion": false, "development_cohort_only": true},
+  "conditions": [
+    {"id": "argmax_r4", "action_mode": "argmax", "action_repeat": 4, "repetitions": 1},
+    {"id": "argmax_r1", "action_mode": "argmax", "action_repeat": 1, "repetitions": 1},
+    {"id": "sampled_r4", "action_mode": "sampled_categorical", "action_repeat": 4, "repetitions": 3},
+    {"id": "sampled_r1", "action_mode": "sampled_categorical", "action_repeat": 1, "repetitions": 3}
+  ],
+  "action_semantics": {"argmax_tie_break": "lowest action index", "sampled_rng": "global MPS generator reseeded once per registered controller group", "evaluation": "normal start; difficulty 2; patterns and powerups enabled; cap 18000; no cutoff"},
+  "statistic": "Q1 is mean survival in the worst 25 percent of pooled complete games; sampled uses bottom 192 of 768 and argmax bottom 64 of 256.",
+  "uncertainty": "2000 percentile bootstrap draws resample shared game-seed clusters and retain all three sampled controller repetitions within each cluster.",
+  "limits": "Exact limits and eight-group order come from pinned parent protocol.json."
+}

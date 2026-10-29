@@ -1,0 +1,33 @@
+{
+  "id": "DODGE-012",
+  "project": "dodge-native",
+  "title": "Confirm one-frame control on fresh D8 games",
+  "status": "planned",
+  "doing": "Freeze checkpoint420 and repeat all four sampled/argmax by repeat1/repeat4 settings on 256 new shared D8 seeds, with three controller repetitions per sampled condition:2,048 complete normal-start games. Keep architecture, model weights, runtime, reward, difficulty and 18,000-frame cap fixed. Primary replication contrast is sampled repeat1-minus-repeat4 Q1; success requires positive difference and a positive lower95% seed-cluster bootstrap bound.",
+  "expected": "The large one-frame sampled lower-tail gain should persist on D8. Both selectors should benefit from one-frame control, while the relative Q1 ranking of the two one-frame selectors remains uncertain. A failed replication would weaken the timing hypothesis and hold the training comparison for reconciliation.",
+  "why": "Fresh game seeds distinguish repeatable frozen-policy control-frequency effects from selection or chance on D7. Conditional on one checkpoint; controller repetitions are not training replicas. This does not distinguish quicker reactions from shorter harmful action holds.",
+  "next_step": "Finish isolated successor source, actual startup qualification and independent reviews; register exact launch gates and execute once on AC. Prepare matched training protocol while inference runs, without launching training before terminal acceptance.",
+  "parent_id": "DODGE-002",
+  "prediction_timing": "before_run",
+  "actual": null,
+  "actual_kind": "unobserved",
+  "tags": [
+    "confirmation",
+    "control-frequency",
+    "Q1"
+  ],
+  "evidence": [
+    {
+      "kind": "registration",
+      "label": "Prespecified D8 replication protocol and primary decision",
+      "uri": "learning/runs/v2/control-frequency-confirmation-parent-20261029-r1/protocol.json",
+      "sha256": "6c8950ebd5316638500a226e3457d01d8a24cffe281bf4918c5ed6d4e6351161"
+    },
+    {
+      "kind": "registration",
+      "label": "D8 accepted-family seed reservation",
+      "uri": "learning/runs/v2/control-frequency-confirmation-parent-20261029-r1/cohort-reservation.json",
+      "sha256": "c340fe6ff6d1857fb545ea50f718d2308e1e096fdefa513961299e5ca0c32173"
+    }
+  ]
+}

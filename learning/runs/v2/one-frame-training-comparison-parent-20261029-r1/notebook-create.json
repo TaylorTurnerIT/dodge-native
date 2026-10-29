@@ -1,0 +1,28 @@
+{
+  "id": "DODGE-013",
+  "project": "dodge-native",
+  "title": "Compare one-frame and four-frame PPO training at equal game exposure",
+  "status": "conditional",
+  "doing": "Prepare paired PPO training from checkpoint420 with unchanged entity-transformer and reward. Match actual game-frame budgets, as the user chose; record policy-decision and compute costs separately. Evaluate both resulting models under the same one-frame sampled controller. Freeze frame target, rollout/minibatch sizing, time-normalized discount handling, training seeds and held-out evaluation before launch.",
+  "expected": "Training with one-frame decisions may improve Q1 beyond the immediate frozen-policy inference gain by learning under its own finer control. It may also plateau or regress. Equal game exposure gives the one-frame arm more decisions and more computation, so this comparison does not claim equal compute efficiency.",
+  "why": "Separate learned adaptation to finer control from the already-observed inference-only frequency change. Match the physical experience budget and make optimizer cadence and discount horizon explicit to avoid attributing hidden recipe differences to control timing.",
+  "next_step": "Wait for audited D8 confirmation; prepare and review the concrete equal-frame recipe and resource calibration before training.",
+  "actual": null,
+  "actual_kind": "unobserved",
+  "prediction_timing": "before_run",
+  "parent_id": "DODGE-012",
+  "tags": [
+    "training",
+    "control-frequency",
+    "equal-game-frames",
+    "Q1"
+  ],
+  "evidence": [
+    {
+      "kind": "plan",
+      "label": "Equal-game-frame training comparison preparation and remaining launch prerequisites",
+      "uri": "learning/runs/v2/one-frame-training-comparison-parent-20261029-r1/preparation-plan.json",
+      "sha256": "37d0d1458d10602b2077bee51784d62675b5316531d8419b94a4bc0ffc2ae32f"
+    }
+  ]
+}
