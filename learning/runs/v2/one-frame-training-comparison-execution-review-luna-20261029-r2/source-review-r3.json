@@ -1,0 +1,127 @@
+{
+  "candidate_manifest": {
+    "manifest_path": "learning/runs/v2/one-frame-training-comparison-luna-20261029-r2/source-manifest-r3.json",
+    "manifest_sha256": "352d676c30bc42af2309919cb924de028a668a3eb136edb8e15df2458e11c6fb",
+    "member_count": 23,
+    "member_mismatches": [],
+    "member_pins": {
+      "README.md": "12bee67eeeab6d03b8c745ac0ecb28ed06ae05a3f5faff4d240a977a0240c93f",
+      "audit.py": "8e392cd921ce62a496c8b4e29c6f1441c9070c97275b4674a78e353e9ab6acbe",
+      "binding.py": "f9784d852442ce3cbed4e5783dfa3a0ef123c90438659af3d8bf3717cd00d05c",
+      "build_registration.py": "e68e57d3e28426b27819da7f074daa60f4d20629603af3bf77824af043c0590f",
+      "death_telemetry.py": "300e93a227dd63963e41474f068c3cd00a0c7ef63c22a15e65343472eed46432",
+      "evaluation.py": "dd4cb0cc58938bf0e3855a99540b76d112c085a51248b0261c6daffb1a61c2fc",
+      "execute_once.py": "484405674d981ea7db6b5c940d70ffe353a89cff4c3a9f9a810fb25dc219aa3d",
+      "fingerprints.py": "6ef9cf3f08fe800f54230801a921a2f5c82e47e5013ef3087ead6499d2533d61",
+      "launch.py": "5636626777cb1028afa8982c18f1cd914ce396404d61355808b86ea8a72972e8",
+      "observe.py": "c609ef589d2a4dbb70d0bd44a9aa8a2476c1d204e8d3ebb7daecc136aa74a2df",
+      "policy-plan.json": "c392c9f8437581cd59414a96690525b728a28f985e994cb75ac6c3e1dfb325ee",
+      "power_guard.py": "91d8f18a06e0fd1ee770cfc823f2b842764e5aa115f84b1865a511e4ac6d24d8",
+      "registration-schema.json": "edf3dc30ec2bee0a367639d3cf463ec710bb247d933607d1ca579d1dab5824cd",
+      "runtime-clean-r2-manifest.json": "2107469618b9eba595f06e28518cbab2339fd9db5aa8e17db8f809d54376e31d",
+      "runtime-tests/test_registered_ppo.py": "9ea3fd3c972387a1943a9e7932c29685a51ab194a21a7633a0d7121caf06bc69",
+      "screen.py": "79f507fd35574a868dabc7c868bbc2b47ab3c48ba5ef066d280a9b2bfa6ab679",
+      "seal.py": "b4f37927026220702cb6a0fe42dd8612bd815a2f824b4eddc943b64c089ef510",
+      "seeds.py": "a80dd27dd8b2b81f91162e76e44ecdc34d30e029bac5e58082271bcb3c5bf2d2",
+      "startup_regression.py": "fd668340babb4b228f5f652edadd67f21e81100bc7da4a9ffee1289995174f6e",
+      "stream-audit.py": "6d6accad398537ed04c59c8da4fea08897ae8a884507200101b7ffe97bde6333",
+      "terminal.py": "19b1fbde41309d3a234f062df8330347d5c8db9a8f707a8885e51f747a0880ed",
+      "tests.py": "276122073b53fde63a8b4d7a633ab1daed43cbee33ea2fb90fd0f110183b6670",
+      "worker.py": "5843ef9f5fbc526ee540566eabbc600d7c4a8f8af44093efd14b4dac56d5d288"
+    }
+  },
+  "execution_review": {
+    "capsule_fake_suite": {
+      "failed": 0,
+      "passed": 13,
+      "path": "learning/runs/v2/one-frame-training-comparison-luna-20261029-r2/test-results/capsule-fake-tests-r3.txt",
+      "sha256": "719e14303d024ddfa3c336dbf64a7eba6c73be6ae13259d87d9d3d5aebcc5a0d"
+    },
+    "cpu_startup_regression": {
+      "path": "learning/runs/v2/one-frame-training-comparison-luna-20261029-r2/test-results/startup-regression-r3.json",
+      "runtime_qualification": false,
+      "sha256": "ff09c107352d40a678eff1fb041cc965fc5a9fee3fa25bc7d92cc6438938c8db",
+      "status": "pass"
+    },
+    "direct_child_observation": "observe.py:34-77 and 237-298; Darwin arm64 ABI-gated waitid(WNOWAIT), then direct reap after group absence",
+    "fresh_source_manifest_binding": "binding.py:31; seal.py:46-56",
+    "observer_command_call": "observe.py:238; one envelope argument to worker_command",
+    "qualification_scope": "worker.py:174-261; bounded paired updates, no checkpoint or evaluation calls; terminal.py validates zero writes/evals",
+    "runtime_core_suite": {
+      "failed": 0,
+      "passed": 6,
+      "path": "learning/runs/v2/one-frame-training-comparison-luna-20261029-r2/test-results/runtime-core-tests-r3.txt",
+      "sha256": "ecacf709f1721639aa23a331427a914c5ada50d7e7b8ce3dfcb8ade4d769aa7b"
+    },
+    "worker_command_definition": "binding.py:527-529; one envelope positional argument to worker entrypoint"
+  },
+  "limits": [
+    "Recorded CPU dummy-child regression and fake/core tests are not actual native MPS qualification.",
+    "Formal protocol remains draft by design; parent status promotion, registration, and measured resource acceptance are outside this source review.",
+    "No launch authority granted."
+  ],
+  "next_review_required": "Recheck exact finalized parent protocol and manifest pins, then independently review exact source/runtime acceptances and qualification registration before any actual qualification launch.",
+  "parent_execution_status": "parent_protocol_pin_reconciliation_required",
+  "parent_manifest": {
+    "manifest_path": "learning/runs/v2/one-frame-training-comparison-parent-20261029-r2/parent-manifest-r3.json",
+    "manifest_sha256": "5c251e122b15638417365bdb991069f7dc69a6b6214323fb12fa1101e33897a2",
+    "member_count": 12,
+    "member_mismatches": [],
+    "member_pins": {
+      "accept_terminal.py": "55eb1b2e5ce5c992da4929a2b61a4e1538b8645eb4f4d7087856cad01d3b1376",
+      "clean-runtime-provenance.json": "0364c7748cdd09c935d2c838909da3f715ce48329574ac9a5144d1a49bb3ee81",
+      "cohort-reservation.json": "38a7b16755f3cd89681b62b144218b8fab75ebda7d0ece0f1fdfdd1360159a84",
+      "finalize_parent.py": "ef01616e382b872d4ce393e07edc4da4968ca942eb25726bac11def07c8b7cea",
+      "operator-handoff.json": "7140b4d41f7b5a8d908462bf46d9848192b0fa0c15698eb4f9f1986ec3a32a90",
+      "preparation-plan.json": "c7c7615a2a71f71dc2f62a7fcf7420bb060fe750e4249801e355a1c896b2f98a",
+      "protocol.json": "1b21a59043a06349005feb1b8e467242c009e1878d9b10f3d18d0ca8eaafb8f0",
+      "qualification-protocol.json": "46512dad84b65f2bb0c2fa7546a33c3f502fd375796c2241804a27334b2caf62",
+      "qualify_startup.py": "aae1901f641818cbe943f7f332a03c9459d0c5961bcf502f7a559d739e4ae1d5",
+      "registered-design-original-r1.json": "966c9c0c6a9e72fade2e440519c41b1d0bb2f63fa8a0016e46fede1bcc3e02ad",
+      "registered-design.json": "e6dce23135a747894d6f347e5a3c1349bd0931b847291fb89e1e60c4742c8891",
+      "training-reuse-audit.json": "34760a6c916aee7be95e202ace3d0849933452d92fb72a67ecee35f8f2d76a65"
+    }
+  },
+  "parent_pin_chain": {
+    "active_design_run_id": "one-frame-training-comparison-luna-20261029-r2",
+    "active_design_sha256": "e6dce23135a747894d6f347e5a3c1349bd0931b847291fb89e1e60c4742c8891",
+    "formal_protocol_sha256": "1b21a59043a06349005feb1b8e467242c009e1878d9b10f3d18d0ca8eaafb8f0",
+    "handoff_matches_design": true,
+    "handoff_matches_formal_protocol": true,
+    "handoff_matches_manifests": true,
+    "handoff_matches_q_protocol": true,
+    "parent_handoff_sha256": "c852e429151050d303b41afb08f716a3d2d8c30faf276bf055fa7477b66092ea",
+    "preserved_original_design_run_id": "one-frame-training-comparison-luna-20261029-r1",
+    "qualification_frame_cap_per_arm": 524544,
+    "qualification_frame_target_per_arm": 458816,
+    "qualification_protocol_sha256": "46512dad84b65f2bb0c2fa7546a33c3f502fd375796c2241804a27334b2caf62",
+    "qualification_run_id": "one-frame-training-resource-qualification-20261029-r2",
+    "qualification_source_manifest_sha256": "352d676c30bc42af2309919cb924de028a668a3eb136edb8e15df2458e11c6fb",
+    "qualification_update_cap_per_arm": 8,
+    "qualification_work_cap_seconds": 1800,
+    "scientific_design_equal_after_run_id_removal": true
+  },
+  "parent_pre_registration_findings": [
+    {
+      "consequence": "binding.validate_static compares protocol reuse_audit_sha256 with the live reuse-audit file. Reconcile the parent-owned protocol pin before parent registration or qualification preflight; source review itself has no source blocker.",
+      "line": null,
+      "path": "learning/runs/v2/one-frame-training-comparison-parent-20261029-r2/protocol.json",
+      "severity": "blocking_parent_protocol_pin_drift",
+      "trigger": "protocol input_pins and reuse_audit_sha256 pin None; active training-reuse-audit.json hashes to 34760a6c916aee7be95e202ace3d0849933452d92fb72a67ecee35f8f2d76a65"
+    }
+  ],
+  "review_id": "one-frame-training-comparison-execution-review-luna-20261029-r3",
+  "reviewer": "independent source and execution review",
+  "runtime_provenance": {
+    "candidate_runtime_manifest_byte_identical_to_reference": true,
+    "qualification_or_training_executed": false,
+    "runtime_manifest_path": "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/runtime-clean-r2-manifest.json",
+    "runtime_manifest_sha256": "2107469618b9eba595f06e28518cbab2339fd9db5aa8e17db8f809d54376e31d",
+    "runtime_member_count": 14,
+    "runtime_member_mismatches": []
+  },
+  "schema": "dodge013_independent_source_execution_review_v1",
+  "scope": "Read-only r3 candidate source, parent execution contract and provenance review. No launch, registration, notebook, state, lease, claim, or marker mutation; no nativegames/MPS training or evaluation.",
+  "source_findings": [],
+  "source_review_status": "no_blocking_source_findings_contingent_on_exact_final_parent_and_registration_review"
+}

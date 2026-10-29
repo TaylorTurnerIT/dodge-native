@@ -1,0 +1,47 @@
+{
+  "schema": "one_frame_training_comparison_preparation_v1",
+  "status": "draft_pending_fresh_source_review_and_parent_acceptance",
+  "user_authorization": "User said Go to fresh successor source preparation, a separately registered bounded real resource qualification, and formal comparison only if qualification passes and budget fits.",
+  "parent_experiment": "DODGE-012",
+  "checkpoint_global_update": 420,
+  "checkpoint_path": "learning/runs/v2/uniform2-recovery240-luna-20261028-r1/worker-output/checkpoint-global-420.pt",
+  "checkpoint_sha256": "7e0de8640f1337261412d91cde6bc692772ff212fbd360f5aad415dc6bc7ed4b",
+  "arms": [
+    {
+      "id": "repeat4_training",
+      "action_repeat": 4
+    },
+    {
+      "id": "repeat1_training",
+      "action_repeat": 1
+    }
+  ],
+  "matched_budget": "Actual gameplay frames, with batch-boundary accounting tolerance declared before training. Report startup frames, policy decisions, optimizer steps and wall time separately.",
+  "same_architecture": true,
+  "same_reward_formula": true,
+  "same_starting_weights_and_Adam": true,
+  "training_seed_pairs": "Match training stream seeds within each pair; freeze count and exact values before execution. D7/D8 and subsequent evaluation cohorts excluded.",
+  "primary_evaluation": "Evaluate both trained policies with the same one-frame sampled controller on fresh shared normal-start games. Keep a four-frame evaluation secondary to separate training effects from inference timing.",
+  "temporal_discount_proposal": {
+    "reason": "Keep the same game-time discount and GAE decay despite different decisions per frame; requires separate pre-run acceptance.",
+    "repeat4_gamma": 0.995,
+    "repeat1_gamma": 0.9987476493904754,
+    "repeat4_gae_lambda": 0.95,
+    "repeat1_gae_lambda": 0.9872585449014338
+  },
+  "open_before_launch": [
+    "Freeze total gameplay-frame target and per-segment limits using actual one-frame training calibration.",
+    "Choose rollout and minibatch sizing to avoid unintended changes in optimizer-step frequency; report any unavoidable compute difference.",
+    "Validate incomplete-rollout bootstrap, true termination and final frame-budget handling.",
+    "Freeze evaluation cohort, seed exclusions, checkpoint-selection rule and primary analysis.",
+    "Complete source, actual-startup, independent review, registration, AC/resource and exact-once gates."
+  ],
+  "conditional_gate": "Accepted D8 terminal audit and positive prespecified primary Q1 replication criterion. If failed, reconcile before training.",
+  "training_launched": false,
+  "official_parent": 324,
+  "no_promotion": true,
+  "launch_authority": false,
+  "successor_run_id": "one-frame-training-comparison-luna-20261029-r2",
+  "qualification_run_id": "one-frame-training-resource-qualification-20261029-r2",
+  "qualification_launched": false
+}

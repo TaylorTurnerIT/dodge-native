@@ -1,0 +1,74 @@
+{
+  "schema": "dodge013_successor_science_runtime_review_v1",
+  "status": "blocking_findings",
+  "verdict": "The scientific design and active runtime pins match the intended successor. The handoff does not bind its recorded CPU-only evidence to the current evidence bytes, so source acceptance should wait for corrected evidence pins. No qualification or launch authority is granted.",
+  "candidate_run_id": "one-frame-training-comparison-luna-20261029-r2",
+  "candidate_source_manifest_sha256": "bc4b7dcbc098c422fe12be8a89924ade95a323b80f14bb4d79a5754a76006653",
+  "parent_handoff_sha256": "ff60611e7b3aab2392f04843939ba6ba7cf45e221d00f9eda8871e563b7ee533",
+  "design_sha256": "966c9c0c6a9e72fade2e440519c41b1d0bb2f63fa8a0016e46fede1bcc3e02ad",
+  "runtime_manifest_sha256": "2107469618b9eba595f06e28518cbab2339fd9db5aa8e17db8f809d54376e31d",
+  "blocking_findings": [
+    {
+      "severity": "blocking",
+      "path": "learning/runs/v2/one-frame-training-comparison-parent-20261029-r2/successor-handoff.json",
+      "line": "17,23",
+      "trigger": "The handoff pins CPU-only evidence files whose current SHA-256 values differ from the recorded values.",
+      "consequence": "The recorded startup regression and 13-test pass cannot be authenticated as the exact evidence presented by the handoff. Refresh both pins and revalidate their relationship to this source manifest before source acceptance.",
+      "evidence": {
+        "startup_regression": {
+          "recorded_sha256": "549dd1de40d7830d2cfa39bb5b04eca0cc7e36036f344542c8cfb6d7509a441e",
+          "current_sha256": "129c37236218515e138eb5565cbe34e387661740f896448f3c849e0c75eb500e"
+        },
+        "fake_tests": {
+          "recorded_sha256": "fda7c4bb67516da359a3e152a252988d4754872caefb38a305e32c3bc1e5f0c3",
+          "current_sha256": "fa254bf8670594cbb6c7e027115503c506a4af1f5b3585f7ea1b3001df8bbd9c"
+        }
+      }
+    }
+  ],
+  "nonblocking_findings": [
+    {
+      "severity": "nonblocking",
+      "path": "learning/runs/v2/one-frame-training-comparison-luna-20261029-r2/runtime-clean-r2-manifest.json",
+      "line": "20",
+      "trigger": "The source package includes a candidate-local runtime manifest whose runtime_root points to candidate-local runtime-clean-r2, while binding.py lines 32-34 and the registered handoff point to the preserved r1 runtime.",
+      "consequence": "The included manifest is stale and may mislead package maintenance. Active binding separately validates the external r1 runtime manifest and its 14 members, so this does not alter the current runtime selection. seal.py lines 31-45 also mixes the external manifest path with candidate-local source member verification, making resealing inconsistent."
+    }
+  ],
+  "scientific_review": {
+    "status": "no_blocking_findings",
+    "design_matches_pinned_hash": true,
+    "same_checkpoint": "update 420, SHA-256 7e0de8640f1337261412d91cde6bc692772ff212fbd360f5aad415dc6bc7ed4b",
+    "arms": "K4 uses rollout 256, gamma 0.995, lambda 0.95, macro/effective minibatch 512. K1 uses rollout 1024, fourth-root gamma/lambda, macro/effective minibatch 2048 via weighted 512 microbatches. Both keep entropy coefficient 0.01.",
+    "exposure": "Both arms target 11,796,480 actual gameplay frames, retain the full crossing vector step and valid partial rows, and exclude startup frames. Overshoot is bounded below 64 times action repeat per arm; paired totals may differ by at most 256 frames.",
+    "estimand": "One paired training trajectory. Primary is the difference of separately sorted marginal Q1 values under sampled repeat1 inference. Shared D9 seed-cluster bootstrap uses 2,000 draws and seed 202610290503. This estimates evaluation uncertainty conditional on this pair, not training-replica uncertainty; no automatic promotion.",
+    "seed_lineage": "Pair seed 202610290501 and accepted uniform512 training-only pool are bound; D9 reservation contains 1,024 seeds, records zero overlap within its bounded history scope, and outcomes_read is false. No seed replacement is specified.",
+    "qualification_gate": "Fresh qualification targets 458,816 gameplay frames per arm, caps at 524,544 frames, eight updates, 1,800 work seconds/1,930 total seconds, and separate 6 GiB RSS/MPS limits. It forbids checkpoints, evaluation, reuse, retry, and promotion. Formal training remains contingent on actual accepted qualification, measured budget review, fresh parent acceptance, and authorization.",
+    "known_interpretation_limit": "K1 fourth-root discounts match K4 decay across four-frame decision boundaries, but K4 aggregates within-call rewards without internal per-frame discounting. Interpret the comparison as the registered matched-frame recipe bundle, not exact per-frame objective equivalence."
+  },
+  "runtime_review": {
+    "status": "no_blocking_findings",
+    "manifest_member_count": 14,
+    "manifest_member_mismatches": [],
+    "native_binary_sha256": "ae9238670a0beea0951374562fcd5116013b7715b40be2bfc512ca242bdec7b7",
+    "origin_binding": "Worker loads dodge_rl only after checking it starts unloaded, adds the pinned runtime root, then verifies every loaded dodge_rl module resolves beneath that root and matches the pinned member hash.",
+    "runtime_bytes_copied": false
+  },
+  "verification_limits": {
+    "candidate_source_members": 23,
+    "candidate_source_manifest_mismatches": [],
+    "actual_training_qualification": false,
+    "MPS_or_nativegames_run": false,
+    "D9_outcomes_read": false,
+    "tests_rerun": false,
+    "source_test_evidence_is_cpu_dummy_child_and_fake_only": true
+  },
+  "reviewed_pins": {
+    "source_manifest": "bc4b7dcbc098c422fe12be8a89924ade95a323b80f14bb4d79a5754a76006653",
+    "successor_handoff": "ff60611e7b3aab2392f04843939ba6ba7cf45e221d00f9eda8871e563b7ee533",
+    "registered_design": "966c9c0c6a9e72fade2e440519c41b1d0bb2f63fa8a0016e46fede1bcc3e02ad",
+    "qualification_protocol": "4059c14e0afddffd94a8120f9a13dc5d89bb8b0851955ffe235fa3a224d24f46",
+    "cohort_reservation": "38a7b16755f3cd89681b62b144218b8fab75ebda7d0ece0f1fdfdd1360159a84",
+    "clean_runtime_provenance": "cfc9b0e06e79bee1b170217303c408fe2c5c0e5752d119c60ac48e1b3b8be17c"
+  }
+}

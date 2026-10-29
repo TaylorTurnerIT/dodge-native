@@ -1,0 +1,100 @@
+{
+  "AC_only": true,
+  "MPS_driver_bytes": 6442450944,
+  "RSS_bytes": 6442450944,
+  "arms": [
+    {
+      "action_repeat": 4,
+      "effective_minibatch": 512,
+      "gae_lambda": 0.95,
+      "gamma": 0.995,
+      "id": "repeat4_training",
+      "microbatch": 512,
+      "rollout_steps": 256
+    },
+    {
+      "action_repeat": 1,
+      "effective_minibatch": 2048,
+      "gae_lambda": 0.9872585449014338,
+      "gamma": 0.9987476493904754,
+      "id": "repeat1_training",
+      "microbatch": 512,
+      "rollout_steps": 1024
+    }
+  ],
+  "checkpoint_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/uniform2-recovery240-luna-20261028-r1/worker-output/checkpoint-global-420.pt",
+  "checkpoint_sha256": "7e0de8640f1337261412d91cde6bc692772ff212fbd360f5aad415dc6bc7ed4b",
+  "cleanup_seconds": 10,
+  "evaluation": {
+    "action_mode": "sampled_categorical",
+    "bootstrap": {
+      "draws": 2000,
+      "interval": "Percentile 2.5% and97.5%; conditional on this one trained pair, not training-replica uncertainty.",
+      "primary_success": "Observed marginal Q1 difference >0 AND bootstrap95% lower bound >0. Secondary contrasts descriptive; no multiplicity adjustment or automatic promotion.",
+      "seed": 202610290503,
+      "statistic": "Recompute each model marginal Q1 separately within each resampled set; subtract repeat4_final from repeat1_final.",
+      "unit": "Shared D9 game-seed cluster; one common resampled seed-index vector across all models and inference controls."
+    },
+    "bootstrap_draws": 2000,
+    "bootstrap_seed": 202610290503,
+    "cohort": "D9 proposed0xD9000000..0xD90003FF; must reserve before use",
+    "control_repeats": [
+      1,
+      4
+    ],
+    "controller_seed": 202610290502,
+    "games": 6144,
+    "models": [
+      "starting420",
+      "repeat4_final",
+      "repeat1_final"
+    ],
+    "primary": "Difference of marginal worst-quarter means: Q1(repeat1_final at repeat1 sampled inference) minus Q1(repeat4_final at repeat1 sampled inference). Sort each model survival distribution separately; never take Q1 of the within-seed differences.",
+    "secondary": "Each final model versus starting420 at repeat1; all repeat4 outcomes secondary. Fixed final-frame checkpoints, no best-of-time selection.",
+    "seed_count": 1024
+  },
+  "experiment_id": "DODGE-013",
+  "frame_accounting": "Sum actual returned gameplay elapsed_raw_frames; retain the complete final vector step, stop before another; optimize all collected rows. Exclude and separately report all startup frames. Each arm may overshoot by less than64*its action_repeat; arm budgets differ by at most256frames.",
+  "frame_target_reason": "180 four-frame update-equivalents beyond chosen420, comparable exposure to the remaining horizon toward prior600; not600 additional updates.",
+  "gameplay_frame_target_per_arm": 11796480,
+  "matched_pairs": 1,
+  "no_promotion": true,
+  "no_retry": true,
+  "official_parent": 324,
+  "optimizer_contract": "One Adam step per effective minibatch after weighted microbatch accumulation. Normalize advantages over the entire macro-batch; clip gradients once. Nominal128steps/full rollout per arm. Record actual KL early-stop, partial-rollout epochs and optimizer steps.",
+  "postflight_seconds": 120,
+  "proposed_full_work_cap_seconds": 32400,
+  "qualification": {
+    "gameplay_frame_cap_per_arm": 524544,
+    "resource_limit_each_bytes": 6442450944,
+    "scope": "Registered resource qualification only; disposable model/Adam changes never reused for finaltraining. Restore420 for formalarms.",
+    "updates_per_arm": 8,
+    "wall_cap_seconds": 1800
+  },
+  "replication_gate": {
+    "audit_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/control-frequency-confirmation-parent-20261029-r1/parent-terminal-audit.json",
+    "audit_sha256": "75f5981c13fddf9dcd1b3fa335e511fd53a32552c932a38d4b5ebb4c38de28e3",
+    "primary_success": true,
+    "results_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/control-frequency-confirmation-parent-20261029-r1/results-summary.json",
+    "results_sha256": "37988a6b8b726ee382ec14c4150a660f1fe57472a74c1c4bb936c9baf4dd2355"
+  },
+  "run_id": "one-frame-training-comparison-luna-20261029-r1",
+  "schema": "one_frame_training_comparison_registered_design_v1",
+  "shared": {
+    "architecture": "accepted entity transformer unchanged",
+    "batch_size": 64,
+    "ent_coef": 0.01,
+    "ent_coef_scope": "Unchanged per-decision coefficient in averaged PPO loss; no claim of matched trajectory entropy or a fourfold entropy-force equivalence.",
+    "learning_rate": 3e-05,
+    "pool": "Same accepted uniform512 pool; paired deterministic per-slot episode streams; exclude all reserved evaluation ranges including D7/D8/D9.",
+    "restore": "Same420 model and Adam; paired reset of all supported training RNG state using registered pairseed before each arm.",
+    "reward": "score_delta + alive_frames/100 -5 on true death",
+    "reward_scale": 0.1,
+    "target_kl": 0.03,
+    "update_epochs": 4
+  },
+  "status": "pre_run_design_source_and_resource_qualification_pending",
+  "training_launched": false,
+  "training_pair_seed": 202610290501,
+  "work_cap_scope": "Training plus fixed evaluation; accept only after measured qualification and independent resource review. No reuse of the old4h cap."
+}
