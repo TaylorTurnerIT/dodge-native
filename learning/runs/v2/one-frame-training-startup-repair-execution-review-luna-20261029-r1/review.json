@@ -1,0 +1,54 @@
+{
+  "candidate": "learning/runs/v2/one-frame-training-startup-repair-luna-20261029-r1",
+  "candidate_handoff_sha256": "d0ad0b05d932e94c93c37961acf0ccb6350c3eecc1fa1ab19d3b23abe33aa5b2",
+  "candidate_source_manifest_members_match": true,
+  "candidate_source_manifest_sha256": "726207f857fe9f37e000424a3b17a964847f7f27e9907e0ef5508229ce3f2d98",
+  "candidate_source_member_count": 23,
+  "evidence_distinction": {
+    "fixture_execution": "Not rerun. Inspected the existing startup-regression.json receipt, which reports candidate CPU dummy-child pass and frozen-R6 negative pass.",
+    "resource_qualification": "Not performed or established. Existing fixture receipt explicitly sets runtime_qualification false.",
+    "source_review": "Performed in this review; manifest and protected pins were rehashed, and the repaired execution path was inspected."
+  },
+  "findings": [],
+  "limits": [
+    "Source inspection and existing fixture receipt do not establish actual resource qualification, worker performance, or MPS behavior.",
+    "No launch authorization follows from this review. Candidate handoff and source manifest set launch_authority false; separate acceptance and parent disposition remain required.",
+    "Review does not accept or clear the failed R6 attempt or its held lease."
+  ],
+  "protected_preparation_plan_member_count": 16,
+  "protected_preparation_plan_members_match": true,
+  "protected_preparation_plan_sha256": "c2130f885e4095f3e3198a8a64d064ec29098186f38b7e1f886c6e2af4283499",
+  "referenced_runtime_manifest_sha256": "2107469618b9eba595f06e28518cbab2339fd9db5aa8e17db8f809d54376e31d",
+  "referenced_runtime_member_count": 14,
+  "referenced_runtime_members_match": true,
+  "reviewed_execution_path": [
+    {
+      "lines": "231-247",
+      "path": "observe.py",
+      "result": "Observer now calls the sole one-argument worker_command(envelope), then passes its returned command to the real Popen path."
+    },
+    {
+      "lines": "527-529",
+      "path": "binding.py",
+      "result": "Exactly one helper definition accepts envelope and constructs the worker command."
+    },
+    {
+      "lines": "61-75,89-138",
+      "path": "startup_regression.py",
+      "result": "Fixture covers actual observer main, helper, subprocess.Popen, Darwin nonreaping waitid/exit observation, process inspection and direct reap; only named external gates are mocked."
+    },
+    {
+      "lines": "141-194",
+      "path": "startup_regression.py",
+      "result": "Frozen R6 negative fixture asserts the prior TypeError, zero child launch, and no launch receipt."
+    },
+    {
+      "lines": "55-110",
+      "path": "launch.py",
+      "result": "Source gates require exact acceptances, runtime and resource acceptance for formal phase, free lease, absent one-shot outputs, AC power and runtime pin before marker and observer launch."
+    }
+  ],
+  "schema": "dodge013_startup_repair_execution_review_v1",
+  "scope": "Independent source-only execution-path review. No test rerun, qualification, registration, launch, PPO training, MPS, native constructor/game, or D9 work performed.",
+  "verdict": "no_blocking_findings_within_source_only_scope"
+}

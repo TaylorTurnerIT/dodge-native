@@ -1,0 +1,40 @@
+{
+  "candidate": "learning/runs/v2/one-frame-training-startup-repair-luna-20261029-r1",
+  "execution_review": "learning/runs/v2/one-frame-training-startup-repair-execution-review-luna-20261029-r1",
+  "experiment": "DODGE-013",
+  "failed_incident": "learning/runs/v2/one-frame-training-comparison-parent-20261029-r1/qualification-first-failure-r6.json",
+  "failed_incident_sha256": "429abd6043da4b82264732fcb376e0a25595a408a90491c68901c76bfa107a96",
+  "failed_run_id": "one-frame-training-resource-qualification-20261029-r1",
+  "lease_disposition": "No change; failed qualification lease remains held.",
+  "next_gate": "Independent review of candidate and regression; separate registered qualification and explicit parent failure disposition are still required before any actual worker attempt.",
+  "notebook_revision_at_start": 6,
+  "protected_sha256": {
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/binding.py": "148babe5dc2dcf0a78f2f0e6c4fd9f14cc444b137916eb3885badfb0f2a6b682",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/observe.py": "9ab8024a3ea11c2265e8bb93c90f3c133872ab6088838e54596b94df1138f4a0",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/qualification-control/dispatch/one-frame-training-resource-qualification-20261029-r1/execution-result.json": "9cd41c929009b358eb0f9385706e1dbcf5442657c972beae1df575d6c83744e8",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/qualification-control/dispatch/one-frame-training-resource-qualification-20261029-r1/observation.json": "5ca5f20cd882ba12636c1656745c1898f3ce7fd956eeecd67d3083fca001f013",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/qualification-control/execution-exit.json": "749fe8bbace1a17b53425b39884a17685191f5bbbcbd6b36688ffca444e633cb",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/qualification-control/launch-envelope.json": "1086a87280f7f24b2d072cf61cc0adfbf9a6bbca3f3a6a365b62837f121ab0b7",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/qualification-control/parent-execution.json": "fae7314e3223cf06509d79cdb4428a8d6d33152129c5d7abcf824445f4f43a4e",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/qualification-control/registration-final-r6.json": "baff3d4d6dcf92c45ae907f808c98f99ef55b72bd0225a90a20dbf25fc23ac73",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/runtime-clean-r2-manifest.json": "2107469618b9eba595f06e28518cbab2339fd9db5aa8e17db8f809d54376e31d",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/source-clean-r6-manifest.json": "6e7c398ac258c3cde29a31bbb7640c8a641a22ef9de57efc7ab801ae16011209",
+    "learning/runs/v2-orchestration/state.json": "dd6931865c101fd5d2c45585a4d3236d3cd0ba205fa04d1a684ee32b3c763c8b",
+    "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/qualification-control/attempt.claimed": "d6f2eae9fd1db1870cb380b64c4f27b5887be958d5d6dfa26981459c0b03cd8c",
+    "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/qualification-control/dispatch/one-frame-training-resource-qualification-20261029-r1/dispatch.claimed": "6d932edffed1db87f9ff3751405496cc6ff58df738f48deee895c5a1226582e4",
+    "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/qualification-control/dispatch/one-frame-training-resource-qualification-20261029-r1/supervisor.claimed": "05bbfd7cbde7793362aca01a8984c39c84474815aae7fd7544d2cfcc0a040da3",
+    "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/qualification-control/launch.claimed": "3b21ffed590a5188e67b5bc683b299baa6d1ec1b7e4526457811a2fd63fe3dce",
+    "learning/runs/v2/one-frame-training-comparison-parent-20261029-r1/qualification-first-failure-r6.json": "429abd6043da4b82264732fcb376e0a25595a408a90491c68901c76bfa107a96"
+  },
+  "qualification_or_training_launch_authorized_by_this_artifact": false,
+  "required_regression": [
+    "Unmodified failed observer call rejects the actual helper before any dummy launch.",
+    "Candidate actual observer main and actual command builder start a CPU-only dummy child and directly reap it.",
+    "Production Darwin nonreaping exit observation and real Popen are not mocked.",
+    "Fixture gate overrides are disclosed and supply no resource qualification or formal launch authority."
+  ],
+  "schema": "dodge013_startup_repair_source_preparation_v1",
+  "scientific_design_changed": false,
+  "scope": "Repair source and execute isolated CPU observer-to-real-dummy-child lifecycle regression; preserve original source, failure, claims and exact held lease.",
+  "status": "source_preparation_only"
+}

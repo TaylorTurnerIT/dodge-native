@@ -1,0 +1,77 @@
+{
+  "schema": "one_frame_training_comparison_policy_plan_v1",
+  "status": "source_review_pending",
+  "run_id": "one-frame-training-comparison-luna-20261029-r1",
+  "experiment_id": "DODGE-013",
+  "starting_checkpoint_global_update": 420,
+  "gameplay_frame_target_per_arm": 11796480,
+  "training_pair_seed": 202610290501,
+  "arms": [
+    {
+      "id": "repeat4_training",
+      "action_repeat": 4,
+      "rollout_steps": 256,
+      "microbatch_size": 512,
+      "effective_minibatch_size": 512,
+      "gamma": 0.995,
+      "gae_lambda": 0.95
+    },
+    {
+      "id": "repeat1_training",
+      "action_repeat": 1,
+      "rollout_steps": 1024,
+      "microbatch_size": 512,
+      "effective_minibatch_size": 2048,
+      "gamma": 0.9987476493904754,
+      "gae_lambda": 0.9872585449014338
+    }
+  ],
+  "shared": {
+    "architecture": "accepted entity transformer unchanged",
+    "slots": 64,
+    "batch_size": 64,
+    "learning_rate": 0.00003,
+    "adam_eps": 0.00001,
+    "clip_coef": 0.2,
+    "vf_coef": 0.5,
+    "ent_coef": 0.01,
+    "max_grad_norm": 0.5,
+    "target_kl": 0.03,
+    "update_epochs": 4,
+    "reward_scale": 0.1,
+    "restore": "Restore same checkpoint420 model and Adam independently for both arms; reset all supported training RNG state to pair seed before each arm.",
+    "training_seeds": "Same explicit deterministic per-slot streams from accepted uniform512 training pool; no evaluation seed use.",
+    "selection": "No interim model selection. Save fixed final actual-gameplay-frame checkpoint only.",
+    "frame_accounting": "Sum actual returned gameplay elapsed_raw_frames. Count startup frames separately. Keep complete final vector call and optimize every collected row. Stop before next vector call after target; do not synthesize or skip frames.",
+    "claims": "Equal gameplay frames; no equal-compute claim. One paired trajectory, not replicated training runs. No promotion or automatic adoption."
+  },
+  "evaluation": {
+    "models": ["starting420", "repeat4_final", "repeat1_final"],
+    "action_mode": "sampled_categorical",
+    "controller_seed": 202610290502,
+    "repeats": [1, 4],
+    "games": 6144,
+    "seed_count": 1024,
+    "cohort": "D9",
+    "bootstrap_draws": 2000,
+    "bootstrap_seed": 202610290503,
+    "primary": "Paired Q1 difference repeat1_final minus repeat4_final under the same repeat1 inference controller.",
+    "secondary": "Each final model versus starting420 at repeat1; all repeat4 outcomes secondary.",
+    "selection": "Fixed final-frame checkpoints; no best-of-time selection."
+  },
+  "resource_qualification": {
+    "gameplay_frame_target_per_arm": 458816,
+    "gameplay_frame_cap_per_arm": 524544,
+    "max_updates_per_arm": 8,
+    "wall_cap_seconds": 1800,
+    "scope": "Disposable model and Adam only; no evaluation, D9 seed use, checkpoint write, or weight reuse. Formal arms restore checkpoint420 anew."
+  },
+  "formal_limits": {
+    "work_seconds": 32400,
+    "rss_bytes": 6442450944,
+    "mps_bytes": 6442450944
+  },
+  "no_promotion": true,
+  "automatic_selection": false,
+  "training_eligible": false
+}
