@@ -1,0 +1,32 @@
+{
+  "blocking_findings": [],
+  "current_design_sha256": "966c9c0c6a9e72fade2e440519c41b1d0bb2f63fa8a0016e46fede1bcc3e02ad",
+  "initial_design_sha256": "f642b60ea4170255c60df94cd6b5910ff6a9891d04066f2298b8142008db7ce1",
+  "prior_review_path": "learning/runs/v2/one-frame-training-comparison-science-review-luna-20261029-r1/design-review.json",
+  "prior_review_sha256": "30ca14aa8e2cbae162f67035b19d381f3fbe46104b497876899e59fee6726836",
+  "resolved_finding": {
+    "bootstrap": "Uses one shared resampled D9 seed-cluster index vector across models and controls; recomputes marginal Q1s; 2,000 draws; percentile 2.5% and 97.5% interval. Conditional on the one training pair.",
+    "line": "52",
+    "path": "learning/runs/v2/one-frame-training-comparison-parent-20261029-r1/registered-design.json",
+    "prior_severity": "blocking",
+    "resolution": "Primary now explicitly subtracts marginal Q1(repeat4_final) from marginal Q1(repeat1_final), sorting each model distribution separately and forbidding Q1 of paired differences.",
+    "success_rule": "Observed marginal Q1 difference > 0 and bootstrap 95% lower bound > 0. Secondary contrasts descriptive; no multiplicity adjustment or automatic promotion.",
+    "verdict": "The prior primary-estimand ambiguity is resolved before training data."
+  },
+  "reviewed_file_sha256": {
+    "learning/runs/v2/one-frame-training-comparison-parent-20261029-r1/preparation-plan.json": "37d0d1458d10602b2077bee51784d62675b5316531d8419b94a4bc0ffc2ae32f",
+    "learning/runs/v2/one-frame-training-comparison-parent-20261029-r1/registered-design-initial.json": "f642b60ea4170255c60df94cd6b5910ff6a9891d04066f2298b8142008db7ce1",
+    "learning/runs/v2/one-frame-training-comparison-parent-20261029-r1/registered-design.json": "966c9c0c6a9e72fade2e440519c41b1d0bb2f63fa8a0016e46fede1bcc3e02ad",
+    "learning/runs/v2/one-frame-training-comparison-parent-20261029-r1/training-reuse-audit.json": "970121cde2d31fbaf116527ebb5f0a65a46337f37ae8b21c67a3eb63f82a30cf"
+  },
+  "schema": "one_frame_training_comparison_design_review_delta_v1",
+  "scope": "Narrow read-only review of revised statistical specification and unchanged prior design limits. No successor source, runtime, ledger, model, seed outcomes, Torch/MPS, games, or training accessed.",
+  "status": "no_blocking_findings",
+  "unchanged_limits": [
+    "One matched pair remains one trajectory comparison; evaluation uncertainty is conditional on the two trained checkpoints and does not estimate training-replica variance.",
+    "Interpret the contrast as the matched-frame recipe bundle. Gamma/lambda, rollout length, and effective minibatch change alongside action repeat; entropy remains .01 in the averaged per-decision PPO loss.",
+    "Gamma/lambda fourth-root values match decay across four-frame decision boundaries. If K4 supplies an undiscounted within-call reward sum, they do not exactly match per-raw-frame discounting inside each call; later frozen source review must verify reward aggregation before claiming identical objectives.",
+    "The 9-hour cap depends on K1 extrapolation. Require the registered 8-update-per-arm qualification within 1,800 seconds and 6 GiB, then calibrate full training plus 6,144-game evaluation. D9 reservation remains required before seed use.",
+    "This delta does not review implementation, gradient accumulation, stream capacity, D9 freshness, resource qualification, or launch gates."
+  ]
+}

@@ -1,0 +1,135 @@
+{
+  "schema": "one_frame_training_comparison_reuse_audit_v1",
+  "status": "read_only_design_audit",
+  "scope": "No code, checkpoint, runtime, seed, main-state, lease, or frozen package changed. No checkpoint load, native/MPS probe, or training occurred.",
+  "preparation_plan": {
+    "path": "learning/runs/v2/one-frame-training-comparison-parent-20261029-r1/preparation-plan.json",
+    "sha256": "37d0d1458d10602b2077bee51784d62675b5316531d8419b94a4bc0ffc2ae32f"
+  },
+  "starting_checkpoint": {
+    "path": "learning/runs/v2/uniform2-recovery240-luna-20261028-r1/worker-output/checkpoint-global-420.pt",
+    "sha256": "7e0de8640f1337261412d91cde6bc692772ff212fbd360f5aad415dc6bc7ed4b",
+    "global_update": 420,
+    "metadata_path": "learning/runs/v2/uniform2-recovery240-luna-20261028-r1/worker-output/checkpoint-global-420.pt.json",
+    "metadata_sha256": "befe948c4557ff2b9a8266a5e1ea8857e71a56a5fca78bb11c05d4b13b908e61",
+    "model_fingerprint": "575b415434a3dbfe9a99021101d517f015c71415efd3f3f6255e4d4cd5d4d534",
+    "adam_fingerprint": "123401f6a7629a5489eaac1344b85b6af51ce064ad26944bee23a5697ec841b0",
+    "rng_fingerprint": "835ed562953586c4fb0c96fbd59920b628e89e824c26fd4eba28c02c2967954e"
+  },
+  "reusable_sources": [
+    {
+      "path": "learning/runs/v2/uniform2-recovery240-luna-20261028-r1/worker.py",
+      "sha256": "fd262f473bf1c7b78ed69691a5a6354d7ebcb403bc891e2c51bdf38f7a691508",
+      "use": "Copy into successor. Reuse RealRuntime restore/checkpoint, journal, guard, and returned-frame accounting. restore_learner verifies model/Adam/RNG fingerprints (326-334); begin_segment fixes action_repeat=4 (355-367); Segment records actual frames (432-440)."
+    },
+    {
+      "path": "learning/runs/v2/fullgame-seed-priority-experiment-luna-20261027-r3/runtime/dodge_rl/ppo.py",
+      "sha256": "7da58b961f4759e740eef1e756e1b877fb075e66cd51e6b06e06d9d3c40c6f90",
+      "runtime_manifest_sha256": "e032a5ab1d609512461e287d372375f1bf28800fb2b13d9c5cf98e20768de986",
+      "use": "Copy and pin accepted runtime. Do not substitute current python/dodge_rl/ppo.py; its SHA-256 differs (abf25f327f9ff749a8a32de4edb07705f12ebcdc5cd0eba8775ad4f693eff1d5)."
+    },
+    {
+      "path": "learning/runs/v2/fullgame-seed-priority-experiment-luna-20261027-r3/runtime/dodge_rl/seeded_training.py",
+      "sha256": "3db7aee53ee22d1377b04963d9b0b5cd2a5320a652eba5b5fe100efd801ba52f",
+      "use": "Reuse explicit training-pool stream and actual-frame journal; parameterize K=1 alignment, decisions/update, and stream sizing."
+    },
+    {
+      "path": "learning/runs/v2/fullgame-seed-priority-experiment-luna-20261027-r3/runtime/dodge_rl/curriculum.py",
+      "sha256": "ee39cee1c25a952794aef33719a0bbb8b1a3059d8f0e044d5b3fc10b169b2423",
+      "use": "Reuse PreparedUpdates transaction only in owned copy. It requires exact pinned PPO config, 256 decisions/update, and 60-update sessions (394-461)."
+    },
+    {
+      "path": "learning/runs/v2/uniform2-recovery240-luna-20261028-r1/registration-final.json",
+      "sha256": "c40923a4846af5e07b0e2d528f545b759885fc1d84ae6a02287086c9a2fad39e",
+      "use": "Pins OmniscientEntityTeacher, reward, Adam, uniform training pool, and K=4 recipe. Pool file SHA-256 5093727c2fdabd794267ccbc44a43b1fb29747b545cff645b66b0ad578180f04; semantic SHA-256 5ed500167f97f17092fe8ca0fd581d3342366dde09f68f1fd8130db56e4f522f."
+    }
+  ],
+  "smallest_successor": {
+    "shape": "One new parent capsule and owned runtime copy. One worker restores checkpoint420 independently for each arm, trains to one registered actual-gameplay-frame target, saves disjoint arm receipts/checkpoints, then evaluates both models under identical controllers. Reuse recovery driver structure; add no new training framework.",
+    "required_runtime_changes": [
+      "ppo.collect_rollout (runtime/dodge_rl/ppo.py:266-288) currently rejects K=1 and preallocates fixed buffers. Accept only registered K=1/4; count returned per-slot elapsed_raw_frames; stop only between complete native vector calls; slice unused buffer rows on the final call.",
+      "SeededTrainingAdapter hardcodes frame alignment and 256 decisions/update (seeded_training.py:54-79, 138-145). Bind these to action repeat/rollout length and allow one registered final budget-closing partial rollout after PPO optimizes it. PreparedUpdates must pass that contract and save only after PPO completes.",
+      "Existing PPO GAE is suitable: terminated rows zero bootstrap, truncations bootstrap from final observation, and recurrence stops at either boundary (ppo.py:142-174, 354-359). Preserve this for partial final buffers; ppo_update accepts any nonempty [T,N]."
+    ],
+    "hold_constant": "OmniscientEntityTeacher, score_delta + alive_frames/100 - 5 on true death, reward_scale .1, accepted uniform training pool, restored Adam, LR 3e-5, eps 1e-5, clip .2, vf .5, max_grad_norm .5, target_KL .03, 64 slots, difficulty2, normal starts, patterns/powerups on, raw cap18000."
+  },
+  "frame_and_optimizer_contract": {
+    "gamma_lambda_proposal": {
+      "gamma_repeat4": 0.995,
+      "gamma_repeat1": 0.9987476493904754,
+      "gae_lambda_repeat4": 0.95,
+      "gae_lambda_repeat1": 0.9872585449014338,
+      "status": "Preparation-plan proposal; requires pre-run scientific acceptance."
+    },
+    "rollouts": {
+      "slots": 64,
+      "repeat4_decisions_per_slot": 256,
+      "repeat1_decisions_per_slot": 1024,
+      "transitions_per_update": {"repeat4": 16384, "repeat1": 65536},
+      "maximum_gameplay_frames_per_update_each": 65536
+    },
+    "optimizer_steps": {
+      "repeat4": "minibatch512 x 4 epochs gives 128 nominal Adam steps/update before KL early-stop.",
+      "repeat1": "Use effective minibatch2048 x 4 epochs as four 512 microbatches with gradient accumulation. Normalize advantages across the full macro-batch, scale micro-losses by sample fraction, clip once after accumulation, then perform one Adam step. This keeps nominal cadence at128 and bounds MPS activation memory near the existing 512 batch.",
+      "caveat": "Epoch-end target_KL can stop either arm early. Log actual optimizer steps, epochs, samples, KL, and wall time; do not claim equal actual steps. Final partial macro-batch may also change the count."
+    },
+    "entropy_choice": "Freeze before run: ent_coef=.01 matches per-decision coefficient; .0025 is the direct per-game-frame scaling for four times as many one-frame decisions. These define different optimization bundles.",
+    "target_frames": {
+      "candidate": 11796480,
+      "derivation": "180 x 64 x 256 x 4 maximum gameplay frames: the remaining control-repeat horizon from selected global420 to prior global600.",
+      "accounting": "Sum returned elapsed_raw_frames; exclude initial/reset startup frames and report separately. Stop before the next vector call once target is met. Keep the whole call that crosses target; never skip or synthesize frames. Optimize all rows in the final full/sliced buffer, then checkpoint and record open episodes as abandoned.",
+      "tolerance": "Register |repeat1_frames-repeat4_frames| <=256 (64 slots x K4 maximum call); K1 alone can overshoot by at most64."
+    }
+  },
+  "seeds_and_evaluation": {
+    "rng_pairing": "Freeze pair count, exact values, and Python/NumPy/Torch CPU/MPS reset semantics. Each arm starts with matching model/Adam fingerprints. Same initial RNG state pairs starts, but later draws diverge with action counts; do not claim common random numbers.",
+    "stream_capacity": "Generate paired deterministic per-slot streams from the same accepted pool. Current recovery stream generation is sized for K4; K1 can request up to4x episodes/slot in a 60-update segment. Prove capacity and memory before registration.",
+    "exclusions_hex": [
+      ["0xB0000000", "0xB00003E7"], ["0xD0000000", "0xD000007F"],
+      ["0xD1000000", "0xD10003FF"], ["0xD2000000", "0xD20007FF"],
+      ["0xD3000000", "0xD30003FF"], ["0xD4000000", "0xD40003FF"],
+      ["0xD5000000", "0xD50007FF"], ["0xD6000000", "0xD60003FF"],
+      ["0xD7000000", "0xD70000FF"], ["0xD8000000", "0xD80000FF"],
+      ["0xE0000000", "0xE00003E7"]
+    ],
+    "range_note": "Use all ten DODGE-012 evaluation-exclusion ranges plus D8 [3623878656,3623878911]. Current DODGE-012 contains D7 but omits D8.",
+    "evaluation": "Reserve fresh shared games disjoint from closed ranges, D7/D8, and training seeds. Primary: both trained models under the same K=1 sampled controller, seed list, and RNG protocol. Secondary: K=4 sampled controller on the same games. This isolates trained-policy differences at fixed inference control; do not conflate with DODGE-012's frozen-policy inference contrast. Freeze selection and analysis before training."
+  },
+  "campaign_and_calibration": {
+    "qualification": "Separate 8-update/arm resource qualification only; measure actual K=1 import/native/MPS startup, peak RSS/MPS, collector throughput, accumulation memory, frame-stop behavior, and receipts. It is not the final result.",
+    "full_candidate": "One paired 11,796,480-frame/arm comparison, about180 update-equivalent rollouts. This covers global420 to the earlier global600 horizon; do not report a 60-update resource qualification as the final study.",
+    "historical_evidence": {
+      "path": "learning/runs/v2/uniform2-recovery240-luna-20261028-r1/worker-output/worker-result.json",
+      "updates": 240,
+      "actual_gameplay_frames": 15718957,
+      "vector_steps": 61440,
+      "optimizer_steps": 30720,
+      "training_seconds": 3867.8906969990007,
+      "peak_rss_bytes": 1230340096,
+      "peak_mps_bytes": 2438332416
+    },
+    "rough_cost": "Observed K4 rate is16.12 s/update: 180 updates about2,901 s. Four times K1 samples at same nominal optimizer cadence project to11,604 s. Pair totals about14,505 s (4.03h) before evaluation/margin, exceeding the prior14,400 s work cap. Recalibrate and register larger hard limits.",
+    "pair_count": "Unfrozen. One pair is one trajectory comparison. Three pairs cost roughly12.1h training before evaluation.",
+    "600_update_ambiguity": "If ‘600 continuation’ means600 additional updates from checkpoint420, target39,321,600 max frames/arm and rough paired training exceeds13h before evaluation. Explicitly choose this larger scope or the 180-update path to global600; do not silently replace either with60 updates."
+  },
+  "meaningful_tests": [
+    "Pure K1/K4 rollout-frame, stream-capacity, exclusion, and startup/gameplay accounting tests.",
+    "Synthetic vector collector crossing the cap: whole final call retained, bounded overshoot, no next call or fake frame jump.",
+    "Terminal/truncated/live final buffer and rollout-boundary GAE tests; existing python/tests/test_ppo.py:49-87,199 covers base cases.",
+    "Gradient accumulation equals a full 2048 macro-batch: advantage normalization, one global clip, one Adam step, partial final macro, KL stop.",
+    "Synthetic K1 seeded adapter/update close tests and paired restore fingerprint tests.",
+    "Final evaluation uses common repeat-1 sampled seeds/RNG for both models and repeat-4 secondary; audit paired rows and exclusions."
+  ],
+  "blockers": [
+    "Wait for accepted DODGE-012 terminal audit and positive registered primary Q1 criterion.",
+    "No one-frame PPO source review, native/MPS startup qualification, runtime calibration, or exact training registration exists; DODGE-012 inference qualification does not cover training.",
+    "Freeze frame target, RNG pair count/values, entropy coefficient, macro-batch design, fresh evaluation cohort, selection rule, and hard limits.",
+    "Current runtime hardcodes K4 and256 decisions; K1 must run from an owned copy. Prove stream capacity and memory first.",
+    "One-pair rough estimate exceeds prior work cap before evaluation. Use qualification receipts to set calibrated per-run and campaign caps."
+  ],
+  "research_context": {
+    "log": "learning/scripts/research_log.py init/context returned ok with13 existing experiments; DODGE-005 remains planned with null actual.",
+    "DODGE-001": "Audited600-update continuation selected global420 on Q1; this supports preserving the historical horizon as design context, not checkpoint promotion or generalization.",
+    "authority": "No experiment prediction/result was written. This audit authorizes no launch."
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "blocking_findings": [
+    {
+      "consequence": "The primary result is not reproducible from the 6,144 games; analysts could choose a favorable aggregation or success interpretation after seeing outcomes.",
+      "lines": "44-46",
+      "path": "learning/runs/v2/one-frame-training-comparison-parent-20261029-r1/registered-design.json",
+      "required_resolution": "Before formal registration, state the exact primary statistic, cluster-resampling unit and interval, and whether the comparison is descriptive or has a directional success rule. Keep the alternative statistic secondary.",
+      "severity": "blocking",
+      "trigger": "The primary is named \u201cPaired Q1 difference\u201d on shared seeds, but the estimator is not defined. It could mean the difference between each model\u2019s marginal bottom-quartile mean, or the bottom-quartile mean of per-seed paired differences. Those are distinct statistics and can differ. The 2,000 bootstrap draws have a seed but no registered resampling unit or interval/decision rule."
+    }
+  ],
+  "checks": [
+    "Checkpoint420, model and Adam reuse, architecture, reward, accepted pool, one pair, and no-promotion boundary agree across the reviewed artifacts.",
+    "Frame target arithmetic is coherent: 180 * 64 slots * 256 K4 decisions * 4 frames = 11,796,480 frames per arm. Whole-vector-call retention bounds K4 overshoot below 256 and K1 overshoot below 64 frames.",
+    "Evaluation count reconciles: 3 models * 2 repeat settings * 1,024 shared D9 seeds = 6,144 games. Primary uses the same K1 sampled controller for both final checkpoints; K4 is secondary.",
+    "The design explicitly preserves fixed final-frame checkpoints, no best-interim selection, true termination/live bootstrap requirements, and actual optimizer-step reporting. These controls fit the stated question."
+  ],
+  "limits": [
+    "No source-specific verdict. Implementation, gradient-accumulation equivalence, stream capacity, reward aggregation, terminal handling, resource qualification, D9 freshness, and launch gates require later pinned reviews."
+  ],
+  "nonblocking_limits": [
+    {
+      "detail": "One matched pair is one trajectory comparison. Shared pairseed aligns initial states, but subsequent environment, policy, and RNG paths diverge; it does not provide common random numbers or training-seed uncertainty. Interpret evaluation-seed intervals as conditional on these two trained checkpoints.",
+      "topic": "Training replication and pairing"
+    },
+    {
+      "detail": "Equal gameplay-frame exposure is registered and the 11,796,480-frame target equals 180 K4 update-equivalents beyond checkpoint420. The treatment also changes gamma/lambda, rollout length, and effective minibatch to preserve nominal game-time cadence. Report the effect as a matched-frame training-recipe bundle, not an isolated action-repeat effect. The unchanged .01 entropy coefficient is correctly scoped to the averaged per-decision PPO loss; do not claim fourfold entropy force.",
+      "topic": "Treatment interpretation"
+    },
+    {
+      "detail": "The gamma/lambda fourth-root values match decay across four-frame decision boundaries. If the K4 collector supplies an undiscounted sum of within-call rewards, this is not exact per-raw-frame reward discounting inside each four-frame call. Confirm reward aggregation semantics in the later frozen source review before claiming identical game-time objectives.",
+      "topic": "Discount interpretation"
+    },
+    {
+      "detail": "The 9-hour cap relies on extrapolated K1 cost. The registered real 8-update-per-arm qualification, capped at 1,800 seconds and 6 GiB, must pass before formal registration; then recalibrate full training plus 6,144-game evaluation. D9 remains proposed and must be reserved before use. Preserve D7/D8/D9 exclusions from training and evaluation.",
+      "topic": "Budget and cohort gates"
+    }
+  ],
+  "reviewed_design_sha256": "f642b60ea4170255c60df94cd6b5910ff6a9891d04066f2298b8142008db7ce1",
+  "reviewed_file_sha256": {
+    "learning/runs/v2/one-frame-training-comparison-parent-20261029-r1/preparation-plan.json": "37d0d1458d10602b2077bee51784d62675b5316531d8419b94a4bc0ffc2ae32f",
+    "learning/runs/v2/one-frame-training-comparison-parent-20261029-r1/registered-design.json": "f642b60ea4170255c60df94cd6b5910ff6a9891d04066f2298b8142008db7ce1",
+    "learning/runs/v2/one-frame-training-comparison-parent-20261029-r1/training-reuse-audit.json": "970121cde2d31fbaf116527ebb5f0a65a46337f37ae8b21c67a3eb63f82a30cf"
+  },
+  "schema": "one_frame_training_comparison_independent_design_review_v1",
+  "scope": "Read-only review of the three frozen parent design artifacts. No changing successor source inspected; no ledger, checkpoint, seed outcomes, native runtime, MPS, Torch, games, or training accessed.",
+  "status": "blocking_findings"
+}
