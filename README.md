@@ -31,7 +31,12 @@ for the native graphics data. No PICO-8 runtime is required.
 
 ## Attribution
 
-Original game by [Artridge](https://artridge.itch.io/dodge).
+Original game by [Artridge](https://artridge.itch.io/dodge), also posted on the
+[Lexaloffle BBS](https://www.lexaloffle.com/bbs/?tid=34986). The cartridge
+(`assets/dodge.p8`) and its art belong to Artridge and are not covered by this
+repository's [MIT license](LICENSE). The BBS page lists the cartridge under
+[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/); check
+that page for current terms before reusing the cartridge or art.
 
 ## Check the build
 
