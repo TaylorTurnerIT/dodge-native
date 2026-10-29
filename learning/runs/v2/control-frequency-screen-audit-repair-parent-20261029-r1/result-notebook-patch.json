@@ -1,0 +1,853 @@
+{
+  "status": "completed",
+  "actual_kind": "audited",
+  "actual": "All 2,048 games passed the successor terminal audit after an independently reviewed, outcome-blind missing-cache-directory exception; no games were rerun. One-frame sampled decisions raised Q1 from 662.1927083333334 to 1580.59375 frames (+138.7%) and Mean from 2564.75390625 to 4474.673177083333 (+74.5%). One-frame argmax had the highest Q1 (1659.1875), but its +78.59375-frame advantage over one-frame sampling was uncertain (seed-cluster bootstrap 95% interval -214.10703125 to 408.2407552083333).",
+  "why": "Both selectors improved with one-frame control, supporting control timing as a useful intervention for this frozen policy. The gain was larger for sampling, contrary to the leading prediction that faster control might help argmax more; the interaction interval still spans zero. Argmax helped at four-frame control, while its advantage at one frame remains uncertain. Faster reactions and shorter harmful action holds are plausible mechanisms; the screen does not separate them or establish entropy as the training cause.",
+  "next_step": "Confirm one-frame control and sampled versus argmax selection on a separate fresh cohort with the four-frame sampled baseline retained. Then prepare a matched one-frame training comparison with unchanged architecture and reward; neither follow-up is launched or authorized by this notebook record. Keep official parent324.",
+  "evidence": [
+    {
+      "id": "dodge-002-cache-disposition-audit",
+      "kind": "audit",
+      "label": "Accepted saved-output audit with reviewed missing-directory deviation; exact lease released",
+      "uri": "learning/runs/v2/control-frequency-screen-audit-repair-parent-20261029-r1/parent-terminal-audit.json",
+      "sha256": "1a9681ba9a4d026c8fcc9bc1939a36bc95de2197bf34e05d874fc561abc68319"
+    },
+    {
+      "id": "dodge-002-verified-screen-results",
+      "kind": "result",
+      "label": "Independent raw-row sorting, all survival metrics and milestones, seed-cluster contrasts",
+      "uri": "learning/runs/v2/control-frequency-screen-audit-repair-parent-20261029-r1/results-summary.json",
+      "sha256": "41c149df32cfe07818114f81bb05c4d7f0d74b62b75697feff1e73e07e31a964"
+    }
+  ],
+  "measurements": [
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r1",
+      "metric": "Best",
+      "value": 12441,
+      "unit": "game_frames",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r1",
+      "metric": "Mean",
+      "value": 4242.75390625,
+      "unit": "game_frames",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r1",
+      "metric": "Q1",
+      "value": 1659.1875,
+      "unit": "game_frames",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r1",
+      "metric": "Q4",
+      "value": 6891.359375,
+      "unit": "game_frames",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r1",
+      "metric": "Worst",
+      "value": 431,
+      "unit": "game_frames",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r1",
+      "metric": "survive_1000",
+      "value": 0.9375,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r1",
+      "metric": "survive_10000",
+      "value": 0.00390625,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r1",
+      "metric": "survive_11000",
+      "value": 0.00390625,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r1",
+      "metric": "survive_12000",
+      "value": 0.00390625,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r1",
+      "metric": "survive_13000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r1",
+      "metric": "survive_14000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r1",
+      "metric": "survive_15000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r1",
+      "metric": "survive_16000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r1",
+      "metric": "survive_17000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r1",
+      "metric": "survive_18000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r1",
+      "metric": "survive_2000",
+      "value": 0.82421875,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r1",
+      "metric": "survive_3000",
+      "value": 0.6953125,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r1",
+      "metric": "survive_4000",
+      "value": 0.5546875,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r1",
+      "metric": "survive_5000",
+      "value": 0.3828125,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r1",
+      "metric": "survive_6000",
+      "value": 0.16796875,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r1",
+      "metric": "survive_7000",
+      "value": 0.078125,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r1",
+      "metric": "survive_8000",
+      "value": 0.03515625,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r1",
+      "metric": "survive_9000",
+      "value": 0.01953125,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r4",
+      "metric": "Best",
+      "value": 8404,
+      "unit": "game_frames",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r4",
+      "metric": "Mean",
+      "value": 3430.05859375,
+      "unit": "game_frames",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r4",
+      "metric": "Q1",
+      "value": 1070.4375,
+      "unit": "game_frames",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r4",
+      "metric": "Q4",
+      "value": 5999.171875,
+      "unit": "game_frames",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r4",
+      "metric": "Worst",
+      "value": 383,
+      "unit": "game_frames",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r4",
+      "metric": "survive_1000",
+      "value": 0.859375,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r4",
+      "metric": "survive_10000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r4",
+      "metric": "survive_11000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r4",
+      "metric": "survive_12000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r4",
+      "metric": "survive_13000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r4",
+      "metric": "survive_14000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r4",
+      "metric": "survive_15000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r4",
+      "metric": "survive_16000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r4",
+      "metric": "survive_17000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r4",
+      "metric": "survive_18000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r4",
+      "metric": "survive_2000",
+      "value": 0.70703125,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r4",
+      "metric": "survive_3000",
+      "value": 0.54296875,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r4",
+      "metric": "survive_4000",
+      "value": 0.41015625,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r4",
+      "metric": "survive_5000",
+      "value": 0.2421875,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r4",
+      "metric": "survive_6000",
+      "value": 0.1015625,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r4",
+      "metric": "survive_7000",
+      "value": 0.04296875,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r4",
+      "metric": "survive_8000",
+      "value": 0.0078125,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "argmax_r4",
+      "metric": "survive_9000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 256
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r1",
+      "metric": "Best",
+      "value": 12824,
+      "unit": "game_frames",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r1",
+      "metric": "Mean",
+      "value": 4474.673177083333,
+      "unit": "game_frames",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r1",
+      "metric": "Q1",
+      "value": 1580.59375,
+      "unit": "game_frames",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r1",
+      "metric": "Q4",
+      "value": 7490.098958333333,
+      "unit": "game_frames",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r1",
+      "metric": "Worst",
+      "value": 185,
+      "unit": "game_frames",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r1",
+      "metric": "survive_1000",
+      "value": 0.921875,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r1",
+      "metric": "survive_10000",
+      "value": 0.013020833333333334,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r1",
+      "metric": "survive_11000",
+      "value": 0.009114583333333334,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r1",
+      "metric": "survive_12000",
+      "value": 0.0026041666666666665,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r1",
+      "metric": "survive_13000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r1",
+      "metric": "survive_14000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r1",
+      "metric": "survive_15000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r1",
+      "metric": "survive_16000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r1",
+      "metric": "survive_17000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r1",
+      "metric": "survive_18000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r1",
+      "metric": "survive_2000",
+      "value": 0.8294270833333334,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r1",
+      "metric": "survive_3000",
+      "value": 0.7083333333333334,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r1",
+      "metric": "survive_4000",
+      "value": 0.58203125,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r1",
+      "metric": "survive_5000",
+      "value": 0.4166666666666667,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r1",
+      "metric": "survive_6000",
+      "value": 0.2604166666666667,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r1",
+      "metric": "survive_7000",
+      "value": 0.13802083333333334,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r1",
+      "metric": "survive_8000",
+      "value": 0.06770833333333333,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r1",
+      "metric": "survive_9000",
+      "value": 0.015625,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r4",
+      "metric": "Best",
+      "value": 8050,
+      "unit": "game_frames",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r4",
+      "metric": "Mean",
+      "value": 2564.75390625,
+      "unit": "game_frames",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r4",
+      "metric": "Q1",
+      "value": 662.1927083333334,
+      "unit": "game_frames",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r4",
+      "metric": "Q4",
+      "value": 4998.635416666667,
+      "unit": "game_frames",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r4",
+      "metric": "Worst",
+      "value": 239,
+      "unit": "game_frames",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r4",
+      "metric": "survive_1000",
+      "value": 0.7526041666666666,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r4",
+      "metric": "survive_10000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r4",
+      "metric": "survive_11000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r4",
+      "metric": "survive_12000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r4",
+      "metric": "survive_13000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r4",
+      "metric": "survive_14000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r4",
+      "metric": "survive_15000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r4",
+      "metric": "survive_16000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r4",
+      "metric": "survive_17000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r4",
+      "metric": "survive_18000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r4",
+      "metric": "survive_2000",
+      "value": 0.53515625,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r4",
+      "metric": "survive_3000",
+      "value": 0.3528645833333333,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r4",
+      "metric": "survive_4000",
+      "value": 0.22135416666666666,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r4",
+      "metric": "survive_5000",
+      "value": 0.11067708333333333,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r4",
+      "metric": "survive_6000",
+      "value": 0.046875,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r4",
+      "metric": "survive_7000",
+      "value": 0.005208333333333333,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r4",
+      "metric": "survive_8000",
+      "value": 0.0013020833333333333,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    },
+    {
+      "evidence_id": "dodge-002-verified-screen-results",
+      "model": "sampled_r4",
+      "metric": "survive_9000",
+      "value": 0.0,
+      "unit": "fraction",
+      "cohort": "D7",
+      "sample_count": 768
+    }
+  ]
+}

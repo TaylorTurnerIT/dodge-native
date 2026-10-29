@@ -1,0 +1,41 @@
+{
+  "findings": [
+    {
+      "consequence": "The acceptance gate does not prove that an independent reviewer approved this review.json; a status-only approval can pass without binding to the review evidence. Require reviewer identity/role and review path plus SHA-256, and verify that binding before acceptance.",
+      "line": 27,
+      "path": "learning/runs/v2/control-frequency-screen-audit-repair-parent-20261029-r1/repair_contract.py",
+      "severity": "blocking",
+      "trigger": "Approval JSON has the expected status, zero remaining findings, matching repair-plan SHA, and self-consistent supplied pins, but names no reviewer or review artifact."
+    }
+  ],
+  "limits": [
+    "Static review only; did not invoke the saved auditor or modify shared state or lease.",
+    "Did not read comparison.json, group episode outcomes, or any performance values.",
+    "Hash pins establish current file identity only; review does not establish live runtime acceptance or continuous cache-path absence.",
+    "Existing test_repair.py was inspected but not run."
+  ],
+  "repair_plan_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/control-frequency-screen-audit-repair-parent-20261029-r1/repair-plan.json",
+  "repair_plan_sha256": "dbebb15b862f784cb3e523e36aafe7433cd1bc7d9d84c57faa7408a1fc1b1891",
+  "review_scope": "Read-only static review of saved repair sources and frozen metadata. No evaluation rerun, auditor invocation, performance inspection, comparison.json read, or outcome inspection.",
+  "reviewed_source_sha256": {
+    "learning/runs/v2/control-frequency-screen-audit-repair-parent-20261029-r1/accept_saved_screen.py": "91a474f43eb3137659f026bc234643aeb3c0969c8b7100e0bf2dc48bf4fd17e7",
+    "learning/runs/v2/control-frequency-screen-audit-repair-parent-20261029-r1/repair_contract.py": "52842cfceed10c5c6af13c8129c271605df6203b884334cca27d306e5966695f",
+    "learning/runs/v2/control-frequency-screen-audit-repair-parent-20261029-r1/reviewed-delta.json": "6156e100df26ac3690e2dce45bd50d915bd3ebe89fb87a79e7b453429052feee",
+    "learning/runs/v2/control-frequency-screen-audit-repair-parent-20261029-r1/test_repair.py": "470f6c3e1dd54241ab2d0cafc31f6be4c04c066a40177d9b59a29c7d6ed16dcc",
+    "learning/runs/v2/control-frequency-screen-luna-20261028-r1/binding.py": "d46601be8f4abfc58ddd80f0f8775d944843ec88fb95ec8151ea60f83fb84a28",
+    "learning/runs/v2/control-frequency-screen-luna-20261028-r1/launch.py": "c96a7cb6aa4bccfb156c87c9878598ef3a3753a2e786e72961dc51d089bdbf97",
+    "learning/runs/v2/control-frequency-screen-parent-20261028-r1/accept_terminal.py": "497f184f6bce0762d9bf946d29919b4f4442666c9d6b4ffccffe661fc5910ff4",
+    "learning/runs/v2/control-frequency-screen-parent-20261028-r1/finalize_parent.py": "d5bff37f34a1ff6b03c7711b3c687d1cd2676c3b3fd95a43c31a0069412c1b09",
+    "learning/runs/v2/control-frequency-screen-parent-20261028-r1/terminal-audit-incident-r1.json": "5f787b4de9e1e64a48449b01dd87917dedf827860cc8c1915dd1d8106ef37a6e"
+  },
+  "schema": "control_frequency_screen_audit_repair_independent_review_v1",
+  "status": "blocking_findings",
+  "verified": [
+    "Repair-plan SHA matches the requested pin; every plan pin currently matches its saved file.",
+    "Successor auditor equals the explicit reviewed source delta from the preserved original auditor.",
+    "Only cache disposition changed in the auditor; original non-cache process, output, resource, audit, and lease checks remain.",
+    "Cache exception uses lexists and rejects every existing path state; bytecode policy still requires dont_write_bytecode and the registered pycache_prefix.",
+    "Registration, envelope, source, runtime, and output checks remain bound through original pinned validation; output contents were not opened.",
+    "Acceptance record is durably saved before exact lease-key mutation; lease release receipt is saved afterward."
+  ]
+}

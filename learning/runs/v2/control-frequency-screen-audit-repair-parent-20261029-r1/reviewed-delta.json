@@ -1,0 +1,35 @@
+{
+  "original_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/control-frequency-screen-parent-20261028-r1/accept_terminal.py",
+  "original_sha256": "497f184f6bce0762d9bf946d29919b4f4442666c9d6b4ffccffe661fc5910ff4",
+  "replacements": [
+    {
+      "before": "HERE = Path(__file__).resolve().parent",
+      "after": "REPAIR = Path(__file__).resolve().parent\nHERE = REPAIR.parent / 'control-frequency-screen-parent-20261028-r1'"
+    },
+    {
+      "before": "import launch\n",
+      "after": "import launch\nfrom repair_contract import validate_contract, require_absent_cache\n"
+    },
+    {
+      "before": "    b.need(not (HERE / 'parent-terminal-audit.json').exists(), 'Parent audit already exists; inspect rather than repeat.')",
+      "after": "    disposition = validate_contract()\n    b.need(not (HERE / 'parent-terminal-audit.json').exists() and not (REPAIR / 'parent-terminal-audit.json').exists(), 'Parent audit already exists; inspect rather than repeat.')"
+    },
+    {
+      "before": "    b.need(cache.is_dir() and not cache.is_symlink() and not any(cache.iterdir()), 'Registered bytecode cache differs.')",
+      "after": "    require_absent_cache(cache)"
+    },
+    {
+      "before": "    decision_path = HERE / 'parent-terminal-audit.json'",
+      "after": "    decision_path = REPAIR / 'parent-terminal-audit.json'"
+    },
+    {
+      "before": "        interpretation='One frozen checkpoint, fresh development seeds, repeated controller draws; not training replicas or confirmation.'))",
+      "after": "        post_run_cache_disposition=disposition,\n        original_failed_audit_preserved=True,\n        interpretation='One frozen checkpoint, fresh development seeds, repeated controller draws; not training replicas or confirmation. Cache-directory existence requirement waived by a separately reviewed, outcome-blind post-run disposition; all original non-cache acceptance checks retained.'))"
+    },
+    {
+      "before": "b.save(HERE / 'lease-release.json'",
+      "after": "b.save(REPAIR / 'lease-release.json'"
+    }
+  ],
+  "reason": "Preserve every original non-cache validation and gate. Only an absent cache path may use this explicitly recorded post-run exception; never create, delete or clean it. Write acceptance and lease release in the successor directory."
+}
