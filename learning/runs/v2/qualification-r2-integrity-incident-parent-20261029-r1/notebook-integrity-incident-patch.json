@@ -1,0 +1,33 @@
+{
+  "actual": "Fresh r2 disposable PPO completed both arms in 8m44s total: eight updates each, 459,001 four-frame gameplay frames and 458,816 one-frame gameplay frames, with zero checkpoint writes or evaluation calls. Strict qualification failed at final postflight because root updated operator-handoff.json after inadvertently including it in frozen gate pins; independent forensics found this was the sole pin drift, and the exact lease and failed receipts remain preserved.",
+  "actual_kind": "observed",
+  "evidence": [
+    {
+      "kind": "audit",
+      "label": "First strict r2 integrity failure preserved with exact evidence and held lease",
+      "sha256": "d822802438a9495a2d2bf2588cb489c8163d551c5387a8e7c91706837993ff30",
+      "uri": "learning/runs/v2/qualification-r2-integrity-incident-parent-20261029-r1/first-integrity-failure.json"
+    },
+    {
+      "kind": "audit",
+      "label": "Independent forensic review: sole handoff pin drift, worker complete, strict qualification failed",
+      "sha256": "450d673033750d44abcdb5a7a03f40bf77d9a31e893809029fee5212d3ff27e5",
+      "uri": "learning/runs/v2/one-frame-training-comparison-execution-review-luna-20261029-r2/forensic-review-r4.json"
+    },
+    {
+      "kind": "plan",
+      "label": "Concrete unapplied single-file metadata exception and fresh-check alternative",
+      "sha256": "07233be3a2e89496a75be8c25dd06592c7c040673ee8d11508c9a891a786e8c9",
+      "uri": "learning/runs/v2/qualification-r2-integrity-incident-parent-20261029-r1/metadata-exception-proposal.json"
+    },
+    {
+      "kind": "result",
+      "label": "Unaccepted measured resource projection; not qualification or launch authority",
+      "sha256": "28b993f54ed50ff8a75c8120098063941f1a146635c8a310bcba0d325240663c",
+      "uri": "learning/runs/v2/qualification-r2-integrity-incident-parent-20261029-r1/unaccepted-resource-projection.json"
+    }
+  ],
+  "next_step": "Resolve the documented single-file metadata exception proposal or authorize a separately registered resource check. Do not restore pinned bytes, rerun training, clear the held lease or launch the formal pair silently; full training still needs accepted qualification/resource evidence and exact gates.",
+  "status": "blocked",
+  "why": "The original helper-signature fault was repaired. This failure came from treating the same handoff file as both mutable live status and an immutable launch input; root changed it while the worker ran. Completed worker and resource evidence do not override the failed strict gate or establish any model-performance result."
+}

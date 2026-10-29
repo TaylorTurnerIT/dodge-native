@@ -1,0 +1,169 @@
+{
+  "disposition": {
+    "cause": "operator-handoff.json changed during the attempt; envelope retained the prelaunch hash. Observer rejected postflight pin drift after worker completion.",
+    "finding": "Preserve failed attempt, launch marker, original envelope, observer failure, worker output, and held exact lease. Any exception requires an explicit boundary decision; no unilateral bypass.",
+    "launch_authority": false,
+    "qualification_acceptance": "not accepted; strict observer postflight failed on one bound metadata pin",
+    "resource_acceptance": "not created or justified by this review",
+    "retry_or_replay_authorized": false,
+    "training_or_checkpoint_eligibility": false
+  },
+  "findings": [
+    {
+      "consequence": "Observer status failed and parent raw observer exit was 1. Worker success, local terminal accounting, and in-bound measured resources do not satisfy strict qualification acceptance or authorize formal training.",
+      "path": "learning/runs/v2/one-frame-training-comparison-luna-20261029-r2/qualification-control/dispatch/one-frame-training-resource-qualification-20261029-r2/observation.json",
+      "severity": "blocking_failed_qualification_postflight",
+      "trigger": "observe.py:323 postflight verify_bound rechecked the original envelope pin set and found operator-handoff.json changed from its pinned prelaunch bytes."
+    }
+  ],
+  "launch_identity": {
+    "envelope_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-luna-20261029-r2/qualification-control/launch-envelope.json",
+    "envelope_pin_count": 50,
+    "envelope_pin_mismatches": [
+      {
+        "actual_sha256": "e1c8890712e656daafd942a320ec8e4f9eb1adafcd6de84af69788fcf18503eb",
+        "expected_sha256": "7140b4d41f7b5a8d908462bf46d9848192b0fa0c15698eb4f9f1986ec3a32a90",
+        "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-parent-20261029-r2/operator-handoff.json"
+      }
+    ],
+    "envelope_sha256": "42b82b1486a8447d9c9595bfcd3c994a8f5d81202bd1fafc6fccec0bd2a1704d",
+    "registration_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-luna-20261029-r2/qualification-control/registration-final-r4.json",
+    "registration_sha256": "c61581a609122d01d1fe2c7929e861ba42d74912ac32425105dc1af30aaa03e0",
+    "registration_sha256_expected": "c61581a609122d01d1fe2c7929e861ba42d74912ac32425105dc1af30aaa03e0",
+    "runtime_manifest_sha256_current": "2107469618b9eba595f06e28518cbab2339fd9db5aa8e17db8f809d54376e31d",
+    "runtime_manifest_sha256_registered": "2107469618b9eba595f06e28518cbab2339fd9db5aa8e17db8f809d54376e31d",
+    "source_manifest_sha256_current": "352d676c30bc42af2309919cb924de028a668a3eb136edb8e15df2458e11c6fb",
+    "source_manifest_sha256_registered": "352d676c30bc42af2309919cb924de028a668a3eb136edb8e15df2458e11c6fb"
+  },
+  "lease_and_state": {
+    "active_long_campaign": {
+      "MPS_driver_bytes": 6442450944,
+      "RSS_bytes": 6442450944,
+      "kind": "one_frame_training_resource_qualification",
+      "owner_token": "bb06511c502bbd2bbdf247c379f695bd",
+      "run_id": "one-frame-training-resource-qualification-20261029-r2"
+    },
+    "lease_release_owner": "parent terminal audit, not completed",
+    "matches_exact_qualification_lease": true,
+    "other_inference_leases": [
+      null,
+      null,
+      null
+    ],
+    "state_path": "learning/runs/v2-orchestration/state.json"
+  },
+  "limits": [
+    "This review verifies receipts and current hashes only. It does not convert the worker result into accepted qualification.",
+    "No native/MPS runtime or source code was changed by this review."
+  ],
+  "observer_parent_evidence": {
+    "actual_worker_launch_count": 1,
+    "deadline_consumed": false,
+    "execution_result_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-luna-20261029-r2/qualification-control/dispatch/one-frame-training-resource-qualification-20261029-r2/execution-result.json",
+    "execution_result_sha256": "9526dae054e5779e1af279d9c19a00a942ba214ad86f47373e2e82d8878db1c9",
+    "execution_result_status": "failed",
+    "final_observer_peak_rss_bytes": 38748160,
+    "lease_release_exists": false,
+    "local_audit_authority": {
+      "automatic_selection": false,
+      "launch_authority": false,
+      "promoted": false,
+      "training_eligible": false
+    },
+    "local_audit_qualification_status": "qualification_complete",
+    "local_terminal_audit_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-luna-20261029-r2/qualification-control/local-terminal-audit.json",
+    "local_terminal_audit_sha256": "5085b56b9b59d59a47099cfe0f943e87f93659239a27c1ee22c41b99be280d07",
+    "local_terminal_audit_worker_result_pin_matches": true,
+    "max_aggregate_rss_bytes": 2160574464,
+    "observation_evidence_equals_local_terminal_audit": true,
+    "observation_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-luna-20261029-r2/qualification-control/dispatch/one-frame-training-resource-qualification-20261029-r2/observation.json",
+    "observation_sha256": "38a0eba641c60f17dea1c641da390e449ea625bbe78b616cafb5c0cda8013ed6",
+    "observation_status": "failed",
+    "observation_worker_result_equals_worker_file": true,
+    "observed_worker_raw_exit": 0,
+    "observer_directly_reaped": true,
+    "observer_elapsed_seconds": 523.7032443339995,
+    "observer_pgid": 21930,
+    "observer_pid": 21930,
+    "observer_raw_exit_code": 1,
+    "parent_artifact_manifest_exists": false,
+    "parent_execution_exit_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-luna-20261029-r2/qualification-control/execution-exit.json",
+    "parent_execution_exit_sha256": "8d590853481ff1dc7419b931291352431294de9d786a8e52220e2a2c81c804fe",
+    "parent_execution_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-luna-20261029-r2/qualification-control/parent-execution.json",
+    "parent_execution_sha256": "572f65de533451543024fe7d43214dc01d244129f8195bb3ffe3c49a1c7c162e",
+    "parent_terminal_audit_exists": false,
+    "process_ps_rows_after_exit": "",
+    "worker_directly_reaped": true,
+    "worker_group_absent": true,
+    "worker_pgid": 21931,
+    "worker_pid": 21931
+  },
+  "review_id": "one-frame-training-comparison-forensic-review-r4",
+  "reviewer": "independent read-only incident review",
+  "schema": "dodge013_failed_qualification_forensic_review_v1",
+  "scope": "Forensic confirmation of one fresh qualification attempt. No acceptance, resource acceptance, retry, marker or lease change, source/state mutation, native launch, or execution performed.",
+  "sole_postflight_pin_drift": {
+    "actual_sha256": "e1c8890712e656daafd942a320ec8e4f9eb1adafcd6de84af69788fcf18503eb",
+    "expected_sha256": "7140b4d41f7b5a8d908462bf46d9848192b0fa0c15698eb4f9f1986ec3a32a90",
+    "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-parent-20261029-r2/operator-handoff.json",
+    "postflight_error": "ValueError('pin drift: /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-parent-20261029-r2/operator-handoff.json')",
+    "postflight_failure_location": "observe.py:323 -> binding.verify_bound -> verify_pins",
+    "prelaunch_archived_matches_expected": true,
+    "prelaunch_archived_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-parent-20261029-r2/before-parent-approval-r3/operator-handoff.json",
+    "prelaunch_archived_sha256": "7140b4d41f7b5a8d908462bf46d9848192b0fa0c15698eb4f9f1986ec3a32a90"
+  },
+  "worker_evidence": {
+    "arms": [
+      {
+        "action_repeat": 4,
+        "gameplay_frames": 459001,
+        "id": "repeat4_training",
+        "optimizer_steps": 900,
+        "peak_mps_driver_bytes": 2398568448,
+        "peak_rss_bytes": 1058242560,
+        "policy_decisions": 114816,
+        "startup_frames": 2821,
+        "updates": 8,
+        "vector_calls": 1794
+      },
+      {
+        "action_repeat": 1,
+        "gameplay_frames": 458816,
+        "id": "repeat1_training",
+        "optimizer_steps": 900,
+        "peak_mps_driver_bytes": 2398568448,
+        "peak_rss_bytes": 2132803584,
+        "policy_decisions": 458816,
+        "startup_frames": 1820,
+        "updates": 8,
+        "vector_calls": 7169
+      }
+    ],
+    "checkpoint_sha256": "7e0de8640f1337261412d91cde6bc692772ff212fbd360f5aad415dc6bc7ed4b",
+    "checkpoint_writes": 0,
+    "evaluation_calls": 0,
+    "no_checkpoint_writes": true,
+    "no_evaluation_seed_use": true,
+    "no_formal_weight_reuse": true,
+    "no_retry": true,
+    "observer_resource_journal_bytes": 5124190,
+    "observer_resource_journal_sha256": "71f755d4d5b4d26db955616c75ad384e6652f5c405ac999cc89dc43b8ce7cd82",
+    "paired_actual_gameplay_frames_difference": 185,
+    "promoted": false,
+    "resource_journal_bytes": 225721,
+    "resource_journal_sha256": "7f473067833e05f5b6a5971dcc361d6729b888bf305fff1da3dc1430c91e8cf1",
+    "run_id": "one-frame-training-resource-qualification-20261029-r2",
+    "training_eligible": false,
+    "training_journal_bytes": 6028,
+    "training_journal_sha256": "ea24363997198c37e17faa6cb8c3b911af0c048c0f335fed8ed63f4d86971205",
+    "worker_elapsed_seconds": 522.896430666995,
+    "worker_resource_summary": {
+      "peak_mps_driver_bytes": 2398568448,
+      "peak_rss_bytes": 2132803584,
+      "samples": 1941
+    },
+    "worker_result_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-luna-20261029-r2/qualification-control/worker-output/worker-result.json",
+    "worker_result_sha256": "d14f8827f1fb40a7bab384d2e83573bd319b4f33d4e56adc0a46aa9bf17c624e",
+    "worker_status": "completed"
+  }
+}
