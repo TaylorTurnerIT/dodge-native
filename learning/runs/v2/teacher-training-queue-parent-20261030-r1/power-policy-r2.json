@@ -1,0 +1,33 @@
+{
+  "schema": "teacher_campaign_power_policy_v2",
+  "recorded_at": "2026-10-30T21:27:16.645005+00:00",
+  "user_instruction": "Okay, stop interrupting the runs. I would rather my laptop die than every single time I move it, this happens.",
+  "AC_required": false,
+  "battery_operation_allowed": true,
+  "power_source_changes": "passive_observation_only_never_abort",
+  "battery_percentage": "passive_observation_only_no_new_abort_threshold",
+  "power_probe_errors": "record_unavailable_never_abort_on_probe_failure",
+  "sleep_prevention": {
+    "caffeinate_required": true,
+    "owned_helper_required": true,
+    "required_assertions": [
+      "PreventUserIdleSystemSleep"
+    ],
+    "optional_assertions": [
+      "PreventSystemSleep",
+      "PreventDiskIdle"
+    ],
+    "reason": "PreventSystemSleep is AC-specific; do not fail battery operation for its absence."
+  },
+  "unchanged": {
+    "separate_RSS_MPS_ceilings_bytes": 6442450944,
+    "wall_clock_caps": true,
+    "source_runtime_pin_checks": true,
+    "seed_exclusions": true,
+    "exactly_once_claims": true,
+    "strict_terminal_audits": true,
+    "no_promotion": true
+  },
+  "implementation_gate": "Owned unlaunched successors only, independently reviewed with mocked AC-to-battery transition/probe failure fixtures; no existing frozen failure edits.",
+  "failed_DODGE051": "Historical strict failure remains failed; this policy does not retry it or clear/transfer its held lease."
+}
