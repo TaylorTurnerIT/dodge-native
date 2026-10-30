@@ -1,0 +1,54 @@
+{
+  "id": "DODGE-022",
+  "project": "dodge-native",
+  "title": "Instrument the DODGE-013 warm-start control-rate comparison",
+  "status": "planned",
+  "doing": "Prepare a separately owned K1-versus-K4 diagnostic successor from420. Require per-update KL and epoch KL/stop information, entropy, value loss, raw advantage/return/reward scales and valid within-episode action-switch counts/rates for both arms. Freeze telemetry definitions and test passive integration without training; any diagnostic campaign requires its own registration, review, resource qualification and explicit go-ahead.",
+  "expected": "If the warm-start regression involves optimization or value/credit scaling, the K1 arm may diverge in KL/entropy/value/advantage trajectories before survival regresses. If those remain comparable, local planning, state distribution and representation remain candidates. Telemetry associations alone cannot identify a cause.",
+  "actual": "Prepared a passive per-update telemetry adapter and strict two-arm update-coverage validator. Twelve CPU synthetic integration tests pass, including raw GAE scale, valid action-switch denominators across rollouts/resets, hook restoration, first-failure preservation and missing-row rejection; no native games, model restores or real optimizer steps ran.",
+  "why": null,
+  "next_step": "Freeze/review a separately registered bounded diagnostic runner with this integration and real guard/restore/metric parity checks. Await Taylor go-ahead before any launch.",
+  "actual_kind": "progress",
+  "prediction_timing": "before_run",
+  "parent_id": "DODGE-013",
+  "revision": 2,
+  "created_at": "2026-10-30T05:51:05.333589+00:00",
+  "updated_at": "2026-10-30T05:58:14.632206+00:00",
+  "tags": [
+    "control-frequency",
+    "telemetry",
+    "K1",
+    "K4"
+  ],
+  "metadata": {},
+  "evidence": [
+    {
+      "id": "4d29fa9716a84e1e9bc83d11a88ae06f",
+      "experiment_id": "DODGE-022",
+      "kind": "source",
+      "label": "Twelve synthetic integration tests only; not runtime qualification",
+      "uri": "learning/runs/v2/control-frequency-diagnostic-parent-20261030-r1/source-qualification.json",
+      "sha256": "00eb976d5b051c29f3b7456cf584e8740d6260906b34c68984a4b254aa4b3960",
+      "recorded_at": "2026-10-30T05:58:14.633439+00:00"
+    },
+    {
+      "id": "8c9aa8891c604558b0aecacc4e226a19",
+      "experiment_id": "DODGE-022",
+      "kind": "plan",
+      "label": "User-directed K1 track handoff; external worktree read-only",
+      "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md",
+      "sha256": "16b5f6eeb107132b9ed5cd9d876e77c6bdedd2104ecb4c5e20e1029dac98b6c1",
+      "recorded_at": "2026-10-30T05:51:05.335015+00:00"
+    },
+    {
+      "id": "faf0c3460d854d11a8afa09f4343456d",
+      "experiment_id": "DODGE-022",
+      "kind": "source",
+      "label": "Per-update integration and required metrics contract",
+      "uri": "learning/runs/v2/control-frequency-diagnostic-parent-20261030-r1/telemetry-contract.json",
+      "sha256": "f94e611f99258613974c3b31f5afdfd7c66d7c81d27a1776677c22e6f23fffd9",
+      "recorded_at": "2026-10-30T05:58:14.633404+00:00"
+    }
+  ],
+  "measurements": []
+}

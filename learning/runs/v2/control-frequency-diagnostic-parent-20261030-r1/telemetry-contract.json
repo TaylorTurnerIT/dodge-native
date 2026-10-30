@@ -1,0 +1,49 @@
+{
+  "definitions": {
+    "action_switch_rate": "Changed movement actions divided by adjacent valid decisions in the same live slot/episode; last action carries over rollout boundaries; resets excluded",
+    "advantage_scale": "Frozen GAE advantages before per-minibatch normalization; population standard deviation, RMS, mean, extrema and sample count",
+    "entropy": "PPO minibatch/sample-weighted entropy, not frozen-policy rollout entropy",
+    "value_loss": "PPO minibatch/sample-weighted0.5*MSE before vf_coef"
+  },
+  "integration": {
+    "entry_point": "update_telemetry.instrument_update",
+    "gae_tensors_returned_unchanged": true,
+    "guard_forwarded_unchanged": true,
+    "native_snapshot_or_resume_support_added": false,
+    "one_GAE_calculation_per_update": true,
+    "one_instrumented_session_per_process": true,
+    "prepared_update_result_forwarded_unchanged": true,
+    "temporary_hooks_restored_on_success_and_failure": true
+  },
+  "launch_authority": false,
+  "original_DODGE013_source_modified": false,
+  "record": "DODGE-022",
+  "required_arms": [
+    "K1",
+    "K4"
+  ],
+  "required_metrics": [
+    "epoch_approx_kls",
+    "approx_kl",
+    "target_kl",
+    "early_stop_kl",
+    "epochs_completed",
+    "optimizer_steps",
+    "entropy",
+    "value_loss",
+    "raw_advantages_before_minibatch_normalization",
+    "gae_returns",
+    "rollout_values",
+    "raw_reward",
+    "learner_reward",
+    "raw_reward_components",
+    "action_switches",
+    "eligible_action_comparisons",
+    "action_switch_rate",
+    "action_switches_per_1000_gameplay_frames"
+  ],
+  "required_update_coverage": "Every successfully completed update, including valid final partial rollouts; no omitted or duplicate rows. Any update_failure prevents terminal success.",
+  "schema": "dodge_control_rate_diagnostic_telemetry_contract_v1",
+  "status": "source_preparation_only",
+  "training_launched": false
+}

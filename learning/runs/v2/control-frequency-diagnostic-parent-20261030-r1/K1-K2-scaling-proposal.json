@@ -1,0 +1,81 @@
+{
+  "K1_256env_2048step_observation_GiB": 2.87890625,
+  "K1_256env_4096step_observation_GiB": 5.7578125,
+  "S3": {
+    "control_rates": [
+      1,
+      2,
+      4
+    ],
+    "historical_DODGE013": "Context only; not a causal control for simultaneous seed,batch,pipeline changes",
+    "initialization": "Separate exact420 model and Adam restore per arm",
+    "rate_matrix": "Fresh allowed stream, common pipeline and architecture; game-time matched gamma/GAE/rollout coverage and nominal optimizer cadence",
+    "record": "DODGE-023",
+    "seed_contrast": "Prospective K4 pool-versus-fresh at the same recipe, separate from joint larger-batch/longer-rollout comparison"
+  },
+  "S4": {
+    "control_rates": [
+      1,
+      2,
+      4
+    ],
+    "initialization": "Fresh model and fresh Adam; matched initialization within each independent replica",
+    "record": "DODGE-024",
+    "training_replicas": "At least2;3preferred after measured budget agreement",
+    "warm_start_and_scratch_claims_separate": true
+  },
+  "candidate_parameters": [
+    {
+      "K": 1,
+      "effective_minibatch": 8192,
+      "gae_lambda": 0.9872585449014338,
+      "gamma": 0.9987476493904754,
+      "microbatch": "qualified_per_device_under6GiB",
+      "raw_frames_per_env": 2048,
+      "rollout_decisions_per_env": 2048
+    },
+    {
+      "K": 2,
+      "effective_minibatch": 4096,
+      "gae_lambda": 0.9746794344808963,
+      "gamma": 0.9974968671630001,
+      "microbatch": "qualified_per_device_under6GiB",
+      "raw_frames_per_env": 2048,
+      "rollout_decisions_per_env": 1024
+    },
+    {
+      "K": 4,
+      "effective_minibatch": 2048,
+      "gae_lambda": 0.95,
+      "gamma": 0.995,
+      "microbatch": "qualified_per_device_under6GiB",
+      "raw_frames_per_env": 2048,
+      "rollout_decisions_per_env": 512
+    }
+  ],
+  "concurrency": {
+    "current_rule": "one MPS campaign",
+    "proposed_question": "Should Taylor consider up to two MPS campaigns after bounded contention qualification and an agreed aggregate memory/fairness budget?",
+    "qualification_launched": false,
+    "rule_changed": false,
+    "separate_per_process_caps_are_not_aggregate_budget": true
+  },
+  "discount_half_life_raw_frames": 553.1302919442434,
+  "discount_tail_after2048frames": 0.07680992513462541,
+  "document_path": "docs/review-ideas-and-scaling-plan-20261030.md",
+  "document_sha256": "c1ab1bd479a10dd7ffefb242e2e5a9797d0db91c7df59c9320951daacffab4d2",
+  "gae_99percent_decay_raw_frames": 327.1540213858439,
+  "gates": [
+    "Explicit approval and audited disposition for failed S1-r1 before one proposed S1-r2 attempt",
+    "Measured S1 bottleneck; no throughput finding inferred from failed startup",
+    "S2 end-to-end speed and memory qualification at each proposed K,N,T with parity",
+    "Separate bounded registration, independent review, real resource qualification and user go-ahead for every training stage",
+    "No new cohort beyond original item3 authorization without explicit approval; include consumed telemetry,D7,D8,D9 and recorded history in exclusions"
+  ],
+  "new_seed_cohorts_opened": 0,
+  "new_training_or_profile_launches": 0,
+  "observation_bytes_per_transition": 5896,
+  "promotion": false,
+  "schema": "dodge_first_class_control_rate_scaling_proposal_v1",
+  "status": "conditional_design_not_launch_ready"
+}
