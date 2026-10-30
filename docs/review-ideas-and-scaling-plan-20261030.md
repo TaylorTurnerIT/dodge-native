@@ -13,6 +13,32 @@ Evidence base: checkpoint 420 death telemetry (`learning/reports/death-telemetry
 5. **Recent evidence does not support "same recipe, a bit more training".** DODGE-013 trained 11.8M frames per arm from 420: 4-frame training showed no clear Q1 gain over checkpoint 420 (1,625 vs 1,750), and 1-frame training regressed to 651. Checkpoint 600 had higher Mean but lower Q1 than 420 (DODGE-001). So extra updates at 64 envs and a 512-seed pool have plateaued or traded off. That is compatible with the scaling hypothesis only if the plateau comes from gradient noise, a small seed pool or short horizons, which is exactly what the tests below separate. The 1-frame regression also means the review's "fine-tune at K=1" has already been tried in one form (game-time-matched gamma and GAE, same reward); the review's version differs by also removing score from the reward.
 6. **Death telemetry (DODGE-014/015 data):** enemy contact during patterns is the dominant failure; the policy changes its action at 76% of consecutive decisions (last-128 sample), turns toward the killer in the final 10-15 frames, and runs into already-filled rectangles while chased. fyou is not the cause.
 
+## Priority order (expected immediate effect, weighed by confidence and cost)
+
+Evidence tags: M measured here, L literature prior, R reasoned from our data, S speculative. Effect sizes are judgments except where tagged M; the order is a proposal to be revised as results arrive. Everything in Phases 1 and 2 needs at least two training seeds per arm and a fresh cohort of 1,024 or more seeds (the notebook puts the detectable difference at about 620 frames with 64 seeds and one training seed). Nothing launches without the user's go-ahead.
+
+Phase 0, no training, hours (also tells us which later items to trust)
+1. K at inference. Using K=1 already gives Q1 +934 and mean +1,761 frames [M, DODGE-012]. Add K=2 and K=3 zero-shot on the same 2,048 seeds to find the best rate. Controller adoption is the user's call.
+2. Paired heuristic baseline at K=4 and K=1 on the same seeds [M after the run]. Sizes the gap to the best known controller (6,115 vs 4,434 mean) and gives a control variate for ranking.
+3. Policy plus short-horizon shield: veto actions the exact player model predicts will collide within about 12 frames, otherwise follow the policy [R]. No training. If it closes much of the gap, the policy's weakness is short-horizon planning, and the shielded policy is also a stronger teacher for the vision student.
+4. Counterfactual branching, DODGE-004 [R]. Shares the snapshot and rollout harness with item 3.
+5. Argmax versus sampled per K, and checkpoint averaging of the saved 360 to 600 checkpoints [M for argmax at K=4: +275 Q1; L for averaging].
+6. Seed audit and throughput profile (S0, S1). These gate scale: they say whether the 420 lineage reused a 512-seed pool and where the 3,500x slowdown versus the engine sits.
+
+Phase 1, first training runs, cheap configuration changes
+7. Gamma and lambda sweep (gamma 0.97 to 0.995, lambda 0.9 to 0.95) at K=4 and K=1 [L: the study's most important hyperparameter]. Highest value per cost among training changes, and it may explain DODGE-013's K=1 regression.
+8. Fresh unbounded seed stream, larger batch, longer rollouts, learning rate retuned (S3), after the pipeline speedup (S2) [R, L]. Large effect if S0 shows pool reuse or gradient noise is the limit; effect unknown otherwise.
+9. Imitation from the heuristic (behaviour cloning or DAgger on policy-visited states, then PPO fine-tuning) [R]. The target level is already demonstrated; main risk is capping near the heuristic until PPO moves past it.
+10. K=2 and K=3 trained arms, K annealing 4 to 1, per-episode sampled K, from-scratch K=1 [S]. Order after item 7, because horizon length confounds K.
+
+Phase 2, smaller or less certain, run as ablations once the base recipe moves
+11. Planned learning-rate decay: adopt as the default inside Phase 1 runs rather than a separate experiment [L: small, "secondary"]. Compare schedule shapes only once.
+12. Per-epoch advantage recomputation, logging KL early-stop frequency, value and observation normalisation, separate actor and critic encoders, lower or decayed entropy [L].
+13. Survival-only reward [S]. The heuristic scores about 100 while surviving 6,115 frames, so scoring is not inherently fatal.
+14. Input and architecture changes: closing speed and relative velocity, clearance raycasts, entity pooling into the heads, D4 symmetry (after the equivariance audit), more attention depth [S].
+15. Segment carry-over (do not abandon live games), snapshot-prioritised replay [S].
+16. Vision-student distillation, after a stronger teacher exists.
+
 ## K=1 track (the user's hypothesis about control rate)
 
 Validation against the paper draft (`paper/main.tex` in the paper worktree): the review quoted the paper faithfully (4,400 vs 6,115 mean frames, 2,626 to 4,387 at K=1, 256 x 64 rollouts, minibatch 512, segment abandonment every 60 updates, constant learning rate 3e-5). The draft says the policy "was never trained at K=1"; that is out of date, because DODGE-013 did train from 420 at K=1 and regressed.
