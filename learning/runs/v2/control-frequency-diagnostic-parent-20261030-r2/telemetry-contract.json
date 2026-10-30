@@ -1,0 +1,71 @@
+{
+  "definitions": {
+    "action_switch_rate": "Changed movement actions divided by adjacent valid decisions in the same live slot/episode; last action carries over rollout boundaries; resets excluded",
+    "advantage_scale": "Frozen GAE advantages before per-minibatch normalization; population standard deviation, RMS, mean, extrema and sample count",
+    "clip_fraction": "Original PPO sample/minibatch-weighted fraction outside clipping interval.",
+    "early_stop": "Final KL strictly above registered target marks a threshold hit. Only epochs_completed<maximum_epochs avoids epochs; a hit on the maximum epoch avoids zero epochs.",
+    "entropy": "PPO minibatch/sample-weighted entropy, not frozen-policy rollout entropy",
+    "explained_variance": "Original PPO EV uses frozen rollout values and GAE targets; preserve None if PPO reports target population variance<=1e-12. No fabricated zero or CPU recomputation.",
+    "value_loss": "PPO minibatch/sample-weighted0.5*MSE before vf_coef"
+  },
+  "independently_reviewed": false,
+  "integration": {
+    "entry_point": "update_telemetry.instrument_update",
+    "gae_tensors_returned_unchanged": true,
+    "guard_forwarded_unchanged": true,
+    "native_snapshot_or_resume_support_added": false,
+    "one_GAE_calculation_per_update": true,
+    "one_instrumented_session_per_process": true,
+    "original_DODGE013_and_S1_sources_modified": false,
+    "prepared_update_result_forwarded_unchanged": true,
+    "temporary_hooks_restored_on_success_and_failure": true
+  },
+  "launch_authority": false,
+  "original_DODGE013_source_modified": false,
+  "predecessor": "learning/runs/v2/control-frequency-diagnostic-parent-20261030-r1",
+  "record": "DODGE-049",
+  "required_arms": [
+    "K1",
+    "K4"
+  ],
+  "required_metrics": [
+    "epoch_approx_kls",
+    "approx_kl",
+    "target_kl",
+    "early_stop_kl",
+    "epochs_completed",
+    "optimizer_steps",
+    "entropy",
+    "value_loss",
+    "raw_advantages_before_minibatch_normalization",
+    "gae_returns",
+    "rollout_values",
+    "raw_reward",
+    "learner_reward",
+    "raw_reward_components",
+    "action_switches",
+    "eligible_action_comparisons",
+    "action_switch_rate",
+    "action_switches_per_1000_gameplay_frames",
+    "explained_variance",
+    "explained_variance_defined",
+    "explained_variance_undefined_reason",
+    "clip_fraction",
+    "maximum_epochs",
+    "kl_threshold_hit",
+    "stopped_before_maximum_epochs",
+    "epochs_avoided"
+  ],
+  "required_update_coverage": "Every successfully completed update, including valid final partial rollouts; no omitted or duplicate rows. Any update_failure prevents terminal success.",
+  "runtime_qualified": false,
+  "schema": "dodge_control_rate_diagnostic_telemetry_contract_v2",
+  "status": "synthetic_tests_passed_not_runtime_qualified",
+  "supported_recorder_K": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "terminal_validator_scope": "Warm diagnostic requires registered K1/K4 arms. Recorder supports K1/2/3/4; other campaign terminal validators need their own registered coverage contract.",
+  "training_launched": false
+}

@@ -1,0 +1,74 @@
+{
+  "actual": null,
+  "arms": [
+    {
+      "action_repeat": 1,
+      "gae_lambda": 0.9872585449014338,
+      "gamma": 0.9987476493904754,
+      "id": "K1_matched_horizon"
+    },
+    {
+      "action_repeat": 1,
+      "gae_lambda": 0.9,
+      "gamma": 0.99,
+      "id": "K1_shorter_horizon"
+    }
+  ],
+  "budgets": {
+    "clean_eval_seconds": 7560,
+    "noise_eval_seconds": 7560,
+    "semantics": "Proposed hard ceilings, not measured K1 forecasts. Actual source/resource admission and explicit launch approval required; no auto extension.",
+    "total_training_seconds": 22320,
+    "total_with_noise_seconds": 37440,
+    "training_receipts_per_trajectory_seconds": 180,
+    "training_work_per_trajectory_seconds": 5400
+  },
+  "common": {
+    "KL_target": 0.03,
+    "effective_minibatch": 2048,
+    "entropy_coefficient": 0.01,
+    "envs": 64,
+    "inference_device": "MPS",
+    "initialization": "Checkpoint420 model and Adam restored independently per trajectory; no qualification weights.",
+    "learning_rate": 3e-05,
+    "max_epochs": 4,
+    "microbatch": 512,
+    "rollout_decisions": 1024,
+    "seed_stream": "Same consumed512 training pool in both arms; fresh-stream intervention is the next separate screen.",
+    "threads": 4
+  },
+  "evaluation": {
+    "clean_games": 5120,
+    "cohorts_opened": 0,
+    "contrasts": "Primary shorter-minus-matched marginal Q1, each sorted separately; Mean/Q4/milestones secondary; per-replica effects and2000 shared-game-seed bootstrap. No broad training-seed inference from n=2.",
+    "controller": "common sampled K1",
+    "extra_noise_games": 5120,
+    "fresh_game_seed_request": 1024,
+    "interpretation": "This isolates a joint gamma/lambda intervention within K1, not a K1-vs-K4 training win, a fresh-data effect, or the full-send recipe gate.",
+    "models": 5,
+    "models_description": "4 fixed endpoints plus420 context;420 is not a prospective training control.",
+    "noise_conditions": 4,
+    "noise_subset": 256,
+    "seed_reservations": 0
+  },
+  "launch_authority": false,
+  "next_after_screen": "Fresh-pool versus fresh-stream and longer-rollout/batch K4 contrast, preserving the rays/CNN feature experiments for their ranked turn.",
+  "official_parent": 324,
+  "prerequisites": [
+    "Implement/review registered native/PPO worker with exact restore, close-frame accounting, normal immutable pins and strict parent audit.",
+    "Independently review telemetry successor and qualify passive parity against the actual PPO, including EV/clip semantics.",
+    "Measure candidate K1/macro2048 resource/timing in an explicitly approved counted prefix; S1 only covered K4 and macro512.",
+    "Freeze training/controller/bootstrap seed vectors and reserve new evaluation exclusion range only under explicit authority.",
+    "Obtain separate execution approval for the concrete screen; no lease/marker reuse or automatic failure recovery."
+  ],
+  "promotion": false,
+  "purpose": "Try a substantive cheap configuration change first, without requiring the nine optional diagnostic campaigns or a10x speedup.",
+  "raw_gameplay_frames_per_trajectory": 2359296,
+  "record": "DODGE-050",
+  "schema": "dodge_first_horizon_training_screen_proposal_v1",
+  "scope": "This first sub-screen does not cancel the full gamma/lambda, fresh-stream, scaling or four-K/schedule proposals. It is not permission to run later packets.",
+  "status": "source_runner_and_review_not_ready",
+  "telemetry_source": "learning/runs/v2/control-frequency-diagnostic-parent-20261030-r2;19 synthetic tests only, not real PPO/MPS parity or independent review.",
+  "total_trajectories": 4,
+  "training_replicas_per_arm": 2
+}

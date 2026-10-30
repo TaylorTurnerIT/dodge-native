@@ -1,0 +1,50 @@
+{
+  "status": "completed",
+  "actual_kind": "audited",
+  "actual": "All16 disposable S1-r2 cells completed successfully in1036.57s, raw launcher exit0. Accepted terminal audit,20 input pins, all worker groups/launcher/helper absent, empty existing cache and no saved weights verified; exact r2 lease released. Baseline2707.60 raw frames/s, best observed4061.40 at64envs/1024rollout/MPS,1.50x single-cell ratio. PPO used81.69% at baseline; native step/reset/export0.26%-0.70% across cells. All16 completed four epochs with0 KL stops. Peak worker RSS2.8067GiB and MPS driver2.2186GiB. No training campaign, new cohort or promotion.",
+  "why": "PPO optimization/validation dominates this instrumented workload. Fixed-order single updates and synchronization limit production speed claims; the study does not isolate backward, optimizer and validation costs or qualify K1/macro2048.",
+  "next_step": "Proceed to source/review for the focused K1 horizon training screen; use candidate resource admission rather than requiring a speculative10x pipeline speedup. Preserve accepted profiling capsules; no rerun.",
+  "evidence": [
+    {
+      "kind": "audit",
+      "label": "Accepted16-cell audit, immutable inputs, dead groups, cache and exact release verified",
+      "uri": "learning/runs/v2/track-a-s1-successor-parent-20261030-r2/S1-parent-terminal-verification.json",
+      "sha256": "f68a09b5dc29a7705a85ccadcb6da482c5dc3428c4695a2ee23ca80cbc48394c"
+    },
+    {
+      "kind": "result",
+      "label": "All16 measured profiles with timing attribution and limits",
+      "uri": "learning/runs/v2/track-a-s1-successor-parent-20261030-r2/S1-profile-summary.json",
+      "sha256": "0113e1010815092a35eac18ba2682744a03c2bbd30c6358a01d8656fe52e5177",
+      "id": "e8eebf0e038c45d58c6ae8ebad78bbdc"
+    }
+  ],
+  "measurements": [
+    {
+      "evidence_id": "e8eebf0e038c45d58c6ae8ebad78bbdc",
+      "model": "K4 N64 T256 threads4 MPS",
+      "metric": "raw_gameplay_frames_per_second",
+      "value": 2707.600002583346,
+      "unit": "game_frames/s",
+      "cohort": "consumed_pool512",
+      "sample_count": 1
+    },
+    {
+      "evidence_id": "e8eebf0e038c45d58c6ae8ebad78bbdc",
+      "model": "K4 N64 T1024 threads4 MPS",
+      "metric": "raw_gameplay_frames_per_second",
+      "value": 4061.3964379776,
+      "unit": "game_frames/s",
+      "cohort": "consumed_pool512",
+      "sample_count": 1
+    },
+    {
+      "evidence_id": "e8eebf0e038c45d58c6ae8ebad78bbdc",
+      "model": "K4 N64 T256 threads4 MPS",
+      "metric": "PPO_fraction_of_update_time",
+      "value": 0.8168595546746842,
+      "unit": "fraction",
+      "sample_count": 1
+    }
+  ]
+}

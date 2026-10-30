@@ -1,0 +1,172 @@
+{
+  "id": "DODGE-021",
+  "project": "dodge-native",
+  "title": "S1 successor: disposable profiling with intact venv invocation",
+  "status": "completed",
+  "doing": "Proposed one fresh16cell S1 profiling attempt using the lexical venv executable and a prefix/Torch/MPS/native import gate before any lease or marker. Exact failed r1 lease disposition and successor launch require explicit user approval. Discard every profile update, save no learned weights, use only the already-consumed512 training seeds, preserve6GiB separate caps.",
+  "expected": "Before successor profiling: environment stepping should be a small share relative to observation marshaling, model inference and PPO backpropagation. Larger batches may improve utilization, while storage and attention memory may constrain them. No measured throughput is inferred from the source-only import qualification.",
+  "actual": "All16 disposable S1-r2 cells completed successfully in1036.57s, raw launcher exit0. Accepted terminal audit,20 input pins, all worker groups/launcher/helper absent, empty existing cache and no saved weights verified; exact r2 lease released. Baseline2707.60 raw frames/s, best observed4061.40 at64envs/1024rollout/MPS,1.50x single-cell ratio. PPO used81.69% at baseline; native step/reset/export0.26%-0.70% across cells. All16 completed four epochs with0 KL stops. Peak worker RSS2.8067GiB and MPS driver2.2186GiB. No training campaign, new cohort or promotion.",
+  "why": "PPO optimization/validation dominates this instrumented workload. Fixed-order single updates and synchronization limit production speed claims; the study does not isolate backward, optimizer and validation costs or qualify K1/macro2048.",
+  "next_step": "Proceed to source/review for the focused K1 horizon training screen; use candidate resource admission rather than requiring a speculative10x pipeline speedup. Preserve accepted profiling capsules; no rerun.",
+  "actual_kind": "audited",
+  "prediction_timing": "before_run",
+  "parent_id": "DODGE-017",
+  "revision": 5,
+  "created_at": "2026-10-30T05:45:00.335839+00:00",
+  "updated_at": "2026-10-30T17:52:22.802951+00:00",
+  "tags": [
+    "S1",
+    "successor",
+    "scaling",
+    "profiling"
+  ],
+  "metadata": {
+    "priority_runlist_v4": {
+      "launch_authority": false,
+      "packets": [
+        "A1"
+      ],
+      "proposal_path": "learning/runs/v2/priority-runlist-parent-20261030-r4/priority-run-list-v4.json",
+      "proposal_sha256": "246b2b9e1043ea5e8dbe99bef2640b6b6a20faa4bd851a293d6bb1111c5d782e"
+    }
+  },
+  "evidence": [
+    {
+      "id": "1b06841ebcf04ee184320468447a08e5",
+      "experiment_id": "DODGE-021",
+      "kind": "source",
+      "label": "Real import qualification only; no games, model or optimizer steps",
+      "uri": "learning/runs/v2/track-a-s1-successor-parent-20261030-r2/runtime-preflight-source-qualification.json",
+      "sha256": "760643f8ed66b1051914715da38e2d79d0b7bdb43eac4c44ed9052cb603b657d",
+      "recorded_at": "2026-10-30T05:45:00.337270+00:00"
+    },
+    {
+      "id": "4b6c4eec33df457c979c0d28c5b766d3",
+      "experiment_id": "DODGE-021",
+      "kind": "plan",
+      "label": "Ordered approval packets with seed counts, hard ceilings and readiness",
+      "uri": "learning/runs/v2/priority-runlist-parent-20261030-r4/priority-run-list-v4.json",
+      "sha256": "246b2b9e1043ea5e8dbe99bef2640b6b6a20faa4bd851a293d6bb1111c5d782e",
+      "recorded_at": "2026-10-30T06:50:28.957279+00:00"
+    },
+    {
+      "id": "6febddb5638a4404b435afe92d576d88",
+      "experiment_id": "DODGE-021",
+      "kind": "audit",
+      "label": "Strict failed-r1 zero-compute disposition",
+      "uri": "learning/runs/v2/track-a-s1-successor-parent-20261030-r2/S1-r1-failure-disposition-audit.json",
+      "sha256": "12c7912ec5d54c109618c61e04ee603fce9359a1bb6659ed17fed0d656a76609",
+      "recorded_at": "2026-10-30T17:29:23.645408+00:00"
+    },
+    {
+      "id": "769759d677534856aab2b72dcb546ed0",
+      "experiment_id": "DODGE-021",
+      "kind": "audit",
+      "label": "Independent successor source-only review",
+      "uri": "learning/runs/v2/track-a-s1-successor-review-luna-20261030-r2/review.json",
+      "sha256": "ef28367c949ea5d02d42c1d1aa14bf016faea0b264f6f0743086531b38893cac",
+      "recorded_at": "2026-10-30T05:45:00.337284+00:00"
+    },
+    {
+      "id": "909a79ddf8d64c5aa2762e3f05bf04e6",
+      "experiment_id": "DODGE-021",
+      "kind": "note",
+      "label": "Begin instruction bound to exactly one reviewed S1 successor",
+      "uri": "learning/runs/v2/track-a-s1-successor-parent-20261030-r2/S1-user-approval.json",
+      "sha256": "67ad6469a683efced15c6790de2e2f82867ed4615c28daa058503f337e7d609d",
+      "recorded_at": "2026-10-30T17:29:23.645110+00:00"
+    },
+    {
+      "id": "91f54396d39e43cb8ed6de76af50c9c3",
+      "experiment_id": "DODGE-021",
+      "kind": "progress",
+      "label": "Claim/PIDs and AC start observation; no terminal claim",
+      "uri": "learning/runs/v2/track-a-s1-successor-parent-20261030-r2/S1-start-observation.json",
+      "sha256": "1887aa9aa80914003b1c4d65af4a783ddefc03af914a175424f514d27672263f",
+      "recorded_at": "2026-10-30T17:37:51.516072+00:00"
+    },
+    {
+      "id": "9550eea19257477eaa64128ab4c5cab8",
+      "experiment_id": "DODGE-021",
+      "kind": "plan",
+      "label": "Priority reconciliation, observation-only shield and long-run gate",
+      "uri": "docs/review-ideas-and-scaling-plan-20261030.md",
+      "sha256": "20a3dd5c48ad6e1b994391836836e1514b1006bfe2a00018a10dd0ce96077905",
+      "recorded_at": "2026-10-30T06:50:28.957576+00:00"
+    },
+    {
+      "id": "d94026d3e1054fbda5df33f02bb81985",
+      "experiment_id": "DODGE-021",
+      "kind": "note",
+      "label": "Only exact failed-r1 lease released after durable audit",
+      "uri": "learning/runs/v2/track-a-s1-successor-parent-20261030-r2/S1-r1-disposition-lease-release.json",
+      "sha256": "bf03bec56c4fc514f6c4e9f985e89e365183b08b5b0ac23a8c4bd0fa07517c79",
+      "recorded_at": "2026-10-30T17:29:23.645423+00:00"
+    },
+    {
+      "id": "e8eebf0e038c45d58c6ae8ebad78bbdc",
+      "experiment_id": "DODGE-021",
+      "kind": "result",
+      "label": "All16 measured profiles with timing attribution and limits",
+      "uri": "learning/runs/v2/track-a-s1-successor-parent-20261030-r2/S1-profile-summary.json",
+      "sha256": "0113e1010815092a35eac18ba2682744a03c2bbd30c6358a01d8656fe52e5177",
+      "recorded_at": "2026-10-30T17:52:22.804775+00:00"
+    },
+    {
+      "id": "eea949438953436d91d78b5af858ea33",
+      "experiment_id": "DODGE-021",
+      "kind": "audit",
+      "label": "Accepted16-cell audit, immutable inputs, dead groups, cache and exact release verified",
+      "uri": "learning/runs/v2/track-a-s1-successor-parent-20261030-r2/S1-parent-terminal-verification.json",
+      "sha256": "f68a09b5dc29a7705a85ccadcb6da482c5dc3428c4695a2ee23ca80cbc48394c",
+      "recorded_at": "2026-10-30T17:52:22.804669+00:00"
+    },
+    {
+      "id": "f369a3400e724b72aabab0bbc667089c",
+      "experiment_id": "DODGE-021",
+      "kind": "registration",
+      "label": "Prepared successor registration; explicit launch approval still required",
+      "uri": "learning/runs/v2/track-a-s1-successor-parent-20261030-r2/S1-registration.json",
+      "sha256": "a38c3ca04073887bb6e370114481c46075ec8760bf4331c3fe806cfbc123f836",
+      "recorded_at": "2026-10-30T05:45:00.337105+00:00"
+    }
+  ],
+  "measurements": [
+    {
+      "id": "65f1b078530346d1b20a6b7416269053",
+      "experiment_id": "DODGE-021",
+      "evidence_id": "e8eebf0e038c45d58c6ae8ebad78bbdc",
+      "model": "K4 N64 T256 threads4 MPS",
+      "metric": "PPO_fraction_of_update_time",
+      "value": 0.8168595546746842,
+      "unit": "fraction",
+      "cohort": null,
+      "sample_count": 1,
+      "recorded_at": "2026-10-30T17:52:22.805382+00:00"
+    },
+    {
+      "id": "996aab28187645e69755456045e9884b",
+      "experiment_id": "DODGE-021",
+      "evidence_id": "e8eebf0e038c45d58c6ae8ebad78bbdc",
+      "model": "K4 N64 T256 threads4 MPS",
+      "metric": "raw_gameplay_frames_per_second",
+      "value": 2707.600002583346,
+      "unit": "game_frames/s",
+      "cohort": "consumed_pool512",
+      "sample_count": 1,
+      "recorded_at": "2026-10-30T17:52:22.804834+00:00"
+    },
+    {
+      "id": "f90a746270fe433dbababa11af99f3da",
+      "experiment_id": "DODGE-021",
+      "evidence_id": "e8eebf0e038c45d58c6ae8ebad78bbdc",
+      "model": "K4 N64 T1024 threads4 MPS",
+      "metric": "raw_gameplay_frames_per_second",
+      "value": 4061.3964379776,
+      "unit": "game_frames/s",
+      "cohort": "consumed_pool512",
+      "sample_count": 1,
+      "recorded_at": "2026-10-30T17:52:22.805223+00:00"
+    }
+  ]
+}

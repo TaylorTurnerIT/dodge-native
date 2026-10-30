@@ -1,0 +1,140 @@
+{
+  "id": "DODGE-023",
+  "project": "dodge-native",
+  "title": "Propose scaled warm starts with K1 K2 K3 K4 and LR schedules",
+  "status": "planned",
+  "doing": "After S1/S2 gates, propose all fixed K1/K2/K3/K4 warm starts from420 crossed with constant, warmup+cosine-to-floor and KL-adaptive schedules, at least2 independent training seeds per cell. Separate K4 seed-pool contrast, preserve game-time discount/rollout coverage and nominal optimizer cadence, recalibrate LR for effective batch. Zero-shot K2/K3 precedes trained-rate comparison; no launch-ready budget or execution authority. Include the registered horizon screen, shared/separate encoder, normalization2x2, per-epoch GAE and fixed-batch N/T allocation checks as staged ablations; longer per-env histories remain explicit rather than only increasing env count.",
+  "expected": "Fresh seeds may improve generalization after the confirmed512-pool reuse. K1/K2 may learn differently with qualified larger batches and longer per-env histories, but the earlier K1 regression may persist. Equal frames will not imply equal decisions, FLOPs or wall time.",
+  "actual": null,
+  "why": null,
+  "next_step": "S1 now accepted: native<=0.70%, PPO dominant; no measured10x speedup. Begin with focused DODGE-050 horizon screen source/review, then fresh-stream/scaled K4 as a separate controlled comparison. Qualify actual shapes and macro-batches; no new cohort or launch authorized.",
+  "actual_kind": "unobserved",
+  "prediction_timing": "before_run",
+  "parent_id": "DODGE-016",
+  "revision": 6,
+  "created_at": "2026-10-30T05:51:05.380615+00:00",
+  "updated_at": "2026-10-30T17:52:22.975103+00:00",
+  "tags": [
+    "S3",
+    "scaling",
+    "K1",
+    "K2",
+    "K3",
+    "K4",
+    "learning-rate-schedule"
+  ],
+  "metadata": {
+    "priority_runlist_v4": {
+      "launch_authority": false,
+      "packets": [
+        "B2",
+        "B4",
+        "B6"
+      ],
+      "proposal_path": "learning/runs/v2/priority-runlist-parent-20261030-r4/priority-run-list-v4.json",
+      "proposal_sha256": "246b2b9e1043ea5e8dbe99bef2640b6b6a20faa4bd851a293d6bb1111c5d782e"
+    }
+  },
+  "evidence": [
+    {
+      "id": "259f3417ee66498da9a6f43ab2faaf8e",
+      "experiment_id": "DODGE-023",
+      "kind": "plan",
+      "label": "Full literature checklist and preregistered interventions/predictions",
+      "uri": "docs/review-ideas-and-scaling-plan-20261030.md",
+      "sha256": "4d2730f352a768e64f98087e8e2d0230f158f77d2921d688603584c2fd99bb76",
+      "recorded_at": "2026-10-30T06:16:20.596146+00:00"
+    },
+    {
+      "id": "2dcce7fbc3934ebca7e2776e659f4402",
+      "experiment_id": "DODGE-023",
+      "kind": "plan",
+      "label": "Ordered approval packets with seed counts, hard ceilings and readiness",
+      "uri": "learning/runs/v2/priority-runlist-parent-20261030-r4/priority-run-list-v4.json",
+      "sha256": "246b2b9e1043ea5e8dbe99bef2640b6b6a20faa4bd851a293d6bb1111c5d782e",
+      "recorded_at": "2026-10-30T06:50:29.672811+00:00"
+    },
+    {
+      "id": "59a7a03931c7434aa17eba259e0cc159",
+      "experiment_id": "DODGE-023",
+      "kind": "plan",
+      "label": "User-directed K1 track handoff; external worktree read-only",
+      "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md",
+      "sha256": "16b5f6eeb107132b9ed5cd9d876e77c6bdedd2104ecb4c5e20e1029dac98b6c1",
+      "recorded_at": "2026-10-30T05:51:05.380935+00:00"
+    },
+    {
+      "id": "6c57e558615941a89fc5f7580ac1fae1",
+      "experiment_id": "DODGE-023",
+      "kind": "plan",
+      "label": "Priority reconciliation, observation-only shield and long-run gate",
+      "uri": "docs/review-ideas-and-scaling-plan-20261030.md",
+      "sha256": "20a3dd5c48ad6e1b994391836836e1514b1006bfe2a00018a10dd0ce96077905",
+      "recorded_at": "2026-10-30T06:50:29.672845+00:00"
+    },
+    {
+      "id": "961db26e76d7422781a5fccca5372f9b",
+      "experiment_id": "DODGE-023",
+      "kind": "plan",
+      "label": "Full review idea ledger updated for user second steer",
+      "uri": "docs/review-ideas-and-scaling-plan-20261030.md",
+      "sha256": "fae0eebb76925b4334a2baa0f2da1bba7745e9e4176dcb20573e1ad88132ab4a",
+      "recorded_at": "2026-10-30T06:06:57.189023+00:00"
+    },
+    {
+      "id": "9beac99a07e24673978816656952697c",
+      "experiment_id": "DODGE-023",
+      "kind": "plan",
+      "label": "Full idea ledger with first-class control-rate matrices and concurrency question",
+      "uri": "docs/review-ideas-and-scaling-plan-20261030.md",
+      "sha256": "c1ab1bd479a10dd7ffefb242e2e5a9797d0db91c7df59c9320951daacffab4d2",
+      "recorded_at": "2026-10-30T05:58:14.680663+00:00"
+    },
+    {
+      "id": "ba47ed6af9b147638ed06c07ecfba150",
+      "experiment_id": "DODGE-023",
+      "kind": "plan",
+      "label": "Expanded fixed-K, dynamic-K and scheduler comparison proposal",
+      "uri": "learning/runs/v2/control-rate-schedule-proposal-parent-20261030-r2/K-and-LR-scaling-proposal-v2.json",
+      "sha256": "4678d37d19e87ab31e6d2263e4df189972273dd3cc1d3bf08d13f919b4ca4c3a",
+      "recorded_at": "2026-10-30T06:06:57.188990+00:00"
+    },
+    {
+      "id": "bb5344ef758c4042bf918cb982a97df4",
+      "experiment_id": "DODGE-023",
+      "kind": "plan",
+      "label": "Machine-readable conditional S3/S4 design, horizons, memory estimates and gates",
+      "uri": "learning/runs/v2/control-frequency-diagnostic-parent-20261030-r1/K1-K2-scaling-proposal.json",
+      "sha256": "58feeea31a4469bdeac7e6ab8edbac521bd3d578e518a5817101d3cd63b42d22",
+      "recorded_at": "2026-10-30T05:58:14.680695+00:00"
+    },
+    {
+      "id": "bcf22003fc5d4440bd550b5093e1637d",
+      "experiment_id": "DODGE-023",
+      "kind": "plan",
+      "label": "Focused first training sub-screen before broader scaling matrix",
+      "uri": "learning/runs/v2/first-training-screen-parent-20261030-r1/first-horizon-screen-proposal.json",
+      "sha256": "4e81ab3e944d8c707de1f1a0cdb8933ac1475fe32b35a4063170fd92c6ee0fd8",
+      "recorded_at": "2026-10-30T17:52:22.975529+00:00"
+    },
+    {
+      "id": "eaa1cf1410d844b7bd42b202e9eab93e",
+      "experiment_id": "DODGE-023",
+      "kind": "result",
+      "label": "Accepted S1 timing/resource constraints",
+      "uri": "learning/runs/v2/track-a-s1-successor-parent-20261030-r2/S1-profile-summary.json",
+      "sha256": "0113e1010815092a35eac18ba2682744a03c2bbd30c6358a01d8656fe52e5177",
+      "recorded_at": "2026-10-30T17:52:22.975492+00:00"
+    },
+    {
+      "id": "f9ad1152b6644d7caa9d62e25fcd2aa6",
+      "experiment_id": "DODGE-023",
+      "kind": "plan",
+      "label": "Machine-readable horizon, encoder, normalization, advantage and rollout allocation plan",
+      "uri": "learning/runs/v2/ppo-literature-checklist-parent-20261030-r3/literature-checklist-proposal-v3.json",
+      "sha256": "2ecb194846089a5809168ac8fa684a91d3344f76fdb4db83f6e8dc1d00eae08d",
+      "recorded_at": "2026-10-30T06:16:20.596181+00:00"
+    }
+  ],
+  "measurements": []
+}

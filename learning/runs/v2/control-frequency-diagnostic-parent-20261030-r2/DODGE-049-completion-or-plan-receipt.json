@@ -1,0 +1,35 @@
+{
+  "id": "DODGE-049",
+  "project": "dodge-native",
+  "title": "Complete passive PPO metric retention before the first new training comparison",
+  "status": "completed",
+  "doing": "Prepare a separately owned telemetry successor retaining EV definedness, clip fraction, maximum epochs and genuine early-stop counts alongside existing KL/entropy/value/advantage/action-switch metrics. Source/CPU synthetic verification only; no native games, model restore or optimizer steps, and no change to the active S1 profiler.",
+  "expected": "The additional fields should expose missing or invalid optimization diagnostics while preserving update results and GAE tensors. Undefined EV must remain null rather than fabricated zero, and a last-epoch KL threshold hit must not count as avoided training epochs.",
+  "actual": "Prepared separate passive telemetry v2 retaining original EV/null definedness, clip fraction, registered maximum epochs and distinct KL-hit/avoided-epoch counters.19 CPU synthetic integration tests passed, including failure preservation, numerical-threshold consistency, final-epoch hit semantics and coverage checks. No Torch/native model construction, optimizer step or game; old telemetry and active S1 sources unchanged.",
+  "why": null,
+  "next_step": "Independent source review and actual PPO/MPS passive parity are required before the first training worker may use this capsule.",
+  "actual_kind": "observed",
+  "prediction_timing": "before_run",
+  "parent_id": "DODGE-022",
+  "revision": 2,
+  "created_at": "2026-10-30T17:32:02.071141+00:00",
+  "updated_at": "2026-10-30T17:52:22.870306+00:00",
+  "tags": [
+    "telemetry",
+    "source-preparation",
+    "no-training-launch"
+  ],
+  "metadata": {},
+  "evidence": [
+    {
+      "id": "b79f530ccf7a4794808cfda821091173",
+      "experiment_id": "DODGE-049",
+      "kind": "source",
+      "label": "19 synthetic tests only; no native/PPO/MPS qualification",
+      "uri": "learning/runs/v2/control-frequency-diagnostic-parent-20261030-r2/source-qualification.json",
+      "sha256": "7b4a3362736fc1809c749c30770441b8cefd8c9cb5c32eccaaa621914e665f78",
+      "recorded_at": "2026-10-30T17:52:22.870765+00:00"
+    }
+  ],
+  "measurements": []
+}
