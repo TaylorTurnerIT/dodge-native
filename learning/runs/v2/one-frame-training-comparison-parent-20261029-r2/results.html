@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>DODGE-013 paired training results</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --text: var(--text-primary, #17212b);
+  --muted: var(--text-secondary, #53616f);
+  --surface: var(--surface-primary, #ffffff);
+  --surface-soft: var(--surface-secondary, #f3f6f8);
+  --border: var(--border-subtle, #c8d0d8);
+  --accent: var(--accent-primary, #2866a0);
+  --accent-2: var(--accent-secondary, #9c3d64);
+  --good: var(--status-success, #18794e);
+  --warn: var(--status-warning, #8a5300);
+  --radius: 12px;
+  --font: var(--font-sans, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: var(--text-primary, #edf2f6);
+    --muted: var(--text-secondary, #bdc8d1);
+    --surface: var(--surface-primary, #1c242b);
+    --surface-soft: var(--surface-secondary, #27323b);
+    --border: var(--border-subtle, #53616f);
+    --accent: var(--accent-primary, #79b9ef);
+    --accent-2: var(--accent-secondary, #f19aba);
+    --good: var(--status-success, #6fdaa4);
+    --warn: var(--status-warning, #ffcf75);
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: transparent; color: var(--text); font-family: var(--font); }
+body { line-height: 1.48; }
+main { width: 100%; margin: 0; padding: 0; }
+header, section, footer { margin: 0 0 18px; }
+h1 { font-size: clamp(1.45rem, 3vw, 2.1rem); line-height: 1.16; margin: 0 0 8px; letter-spacing: -0.02em; }
+h2 { font-size: 1.15rem; margin: 0 0 10px; line-height: 1.25; }
+h3 { font-size: 1rem; margin: 0 0 7px; }
+p { margin: 6px 0 10px; }
+.small { color: var(--muted); font-size: .9rem; }
+.kicker { color: var(--muted); font-weight: 650; font-size: .83rem; letter-spacing: .055em; text-transform: uppercase; margin: 0 0 5px; }
+.panel { padding: 16px; border-radius: var(--radius, 12px); background: var(--surface); border: 1px solid var(--border); }
+.lede { max-width: 78ch; font-size: 1.03rem; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0; }
+.control-group { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.control-label { color: var(--muted); font-size: .88rem; margin-right: 3px; align-self: center; }
+button { color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 11px; min-height: 40px; font: inherit; font-weight: 600; cursor: pointer; }
+button[aria-pressed="true"] { color: var(--surface); background: var(--accent); border-color: var(--accent); }
+button:focus-visible, summary:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.chart-wrap { width: 100%; overflow: hidden; }
+#mainChart { display: block; width: 100%; height: 320px; }
+.chart-note { color: var(--muted); font-size: .88rem; }
+.table-scroll { max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+th { font-size: .82rem; color: var(--muted); font-weight: 700; }
+.data-table { min-width: 730px; }
+.data-table td.num, .data-table th.num { text-align: right; }
+.data-table tbody tr:nth-child(even) { background: color-mix(in srgb, var(--surface-soft) 58%, transparent); }
+.milestone-table { min-width: 850px; }
+.milestone-table th:not(:first-child), .milestone-table td:not(:first-child) { text-align: center; }
+.mile-cell { position: relative; min-width: 100px; isolation: isolate; }
+.mile-cell::before { content: ""; position: absolute; z-index: -1; inset: 3px 5px; width: calc(var(--pct) - 10px); max-width: calc(100% - 10px); border-radius: 5px; background: color-mix(in srgb, var(--accent) 20%, transparent); }
+.mile-count { display: block; font-weight: 650; }
+.mile-pct { display: block; color: var(--muted); font-size: .78rem; }
+details { margin-top: 12px; }
+summary { cursor: pointer; font-weight: 650; padding: 8px 0; }
+.full-milestones { min-width: 1550px; font-size: .83rem; }
+.full-milestones th, .full-milestones td { padding: 6px 7px; text-align: right; }
+.full-milestones th:first-child, .full-milestones td:first-child { text-align: left; }
+.diag-table { min-width: 660px; }
+.primary-effect { background: var(--surface-soft); border-radius: 8px; padding: 10px 12px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.details-body { margin-top: 10px; }
+footer { color: var(--muted); font-size: .86rem; padding: 4px 0 12px; }
+footer code { overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  #mainChart { height: 320px; }
+  .panel { padding: 16px; }
+  h1 { max-width: 24ch; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="kicker">DODGE-013 · paired training comparison</p>
+    <h1>One-frame training regressed in this run</h1>
+    <p class="lede">Under the same one-frame evaluation, one-frame training underperformed. Checkpoint 420’s inference-only benefit is a separate effect.</p>
+  </header>
+
+  <section class="panel" aria-labelledby="chart-title">
+    <h2 id="chart-title">Survival by training policy</h2>
+    <p class="small">Compare the three policies under the same evaluation controller. Higher survival is better. Each value summarizes 1,024 shared D9 games.</p>
+    <div class="controls" aria-label="Chart controls">
+      <div class="control-group" role="group" aria-label="Evaluation controller">
+        <span class="control-label">Evaluate</span>
+        <button type="button" data-repeat="1" aria-pressed="true">Every frame</button>
+        <button type="button" data-repeat="4" aria-pressed="false">Every 4 frames</button>
+      </div>
+      <div class="control-group" role="group" aria-label="Survival summary metric">
+        <span class="control-label">Metric</span>
+        <button type="button" data-metric="Q1" aria-pressed="true">Q1 · worst 25%</button>
+        <button type="button" data-metric="Mean" aria-pressed="false">Mean</button>
+      </div>
+    </div>
+    <div class="chart-wrap"><svg id="mainChart" role="img" aria-label="Interactive horizontal bar chart of survival frames"></svg></div>
+    <p class="primary-effect">Primary Q1 contrast, every-frame inference: 651.43 vs 1,625.10; difference −973.67 (95% CI −1,141.98 to −809.05). Success: no.</p>
+    <p id="chartCaption" class="chart-note" aria-live="polite"></p>
+    <p class="chart-note">Q1 is the average survival among the lowest 256 of 1,024 games. Q4 is the average among the highest 256. Mean is the average across all games.</p>
+  </section>
+
+  <details class="panel">
+    <summary>All five paired Q1 contrasts</summary>
+    <div class="details-body">
+      <p class="small">Shared game-seed bootstrap, 2,000 draws. Intervals describe these trained policies across held-out games, not training-replica uncertainty.</p>
+      <div class="table-scroll" tabindex="0" aria-label="Scrollable paired contrast table">
+        <table class="data-table"><thead><tr><th>Contrast</th><th class="num">Difference</th><th>95% interval</th><th>Reading</th></tr></thead><tbody>
+          <tr><td>One-frame trained − four-frame trained · every-frame inference</td><td class="num">−973.67</td><td>−1,141.98 to −809.05</td><td>Primary; below zero</td></tr>
+          <tr><td>Four-frame trained − checkpoint 420 · every-frame inference</td><td class="num">−124.77</td><td>−348.57 to 93.20</td><td>Includes zero</td></tr>
+          <tr><td>One-frame trained − checkpoint 420 · every-frame inference</td><td class="num">−1,098.44</td><td>−1,249.13 to −943.11</td><td>Below zero</td></tr>
+          <tr><td>One-frame trained − checkpoint 420 · four-frame inference</td><td class="num">−473.91</td><td>−555.78 to −412.43</td><td>Below zero</td></tr>
+          <tr><td>Four-frame trained − checkpoint 420 · four-frame inference</td><td class="num">20.77</td><td>−73.77 to 121.56</td><td>Includes zero</td></tr>
+        </tbody></table>
+      </div>
+    </div>
+  </details>
+
+  <section class="panel" aria-labelledby="table-title">
+    <h2 id="table-title">All six model/controller groups</h2>
+    <p class="small">Each row uses a separate evaluation controller on the same 1,024 game seeds.</p>
+    <div class="table-scroll" tabindex="0" aria-label="Scrollable survival summary table">
+      <table class="data-table">
+        <thead><tr><th>Training policy</th><th>Evaluation</th><th class="num">Worst</th><th class="num">Q1</th><th class="num">Mean</th><th class="num">Q4</th><th class="num">Best</th></tr></thead>
+        <tbody id="groupRows"></tbody>
+      </table>
+    </div>
+    <p class="chart-note">Worst and Best are single-game extrema. Q1/Q4 average the lowest/highest 256 games. All values are survival frames.</p>
+  </section>
+
+  <section class="panel" aria-labelledby="milestone-title">
+    <h2 id="milestone-title">How many games reached each survival milestone?</h2>
+    <p class="small">Counts out of 1,024 games. Select the evaluation controller above to switch this table too.</p>
+    <div class="table-scroll" tabindex="0" aria-label="Scrollable milestone table">
+      <table class="milestone-table">
+        <thead><tr><th>Training policy</th><th>1,000</th><th>3,000</th><th>6,000</th><th>10,000</th></tr></thead>
+        <tbody id="milestoneRows"></tbody>
+      </table>
+    </div>
+    <details>
+      <summary>Show all 18 milestones for all six groups</summary>
+      <div class="table-scroll" tabindex="0" aria-label="Scrollable full milestone table">
+        <table class="full-milestones"><thead id="fullMilestoneHead"></thead><tbody id="fullMilestoneRows"></tbody></table>
+      </div>
+    </details>
+  </section>
+
+  <details class="panel">
+    <summary>Diagnostics and interpretation</summary>
+    <div class="details-body">
+      <p class="small">Score and objective figures are descriptive, not additional preregistered efficacy tests. Values below use the common one-frame evaluation.</p>
+      <div class="table-scroll" tabindex="0" aria-label="Scrollable score and objective diagnostic table">
+        <table class="diag-table"><thead><tr><th>Training policy</th><th class="num">Mean score</th><th class="num">Mean objective return</th><th class="num">Mean survival</th><th class="num">Q1 survival</th></tr></thead><tbody id="diagRows"></tbody></table>
+      </div>
+      <p>One-frame training was lower on survival, score and objective in this trajectory. Checkpoint 420’s Q1 was 1,749.86 under every-frame inference and 727.73 under four-frame inference; that inference effect is separate from the training contrast.</p>
+      <p class="small">The result is recipe-specific. It does not show that one-frame training is inherently worse.</p>
+    </div>
+  </details>
+
+  <footer>
+    Strict formal audit passed (raw observer exit 0). 6,144 evaluation games across 1,024 shared seeds; wall time 5 h 33 min 33 s. Peak RSS 5.52 GiB; peak MPS 2.26 GiB. Frame target 11,796,480 per arm; realized gap 247 frames. One trajectory per policy; seed-bootstrap intervals are conditional on these trained policies. Official parent remains at update 324; no promotion. Independent raw-row and bootstrap verification passed.
+  </footer>
+</main>
+<script>
+const DATA = {"groups":{"starting420_repeat1_sampled":{"model":"starting420","repeat":1,"survival":{"Best":12537,"Mean":4343.224609375,"Q1":1749.86328125,"Q4":7044.6875,"Worst":391,"episodes":1024},"milestones":{"1000":{"count":970,"episodes":1024,"fraction":0.947265625},"10000":{"count":6,"episodes":1024,"fraction":0.005859375},"11000":{"count":4,"episodes":1024,"fraction":0.00390625},"12000":{"count":2,"episodes":1024,"fraction":0.001953125},"13000":{"count":0,"episodes":1024,"fraction":0.0},"14000":{"count":0,"episodes":1024,"fraction":0.0},"15000":{"count":0,"episodes":1024,"fraction":0.0},"16000":{"count":0,"episodes":1024,"fraction":0.0},"17000":{"count":0,"episodes":1024,"fraction":0.0},"18000":{"count":0,"episodes":1024,"fraction":0.0},"2000":{"count":860,"episodes":1024,"fraction":0.83984375},"3000":{"count":736,"episodes":1024,"fraction":0.71875},"4000":{"count":568,"episodes":1024,"fraction":0.5546875},"5000":{"count":391,"episodes":1024,"fraction":0.3818359375},"6000":{"count":208,"episodes":1024,"fraction":0.203125},"7000":{"count":100,"episodes":1024,"fraction":0.09765625},"8000":{"count":45,"episodes":1024,"fraction":0.0439453125},"9000":{"count":22,"episodes":1024,"fraction":0.021484375}},"diagnostics":{"mean_logged_undiscounted_objective_return":87.12658203125,"mean_score":48.6943359375,"scope":"Descriptive diagnostics, not additional preregistered efficacy tests.","terminated_games":1024,"truncated_games":0}},"starting420_repeat4_sampled":{"model":"starting420","repeat":4,"survival":{"Best":10365,"Mean":2625.513671875,"Q1":727.7265625,"Q4":4959.7421875,"Worst":230,"episodes":1024},"milestones":{"1000":{"count":805,"episodes":1024,"fraction":0.7861328125},"10000":{"count":1,"episodes":1024,"fraction":0.0009765625},"11000":{"count":0,"episodes":1024,"fraction":0.0},"12000":{"count":0,"episodes":1024,"fraction":0.0},"13000":{"count":0,"episodes":1024,"fraction":0.0},"14000":{"count":0,"episodes":1024,"fraction":0.0},"15000":{"count":0,"episodes":1024,"fraction":0.0},"16000":{"count":0,"episodes":1024,"fraction":0.0},"17000":{"count":0,"episodes":1024,"fraction":0.0},"18000":{"count":0,"episodes":1024,"fraction":0.0},"2000":{"count":586,"episodes":1024,"fraction":0.572265625},"3000":{"count":370,"episodes":1024,"fraction":0.361328125},"4000":{"count":220,"episodes":1024,"fraction":0.21484375},"5000":{"count":102,"episodes":1024,"fraction":0.099609375},"6000":{"count":33,"episodes":1024,"fraction":0.0322265625},"7000":{"count":15,"episodes":1024,"fraction":0.0146484375},"8000":{"count":3,"episodes":1024,"fraction":0.0029296875},"9000":{"count":1,"episodes":1024,"fraction":0.0009765625}},"diagnostics":{"mean_logged_undiscounted_objective_return":47.34400390625,"mean_score":26.0888671875,"scope":"Descriptive diagnostics, not additional preregistered efficacy tests.","terminated_games":1024,"truncated_games":0}},"repeat4_final_repeat1_sampled":{"model":"repeat4_final","repeat":1,"survival":{"Best":16158,"Mean":4453.408203125,"Q1":1625.09765625,"Q4":7401.2265625,"Worst":187,"episodes":1024},"milestones":{"1000":{"count":944,"episodes":1024,"fraction":0.921875},"10000":{"count":18,"episodes":1024,"fraction":0.017578125},"11000":{"count":7,"episodes":1024,"fraction":0.0068359375},"12000":{"count":4,"episodes":1024,"fraction":0.00390625},"13000":{"count":3,"episodes":1024,"fraction":0.0029296875},"14000":{"count":2,"episodes":1024,"fraction":0.001953125},"15000":{"count":1,"episodes":1024,"fraction":0.0009765625},"16000":{"count":1,"episodes":1024,"fraction":0.0009765625},"17000":{"count":0,"episodes":1024,"fraction":0.0},"18000":{"count":0,"episodes":1024,"fraction":0.0},"2000":{"count":850,"episodes":1024,"fraction":0.830078125},"3000":{"count":740,"episodes":1024,"fraction":0.72265625},"4000":{"count":590,"episodes":1024,"fraction":0.576171875},"5000":{"count":414,"episodes":1024,"fraction":0.404296875},"6000":{"count":239,"episodes":1024,"fraction":0.2333984375},"7000":{"count":124,"episodes":1024,"fraction":0.12109375},"8000":{"count":61,"episodes":1024,"fraction":0.0595703125},"9000":{"count":28,"episodes":1024,"fraction":0.02734375}},"diagnostics":{"mean_logged_undiscounted_objective_return":90.48427734375,"mean_score":50.9501953125,"scope":"Descriptive diagnostics, not additional preregistered efficacy tests.","terminated_games":1024,"truncated_games":0}},"repeat4_final_repeat4_sampled":{"model":"repeat4_final","repeat":4,"survival":{"Best":9095,"Mean":2744.7705078125,"Q1":748.49609375,"Q4":5307.3203125,"Worst":220,"episodes":1024},"milestones":{"1000":{"count":806,"episodes":1024,"fraction":0.787109375},"10000":{"count":0,"episodes":1024,"fraction":0.0},"11000":{"count":0,"episodes":1024,"fraction":0.0},"12000":{"count":0,"episodes":1024,"fraction":0.0},"13000":{"count":0,"episodes":1024,"fraction":0.0},"14000":{"count":0,"episodes":1024,"fraction":0.0},"15000":{"count":0,"episodes":1024,"fraction":0.0},"16000":{"count":0,"episodes":1024,"fraction":0.0},"17000":{"count":0,"episodes":1024,"fraction":0.0},"18000":{"count":0,"episodes":1024,"fraction":0.0},"2000":{"count":579,"episodes":1024,"fraction":0.5654296875},"3000":{"count":388,"episodes":1024,"fraction":0.37890625},"4000":{"count":258,"episodes":1024,"fraction":0.251953125},"5000":{"count":144,"episodes":1024,"fraction":0.140625},"6000":{"count":56,"episodes":1024,"fraction":0.0546875},"7000":{"count":18,"episodes":1024,"fraction":0.017578125},"8000":{"count":3,"episodes":1024,"fraction":0.0029296875},"9000":{"count":1,"episodes":1024,"fraction":0.0009765625}},"diagnostics":{"mean_logged_undiscounted_objective_return":50.223095703125,"mean_score":27.775390625,"scope":"Descriptive diagnostics, not additional preregistered efficacy tests.","terminated_games":1024,"truncated_games":0}},"repeat1_final_repeat1_sampled":{"model":"repeat1_final","repeat":1,"survival":{"Best":9391,"Mean":2731.0908203125,"Q1":651.42578125,"Q4":5252.47265625,"Worst":170,"episodes":1024},"milestones":{"1000":{"count":788,"episodes":1024,"fraction":0.76953125},"10000":{"count":0,"episodes":1024,"fraction":0.0},"11000":{"count":0,"episodes":1024,"fraction":0.0},"12000":{"count":0,"episodes":1024,"fraction":0.0},"13000":{"count":0,"episodes":1024,"fraction":0.0},"14000":{"count":0,"episodes":1024,"fraction":0.0},"15000":{"count":0,"episodes":1024,"fraction":0.0},"16000":{"count":0,"episodes":1024,"fraction":0.0},"17000":{"count":0,"episodes":1024,"fraction":0.0},"18000":{"count":0,"episodes":1024,"fraction":0.0},"2000":{"count":586,"episodes":1024,"fraction":0.572265625},"3000":{"count":425,"episodes":1024,"fraction":0.4150390625},"4000":{"count":256,"episodes":1024,"fraction":0.25},"5000":{"count":130,"episodes":1024,"fraction":0.126953125},"6000":{"count":52,"episodes":1024,"fraction":0.05078125},"7000":{"count":22,"episodes":1024,"fraction":0.021484375},"8000":{"count":7,"episodes":1024,"fraction":0.0068359375},"9000":{"count":2,"episodes":1024,"fraction":0.001953125}},"diagnostics":{"mean_logged_undiscounted_objective_return":50.343623046875,"mean_score":28.03271484375,"scope":"Descriptive diagnostics, not additional preregistered efficacy tests.","terminated_games":1024,"truncated_games":0}},"repeat1_final_repeat4_sampled":{"model":"repeat1_final","repeat":4,"survival":{"Best":3324,"Mean":674.392578125,"Q1":253.8203125,"Q4":1309.34375,"Worst":118,"episodes":1024},"milestones":{"1000":{"count":178,"episodes":1024,"fraction":0.173828125},"10000":{"count":0,"episodes":1024,"fraction":0.0},"11000":{"count":0,"episodes":1024,"fraction":0.0},"12000":{"count":0,"episodes":1024,"fraction":0.0},"13000":{"count":0,"episodes":1024,"fraction":0.0},"14000":{"count":0,"episodes":1024,"fraction":0.0},"15000":{"count":0,"episodes":1024,"fraction":0.0},"16000":{"count":0,"episodes":1024,"fraction":0.0},"17000":{"count":0,"episodes":1024,"fraction":0.0},"18000":{"count":0,"episodes":1024,"fraction":0.0},"2000":{"count":19,"episodes":1024,"fraction":0.0185546875},"3000":{"count":3,"episodes":1024,"fraction":0.0029296875},"4000":{"count":0,"episodes":1024,"fraction":0.0},"5000":{"count":0,"episodes":1024,"fraction":0.0},"6000":{"count":0,"episodes":1024,"fraction":0.0},"7000":{"count":0,"episodes":1024,"fraction":0.0},"8000":{"count":0,"episodes":1024,"fraction":0.0},"9000":{"count":0,"episodes":1024,"fraction":0.0}},"diagnostics":{"mean_logged_undiscounted_objective_return":5.70095703125,"mean_score":3.95703125,"scope":"Descriptive diagnostics, not additional preregistered efficacy tests.","terminated_games":1024,"truncated_games":0}}},"contrasts":{"primary_repeat1_final_minus_repeat4_final_repeat1":{"draws":2000,"high":-809.0478515625001,"low":-1141.980859375,"median":-971.56640625,"observed":-973.671875,"success":false},"repeat1_final_minus_starting420_repeat1":{"draws":2000,"high":-943.10791015625,"low":-1249.13369140625,"median":-1099.017578125,"observed":-1098.4375},"repeat1_final_minus_starting420_repeat4":{"draws":2000,"high":-412.4255859375,"low":-555.7759765625,"median":-473.220703125,"observed":-473.90625},"repeat4_final_minus_starting420_repeat1":{"draws":2000,"high":93.19697265624995,"low":-348.57216796875,"median":-128.205078125,"observed":-124.765625},"repeat4_final_minus_starting420_repeat4":{"draws":2000,"high":121.55732421874998,"low":-73.77119140625,"median":21.95703125,"observed":20.76953125}},"relative":{"four_frame_training_vs_starting420_Q1_percent":-7.130021318629809,"one_frame_training_vs_four_frame_training_Q1_percent":-59.91466858962803,"one_frame_training_vs_starting420_Mean_percent":-37.11836098880666,"one_frame_training_vs_starting420_Q1_percent":-62.772761264830955},"bootstrap":{"draws":2000,"paired_indices_shared_across_models_and_repeats":true,"seed":202610290503,"unit":"shared D9 game-seed cluster"},"games":6144,"seeds":1024,"frameDifference":247,"training":[{"id":"repeat4_training","action_repeat":4,"gameplay_frames":11796727,"updates":181,"optimizer_steps":23056},{"id":"repeat1_training","action_repeat":1,"gameplay_frames":11796480,"updates":180,"optimizer_steps":23040}],"timing":{"evaluation":1841.2557194580004,"supervised_total":20013.105500334,"worker_total":20010.239144709005},"resources":{"peak_mps_driver_bytes":2431074304,"peak_rss_bytes":5927157760,"samples":69249},"audit":"strict_parent_audit_accepted_raw_summaries_verified","parentAudit":"e0b003c7a58a1e3439343f2b2b9030c5df5346c024d8573bfbf534c75ceb6b96","primarySuccess":false,"officialParent":324,"promotion":false,"newTrainingAuthorized":false,"scope":"One paired training trajectory, equal game exposure rather than equal decisions or compute. Seed-cluster intervals condition on these trained policies, not training replicas.","interpretation":"One-frame training substantially worsened Q1 under the common one-frame controller. Four-frame training did not show a clear Q1 improvement over starting420. The earlier inference-only benefit of one-frame control remains distinct from learning under that control.","q1Definition":"Average of the lowest256 alive_frames among1024 games, sorted separately for each model/controller.","sourceSummarySha256":"17a52dc76af75bc58a01cae4b9fe04d14709b087991dbb6aa8a6a9540f9898b0"};
+const labels = {starting420:"Starting checkpoint 420", repeat4_final:"Trained with 4-frame decisions", repeat1_final:"Trained with 1-frame decisions"};
+const order = ["starting420", "repeat4_final", "repeat1_final"];
+const allKeys = ["starting420_repeat1_sampled","starting420_repeat4_sampled","repeat4_final_repeat1_sampled","repeat4_final_repeat4_sampled","repeat1_final_repeat1_sampled","repeat1_final_repeat4_sampled"];
+let selectedRepeat = 1;
+let selectedMetric = "Q1";
+const nf = new Intl.NumberFormat("en-US", {minimumFractionDigits:2, maximumFractionDigits:2});
+const pct = new Intl.NumberFormat("en-US", {style:"percent", maximumFractionDigits:1});
+function key(model, repeat) { return model+"_repeat"+repeat+"_sampled"; }
+function renderChart() {
+  const svg=document.getElementById("mainChart");
+  const vals=order.map(model=>({model, ...DATA.groups[key(model,selectedRepeat)]}));
+  const maxVal=Math.ceil(Math.max(...vals.map(x=>x.survival[selectedMetric]))/500)*500;
+  const W=Math.max(260,svg.clientWidth),H=320,narrow=W<620,left=narrow?8:250,plotW=W-left-20,top=44,rowH=82;
+  let s=`<title>${selectedMetric} survival under ${selectedRepeat===1?"every-frame":"four-frame"} evaluation</title><desc>Three horizontal bars compare starting checkpoint 420 and both trained policies across 1,024 games. Higher is better.</desc>`;
+  for(let i=0;i<=4;i++){const x=left+plotW*i/4;const tick=maxVal*i/4;s+=`<line x1="${x}" y1="28" x2="${x}" y2="${H-35}" stroke="var(--border)" stroke-width="1"/><text x="${x}" y="${H-10}" text-anchor="middle" fill="var(--muted)" font-size="13">${Math.round(tick).toLocaleString()}</text>`;}
+  vals.forEach((v,i)=>{
+    const y=top+i*rowH; const n=v.survival[selectedMetric]; const width=Math.max(1,plotW*n/maxVal); const color=i===0?"var(--accent)":(i===1?"#38865f":"var(--accent-2)");
+    s+=`<text x="8" y="${narrow?y-9:y+20}" fill="var(--text)" font-size="14" font-weight="600">${labels[v.model]}</text>`;
+    s+=`<rect x="${left}" y="${y}" width="${plotW}" height="30" rx="6" fill="var(--surface-soft)"/>`;
+    s+=`<rect x="${left}" y="${y}" width="${width}" height="30" rx="6" fill="${color}"><title>${labels[v.model]}: ${nf.format(n)} ${selectedMetric} survival frames, ${selectedRepeat===1?"evaluated every frame":"evaluated every four frames"}</title></rect>`;
+    const tx=Math.min(left+plotW-2,left+width+10); const anchor=tx>left+plotW-90?"end":"start";
+    s+=`<text x="${anchor==="end"?left+plotW-8:tx}" y="${y+21}" text-anchor="${anchor}" fill="var(--text)" font-size="14" font-weight="700">${nf.format(n)}</text>`;
+  });
+  svg.setAttribute("viewBox",`0 0 ${W} ${H}`); svg.innerHTML=s;
+  document.getElementById("chartCaption").textContent=`Showing ${selectedMetric} survival frames for the ${selectedRepeat===1?"every-frame":"every-four-frame"} evaluation controller. ${selectedMetric==="Q1"?"Q1 averages the lowest 256 games.":"Mean averages all 1,024 games."}`;
+}
+function renderGroups() {
+  const tbody=document.getElementById("groupRows");
+  tbody.innerHTML=allKeys.map(k=>{const g=DATA.groups[k];const name=labels[g.model];return `<tr><td>${name}</td><td>Every ${g.repeat===1?"frame":"4 frames"}</td><td class="num">${nf.format(g.survival.Worst)}</td><td class="num">${nf.format(g.survival.Q1)}</td><td class="num">${nf.format(g.survival.Mean)}</td><td class="num">${nf.format(g.survival.Q4)}</td><td class="num">${nf.format(g.survival.Best)}</td></tr>`;}).join("");
+}
+const visibleMilestones=["1000","3000","6000","10000"];
+function renderMilestones() {
+  const rows=order.map(model=>{const g=DATA.groups[key(model,selectedRepeat)];return `<tr><td>${labels[model]}</td>${visibleMilestones.map(t=>{const m=g.milestones[t];return `<td class="mile-cell" style="--pct:${(m.fraction*100).toFixed(2)}%" title="${m.count} of ${m.episodes} games (${pct.format(m.fraction)}) reached ${Number(t).toLocaleString()} frames"><span class="mile-count">${m.count.toLocaleString()}</span><span class="mile-pct">${pct.format(m.fraction)}</span></td>`;}).join("")}</tr>`;}).join("");
+  document.getElementById("milestoneRows").innerHTML=rows;
+}
+function renderAllMilestones() {
+  const thresholds=Array.from({length:18},(_,i)=>String((i+1)*1000));
+  document.getElementById("fullMilestoneHead").innerHTML=`<tr><th>Training policy / evaluation</th>${thresholds.map(t=>`<th>${Number(t).toLocaleString()}</th>`).join("")}</tr>`;
+  document.getElementById("fullMilestoneRows").innerHTML=allKeys.map(k=>{const g=DATA.groups[k];return `<tr><td>${labels[g.model]} · every ${g.repeat===1?"frame":"4 frames"}</td>${thresholds.map(t=>`<td title="${g.milestones[t].count} of 1,024 games (${pct.format(g.milestones[t].fraction)})">${g.milestones[t].count.toLocaleString()}<br><span class="small">${pct.format(g.milestones[t].fraction)}</span></td>`).join("")}</tr>`;}).join("");
+}
+function renderDiagnostics() {
+  const rows=["starting420","repeat4_final","repeat1_final"].map(model=>{const g=DATA.groups[key(model,1)];return `<tr><td>${labels[model]}</td><td class="num">${nf.format(g.diagnostics.mean_score)}</td><td class="num">${nf.format(g.diagnostics.mean_logged_undiscounted_objective_return)}</td><td class="num">${nf.format(g.survival.Mean)}</td><td class="num">${nf.format(g.survival.Q1)}</td></tr>`;}).join("");
+  document.getElementById("diagRows").innerHTML=rows;
+}
+document.querySelectorAll("button[data-repeat]").forEach(b=>b.addEventListener("click",()=>{selectedRepeat=Number(b.dataset.repeat);document.querySelectorAll("button[data-repeat]").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));renderChart();renderMilestones();}));
+document.querySelectorAll("button[data-metric]").forEach(b=>b.addEventListener("click",()=>{selectedMetric=b.dataset.metric;document.querySelectorAll("button[data-metric]").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));renderChart();}));
+renderChart();renderGroups();renderMilestones();renderAllMilestones();renderDiagnostics();
+new ResizeObserver(renderChart).observe(document.querySelector('.chart-wrap'));
+</script>
+</body>
+</html>
