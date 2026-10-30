@@ -1,0 +1,61 @@
+{
+  "schema": "dodge_independent_source_p6_review_v1",
+  "record": "DODGE-054",
+  "reviewer": "luna",
+  "candidate": "r4",
+  "status": "no_blocking_findings",
+  "observability_and_short_history_accepted": true,
+  "registration": {
+    "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-teacher-heuristic-input-20261030/learning/runs/v2/advisor-input-screen-20261030-r4/registration-r1.json",
+    "sha256": "5c405d85036dff2be9b776f987902d9e973cbcff9bab78d24d0c00a0dedcbea6",
+    "source_commit": "e819a171d2d06f0b6cd5aa1a042fb0dd03f1cf1b",
+    "freeze_head": "f995c146c1007008f7ca6bbc52245c33aa468f74",
+    "runtime_manifest_sha256": "815faaa59b947ea4b8bbad8c05bf81caeedc127e6ba95e9094ce140ec6e0180e",
+    "native_sha256": "ae9238670a0beea0951374562fcd5116013b7715b40be2bfc512ca242bdec7b7",
+    "native_origin": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/runtime-clean-r2/dodge_rl/_native.cpython-312-darwin.so",
+    "owner_source_tests_sha256": "a747b3ca8774b45ee1448b0c725956d15a48cf65fa4fbdfb5c3b200efad452a0",
+    "owner_cpu_readiness_sha256": "801670071a4105d3541dd7730407a3f3cbb844ef7c20d96cb69cd632eec1ddd6",
+    "owner_runtime_preflight_sha256": "becd72da78fc76cd7278461168af6d90c90374ec5dc843afae274750f10ed3dd",
+    "p6_provenance_sha256": "ce701be858ed0f959335ff9f09ae9c6893d8c228fc4233fb37604dcf87641032",
+    "predictions_sha256": "049982aa8f5898c76ec79f47ea91dd75e084005b0c00fb9a598df1b7cb0745e8",
+    "r3_rejection_sha256": "ef339d726708b69f2743c8fd79a7c8b1595a8df2d1fead12974e50758049704f",
+    "pins_verified": {
+      "registered_input_fixture_runtime_external_origin_file_hashes": 40,
+      "mismatches": 0,
+      "runtime_manifest_owned_and_byte_identical_origin_checks": "passed",
+      "source_revision_present_in_target_git_object_database": true,
+      "target_worktree_head_matches_freeze_head": true,
+      "target_worktree_clean": true
+    }
+  },
+  "p6": {
+    "rationale": "r4 removes EnemySerial/index association and derived motion/slab channels before either arm sees observations. Entity motion fields6..9 and player velocity are erased to unknown; slab/contact field12 is replaced with constant1; native phase/lethality field15 and charge/onset estimate13 are replaced by coarse role-derived potential-hazard semantics. Nonessential freeze/speed/spawn and exact-score globals are zeroed. Fine types are coarsened. Current relative position, signed geometry gaps, wall distances and grouped roles are rebuilt from admitted current arrays. If all64 enemy/pickup mask slots are valid, the full block is censored, including exactly64; this also removes any motion-ranked selected64 membership. The distinct16-rectangle block remains and does not trigger that censor. Thus the r3 entity6..9 identity-linked motion and slab-selection leak is removed from E, H, critic, bootstrap, and advisor inputs without a hidden-information waiver.",
+    "renderer_and_observation_limits": "Accepted as the declared admitted_snapshot_no_association_v1 approximation, not exact pixel recovery. Native producer still supplies current admitted centers/extents, masks and coarse renderer roles. Quantization, current footprint-admission rules, signed partly-offscreen geometry, overlap/occlusion, and omitted or occluded objects can differ from pixels. The synthetic fixtures prove invariance for fixed admitted current geometry under changed hidden correspondence; they do not prove pixel equivalence, recovery of occluded entities, or that native admission/masks are an independent pixel detector. Native original renderer-role provenance and unchanged binary origin are pinned and disclosed. Current state contains no identified prior-geometry association channel after sanitization. No adverse hidden native field, type distinction, current phase/lethality, or overflow subset reaches a decision path found in source.",
+    "equal_input_contract": "Both actor/critic arms and advisor receive same four canonical sanitized arrays. PPO allowlists only those four arrays, sanitizes at collection and bootstrap boundaries, derives H cache from those arrays, seals cached row correspondence through minibatches, and checks stale mutation. Public forwards sanitize too; internal paths check removed motion/phase/scalars and full64 censor invariants. No raw environment metadata/cache bypass found. H/E comparison is on this new shared contract, not original checkpoint420-input behavior. The pre-execution prediction admits information removal may weaken both arms."
+  },
+  "source_review": {
+    "migration_adam": "Source review of advisor_migration.py and CPU readiness receipt supports explicit legacy parameter-name mapping, exact legacy model and Adam step/moment preservation by name, empty new residual state, reordered-target migration, serialization round-trip and E/H zero-gate parity on the same sanitized inputs. Old-input behavior parity is explicitly false. No constructor/game/MPS execution by reviewer.",
+    "ppo_lifecycle": "Source review covers GAE termination bootstrap, truncated/final-observation handling, raw-frame budget closing and valid partial final update, collection-only sanitization, actor/critic/advisor cache path, telemetry wrapper identity, and checkpoints labeled diagnostic-only with no automatic resume or promotion. Owner source suite includes legacy PPO/GAE CPU regressions and direct-child cancellation/reap evidence.",
+    "cohorts_and_recipe": "Registration fixes two distinct paired replicas, ABBA order r1-E/r1-H/r2-H/r2-E, shared per-replica streams, accepted pool/history and seed registry pins, and conservative exclusions. K1, gamma0.99, lambda0.90, N64xT1024, macro2048/micro512, LR3e-5,36updates,2,359,296frames/job;9,437,184 total frames;5400s work plus240s I/O reserve/job,22,320s campaign; separate6GiB RSS/MPS caps; one MPS job. First two native updates are counted qualification with20% full-path margin plus240s I/O; outcome remains unobserved. No retry, resume, checkpoint promotion, evaluation or D12 opening is authorized by this review.",
+    "power_and_failure": "Battery operation is explicitly allowed. Passive source/percentage/probe failures are recorded and do not abort; owned caffeinate -i and PreventUserIdleSystemSleep assertion remain required. Owner fixtures cover missing AC assertion, battery states, power-probe failure, resource/work/lease cancellation, owned child direct reap and first-failure evidence preservation. Reviewer ran CPU fixtures only.",
+    "dispatch": "common.bind_dispatch requires strict accepted DODGE-055 coordinator audit with four accepted trajectories and successful observer exit/direct reap/group absence, exact DODGE-055 release to free None, historical DODGE-051 failure acknowledgment without fabricated transfer, then coordinator CAS from previous_lease=None to exact DODGE-054 lease. This is a valid normal sequential contract, not a packet defect. Actual audit/release/CAS remains an external pending gate; reviewer performed none. Parent sequential helper integration also remains external. Review does not grant dispatch authority."
+  },
+  "independent_tests": {
+    "command": "PYTHONPATH=learning/runs/v2/advisor-input-screen-20261030-r4 PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /tmp/dodge-advisor-source.QZIgrj/venv/bin/python -B -m pytest -q -p no:cacheprovider -p source_fixture_plugin learning/runs/v2/advisor-input-screen-20261030-r4/test_snapshot_contract.py learning/runs/v2/advisor-input-screen-20261030-r4/test_cache.py learning/runs/v2/advisor-input-screen-20261030-r4/test_lifecycle.py learning/runs/v2/advisor-input-screen-20261030-r4/test_dispatch.py python/tests/test_ppo.py",
+    "result": "79 passed in 8.52s",
+    "scope": "Guarded CPU/synthetic fixtures only; no native games, constructors, MPS query/optimizer, evaluation, audit, preparer, campaign or dispatch. First invocation lacked PYTHONPATH and stopped at plugin import; corrected invocation above passed. No cache or bytecode generation requested."
+  },
+  "owner_evidence_limits": [
+    "79-test source receipt and CPU readiness/runtime preflight are owner-produced, not independent evidence.",
+    "Owner CPU readiness reports 420 named-model/Adam mapping, target reorder, serialization and E/H zero-gate parity on same sanitized inputs; no original-input behavior parity.",
+    "Owner runtime preflight is CPU import-only with zero MPS queries/optimizer steps and zero native games; it does not qualify MPS launch behavior.",
+    "First two native updates, actual resource measurements, full-job receipts, DODGE-055 accepted audit/release, free-lease CAS, and parent helper integration remain unobserved/pending."
+  ],
+  "findings": [],
+  "authority": {
+    "dispatch_authorized": false,
+    "evaluation_authorized": false,
+    "promotion_authorized": false,
+    "external_serial_gate_pending": true
+  }
+}
