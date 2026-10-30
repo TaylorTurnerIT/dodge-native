@@ -1,0 +1,73 @@
+{
+  "actor_critic": "Current actor/value heads share the admitted-input latent (teacher.py:145-175). Separate critics retain this input boundary while value distillation is planned.",
+  "controlling_rule": "No future, hidden timers, native RNG, pattern IDs, seed identities or offscreen hidden geometry may affect teacher inputs, shield decisions or training labels/targets.",
+  "correction": "Supersede only the old decision.same_information_imitation clause allowing a separate privileged-label proposal. Under Taylor's current goal, that route is excluded. Preserve old audit bytes.",
+  "diagnostic_boundary": "DODGE-004 true-future branches/oracle scores, chosen actions, safety masks and values remain diagnostic-only; never labels, auxiliary targets, imitation/DAgger targets or reward-shaping signals. Historical start-state selection does not license privileged action labels.",
+  "field_mapping": [
+    {
+      "admitted": "global_feats0..4 and public movement/clamp constants",
+      "disposition": "Available approximately from scaled float arrays; no exact fixed-point parity claim.",
+      "read": "player x/y/vx/vy/size",
+      "source": "m0_policy.rs:201,238-241,293,298-323,335-424"
+    },
+    {
+      "admitted": "visible admitted entity geometry/types only, at most64 enemy tokens",
+      "disposition": "Complete FullState list forbidden for teacher decisions/labels; visible coarse type does not license hidden personality fields.",
+      "read": "every enemy x/y/size/personality",
+      "source": "m0_policy.rs:203-214"
+    },
+    {
+      "admitted": "global speed/freeze exist; entity dx/dy are measured geometry changes",
+      "disposition": "Do not replace unknown measured motion with analytic enemy velocity. First-sample zero is not certified stillness.",
+      "read": "enemy vx/vy/speed; global speed/freeze",
+      "source": "m0_policy.rs:218-229"
+    },
+    {
+      "admitted": "admitted rectangle tokens and visible-pattern flag only",
+      "disposition": "No raw active-pattern identity, inactive catalog or hidden/offscreen rectangle list in shield, labeler or features.",
+      "read": "active_pattern and full pattern rect list",
+      "source": "m0_policy.rs:129-133,164,178-181,247-248"
+    },
+    {
+      "admitted": "No pattern ID; admission is geometry/visibility-based",
+      "disposition": "Pattern23 exception cannot be copied into an observable expert.",
+      "read": "pattern.id, pattern_type and exact offscreen-control tuple",
+      "source": "m0_policy.rs:252-259"
+    },
+    {
+      "admitted": "admitted geometry/measured deltas/until_lethal/lethal_now only",
+      "disposition": "No raw sh, hidden phase/type lookup or internal stable indices. History must derive from admitted observations available to the intended student.",
+      "read": "rect x/y/width/height/sh; raw-frame index-bound history",
+      "source": "m0_policy.rs:160-197,261-280"
+    },
+    {
+      "admitted": "No environment RNG",
+      "disposition": "Only Random baseline draws here; AabbDodger branch does not draw environment RNG or simulate the true future. Its analytic forecast is still richer-information.",
+      "read": "PrivateRng",
+      "source": "m0_policy.rs:289-294"
+    },
+    {
+      "admitted": "Registered public physics plus admitted geometry/measured motion",
+      "disposition": "Predicting an approximate future is allowed; actual engine-future rollouts are diagnostic only.",
+      "read": "12-frame action forecast and4px clearance",
+      "source": "m0_policy.rs:335-424"
+    }
+  ],
+  "labels_generated": 0,
+  "limitation": "Static field mapping is not a proof that every float32 feature is recoverable from a particular pixel stack. Exact fixed-point values, measured-history cadence and any additional state require provenance/history alignment review before a new teacher contract.",
+  "native_games": 0,
+  "optimizer_steps": 0,
+  "prior_audit_path": "learning/runs/v2/priority-runlist-parent-20261030-r4/heuristic-shield-observability-audit.json",
+  "prior_audit_sha256": "eefd11b4bd422bdaee455cf1b5e6f69c8c39c2482e97efc90f6a88757395e1b1",
+  "prior_source_pins_unchanged": true,
+  "record": "DODGE-045",
+  "runtime_tests": 0,
+  "schema": "dodge_teacher_observability_recheck_v6",
+  "source_pins": {
+    "crates/dodge-rl-env/src/features.rs": "78d72ee29fdcf2c0828e26d0a4265b50809f4c9899183332a4c48fb326dc006c",
+    "crates/dodge-rl-env/tests/support/m0_policy.rs": "eeae605299b1018437a54df66f4eabf6e6d4defc20334c1baf93692900601b85",
+    "docs/v2-environment-contract.md": "79e953f20487bb442888fe40cee5f43226ae2cfc7ef0b9ef0fc3a377db4e01aa",
+    "python/dodge_rl/models/teacher.py": "e4d7f597a2824c2b0d4ba261dddc9d7d1ee1d5592c2fc966a44c54b5ec417e35"
+  },
+  "status": "source_recheck_complete_original_heuristic_ineligible_for_teacher_actions_or_labels"
+}

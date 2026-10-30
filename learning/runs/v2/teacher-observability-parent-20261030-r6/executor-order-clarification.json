@@ -1,0 +1,15 @@
+{
+  "schema": "dodge_executor_order_clarification_v6",
+  "record": "DODGE-046",
+  "status": "proposal_only",
+  "order": [
+    "Teacher produces categorical logits from admitted history",
+    "Optional observable shield produces mask/selected action",
+    "Executor epsilon corrupts selected request after shield; do not re-mask or resample it",
+    "Executor queues selected request for registered raw-frame delay",
+    "Apply due action to environment; hold previous action between due requests"
+  ],
+  "clarification": "In the metrics contract, intended action at the executor interface means the post-shield selected request when a shield exists. Original policy action, selected request and actually executed action remain separately logged. Never allow the shield to inspect or repair future executor randomness.",
+  "conditions": "Epsilon and delay panels remain separate; this ordering adds no combination or extra games.",
+  "runtime_launches": 0
+}

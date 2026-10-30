@@ -1,0 +1,166 @@
+{
+  "budgets": {
+    "cohort_use": "Noise panels use fixed ascending subsets of the same stage-specific clean cohort; clean subset statistics must be recomputed for paired noise contrasts. No additional distinct evaluation seeds. Shared seeds across conditions are intentional pairing, not adaptive cohort reuse.",
+    "cohorts_opened": 0,
+    "entry_supplement": {
+      "extra_games": 5120,
+      "game_seeds_subset": 256,
+      "models": 5,
+      "perturbed_conditions": 4,
+      "receipt_seconds": 360,
+      "shards": 2,
+      "total_ceiling_seconds": 7560,
+      "work_seconds": 7200
+    },
+    "final_supplement": {
+      "extra_games": 14336,
+      "game_seeds_subset": 512,
+      "models": 7,
+      "perturbed_conditions": 4,
+      "receipt_seconds": 720,
+      "shards": 4,
+      "total_ceiling_seconds": 15120,
+      "work_seconds": 14400
+    },
+    "games_run": 0,
+    "long_run_supplement_seconds": 37800,
+    "monitoring_supplement": {
+      "extra_games_per_look": 4096,
+      "game_seeds_subset_per_look": 256,
+      "looks": 6,
+      "models_per_look": 4,
+      "perturbed_conditions": 4,
+      "receipt_seconds": 1080,
+      "shards": 6,
+      "total_ceiling_seconds": 22680,
+      "total_extra_games": 24576,
+      "work_seconds": 21600
+    },
+    "new_seed_reservations": 0,
+    "pilot": {
+      "K": [
+        1,
+        4
+      ],
+      "checkpoint": 420,
+      "clean_gate": "Clean rows are counted anew under the same registered sampler/loop as perturbations. Do not reuse older global/batched-sampler rows as an exact control for a new per-game sampler.",
+      "conditions": 5,
+      "existing_seed_count": 1024,
+      "id": "A9",
+      "new_clean_games": 2048,
+      "new_perturbed_games": 8192,
+      "readiness": "needs_raw_frame_executor_source_and_qualification_not_launch_ready",
+      "receipt_seconds": 540,
+      "seed_subset": "first1024 ascending consumed3657433088..3657435135",
+      "total_ceiling_seconds": 11340,
+      "total_panel_games": 10240,
+      "work_seconds": 10800
+    },
+    "ranking": "Noise panels descriptive unless selection/stop thresholds prospectively registered before opening games. Clean P5 Q1/Mean progress/stop criteria unchanged; no posthoc noise gate.",
+    "revised_all_missing_entry_ceiling_seconds_if_approved": 59040,
+    "revised_controls_only_entry_ceiling_seconds_if_approved": 37080,
+    "revised_long_run_ceiling_seconds_if_approved": 141600,
+    "revised_phase0_ceiling_seconds_if_A9_approved": 38640,
+    "semantics": "Additional proposed hard ceilings, not measured forecasts or authority. Old P4/P5 JSON and caps stay unchanged. New supplement requires source/review/resource/lease gates and explicit approval. Same6GiB separate RSS/MPS and one MPS job."
+  },
+  "entropy": {
+    "diagnostics": [
+      "per-state entropy and H/log9",
+      "maximum action probability",
+      "top-two probability gap",
+      "effective support exp(H)",
+      "adjacent-state policy-distribution change",
+      "intended versus executed switch rates"
+    ],
+    "distributions": "Record original teacher categorical probabilities and post-shield renormalized target probabilities separately, with masks/fallback provenance. Specify which is distilled; no oracle sharpening or best-future-action one-hot labels.",
+    "inference": "Entropy is not calibration. No target entropy, distillation benefit or ranking inferred without measurements. No actual student training in this proposal.",
+    "schedules": "Keep constant0.01, constant0.001 and registered0.01-to0.001 alternatives. Evaluate survival, noise robustness and soft-label quality together; lower entropy/jitter is not automatically better and uniform labels are not automatically useful.",
+    "weighting": "Report per-episode averages plus pooled state counts; compare schedules on a fixed registered admitted-state bank from allowed trajectories as well as own rollouts, to separate occupancy shifts. Preserve target zeros/float precision and temperature1; any smoothing/temperature change is a separate registered intervention."
+  },
+  "evaluation_authorized": false,
+  "execution": {
+    "clean_selector": "sampled categorical at temperature1; K1 common primary, actual deployment K separately frozen",
+    "conditions": [
+      {
+        "epsilon": 0,
+        "id": "clean",
+        "raw_frame_delay": 0
+      },
+      {
+        "epsilon": 0.01,
+        "id": "epsilon_001",
+        "raw_frame_delay": 0
+      },
+      {
+        "epsilon": 0.05,
+        "id": "epsilon_005",
+        "raw_frame_delay": 0
+      },
+      {
+        "epsilon": 0,
+        "id": "delay_1",
+        "raw_frame_delay": 1
+      },
+      {
+        "epsilon": 0,
+        "id": "delay_4",
+        "raw_frame_delay": 4
+      }
+    ],
+    "delay": "Policy observes at its normal decision times. Queue intended actions for execution after exactly d raw frames; hold the prior applied action until due. Start each episode neutral with empty queue; discard its pending actions on termination/reset. No hidden future correction or dropped intermediate action. Raw-frame stepping/queue parity must be implemented first.",
+    "epsilon": "At each policy-decision boundary, independently replace the intended movement action with a uniform draw over all9 actions with probability epsilon. A draw can equal the intended action; report actual changed-action fraction separately.",
+    "frequency": "Epsilon is per decision, so K1/K4 perturbation rates per game-second differ. Report decisions, raw frames, realized perturbations and delays; no equal-noise-dose claim across K.",
+    "no_combinations": "Epsilon and delay conditions separate; no implicit Cartesian combination or tuning on exposed cohorts.",
+    "pairing": "Counter-based domain-separated policy and perturbation streams per(game seed, decision ordinal, condition); independent of vector slot and episode completion order. Share coupling across models. Noise RNG is external executor randomness, never native-world RNG or a policy input.",
+    "zero_noise": "epsilon0/delay0 must preserve baseline actions, RNG use and counters; deterministic tests before any approved games."
+  },
+  "expected": "Epsilon actions and delay may reveal compounding-error sensitivity; the direction and relative ordering of policies/schedules are unobserved. An observation-only expert may be weaker than FullState, which cannot justify relaxing the information boundary.",
+  "provenance": {
+    "allowed_derivations": "Geometry/rays/grids/relative-closing velocity and finite action history from admitted entities, measured motion and registered public physics only. No complete-world queries or hidden index tracking.",
+    "allowed_inputs": [
+      "global_feats",
+      "entity_feats",
+      "entity_types",
+      "entity_mask"
+    ],
+    "critic": "Same admitted boundary as actor while value is a distillation target; no privileged critic via encoder separation.",
+    "eligibility": "Original FullState AABB remains a disclosed richer-information reference only. Shield/labeler/imitation require a separately reviewed pure-observation expert and its own accepted evaluation.",
+    "forbidden": [
+      "actual future engine state",
+      "hidden timers",
+      "environment RNG/state/seed IDs",
+      "pattern IDs/catalog/hidden phase fields",
+      "offscreen hidden geometry",
+      "diagnostic cause labels as features/targets"
+    ],
+    "future_gates": [
+      "Dependency allowlist: pure arrays/history/constants; no FullState/native-future/RNG access",
+      "Identical admitted arrays/history give identical logits/masks/labels under fixed sampler state despite hidden-state changes",
+      "Visibility/cap/unknown-motion cases and all-safe/empty-mask parity",
+      "Separate diagnostic artifact schema; loader rejects oracle/full-state label provenance",
+      "Actor/value/auxiliary-target provenance and pixel/history alignment review"
+    ],
+    "history": "Declare finite causal history, sampling cadence, masks and padding; align with the student's available frames/actions. Do not silently add privileged or indefinite recurrent memory.",
+    "snapshot": "Opaque simulator/RNG state may be stored/restored for continuity and diagnostics. Policy, labeler and shield cannot read it. Start-state prioritization does not authorize oracle supervision."
+  },
+  "record": "DODGE-046",
+  "schema": "dodge_teacher_distillation_and_executor_noise_proposal_v6",
+  "standing_metrics": {
+    "caveats": "256-game monitoring panels have only64 observations per tail and are diagnostic. Noise proxies do not replace evaluation on an actual student's state distribution or establish calibrated probabilities.",
+    "contrasts": "Noise-minus-clean Q1/Mean and normalized retention; sort each condition separately before tail means. Shared-game-seed bootstrap2000 draws across every model/condition; actual fractions and per-model/per-training-replica results retained.",
+    "scope": "These are standing endpoint/entry/monitor/final evaluation panels; numerical optimization telemetry remains every update. No noise-driven LR/entropy/controller adjustment during the long run.",
+    "survival": [
+      "Worst",
+      "marginal Q1 bottom-quarter mean",
+      "Mean",
+      "marginal Q4 top-quarter mean",
+      "Best",
+      "alive-frame milestones1000/3000/6000/12000/18000",
+      "early-death fraction"
+    ],
+    "switches": "Log intended policy-action, post-shield selected-action, and raw-frame executed-action switches separately. Numerator/denominator only within live episodes; carry across rollouts, exclude resets and neutral initialization. Report decision-rate and per1000-raw-frame measures; no queue boundary counted twice."
+  },
+  "status": "proposal_only_no_launch_authority",
+  "teacher_goal": "Maximize teacher quality under the admitted short-history observation boundary, including robustness and useful soft labels for a future vision student.",
+  "training_authorized": false
+}

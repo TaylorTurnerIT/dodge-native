@@ -1,0 +1,70 @@
+{
+  "id": "DODGE-037",
+  "project": "dodge-native",
+  "title": "Compare lower and decayed entropy with constant0.01",
+  "status": "planned",
+  "doing": "Propose constant0.01, constant0.001 and a preregistered0.01-to0.001 decay at a locked recipe, with two training seeds per arm. Match the LR schedule and exposure, log entropy, KL, advantage and switch rates, and save entropy schedule state. No launch authorized.",
+  "expected": "Lower or decayed entropy may reduce harmful action switching, or reduce useful exploration and worsen the weak tail. A lower switch rate does not by itself establish better action quality.",
+  "actual": null,
+  "why": null,
+  "next_step": "Compare entropy schedules with clean/noisy survival, intended/executed switching and original/post-shield soft-label distributions on matched admitted-state banks; lower entropy or jitter alone does not qualify a teacher. Freeze temperatures and any smoothing as separate interventions; no launch.",
+  "actual_kind": "unobserved",
+  "prediction_timing": "before_run",
+  "parent_id": "DODGE-023",
+  "revision": 3,
+  "created_at": "2026-10-30T06:34:33.766823+00:00",
+  "updated_at": "2026-10-30T08:22:51.124400+00:00",
+  "tags": [
+    "entropy",
+    "schedule"
+  ],
+  "metadata": {
+    "priority_runlist_v4": {
+      "launch_authority": false,
+      "packets": [
+        "C5"
+      ],
+      "proposal_path": "learning/runs/v2/priority-runlist-parent-20261030-r4/priority-run-list-v4.json",
+      "proposal_sha256": "246b2b9e1043ea5e8dbe99bef2640b6b6a20faa4bd851a293d6bb1111c5d782e"
+    }
+  },
+  "evidence": [
+    {
+      "id": "2e738e69aae34190b30fe1c6a20a2485",
+      "experiment_id": "DODGE-037",
+      "kind": "plan",
+      "label": "Standing executor-noise, switch and soft-label metrics; no launch",
+      "uri": "learning/runs/v2/teacher-observability-parent-20261030-r6/teacher-metrics-proposal-v6.json",
+      "sha256": "b34800cd200c7adf43af6172d185cad8245cb6f865de40b800a803f3c60c363f",
+      "recorded_at": "2026-10-30T08:22:51.124806+00:00"
+    },
+    {
+      "id": "5c960620d54945529a3709e3555ee136",
+      "experiment_id": "DODGE-037",
+      "kind": "plan",
+      "label": "Priority reconciliation, observation-only shield and long-run gate",
+      "uri": "docs/review-ideas-and-scaling-plan-20261030.md",
+      "sha256": "20a3dd5c48ad6e1b994391836836e1514b1006bfe2a00018a10dd0ce96077905",
+      "recorded_at": "2026-10-30T06:50:30.301115+00:00"
+    },
+    {
+      "id": "c1160375b8ab48deb6f12e0affe21efb",
+      "experiment_id": "DODGE-037",
+      "kind": "plan",
+      "label": "Ordered approval packets with seed counts, hard ceilings and readiness",
+      "uri": "learning/runs/v2/priority-runlist-parent-20261030-r4/priority-run-list-v4.json",
+      "sha256": "246b2b9e1043ea5e8dbe99bef2640b6b6a20faa4bd851a293d6bb1111c5d782e",
+      "recorded_at": "2026-10-30T06:50:30.301079+00:00"
+    },
+    {
+      "id": "d16519c5166e42128875a6e5ef6df930",
+      "experiment_id": "DODGE-037",
+      "kind": "plan",
+      "label": "User priority-order steer, reviewed with current local evidence",
+      "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md",
+      "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb",
+      "recorded_at": "2026-10-30T06:34:33.767186+00:00"
+    }
+  ],
+  "measurements": []
+}
