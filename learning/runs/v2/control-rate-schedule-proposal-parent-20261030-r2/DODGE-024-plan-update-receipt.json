@@ -1,0 +1,75 @@
+{
+  "id": "DODGE-024",
+  "project": "dodge-native",
+  "title": "Propose from-scratch K1 K2 K3 K4 with LR schedule comparison",
+  "status": "planned",
+  "doing": "Keep all fixed K1/K2/K3/K4 scratch arms in S4, crossed with constant, warmup+cosine-to-floor and KL-adaptive schedules, at least2 independent training seeds per cell. Match initialization within each replica, use fresh Adam and allowed seed streams, matched game-time horizons, and identity-bound scheduler checkpoint state. No cohort opening or launch authorized.",
+  "expected": "If inherited K4 behavior or optimizer state limits K1 adaptation, a from-scratch K1/K2 arm could outperform its warm start at sufficient exposure. If sample efficiency or planning limits dominate, K4 may remain preferable despite finer-control inference gains. No direction is assumed before measurement.",
+  "actual": null,
+  "why": null,
+  "next_step": "Use S3 evidence and S1/S2 forecasts to propose measured S4 budgets without dropping fixed-K or scheduler cells silently. Require separate user approval.",
+  "actual_kind": "unobserved",
+  "prediction_timing": "before_run",
+  "parent_id": "DODGE-023",
+  "revision": 3,
+  "created_at": "2026-10-30T05:51:05.422416+00:00",
+  "updated_at": "2026-10-30T06:06:57.256180+00:00",
+  "tags": [
+    "S4",
+    "from-scratch",
+    "K1",
+    "K2",
+    "K3",
+    "K4",
+    "learning-rate-schedule"
+  ],
+  "metadata": {},
+  "evidence": [
+    {
+      "id": "59b2422df94f49eaac365758f1066c58",
+      "experiment_id": "DODGE-024",
+      "kind": "plan",
+      "label": "Matched raw-frame horizons and explicit speed/memory/concurrency gates",
+      "uri": "learning/runs/v2/control-frequency-diagnostic-parent-20261030-r1/K1-K2-scaling-proposal.json",
+      "sha256": "58feeea31a4469bdeac7e6ab8edbac521bd3d578e518a5817101d3cd63b42d22",
+      "recorded_at": "2026-10-30T05:58:14.722992+00:00"
+    },
+    {
+      "id": "72a1f53ed54a4141ae164e71a91daae0",
+      "experiment_id": "DODGE-024",
+      "kind": "plan",
+      "label": "Explicit from-scratch K1/K2/K4 matrix within full review plan",
+      "uri": "docs/review-ideas-and-scaling-plan-20261030.md",
+      "sha256": "c1ab1bd479a10dd7ffefb242e2e5a9797d0db91c7df59c9320951daacffab4d2",
+      "recorded_at": "2026-10-30T05:58:14.722960+00:00"
+    },
+    {
+      "id": "8345d033ea614835bb25fdfff95ae548",
+      "experiment_id": "DODGE-024",
+      "kind": "plan",
+      "label": "Full review idea ledger updated for user second steer",
+      "uri": "docs/review-ideas-and-scaling-plan-20261030.md",
+      "sha256": "fae0eebb76925b4334a2baa0f2da1bba7745e9e4176dcb20573e1ad88132ab4a",
+      "recorded_at": "2026-10-30T06:06:57.256522+00:00"
+    },
+    {
+      "id": "9d29910153e949c3aae42c00aa740d16",
+      "experiment_id": "DODGE-024",
+      "kind": "plan",
+      "label": "User-directed K1 track handoff; external worktree read-only",
+      "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md",
+      "sha256": "16b5f6eeb107132b9ed5cd9d876e77c6bdedd2104ecb4c5e20e1029dac98b6c1",
+      "recorded_at": "2026-10-30T05:51:05.422758+00:00"
+    },
+    {
+      "id": "d219d200d3ca450c8589d58dfd80af9d",
+      "experiment_id": "DODGE-024",
+      "kind": "plan",
+      "label": "Expanded fixed-K, dynamic-K and scheduler comparison proposal",
+      "uri": "learning/runs/v2/control-rate-schedule-proposal-parent-20261030-r2/K-and-LR-scaling-proposal-v2.json",
+      "sha256": "4678d37d19e87ab31e6d2263e4df189972273dd3cc1d3bf08d13f919b4ca4c3a",
+      "recorded_at": "2026-10-30T06:06:57.256491+00:00"
+    }
+  ],
+  "measurements": []
+}

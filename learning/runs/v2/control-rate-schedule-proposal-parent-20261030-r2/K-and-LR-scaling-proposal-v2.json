@@ -1,0 +1,201 @@
+{
+  "candidate_K1_256env_observation_GiB": 4.318359375,
+  "candidate_parameters": [
+    {
+      "K": 1,
+      "effective_minibatch": 6144,
+      "gae_lambda": 0.9872585449014338,
+      "gamma": 0.9987476493904754,
+      "microbatch": 512,
+      "raw_frames_per_env": 3072,
+      "rollout_decisions_per_env": 3072
+    },
+    {
+      "K": 2,
+      "effective_minibatch": 3072,
+      "gae_lambda": 0.9746794344808963,
+      "gamma": 0.9974968671630001,
+      "microbatch": 512,
+      "raw_frames_per_env": 3072,
+      "rollout_decisions_per_env": 1536
+    },
+    {
+      "K": 3,
+      "effective_minibatch": 2048,
+      "gae_lambda": 0.9622606002309622,
+      "gamma": 0.9962476513534098,
+      "microbatch": 512,
+      "raw_frames_per_env": 3072,
+      "rollout_decisions_per_env": 1024
+    },
+    {
+      "K": 4,
+      "effective_minibatch": 1536,
+      "gae_lambda": 0.95,
+      "gamma": 0.995,
+      "microbatch": 512,
+      "raw_frames_per_env": 3072,
+      "rollout_decisions_per_env": 768
+    }
+  ],
+  "checkpoint_binding": [
+    "model",
+    "Adam",
+    "scheduler",
+    "RNG",
+    "registered_identity"
+  ],
+  "checkpoint_scheduler_state": [
+    "algorithm_and_version",
+    "algorithm_parameters",
+    "budget_and_phase_origin",
+    "actual_frames_consumed",
+    "completed_update_count",
+    "current_and_next_LR_per_parameter_group",
+    "KL_adaptation_history"
+  ],
+  "discount_tail_after3072frames": 0.021287566257687802,
+  "document_path": "docs/review-ideas-and-scaling-plan-20261030.md",
+  "document_sha256": "fae0eebb76925b4334a2baa0f2da1bba7745e9e4176dcb20573e1ad88132ab4a",
+  "fixed_rate_matrix": {
+    "K": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "S3_record": "DODGE-023",
+    "S4_record": "DODGE-024",
+    "independent_training_and_game_seed_uncertainty_reported_separately": true,
+    "initializations": [
+      "420_model_and_Adam_warm_start",
+      "scratch_model_and_fresh_Adam"
+    ],
+    "minimum_training_seeds_per_cell": 2,
+    "minimum_trajectories": 48,
+    "minimum_trajectories_per_initialization": 24,
+    "preferred_training_seeds_per_cell": 3,
+    "schedules": [
+      "constant",
+      "warmup_cosine_to_positive_floor",
+      "KL_adaptive"
+    ]
+  },
+  "gates": [
+    "Held failed S1-r1 lease remains unchanged; S1-r2 has no successor approval",
+    "Zero-shot inference requires explicit go-ahead; no new cohort opened",
+    "S1 then S2 qualify each proposed K,N,T and storage",
+    "At least2 training seeds per schedule/rate/initialization cell",
+    "Separate actual budgets, seed exclusions, exact-once claims, review and resource qualification before every launch",
+    "One MPS campaign until separately approved contention qualification and aggregate envelope"
+  ],
+  "grid_revision_reason": "IncludingK3 exactly requires rollout/macro raw-frame counts divisible by12;3072rawframes per env and6144rawframes per macro keep all effective batches512-microbatch divisible. This revises prior K4 macro2048 to1536; LR must be rechecked, not inherited unchanged.",
+  "inference_launches": 0,
+  "launch_authority": false,
+  "new_seed_cohorts": 0,
+  "promotion": false,
+  "schedule_comparison": {
+    "KL_adaptive": {
+      "PPO_KL_stop_rule_unchanged": true,
+      "evaluation_performance_used": false,
+      "preregister": [
+        "target_KL",
+        "deadband",
+        "LR_multiplier",
+        "positive_floor",
+        "ceiling"
+      ],
+      "signal": "completed_update_full_rollout_final_KL"
+    },
+    "LR_recalibrated_when_effective_batch_changes": true,
+    "constant": "calibrated_positive_LR",
+    "exact_numbers_pending_resource_and_source_gates": true,
+    "no_schedule_adopted_by_default": true,
+    "phase_clock": "actual_gameplay_frames_before_next_update",
+    "record": "DODGE-027",
+    "warm_start_and_scratch_LR_calibrated_separately": true,
+    "warmup_cosine": {
+      "formula": "floor+0.5*(peak-floor)*(1+cos(pi*progress))",
+      "post_warmup_progress": "clamp((frames-warmup_frames)/(budget_frames-warmup_frames),0,1)",
+      "preregister": [
+        "start_LR",
+        "peak_LR",
+        "floor_LR",
+        "warmup_frames",
+        "budget_frames"
+      ]
+    }
+  },
+  "schedule_restore_does_not_claim_simulator_restore": true,
+  "scheduler_restore_test_required": "Same next LR and Adam update after checkpoint round-trip as uninterrupted synthetic execution; no reset at segment boundaries.",
+  "schema": "dodge_control_rate_and_schedule_proposal_v2",
+  "status": "conditional_plan_not_launch_ready",
+  "supersedes_proposal_path": "learning/runs/v2/control-frequency-diagnostic-parent-20261030-r1/K1-K2-scaling-proposal.json",
+  "supersedes_proposal_sha256": "58feeea31a4469bdeac7e6ab8edbac521bd3d578e518a5817101d3cd63b42d22",
+  "training_launches": 0,
+  "variable_rate_options": {
+    "annealing": {
+      "no_mid_transition_K_change": true,
+      "phase_clock": "actual_gameplay_frames",
+      "phase_fractions": "preregister_before_launch",
+      "retain_live_state_and_history": true,
+      "sequence": [
+        4,
+        3,
+        2,
+        1
+      ]
+    },
+    "gates": [
+      "New reviewed variable-duration native/adapter/telemetry capsule",
+      "Per-transition actual-duration discount/GAE and bootstrap tests",
+      "Declare whether K is observable; new feature is an explicit architecture ablation",
+      "S2 speed/memory qualification and separate user approval"
+    ],
+    "per_episode_sampled": {
+      "distribution": "preregister_before_launch",
+      "episode_uniform_is_not_frame_uniform": true,
+      "hold_K_for_episode": true,
+      "support": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    "record": "DODGE-026"
+  },
+  "zero_shot": {
+    "added_K": [
+      2,
+      3
+    ],
+    "checkpoint_label": 420,
+    "cohort_count": 2048,
+    "cohort_opened": false,
+    "cohort_range_inclusive": [
+      3657433088,
+      3657435135
+    ],
+    "cohort_status": "already_consumed_development_diagnostic",
+    "execution_authorized": false,
+    "matched_settings": [
+      "checkpoint",
+      "controller_seed_per_group",
+      "normal_start",
+      "cap",
+      "dtype",
+      "native_replay_parity"
+    ],
+    "record": "DODGE-025",
+    "reference_K": [
+      1,
+      4
+    ],
+    "selection_modes": [
+      "argmax",
+      "sampled"
+    ],
+    "zero_shot_cannot_rank_training_K": true
+  }
+}
