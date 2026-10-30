@@ -34,6 +34,22 @@ Why the rate moved in steps: there is no scheduler in the code (`make_optimizer`
 
 Plan: make the schedule part of the optimizer state (saved in checkpoints), then compare constant, warmup plus cosine to a floor, and KL-adaptive over at least two training seeds per arm, with learning rate rechecked whenever batch size changes.
 
+## Literature checklist against our PPO setup
+
+Source: Andrychowicz et al. 2020 (arXiv 2006.05990; five MuJoCo tasks, over 250,000 agents; read through a page summariser, so confirm any figure before citing it in a paper) and Engstrom et al. 2020 (arXiv 2005.12729). Continuous control with small MLPs, so a prior for us, not proof.
+
+Already matches: PPO clip 0.2 (they suggest starting at 0.25); gradient clip 0.5; Adam with eps 1e-5 and initial rate 3e-4 (their safe default); MSE value loss with no value clipping (they found value clipping hurt at every threshold and Huber worse than MSE); per-minibatch advantage normalisation (little effect); actor final layer initialised with gain 0.01 (they found small last-layer initialisation a big win, about +66% on Humanoid).
+
+Differs, each a cheap experiment:
+- Policy and value networks: they found separate networks better on 4 of 5 tasks. Ours share one encoder (`teacher.py`); measured gradient alignment between actor and critic is near zero (cosine about 0.02), which weakens but does not settle the interference story.
+- Discount: they call gamma the most important hyperparameter and start at 0.99. Ours is 0.995 per decision (half-life about 138 decisions, 550 frames at K=4) and was never swept; lambda 0.95 vs their 0.9. The heuristic needs only a 12-frame look-ahead. Link to K: at K=1 with game-time-matched gamma the credit horizon is 4x more decisions, so DODGE-013's regression may partly be a too-long horizon; sweep gamma and lambda at K=1 before concluding anything.
+- Normalisation: they say always normalise observations and check value normalisation (crucial on two tasks, harmful on one). Ours has no running normalisation (hand-scaled features, fixed reward scale 0.1). Engstrom lists reward normalisation, Adam annealing and network initialisation as the optimisations that most reshape the PPO reward landscape.
+- Epochs and advantages: they find multiple passes crucial and stale advantages harmful, recomputing advantages at the start of each pass. Ours computes GAE once per rollout (`ppo.py`) and runs four epochs with a 0.03 KL stop; how often the KL stop fires is worth logging.
+- Parallel environments: more environments with shorter experience chunks hurt sample efficiency on some tasks; larger batches did not in their range. Argues for longer rollouts per environment in S3.
+- Entropy bonus: none of the regularisers helped significantly in their continuous setting; ours is a constant 0.01 on a discrete policy, so test lower or decayed, not removal by assumption.
+- Frame skip: improved 22 of 55 tasks ("try it"), which supports treating K as a tuned hyperparameter.
+- Time-limit handling: no difference at 1,000-step limits; our cap is 18,000 frames, but capped games are rare (15 of 1,000 for the heuristic, none for the policy).
+
 ## Scaling track (the user's hypothesis)
 
 Goal: find out whether more data, more diverse seeds and larger batches move the weak tail (Q1), and what limits throughput.
