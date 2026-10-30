@@ -1,0 +1,98 @@
+{
+  "schema": "dodge_independent_exact_head_review_v1",
+  "status": "blocking_findings",
+  "registration_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-fresh-seed-scaling-20261030/learning/runs/v2/fresh-seed-k4-screen-20261030-r2/registration-r1.json",
+  "registration_sha256": "c6f7d722bff3cf5034407f197f7f4869974942b79e5ee1cc2e2dac4f2c526723",
+  "candidate_source": {
+    "branch": "t3/fresh-seed-scaling-20261030",
+    "commit": "729621c43f26dcdd9f5fdd039b0239b2c3706ff4",
+    "working_tree_changes": false
+  },
+  "coordinator_source_pins": {
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/experiments/coordinator_dispatch.py": "107020e3fd4755ff508a34922c29e6e0354755063d8f74220f24c1e930cb1573",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/tests/test_coordinator_dispatch.py": "83c7e4bf3a055af8dc837c7723abf9e9b82850683c1a9a8ebeacd0cb91089c22"
+  },
+  "pin_source_nativebinding_checks": {
+    "registration": "pass; actual SHA256 matches requested pin",
+    "registration_source_and_input_pins": "pass; 159/159 paths match recorded SHA256",
+    "runtime_member_manifest": {
+      "status": "pass",
+      "sha256": "792829e6bfdaa19d5964d56379b33e3f4fcd14c7c94fc0b333e97968a307a2b5"
+    },
+    "native_binary": {
+      "status": "pass; SHA256 matches build, registration and runtime-origin receipts",
+      "sha256": "e2da858730d74df3dba3394a61727b323bdac56c636e0991c99fb98cab3b9ab7"
+    },
+    "loaded_origin_receipt": {
+      "status": "pass for source/runtime path and hash binding only; not native qualification",
+      "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-fresh-seed-scaling-20261030/learning/runs/v2/fresh-seed-k4-screen-20261030-r2/runtime-preflight-final-r2.json",
+      "sha256": "290b3b88b33943b8354e6ff0b0fbb10e3b4cd8be1ab0c7cfc1d7d9e19ee3dbcc"
+    },
+    "candidate_source_test_receipt": {
+      "status": "hash matches registration",
+      "sha256": "023269da250e095d5c2e468de1e66e447f927b53aa65eee718c83074cc5224cf"
+    },
+    "authority": {
+      "status": "pass; exact battery-allowed parent authority hash matches",
+      "sha256": "18a53a035598756ce3936dd0b73da0439e2c3dcc94eb66bf477ad07904d98e58"
+    },
+    "coordinator_dispatch_source": "pass; actual SHA256 matches requested source pin",
+    "coordinator_dispatch_test_source": "pass; actual SHA256 recorded above"
+  },
+  "findings": [
+    {
+      "severity": "P1",
+      "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-fresh-seed-scaling-20261030/learning/runs/v2/fresh-seed-k4-screen-20261030-r2/launch_once.py",
+      "line": 29,
+      "trigger": "The authorized launcher starts its owned power helper with `/usr/bin/caffeinate -ims`; `-s` requests PreventSystemSleep while on AC power.",
+      "consequence": "This exceeds the pinned policy, which permits only PreventUserIdleSystemSleep. The source assertion check only requires that idle assertion and will not reject the extra system-sleep assertion. Launch violates the authorized power contract.",
+      "required_fix": "Use only the permitted idle assertion and align the helper identity probe with the exact new command."
+    },
+    {
+      "severity": "P1",
+      "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/experiments/coordinator_dispatch.py",
+      "line": 122,
+      "trigger": "`validate` accepts any hash-pinned readiness JSON whose only matching field is `registration_sha256`; it does not require the candidate readiness path, schema, ready status, or runtime/native/origin pins.",
+      "consequence": "A minimal, stale, or wrong readiness receipt can pass the handoff gate and reach the durable failure disposition and lease CAS. Candidate `run_once.verify_dispatch` does not validate readiness, so the missing runtime gate is not restored before launch.",
+      "required_fix": "Bind and validate the exact DODGE-053 readiness path, schema/status, registration identity, and its runtime, native, origin, source-test, and exposure pins before claiming or changing the lease."
+    },
+    {
+      "severity": "P1",
+      "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/experiments/coordinator_dispatch.py",
+      "line": 144,
+      "trigger": "`dispatch_template` validation checks only record, expected lease, and four receipt path/hash pairs; it does not require the exact training dispatch schema, `one_attempt`, or `dispatch_free_exact_lease` status. The current test fixture also builds a template without these fields and expects validation to pass (`learning/tests/test_coordinator_dispatch.py:114-123`).",
+      "consequence": "A malformed template passes source validation, then the helper durably claims and CAS-transfers the lease before emitting a dispatch that `run_once.verify_dispatch` rejects. This creates a consumed failed handoff without any training start.",
+      "required_fix": "Validate the complete exact training dispatch contract against the candidate and readiness before writing the claim or changing the lease."
+    }
+  ],
+  "actual_tests": {
+    "candidate_source_cpu_suite": {
+      "result": "passed",
+      "command": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python -B -m unittest discover -s learning/runs/v2/fresh-seed-k4-screen-20261030-r2 -p 'test_*.py' -v",
+      "passed": 9,
+      "native_games": 0,
+      "MPS_optimizer_steps": 0,
+      "production_stream_lookups": 0
+    },
+    "coordinator_dispatch_temporary_ledger_suite": {
+      "result": "passed",
+      "command": "python3 -B -m unittest learning.tests.test_coordinator_dispatch -v",
+      "passed": 10,
+      "live_ledger_mutation": false
+    }
+  },
+  "owner_evidence": {
+    "source_tests_receipt": "Hash verified; owner reports 9 CPU packet/power fixtures, including toy CPU PPO partial-close parity, dummy-child reap, staging-boundary rejection, and passive battery/probe behavior.",
+    "migration_fixture": "Owner receipt reports checkpoint-420 CPU model/Adam/logits/value/next-Adam identity; no full simulator restore and no launch authority.",
+    "native_metadata_fixture": "Owner reports staging metadata and stream toy fixtures; source review confirms fail-closed registered-training checks and four-array policy input boundary. These fixtures do not construct or qualify NativeGame.",
+    "coordinator_source_tests": "Independent 10-test temporary-ledger suite passed exact non-null CAS, failed-disposition ordering, receipt immutability, source-pin rejection, and post-CAS failure preservation. It does not test actual readiness/dispatch-template contract enforcement or run the live failed-predecessor audit."
+  },
+  "qualification_limits": {
+    "actual_native_games": 0,
+    "actual_mps_work": 0,
+    "production_stream_lookups_before_dispatch": 0,
+    "native_shape_staging_telemetry_resource_and_full_path_admission": "unqualified; must be established in the first two counted updates per trajectory after an authorized one-time dispatch",
+    "source_or_cpu_fixture_acceptance_is_not_native_mps_qualification": true,
+    "evaluation": "D11 remains unopened and is not a prerequisite for this training review; no evaluation qualification or dispatch is approved by this review."
+  }
+}
