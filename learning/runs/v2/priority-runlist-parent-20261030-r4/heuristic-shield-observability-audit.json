@@ -1,0 +1,71 @@
+{
+  "RNG": {
+    "AABB_action_path": "No native RNG access or PrivateRng draw in the AabbDodger action branch",
+    "oracle": "Exact simulator/RNG restoration is allowed only in the separately labelled DODGE-004 diagnostic",
+    "random_baseline": "PrivateRng is used by Random only"
+  },
+  "available": [
+    {
+      "item": "Player position/velocity/size, freeze and global speed",
+      "source": "features.rs:456-476",
+      "teacher": "global features0..6"
+    },
+    {
+      "item": "Admitted token geometry and measured motion",
+      "source": "features.rs:478-519",
+      "teacher": "entity features0..11, type/mask"
+    },
+    {
+      "item": "Projected time until lethal and current lethality",
+      "source": "features.rs:270-285,478-519",
+      "teacher": "entity13 scaled to120rawframes and entity15"
+    }
+  ],
+  "decision": {
+    "observation_only_shield": "Requires a new pure allowlisted-array API and observed-motion model",
+    "original_heuristic": "May be evaluated as a fuller-state reference, with information advantage disclosed",
+    "same_information_imitation": "Blocked for exact FullState heuristic; require an observable expert and evaluation, or explicitly propose privileged-label distillation separately"
+  },
+  "input_pins": {
+    "crates/dodge-rl-env/src/features.rs": "78d72ee29fdcf2c0828e26d0a4265b50809f4c9899183332a4c48fb326dc006c",
+    "crates/dodge-rl-env/tests/support/m0_policy.rs": "eeae605299b1018437a54df66f4eabf6e6d4defc20334c1baf93692900601b85",
+    "python/dodge_rl/models/teacher.py": "e4d7f597a2824c2b0d4ba261dddc9d7d1ee1d5592c2fc966a44c54b5ec417e35"
+  },
+  "limits": [
+    "This is not a runtime counterexample or measurement of how often the mismatch occurs in the2048 telemetry seeds.",
+    "It does not establish that privileged information caused the historical score gap.",
+    "Source mapping does not validate the future shield or its safety."
+  ],
+  "mismatches": [
+    {
+      "consequence": "A mask using the full list adds geometry outside the teacher arrays; no lossless same-input equivalence can be claimed.",
+      "heuristic": "m0_policy.rs:203 iterates every FullState enemy",
+      "item": "Complete enemy list versus capped neural tokens",
+      "teacher": "features.rs:399-402 truncates admitted enemies to64"
+    },
+    {
+      "consequence": "First-sample measured zero does not expose analytic velocity. Unknown-motion counters are metadata, not neural inputs.",
+      "heuristic": "m0_policy.rs:218-229 reads enemy.vx/vy/speed and global speed/freeze",
+      "item": "Analytic motion versus measured displacement",
+      "teacher": "features.rs:219-229 measures previous center/extent differences; first sample defaults to zero"
+    },
+    {
+      "consequence": "Do not copy FullState/history access into an observation-only shield.",
+      "heuristic": "m0_policy.rs:160-197 observes every raw frame and uses stable rect indices, active_pattern and raw sh changes; pattern23 id exception at247-260",
+      "item": "Raw-frame history and pattern identity",
+      "teacher": "features.rs exposes selected measured/derived values only; no pattern id or raw sh/history stream"
+    },
+    {
+      "consequence": "Decoded observations are an approximate predictor input, not an exact simulator snapshot.",
+      "heuristic": "Current FullState boxes and fixed-point player state",
+      "item": "Admission and numeric encoding",
+      "teacher": "features.rs:329-370 filters admitted geometry; float32 scaled arrays; rect overflow is an error above16, not silent truncation"
+    }
+  ],
+  "native_games": 0,
+  "new_cohorts": 0,
+  "optimizer_steps": 0,
+  "schema": "dodge_heuristic_shield_observability_static_audit_v1",
+  "scope": "Static source field mapping only; no native fixtures, games, model evaluation or training.",
+  "status": "full_state_heuristic_not_equivalent_to_teacher_input_contract"
+}

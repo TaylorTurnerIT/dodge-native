@@ -1,0 +1,937 @@
+{
+  "budget_references": {
+    "DODGE013_evaluation_seconds": 1841.2557194580004,
+    "DODGE013_worker_receipt_path": "learning/runs/v2/one-frame-training-comparison-luna-20261029-r2/worker-output/worker-result.json",
+    "DODGE013_worker_receipt_sha256": "485f9ae8d65da1b239d3c9b8d44783cf31a12b2b4d6bbc0c5a9b5640f1c25928",
+    "DODGE013_worker_seconds": 20010.239144709005,
+    "M0_results_path": "docs/v2-baseline-results.md",
+    "M0_results_sha256": "5a21f87034ffb43e1a523e9ae3c6f9d45cb0e44520c91d75fe7c63c8471dfc96",
+    "note": "Historical workload references only; no per-packet extrapolation is represented as measured throughput."
+  },
+  "budget_semantics": "Hard proposed work/receipt ceilings, not measured runtime forecasts or a claim every packet fits. Source/resource qualification must forecast completion with20%margin plus IO inside its ceiling; refuse full work if it does not fit. Never silently truncate/resize/reseed/retry. A1 retains its already reviewed frozen2400/2520s protocol; a new packet prefix/forecast gate does not modify that capsule. New packet prefixes are included in the declared main counts and are never rerun or resized after qualification; only resource/count metadata can affect budget admission, never partial efficacy ranking.",
+  "conditional_long_run": {
+    "development_is_not_unread_confirmation": true,
+    "development_seeds_per_look": 1024,
+    "entry_rule": "Prospectively frozen recipe gains on both Q1 and Mean at equal exposure in at least2 training replicas on independent>=1024seed data; no universal claim from game-seed bootstrap alone.",
+    "evaluation_models_per_look": 3,
+    "evaluation_receipt_reserve_seconds": 1440,
+    "final_confirmation_games": 6144,
+    "final_confirmation_not_used_for_selection": true,
+    "id": "G1",
+    "independent_final_confirmation_seed_count_requested": 2048,
+    "launch_authority": false,
+    "maximum_development_looks": 6,
+    "maximum_evaluation_work_cap_seconds": 28800,
+    "maximum_raw_frames_per_trajectory": 117964800,
+    "maximum_total_ceiling_seconds": 96240,
+    "per_trajectory_receipt_reserve_seconds": 600,
+    "per_trajectory_training_work_cap_seconds": 32400,
+    "phase": "ConditionalLongRun",
+    "readiness": "blocked_by_entry_evidence_full_state_resume_and_measured_budget",
+    "records": [
+      "DODGE-023",
+      "DODGE-024",
+      "DODGE-040"
+    ],
+    "selected_recipe_count": 1,
+    "stop_rule": "Maximum budget or finite/resource failure always stops; additionally stop after3 registered development looks without improvement beyond registered noise criterion. No automatic extension/resume.",
+    "total_development_games": 18432,
+    "total_new_development_seed_count_requested": 6144,
+    "training_seeds": 2
+  },
+  "document_path": "docs/review-ideas-and-scaling-plan-20261030.md",
+  "document_sha256": "20a3dd5c48ad6e1b994391836836e1514b1006bfe2a00018a10dd0ce96077905",
+  "evaluation_semantics": "Unless explicitly overridden, training packets request a new stage-specific1024seed exposed development cohort, common K1 sampled primary, all endpoints plus420,1024games/model. Max4models per evaluation shard,3600s work+180s receipts. Any secondary/native-rate evaluations need an explicit separate count/budget. No ranges reserved now.",
+  "fresh_cohorts_opened": 0,
+  "new_launches": 0,
+  "phase0_runtime_packet_ceiling_seconds": 27300,
+  "priority_reconciliation": [
+    "S0 done and fixed512reuse verified; do not rerun it. Resolve held S1 incident and profile before costly budget commitments.",
+    "Follow K inference, paired heuristic, observation-only shield, diagnostic branching and averaging for policy information value; preserve original full-state reference as richer-information.",
+    "Collect per-update diagnostics before new training even though the priority list ranks their logging late; zero historical KL stops does not remove need for numerical telemetry.",
+    "Do not adopt LR decay as a default: retain the user-requested controlled constant/cosine/KL comparison, stage its extra cells after cheap recipe screens.",
+    "Observable-expert imitation is gated by the static mismatch; it is not automatically authorized using FullState labels.",
+    "Long-run monitoring cohorts become exposed development data; keep independent final confirmation separate and retain hard maximum budgets."
+  ],
+  "readiness": "Only A1 already has a concrete reviewed launch package. All other runtime packets need frozen source/registration/review/resource gates and their own explicit go-ahead.",
+  "resource_caps": {
+    "MPS_driver_bytes": 6442450944,
+    "RSS_bytes": 6442450944,
+    "concurrency": "one long training/evaluation campaign; one MPS campaign until separately approved qualification"
+  },
+  "rows": [
+    {
+      "dependencies": [
+        "User approval for exact r1 failure disposition and one r2 attempt"
+      ],
+      "disposable_updates": 16,
+      "distinct_existing_seed_count": 512,
+      "id": "A1",
+      "mode": "disposable_profiling",
+      "name": "S1-r2 disposable profile",
+      "new_game_seed_cohort_count": 0,
+      "phase": "Phase0",
+      "prediction": "Model/observation pipeline may dominate native stepping; no throughput result yet.",
+      "profile_cells": 16,
+      "readiness": "source_reviewed_ready_for_explicit_successor_and_failed_lease_disposition_approval",
+      "receipt_reserve_seconds": 120,
+      "records": [
+        "DODGE-021"
+      ],
+      "retained_weights": false,
+      "total_ceiling_seconds": 2520,
+      "work_cap_seconds": 2400
+    },
+    {
+      "dependencies": [
+        "A1 accepted or separately approved disposition/order",
+        "Frozen matching baseline loop and native replay gate"
+      ],
+      "distinct_existing_seed_count": 2048,
+      "existing_seed_cohort": "consumed telemetry3657433088..3657435135",
+      "groups": "K2,K3 x sampled,argmax; plus first64 seeds x4 saved K1/K4 groups",
+      "id": "A2",
+      "main_prefix_games_included": 256,
+      "mode": "inference_only",
+      "name": "Checkpoint420 K2/K3 zero-shot and parity prefix",
+      "new_game_seed_cohort_count": 0,
+      "new_games": 8192,
+      "parity_games": 256,
+      "phase": "Phase0",
+      "prediction": "Intermediate control rates may interpolate or be non-monotone; no training conclusion.",
+      "readiness": "requires_frozen_source_review_resource_and_user_go_ahead",
+      "receipt_reserve_seconds": 180,
+      "records": [
+        "DODGE-025"
+      ],
+      "total_ceiling_seconds": 3780,
+      "total_games": 8448,
+      "work_cap_seconds": 3600
+    },
+    {
+      "dependencies": [
+        "A2 accepted",
+        "Original heuristic parity; disclose observability audit"
+      ],
+      "distinct_existing_seed_count": 2048,
+      "existing_seed_cohort": "consumed telemetry3657433088..3657435135",
+      "groups": "2 deterministic heuristic K settings; cached420 sampled/argmax baselines",
+      "id": "A3",
+      "information_scope": "Original FullState heuristic is a richer-information reference, not an equal-input expert.",
+      "main_prefix_games_included": 128,
+      "mode": "inference_only",
+      "name": "Paired original AABB heuristic at K4 and K1",
+      "new_game_seed_cohort_count": 0,
+      "new_games": 4096,
+      "phase": "Phase0",
+      "prediction": "K4 should reproduce a sizable gap; K1 direction is untested and may chatter.",
+      "readiness": "requires_frozen_source_review_resource_and_user_go_ahead",
+      "receipt_reserve_seconds": 120,
+      "records": [
+        "DODGE-018"
+      ],
+      "total_ceiling_seconds": 1920,
+      "work_cap_seconds": 1800
+    },
+    {
+      "dependencies": [
+        "DODGE-033 observability contract",
+        "A3 accepted",
+        "Pure-array mask tests, all-safe parity, empty-mask fallback and prefix resource gate"
+      ],
+      "distinct_existing_seed_count": 2048,
+      "existing_seed_cohort": "consumed telemetry3657433088..3657435135",
+      "groups": "K1,K4 x sampled,argmax shielded; cached unshielded baselines",
+      "id": "A4",
+      "main_prefix_games_included": 256,
+      "mode": "inference_only",
+      "name": "Observation-only policy plus12-frame mask",
+      "new_game_seed_cohort_count": 0,
+      "new_games": 8192,
+      "phase": "Phase0",
+      "prediction": "Mask may improve contact-death tail or over-veto useful actions; no safety guarantee.",
+      "readiness": "requires_frozen_source_review_resource_and_user_go_ahead",
+      "receipt_reserve_seconds": 180,
+      "records": [
+        "DODGE-034"
+      ],
+      "shield_contract": {
+        "all_safe": "exact original logits and sampler draw sequence",
+        "argmax_selector": "best original logit among model-admissible actions",
+        "candidate_hold": "same action for12 predicted raw frames; replan every actual K",
+        "decode": "playerxy=64+64*global[0:2],playerv=2.5*global[2:4],size=4*global[4];entitycenter=64+128*entity[0:2],half=64*entity[2:4],motion/extent_change=4*entity[6:10],until_lethal_rawframes=120*entity[13]",
+        "empty_mask": "original unshielded selector with explicit empty-mask flag; never reroll",
+        "hazard_model": "linear observed token motion/extent change and exposed lethality estimate only",
+        "horizon_raw_frames": 12,
+        "inputs": [
+          "global_feats",
+          "entity_feats",
+          "entity_types",
+          "entity_mask"
+        ],
+        "log": [
+          "mask_count",
+          "empty_mask_count",
+          "override_count",
+          "switch_count",
+          "outcomes after strict terminal acceptance"
+        ],
+        "minimum_predicted_clearance_pixels": 4,
+        "native_game_RNG_or_future_access": false,
+        "not_a_safety_guarantee": true,
+        "public_player_physics": "friction0.8,acceleration0.5,clamp[2,125] with declared numeric convention",
+        "sampled_selector": "masked categorical renormalization, one original draw per decision"
+      },
+      "total_ceiling_seconds": 7380,
+      "work_cap_seconds": 7200
+    },
+    {
+      "branch_offsets_raw_frames": [
+        60,
+        45,
+        30,
+        15
+      ],
+      "case_rule": "First12 eligible sampled-K4 normal/kamikaze-body contact deaths in ascending consumed seed order with alive_frames>=60; no case replacement on replay failure.",
+      "continuation_RNG_repetitions": 8,
+      "continuation_horizon_raw_frames": 512,
+      "continuations_total": 1152,
+      "controller_arms": [
+        "K4_resume_held_action_schedule",
+        "K1",
+        "oracle12_then_K4"
+      ],
+      "dependencies": [
+        "A4 harness accepted",
+        "Factual seeded replay and full simulator/history/controller/RNG/held-phase restore parity"
+      ],
+      "distinct_existing_seed_count": 12,
+      "existing_seed_cohort": "consumed telemetry3657433088..3657435135",
+      "id": "A5",
+      "maximum_branch_raw_frames": 811008,
+      "mode": "inference_only",
+      "name": "Counterfactual snapshot branches",
+      "new_game_seed_cohort_count": 0,
+      "new_games": 0,
+      "oracle_probe_count": 432,
+      "oracle_probe_horizon_raw_frames": 12,
+      "phase": "Phase0",
+      "prediction": "K1 or oracle may rescue local failures; failure of finite branches does not prove unavoidable death.",
+      "prefix_replays": 12,
+      "readiness": "requires_frozen_source_review_resource_and_user_go_ahead",
+      "receipt_reserve_seconds": 120,
+      "records": [
+        "DODGE-004"
+      ],
+      "total_ceiling_seconds": 1320,
+      "work_cap_seconds": 1200
+    },
+    {
+      "checkpoint_labels": [
+        360,
+        420,
+        480,
+        540,
+        600
+      ],
+      "dependencies": [
+        "A5 accepted",
+        "Initial model/weights/keys parity; no averaging optimizer states"
+      ],
+      "distinct_existing_seed_count": 1024,
+      "existing_seed_cohort": "consumed telemetry3657433088..3657435135",
+      "groups": "4 non420 constituents plus prespecified equal average x K1,K4 sampled x1024;420 cached; selector contrasts use A2/cached four-K data",
+      "id": "A6",
+      "main_prefix_games_included": 640,
+      "mode": "inference_only",
+      "name": "Five-checkpoint average and selector analysis",
+      "new_game_seed_cohort_count": 0,
+      "new_games": 10240,
+      "phase": "Phase0",
+      "prediction": "Arithmetic average may smooth or dilute420; one-lineage exploratory comparison.",
+      "readiness": "requires_frozen_source_review_resource_and_user_go_ahead",
+      "receipt_reserve_seconds": 180,
+      "records": [
+        "DODGE-019"
+      ],
+      "total_ceiling_seconds": 5580,
+      "work_cap_seconds": 5400
+    },
+    {
+      "actions": 9,
+      "dependencies": [
+        "A6 accepted or separately approved source-only scheduling"
+      ],
+      "distinct_existing_seed_count": 0,
+      "id": "A7",
+      "maximum_synthetic_raw_steps": 73728,
+      "mode": "synthetic_source_qualification",
+      "name": "D4 Rust equivariance fixtures",
+      "new_game_seed_cohort_count": 0,
+      "new_games": 0,
+      "phase": "Phase0",
+      "prediction": "Clamp symmetry may hold but spawn/RNG/order or feature conventions may break full equivariance.",
+      "raw_steps_per_fixture": 64,
+      "readiness": "source_tests_not_yet_prepared",
+      "receipt_reserve_seconds": 120,
+      "records": [
+        "DODGE-020"
+      ],
+      "symmetries": 8,
+      "synthetic_fixture_count": 16,
+      "total_ceiling_seconds": 1020,
+      "work_cap_seconds": 900
+    },
+    {
+      "K": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "dependencies": [
+        "A1 accepted",
+        "Source-reviewed generic K capsule and pipeline implementation"
+      ],
+      "disposable_updates": 24,
+      "distinct_existing_seed_count": 512,
+      "envs": 64,
+      "id": "A8",
+      "implementations": 2,
+      "maximum_nominal_raw_frames": 2359296,
+      "mode": "disposable_pipeline_qualification",
+      "name": "S2 baseline/optimized parity and timing",
+      "new_game_seed_cohort_count": 0,
+      "phase": "Phase0",
+      "prediction": "Faster matched pipeline is possible;10x is a target and parity/caps dominate admission.",
+      "raw_frames_per_env_per_update": 1536,
+      "readiness": "needs_S1_results_and_frozen_pipeline_source",
+      "receipt_reserve_seconds": 180,
+      "records": [
+        "DODGE-035"
+      ],
+      "retained_weights": false,
+      "total_ceiling_seconds": 3780,
+      "updates_per_implementation_per_K": 3,
+      "work_cap_seconds": 3600
+    },
+    {
+      "arms": 2,
+      "dependencies": [
+        "A8 speed/memory accepted",
+        "Complete per-update telemetry and exact420 restore gates"
+      ],
+      "distinct_existing_training_seed_count": 512,
+      "evaluation_games": 0,
+      "id": "B0",
+      "mode": "short_training_diagnostic_no_efficacy_claim",
+      "name": "Instrumented warm-start diagnostic before horizon tuning",
+      "new_game_seed_cohort_count": 0,
+      "phase": "Phase1",
+      "prediction": "K1/K4 metric divergence may suggest a mechanism; telemetry associations are not causal proof.",
+      "raw_frames_per_training_trajectory": 1179648,
+      "readiness": "requires_registered_runner_and_training_go_ahead",
+      "receipt_reserve_seconds": 180,
+      "records": [
+        "DODGE-022"
+      ],
+      "total_ceiling_seconds": 5580,
+      "training_seeds_per_arm": 2,
+      "training_trajectories": 4,
+      "work_cap_seconds": 5400
+    },
+    {
+      "arms": 13,
+      "dependencies": [
+        "B0 accepted",
+        "Locked control recipe and per-decision versus game-time unit definitions",
+        "Explicit approval of13cells and fresh evaluation cohort"
+      ],
+      "evaluation_games": 27648,
+      "evaluation_models": 27,
+      "evaluation_receipt_reserve_seconds": 1260,
+      "evaluation_shards": 7,
+      "evaluation_work_cap_seconds": 25200,
+      "fresh_evaluation_seed_count_requested": 1024,
+      "id": "B1",
+      "mode": "training_plus_separate_terminal_evaluation_packets",
+      "name": "Gamma/lambda horizon screen at K1/K4",
+      "new_game_seed_cohorts_opened": 0,
+      "per_trajectory_work_caps_seconds": {
+        "K1": 5400,
+        "K4": 1800
+      },
+      "phase": "Phase1",
+      "prediction": "Shorter K1 horizons may stabilize credit or remove useful delayed reward; Q1 and Mean decide, not smaller KL alone.",
+      "raw_frames_per_training_trajectory": 2359296,
+      "readiness": "conditional_plan_only_not_launch_ready",
+      "receipt_reserve_seconds": 4680,
+      "records": [
+        "DODGE-028"
+      ],
+      "total_ceiling_seconds": 101880,
+      "training_seeds_per_arm": 2,
+      "training_trajectories": 26,
+      "work_cap_seconds": 97200
+    },
+    {
+      "arms": 2,
+      "dependencies": [
+        "A1/A8 accepted",
+        "Frozen recipe/source/seed ledger/real resource qualification",
+        "Explicit approval of this packet and new evaluation cohort"
+      ],
+      "evaluation_controller": "common K1 sampled primary",
+      "evaluation_games": 5120,
+      "evaluation_models": 5,
+      "evaluation_receipt_reserve_seconds": 360,
+      "evaluation_shards": 2,
+      "evaluation_work_cap_seconds": 7200,
+      "fresh_evaluation_seed_count_requested": 1024,
+      "id": "B2",
+      "mode": "training_plus_separate_terminal_evaluation_packets",
+      "name": "K4 pool-versus-fresh seed contrast",
+      "new_game_seed_cohorts_opened": 0,
+      "per_trajectory_work_cap_seconds": 10800,
+      "phase": "Phase1",
+      "prediction": "Confirmed seed reuse makes diversity plausible, not a measured cause of plateau.",
+      "raw_frames_per_training_trajectory": 11796480,
+      "readiness": "conditional_plan_only_not_launch_ready",
+      "receipt_reserve_seconds": 720,
+      "records": [
+        "DODGE-023"
+      ],
+      "total_ceiling_seconds": 43920,
+      "training_seeds_per_arm": 2,
+      "training_trajectories": 4,
+      "work_cap_seconds": 43200
+    },
+    {
+      "arms": 6,
+      "dependencies": [
+        "A1/A8 accepted",
+        "Frozen recipe/source/seed ledger/real resource qualification",
+        "Explicit approval of this packet and new evaluation cohort"
+      ],
+      "evaluation_controller": "common K1 sampled primary",
+      "evaluation_games": 13312,
+      "evaluation_models": 13,
+      "evaluation_receipt_reserve_seconds": 720,
+      "evaluation_shards": 4,
+      "evaluation_work_cap_seconds": 14400,
+      "fresh_evaluation_seed_count_requested": 1024,
+      "id": "B3",
+      "mode": "training_plus_separate_terminal_evaluation_packets",
+      "name": "S3 longer-rollout versus more-env allocation",
+      "new_game_seed_cohorts_opened": 0,
+      "per_trajectory_work_cap_seconds": 5400,
+      "phase": "Phase1",
+      "prediction": "3 allocation shapes at each K1/K4; fixed batch separates allocation from simply adding transitions.",
+      "raw_frames_per_training_trajectory": 2359296,
+      "readiness": "conditional_plan_only_not_launch_ready",
+      "receipt_reserve_seconds": 2160,
+      "records": [
+        "DODGE-032"
+      ],
+      "total_ceiling_seconds": 66960,
+      "training_seeds_per_arm": 2,
+      "training_trajectories": 12,
+      "work_cap_seconds": 64800
+    },
+    {
+      "arms": 2,
+      "dependencies": [
+        "A1/A8 accepted",
+        "Frozen recipe/source/seed ledger/real resource qualification",
+        "Explicit approval of this packet and new evaluation cohort"
+      ],
+      "evaluation_controller": "common K1 sampled primary",
+      "evaluation_games": 5120,
+      "evaluation_models": 5,
+      "evaluation_receipt_reserve_seconds": 360,
+      "evaluation_shards": 2,
+      "evaluation_work_cap_seconds": 7200,
+      "fresh_evaluation_seed_count_requested": 1024,
+      "id": "B4",
+      "mode": "training_plus_separate_terminal_evaluation_packets",
+      "name": "S3 constant-LR K1/K4 scaled baseline cells",
+      "new_game_seed_cohorts_opened": 0,
+      "per_trajectory_work_cap_seconds": 10800,
+      "phase": "Phase1",
+      "prediction": "Scaling may help at equal frames; no free K1 benefit assumed.",
+      "raw_frames_per_training_trajectory": 11796480,
+      "readiness": "conditional_plan_only_not_launch_ready",
+      "receipt_reserve_seconds": 720,
+      "records": [
+        "DODGE-023",
+        "DODGE-027"
+      ],
+      "total_ceiling_seconds": 43920,
+      "training_seeds_per_arm": 2,
+      "training_trajectories": 4,
+      "work_cap_seconds": 43200
+    },
+    {
+      "arms": 2,
+      "demonstration_existing_seed_count": 512,
+      "demonstration_games_cap": 512,
+      "demonstration_work_cap_seconds": 1800,
+      "dependencies": [
+        "A1/A8 accepted",
+        "Frozen recipe/source/seed ledger/real resource qualification",
+        "Explicit approval of this packet and new evaluation cohort"
+      ],
+      "evaluation_controller": "common K1 sampled primary",
+      "evaluation_games": 5120,
+      "evaluation_models": 5,
+      "evaluation_receipt_reserve_seconds": 360,
+      "evaluation_shards": 2,
+      "evaluation_work_cap_seconds": 7200,
+      "extra_gate": "Blocked until an expert using teacher arrays is evaluated; original FullState heuristic cannot satisfy equal-information gate.",
+      "fresh_evaluation_seed_count_requested": 1024,
+      "id": "B5",
+      "mode": "training_plus_separate_terminal_evaluation_packets",
+      "name": "Observable-expert imitation versus matched PPO",
+      "new_game_seed_cohorts_opened": 0,
+      "per_trajectory_work_cap_seconds": 5400,
+      "phase": "Phase1",
+      "prediction": "Observable imitation may help, but richer-state historical results are not an attainable guarantee.",
+      "raw_frames_per_training_trajectory": 2359296,
+      "readiness": "conditional_plan_only_not_launch_ready",
+      "receipt_reserve_seconds": 720,
+      "records": [
+        "DODGE-036"
+      ],
+      "total_ceiling_seconds": 22320,
+      "training_seeds_per_arm": 2,
+      "training_trajectories": 4,
+      "work_cap_seconds": 21600
+    },
+    {
+      "arms": 2,
+      "dependencies": [
+        "A1/A8 accepted",
+        "Frozen recipe/source/seed ledger/real resource qualification",
+        "Explicit approval of this packet and new evaluation cohort"
+      ],
+      "evaluation_controller": "common K1 sampled primary",
+      "evaluation_games": 5120,
+      "evaluation_models": 5,
+      "evaluation_receipt_reserve_seconds": 360,
+      "evaluation_shards": 2,
+      "evaluation_work_cap_seconds": 7200,
+      "fresh_evaluation_seed_count_requested": 1024,
+      "id": "B6",
+      "mode": "training_plus_separate_terminal_evaluation_packets",
+      "name": "S3 constant-LR K2/K3 trained cells",
+      "new_game_seed_cohorts_opened": 0,
+      "per_trajectory_work_cap_seconds": 10800,
+      "phase": "Phase1",
+      "prediction": "Zero-shot interpolation need not predict training optimum; both rates remain explicit.",
+      "raw_frames_per_training_trajectory": 11796480,
+      "readiness": "conditional_plan_only_not_launch_ready",
+      "receipt_reserve_seconds": 720,
+      "records": [
+        "DODGE-023",
+        "DODGE-025"
+      ],
+      "total_ceiling_seconds": 43920,
+      "training_seeds_per_arm": 2,
+      "training_trajectories": 4,
+      "work_cap_seconds": 43200
+    },
+    {
+      "arms": 3,
+      "dependencies": [
+        "A1/A8 accepted",
+        "Frozen recipe/source/seed ledger/real resource qualification",
+        "Explicit approval of this packet and new evaluation cohort"
+      ],
+      "evaluation_controller": "common K1 sampled primary",
+      "evaluation_games": 7168,
+      "evaluation_models": 7,
+      "evaluation_receipt_reserve_seconds": 360,
+      "evaluation_shards": 2,
+      "evaluation_work_cap_seconds": 7200,
+      "fresh_evaluation_seed_count_requested": 1024,
+      "id": "B7",
+      "mode": "training_plus_separate_terminal_evaluation_packets",
+      "name": "Annealed K and per-episode sampled K versus fixed K",
+      "new_game_seed_cohorts_opened": 0,
+      "per_trajectory_work_cap_seconds": 10800,
+      "phase": "Phase1",
+      "prediction": "Gradual/mixed rates may help adaptation or create hidden-rate/credit instability.",
+      "raw_frames_per_training_trajectory": 11796480,
+      "readiness": "conditional_plan_only_not_launch_ready",
+      "receipt_reserve_seconds": 1080,
+      "records": [
+        "DODGE-026"
+      ],
+      "total_ceiling_seconds": 65880,
+      "training_seeds_per_arm": 2,
+      "training_trajectories": 6,
+      "work_cap_seconds": 64800
+    },
+    {
+      "arms": 4,
+      "dependencies": [
+        "A1/A8 accepted",
+        "Frozen recipe/source/seed ledger/real resource qualification",
+        "Explicit approval of this packet and new evaluation cohort"
+      ],
+      "evaluation_controller": "common K1 sampled primary",
+      "evaluation_games": 9216,
+      "evaluation_models": 9,
+      "evaluation_receipt_reserve_seconds": 540,
+      "evaluation_shards": 3,
+      "evaluation_work_cap_seconds": 10800,
+      "fresh_evaluation_seed_count_requested": 1024,
+      "id": "B8",
+      "mode": "training_plus_separate_terminal_evaluation_packets",
+      "name": "S4 constant-LR scratch K1/K2/K3/K4 cells",
+      "new_game_seed_cohorts_opened": 0,
+      "per_trajectory_work_cap_seconds": 10800,
+      "phase": "Phase1",
+      "prediction": "Initial equal-frame scratch results can lag420 because420 has substantial ancestry; do not reject scratch solely on that screen.",
+      "raw_frames_per_training_trajectory": 11796480,
+      "readiness": "conditional_plan_only_not_launch_ready",
+      "receipt_reserve_seconds": 1440,
+      "records": [
+        "DODGE-024"
+      ],
+      "total_ceiling_seconds": 87840,
+      "training_seeds_per_arm": 2,
+      "training_trajectories": 8,
+      "work_cap_seconds": 86400
+    },
+    {
+      "arms": 16,
+      "dependencies": [
+        "A1/A8 accepted",
+        "Frozen recipe/source/seed ledger/real resource qualification",
+        "Explicit approval of this packet and new evaluation cohort"
+      ],
+      "evaluation_controller": "common K1 sampled primary",
+      "evaluation_games": 50176,
+      "evaluation_models": 49,
+      "evaluation_receipt_reserve_seconds": 2340,
+      "evaluation_shards": 13,
+      "evaluation_work_cap_seconds": 46800,
+      "fresh_evaluation_seed_count_requested": 1024,
+      "full_matrix_evaluation_games": 50176,
+      "full_matrix_evaluation_models": 49,
+      "full_matrix_evaluation_receipt_reserve_seconds": 2340,
+      "full_matrix_evaluation_shards": 13,
+      "full_matrix_evaluation_work_cap_seconds": 46800,
+      "full_matrix_fresh_evaluation_seed_count_requested": 1024,
+      "id": "C1",
+      "mode": "training_plus_separate_terminal_evaluation_packets",
+      "name": "Complete three-schedule fixed-K matrix, both initializations",
+      "new_game_seed_cohorts_opened": 0,
+      "per_trajectory_work_cap_seconds": 10800,
+      "phase": "Phase2",
+      "prediction": "Remaining warmup/cosine and KL-adaptive cells total32 trajectories; with16 constant cells above, the original48-cell-replica matrix remains explicit.",
+      "raw_frames_per_training_trajectory": 11796480,
+      "readiness": "conditional_plan_only_not_launch_ready",
+      "receipt_reserve_seconds": 5760,
+      "records": [
+        "DODGE-027"
+      ],
+      "total_ceiling_seconds": 351360,
+      "training_seeds_per_arm": 2,
+      "training_trajectories": 32,
+      "work_cap_seconds": 345600
+    },
+    {
+      "arms": 4,
+      "dependencies": [
+        "A1/A8 accepted",
+        "Frozen recipe/source/seed ledger/real resource qualification",
+        "Explicit approval of this packet and new evaluation cohort"
+      ],
+      "evaluation_controller": "common K1 sampled primary",
+      "evaluation_games": 9216,
+      "evaluation_models": 9,
+      "evaluation_receipt_reserve_seconds": 540,
+      "evaluation_shards": 3,
+      "evaluation_work_cap_seconds": 10800,
+      "fresh_evaluation_seed_count_requested": 1024,
+      "id": "C2",
+      "mode": "training_plus_separate_terminal_evaluation_packets",
+      "name": "Per-epoch GAE refresh at K1/K4",
+      "new_game_seed_cohorts_opened": 0,
+      "per_trajectory_work_cap_seconds": 5400,
+      "phase": "Phase2",
+      "prediction": "Refresh may help or add noisy targets; unchanged four-epoch maximum and0.03 KL stop.",
+      "raw_frames_per_training_trajectory": 2359296,
+      "readiness": "conditional_plan_only_not_launch_ready",
+      "receipt_reserve_seconds": 1440,
+      "records": [
+        "DODGE-031"
+      ],
+      "total_ceiling_seconds": 44640,
+      "training_seeds_per_arm": 2,
+      "training_trajectories": 8,
+      "work_cap_seconds": 43200
+    },
+    {
+      "arms": 8,
+      "dependencies": [
+        "A1/A8 accepted",
+        "Frozen recipe/source/seed ledger/real resource qualification",
+        "Explicit approval of this packet and new evaluation cohort"
+      ],
+      "evaluation_controller": "common K1 sampled primary",
+      "evaluation_games": 17408,
+      "evaluation_models": 17,
+      "evaluation_receipt_reserve_seconds": 900,
+      "evaluation_shards": 5,
+      "evaluation_work_cap_seconds": 18000,
+      "fresh_evaluation_seed_count_requested": 1024,
+      "id": "C3",
+      "mode": "training_plus_separate_terminal_evaluation_packets",
+      "name": "Observation/value normalization2x2 at K1/K4",
+      "new_game_seed_cohorts_opened": 0,
+      "per_trajectory_work_cap_seconds": 5400,
+      "phase": "Phase2",
+      "prediction": "Normalization may stabilize or shift policy/value scales; components remain distinguishable.",
+      "raw_frames_per_training_trajectory": 2359296,
+      "readiness": "conditional_plan_only_not_launch_ready",
+      "receipt_reserve_seconds": 2880,
+      "records": [
+        "DODGE-030"
+      ],
+      "total_ceiling_seconds": 89280,
+      "training_seeds_per_arm": 2,
+      "training_trajectories": 16,
+      "work_cap_seconds": 86400
+    },
+    {
+      "arms": 4,
+      "dependencies": [
+        "A1/A8 accepted",
+        "Frozen recipe/source/seed ledger/real resource qualification",
+        "Explicit approval of this packet and new evaluation cohort"
+      ],
+      "evaluation_controller": "common K1 sampled primary",
+      "evaluation_games": 9216,
+      "evaluation_models": 9,
+      "evaluation_receipt_reserve_seconds": 540,
+      "evaluation_shards": 3,
+      "evaluation_work_cap_seconds": 10800,
+      "fresh_evaluation_seed_count_requested": 1024,
+      "id": "C4",
+      "mode": "training_plus_separate_terminal_evaluation_packets",
+      "name": "Shared/separate actor-critic encoders at K1/K4",
+      "new_game_seed_cohorts_opened": 0,
+      "per_trajectory_work_cap_seconds": 5400,
+      "phase": "Phase2",
+      "prediction": "Extra capacity/cost is a competing explanation for any gain.",
+      "raw_frames_per_training_trajectory": 2359296,
+      "readiness": "conditional_plan_only_not_launch_ready",
+      "receipt_reserve_seconds": 1440,
+      "records": [
+        "DODGE-029"
+      ],
+      "total_ceiling_seconds": 44640,
+      "training_seeds_per_arm": 2,
+      "training_trajectories": 8,
+      "work_cap_seconds": 43200
+    },
+    {
+      "arms": 6,
+      "dependencies": [
+        "A1/A8 accepted",
+        "Frozen recipe/source/seed ledger/real resource qualification",
+        "Explicit approval of this packet and new evaluation cohort"
+      ],
+      "evaluation_controller": "common K1 sampled primary",
+      "evaluation_games": 13312,
+      "evaluation_models": 13,
+      "evaluation_receipt_reserve_seconds": 720,
+      "evaluation_shards": 4,
+      "evaluation_work_cap_seconds": 14400,
+      "fresh_evaluation_seed_count_requested": 1024,
+      "id": "C5",
+      "mode": "training_plus_separate_terminal_evaluation_packets",
+      "name": "Three entropy recipes at K1/K4",
+      "new_game_seed_cohorts_opened": 0,
+      "per_trajectory_work_cap_seconds": 5400,
+      "phase": "Phase2",
+      "prediction": "Lower switching or entropy is not automatically better survival.",
+      "raw_frames_per_training_trajectory": 2359296,
+      "readiness": "conditional_plan_only_not_launch_ready",
+      "receipt_reserve_seconds": 2160,
+      "records": [
+        "DODGE-037"
+      ],
+      "total_ceiling_seconds": 66960,
+      "training_seeds_per_arm": 2,
+      "training_trajectories": 12,
+      "work_cap_seconds": 64800
+    },
+    {
+      "arms": 4,
+      "dependencies": [
+        "A1/A8 accepted",
+        "Frozen recipe/source/seed ledger/real resource qualification",
+        "Explicit approval of this packet and new evaluation cohort"
+      ],
+      "evaluation_controller": "common K1 sampled primary",
+      "evaluation_games": 9216,
+      "evaluation_models": 9,
+      "evaluation_receipt_reserve_seconds": 540,
+      "evaluation_shards": 3,
+      "evaluation_work_cap_seconds": 10800,
+      "fresh_evaluation_seed_count_requested": 1024,
+      "id": "C6",
+      "mode": "training_plus_separate_terminal_evaluation_packets",
+      "name": "Original versus survival-only reward at K1/K4",
+      "new_game_seed_cohorts_opened": 0,
+      "per_trajectory_work_cap_seconds": 5400,
+      "phase": "Phase2",
+      "prediction": "Survival gains may reflect delayed score-gated difficulty, not better avoidance.",
+      "raw_frames_per_training_trajectory": 2359296,
+      "readiness": "conditional_plan_only_not_launch_ready",
+      "receipt_reserve_seconds": 1440,
+      "records": [
+        "DODGE-038"
+      ],
+      "total_ceiling_seconds": 44640,
+      "training_seeds_per_arm": 2,
+      "training_trajectories": 8,
+      "work_cap_seconds": 43200
+    },
+    {
+      "arms": 7,
+      "dependencies": [
+        "A1/A8 accepted",
+        "Frozen recipe/source/seed ledger/real resource qualification",
+        "Explicit approval of this packet and new evaluation cohort"
+      ],
+      "evaluation_controller": "common K1 sampled primary",
+      "evaluation_games": 15360,
+      "evaluation_models": 15,
+      "evaluation_receipt_reserve_seconds": 720,
+      "evaluation_shards": 4,
+      "evaluation_work_cap_seconds": 14400,
+      "fresh_evaluation_seed_count_requested": 1024,
+      "id": "C7",
+      "mode": "training_plus_separate_terminal_evaluation_packets",
+      "name": "Single-change inputs/heads/D4/depth versus base",
+      "new_game_seed_cohorts_opened": 0,
+      "per_trajectory_work_cap_seconds": 5400,
+      "phase": "Phase2",
+      "prediction": "Seven candidate conditions at a locked primary K; D4 arm blocked without equivariance acceptance.",
+      "raw_frames_per_training_trajectory": 2359296,
+      "readiness": "conditional_plan_only_not_launch_ready",
+      "receipt_reserve_seconds": 2520,
+      "records": [
+        "DODGE-039"
+      ],
+      "total_ceiling_seconds": 78120,
+      "training_seeds_per_arm": 2,
+      "training_trajectories": 14,
+      "work_cap_seconds": 75600
+    },
+    {
+      "K": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "dependencies": [
+        "A5 full-state restore harness",
+        "Model/Adam/RNG/scheduler/normalizer identity and exact next-step parity"
+      ],
+      "disposable_updates": 64,
+      "distinct_existing_seed_count": 512,
+      "id": "C8",
+      "implementations": 2,
+      "mode": "disposable_state_restore_qualification",
+      "name": "Complete live-state carry-over qualification",
+      "new_game_seed_cohort_count": 0,
+      "phase": "Phase2",
+      "prediction": "Exact carry-over avoids lost live games; whether it improves Q1 remains unobserved.",
+      "readiness": "needs_full_snapshot_source_and_explicit_qualification_go_ahead",
+      "receipt_reserve_seconds": 180,
+      "records": [
+        "DODGE-040"
+      ],
+      "retained_weights": false,
+      "total_ceiling_seconds": 3780,
+      "updates_per_implementation_per_K": 8,
+      "work_cap_seconds": 3600
+    },
+    {
+      "arms": 2,
+      "dependencies": [
+        "A1/A8 accepted",
+        "Frozen recipe/source/seed ledger/real resource qualification",
+        "Explicit approval of this packet and new evaluation cohort"
+      ],
+      "evaluation_controller": "common K1 sampled primary",
+      "evaluation_games": 5120,
+      "evaluation_models": 5,
+      "evaluation_receipt_reserve_seconds": 360,
+      "evaluation_shards": 2,
+      "evaluation_work_cap_seconds": 7200,
+      "fresh_evaluation_seed_count_requested": 1024,
+      "id": "C9",
+      "mode": "training_plus_separate_terminal_evaluation_packets",
+      "name": "Ordinary versus snapshot-prioritized state starts",
+      "new_game_seed_cohorts_opened": 0,
+      "per_trajectory_work_cap_seconds": 5400,
+      "phase": "Phase2",
+      "prediction": "Fresh on-policy snapshot starts may help where static hard-seed weighting failed, or overfit local states.",
+      "raw_frames_per_training_trajectory": 2359296,
+      "readiness": "conditional_plan_only_not_launch_ready",
+      "receipt_reserve_seconds": 720,
+      "records": [
+        "DODGE-041"
+      ],
+      "total_ceiling_seconds": 22320,
+      "training_seeds_per_arm": 2,
+      "training_trajectories": 4,
+      "work_cap_seconds": 21600
+    },
+    {
+      "arms": 2,
+      "dependencies": [
+        "A1/A8 accepted",
+        "Frozen recipe/source/seed ledger/real resource qualification",
+        "Explicit approval of this packet and new evaluation cohort"
+      ],
+      "evaluation_controller": "common K1 sampled primary",
+      "evaluation_games": 5120,
+      "evaluation_models": 5,
+      "evaluation_receipt_reserve_seconds": 360,
+      "evaluation_shards": 2,
+      "evaluation_work_cap_seconds": 7200,
+      "extra_gate": "Late reservation only: student-specific data/source/resource registration is absent; not an approval-ready run.",
+      "fresh_evaluation_seed_count_requested": 1024,
+      "id": "C10",
+      "mode": "training_plus_separate_terminal_evaluation_packets",
+      "name": "Vision student supervision variants, last",
+      "new_game_seed_cohorts_opened": 0,
+      "per_trajectory_work_cap_seconds": 28800,
+      "phase": "Phase2",
+      "prediction": "A stronger accepted teacher may improve distillation; student observability and pixel pipeline remain separate unknowns.",
+      "raw_frames_per_training_trajectory": 11796480,
+      "readiness": "conditional_plan_only_not_launch_ready",
+      "receipt_reserve_seconds": 720,
+      "records": [
+        "DODGE-042"
+      ],
+      "total_ceiling_seconds": 115920,
+      "training_seeds_per_arm": 2,
+      "training_trajectories": 4,
+      "work_cap_seconds": 115200
+    }
+  ],
+  "schema": "dodge_priority_order_and_budget_request_v4",
+  "source_audit_completed_path": "learning/runs/v2/priority-runlist-parent-20261030-r4/heuristic-shield-observability-audit.json",
+  "source_audit_sha256": "eefd11b4bd422bdaee455cf1b5e6f69c8c39c2482e97efc90f6a88757395e1b1",
+  "status": "proposal_only_not_global_launch_authority"
+}

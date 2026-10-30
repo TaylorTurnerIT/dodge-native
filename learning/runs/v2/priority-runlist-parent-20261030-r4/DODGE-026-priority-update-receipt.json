@@ -1,0 +1,80 @@
+{
+  "id": "DODGE-026",
+  "project": "dodge-native",
+  "title": "Propose K annealing and per-episode sampled control rates",
+  "status": "planned",
+  "doing": "Keep two separately gated untried options after the fixed-K matrix: globally anneal4/3/2/1 on a registered raw-frame clock, or sample K from1/2/3/4 at episode start and hold it for that episode. Specify K observability, per-transition discounts, rollout accounting and live-state continuity before implementation or launch.",
+  "expected": "Gradual rate changes may ease warm-start adaptation, while sampled K may produce a more flexible policy. Either can instead impair learning through changing transition times, hidden K or mixed credit horizons; these mechanisms are untested.",
+  "actual": null,
+  "why": null,
+  "next_step": "After fixed-K evidence, specify and review phase fractions or episode-K distribution, K observability, per-transition discount/GAE and state continuity. Do not patch an old capsule or launch.",
+  "actual_kind": "unobserved",
+  "prediction_timing": "before_run",
+  "parent_id": "DODGE-023",
+  "revision": 3,
+  "created_at": "2026-10-30T06:03:26.051067+00:00",
+  "updated_at": "2026-10-30T06:50:29.950412+00:00",
+  "tags": [
+    "control-rate",
+    "annealing",
+    "sampled-K"
+  ],
+  "metadata": {
+    "priority_runlist_v4": {
+      "launch_authority": false,
+      "packets": [
+        "B7"
+      ],
+      "proposal_path": "learning/runs/v2/priority-runlist-parent-20261030-r4/priority-run-list-v4.json",
+      "proposal_sha256": "246b2b9e1043ea5e8dbe99bef2640b6b6a20faa4bd851a293d6bb1111c5d782e"
+    }
+  },
+  "evidence": [
+    {
+      "id": "3d2280b7e1b54a61aba88642deb9486e",
+      "experiment_id": "DODGE-026",
+      "kind": "plan",
+      "label": "User-directed second steer: control-rate hyperparameter and LR schedules",
+      "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md",
+      "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb",
+      "recorded_at": "2026-10-30T06:03:26.051421+00:00"
+    },
+    {
+      "id": "6c144bdd712649c9bb44294023f9ccff",
+      "experiment_id": "DODGE-026",
+      "kind": "plan",
+      "label": "Ordered approval packets with seed counts, hard ceilings and readiness",
+      "uri": "learning/runs/v2/priority-runlist-parent-20261030-r4/priority-run-list-v4.json",
+      "sha256": "246b2b9e1043ea5e8dbe99bef2640b6b6a20faa4bd851a293d6bb1111c5d782e",
+      "recorded_at": "2026-10-30T06:50:29.950754+00:00"
+    },
+    {
+      "id": "a60a7687eaaa490abe7f831ac6977a60",
+      "experiment_id": "DODGE-026",
+      "kind": "plan",
+      "label": "Priority reconciliation, observation-only shield and long-run gate",
+      "uri": "docs/review-ideas-and-scaling-plan-20261030.md",
+      "sha256": "20a3dd5c48ad6e1b994391836836e1514b1006bfe2a00018a10dd0ce96077905",
+      "recorded_at": "2026-10-30T06:50:29.950791+00:00"
+    },
+    {
+      "id": "ddf3bb9962ea442f8c139ff7d33604b0",
+      "experiment_id": "DODGE-026",
+      "kind": "plan",
+      "label": "Expanded fixed-K, dynamic-K and scheduler comparison proposal",
+      "uri": "learning/runs/v2/control-rate-schedule-proposal-parent-20261030-r2/K-and-LR-scaling-proposal-v2.json",
+      "sha256": "4678d37d19e87ab31e6d2263e4df189972273dd3cc1d3bf08d13f919b4ca4c3a",
+      "recorded_at": "2026-10-30T06:06:57.399871+00:00"
+    },
+    {
+      "id": "f1b04748726e49268290469b99f1319f",
+      "experiment_id": "DODGE-026",
+      "kind": "plan",
+      "label": "Full review idea ledger updated for user second steer",
+      "uri": "docs/review-ideas-and-scaling-plan-20261030.md",
+      "sha256": "fae0eebb76925b4334a2baa0f2da1bba7745e9e4176dcb20573e1ad88132ab4a",
+      "recorded_at": "2026-10-30T06:06:57.399903+00:00"
+    }
+  ],
+  "measurements": []
+}

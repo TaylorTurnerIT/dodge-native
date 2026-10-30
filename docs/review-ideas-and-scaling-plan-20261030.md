@@ -8,9 +8,9 @@ Evidence base: checkpoint 420 death telemetry (`learning/reports/death-telemetry
 
 ## Facts that change the picture
 
-1. **The hand-written heuristic runs at 4-frame control, not 1-frame.** `docs/v2-baseline-campaign.md:21`: "Hold each policy action for at most four raw frames." It scores 6,115 mean alive frames (1,000 episodes, 15 capped) against 2,626 for checkpoint 420 with sampled actions at the same control rate (DODGE-012) and 4,387 at 1-frame. The cohorts are not paired, but the gap is large. The heuristic (`crates/dodge-rl-env/tests/support/m0_policy.rs`) simulates the player's inertia exactly, extrapolates every hazard linearly, looks 12 frames ahead over all 9 actions and keeps only actions that stay at least 4 px clear. It reads full game state, like the privileged teacher. So a 12-frame look-ahead with an exact player model beats the learned policy at its own control rate: the failure looks like short-horizon planning, not a missing 1-frame reflex.
-2. **The whole training lineage is only a few compute-hours.** Production training ran at about 4k raw frames/s end to end (72 updates = 4.71M frames in 1,188 s, evaluations included). S0 corrected the numbering: checkpoint420 is continuation420, cumulative852. About27.5M raw frames covers those420 continuation updates only, not the full selected ancestry or discarded campaign compute. A complete ancestral compute total remains to be reconciled. The headless engine alone does about 14.5M raw frames/s (`docs/v2-foundation-progress.md`), roughly 3,500x faster than the training loop. Throughput is limited by the Python and model pipeline, not the game.
-3. **The 64 and its neighbours are conservative operating choices, not derived values.** `docs/v2-m3-run-protocol.json` (registered 2026-10-24 before any probe): `training_batch_size` 64, `rollout_decisions` 256, minibatch 512 ("a conservative initial choice under the 6 GiB budget; the Opus proposal used 2,048. Neither has measured model-throughput evidence", `docs/v2-teacher-training-plan.md:37`), 1,800 s per stage, a hard UTC cutoff, 6 GiB RSS and MPS caps. Observed peaks were about 1 GB RSS and 2.4 GB MPS, so there is headroom under the stated cap.
+1. **The hand-written heuristic runs at 4-frame control, not 1-frame.** `docs/v2-baseline-campaign.md:21`: "Hold each policy action for at most four raw frames." It scores 6,115 mean alive frames (1,000 episodes, 15 capped) against 2,626 for checkpoint 420 with sampled actions at the same control rate (DODGE-012) and 4,387 at 1-frame. The cohorts are not paired, but the gap is large. The heuristic (`crates/dodge-rl-env/tests/support/m0_policy.rs`) simulates the player's inertia exactly, extrapolates every hazard linearly, looks 12 frames ahead over all 9 actions and keeps only actions that stay at least 4 px clear. It reads FullState, while the teacher receives capped, derived allowlisted arrays; DODGE-033 found that these are not information-equivalent. So a 12-frame look-ahead with an exact player model beats the learned policy at its own control rate: this motivates a planning intervention, but the unpaired cohorts and information mismatch prevent a planning-only explanation.
+2. **The whole training lineage is only a few compute-hours.** Production training ran at about 4k raw frames/s end to end (72 updates = 4.71M frames in 1,188 s, evaluations included). S0 corrected the numbering: checkpoint420 is continuation420, cumulative852. About27.5M raw frames covers those420 continuation updates only, not the full selected ancestry or discarded campaign compute. A complete ancestral compute total remains to be reconciled. The headless engine alone does about 14.5M raw frames/s (`docs/v2-foundation-progress.md`), roughly 3,500x faster than the training loop. The benchmark gap motivates S1; different engine-only and PPO workloads do not by themselves locate the bottleneck.
+3. **The 64 and its neighbours are conservative operating choices, not derived values.** `docs/v2-m3-run-protocol.json` (registered 2026-10-24 before any probe): `training_batch_size` 64, `rollout_decisions` 256, minibatch 512 ("a conservative initial choice under the 6 GiB budget; the Opus proposal used 2,048. Neither has measured model-throughput evidence", `docs/v2-teacher-training-plan.md:37`), 1,800 s per stage, a hard UTC cutoff, 6 GiB RSS and MPS caps. Early-stage observed peaks were about1GB RSS and2.4GB MPS; DODGE-013 later reached5.52GiB RSS. Headroom cannot be assumed for scaled rollouts under the unchanged6GiB limits.
 4. **Seed reuse is real in the 420 lineage, at least in its Uniform #2 stage.** The base stream is unbounded (`dodge_slot_splitmix64_high32_reject_v1`, seeds from run seed, slot and episode index, about 2^32 values). But DODGE-010 trained all six models from one fixed 512-seed pool (256 historical early failures, 256 survivors), and DODGE-011 continued Uniform #2 to update 600 with an "unchanged training seed stream". S0 now confirms the same512 pool throughout retained Uniform2 producer60 plus continuation600:18,550 starts and17,846 completed episodes,36.23 starts per unique seed. Constructor starts were derived from the pinned stream; resets and completions were journaled. Independent review matched every per-seed count. This establishes reuse, not its causal effect on learning.
 5. **Recent evidence does not support "same recipe, a bit more training".** DODGE-013 trained 11.8M frames per arm from 420: 4-frame training showed no clear Q1 gain over checkpoint 420 (1,625 vs 1,750), and 1-frame training regressed to 651. Checkpoint 600 had higher Mean but lower Q1 than 420 (DODGE-001). So extra updates at 64 envs and a 512-seed pool have plateaued or traded off. That is compatible with the scaling hypothesis only if the plateau comes from gradient noise, a small seed pool or short horizons, which is exactly what the tests below separate. The 1-frame regression also means the review's "fine-tune at K=1" has already been tried in one form (game-time-matched gamma and GAE, same reward); the review's version differs by also removing score from the reward.
 6. **Death telemetry (DODGE-014/015 data):** enemy contact during patterns is the dominant failure; the policy changes its action at 76% of consecutive decisions (last-128 sample), turns toward the killer in the final 10-15 frames, and runs into already-filled rectangles while chased. fyou is not the cause.
@@ -22,15 +22,15 @@ Evidence tags: M measured here, L literature prior, R reasoned from our data, S 
 Phase 0, no training, hours (also tells us which later items to trust)
 1. K at inference. Using K=1 already gives Q1 +934 and mean +1,761 frames [M, DODGE-012]. Add K=2 and K=3 zero-shot on the same 2,048 seeds to find the best rate. Controller adoption is the user's call.
 2. Paired heuristic baseline at K=4 and K=1 on the same seeds [M after the run]. Sizes the gap to the best known controller (6,115 vs 4,434 mean) and gives a control variate for ranking.
-3. Policy plus short-horizon shield: veto actions the exact player model predicts will collide within about 12 frames, otherwise follow the policy [R]. No training. If it closes much of the gap, the policy's weakness is short-horizon planning, and the shielded policy is also a stronger teacher for the vision student.
-4. Counterfactual branching, DODGE-004 [R]. Shares the snapshot and rollout harness with item 3.
+3. Policy plus short-horizon shield [R]: veto logits using a12-raw-frame observed-motion model driven only by the teacher arrays and public physics; no FullState, RNG or true-future access. DODGE-033 blocks treating the original FullState heuristic as equal-input. A gain would support the intervention, not prove the network lacks planning or authorize a stronger teacher.
+4. Counterfactual branching, DODGE-004 [R]. Diagnostic only: exact simulator/RNG restoration can inspect a true12-frame future. It shares capture/rollout infrastructure with item3 but never supplies future state to the deployable shield.
 5. Argmax versus sampled per K, and checkpoint averaging of the saved 360 to 600 checkpoints [M for argmax at K=4: +275 Q1; L for averaging].
 6. Seed audit and throughput profile (S0, S1). These gate scale: they say whether the 420 lineage reused a 512-seed pool and where the 3,500x slowdown versus the engine sits.
 
 Phase 1, first training runs, cheap configuration changes
 7. Gamma and lambda sweep (gamma 0.97 to 0.995, lambda 0.9 to 0.95) at K=4 and K=1 [L: the study's most important hyperparameter]. Highest value per cost among training changes, and it may explain DODGE-013's K=1 regression.
 8. Fresh unbounded seed stream, larger batch, longer rollouts, learning rate retuned (S3), after the pipeline speedup (S2) [R, L]. Large effect if S0 shows pool reuse or gradient noise is the limit; effect unknown otherwise.
-9. Imitation from the heuristic (behaviour cloning or DAgger on policy-visited states, then PPO fine-tuning) [R]. The target level is already demonstrated; main risk is capping near the heuristic until PPO moves past it.
+9. Imitation (behaviour cloning or DAgger on policy-visited states, then PPO fine-tuning) [R], gated on an evaluated expert using teacher observations. The original richer-state heuristic does not pass that gate. Privileged-label distillation is a separate possible proposal; historical heuristic performance is not an attainable guarantee.
 10. K=2 and K=3 trained arms, K annealing 4 to 1, per-episode sampled K, from-scratch K=1 [S]. Order after item 7, because horizon length confounds K.
 
 Phase 2, smaller or less certain, run as ablations once the base recipe moves
@@ -40,6 +40,87 @@ Phase 2, smaller or less certain, run as ablations once the base recipe moves
 14. Input and architecture changes: closing speed and relative velocity, clearance raycasts, entity pooling into the heads, D4 symmetry (after the equivariance audit), more attention depth [S].
 15. Segment carry-over (do not abandon live games), snapshot-prioritised replay [S].
 16. Vision-student distillation, after a stronger teacher exists.
+
+## Local priority reconciliation and concrete approval packets
+
+The upstream ranking is an expected-value judgment, not measured effect sizes. Keep all16 ideas. The local evidence changes dependencies and claims:
+
+1. **S0 is done:** fixed512 reuse is confirmed; do not rerun it. **S1 comes first operationally**, despite its low position in the value ranking, because the first startup attempt failed and still holds its exact lease. There is no measured S1 bottleneck yet. A1 preserves the reviewed successor protocol rather than silently retrying the failed capsule.
+2. **The heuristic gap remains unpaired and information-confounded.** DODGE-033's completed static audit found complete-list/analytic-motion/raw-history access absent from the teacher arrays. Global player state and global speed/freeze are available, so the mismatch is not simply “all physics hidden.” Unknown motion is metadata-only; a zero motion feature does not certify a stationary hazard. This does not measure how often the mismatch matters. Evaluate the original heuristic as a richer-information reference, not an equal-input teacher.
+3. **The deployable shield and diagnostic oracle must stay distinct.** The shield receives only the four allowlisted neural arrays. Exact native future/RNG is confined to DODGE-004. Imitation waits for an evaluated observable expert; the original FullState code does not pass that gate.
+4. **Logging moves ahead of training.** Accepted DODGE-013 flags show0/361 early stops and four epochs throughout; this weakens a “lost epochs” explanation, not the need for numerical KL/value/advantage telemetry. The instrumented diagnostic is a prerequisite, not an additional performance intervention mixed into every arm.
+5. **Do not adopt LR decay by default.** That priority-list suggestion conflicts with the requested controlled schedule comparison and the absence of a clean local test. Use a locked common schedule for cheap recipe screens, then complete the registered constant/cosine/KL-adaptive matrix without silently dropping its controls.
+6. **Long-run monitoring is development, not unread confirmation.** Once a rotating cohort affects stopping or selection, call it exposed development data. Reserve independent final confirmation after weights are locked. Hard wall/resource limits always stop a run, even if it is still learning. Current recovery snapshots do not yet restore live simulators; carry-over qualification gates the long run.
+
+All following times are **proposed hard ceilings, not runtime forecasts**. The20% margin plus IO forecast gate must fit new runtime packets before full work. Prefixes use fixed registered seeds/settings and count toward the packet; no score-driven resizing, extra seeds, retry or deadline extension. A1 retains its existing reviewed2400s work/2520s total protocol. Separate6GiB RSS/MPS limits and the one-campaign rule remain unchanged. Nothing here reserves seeds, releases the held lease, consumes a marker or authorizes execution.
+
+### Phase0: no retained training updates
+
+| Packet | Workload | Existing game seeds | Work + receipts | Total ceiling |
+|---|---|---:|---:|---:|
+|A1|S1-r2:16 disposable update cells; discard all weights|512|40m + 2m|42m|
+|A2|420 K2/K3 × sampled/argmax:8,192 games;256 fixed-prefix K1/K4 parity games|2048|1h + 3m|1h3m|
+|A3|Original AABB heuristic K4/K1:4,096 games; cached420 controls|2048|30m + 2m|32m|
+|A4|Observation-only shield K1/K4 × sampled/argmax:8,192 games|2048|2h + 3m|2h3m|
+|A5|12 factual replays;4 offsets ×8 continuation RNGs ×3 controllers =1,152 branches of≤512 frames;432 oracle probes of12 frames|12|20m + 2m|22m|
+|A6|4 non420 constituents + equal5-checkpoint average × K1/K4 sampled ×1,024 =10,240 new games;420 cached; selector contrasts use A2/cached groups|1024|1h30m + 3m|1h33m|
+|A7|16 synthetic fixtures ×8 D4 symmetries ×9 actions ×64 raw steps; no normal-start evaluation games|0|15m + 2m|17m|
+|A8|S2:baseline/optimized ×4 K ×3 disposable updates,64envs and1,536raw frames/env; discard all learned state|512|1h + 3m|1h3m|
+
+The Phase0 runtime-packet ceiling sums to **7h35m**; it is not a promise of elapsed completion. Static observability audit DODGE-033 is already complete and adds no game/model launch. A2–A5 use the consumed telemetry range3657433088..3657435135; A6 uses its first1,024 seeds in ascending order. No new cohort is needed for these packets. A1/A8 reuse only the consumed512 training pool. All games retain the18,000-raw-frame cap.
+
+A2's256-game prefix is a limited replay gate, not universal parity proof. Reuse the exact native/model/loop pins supported by the existing2,048-game D8 parity receipt; a materially changed capsule requires a separately specified full parity qualification. Do not expand the approved game count silently.
+
+For A5, select the first12 eligible sampled-K4 normal/kamikaze-body contact deaths in ascending seed order with at least60 alive frames. Preserve those cases even if replay fails; no replacement seeds. Validate seeded replay against saved outcomes/action history, then validate restored full simulator/RNG/history/controller/held-action state against the newly captured factual reference. Do not claim an old canonical state hash exists if it was never recorded. K4 resumes its remaining held action and original decision schedule; K1 can act immediately. The12-frame nine-action oracle is explicitly privileged, caches its432 deterministic probes, then follows K4. The total raw-frame upper bound including12 complete prefixes is811,008.
+
+### Shield contract before A4
+
+Use a pure function of `global_feats`, `entity_feats`, `entity_types`, `entity_mask` and registered public physics constants; no `FullState`, native object, RNG, pattern table, hidden serial or diagnostic metadata. Predict a constant candidate action for12 raw frames, checking current plus predicted geometry, and replan at each actual K. Extrapolate only exposed motion/extent/lethality estimates. Unknown/omitted hazards and action changes make this an approximate veto, not a safety guarantee.
+
+Argmax chooses the largest original logit among model-admissible actions; sampling uses the masked categorical distribution with one original sampler draw. If all actions pass, logits and RNG consumption must match the unshielded policy exactly. If none pass, use the original unshielded selector and log an empty-mask fallback; never resample until an action passes. Freeze the clearance rule and numerical convention before qualification. Log veto/override/empty-mask frequencies, switch rate and posthoc contact outcomes. A surviving shielded trajectory would support the intervention, not prove the policy lacks planning or automatically qualify a new teacher.
+
+### Phase1/2: conditional training reservations, not launch-ready registrations
+
+“Two training seeds” means two independent training-randomness vectors **per arm**, not two game seeds. Fresh stream game-seed counts depend on episode completion and must be logged; no pool or cohort is opened now. Each efficacy packet below requests a **new stage-specific1,024-seed development cohort**, common sampled K1 primary, and all endpoints plus420. Up to4 models form a shard of≤4,096 games with1h work +3m receipts. New packet cohorts cannot be reused adaptively for later selection. If a control is genuinely identical and preregistered for reuse, its duplicate training can be avoided; the table budgets all controls conservatively.
+
+| Packet | Ordered comparison | Training trajectories × raw frames each | Training ceiling | Evaluation games / ceiling |
+|---|---|---:|---:|---:|
+|B0|Instrumented warm-start diagnostic before horizon tuning|4 × 1,179,648|1h33m|0 / 0|
+|B1|Gamma/lambda horizon screen at K1/K4|26 × 2,359,296|28h18m|27,648 / 7h21m|
+|B2|K4 pool-versus-fresh seed contrast|4 × 11,796,480|12h12m|5,120 / 2h6m|
+|B3|S3 longer-rollout versus more-env allocation|12 × 2,359,296|18h36m|13,312 / 4h12m|
+|B4|S3 constant-LR K1/K4 scaled baseline cells|4 × 11,796,480|12h12m|5,120 / 2h6m|
+|B5|Observable-expert imitation versus matched PPO|4 × 2,359,296|6h12m|5,120 / 2h6m|
+|B6|S3 constant-LR K2/K3 trained cells|4 × 11,796,480|12h12m|5,120 / 2h6m|
+|B7|Annealed K and per-episode sampled K versus fixed K|6 × 11,796,480|18h18m|7,168 / 2h6m|
+|B8|S4 constant-LR scratch K1/K2/K3/K4 cells|8 × 11,796,480|24h24m|9,216 / 3h9m|
+|C1|Complete three-schedule fixed-K matrix, both initializations|32 × 11,796,480|97h36m|50,176 / 13h39m|
+|C2|Per-epoch GAE refresh at K1/K4|8 × 2,359,296|12h24m|9,216 / 3h9m|
+|C3|Observation/value normalization2x2 at K1/K4|16 × 2,359,296|24h48m|17,408 / 5h15m|
+|C4|Shared/separate actor-critic encoders at K1/K4|8 × 2,359,296|12h24m|9,216 / 3h9m|
+|C5|Three entropy recipes at K1/K4|12 × 2,359,296|18h36m|13,312 / 4h12m|
+|C6|Original versus survival-only reward at K1/K4|8 × 2,359,296|12h24m|9,216 / 3h9m|
+|C7|Single-change inputs/heads/D4/depth versus base|14 × 2,359,296|21h42m|15,360 / 4h12m|
+|C8|Complete live-state carry-over qualification:64 disposable updates on existing512pool; no retained weights|0 retained|1h3m|0 efficacy games|
+|C9|Ordinary versus snapshot-prioritized state starts|4 × 2,359,296|6h12m|5,120 / 2h6m|
+|C10|Vision student supervision variants, last|4 × 11,796,480|32h12m|5,120 / 2h6m|
+
+B0 is a4-trajectory short instrumented diagnostic with no efficacy evaluation and no new evaluation cohort. B1 is13 horizon cells ×2 training seeds; its training work caps are90m per K1 trajectory and30m per K4 trajectory, plus3m receipts each. B2–B8 follow the priority sequence: seed diversity and rollout allocation/scaling, observable imitation, then trained K2/K3/dynamic K and scratch. B5 is blocked until an observable expert is evaluated; at most512 demonstration games on the consumed training pool and30m demonstration work are a separate proposed prefix. That gate may defer imitation without replacing it by unapproved privileged labels or blocking unrelated approved work.
+
+B4/B6 provide8 warm-start constant-LR trajectories and B8 provides8 scratch constant-LR trajectories. C1 adds the32 remaining cosine/KL-adaptive trajectories, preserving the requested **48-trajectory fixed-K/schedule matrix**. C1's fresh comparison evaluates all48 endpoints plus420 on1,024 new seeds,50,176 games across13 shards; earlier exposed packet cohorts are not its confirmation. An11.8M-frame scratch screen need not beat420, whose ancestry is much longer; it is not a fair basis for declaring from-scratch learning exhausted.
+
+C2–C6 implement the priority-list item12 diagnostics/ablations and item13 reward contrast, with K1/K4 and two training seeds per condition. C7 has seven single-change conditions at a locked primary K:base,relative/closing velocity,clearance rays,action history,pooled heads,D4 augmentation,extra depth. D4 remains blocked if A7 does not validate the intended symmetry. C8 validates exact live-state recovery before C9 snapshot priority and before the long run. C10 is a last-stage **budget reservation only**: student data/model/source/resource specifications are absent, so it is not an approval-ready training request. No checklist group is a Cartesian multiplier on every other group.
+
+Only A1 currently has a reviewed concrete launch package. The other rows are explicit seed/workload/budget proposals; they still need frozen source, real resource forecasts, registration and review before their separate launch approval. The immediate ready approval scope is **audited disposition of failed S1-r1, release only its exact lease, and exactly one A1/S1-r2 attempt under its unchanged42-minute total cap**. Approving that scope does not approve A2–C10, any new cohort or any training.
+
+### Conditional long-run envelope
+
+G1 proposes one locked recipe with two training seeds, at most117,964,800 raw frames per trajectory,9h training work +10m receipts per trajectory. At most six development looks request1,024 new seeds each (6,144 total); a separate2,048-seed final confirmation remains unopened until endpoints are fixed. Each look evaluates the two models and420:18,432 development games in total plus6,144 final games. Proposed evaluation ceiling is8h work +24m receipts, making a **26h44m combined envelope**. These are ceilings awaiting measured feasibility, not an indefinite permission to continue learning.
+
+Entry needs a prospectively frozen recipe and gains on Q1 and Mean on independent≥1,024-seed data across at least two training replicas, with game-seed and training-replica uncertainty kept separate. From-scratch extension needs its own justified entry decision rather than a naive comparison to420 at much less ancestral exposure. Predeclare progress/plateau criteria, maximum length, LR/entropy schedule horizon, checkpoint retention and collapse guards. Stop after three registered development looks without improvement under the frozen criterion, or earlier at a resource/wall/finiteness failure. Rotating monitoring cohorts are exposed development once used for stopping; they are not the independent final confirmation. No automatic extension or resume follows a stop, and full simulator/wrapper/learner carry-over must first pass C8.
+
+The detailed machine-readable workload, per-trajectory caps and predictions are in `learning/runs/v2/priority-runlist-parent-20261030-r4/priority-run-list-v4.json`.
+
 
 ## K=1 track (the user's hypothesis about control rate)
 

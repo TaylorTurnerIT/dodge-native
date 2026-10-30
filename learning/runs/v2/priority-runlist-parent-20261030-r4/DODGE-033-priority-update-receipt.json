@@ -1,0 +1,72 @@
+{
+  "id": "DODGE-033",
+  "project": "dodge-native",
+  "title": "Audit heuristic and shield observability before evaluation",
+  "status": "completed",
+  "doing": "Map every input read by the full-state AABB heuristic and proposed12-raw-frame policy shield onto the actual14-global/80x16 allowlisted teacher arrays. Audit caps, clipping, unknown motion and raw-frame history; distinguish observable motion prediction from true-future snapshot oracle. Static source review only; no games or model execution.",
+  "expected": "Source-informed before the formal field mapping: the original FullState heuristic likely has information unavailable or lossy in the teacher arrays, especially complete entity lists and analytic motion/history. An observation-only shield therefore needs its own contract; a function taking FullState is not evidence of equal information.",
+  "actual": "Static mapping found that the original FullState heuristic is not information-equivalent to the allowlisted teacher arrays: it sees all enemies and analytic motion, while the teacher caps enemy tokens at64 and first-sample measured motion defaults to zero. Unknown-motion counters, pattern identity and full raw-frame history are not neural inputs; no runtime impact was measured.",
+  "why": "Both systems are privileged relative to pixels, but they do not receive the same state representation. The historical unpaired heuristic gap therefore cannot be attributed solely to planning or used as proof of an equally observable expert.",
+  "next_step": "Specify and source-test an observation-only motion shield before evaluation. Keep the FullState heuristic as a labelled richer-information reference and exact-future branching as a diagnostic oracle.",
+  "actual_kind": "observed",
+  "prediction_timing": "before_run",
+  "parent_id": "DODGE-018",
+  "revision": 3,
+  "created_at": "2026-10-30T06:27:58.298774+00:00",
+  "updated_at": "2026-10-30T06:50:30.721295+00:00",
+  "tags": [
+    "observability",
+    "heuristic",
+    "shield",
+    "source-audit"
+  ],
+  "metadata": {
+    "priority_runlist_v4": {
+      "launch_authority": false,
+      "packets": [
+        "static observability gate completed"
+      ],
+      "proposal_path": "learning/runs/v2/priority-runlist-parent-20261030-r4/priority-run-list-v4.json",
+      "proposal_sha256": "246b2b9e1043ea5e8dbe99bef2640b6b6a20faa4bd851a293d6bb1111c5d782e"
+    }
+  },
+  "evidence": [
+    {
+      "id": "03f3a3400bc5412ba365ff966d58d6ba",
+      "experiment_id": "DODGE-033",
+      "kind": "plan",
+      "label": "Priority reconciliation, observation-only shield and long-run gate",
+      "uri": "docs/review-ideas-and-scaling-plan-20261030.md",
+      "sha256": "20a3dd5c48ad6e1b994391836836e1514b1006bfe2a00018a10dd0ce96077905",
+      "recorded_at": "2026-10-30T06:50:30.721679+00:00"
+    },
+    {
+      "id": "4ef34f679f224ef48228471b4576bdd6",
+      "experiment_id": "DODGE-033",
+      "kind": "plan",
+      "label": "Ordered approval packets with seed counts, hard ceilings and readiness",
+      "uri": "learning/runs/v2/priority-runlist-parent-20261030-r4/priority-run-list-v4.json",
+      "sha256": "246b2b9e1043ea5e8dbe99bef2640b6b6a20faa4bd851a293d6bb1111c5d782e",
+      "recorded_at": "2026-10-30T06:50:30.721645+00:00"
+    },
+    {
+      "id": "748aa90dab83411baf346e6d7f251365",
+      "experiment_id": "DODGE-033",
+      "kind": "plan",
+      "label": "User-directed priority list and shield observability gate",
+      "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md",
+      "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb",
+      "recorded_at": "2026-10-30T06:27:58.299963+00:00"
+    },
+    {
+      "id": "d237e6f12a6943f38a9d1d0c218a032f",
+      "experiment_id": "DODGE-033",
+      "kind": "source",
+      "label": "Static field-by-field observability audit; not runtime qualification",
+      "uri": "learning/runs/v2/priority-runlist-parent-20261030-r4/heuristic-shield-observability-audit.json",
+      "sha256": "eefd11b4bd422bdaee455cf1b5e6f69c8c39c2482e97efc90f6a88757395e1b1",
+      "recorded_at": "2026-10-30T06:30:01.139037+00:00"
+    }
+  ],
+  "measurements": []
+}
