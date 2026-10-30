@@ -1,0 +1,78 @@
+{
+  "schema": "teacher_training_dispatch_queue_v1",
+  "created_at": "2026-10-30T20:43:35.636883+00:00",
+  "coordinator_thread_id": "518b8c2d-01fb-4f39-acc3-f2d9f1f35c4e",
+  "active_blocker_record": "DODGE-051",
+  "active_blocker_package": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/k1-horizon-screen-20261030-r2",
+  "authority_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/teacher-training-queue-parent-20261030-r1/authority.json",
+  "authority_sha256": "4e9a95a1e2da9a985da5f5271c70bcda24d38330a820159b6d1019a23fc31559",
+  "seed_registry_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/teacher-training-queue-parent-20261030-r1/seed-registry-r1.json",
+  "seed_registry_sha256": "bd6beac7bda62fb5a00affa9b4cc953d6c6447e373669ebe4c464ffa5f62879a",
+  "live_state_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2-orchestration/state.json",
+  "entries": [
+    {
+      "order": 1,
+      "record": "DODGE-053",
+      "track": "fresh-seed",
+      "thread_id": "mcp:84354574-884c-4ca3-aee0-15d748e9e319",
+      "branch": "t3/fresh-seed-scaling-20261030",
+      "conditions": [
+        "fixed512",
+        "fresh"
+      ],
+      "replicas_per_condition": 2,
+      "K": 4,
+      "frames_per_trajectory": 11796480,
+      "envs": 64,
+      "rollout": 256,
+      "effective_minibatch": 512,
+      "microbatch": 512,
+      "learning_rate": 3e-05,
+      "evaluation_cohort": "D11",
+      "status": "implementation_in_progress",
+      "nominal_full_rollout_equivalents": 180,
+      "actual_update_count": "Dynamic: actual retained gameplay frame cost can be below N*T*K when a death shortens action repeat. Retain closing vector step, optimize valid final partial, no close reset; derive forecast from actual prefix game frames, not nominal180 updates."
+    },
+    {
+      "order": 2,
+      "record": "DODGE-054",
+      "track": "advisor-input",
+      "thread_id": "mcp:39f187b1-b03f-4dac-9ce7-1c995e6ba388",
+      "branch": "t3/teacher-heuristic-input-20261030",
+      "conditions": [
+        "entity_control",
+        "advisor_input"
+      ],
+      "replicas_per_condition": 2,
+      "frames_per_trajectory": null,
+      "evaluation_cohort": "D12",
+      "status": "implementation_in_progress"
+    },
+    {
+      "order": 3,
+      "record": "DODGE-055",
+      "track": "rays",
+      "thread_id": "mcp:28a8307a-fc91-4be8-a015-8837bbdc86b0",
+      "branch": "t3/teacher-ray-geometry-20261030",
+      "conditions": [
+        "entity_control",
+        "R0_rays"
+      ],
+      "replicas_per_condition": 2,
+      "K": 1,
+      "frames_per_trajectory": 2359296,
+      "updates_per_trajectory": 36,
+      "envs": 64,
+      "rollout": 1024,
+      "effective_minibatch": 2048,
+      "microbatch": 512,
+      "gamma": 0.9987476493904754,
+      "gae_lambda": 0.9872585449014338,
+      "learning_rate": 3e-05,
+      "evaluation_cohort": "D13",
+      "status": "implementation_in_progress"
+    }
+  ],
+  "dispatch_policy": "Strict serial order; independently reviewed immutable packet and full-path bound required; exact shared lease CAS only after prior strict acceptance/release; stop on failure, no silent skip/retry. No future launch claimed by this queue file.",
+  "supersedes": "queue.json: correction of nominal K4 update count; no campaign launched and scientific predictions unchanged."
+}
