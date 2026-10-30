@@ -20252,6 +20252,69 @@
       "title": "Attribute checkpoint420 deaths to fyou triggers and specific patterns",
       "updated_at": "2026-10-29T19:20:43.566712+00:00",
       "why": "The policy leaves the central box early and rarely camps, so the anti-camping guard seldom fires; deaths are driven by ordinary enemies and by patterns, especially score-gated static patterns later and specific early ones. Enemy deaths during patterns may interact with pattern rectangles, but this telemetry shows co-occurrence at death, not a mechanism. fyou and pattern findings are descriptive for one checkpoint and one seed block."
+    },
+    {
+      "actual": null,
+      "actual_kind": "unobserved",
+      "created_at": "2026-10-30T05:07:35.182828+00:00",
+      "doing": "Extend the observation-only death-trace evaluator to record, at every decision of every game, the chosen action, the policy's entropy and top probability, player position and velocity, the nearest lethal enemy (gap and bearing), the nearest lethal rectangle gap and whether a pattern is visible, all read from the observation the policy already receives. Rerun checkpoint420 argmax at 4-frame (and 1-frame) decisions on the same fresh 2,048 seeds as DODGE-014 (3657433088..+2047) and require alive_frames, death_cause and fatal frame to reproduce the DODGE-014 rows exactly. Report with seed-cluster bootstrap 95% intervals: action histogram by phase and pattern state, confidence (entropy, top probability), action-switch and reversal rates, and the move-away/toward/sideways split by distance to the nearest enemy, including the last 30 decisions before death. Inference only: no training, no selection, no promotion.",
+      "evidence": [],
+      "expected": "Before reading any per-decision data: (1) Actions are far from uniform: right and up_left each exceed 12% of decisions and neutral is under 8% (last-128-decision sample: right 16%, up_left 14%, neutral 6%). (2) Argmax changes the action between consecutive decisions in more than 60% of decisions (last-128 sample: 76%), so the policy jitters rather than holding a heading. (3) Fewer than 20% of decisions have top probability under 0.5, and that share is higher when an enemy is within 20 px than when none is. (4) When an enemy is within 20 px, a clear majority of non-neutral actions have a component away from it, more than when no enemy is near, but in the last 10 decisions before an enemy death the toward share rises above the away share. (5) Near a wall (within 10 px) the policy chooses wall-pushing actions in fewer than 25% of decisions. These are hypotheses about one checkpoint on one seed block; action statistics show what the policy does, not why.",
+      "history": [
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-015",
+          "reason": "Register DODGE-015 predictions before the per-decision run",
+          "recorded_at": "2026-10-30T05:07:35.182828+00:00",
+          "revision": 1,
+          "snapshot": {
+            "actual": null,
+            "actual_kind": "unobserved",
+            "created_at": "2026-10-30T05:07:35.182828+00:00",
+            "doing": "Extend the observation-only death-trace evaluator to record, at every decision of every game, the chosen action, the policy's entropy and top probability, player position and velocity, the nearest lethal enemy (gap and bearing), the nearest lethal rectangle gap and whether a pattern is visible, all read from the observation the policy already receives. Rerun checkpoint420 argmax at 4-frame (and 1-frame) decisions on the same fresh 2,048 seeds as DODGE-014 (3657433088..+2047) and require alive_frames, death_cause and fatal frame to reproduce the DODGE-014 rows exactly. Report with seed-cluster bootstrap 95% intervals: action histogram by phase and pattern state, confidence (entropy, top probability), action-switch and reversal rates, and the move-away/toward/sideways split by distance to the nearest enemy, including the last 30 decisions before death. Inference only: no training, no selection, no promotion.",
+            "evidence": [],
+            "expected": "Before reading any per-decision data: (1) Actions are far from uniform: right and up_left each exceed 12% of decisions and neutral is under 8% (last-128-decision sample: right 16%, up_left 14%, neutral 6%). (2) Argmax changes the action between consecutive decisions in more than 60% of decisions (last-128 sample: 76%), so the policy jitters rather than holding a heading. (3) Fewer than 20% of decisions have top probability under 0.5, and that share is higher when an enemy is within 20 px than when none is. (4) When an enemy is within 20 px, a clear majority of non-neutral actions have a component away from it, more than when no enemy is near, but in the last 10 decisions before an enemy death the toward share rises above the away share. (5) Near a wall (within 10 px) the policy chooses wall-pushing actions in fewer than 25% of decisions. These are hypotheses about one checkpoint on one seed block; action statistics show what the policy does, not why.",
+            "id": "DODGE-015",
+            "measurements": [],
+            "metadata": {},
+            "next_step": null,
+            "parent_id": "DODGE-014",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 1,
+            "status": "planned",
+            "tags": [
+              "checkpoint420",
+              "actions",
+              "policy-confidence",
+              "death-telemetry",
+              "inference-only"
+            ],
+            "title": "Checkpoint420 action distribution at every decision point",
+            "updated_at": "2026-10-30T05:07:35.182828+00:00",
+            "why": null
+          }
+        }
+      ],
+      "id": "DODGE-015",
+      "measurements": [],
+      "metadata": {},
+      "next_step": null,
+      "parent_id": "DODGE-014",
+      "prediction_timing": "before_run",
+      "project": "dodge-native",
+      "revision": 1,
+      "status": "planned",
+      "tags": [
+        "checkpoint420",
+        "actions",
+        "policy-confidence",
+        "death-telemetry",
+        "inference-only"
+      ],
+      "title": "Checkpoint420 action distribution at every decision point",
+      "updated_at": "2026-10-30T05:07:35.182828+00:00",
+      "why": null
     }
   ],
   "project_context": [

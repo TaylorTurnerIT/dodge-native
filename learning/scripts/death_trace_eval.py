@@ -39,6 +39,7 @@ EXCLUDED_RANGES = [
     [3758096384, 3758097383],
 ]
 GIB = 1 << 30
+DECISION_COLUMNS = ("a", "ent", "pa", "x", "y", "vx", "vy", "eg", "edx", "edy", "rg", "pg", "pv")
 
 
 def sha256(path: Path) -> str:
@@ -97,14 +98,53 @@ def weights_digest(model) -> str:
     return digest.hexdigest()
 
 
+def decision_columns(global_feats, entity_feats, entity_types, entity_mask):
+    """Per-slot situation at a decision, read only from the observation the policy receives.
+
+    Lengths are pixels x10 (rounded); -1 means no such entity. `eg` is the gap to the nearest
+    lethal enemy-family body, `edx`/`edy` the offset of its centre from the player, `rg` the gap
+    to the nearest lethal rectangle and `pg` to the nearest shown but not yet lethal one.
+    """
+    g, f = global_feats[:, 0, :], entity_feats
+    gap = np.hypot(np.maximum(f[:, :, 10] * 64.0, 0.0), np.maximum(f[:, :, 11] * 64.0, 0.0))
+    lethal = f[:, :, 15] > 0.5
+    valid = entity_mask.astype(bool)
+    enemy = valid & (entity_types >= 1) & (entity_types <= 3) & lethal
+    rect = valid & (entity_types >= 7) & (entity_types <= 8)
+    n = len(g)
+    rows = np.arange(n)
+
+    def nearest(select):
+        masked = np.where(select, gap, np.inf)
+        pick = masked.argmin(axis=1)
+        found = np.isfinite(masked[rows, pick])
+        return pick, found
+
+    ei, ef = nearest(enemy)
+    ri, rf = nearest(rect & lethal)
+    _, pf = nearest(rect & ~lethal)
+    pending = np.where(pf, np.where(rect & ~lethal, gap, np.inf).min(axis=1), 0.0)
+
+    def tenth(values):
+        return np.rint(values * 10.0).astype(np.int64)
+
+    return dict(
+        x=tenth(g[:, 0] * 64.0 + 64.0), y=tenth(g[:, 1] * 64.0 + 64.0),
+        vx=np.rint(g[:, 2] * 250.0).astype(np.int64), vy=np.rint(g[:, 3] * 250.0).astype(np.int64),
+        eg=np.where(ef, tenth(gap[rows, ei]), -1),
+        edx=np.where(ef, tenth(f[rows, ei, 4] * 128.0), 0), edy=np.where(ef, tenth(f[rows, ei, 5] * 128.0), 0),
+        rg=np.where(rf, tenth(gap[rows, ri]), -1), pg=np.where(pf, tenth(pending), -1),
+        pv=(g[:, 9] > 0.5).astype(np.int64))
+
+
 def collect_rows(model, env_factory, seeds, *, repeat, mode, backend, guard, batch_size=64,
-                 progress=None):
+                 progress=None, decisions=False):
     """Complete normal-start games; same loop and ordering as the saved evaluator."""
     rows = []
     from collections import deque
     for offset in range(0, len(seeds), batch_size):
         chunk = seeds[offset:offset + batch_size]
-        envs, obs, done, started, history = {}, {}, {}, {}, {}
+        envs, obs, done, started, history, columns = {}, {}, {}, {}, {}, {}
         for local, seed in enumerate(chunk):
             guard()
             env = env_factory(
@@ -118,20 +158,36 @@ def collect_rows(model, env_factory, seeds, *, repeat, mode, backend, guard, bat
                 raise RuntimeError("constructor seed/startup differs")
             envs[local], obs[local], started[local] = env, env.observations(), time.monotonic()
             history[local] = deque(maxlen=128)
+            if decisions:
+                columns[local] = {name: [] for name in DECISION_COLUMNS}
         while envs:
             guard()
             active = sorted(envs)
-            tensors = {name: torch.from_numpy(np.concatenate([obs[i][name] for i in active], axis=0)).to(backend)
-                       for name in NEURAL_INPUTS}
+            stacked = {name: np.concatenate([obs[i][name] for i in active], axis=0) for name in NEURAL_INPUTS}
+            tensors = {name: torch.from_numpy(stacked[name]).to(backend) for name in NEURAL_INPUTS}
             with torch.no_grad():
                 logits = model(*(tensors[name] for name in NEURAL_INPUTS)).logits
             if tuple(logits.shape) != (len(envs), 9) or not bool(torch.isfinite(logits).all()):
                 raise RuntimeError("nonfinite or malformed policy output")
             actions = (torch.distributions.Categorical(logits=logits).sample()
                        if mode == "sampled" else torch.argmax(logits, dim=-1)).cpu().numpy()
+            if decisions:
+                with torch.no_grad():
+                    logp = torch.log_softmax(logits.float(), dim=-1)
+                    prob = logp.exp()
+                    entropy = (-(prob * logp).sum(dim=-1)).cpu().numpy()
+                    chosen = prob.gather(1, torch.from_numpy(actions).to(backend).unsqueeze(1)).squeeze(1).cpu().numpy()
+                situation = decision_columns(*(stacked[name] for name in NEURAL_INPUTS))
             del tensors, logits
             for pos, i in enumerate(active):
                 history[i].append(int(actions[pos]))
+                if decisions:
+                    col = columns[i]
+                    col["a"].append(int(actions[pos]))
+                    col["ent"].append(int(round(float(entropy[pos]) * 100)))
+                    col["pa"].append(int(round(float(chosen[pos]) * 1000)))
+                    for name, values in situation.items():
+                        col[name].append(int(values[pos]))
                 result = envs[i].step(np.array([actions[pos]], dtype=np.int64))
                 info = result["info"][0]
                 terminated, truncated = bool(result["terminated"][0]), bool(result["truncated"][0])
@@ -146,6 +202,8 @@ def collect_rows(model, env_factory, seeds, *, repeat, mode, backend, guard, bat
                         fatal_gameplay_frame=info["fatal_gameplay_frame"],
                         death_observed_lethal_contacts=info["death_observed_lethal_contacts"],
                         trace=info["trace"], last_actions=list(history[i]))
+                    if decisions:
+                        done[i]["decisions"] = columns.pop(i)
                     del envs[i], obs[i]
                 else:
                     obs[i] = result["observations"]
@@ -167,6 +225,8 @@ def main() -> int:
     parser.add_argument("--backend", choices=("mps", "cpu"), default="mps")
     parser.add_argument("--torch-threads", type=int, default=4)
     parser.add_argument("--batch-size", type=int, default=64)
+    parser.add_argument("--decisions", action="store_true",
+                        help="record action, policy confidence and situation at every decision")
     parser.add_argument("--out", required=True, type=Path)
     args = parser.parse_args()
     if args.out.exists():
@@ -204,14 +264,15 @@ def main() -> int:
             print(f"{args.out.name}: {done}/{total} games, {last[0] - started:.0f}s", flush=True)
 
     rows = collect_rows(model, VecDodgeEnv, seeds, repeat=args.repeat, mode=args.mode,
-                        backend=args.backend, guard=guard, batch_size=args.batch_size, progress=progress)
+                        backend=args.backend, guard=guard, batch_size=args.batch_size, progress=progress,
+                        decisions=args.decisions)
     after = weights_digest(model)
     if after != before or sha256(args.checkpoint) != CHECKPOINT_SHA256:
         raise RuntimeError("weights or checkpoint changed during evaluation")
     result = dict(
         schema="death_trace_group_v1", checkpoint_sha256=CHECKPOINT_SHA256, weights_digest=before,
         mode=args.mode, action_repeat=args.repeat, backend=args.backend, torch_threads=args.torch_threads,
-        batch_size=args.batch_size, controller_seed=args.controller_seed, seeds=seeds,
+        batch_size=args.batch_size, decisions=args.decisions, controller_seed=args.controller_seed, seeds=seeds,
         elapsed_seconds=time.monotonic() - started, peak_rss_bytes=guard.peak_rss,
         peak_mps_driver_bytes=guard.peak_mps, rows=rows,
         versions=dict(python=sys.version.split()[0], numpy=np.__version__, torch=torch.__version__))
