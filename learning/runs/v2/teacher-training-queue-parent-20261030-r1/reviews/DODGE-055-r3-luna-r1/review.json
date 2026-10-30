@@ -1,0 +1,101 @@
+{
+  "schema": "dodge_independent_training_source_review_v1",
+  "review_id": "DODGE-055-r3-luna-r1",
+  "status": "blocking_findings",
+  "review_scope": "read-only exact-source review before training; no training, native game, MPS qualification, lease mutation, or launch",
+  "registration_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-teacher-ray-geometry-20261030/learning/runs/v2/teacher-ray-screen-20261030-r3/registration-r3.json",
+  "registration_sha256": "58a29434e1e899e6c520674b3b6d8c553596f52baa0c12e4545979a631793e98",
+  "candidate_source_commit": "7ff3e45e089b64fb3a3b36e8d63de997e98651ce",
+  "candidate_readiness": {
+    "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-teacher-ray-geometry-20261030/learning/runs/v2/teacher-ray-screen-20261030-r3/readiness.json",
+    "sha256": "de512ca4cc953607834f0ad4e3ae8d74047a9293cd8bd3fd12aeaba72524aa88",
+    "status": "CPU_source_and_420_migration_ready",
+    "registration_sha256_matches": true
+  },
+  "coordinator_source_pins": {
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/experiments/coordinator_dispatch.py": "107020e3fd4755ff508a34922c29e6e0354755063d8f74220f24c1e930cb1573",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/tests/test_coordinator_dispatch.py": "83c7e4bf3a055af8dc837c7723abf9e9b82850683c1a9a8ebeacd0cb91089c22"
+  },
+  "source_runtime_input_pin_validation": {
+    "registration_hash_matches_supplied": true,
+    "readiness_registration_binding_matches": true,
+    "preflight_registration_binding_matches": true,
+    "source_pin_count": 26,
+    "input_pin_count": 49,
+    "declared_pin_count": 75,
+    "verified_pin_count": 75,
+    "pin_failures": [],
+    "runtime_member_inventory_matches": true,
+    "runtime_member_count": 18,
+    "interpreter_sha256_matches_input_pin": true,
+    "preflight_loaded_origin_count": 12,
+    "preflight_unbound_loaded_origins": [],
+    "registration_constraints_observed": {
+      "frame_target_per_trajectory": 2359296,
+      "jobs": ["r1-control", "r1-rays", "r2-rays", "r2-control"],
+      "prefix_updates_per_trajectory": 2,
+      "RSS_bytes": 6442450944,
+      "MPS_bytes": 6442450944,
+      "AC_required": false,
+      "battery_operation_allowed": true,
+      "no_retry": true,
+      "no_automatic_resume": true,
+      "evaluation_games_during_training": 0,
+      "D13_separate_dispatch_required": true
+    }
+  },
+  "findings": [
+    {
+      "severity": "blocking",
+      "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/experiments/coordinator_dispatch.py",
+      "line": 122,
+      "related_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/experiments/coordinator_dispatch.py",
+      "related_line": 169,
+      "test_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/tests/test_coordinator_dispatch.py",
+      "test_lines": "110-123",
+      "trigger": "A hash-pinned readiness document with the correct registration_sha256 but a missing or non-CPU_source_and_420_migration_ready status passes coordinator validate(); the current passing fixture omits status. The training runner rejects that status only after the helper has recorded failure disposition and performed the lease CAS.",
+      "consequence": "Coordinator can transfer the held DODGE-051 lease and publish a dispatch that cannot launch, consuming the exactly-once handoff despite invalid readiness.",
+      "corrective_action": "Before any claim or lease mutation, require readiness['status'] == 'CPU_source_and_420_migration_ready' and its registration_sha256 equals the exact pinned registration. Add a temporary-ledger negative test for missing and wrong readiness status; assert validate/dispatch fails before claim, failure-disposition publication, or lease change. Re-run the parent helper tests and obtain a fresh exact-source review."
+    }
+  ],
+  "tests": {
+    "actually_run": [
+      {
+        "command": "python/.venv/bin/python -B learning/tests/test_coordinator_dispatch.py",
+        "scope": "temporary-ledger/source fixtures only",
+        "passed": 10,
+        "failed": 0
+      },
+      {
+        "command": "PYTHONDONTWRITEBYTECODE=1 /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python -B test_source.py",
+        "cwd": "/Users/taylor/.t3/worktrees/dodge-native/t3-teacher-ray-geometry-20261030/learning/runs/v2/teacher-ray-screen-20261030-r3",
+        "scope": "guarded CPU/stdlib lifecycle and evaluator fixtures; no native games or lease writes",
+        "passed": 14,
+        "failed": 0
+      }
+    ],
+    "owner_receipts_not_independently_rerun": [
+      {
+        "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-teacher-ray-geometry-20261030/learning/runs/v2/teacher-ray-screen-20261030-r3/CPU-tests.json",
+        "reported": "59 guarded CPU model/migration/PPO checks passed; 14 lifecycle/interruption/power fixtures passed",
+        "status": "owner-reported; not independent review evidence"
+      },
+      {
+        "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-teacher-ray-geometry-20261030/learning/runs/v2/teacher-ray-screen-20261030-r3/CPU-runtime-preflight.json",
+        "reported": "CPU runtime import and checkpoint-420 migration passed; 12 loaded origins bound to input pins",
+        "status": "owner receipt; source/input pins independently verified here"
+      }
+    ]
+  },
+  "limits": {
+    "native_games_run": 0,
+    "MPS_work_run": false,
+    "counted_prefix_updates_observed": 0,
+    "actual_first_two_updates_per_trajectory": "unobserved; remains required after dispatch",
+    "passive_GAE_and_return_identity_on_native_MPS_path": "unobserved",
+    "full_path_20_percent_plus_IO_forecast": "unobserved",
+    "D13_evaluation": "not opened; requires separate frozen review and dispatch after strict whole-training acceptance",
+    "global_lease": "read-only observed as exact held DODGE-051 lease; not modified",
+    "scientific_success_or_checkpoint_promotion": false
+  }
+}
