@@ -1,0 +1,79 @@
+{
+  "schema": "teacher-ray-r0-source-checks-v1",
+  "recorded_at": "2026-10-30T20:33:38.165829+00:00",
+  "scope": "Synthetic CPU/source evidence only; no campaign execution or acceptance",
+  "authority": "Taylor Go following source-only next-approval scope",
+  "pinned_legacy_source_commit": "309a2238e3a7947109a48bd5adac1a0333bb7918",
+  "environment": {
+    "python": "3.12.15",
+    "packages": {
+      "torch": "2.14.1",
+      "pytest": "9.1.1",
+      "numpy": "2.5.4"
+    },
+    "venv": "/tmp/dodge-ray-source-20261030-venv",
+    "packages_from": "offline existing uv cache; no parent runtime used"
+  },
+  "command": "PYTHONDONTWRITEBYTECODE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /tmp/dodge-ray-source-20261030-venv/bin/python -B python/tests/run_ray_source_checks.py",
+  "checks": [
+    {
+      "stage": "initial CPU tests",
+      "passed": 54,
+      "failed": 0,
+      "pytest_seconds": 1.65,
+      "limit": "Existing legacy tests used global torch.manual_seed; accelerator RNG isolation not asserted. No MPS tensors used."
+    },
+    {
+      "stage": "guarded CPU tests plus boundary/batch checks",
+      "passed": 56,
+      "failed": 0,
+      "pytest_seconds": 1.7
+    },
+    {
+      "stage": "final guarded CPU tests after isolating branch sensitivity",
+      "passed": 56,
+      "failed": 0,
+      "pytest_seconds": 1.47
+    }
+  ],
+  "final_guards": [
+    "native import blocker",
+    "CPU-only global seeding",
+    "MPS RNG/memory API and CUDA global seed tripwires",
+    "90-second process alarm",
+    "CPU tensors and scratch weights only"
+  ],
+  "coverage": [
+    "rational literal-inequality event oracle",
+    "float32 boundary neighbors",
+    "clamp/point/inverted/tangent/overlap geometry",
+    "same-array padding/permutation invariance and no metadata parameter",
+    "batch isolation and caps",
+    "D4 derived-feature geometry at axis63.5",
+    "exact zero-gate logits/values/latent/attention",
+    "exact pinned prechange legacy-source parity",
+    "constructor CPU RNG isolation",
+    "gate then branch gradients without optimizer",
+    "in-memory synthetic state_dict roundtrip",
+    "ray branch sensitivity with legacy encoding held fixed"
+  ],
+  "source_sha256": {
+    "python/dodge_rl/clearance_rays.py": "bbe32c857190376b23811844be36caad5dcac920b90d296f533f955c1c543202",
+    "python/dodge_rl/models/ray_teacher.py": "d65af669526f3dee99990ddc67193d68a71db9381db4cb4a9538cec319713b52",
+    "python/dodge_rl/models/teacher.py": "ef559b83fd58fab3b2488a83b5ca43b06d0ce4baacf34b853e036d5b5f130272",
+    "python/tests/run_ray_source_checks.py": "2f04161014a56dac98b884f212c699cb34b530b1c59cbd851c4e64561b939e62",
+    "python/tests/test_clearance_rays_source.py": "3a8524fe4c8f1b4e806555bfc9e13f4caa8281759478e89b015fcaa15fd8b158",
+    "python/tests/test_ray_teacher_source.py": "e068e833292906106cbf14f9afb54335c28d2ed3cf19801ad409f07eba760c79"
+  },
+  "campaign_checkpoint_restores": 0,
+  "games": 0,
+  "fits": 0,
+  "optimizer_steps": 0,
+  "parent_and_notebook_mutations": 0,
+  "independent_review": "Pending; task explicitly says Do not spawn agents",
+  "limitations": [
+    "CPU scalar-copy reference frontend, not vectorized or throughput/resource qualified",
+    "No survival, pattern-death, student-observability or distillation result",
+    "No CNN implementation, PPO/Adam-state mapping, runner registration, seed allocation or promotion"
+  ]
+}

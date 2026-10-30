@@ -149,6 +149,22 @@ class OmniscientEntityTeacher(nn.Module):
         entity_types: Tensor,
         entity_mask: Tensor,
     ) -> TeacherOutput:
+        latent, attentions = self.encode(global_feats, entity_feats, entity_types, entity_mask)
+        return TeacherOutput(
+            logits=self.actor_head(latent),
+            values=self.critic_head(latent).squeeze(-1),
+            latent=latent,
+            attentions=attentions,
+        )
+
+    def encode(
+        self,
+        global_feats: Tensor,
+        entity_feats: Tensor,
+        entity_types: Tensor,
+        entity_mask: Tensor,
+    ) -> tuple[Tensor, tuple[Tensor, Tensor]]:
+        """Return the unchanged legacy latent/attention without running heads."""
         self._validate_inputs(global_feats, entity_feats, entity_types, entity_mask)
         batch = global_feats.shape[0]
         entity_feats = entity_feats.masked_fill(~entity_mask.unsqueeze(-1), 0.0)
@@ -170,12 +186,7 @@ class OmniscientEntityTeacher(nn.Module):
             tokens, weights = layer(tokens, key_padding_mask)
             attention_weights.append(weights)
         latent = self.final_norm(tokens)[:, 0, :]
-        return TeacherOutput(
-            logits=self.actor_head(latent),
-            values=self.critic_head(latent).squeeze(-1),
-            latent=latent,
-            attentions=(attention_weights[0], attention_weights[1]),
-        )
+        return latent, (attention_weights[0], attention_weights[1])
 
     def architecture_description(self) -> dict:
         """Return a fresh JSON-compatible description for checkpoint identities."""
