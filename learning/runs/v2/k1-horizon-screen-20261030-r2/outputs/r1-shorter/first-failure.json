@@ -1,0 +1,21 @@
+{
+  "elapsed_seconds": 402.1242792910198,
+  "error": "ValueError('AC power required')",
+  "job": "r1-shorter",
+  "progress": {
+    "complete": false,
+    "epoch": 0,
+    "epochs_completed": 0,
+    "in_update": true,
+    "minibatch": 24,
+    "optimizer_steps": 6,
+    "phase": "optimization",
+    "state": "in_update"
+  },
+  "resources": {
+    "peak_mps_driver_bytes": 2382184448,
+    "peak_rss_bytes": 2329968640
+  },
+  "status": "first_failure_preserved_lease_held",
+  "traceback": "Traceback (most recent call last):\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/k1-horizon-screen-20261030-r2/worker.py\", line 144, in main\n    returned = instrument_update(prepared, ppo, recorder, telemetry,\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/k1-horizon-screen-20261030-r2/update_telemetry.py\", line 253, in instrument_update\n    collection, metrics, boundary = prepared.update_once(check_guard=check_guard)\n                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/k1-horizon-screen-20261030-r2/worker.py\", line 119, in update_once\n    metrics = ppo.ppo_update(model, optimizer, collection.batch, config, check_guard=check_guard,\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/runtime-clean-r2/dodge_rl/ppo.py\", line 590, in ppo_update\n    _guard(check_guard)\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/runtime-clean-r2/dodge_rl/ppo.py\", line 50, in _guard\n    check_guard()\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/k1-horizon-screen-20261030-r2/worker.py\", line 60, in guard\n    c.ac_power(); last_power = now\n    ^^^^^^^^^^^^\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/k1-horizon-screen-20261030-r2/common.py\", line 121, in ac_power\n    need('AC Power' in result.splitlines()[0], 'AC power required')\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/k1-horizon-screen-20261030-r2/common.py\", line 18, in need\n    raise ValueError(message)\nValueError: AC power required\n"
+}
