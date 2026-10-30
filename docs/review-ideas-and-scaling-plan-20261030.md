@@ -37,6 +37,8 @@ Options, all derived from the admitted observation (inside the clairvoyance rule
 
 Cost: a new input contract and a from-scratch or partially warm-started teacher (new embeddings can start gated at zero so checkpoint 420 stays usable). Fair test: same budget and seeds, at least two training seeds per arm, entity-only against entity plus grid tokens against CNN fusion. A cheaper first test of representation: supervised imitation of the heuristic (after the observability audit) with each architecture, compared on held-out states and survival, hours instead of PPO weeks.
 
+Sketch of the small conv branch (rough parameter arithmetic, to be confirmed by the main agent): a 16x16 grid with about 8 channels through three 3x3 convolutions (8 to 32, 32 to 32, 32 to 64 with stride 2) plus a linear layer to 128 is about 40k parameters, around 12% on top of the 321k teacher. Two ways to feed it in: (a) pool to one vector and add it to the global token through a zero-initialised gate, which keeps checkpoint 420 warm-startable; (b) keep the 8x8 output as 64 patch tokens next to the entity tokens, matching the student's default 8x8 grid (attention cost grows roughly 3x because tokens go from 81 to 145, still small). Start with (a); (b) if it helps and alignment with the student matters.
+
 Priority: Phase 1 to 2 boundary. After the gamma and lambda sweep and scale runs fix the base recipe, run the architecture comparison; the imitation proxy can run earlier in Phase 0 to 1.
 
 ## Facts that change the picture
