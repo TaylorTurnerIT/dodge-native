@@ -4,6 +4,23 @@ Source: an external review of the paper draft (`RL-Agent-Hyperparameter-and-Arch
 
 Evidence base: checkpoint 420 death telemetry (`learning/reports/death-telemetry-fyou-patterns-20261029/`, DODGE-014, DODGE-015 pending), the research notebook (DODGE-001..013 as of `c2778d1`), `docs/v2-*`, `python/dodge_rl/`.
 
+## Goal and the clairvoyance rule
+
+The goal is the best teacher we can build whose inputs a vision student could in principle infer from a short frame history. The existing contract (`docs/v2-environment-contract.md`; paper, Observation): no seed identifiers, hidden timers (including the fyou dwell timer), RNG state, future pattern schedules, pattern IDs or offscreen hidden rectangles enter the network; only admitted on-screen entities do. Every idea in this plan is held to that rule.
+
+Rules that follow:
+- Anything that labels, filters or shapes the teacher's actions must be a function of the same admitted observation (and its history), never of engine internals. The heuristic shield and heuristic imitation therefore need an observability audit first: the heuristic reads `FullState`, so list every field it uses and confirm each is inside the teacher's observation (its own tests suggest hidden controls have no effect and charge forecasts use observed frames, but that is not yet an audit). Implement any shield on the observation features, using a simple motion model without RNG.
+- Engine-snapshot rollouts that look into the real future (counterfactual branching, a 9-action oracle) see future spawns and pattern choices. They are diagnostics only; their results must never become labels or training targets.
+- The critic must not use privileged inputs if the student will distil value as an auxiliary target. Keep it on the same observation unless the student plan drops value distillation.
+- Added inputs (clearance raycasts, closing speed, action history) must be computed from admitted entities and measured motion, not from the full world.
+- Pattern IDs, the fyou timer and death-cause labels stay diagnostics (my telemetry is observation-only and off by default for this reason).
+- Snapshot-prioritised replay may choose start states using hindsight, since that changes the state distribution, not the policy's inputs.
+
+What "perfect teacher" should also mean for distillation, beyond survival:
+- Robust off its own distribution: DAgger-style distillation asks the teacher to label states the imperfect student reaches. The sampled-versus-argmax gap at K=4 (about 275 Q1 frames) already shows sensitivity to action noise. Add survival under executor noise (epsilon-random actions, action delay) as a standing teacher metric.
+- Informative, calibrated action distributions: KL distillation uses soft targets, so aggressive entropy decay or collapse can make labels less useful. Weigh entropy schedules against this, and prefer low action jitter (the policy switches action at 76% of decisions at K=4; label noise like that is harder to learn from pixels).
+- A control rate the student can sustain: K=1 means a student decision every frame at 60 Hz from a short stack; K=2 to 4 are cheaper. Do not choose K on teacher survival alone, but do not dive into this yet.
+
 ## Facts that change the picture
 
 1. **The hand-written heuristic runs at 4-frame control, not 1-frame.** `docs/v2-baseline-campaign.md:21`: "Hold each policy action for at most four raw frames." It scores 6,115 mean alive frames (1,000 episodes, 15 capped) against 2,626 for checkpoint 420 with sampled actions at the same control rate (DODGE-012) and 4,387 at 1-frame. The cohorts are not paired, but the gap is large. The heuristic (`crates/dodge-rl-env/tests/support/m0_policy.rs`) simulates the player's inertia exactly, extrapolates every hazard linearly, looks 12 frames ahead over all 9 actions and keeps only actions that stay at least 4 px clear. It reads full game state, like the privileged teacher. So a 12-frame look-ahead with an exact player model beats the learned policy at its own control rate: the failure looks like short-horizon planning, not a missing 1-frame reflex.
@@ -20,15 +37,15 @@ Evidence tags: M measured here, L literature prior, R reasoned from our data, S 
 Phase 0, no training, hours (also tells us which later items to trust)
 1. K at inference. Using K=1 already gives Q1 +934 and mean +1,761 frames [M, DODGE-012]. Add K=2 and K=3 zero-shot on the same 2,048 seeds to find the best rate. Controller adoption is the user's call.
 2. Paired heuristic baseline at K=4 and K=1 on the same seeds [M after the run]. Sizes the gap to the best known controller (6,115 vs 4,434 mean) and gives a control variate for ranking.
-3. Policy plus short-horizon shield: veto actions the exact player model predicts will collide within about 12 frames, otherwise follow the policy [R]. No training. If it closes much of the gap, the policy's weakness is short-horizon planning, and the shielded policy is also a stronger teacher for the vision student.
-4. Counterfactual branching, DODGE-004 [R]. Shares the snapshot and rollout harness with item 3.
+3. Policy plus short-horizon shield: veto actions that a simple motion model (no RNG, observation features only) predicts will collide within about 12 frames, otherwise follow the policy [R]. No training; needs the observability audit first. If it closes much of the gap, the policy's weakness is short-horizon planning, and the shielded policy is also a stronger teacher for the vision student.
+4. Counterfactual branching, DODGE-004 [R]. Diagnostic only (it sees the true future). Shares the snapshot and rollout harness with item 3.
 5. Argmax versus sampled per K, and checkpoint averaging of the saved 360 to 600 checkpoints [M for argmax at K=4: +275 Q1; L for averaging].
 6. Seed audit and throughput profile (S0, S1). These gate scale: they say whether the 420 lineage reused a 512-seed pool and where the 3,500x slowdown versus the engine sits.
 
 Phase 1, first training runs, cheap configuration changes
 7. Gamma and lambda sweep (gamma 0.97 to 0.995, lambda 0.9 to 0.95) at K=4 and K=1 [L: the study's most important hyperparameter]. Highest value per cost among training changes, and it may explain DODGE-013's K=1 regression.
 8. Fresh unbounded seed stream, larger batch, longer rollouts, learning rate retuned (S3), after the pipeline speedup (S2) [R, L]. Large effect if S0 shows pool reuse or gradient noise is the limit; effect unknown otherwise.
-9. Imitation from the heuristic (behaviour cloning or DAgger on policy-visited states, then PPO fine-tuning) [R]. The target level is already demonstrated; main risk is capping near the heuristic until PPO moves past it.
+9. Imitation from the heuristic (behaviour cloning or DAgger on policy-visited states, then PPO fine-tuning) [R], after the observability audit confirms its inputs are inside the teacher's observation. The target level is already demonstrated; main risk is capping near the heuristic until PPO moves past it.
 10. K=2 and K=3 trained arms, K annealing 4 to 1, per-episode sampled K, from-scratch K=1 [S]. Order after item 7, because horizon length confounds K.
 
 Phase 2, smaller or less certain, run as ablations once the base recipe moves
