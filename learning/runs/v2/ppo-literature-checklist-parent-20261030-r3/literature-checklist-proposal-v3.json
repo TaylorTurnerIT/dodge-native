@@ -1,0 +1,282 @@
+{
+  "advantage_refresh": {
+    "KL_stop_comparator": "strictly_greater_than",
+    "KL_stop_threshold": 0.03,
+    "aggregate_metrics": [
+      "flagged_updates/completed_updates",
+      "stops_before_max_epoch/completed_updates",
+      "epochs_avoided_due_to_KL",
+      "failed_incomplete_updates_separately"
+    ],
+    "arms": [
+      "frozen_GAE_once",
+      "fresh_GAE_and_returns_before_each_epoch"
+    ],
+    "behavior_log_probs_actions_fixed": true,
+    "existing_one_GAE_contract_unchanged": true,
+    "maximum_PPO_epochs": 4,
+    "minimum_training_seeds_per_cell": 2,
+    "next_state_values_refreshed_with_current_critic": true,
+    "record": "DODGE-031",
+    "requires": [
+      "pre_reset_final_observations_for_truncation",
+      "final_rollout_next_observations",
+      "terminal_zero_bootstrap",
+      "boundary_recurrence_stop",
+      "new_multi_epoch_telemetry_contract"
+    ]
+  },
+  "concurrency_rule": "one MPS campaign unchanged",
+  "document_path": "docs/review-ideas-and-scaling-plan-20261030.md",
+  "document_sha256": "4d2730f352a768e64f98087e8e2d0230f158f77d2921d688603584c2fd99bb76",
+  "encoder_ablation": {
+    "arms": [
+      "shared_encoder",
+      "disjoint_actor_and_critic_encoders"
+    ],
+    "benefit_requires_parameter_or_compute_matched_control_before_interference_claim": true,
+    "minimum_training_seeds_per_cell": 2,
+    "record": "DODGE-029",
+    "report": [
+      "parameter_count",
+      "FLOPs",
+      "RSS_MPS",
+      "wall_time",
+      "gradient metrics"
+    ],
+    "warm_start_requires": [
+      "initial logits/value parity",
+      "versioned Adam mapping",
+      "separate analysis from scratch"
+    ]
+  },
+  "exact_paper_effect_sizes_independently_verified_this_pass": false,
+  "existing_setup_distinctions": [
+    "Transformer LayerNorm exists; no running observation/value normalization",
+    "Fixed reward scale0.1 exists; not running reward normalization",
+    "One GAE calculation per rollout; four maximum PPO epochs;0.03 epoch-end KL stop",
+    "Shared encoder with separate output heads is not separate actor/critic encoders"
+  ],
+  "existing_setup_matches": [
+    "PPO clip0.2",
+    "grad clip0.5",
+    "Adam eps1e-5",
+    "actor final gain0.01",
+    "unclipped MSE critic",
+    "per-minibatch advantage normalization"
+  ],
+  "extends_proposal_path": "learning/runs/v2/control-rate-schedule-proposal-parent-20261030-r2/K-and-LR-scaling-proposal-v2.json",
+  "extends_proposal_sha256": "4678d37d19e87ab31e6d2263e4df189972273dd3cc1d3bf08d13f919b4ca4c3a",
+  "full_K_schedule_matrix_still_explicit": true,
+  "held_S1_failure_lease_unchanged": true,
+  "horizon_screen": {
+    "cells": [
+      {
+        "K": 1,
+        "discount_half_life_raw_frames": 22.75657306277341,
+        "gae_lambda": 0.9,
+        "gamma": 0.97,
+        "units": "literal_per_decision"
+      },
+      {
+        "K": 1,
+        "discount_half_life_raw_frames": 22.75657306277341,
+        "gae_lambda": 0.95,
+        "gamma": 0.97,
+        "units": "literal_per_decision"
+      },
+      {
+        "K": 1,
+        "discount_half_life_raw_frames": 68.96756393652842,
+        "gae_lambda": 0.9,
+        "gamma": 0.99,
+        "units": "literal_per_decision"
+      },
+      {
+        "K": 1,
+        "discount_half_life_raw_frames": 68.96756393652842,
+        "gae_lambda": 0.95,
+        "gamma": 0.99,
+        "units": "literal_per_decision"
+      },
+      {
+        "K": 1,
+        "discount_half_life_raw_frames": 138.28257298606084,
+        "gae_lambda": 0.9,
+        "gamma": 0.995,
+        "units": "literal_per_decision"
+      },
+      {
+        "K": 1,
+        "discount_half_life_raw_frames": 138.28257298606084,
+        "gae_lambda": 0.95,
+        "gamma": 0.995,
+        "units": "literal_per_decision"
+      },
+      {
+        "K": 4,
+        "discount_half_life_raw_frames": 91.02629225109364,
+        "gae_lambda": 0.9,
+        "gamma": 0.97,
+        "units": "literal_per_decision"
+      },
+      {
+        "K": 4,
+        "discount_half_life_raw_frames": 91.02629225109364,
+        "gae_lambda": 0.95,
+        "gamma": 0.97,
+        "units": "literal_per_decision"
+      },
+      {
+        "K": 4,
+        "discount_half_life_raw_frames": 275.8702557461137,
+        "gae_lambda": 0.9,
+        "gamma": 0.99,
+        "units": "literal_per_decision"
+      },
+      {
+        "K": 4,
+        "discount_half_life_raw_frames": 275.8702557461137,
+        "gae_lambda": 0.95,
+        "gamma": 0.99,
+        "units": "literal_per_decision"
+      },
+      {
+        "K": 4,
+        "discount_half_life_raw_frames": 553.1302919442434,
+        "gae_lambda": 0.9,
+        "gamma": 0.995,
+        "units": "literal_per_decision"
+      },
+      {
+        "K": 4,
+        "discount_half_life_raw_frames": 553.1302919442434,
+        "gae_lambda": 0.95,
+        "gamma": 0.995,
+        "units": "literal_per_decision"
+      },
+      {
+        "K": 1,
+        "discount_half_life_raw_frames": 553.1302919442434,
+        "gae_lambda": 0.9872585449014338,
+        "gamma": 0.9987476493904754,
+        "units": "original_matched_game_time_anchor"
+      }
+    ],
+    "changing_gamma_changes_objective": true,
+    "fixed_within_contrast": [
+      "reward",
+      "LR schedule",
+      "batch",
+      "rollout allocation",
+      "exposure"
+    ],
+    "initialization": "checkpoint420 warm start",
+    "matched_vs_literal_units_declared": true,
+    "minimum_training_seeds_per_cell": 2,
+    "minimum_trajectories": 26,
+    "priority": "first trained checklist screen after instrumentation and launch gates",
+    "record": "DODGE-028"
+  },
+  "launch_authority": false,
+  "new_cohorts": 0,
+  "new_launches": 0,
+  "normalization_ablation": {
+    "arms": [
+      "current_fixed_scaling",
+      "running_observation_only",
+      "normalized_value_targets_only",
+      "both"
+    ],
+    "checkpoint_state": [
+      "normalizer algorithm",
+      "counts",
+      "means",
+      "variances",
+      "affine compensation",
+      "declared Adam mapping"
+    ],
+    "freeze_during_evaluation": true,
+    "minimum_training_seeds_per_cell": 2,
+    "normalized_loss_not_compared_as_original_unit_error": true,
+    "preserve": [
+      "padding masks",
+      "type IDs",
+      "binary semantics",
+      "original reward/value units for GAE/bootstrap"
+    ],
+    "record": "DODGE-030",
+    "training_statistics_only": true,
+    "warm_start_normalization_shift_logged_separately": true
+  },
+  "not_full_cartesian_product_with_48_trajectory_K_schedule_matrix": true,
+  "papers": [
+    {
+      "arxiv": "2006.05990",
+      "role": "Andrychowicz2020 on-policy implementation prior; not Dodge evidence"
+    },
+    {
+      "arxiv": "2005.12729",
+      "role": "Engstrom2020 implementation-sensitivity prior; not Dodge evidence"
+    }
+  ],
+  "promotion": false,
+  "rollout_allocation": {
+    "K1_observation_storage_GiB_all_candidates": 4.318359375,
+    "candidates": [
+      {
+        "envs": 128,
+        "raw_frames_per_env": 6144,
+        "rollout_decisions_by_K": {
+          "1": 6144,
+          "2": 3072,
+          "3": 2048,
+          "4": 1536
+        },
+        "total_nominal_raw_frames": 786432
+      },
+      {
+        "envs": 256,
+        "raw_frames_per_env": 3072,
+        "rollout_decisions_by_K": {
+          "1": 3072,
+          "2": 1536,
+          "3": 1024,
+          "4": 768
+        },
+        "total_nominal_raw_frames": 786432
+      },
+      {
+        "envs": 512,
+        "raw_frames_per_env": 1536,
+        "rollout_decisions_by_K": {
+          "1": 1536,
+          "2": 768,
+          "3": 512,
+          "4": 384
+        },
+        "total_nominal_raw_frames": 786432
+      }
+    ],
+    "fixed_within_K": [
+      "total rollout batch",
+      "effective minibatch",
+      "optimizer cadence",
+      "discounts",
+      "reward",
+      "LR schedule",
+      "total exposure"
+    ],
+    "interpretation": "N/T allocation contrast, not a horizon-only intervention",
+    "minimum_training_seeds_per_cell": 2,
+    "record": "DODGE-032",
+    "requires_S2_storage_and_shape_qualification_under6GiB": true
+  },
+  "schema": "dodge_PPO_literature_checklist_proposal_v3",
+  "staging": [
+    "Instrumented warm-start diagnostic and explicit horizon screen",
+    "Separate encoder, normalization, advantage and rollout-allocation comparisons with matched controls",
+    "Prospectively lock choices and validate before population claims"
+  ],
+  "status": "conditional_registered_plan_only"
+}

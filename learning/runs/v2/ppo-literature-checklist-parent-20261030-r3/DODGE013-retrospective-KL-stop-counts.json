@@ -1,0 +1,22 @@
+{
+  "arms": {
+    "repeat1_training": {
+      "KL_early_stops": 0,
+      "four_epoch_updates": 180,
+      "updates": 180
+    },
+    "repeat4_training": {
+      "KL_early_stops": 0,
+      "four_epoch_updates": 181,
+      "updates": 181
+    }
+  },
+  "input_pins": {
+    "learning/runs/v2/one-frame-training-comparison-luna-20261029-r2/parent-terminal-audit.json": "e0b003c7a58a1e3439343f2b2b9030c5df5346c024d8573bfbf534c75ceb6b96",
+    "learning/runs/v2/one-frame-training-comparison-parent-20261029-r2/results-summary.json": "17a52dc76af75bc58a01cae4b9fe04d14709b087991dbb6aa8a6a9540f9898b0"
+  },
+  "interpretation": "Neither arm lost PPO epochs to the KL early-stop flag. This rules out fewer completed epochs as the reported regression mechanism, but missing numerical KL/advantage/entropy/value telemetry prevents diagnosis of full-epoch policy drift.",
+  "new_training": false,
+  "schema": "dodge013_retrospective_KL_stop_boolean_audit_v1",
+  "scope": "Read existing accepted saved update booleans only; no re-audit, games, model restores or new optimizer work."
+}

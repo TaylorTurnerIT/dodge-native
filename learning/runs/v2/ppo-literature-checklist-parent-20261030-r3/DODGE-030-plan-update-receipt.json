@@ -1,0 +1,53 @@
+{
+  "id": "DODGE-030",
+  "project": "dodge-native",
+  "title": "Test running observation and value normalization separately",
+  "status": "planned",
+  "doing": "Propose a2x2 ablation: current fixed scaling, observation normalization only, value normalization only, both. Keep masks/type IDs/padding semantics, training-only statistics, evaluation freezing and checkpointed normalizer state explicit. Define original reward/value units and affine value-output compensation; do not confuse existing LayerNorm or fixed reward scaling with running normalization. At least2 training seeds per cell; no launch.",
+  "expected": "Running feature scales or normalized critic targets may improve stability, but already hand-scaled features and valid LayerNorm may leave little benefit. Statistics drift, output discontinuity or changed actor/value gradient balance can hurt; direction is uncertain and must be measured per component.",
+  "actual": null,
+  "why": null,
+  "next_step": "Use the staged checklist plan and preserve each predicted alternative. Complete source/resource/seed/lease gates and obtain Taylor go-ahead before any run; do not mix interventions or open a cohort.",
+  "actual_kind": "unobserved",
+  "prediction_timing": "before_run",
+  "parent_id": "DODGE-023",
+  "revision": 2,
+  "created_at": "2026-10-30T06:12:47.754660+00:00",
+  "updated_at": "2026-10-30T06:16:20.384304+00:00",
+  "tags": [
+    "observation-normalization",
+    "value-normalization",
+    "literature-checklist"
+  ],
+  "metadata": {},
+  "evidence": [
+    {
+      "id": "20d87f3bc4104a2a9357acae338a6d50",
+      "experiment_id": "DODGE-030",
+      "kind": "plan",
+      "label": "Full literature checklist and preregistered interventions/predictions",
+      "uri": "docs/review-ideas-and-scaling-plan-20261030.md",
+      "sha256": "4d2730f352a768e64f98087e8e2d0230f158f77d2921d688603584c2fd99bb76",
+      "recorded_at": "2026-10-30T06:16:20.384659+00:00"
+    },
+    {
+      "id": "77010dbfff804d46889fef15584ba1fb",
+      "experiment_id": "DODGE-030",
+      "kind": "plan",
+      "label": "User-directed literature checklist handoff; papers are priors, not Dodge results",
+      "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md",
+      "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb",
+      "recorded_at": "2026-10-30T06:12:47.754992+00:00"
+    },
+    {
+      "id": "e539ffe654cc4aea82668553fc45dee6",
+      "experiment_id": "DODGE-030",
+      "kind": "plan",
+      "label": "Machine-readable horizon, encoder, normalization, advantage and rollout allocation plan",
+      "uri": "learning/runs/v2/ppo-literature-checklist-parent-20261030-r3/literature-checklist-proposal-v3.json",
+      "sha256": "2ecb194846089a5809168ac8fa684a91d3344f76fdb4db83f6e8dc1d00eae08d",
+      "recorded_at": "2026-10-30T06:16:20.384693+00:00"
+    }
+  ],
+  "measurements": []
+}

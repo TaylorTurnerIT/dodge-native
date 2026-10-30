@@ -1,0 +1,26 @@
+{
+  "id": "DODGE-032",
+  "project": "dodge-native",
+  "title": "Compare longer per-env rollouts against more envs at fixed batch",
+  "status": "planned",
+  "doing": "Propose rollout-allocation contrasts at fixed K and total raw frames per update:128envs x6144rawframes,256x3072,512x1536, with T adjusted by K. Keep effective batch, optimizer cadence, reward, discount, LR schedule and total training exposure matched. Resource-qualify every shape under separate6GiB limits; at least2 training seeds per cell. No launch authorized.",
+  "expected": "Longer chunks may improve learning by reducing frequent bootstrap boundaries or preserving within-env experience, while more envs may improve diversity or utilization. This compares N/T allocation at fixed batch, not an isolated horizon-only effect; runtime speed and sample efficiency can move in opposite directions.",
+  "actual": null,
+  "actual_kind": "unobserved",
+  "prediction_timing": "before_run",
+  "parent_id": "DODGE-023",
+  "tags": [
+    "rollout-length",
+    "environment-count",
+    "S3",
+    "literature-checklist"
+  ],
+  "evidence": [
+    {
+      "kind": "plan",
+      "label": "User-directed literature checklist handoff; papers are priors, not Dodge results",
+      "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md",
+      "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb"
+    }
+  ]
+}

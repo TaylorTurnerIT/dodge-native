@@ -23169,7 +23169,7 @@
       "why": null
     },
     {
-      "actual": "Prepared a passive per-update telemetry adapter and strict two-arm update-coverage validator. Twelve CPU synthetic integration tests pass, including raw GAE scale, valid action-switch denominators across rollouts/resets, hook restoration, first-failure preservation and missing-row rejection; no native games, model restores or real optimizer steps ran.",
+      "actual": "Prepared a passive per-update telemetry adapter and strict two-arm update-coverage validator. Twelve CPU synthetic integration tests pass, including raw GAE scale, valid action-switch denominators across rollouts/resets, hook restoration, first-failure preservation and missing-row rejection; no native games, model restores or real optimizer steps ran. A retrospective read of accepted DODGE-013 rows found0/181 K4 and0/180 K1 KL early-stop flags, with all361 updates completing four epochs; numerical KL remains unrecorded. This is historical receipt analysis, not successor execution.",
       "actual_kind": "progress",
       "created_at": "2026-10-30T05:51:05.333589+00:00",
       "doing": "Prepare a separately owned K1-versus-K4 diagnostic successor from420. Require per-update KL and epoch KL/stop information, entropy, value loss, raw advantage/return/reward scales and valid within-episode action-switch counts/rates for both arms. Freeze telemetry definitions and test passive integration without training; any diagnostic campaign requires its own registration, review, resource qualification and explicit go-ahead.",
@@ -23182,6 +23182,15 @@
           "recorded_at": "2026-10-30T05:58:14.633439+00:00",
           "sha256": "00eb976d5b051c29f3b7456cf584e8740d6260906b34c68984a4b254aa4b3960",
           "uri": "learning/runs/v2/control-frequency-diagnostic-parent-20261030-r1/source-qualification.json"
+        },
+        {
+          "experiment_id": "DODGE-022",
+          "id": "5143442c88b84badb4cdb51c026cfe54",
+          "kind": "result",
+          "label": "Retrospective accepted-update KL-stop booleans and epoch counts",
+          "recorded_at": "2026-10-30T06:16:20.738346+00:00",
+          "sha256": "f162c354163120643d75c47c229b3c093263fa5e7aa88b8a7442fe468074e8ad",
+          "uri": "learning/runs/v2/ppo-literature-checklist-parent-20261030-r3/DODGE013-retrospective-KL-stop-counts.json"
         },
         {
           "experiment_id": "DODGE-022",
@@ -23307,6 +23316,76 @@
             "updated_at": "2026-10-30T05:58:14.632206+00:00",
             "why": null
           }
+        },
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-022",
+          "reason": "Record accepted historical KL-stop counts without reconstructing missing numerical telemetry or rerunning audit",
+          "recorded_at": "2026-10-30T06:16:20.737970+00:00",
+          "revision": 3,
+          "snapshot": {
+            "actual": "Prepared a passive per-update telemetry adapter and strict two-arm update-coverage validator. Twelve CPU synthetic integration tests pass, including raw GAE scale, valid action-switch denominators across rollouts/resets, hook restoration, first-failure preservation and missing-row rejection; no native games, model restores or real optimizer steps ran. A retrospective read of accepted DODGE-013 rows found0/181 K4 and0/180 K1 KL early-stop flags, with all361 updates completing four epochs; numerical KL remains unrecorded. This is historical receipt analysis, not successor execution.",
+            "actual_kind": "progress",
+            "created_at": "2026-10-30T05:51:05.333589+00:00",
+            "doing": "Prepare a separately owned K1-versus-K4 diagnostic successor from420. Require per-update KL and epoch KL/stop information, entropy, value loss, raw advantage/return/reward scales and valid within-episode action-switch counts/rates for both arms. Freeze telemetry definitions and test passive integration without training; any diagnostic campaign requires its own registration, review, resource qualification and explicit go-ahead.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-022",
+                "id": "4d29fa9716a84e1e9bc83d11a88ae06f",
+                "kind": "source",
+                "label": "Twelve synthetic integration tests only; not runtime qualification",
+                "recorded_at": "2026-10-30T05:58:14.633439+00:00",
+                "sha256": "00eb976d5b051c29f3b7456cf584e8740d6260906b34c68984a4b254aa4b3960",
+                "uri": "learning/runs/v2/control-frequency-diagnostic-parent-20261030-r1/source-qualification.json"
+              },
+              {
+                "experiment_id": "DODGE-022",
+                "id": "5143442c88b84badb4cdb51c026cfe54",
+                "kind": "result",
+                "label": "Retrospective accepted-update KL-stop booleans and epoch counts",
+                "recorded_at": "2026-10-30T06:16:20.738346+00:00",
+                "sha256": "f162c354163120643d75c47c229b3c093263fa5e7aa88b8a7442fe468074e8ad",
+                "uri": "learning/runs/v2/ppo-literature-checklist-parent-20261030-r3/DODGE013-retrospective-KL-stop-counts.json"
+              },
+              {
+                "experiment_id": "DODGE-022",
+                "id": "8c9aa8891c604558b0aecacc4e226a19",
+                "kind": "plan",
+                "label": "User-directed K1 track handoff; external worktree read-only",
+                "recorded_at": "2026-10-30T05:51:05.335015+00:00",
+                "sha256": "16b5f6eeb107132b9ed5cd9d876e77c6bdedd2104ecb4c5e20e1029dac98b6c1",
+                "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+              },
+              {
+                "experiment_id": "DODGE-022",
+                "id": "faf0c3460d854d11a8afa09f4343456d",
+                "kind": "source",
+                "label": "Per-update integration and required metrics contract",
+                "recorded_at": "2026-10-30T05:58:14.633404+00:00",
+                "sha256": "f94e611f99258613974c3b31f5afdfd7c66d7c81d27a1776677c22e6f23fffd9",
+                "uri": "learning/runs/v2/control-frequency-diagnostic-parent-20261030-r1/telemetry-contract.json"
+              }
+            ],
+            "expected": "If the warm-start regression involves optimization or value/credit scaling, the K1 arm may diverge in KL/entropy/value/advantage trajectories before survival regresses. If those remain comparable, local planning, state distribution and representation remain candidates. Telemetry associations alone cannot identify a cause.",
+            "id": "DODGE-022",
+            "measurements": [],
+            "metadata": {},
+            "next_step": "Freeze/review a separately registered bounded diagnostic runner with this integration and real guard/restore/metric parity checks. Await Taylor go-ahead before any launch.",
+            "parent_id": "DODGE-013",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 3,
+            "status": "planned",
+            "tags": [
+              "control-frequency",
+              "telemetry",
+              "K1",
+              "K4"
+            ],
+            "title": "Instrument the DODGE-013 warm-start control-rate comparison",
+            "updated_at": "2026-10-30T06:16:20.737970+00:00",
+            "why": null
+          }
         }
       ],
       "id": "DODGE-022",
@@ -23316,7 +23395,7 @@
       "parent_id": "DODGE-013",
       "prediction_timing": "before_run",
       "project": "dodge-native",
-      "revision": 2,
+      "revision": 3,
       "status": "planned",
       "tags": [
         "control-frequency",
@@ -23325,15 +23404,24 @@
         "K4"
       ],
       "title": "Instrument the DODGE-013 warm-start control-rate comparison",
-      "updated_at": "2026-10-30T05:58:14.632206+00:00",
+      "updated_at": "2026-10-30T06:16:20.737970+00:00",
       "why": null
     },
     {
       "actual": null,
       "actual_kind": "unobserved",
       "created_at": "2026-10-30T05:51:05.380615+00:00",
-      "doing": "After S1/S2 gates, propose all fixed K1/K2/K3/K4 warm starts from420 crossed with constant, warmup+cosine-to-floor and KL-adaptive schedules, at least2 independent training seeds per cell. Separate K4 seed-pool contrast, preserve game-time discount/rollout coverage and nominal optimizer cadence, recalibrate LR for effective batch. Zero-shot K2/K3 precedes trained-rate comparison; no launch-ready budget or execution authority.",
+      "doing": "After S1/S2 gates, propose all fixed K1/K2/K3/K4 warm starts from420 crossed with constant, warmup+cosine-to-floor and KL-adaptive schedules, at least2 independent training seeds per cell. Separate K4 seed-pool contrast, preserve game-time discount/rollout coverage and nominal optimizer cadence, recalibrate LR for effective batch. Zero-shot K2/K3 precedes trained-rate comparison; no launch-ready budget or execution authority. Include the registered horizon screen, shared/separate encoder, normalization2x2, per-epoch GAE and fixed-batch N/T allocation checks as staged ablations; longer per-env histories remain explicit rather than only increasing env count.",
       "evidence": [
+        {
+          "experiment_id": "DODGE-023",
+          "id": "259f3417ee66498da9a6f43ab2faaf8e",
+          "kind": "plan",
+          "label": "Full literature checklist and preregistered interventions/predictions",
+          "recorded_at": "2026-10-30T06:16:20.596146+00:00",
+          "sha256": "4d2730f352a768e64f98087e8e2d0230f158f77d2921d688603584c2fd99bb76",
+          "uri": "docs/review-ideas-and-scaling-plan-20261030.md"
+        },
         {
           "experiment_id": "DODGE-023",
           "id": "59a7a03931c7434aa17eba259e0cc159",
@@ -23378,6 +23466,15 @@
           "recorded_at": "2026-10-30T05:58:14.680695+00:00",
           "sha256": "58feeea31a4469bdeac7e6ab8edbac521bd3d578e518a5817101d3cd63b42d22",
           "uri": "learning/runs/v2/control-frequency-diagnostic-parent-20261030-r1/K1-K2-scaling-proposal.json"
+        },
+        {
+          "experiment_id": "DODGE-023",
+          "id": "f9ad1152b6644d7caa9d62e25fcd2aa6",
+          "kind": "plan",
+          "label": "Machine-readable horizon, encoder, normalization, advantage and rollout allocation plan",
+          "recorded_at": "2026-10-30T06:16:20.596181+00:00",
+          "sha256": "2ecb194846089a5809168ac8fa684a91d3344f76fdb4db83f6e8dc1d00eae08d",
+          "uri": "learning/runs/v2/ppo-literature-checklist-parent-20261030-r3/literature-checklist-proposal-v3.json"
         }
       ],
       "expected": "Fresh seeds may improve generalization after the confirmed512-pool reuse. K1/K2 may learn differently with qualified larger batches and longer per-env histories, but the earlier K1 regression may persist. Equal frames will not imply equal decisions, FLOPs or wall time.",
@@ -23569,16 +23666,116 @@
             "updated_at": "2026-10-30T06:06:57.188669+00:00",
             "why": null
           }
+        },
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-023",
+          "reason": "Fold literature checklist into S3/S4 with explicit predictions, units, controls and no-launch gates",
+          "recorded_at": "2026-10-30T06:16:20.595783+00:00",
+          "revision": 4,
+          "snapshot": {
+            "actual": null,
+            "actual_kind": "unobserved",
+            "created_at": "2026-10-30T05:51:05.380615+00:00",
+            "doing": "After S1/S2 gates, propose all fixed K1/K2/K3/K4 warm starts from420 crossed with constant, warmup+cosine-to-floor and KL-adaptive schedules, at least2 independent training seeds per cell. Separate K4 seed-pool contrast, preserve game-time discount/rollout coverage and nominal optimizer cadence, recalibrate LR for effective batch. Zero-shot K2/K3 precedes trained-rate comparison; no launch-ready budget or execution authority. Include the registered horizon screen, shared/separate encoder, normalization2x2, per-epoch GAE and fixed-batch N/T allocation checks as staged ablations; longer per-env histories remain explicit rather than only increasing env count.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-023",
+                "id": "259f3417ee66498da9a6f43ab2faaf8e",
+                "kind": "plan",
+                "label": "Full literature checklist and preregistered interventions/predictions",
+                "recorded_at": "2026-10-30T06:16:20.596146+00:00",
+                "sha256": "4d2730f352a768e64f98087e8e2d0230f158f77d2921d688603584c2fd99bb76",
+                "uri": "docs/review-ideas-and-scaling-plan-20261030.md"
+              },
+              {
+                "experiment_id": "DODGE-023",
+                "id": "59a7a03931c7434aa17eba259e0cc159",
+                "kind": "plan",
+                "label": "User-directed K1 track handoff; external worktree read-only",
+                "recorded_at": "2026-10-30T05:51:05.380935+00:00",
+                "sha256": "16b5f6eeb107132b9ed5cd9d876e77c6bdedd2104ecb4c5e20e1029dac98b6c1",
+                "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+              },
+              {
+                "experiment_id": "DODGE-023",
+                "id": "961db26e76d7422781a5fccca5372f9b",
+                "kind": "plan",
+                "label": "Full review idea ledger updated for user second steer",
+                "recorded_at": "2026-10-30T06:06:57.189023+00:00",
+                "sha256": "fae0eebb76925b4334a2baa0f2da1bba7745e9e4176dcb20573e1ad88132ab4a",
+                "uri": "docs/review-ideas-and-scaling-plan-20261030.md"
+              },
+              {
+                "experiment_id": "DODGE-023",
+                "id": "9beac99a07e24673978816656952697c",
+                "kind": "plan",
+                "label": "Full idea ledger with first-class control-rate matrices and concurrency question",
+                "recorded_at": "2026-10-30T05:58:14.680663+00:00",
+                "sha256": "c1ab1bd479a10dd7ffefb242e2e5a9797d0db91c7df59c9320951daacffab4d2",
+                "uri": "docs/review-ideas-and-scaling-plan-20261030.md"
+              },
+              {
+                "experiment_id": "DODGE-023",
+                "id": "ba47ed6af9b147638ed06c07ecfba150",
+                "kind": "plan",
+                "label": "Expanded fixed-K, dynamic-K and scheduler comparison proposal",
+                "recorded_at": "2026-10-30T06:06:57.188990+00:00",
+                "sha256": "4678d37d19e87ab31e6d2263e4df189972273dd3cc1d3bf08d13f919b4ca4c3a",
+                "uri": "learning/runs/v2/control-rate-schedule-proposal-parent-20261030-r2/K-and-LR-scaling-proposal-v2.json"
+              },
+              {
+                "experiment_id": "DODGE-023",
+                "id": "bb5344ef758c4042bf918cb982a97df4",
+                "kind": "plan",
+                "label": "Machine-readable conditional S3/S4 design, horizons, memory estimates and gates",
+                "recorded_at": "2026-10-30T05:58:14.680695+00:00",
+                "sha256": "58feeea31a4469bdeac7e6ab8edbac521bd3d578e518a5817101d3cd63b42d22",
+                "uri": "learning/runs/v2/control-frequency-diagnostic-parent-20261030-r1/K1-K2-scaling-proposal.json"
+              },
+              {
+                "experiment_id": "DODGE-023",
+                "id": "f9ad1152b6644d7caa9d62e25fcd2aa6",
+                "kind": "plan",
+                "label": "Machine-readable horizon, encoder, normalization, advantage and rollout allocation plan",
+                "recorded_at": "2026-10-30T06:16:20.596181+00:00",
+                "sha256": "2ecb194846089a5809168ac8fa684a91d3344f76fdb4db83f6e8dc1d00eae08d",
+                "uri": "learning/runs/v2/ppo-literature-checklist-parent-20261030-r3/literature-checklist-proposal-v3.json"
+              }
+            ],
+            "expected": "Fresh seeds may improve generalization after the confirmed512-pool reuse. K1/K2 may learn differently with qualified larger batches and longer per-env histories, but the earlier K1 regression may persist. Equal frames will not imply equal decisions, FLOPs or wall time.",
+            "id": "DODGE-023",
+            "measurements": [],
+            "metadata": {},
+            "next_step": "Use the staged checklist plan and preserve each predicted alternative. Complete source/resource/seed/lease gates and obtain Taylor go-ahead before any run; do not mix interventions or open a cohort.",
+            "parent_id": "DODGE-016",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 4,
+            "status": "planned",
+            "tags": [
+              "S3",
+              "scaling",
+              "K1",
+              "K2",
+              "K3",
+              "K4",
+              "learning-rate-schedule"
+            ],
+            "title": "Propose scaled warm starts with K1 K2 K3 K4 and LR schedules",
+            "updated_at": "2026-10-30T06:16:20.595783+00:00",
+            "why": null
+          }
         }
       ],
       "id": "DODGE-023",
       "measurements": [],
       "metadata": {},
-      "next_step": "Await explicit S1 successor approval; complete S1/S2 before setting actual budgets. Keep zero-shot, all fixed-K schedule cells and dynamic-K options explicit; request separate go-ahead before launch.",
+      "next_step": "Use the staged checklist plan and preserve each predicted alternative. Complete source/resource/seed/lease gates and obtain Taylor go-ahead before any run; do not mix interventions or open a cohort.",
       "parent_id": "DODGE-016",
       "prediction_timing": "before_run",
       "project": "dodge-native",
-      "revision": 3,
+      "revision": 4,
       "status": "planned",
       "tags": [
         "S3",
@@ -23590,15 +23787,24 @@
         "learning-rate-schedule"
       ],
       "title": "Propose scaled warm starts with K1 K2 K3 K4 and LR schedules",
-      "updated_at": "2026-10-30T06:06:57.188669+00:00",
+      "updated_at": "2026-10-30T06:16:20.595783+00:00",
       "why": null
     },
     {
       "actual": null,
       "actual_kind": "unobserved",
       "created_at": "2026-10-30T05:51:05.422416+00:00",
-      "doing": "Keep all fixed K1/K2/K3/K4 scratch arms in S4, crossed with constant, warmup+cosine-to-floor and KL-adaptive schedules, at least2 independent training seeds per cell. Match initialization within each replica, use fresh Adam and allowed seed streams, matched game-time horizons, and identity-bound scheduler checkpoint state. No cohort opening or launch authorized.",
+      "doing": "Keep all fixed K1/K2/K3/K4 scratch arms in S4, crossed with constant, warmup+cosine-to-floor and KL-adaptive schedules, at least2 independent training seeds per cell. Match initialization within each replica, use fresh Adam and allowed seed streams, matched game-time horizons, and identity-bound scheduler checkpoint state. No cohort opening or launch authorized. Keep literature checklist choices explicit and frozen before scratch comparisons; do not assume warm-start improvements transfer or silently cross every checklist dimension.",
       "evidence": [
+        {
+          "experiment_id": "DODGE-024",
+          "id": "24efea96aced4d1293b558864687e655",
+          "kind": "plan",
+          "label": "Full literature checklist and preregistered interventions/predictions",
+          "recorded_at": "2026-10-30T06:16:20.667807+00:00",
+          "sha256": "4d2730f352a768e64f98087e8e2d0230f158f77d2921d688603584c2fd99bb76",
+          "uri": "docs/review-ideas-and-scaling-plan-20261030.md"
+        },
         {
           "experiment_id": "DODGE-024",
           "id": "59b2422df94f49eaac365758f1066c58",
@@ -23616,6 +23822,15 @@
           "recorded_at": "2026-10-30T05:58:14.722960+00:00",
           "sha256": "c1ab1bd479a10dd7ffefb242e2e5a9797d0db91c7df59c9320951daacffab4d2",
           "uri": "docs/review-ideas-and-scaling-plan-20261030.md"
+        },
+        {
+          "experiment_id": "DODGE-024",
+          "id": "7b7ccaf8dbf74d4494dfa02e887b441c",
+          "kind": "plan",
+          "label": "Machine-readable horizon, encoder, normalization, advantage and rollout allocation plan",
+          "recorded_at": "2026-10-30T06:16:20.667840+00:00",
+          "sha256": "2ecb194846089a5809168ac8fa684a91d3344f76fdb4db83f6e8dc1d00eae08d",
+          "uri": "learning/runs/v2/ppo-literature-checklist-parent-20261030-r3/literature-checklist-proposal-v3.json"
         },
         {
           "experiment_id": "DODGE-024",
@@ -23834,16 +24049,116 @@
             "updated_at": "2026-10-30T06:06:57.256180+00:00",
             "why": null
           }
+        },
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-024",
+          "reason": "Fold literature checklist into S3/S4 with explicit predictions, units, controls and no-launch gates",
+          "recorded_at": "2026-10-30T06:16:20.667439+00:00",
+          "revision": 4,
+          "snapshot": {
+            "actual": null,
+            "actual_kind": "unobserved",
+            "created_at": "2026-10-30T05:51:05.422416+00:00",
+            "doing": "Keep all fixed K1/K2/K3/K4 scratch arms in S4, crossed with constant, warmup+cosine-to-floor and KL-adaptive schedules, at least2 independent training seeds per cell. Match initialization within each replica, use fresh Adam and allowed seed streams, matched game-time horizons, and identity-bound scheduler checkpoint state. No cohort opening or launch authorized. Keep literature checklist choices explicit and frozen before scratch comparisons; do not assume warm-start improvements transfer or silently cross every checklist dimension.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-024",
+                "id": "24efea96aced4d1293b558864687e655",
+                "kind": "plan",
+                "label": "Full literature checklist and preregistered interventions/predictions",
+                "recorded_at": "2026-10-30T06:16:20.667807+00:00",
+                "sha256": "4d2730f352a768e64f98087e8e2d0230f158f77d2921d688603584c2fd99bb76",
+                "uri": "docs/review-ideas-and-scaling-plan-20261030.md"
+              },
+              {
+                "experiment_id": "DODGE-024",
+                "id": "59b2422df94f49eaac365758f1066c58",
+                "kind": "plan",
+                "label": "Matched raw-frame horizons and explicit speed/memory/concurrency gates",
+                "recorded_at": "2026-10-30T05:58:14.722992+00:00",
+                "sha256": "58feeea31a4469bdeac7e6ab8edbac521bd3d578e518a5817101d3cd63b42d22",
+                "uri": "learning/runs/v2/control-frequency-diagnostic-parent-20261030-r1/K1-K2-scaling-proposal.json"
+              },
+              {
+                "experiment_id": "DODGE-024",
+                "id": "72a1f53ed54a4141ae164e71a91daae0",
+                "kind": "plan",
+                "label": "Explicit from-scratch K1/K2/K4 matrix within full review plan",
+                "recorded_at": "2026-10-30T05:58:14.722960+00:00",
+                "sha256": "c1ab1bd479a10dd7ffefb242e2e5a9797d0db91c7df59c9320951daacffab4d2",
+                "uri": "docs/review-ideas-and-scaling-plan-20261030.md"
+              },
+              {
+                "experiment_id": "DODGE-024",
+                "id": "7b7ccaf8dbf74d4494dfa02e887b441c",
+                "kind": "plan",
+                "label": "Machine-readable horizon, encoder, normalization, advantage and rollout allocation plan",
+                "recorded_at": "2026-10-30T06:16:20.667840+00:00",
+                "sha256": "2ecb194846089a5809168ac8fa684a91d3344f76fdb4db83f6e8dc1d00eae08d",
+                "uri": "learning/runs/v2/ppo-literature-checklist-parent-20261030-r3/literature-checklist-proposal-v3.json"
+              },
+              {
+                "experiment_id": "DODGE-024",
+                "id": "8345d033ea614835bb25fdfff95ae548",
+                "kind": "plan",
+                "label": "Full review idea ledger updated for user second steer",
+                "recorded_at": "2026-10-30T06:06:57.256522+00:00",
+                "sha256": "fae0eebb76925b4334a2baa0f2da1bba7745e9e4176dcb20573e1ad88132ab4a",
+                "uri": "docs/review-ideas-and-scaling-plan-20261030.md"
+              },
+              {
+                "experiment_id": "DODGE-024",
+                "id": "9d29910153e949c3aae42c00aa740d16",
+                "kind": "plan",
+                "label": "User-directed K1 track handoff; external worktree read-only",
+                "recorded_at": "2026-10-30T05:51:05.422758+00:00",
+                "sha256": "16b5f6eeb107132b9ed5cd9d876e77c6bdedd2104ecb4c5e20e1029dac98b6c1",
+                "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+              },
+              {
+                "experiment_id": "DODGE-024",
+                "id": "d219d200d3ca450c8589d58dfd80af9d",
+                "kind": "plan",
+                "label": "Expanded fixed-K, dynamic-K and scheduler comparison proposal",
+                "recorded_at": "2026-10-30T06:06:57.256491+00:00",
+                "sha256": "4678d37d19e87ab31e6d2263e4df189972273dd3cc1d3bf08d13f919b4ca4c3a",
+                "uri": "learning/runs/v2/control-rate-schedule-proposal-parent-20261030-r2/K-and-LR-scaling-proposal-v2.json"
+              }
+            ],
+            "expected": "If inherited K4 behavior or optimizer state limits K1 adaptation, a from-scratch K1/K2 arm could outperform its warm start at sufficient exposure. If sample efficiency or planning limits dominate, K4 may remain preferable despite finer-control inference gains. No direction is assumed before measurement.",
+            "id": "DODGE-024",
+            "measurements": [],
+            "metadata": {},
+            "next_step": "Use the staged checklist plan and preserve each predicted alternative. Complete source/resource/seed/lease gates and obtain Taylor go-ahead before any run; do not mix interventions or open a cohort.",
+            "parent_id": "DODGE-023",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 4,
+            "status": "planned",
+            "tags": [
+              "S4",
+              "from-scratch",
+              "K1",
+              "K2",
+              "K3",
+              "K4",
+              "learning-rate-schedule"
+            ],
+            "title": "Propose from-scratch K1 K2 K3 K4 with LR schedule comparison",
+            "updated_at": "2026-10-30T06:16:20.667439+00:00",
+            "why": null
+          }
         }
       ],
       "id": "DODGE-024",
       "measurements": [],
       "metadata": {},
-      "next_step": "Use S3 evidence and S1/S2 forecasts to propose measured S4 budgets without dropping fixed-K or scheduler cells silently. Require separate user approval.",
+      "next_step": "Use the staged checklist plan and preserve each predicted alternative. Complete source/resource/seed/lease gates and obtain Taylor go-ahead before any run; do not mix interventions or open a cohort.",
       "parent_id": "DODGE-023",
       "prediction_timing": "before_run",
       "project": "dodge-native",
-      "revision": 3,
+      "revision": 4,
       "status": "planned",
       "tags": [
         "S4",
@@ -23855,7 +24170,7 @@
         "learning-rate-schedule"
       ],
       "title": "Propose from-scratch K1 K2 K3 K4 with LR schedule comparison",
-      "updated_at": "2026-10-30T06:06:57.256180+00:00",
+      "updated_at": "2026-10-30T06:16:20.667439+00:00",
       "why": null
     },
     {
@@ -24333,6 +24648,797 @@
       ],
       "title": "Compare constant cosine and KL-adaptive learning-rate schedules",
       "updated_at": "2026-10-30T06:06:57.466249+00:00",
+      "why": null
+    },
+    {
+      "actual": null,
+      "actual_kind": "unobserved",
+      "created_at": "2026-10-30T06:12:47.665500+00:00",
+      "doing": "Propose a warm-start420 screen at K1/K4: direct per-decision gamma0.97/0.99/0.995 crossed with lambda0.90/0.95, plus the original game-time-matched K1 anchor. Keep reward, rollout allocation, batch, LR schedule and exposure fixed within contrasts; use at least2 training seeds per cell. Distinguish literal per-decision treatment from matched-game-time controls. No launch authorized.",
+      "evidence": [
+        {
+          "experiment_id": "DODGE-028",
+          "id": "08c0bdd91f4542f48076ee8adc01f96d",
+          "kind": "plan",
+          "label": "Full literature checklist and preregistered interventions/predictions",
+          "recorded_at": "2026-10-30T06:16:20.242104+00:00",
+          "sha256": "4d2730f352a768e64f98087e8e2d0230f158f77d2921d688603584c2fd99bb76",
+          "uri": "docs/review-ideas-and-scaling-plan-20261030.md"
+        },
+        {
+          "experiment_id": "DODGE-028",
+          "id": "1279cfccab8a4143a27a2a311dff8f21",
+          "kind": "plan",
+          "label": "Machine-readable horizon, encoder, normalization, advantage and rollout allocation plan",
+          "recorded_at": "2026-10-30T06:16:20.242142+00:00",
+          "sha256": "2ecb194846089a5809168ac8fa684a91d3344f76fdb4db83f6e8dc1d00eae08d",
+          "uri": "learning/runs/v2/ppo-literature-checklist-parent-20261030-r3/literature-checklist-proposal-v3.json"
+        },
+        {
+          "experiment_id": "DODGE-028",
+          "id": "e6f8a1e9e4a94827ac6ea84eda44e196",
+          "kind": "plan",
+          "label": "User-directed literature checklist handoff; papers are priors, not Dodge results",
+          "recorded_at": "2026-10-30T06:12:47.665843+00:00",
+          "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb",
+          "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+        }
+      ],
+      "expected": "Shorter K1 credit traces may reduce noisy advantages or stabilize the critic and improve Q1 relative to the matched-horizon anchor. They may instead lose useful delayed credit and reduce survival; changing gamma also changes the discounted objective, so lower KL or variance alone is not success.",
+      "history": [
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-028",
+          "reason": "Register literature-checklist intervention and prediction before any new execution",
+          "recorded_at": "2026-10-30T06:12:47.665500+00:00",
+          "revision": 1,
+          "snapshot": {
+            "actual": null,
+            "actual_kind": "unobserved",
+            "created_at": "2026-10-30T06:12:47.665500+00:00",
+            "doing": "Propose a warm-start420 screen at K1/K4: direct per-decision gamma0.97/0.99/0.995 crossed with lambda0.90/0.95, plus the original game-time-matched K1 anchor. Keep reward, rollout allocation, batch, LR schedule and exposure fixed within contrasts; use at least2 training seeds per cell. Distinguish literal per-decision treatment from matched-game-time controls. No launch authorized.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-028",
+                "id": "e6f8a1e9e4a94827ac6ea84eda44e196",
+                "kind": "plan",
+                "label": "User-directed literature checklist handoff; papers are priors, not Dodge results",
+                "recorded_at": "2026-10-30T06:12:47.665843+00:00",
+                "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb",
+                "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+              }
+            ],
+            "expected": "Shorter K1 credit traces may reduce noisy advantages or stabilize the critic and improve Q1 relative to the matched-horizon anchor. They may instead lose useful delayed credit and reduce survival; changing gamma also changes the discounted objective, so lower KL or variance alone is not success.",
+            "id": "DODGE-028",
+            "measurements": [],
+            "metadata": {},
+            "next_step": null,
+            "parent_id": "DODGE-022",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 1,
+            "status": "planned",
+            "tags": [
+              "gamma",
+              "GAE",
+              "K1",
+              "literature-checklist"
+            ],
+            "title": "Sweep discount and GAE horizons, prioritizing K1",
+            "updated_at": "2026-10-30T06:12:47.665500+00:00",
+            "why": null
+          }
+        },
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-028",
+          "reason": "Fold literature checklist into S3/S4 with explicit predictions, units, controls and no-launch gates",
+          "recorded_at": "2026-10-30T06:16:20.241754+00:00",
+          "revision": 2,
+          "snapshot": {
+            "actual": null,
+            "actual_kind": "unobserved",
+            "created_at": "2026-10-30T06:12:47.665500+00:00",
+            "doing": "Propose a warm-start420 screen at K1/K4: direct per-decision gamma0.97/0.99/0.995 crossed with lambda0.90/0.95, plus the original game-time-matched K1 anchor. Keep reward, rollout allocation, batch, LR schedule and exposure fixed within contrasts; use at least2 training seeds per cell. Distinguish literal per-decision treatment from matched-game-time controls. No launch authorized.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-028",
+                "id": "08c0bdd91f4542f48076ee8adc01f96d",
+                "kind": "plan",
+                "label": "Full literature checklist and preregistered interventions/predictions",
+                "recorded_at": "2026-10-30T06:16:20.242104+00:00",
+                "sha256": "4d2730f352a768e64f98087e8e2d0230f158f77d2921d688603584c2fd99bb76",
+                "uri": "docs/review-ideas-and-scaling-plan-20261030.md"
+              },
+              {
+                "experiment_id": "DODGE-028",
+                "id": "1279cfccab8a4143a27a2a311dff8f21",
+                "kind": "plan",
+                "label": "Machine-readable horizon, encoder, normalization, advantage and rollout allocation plan",
+                "recorded_at": "2026-10-30T06:16:20.242142+00:00",
+                "sha256": "2ecb194846089a5809168ac8fa684a91d3344f76fdb4db83f6e8dc1d00eae08d",
+                "uri": "learning/runs/v2/ppo-literature-checklist-parent-20261030-r3/literature-checklist-proposal-v3.json"
+              },
+              {
+                "experiment_id": "DODGE-028",
+                "id": "e6f8a1e9e4a94827ac6ea84eda44e196",
+                "kind": "plan",
+                "label": "User-directed literature checklist handoff; papers are priors, not Dodge results",
+                "recorded_at": "2026-10-30T06:12:47.665843+00:00",
+                "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb",
+                "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+              }
+            ],
+            "expected": "Shorter K1 credit traces may reduce noisy advantages or stabilize the critic and improve Q1 relative to the matched-horizon anchor. They may instead lose useful delayed credit and reduce survival; changing gamma also changes the discounted objective, so lower KL or variance alone is not success.",
+            "id": "DODGE-028",
+            "measurements": [],
+            "metadata": {},
+            "next_step": "Use the staged checklist plan and preserve each predicted alternative. Complete source/resource/seed/lease gates and obtain Taylor go-ahead before any run; do not mix interventions or open a cohort.",
+            "parent_id": "DODGE-022",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 2,
+            "status": "planned",
+            "tags": [
+              "gamma",
+              "GAE",
+              "K1",
+              "literature-checklist"
+            ],
+            "title": "Sweep discount and GAE horizons, prioritizing K1",
+            "updated_at": "2026-10-30T06:16:20.241754+00:00",
+            "why": null
+          }
+        }
+      ],
+      "id": "DODGE-028",
+      "measurements": [],
+      "metadata": {},
+      "next_step": "Use the staged checklist plan and preserve each predicted alternative. Complete source/resource/seed/lease gates and obtain Taylor go-ahead before any run; do not mix interventions or open a cohort.",
+      "parent_id": "DODGE-022",
+      "prediction_timing": "before_run",
+      "project": "dodge-native",
+      "revision": 2,
+      "status": "planned",
+      "tags": [
+        "gamma",
+        "GAE",
+        "K1",
+        "literature-checklist"
+      ],
+      "title": "Sweep discount and GAE horizons, prioritizing K1",
+      "updated_at": "2026-10-30T06:16:20.241754+00:00",
+      "why": null
+    },
+    {
+      "actual": null,
+      "actual_kind": "unobserved",
+      "created_at": "2026-10-30T06:12:47.710028+00:00",
+      "doing": "Propose current shared transformer versus disjoint actor/critic encoders under the same selected control rate, reward and optimization settings. Declare initialization/Adam mapping, verify initial output parity where applicable, record parameter/FLOP/memory cost and use at least2 training seeds per cell. Separate scratch and warm-start evidence; no model construction or launch authorized.",
+      "evidence": [
+        {
+          "experiment_id": "DODGE-029",
+          "id": "003d7de99425456eb3a93cca72e3a181",
+          "kind": "plan",
+          "label": "Full literature checklist and preregistered interventions/predictions",
+          "recorded_at": "2026-10-30T06:16:20.310527+00:00",
+          "sha256": "4d2730f352a768e64f98087e8e2d0230f158f77d2921d688603584c2fd99bb76",
+          "uri": "docs/review-ideas-and-scaling-plan-20261030.md"
+        },
+        {
+          "experiment_id": "DODGE-029",
+          "id": "2a79244371aa416398f13dd18a62399d",
+          "kind": "plan",
+          "label": "User-directed literature checklist handoff; papers are priors, not Dodge results",
+          "recorded_at": "2026-10-30T06:12:47.710413+00:00",
+          "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb",
+          "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+        },
+        {
+          "experiment_id": "DODGE-029",
+          "id": "c7745e901fe0475ab2bfbed6990f5569",
+          "kind": "plan",
+          "label": "Machine-readable horizon, encoder, normalization, advantage and rollout allocation plan",
+          "recorded_at": "2026-10-30T06:16:20.310561+00:00",
+          "sha256": "2ecb194846089a5809168ac8fa684a91d3344f76fdb4db83f6e8dc1d00eae08d",
+          "uri": "learning/runs/v2/ppo-literature-checklist-parent-20261030-r3/literature-checklist-proposal-v3.json"
+        }
+      ],
+      "expected": "Separate encoders may reduce actor/value interference or improve fitting, but near-zero measured gradient alignment weakens a simple interference claim. Added capacity and cost may explain any improvement, so a beneficial result needs a parameter/compute-matched shared control before causal attribution.",
+      "history": [
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-029",
+          "reason": "Register literature-checklist intervention and prediction before any new execution",
+          "recorded_at": "2026-10-30T06:12:47.710028+00:00",
+          "revision": 1,
+          "snapshot": {
+            "actual": null,
+            "actual_kind": "unobserved",
+            "created_at": "2026-10-30T06:12:47.710028+00:00",
+            "doing": "Propose current shared transformer versus disjoint actor/critic encoders under the same selected control rate, reward and optimization settings. Declare initialization/Adam mapping, verify initial output parity where applicable, record parameter/FLOP/memory cost and use at least2 training seeds per cell. Separate scratch and warm-start evidence; no model construction or launch authorized.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-029",
+                "id": "2a79244371aa416398f13dd18a62399d",
+                "kind": "plan",
+                "label": "User-directed literature checklist handoff; papers are priors, not Dodge results",
+                "recorded_at": "2026-10-30T06:12:47.710413+00:00",
+                "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb",
+                "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+              }
+            ],
+            "expected": "Separate encoders may reduce actor/value interference or improve fitting, but near-zero measured gradient alignment weakens a simple interference claim. Added capacity and cost may explain any improvement, so a beneficial result needs a parameter/compute-matched shared control before causal attribution.",
+            "id": "DODGE-029",
+            "measurements": [],
+            "metadata": {},
+            "next_step": null,
+            "parent_id": "DODGE-023",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 1,
+            "status": "planned",
+            "tags": [
+              "actor-critic",
+              "architecture",
+              "literature-checklist"
+            ],
+            "title": "Compare shared and separate actor critic encoders",
+            "updated_at": "2026-10-30T06:12:47.710028+00:00",
+            "why": null
+          }
+        },
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-029",
+          "reason": "Fold literature checklist into S3/S4 with explicit predictions, units, controls and no-launch gates",
+          "recorded_at": "2026-10-30T06:16:20.310185+00:00",
+          "revision": 2,
+          "snapshot": {
+            "actual": null,
+            "actual_kind": "unobserved",
+            "created_at": "2026-10-30T06:12:47.710028+00:00",
+            "doing": "Propose current shared transformer versus disjoint actor/critic encoders under the same selected control rate, reward and optimization settings. Declare initialization/Adam mapping, verify initial output parity where applicable, record parameter/FLOP/memory cost and use at least2 training seeds per cell. Separate scratch and warm-start evidence; no model construction or launch authorized.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-029",
+                "id": "003d7de99425456eb3a93cca72e3a181",
+                "kind": "plan",
+                "label": "Full literature checklist and preregistered interventions/predictions",
+                "recorded_at": "2026-10-30T06:16:20.310527+00:00",
+                "sha256": "4d2730f352a768e64f98087e8e2d0230f158f77d2921d688603584c2fd99bb76",
+                "uri": "docs/review-ideas-and-scaling-plan-20261030.md"
+              },
+              {
+                "experiment_id": "DODGE-029",
+                "id": "2a79244371aa416398f13dd18a62399d",
+                "kind": "plan",
+                "label": "User-directed literature checklist handoff; papers are priors, not Dodge results",
+                "recorded_at": "2026-10-30T06:12:47.710413+00:00",
+                "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb",
+                "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+              },
+              {
+                "experiment_id": "DODGE-029",
+                "id": "c7745e901fe0475ab2bfbed6990f5569",
+                "kind": "plan",
+                "label": "Machine-readable horizon, encoder, normalization, advantage and rollout allocation plan",
+                "recorded_at": "2026-10-30T06:16:20.310561+00:00",
+                "sha256": "2ecb194846089a5809168ac8fa684a91d3344f76fdb4db83f6e8dc1d00eae08d",
+                "uri": "learning/runs/v2/ppo-literature-checklist-parent-20261030-r3/literature-checklist-proposal-v3.json"
+              }
+            ],
+            "expected": "Separate encoders may reduce actor/value interference or improve fitting, but near-zero measured gradient alignment weakens a simple interference claim. Added capacity and cost may explain any improvement, so a beneficial result needs a parameter/compute-matched shared control before causal attribution.",
+            "id": "DODGE-029",
+            "measurements": [],
+            "metadata": {},
+            "next_step": "Use the staged checklist plan and preserve each predicted alternative. Complete source/resource/seed/lease gates and obtain Taylor go-ahead before any run; do not mix interventions or open a cohort.",
+            "parent_id": "DODGE-023",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 2,
+            "status": "planned",
+            "tags": [
+              "actor-critic",
+              "architecture",
+              "literature-checklist"
+            ],
+            "title": "Compare shared and separate actor critic encoders",
+            "updated_at": "2026-10-30T06:16:20.310185+00:00",
+            "why": null
+          }
+        }
+      ],
+      "id": "DODGE-029",
+      "measurements": [],
+      "metadata": {},
+      "next_step": "Use the staged checklist plan and preserve each predicted alternative. Complete source/resource/seed/lease gates and obtain Taylor go-ahead before any run; do not mix interventions or open a cohort.",
+      "parent_id": "DODGE-023",
+      "prediction_timing": "before_run",
+      "project": "dodge-native",
+      "revision": 2,
+      "status": "planned",
+      "tags": [
+        "actor-critic",
+        "architecture",
+        "literature-checklist"
+      ],
+      "title": "Compare shared and separate actor critic encoders",
+      "updated_at": "2026-10-30T06:16:20.310185+00:00",
+      "why": null
+    },
+    {
+      "actual": null,
+      "actual_kind": "unobserved",
+      "created_at": "2026-10-30T06:12:47.754660+00:00",
+      "doing": "Propose a2x2 ablation: current fixed scaling, observation normalization only, value normalization only, both. Keep masks/type IDs/padding semantics, training-only statistics, evaluation freezing and checkpointed normalizer state explicit. Define original reward/value units and affine value-output compensation; do not confuse existing LayerNorm or fixed reward scaling with running normalization. At least2 training seeds per cell; no launch.",
+      "evidence": [
+        {
+          "experiment_id": "DODGE-030",
+          "id": "20d87f3bc4104a2a9357acae338a6d50",
+          "kind": "plan",
+          "label": "Full literature checklist and preregistered interventions/predictions",
+          "recorded_at": "2026-10-30T06:16:20.384659+00:00",
+          "sha256": "4d2730f352a768e64f98087e8e2d0230f158f77d2921d688603584c2fd99bb76",
+          "uri": "docs/review-ideas-and-scaling-plan-20261030.md"
+        },
+        {
+          "experiment_id": "DODGE-030",
+          "id": "77010dbfff804d46889fef15584ba1fb",
+          "kind": "plan",
+          "label": "User-directed literature checklist handoff; papers are priors, not Dodge results",
+          "recorded_at": "2026-10-30T06:12:47.754992+00:00",
+          "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb",
+          "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+        },
+        {
+          "experiment_id": "DODGE-030",
+          "id": "e539ffe654cc4aea82668553fc45dee6",
+          "kind": "plan",
+          "label": "Machine-readable horizon, encoder, normalization, advantage and rollout allocation plan",
+          "recorded_at": "2026-10-30T06:16:20.384693+00:00",
+          "sha256": "2ecb194846089a5809168ac8fa684a91d3344f76fdb4db83f6e8dc1d00eae08d",
+          "uri": "learning/runs/v2/ppo-literature-checklist-parent-20261030-r3/literature-checklist-proposal-v3.json"
+        }
+      ],
+      "expected": "Running feature scales or normalized critic targets may improve stability, but already hand-scaled features and valid LayerNorm may leave little benefit. Statistics drift, output discontinuity or changed actor/value gradient balance can hurt; direction is uncertain and must be measured per component.",
+      "history": [
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-030",
+          "reason": "Register literature-checklist intervention and prediction before any new execution",
+          "recorded_at": "2026-10-30T06:12:47.754660+00:00",
+          "revision": 1,
+          "snapshot": {
+            "actual": null,
+            "actual_kind": "unobserved",
+            "created_at": "2026-10-30T06:12:47.754660+00:00",
+            "doing": "Propose a2x2 ablation: current fixed scaling, observation normalization only, value normalization only, both. Keep masks/type IDs/padding semantics, training-only statistics, evaluation freezing and checkpointed normalizer state explicit. Define original reward/value units and affine value-output compensation; do not confuse existing LayerNorm or fixed reward scaling with running normalization. At least2 training seeds per cell; no launch.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-030",
+                "id": "77010dbfff804d46889fef15584ba1fb",
+                "kind": "plan",
+                "label": "User-directed literature checklist handoff; papers are priors, not Dodge results",
+                "recorded_at": "2026-10-30T06:12:47.754992+00:00",
+                "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb",
+                "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+              }
+            ],
+            "expected": "Running feature scales or normalized critic targets may improve stability, but already hand-scaled features and valid LayerNorm may leave little benefit. Statistics drift, output discontinuity or changed actor/value gradient balance can hurt; direction is uncertain and must be measured per component.",
+            "id": "DODGE-030",
+            "measurements": [],
+            "metadata": {},
+            "next_step": null,
+            "parent_id": "DODGE-023",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 1,
+            "status": "planned",
+            "tags": [
+              "observation-normalization",
+              "value-normalization",
+              "literature-checklist"
+            ],
+            "title": "Test running observation and value normalization separately",
+            "updated_at": "2026-10-30T06:12:47.754660+00:00",
+            "why": null
+          }
+        },
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-030",
+          "reason": "Fold literature checklist into S3/S4 with explicit predictions, units, controls and no-launch gates",
+          "recorded_at": "2026-10-30T06:16:20.384304+00:00",
+          "revision": 2,
+          "snapshot": {
+            "actual": null,
+            "actual_kind": "unobserved",
+            "created_at": "2026-10-30T06:12:47.754660+00:00",
+            "doing": "Propose a2x2 ablation: current fixed scaling, observation normalization only, value normalization only, both. Keep masks/type IDs/padding semantics, training-only statistics, evaluation freezing and checkpointed normalizer state explicit. Define original reward/value units and affine value-output compensation; do not confuse existing LayerNorm or fixed reward scaling with running normalization. At least2 training seeds per cell; no launch.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-030",
+                "id": "20d87f3bc4104a2a9357acae338a6d50",
+                "kind": "plan",
+                "label": "Full literature checklist and preregistered interventions/predictions",
+                "recorded_at": "2026-10-30T06:16:20.384659+00:00",
+                "sha256": "4d2730f352a768e64f98087e8e2d0230f158f77d2921d688603584c2fd99bb76",
+                "uri": "docs/review-ideas-and-scaling-plan-20261030.md"
+              },
+              {
+                "experiment_id": "DODGE-030",
+                "id": "77010dbfff804d46889fef15584ba1fb",
+                "kind": "plan",
+                "label": "User-directed literature checklist handoff; papers are priors, not Dodge results",
+                "recorded_at": "2026-10-30T06:12:47.754992+00:00",
+                "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb",
+                "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+              },
+              {
+                "experiment_id": "DODGE-030",
+                "id": "e539ffe654cc4aea82668553fc45dee6",
+                "kind": "plan",
+                "label": "Machine-readable horizon, encoder, normalization, advantage and rollout allocation plan",
+                "recorded_at": "2026-10-30T06:16:20.384693+00:00",
+                "sha256": "2ecb194846089a5809168ac8fa684a91d3344f76fdb4db83f6e8dc1d00eae08d",
+                "uri": "learning/runs/v2/ppo-literature-checklist-parent-20261030-r3/literature-checklist-proposal-v3.json"
+              }
+            ],
+            "expected": "Running feature scales or normalized critic targets may improve stability, but already hand-scaled features and valid LayerNorm may leave little benefit. Statistics drift, output discontinuity or changed actor/value gradient balance can hurt; direction is uncertain and must be measured per component.",
+            "id": "DODGE-030",
+            "measurements": [],
+            "metadata": {},
+            "next_step": "Use the staged checklist plan and preserve each predicted alternative. Complete source/resource/seed/lease gates and obtain Taylor go-ahead before any run; do not mix interventions or open a cohort.",
+            "parent_id": "DODGE-023",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 2,
+            "status": "planned",
+            "tags": [
+              "observation-normalization",
+              "value-normalization",
+              "literature-checklist"
+            ],
+            "title": "Test running observation and value normalization separately",
+            "updated_at": "2026-10-30T06:16:20.384304+00:00",
+            "why": null
+          }
+        }
+      ],
+      "id": "DODGE-030",
+      "measurements": [],
+      "metadata": {},
+      "next_step": "Use the staged checklist plan and preserve each predicted alternative. Complete source/resource/seed/lease gates and obtain Taylor go-ahead before any run; do not mix interventions or open a cohort.",
+      "parent_id": "DODGE-023",
+      "prediction_timing": "before_run",
+      "project": "dodge-native",
+      "revision": 2,
+      "status": "planned",
+      "tags": [
+        "observation-normalization",
+        "value-normalization",
+        "literature-checklist"
+      ],
+      "title": "Test running observation and value normalization separately",
+      "updated_at": "2026-10-30T06:16:20.384304+00:00",
+      "why": null
+    },
+    {
+      "actual": null,
+      "actual_kind": "unobserved",
+      "created_at": "2026-10-30T06:12:47.800290+00:00",
+      "doing": "Propose frozen rollout GAE versus refreshing advantages and returns from the current critic before each PPO epoch. Preserve behavior actions/log-probabilities, refresh matching next-state values including pre-reset truncation and final observations, keep four-epoch maximum and0.03 full-rollout epoch-end KL stop unchanged. Log GAE moments by epoch, stop counts/denominators and actual epochs/steps. No training launch.",
+      "evidence": [
+        {
+          "experiment_id": "DODGE-031",
+          "id": "27c213aa1dc74ac3a54620c2fc462d7b",
+          "kind": "plan",
+          "label": "Full literature checklist and preregistered interventions/predictions",
+          "recorded_at": "2026-10-30T06:16:20.454193+00:00",
+          "sha256": "4d2730f352a768e64f98087e8e2d0230f158f77d2921d688603584c2fd99bb76",
+          "uri": "docs/review-ideas-and-scaling-plan-20261030.md"
+        },
+        {
+          "experiment_id": "DODGE-031",
+          "id": "72ef3ccfb1a04a48a954307a73a87a75",
+          "kind": "plan",
+          "label": "Machine-readable horizon, encoder, normalization, advantage and rollout allocation plan",
+          "recorded_at": "2026-10-30T06:16:20.454227+00:00",
+          "sha256": "2ecb194846089a5809168ac8fa684a91d3344f76fdb4db83f6e8dc1d00eae08d",
+          "uri": "learning/runs/v2/ppo-literature-checklist-parent-20261030-r3/literature-checklist-proposal-v3.json"
+        },
+        {
+          "experiment_id": "DODGE-031",
+          "id": "e4f5b438c6be46f48c4d1f3835546e61",
+          "kind": "plan",
+          "label": "User-directed literature checklist handoff; papers are priors, not Dodge results",
+          "recorded_at": "2026-10-30T06:12:47.800645+00:00",
+          "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb",
+          "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+        }
+      ],
+      "expected": "Fresh advantages may improve updates if critic drift makes frozen targets stale, or add noise and inference cost with no Q1 gain. Actual KL-stop frequency can distinguish lost epochs from poor full-epoch learning; booleans without numerical KL cannot explain the warm-start regression.",
+      "history": [
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-031",
+          "reason": "Register literature-checklist intervention and prediction before any new execution",
+          "recorded_at": "2026-10-30T06:12:47.800290+00:00",
+          "revision": 1,
+          "snapshot": {
+            "actual": null,
+            "actual_kind": "unobserved",
+            "created_at": "2026-10-30T06:12:47.800290+00:00",
+            "doing": "Propose frozen rollout GAE versus refreshing advantages and returns from the current critic before each PPO epoch. Preserve behavior actions/log-probabilities, refresh matching next-state values including pre-reset truncation and final observations, keep four-epoch maximum and0.03 full-rollout epoch-end KL stop unchanged. Log GAE moments by epoch, stop counts/denominators and actual epochs/steps. No training launch.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-031",
+                "id": "e4f5b438c6be46f48c4d1f3835546e61",
+                "kind": "plan",
+                "label": "User-directed literature checklist handoff; papers are priors, not Dodge results",
+                "recorded_at": "2026-10-30T06:12:47.800645+00:00",
+                "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb",
+                "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+              }
+            ],
+            "expected": "Fresh advantages may improve updates if critic drift makes frozen targets stale, or add noise and inference cost with no Q1 gain. Actual KL-stop frequency can distinguish lost epochs from poor full-epoch learning; booleans without numerical KL cannot explain the warm-start regression.",
+            "id": "DODGE-031",
+            "measurements": [],
+            "metadata": {},
+            "next_step": null,
+            "parent_id": "DODGE-022",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 1,
+            "status": "planned",
+            "tags": [
+              "advantage-refresh",
+              "KL-stop",
+              "literature-checklist"
+            ],
+            "title": "Test per-epoch advantage refresh and audit KL-stop frequency",
+            "updated_at": "2026-10-30T06:12:47.800290+00:00",
+            "why": null
+          }
+        },
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-031",
+          "reason": "Fold literature checklist into S3/S4 with explicit predictions, units, controls and no-launch gates",
+          "recorded_at": "2026-10-30T06:16:20.453853+00:00",
+          "revision": 2,
+          "snapshot": {
+            "actual": null,
+            "actual_kind": "unobserved",
+            "created_at": "2026-10-30T06:12:47.800290+00:00",
+            "doing": "Propose frozen rollout GAE versus refreshing advantages and returns from the current critic before each PPO epoch. Preserve behavior actions/log-probabilities, refresh matching next-state values including pre-reset truncation and final observations, keep four-epoch maximum and0.03 full-rollout epoch-end KL stop unchanged. Log GAE moments by epoch, stop counts/denominators and actual epochs/steps. No training launch.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-031",
+                "id": "27c213aa1dc74ac3a54620c2fc462d7b",
+                "kind": "plan",
+                "label": "Full literature checklist and preregistered interventions/predictions",
+                "recorded_at": "2026-10-30T06:16:20.454193+00:00",
+                "sha256": "4d2730f352a768e64f98087e8e2d0230f158f77d2921d688603584c2fd99bb76",
+                "uri": "docs/review-ideas-and-scaling-plan-20261030.md"
+              },
+              {
+                "experiment_id": "DODGE-031",
+                "id": "72ef3ccfb1a04a48a954307a73a87a75",
+                "kind": "plan",
+                "label": "Machine-readable horizon, encoder, normalization, advantage and rollout allocation plan",
+                "recorded_at": "2026-10-30T06:16:20.454227+00:00",
+                "sha256": "2ecb194846089a5809168ac8fa684a91d3344f76fdb4db83f6e8dc1d00eae08d",
+                "uri": "learning/runs/v2/ppo-literature-checklist-parent-20261030-r3/literature-checklist-proposal-v3.json"
+              },
+              {
+                "experiment_id": "DODGE-031",
+                "id": "e4f5b438c6be46f48c4d1f3835546e61",
+                "kind": "plan",
+                "label": "User-directed literature checklist handoff; papers are priors, not Dodge results",
+                "recorded_at": "2026-10-30T06:12:47.800645+00:00",
+                "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb",
+                "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+              }
+            ],
+            "expected": "Fresh advantages may improve updates if critic drift makes frozen targets stale, or add noise and inference cost with no Q1 gain. Actual KL-stop frequency can distinguish lost epochs from poor full-epoch learning; booleans without numerical KL cannot explain the warm-start regression.",
+            "id": "DODGE-031",
+            "measurements": [],
+            "metadata": {},
+            "next_step": "Use the staged checklist plan and preserve each predicted alternative. Complete source/resource/seed/lease gates and obtain Taylor go-ahead before any run; do not mix interventions or open a cohort.",
+            "parent_id": "DODGE-022",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 2,
+            "status": "planned",
+            "tags": [
+              "advantage-refresh",
+              "KL-stop",
+              "literature-checklist"
+            ],
+            "title": "Test per-epoch advantage refresh and audit KL-stop frequency",
+            "updated_at": "2026-10-30T06:16:20.453853+00:00",
+            "why": null
+          }
+        }
+      ],
+      "id": "DODGE-031",
+      "measurements": [],
+      "metadata": {},
+      "next_step": "Use the staged checklist plan and preserve each predicted alternative. Complete source/resource/seed/lease gates and obtain Taylor go-ahead before any run; do not mix interventions or open a cohort.",
+      "parent_id": "DODGE-022",
+      "prediction_timing": "before_run",
+      "project": "dodge-native",
+      "revision": 2,
+      "status": "planned",
+      "tags": [
+        "advantage-refresh",
+        "KL-stop",
+        "literature-checklist"
+      ],
+      "title": "Test per-epoch advantage refresh and audit KL-stop frequency",
+      "updated_at": "2026-10-30T06:16:20.453853+00:00",
+      "why": null
+    },
+    {
+      "actual": null,
+      "actual_kind": "unobserved",
+      "created_at": "2026-10-30T06:12:47.845126+00:00",
+      "doing": "Propose rollout-allocation contrasts at fixed K and total raw frames per update:128envs x6144rawframes,256x3072,512x1536, with T adjusted by K. Keep effective batch, optimizer cadence, reward, discount, LR schedule and total training exposure matched. Resource-qualify every shape under separate6GiB limits; at least2 training seeds per cell. No launch authorized.",
+      "evidence": [
+        {
+          "experiment_id": "DODGE-032",
+          "id": "5d94dd78dbbd480cb6e2a83a63fd8c6e",
+          "kind": "plan",
+          "label": "Machine-readable horizon, encoder, normalization, advantage and rollout allocation plan",
+          "recorded_at": "2026-10-30T06:16:20.522998+00:00",
+          "sha256": "2ecb194846089a5809168ac8fa684a91d3344f76fdb4db83f6e8dc1d00eae08d",
+          "uri": "learning/runs/v2/ppo-literature-checklist-parent-20261030-r3/literature-checklist-proposal-v3.json"
+        },
+        {
+          "experiment_id": "DODGE-032",
+          "id": "6a4fd625d622421e9de2f985e42d3f18",
+          "kind": "plan",
+          "label": "User-directed literature checklist handoff; papers are priors, not Dodge results",
+          "recorded_at": "2026-10-30T06:12:47.845468+00:00",
+          "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb",
+          "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+        },
+        {
+          "experiment_id": "DODGE-032",
+          "id": "b7219947672749bd9b1f95dff5d6a2cc",
+          "kind": "plan",
+          "label": "Full literature checklist and preregistered interventions/predictions",
+          "recorded_at": "2026-10-30T06:16:20.522961+00:00",
+          "sha256": "4d2730f352a768e64f98087e8e2d0230f158f77d2921d688603584c2fd99bb76",
+          "uri": "docs/review-ideas-and-scaling-plan-20261030.md"
+        }
+      ],
+      "expected": "Longer chunks may improve learning by reducing frequent bootstrap boundaries or preserving within-env experience, while more envs may improve diversity or utilization. This compares N/T allocation at fixed batch, not an isolated horizon-only effect; runtime speed and sample efficiency can move in opposite directions.",
+      "history": [
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-032",
+          "reason": "Register literature-checklist intervention and prediction before any new execution",
+          "recorded_at": "2026-10-30T06:12:47.845126+00:00",
+          "revision": 1,
+          "snapshot": {
+            "actual": null,
+            "actual_kind": "unobserved",
+            "created_at": "2026-10-30T06:12:47.845126+00:00",
+            "doing": "Propose rollout-allocation contrasts at fixed K and total raw frames per update:128envs x6144rawframes,256x3072,512x1536, with T adjusted by K. Keep effective batch, optimizer cadence, reward, discount, LR schedule and total training exposure matched. Resource-qualify every shape under separate6GiB limits; at least2 training seeds per cell. No launch authorized.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-032",
+                "id": "6a4fd625d622421e9de2f985e42d3f18",
+                "kind": "plan",
+                "label": "User-directed literature checklist handoff; papers are priors, not Dodge results",
+                "recorded_at": "2026-10-30T06:12:47.845468+00:00",
+                "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb",
+                "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+              }
+            ],
+            "expected": "Longer chunks may improve learning by reducing frequent bootstrap boundaries or preserving within-env experience, while more envs may improve diversity or utilization. This compares N/T allocation at fixed batch, not an isolated horizon-only effect; runtime speed and sample efficiency can move in opposite directions.",
+            "id": "DODGE-032",
+            "measurements": [],
+            "metadata": {},
+            "next_step": null,
+            "parent_id": "DODGE-023",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 1,
+            "status": "planned",
+            "tags": [
+              "rollout-length",
+              "environment-count",
+              "S3",
+              "literature-checklist"
+            ],
+            "title": "Compare longer per-env rollouts against more envs at fixed batch",
+            "updated_at": "2026-10-30T06:12:47.845126+00:00",
+            "why": null
+          }
+        },
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-032",
+          "reason": "Fold literature checklist into S3/S4 with explicit predictions, units, controls and no-launch gates",
+          "recorded_at": "2026-10-30T06:16:20.522614+00:00",
+          "revision": 2,
+          "snapshot": {
+            "actual": null,
+            "actual_kind": "unobserved",
+            "created_at": "2026-10-30T06:12:47.845126+00:00",
+            "doing": "Propose rollout-allocation contrasts at fixed K and total raw frames per update:128envs x6144rawframes,256x3072,512x1536, with T adjusted by K. Keep effective batch, optimizer cadence, reward, discount, LR schedule and total training exposure matched. Resource-qualify every shape under separate6GiB limits; at least2 training seeds per cell. No launch authorized.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-032",
+                "id": "5d94dd78dbbd480cb6e2a83a63fd8c6e",
+                "kind": "plan",
+                "label": "Machine-readable horizon, encoder, normalization, advantage and rollout allocation plan",
+                "recorded_at": "2026-10-30T06:16:20.522998+00:00",
+                "sha256": "2ecb194846089a5809168ac8fa684a91d3344f76fdb4db83f6e8dc1d00eae08d",
+                "uri": "learning/runs/v2/ppo-literature-checklist-parent-20261030-r3/literature-checklist-proposal-v3.json"
+              },
+              {
+                "experiment_id": "DODGE-032",
+                "id": "6a4fd625d622421e9de2f985e42d3f18",
+                "kind": "plan",
+                "label": "User-directed literature checklist handoff; papers are priors, not Dodge results",
+                "recorded_at": "2026-10-30T06:12:47.845468+00:00",
+                "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb",
+                "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+              },
+              {
+                "experiment_id": "DODGE-032",
+                "id": "b7219947672749bd9b1f95dff5d6a2cc",
+                "kind": "plan",
+                "label": "Full literature checklist and preregistered interventions/predictions",
+                "recorded_at": "2026-10-30T06:16:20.522961+00:00",
+                "sha256": "4d2730f352a768e64f98087e8e2d0230f158f77d2921d688603584c2fd99bb76",
+                "uri": "docs/review-ideas-and-scaling-plan-20261030.md"
+              }
+            ],
+            "expected": "Longer chunks may improve learning by reducing frequent bootstrap boundaries or preserving within-env experience, while more envs may improve diversity or utilization. This compares N/T allocation at fixed batch, not an isolated horizon-only effect; runtime speed and sample efficiency can move in opposite directions.",
+            "id": "DODGE-032",
+            "measurements": [],
+            "metadata": {},
+            "next_step": "Use the staged checklist plan and preserve each predicted alternative. Complete source/resource/seed/lease gates and obtain Taylor go-ahead before any run; do not mix interventions or open a cohort.",
+            "parent_id": "DODGE-023",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 2,
+            "status": "planned",
+            "tags": [
+              "rollout-length",
+              "environment-count",
+              "S3",
+              "literature-checklist"
+            ],
+            "title": "Compare longer per-env rollouts against more envs at fixed batch",
+            "updated_at": "2026-10-30T06:16:20.522614+00:00",
+            "why": null
+          }
+        }
+      ],
+      "id": "DODGE-032",
+      "measurements": [],
+      "metadata": {},
+      "next_step": "Use the staged checklist plan and preserve each predicted alternative. Complete source/resource/seed/lease gates and obtain Taylor go-ahead before any run; do not mix interventions or open a cohort.",
+      "parent_id": "DODGE-023",
+      "prediction_timing": "before_run",
+      "project": "dodge-native",
+      "revision": 2,
+      "status": "planned",
+      "tags": [
+        "rollout-length",
+        "environment-count",
+        "S3",
+        "literature-checklist"
+      ],
+      "title": "Compare longer per-env rollouts against more envs at fixed batch",
+      "updated_at": "2026-10-30T06:16:20.522614+00:00",
       "why": null
     }
   ],
