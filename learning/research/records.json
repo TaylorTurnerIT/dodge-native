@@ -28114,7 +28114,7 @@
       "actual": null,
       "actual_kind": "unobserved",
       "created_at": "2026-10-30T06:34:33.720375+00:00",
-      "doing": "Keep behaviour cloning/DAgger plus PPO as a separately gated comparison against matched PPO, two training seeds per arm. First validate an expert that uses only teacher observations. The original FullState heuristic fails that equal-information gate; privileged-label distillation would need a separate explicit proposal. No demonstration collection, replay or training is authorized.",
+      "doing": "Keep observable-expert imitation/DAgger plus PPO separately gated against matched PPO, two training seeds per arm. DODGE-048 now proposes a supervised entity/CNN/grid-token proxy before PPO. The original FullState heuristic and engine oracles are forbidden label sources under the current teacher goal; no separate privileged-label route remains. No demonstration collection, fitting, replay or training is authorized.",
       "evidence": [
         {
           "experiment_id": "DODGE-036",
@@ -28133,6 +28133,15 @@
           "recorded_at": "2026-10-30T06:50:29.881334+00:00",
           "sha256": "20a3dd5c48ad6e1b994391836836e1514b1006bfe2a00018a10dd0ce96077905",
           "uri": "docs/review-ideas-and-scaling-plan-20261030.md"
+        },
+        {
+          "experiment_id": "DODGE-036",
+          "id": "81da14f55dbf483a8e07f63ea49df2f7",
+          "kind": "plan",
+          "label": "Observable expert, same-input state bank and bounded architecture proxy; no execution",
+          "recorded_at": "2026-10-30T08:35:07.027849+00:00",
+          "sha256": "1bef888071bc284e05186ef2865c9581a81215f81524d6581bf74b74b688da1e",
+          "uri": "learning/runs/v2/spatial-teacher-proposal-parent-20261030-r7/imitation-proxy-proposal.json"
         },
         {
           "experiment_id": "DODGE-036",
@@ -28254,6 +28263,83 @@
             "updated_at": "2026-10-30T06:50:29.880949+00:00",
             "why": null
           }
+        },
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-036",
+          "reason": "Record seventh-steer spatial cost/proxy proposal only; preserve predictions and no-build boundary",
+          "recorded_at": "2026-10-30T08:35:07.027491+00:00",
+          "revision": 3,
+          "snapshot": {
+            "actual": null,
+            "actual_kind": "unobserved",
+            "created_at": "2026-10-30T06:34:33.720375+00:00",
+            "doing": "Keep observable-expert imitation/DAgger plus PPO separately gated against matched PPO, two training seeds per arm. DODGE-048 now proposes a supervised entity/CNN/grid-token proxy before PPO. The original FullState heuristic and engine oracles are forbidden label sources under the current teacher goal; no separate privileged-label route remains. No demonstration collection, fitting, replay or training is authorized.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-036",
+                "id": "43326840e1f84ac190fcc4bdd8f47e56",
+                "kind": "plan",
+                "label": "User priority-order steer, reviewed with current local evidence",
+                "recorded_at": "2026-10-30T06:34:33.720721+00:00",
+                "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb",
+                "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+              },
+              {
+                "experiment_id": "DODGE-036",
+                "id": "6547e69a234c49248eafa165cb3bba42",
+                "kind": "plan",
+                "label": "Priority reconciliation, observation-only shield and long-run gate",
+                "recorded_at": "2026-10-30T06:50:29.881334+00:00",
+                "sha256": "20a3dd5c48ad6e1b994391836836e1514b1006bfe2a00018a10dd0ce96077905",
+                "uri": "docs/review-ideas-and-scaling-plan-20261030.md"
+              },
+              {
+                "experiment_id": "DODGE-036",
+                "id": "81da14f55dbf483a8e07f63ea49df2f7",
+                "kind": "plan",
+                "label": "Observable expert, same-input state bank and bounded architecture proxy; no execution",
+                "recorded_at": "2026-10-30T08:35:07.027849+00:00",
+                "sha256": "1bef888071bc284e05186ef2865c9581a81215f81524d6581bf74b74b688da1e",
+                "uri": "learning/runs/v2/spatial-teacher-proposal-parent-20261030-r7/imitation-proxy-proposal.json"
+              },
+              {
+                "experiment_id": "DODGE-036",
+                "id": "c47c4c349c39415c9100122e76eef715",
+                "kind": "plan",
+                "label": "Ordered approval packets with seed counts, hard ceilings and readiness",
+                "recorded_at": "2026-10-30T06:50:29.881299+00:00",
+                "sha256": "246b2b9e1043ea5e8dbe99bef2640b6b6a20faa4bd851a293d6bb1111c5d782e",
+                "uri": "learning/runs/v2/priority-runlist-parent-20261030-r4/priority-run-list-v4.json"
+              }
+            ],
+            "expected": "An observable short-horizon expert may supply useful action supervision cheaply and improve early survival, but imitation can inherit model errors or plateau at the expert. Information aliasing can prevent matching a fuller-state heuristic; its historical performance is not an attainable guarantee.",
+            "id": "DODGE-036",
+            "measurements": [],
+            "metadata": {
+              "priority_runlist_v4": {
+                "launch_authority": false,
+                "packets": [
+                  "B5"
+                ],
+                "proposal_path": "learning/runs/v2/priority-runlist-parent-20261030-r4/priority-run-list-v4.json",
+                "proposal_sha256": "246b2b9e1043ea5e8dbe99bef2640b6b6a20faa4bd851a293d6bb1111c5d782e"
+              }
+            },
+            "next_step": "Review the proposed DODGE-048 benchmark, then await explicit source-only expert/architecture implementation approval; later games, fits and PPO need separate authority.",
+            "parent_id": "DODGE-033",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 3,
+            "status": "planned",
+            "tags": [
+              "imitation",
+              "observability"
+            ],
+            "title": "Test imitation only after an observable expert is validated",
+            "updated_at": "2026-10-30T08:35:07.027491+00:00",
+            "why": null
+          }
         }
       ],
       "id": "DODGE-036",
@@ -28268,18 +28354,18 @@
           "proposal_sha256": "246b2b9e1043ea5e8dbe99bef2640b6b6a20faa4bd851a293d6bb1111c5d782e"
         }
       },
-      "next_step": null,
+      "next_step": "Review the proposed DODGE-048 benchmark, then await explicit source-only expert/architecture implementation approval; later games, fits and PPO need separate authority.",
       "parent_id": "DODGE-033",
       "prediction_timing": "before_run",
       "project": "dodge-native",
-      "revision": 2,
+      "revision": 3,
       "status": "planned",
       "tags": [
         "imitation",
         "observability"
       ],
       "title": "Test imitation only after an observable expert is validated",
-      "updated_at": "2026-10-30T06:50:29.880949+00:00",
+      "updated_at": "2026-10-30T08:35:07.027491+00:00",
       "why": null
     },
     {
@@ -28747,6 +28833,24 @@
         },
         {
           "experiment_id": "DODGE-039",
+          "id": "ab3398f3c67c40c3966c5a6caaa80aee",
+          "kind": "plan",
+          "label": "Observable expert, same-input state bank and bounded architecture proxy; no execution",
+          "recorded_at": "2026-10-30T08:35:07.076631+00:00",
+          "sha256": "1bef888071bc284e05186ef2865c9581a81215f81524d6581bf74b74b688da1e",
+          "uri": "learning/runs/v2/spatial-teacher-proposal-parent-20261030-r7/imitation-proxy-proposal.json"
+        },
+        {
+          "experiment_id": "DODGE-039",
+          "id": "d65c5822cd614a46a0207b50e12b2543",
+          "kind": "source",
+          "label": "Analytical architecture cost and raster input-parity scope; no model built",
+          "recorded_at": "2026-10-30T08:35:07.076598+00:00",
+          "sha256": "a893d0022b222e225ab1804ff2d3ae821df5cff77dabddfc0a0ada8c22065fea",
+          "uri": "learning/runs/v2/spatial-teacher-proposal-parent-20261030-r7/spatial-cost-scope.json"
+        },
+        {
+          "experiment_id": "DODGE-039",
           "id": "ee88926eb4d64c7aa4ccbd75d005e168",
           "kind": "plan",
           "label": "Ordered approval packets with seed counts, hard ceilings and readiness",
@@ -28945,6 +29049,102 @@
             "updated_at": "2026-10-30T08:22:51.173071+00:00",
             "why": null
           }
+        },
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-039",
+          "reason": "Record seventh-steer spatial cost/proxy proposal only; preserve predictions and no-build boundary",
+          "recorded_at": "2026-10-30T08:35:07.076244+00:00",
+          "revision": 4,
+          "snapshot": {
+            "actual": null,
+            "actual_kind": "unobserved",
+            "created_at": "2026-10-30T06:34:33.862528+00:00",
+            "doing": "Keep separate single-change proposals for closing/relative velocity, clearance rays, action history, pooled heads, D4 augmentation and extra attention depth, each against a matched base with two training seeds. Require input/initialization parity where possible and D4 equivariance acceptance before augmentation; no joint kitchen-sink change or launch.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-039",
+                "id": "036f1916235143579a2f836c25731119",
+                "kind": "plan",
+                "label": "Priority reconciliation, observation-only shield and long-run gate",
+                "recorded_at": "2026-10-30T06:50:30.441481+00:00",
+                "sha256": "20a3dd5c48ad6e1b994391836836e1514b1006bfe2a00018a10dd0ce96077905",
+                "uri": "docs/review-ideas-and-scaling-plan-20261030.md"
+              },
+              {
+                "experiment_id": "DODGE-039",
+                "id": "0567780d23964ab986896dadadbff42c",
+                "kind": "plan",
+                "label": "User priority-order steer, reviewed with current local evidence",
+                "recorded_at": "2026-10-30T06:34:33.862941+00:00",
+                "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb",
+                "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+              },
+              {
+                "experiment_id": "DODGE-039",
+                "id": "3beb418c207b4c0da2d12351b06f1f5f",
+                "kind": "plan",
+                "label": "Standing executor-noise, switch and soft-label metrics; no launch",
+                "recorded_at": "2026-10-30T08:22:51.173400+00:00",
+                "sha256": "b34800cd200c7adf43af6172d185cad8245cb6f865de40b800a803f3c60c363f",
+                "uri": "learning/runs/v2/teacher-observability-parent-20261030-r6/teacher-metrics-proposal-v6.json"
+              },
+              {
+                "experiment_id": "DODGE-039",
+                "id": "ab3398f3c67c40c3966c5a6caaa80aee",
+                "kind": "plan",
+                "label": "Observable expert, same-input state bank and bounded architecture proxy; no execution",
+                "recorded_at": "2026-10-30T08:35:07.076631+00:00",
+                "sha256": "1bef888071bc284e05186ef2865c9581a81215f81524d6581bf74b74b688da1e",
+                "uri": "learning/runs/v2/spatial-teacher-proposal-parent-20261030-r7/imitation-proxy-proposal.json"
+              },
+              {
+                "experiment_id": "DODGE-039",
+                "id": "d65c5822cd614a46a0207b50e12b2543",
+                "kind": "source",
+                "label": "Analytical architecture cost and raster input-parity scope; no model built",
+                "recorded_at": "2026-10-30T08:35:07.076598+00:00",
+                "sha256": "a893d0022b222e225ab1804ff2d3ae821df5cff77dabddfc0a0ada8c22065fea",
+                "uri": "learning/runs/v2/spatial-teacher-proposal-parent-20261030-r7/spatial-cost-scope.json"
+              },
+              {
+                "experiment_id": "DODGE-039",
+                "id": "ee88926eb4d64c7aa4ccbd75d005e168",
+                "kind": "plan",
+                "label": "Ordered approval packets with seed counts, hard ceilings and readiness",
+                "recorded_at": "2026-10-30T06:50:30.441445+00:00",
+                "sha256": "246b2b9e1043ea5e8dbe99bef2640b6b6a20faa4bd851a293d6bb1111c5d782e",
+                "uri": "learning/runs/v2/priority-runlist-parent-20261030-r4/priority-run-list-v4.json"
+              }
+            ],
+            "expected": "Some geometric or history features may help cul-de-sac avoidance, while pooling or depth may improve encoding. Extra capacity, changed warm starts or imperfect symmetry can instead harm; each effect remains unobserved.",
+            "id": "DODGE-039",
+            "measurements": [],
+            "metadata": {
+              "priority_runlist_v4": {
+                "launch_authority": false,
+                "packets": [
+                  "C7"
+                ],
+                "proposal_path": "learning/runs/v2/priority-runlist-parent-20261030-r4/priority-run-list-v4.json",
+                "proposal_sha256": "246b2b9e1043ea5e8dbe99bef2640b6b6a20faa4bd851a293d6bb1111c5d782e"
+              }
+            },
+            "next_step": "Use DODGE-047 source cost scope and DODGE-048 same-input proxy before any spatial architecture build. Start with pooled CNN and separately gated grid cross-attention; review float raster boundaries, warning/overflow information parity, student-compatible history and actor/value zero-gate parity. No implementation or launch approved.",
+            "parent_id": "DODGE-020",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 4,
+            "status": "planned",
+            "tags": [
+              "features",
+              "architecture",
+              "D4"
+            ],
+            "title": "Stage feature and architecture ablations after the base recipe",
+            "updated_at": "2026-10-30T08:35:07.076244+00:00",
+            "why": null
+          }
         }
       ],
       "id": "DODGE-039",
@@ -28959,11 +29159,11 @@
           "proposal_sha256": "246b2b9e1043ea5e8dbe99bef2640b6b6a20faa4bd851a293d6bb1111c5d782e"
         }
       },
-      "next_step": "Require feature-by-feature admitted-entity/measured-motion/public-physics provenance and declared student-compatible causal history. No hidden timer/phase, pattern ID, native RNG, future or offscreen geometry; retain critic boundary while value distillation is planned. Source/resource gates and explicit approval still required.",
+      "next_step": "Use DODGE-047 source cost scope and DODGE-048 same-input proxy before any spatial architecture build. Start with pooled CNN and separately gated grid cross-attention; review float raster boundaries, warning/overflow information parity, student-compatible history and actor/value zero-gate parity. No implementation or launch approved.",
       "parent_id": "DODGE-020",
       "prediction_timing": "before_run",
       "project": "dodge-native",
-      "revision": 3,
+      "revision": 4,
       "status": "planned",
       "tags": [
         "features",
@@ -28971,7 +29171,7 @@
         "D4"
       ],
       "title": "Stage feature and architecture ablations after the base recipe",
-      "updated_at": "2026-10-30T08:22:51.173071+00:00",
+      "updated_at": "2026-10-30T08:35:07.076244+00:00",
       "why": null
     },
     {
@@ -30285,6 +30485,314 @@
       ],
       "title": "Register standing teacher executor-noise and soft-label metrics",
       "updated_at": "2026-10-30T08:24:25.256161+00:00",
+      "why": null
+    },
+    {
+      "actual": "Source arithmetic gives321290 baseline parameters. Proposed2x2-pooled CNN adds62977; gated64-grid-token cross-attention adds171522. Global-pooled CNN adds38401, while flattening adds554497. Existing auxiliary raster includes pre-cap visible geometry and warning segments absent from the capped four arrays, requiring a separate information intervention. No architecture was built, model loaded, runtime profiled or game run.",
+      "actual_kind": "observed",
+      "created_at": "2026-10-30T08:28:52.696014+00:00",
+      "doing": "Derive source-only parameter/MAC/storage estimates for canonical-grid pooled CNN and grid-token branches; specify exact-zero residual gates and raster information parity. No Torch/native import, architecture implementation or model execution.",
+      "evidence": [
+        {
+          "experiment_id": "DODGE-047",
+          "id": "4c9a635f0f674a90b45dc4c1627368ac",
+          "kind": "source",
+          "label": "Analytical architecture cost and raster input-parity scope; no model built",
+          "recorded_at": "2026-10-30T08:35:06.920908+00:00",
+          "sha256": "a893d0022b222e225ab1804ff2d3ae821df5cff77dabddfc0a0ada8c22065fea",
+          "uri": "learning/runs/v2/spatial-teacher-proposal-parent-20261030-r7/spatial-cost-scope.json"
+        },
+        {
+          "experiment_id": "DODGE-047",
+          "id": "52552590c0c74e7794b871b7aba934b9",
+          "kind": "plan",
+          "label": "Seventh steer; external handoff read-only",
+          "recorded_at": "2026-10-30T08:28:52.697378+00:00",
+          "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb",
+          "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+        }
+      ],
+      "expected": "A pooled CNN should cost tens of thousands of parameters; flattening or appended-token attention costs more. Existing auxiliary rasters may expose visible information absent from capped arrays, so primary comparisons must separate representation from additional input.",
+      "history": [
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-047",
+          "reason": "Register predictions before spatial cost arithmetic and proxy design; proposal only",
+          "recorded_at": "2026-10-30T08:28:52.696014+00:00",
+          "revision": 1,
+          "snapshot": {
+            "actual": null,
+            "actual_kind": "unobserved",
+            "created_at": "2026-10-30T08:28:52.696014+00:00",
+            "doing": "Derive source-only parameter/MAC/storage estimates for canonical-grid pooled CNN and grid-token branches; specify exact-zero residual gates and raster information parity. No Torch/native import, architecture implementation or model execution.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-047",
+                "id": "52552590c0c74e7794b871b7aba934b9",
+                "kind": "plan",
+                "label": "Seventh steer; external handoff read-only",
+                "recorded_at": "2026-10-30T08:28:52.697378+00:00",
+                "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb",
+                "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+              }
+            ],
+            "expected": "A pooled CNN should cost tens of thousands of parameters; flattening or appended-token attention costs more. Existing auxiliary rasters may expose visible information absent from capped arrays, so primary comparisons must separate representation from additional input.",
+            "id": "DODGE-047",
+            "measurements": [],
+            "metadata": {},
+            "next_step": null,
+            "parent_id": "DODGE-039",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 1,
+            "status": "planned",
+            "tags": [
+              "proposal-only",
+              "spatial-grid",
+              "CNN",
+              "observability",
+              "imitation"
+            ],
+            "title": "Scope observable spatial teacher architectures without building them",
+            "updated_at": "2026-10-30T08:28:52.696014+00:00",
+            "why": null
+          }
+        },
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-047",
+          "reason": "Record seventh-steer spatial cost/proxy proposal only; preserve predictions and no-build boundary",
+          "recorded_at": "2026-10-30T08:35:06.919450+00:00",
+          "revision": 2,
+          "snapshot": {
+            "actual": "Source arithmetic gives321290 baseline parameters. Proposed2x2-pooled CNN adds62977; gated64-grid-token cross-attention adds171522. Global-pooled CNN adds38401, while flattening adds554497. Existing auxiliary raster includes pre-cap visible geometry and warning segments absent from the capped four arrays, requiring a separate information intervention. No architecture was built, model loaded, runtime profiled or game run.",
+            "actual_kind": "observed",
+            "created_at": "2026-10-30T08:28:52.696014+00:00",
+            "doing": "Derive source-only parameter/MAC/storage estimates for canonical-grid pooled CNN and grid-token branches; specify exact-zero residual gates and raster information parity. No Torch/native import, architecture implementation or model execution.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-047",
+                "id": "4c9a635f0f674a90b45dc4c1627368ac",
+                "kind": "source",
+                "label": "Analytical architecture cost and raster input-parity scope; no model built",
+                "recorded_at": "2026-10-30T08:35:06.920908+00:00",
+                "sha256": "a893d0022b222e225ab1804ff2d3ae821df5cff77dabddfc0a0ada8c22065fea",
+                "uri": "learning/runs/v2/spatial-teacher-proposal-parent-20261030-r7/spatial-cost-scope.json"
+              },
+              {
+                "experiment_id": "DODGE-047",
+                "id": "52552590c0c74e7794b871b7aba934b9",
+                "kind": "plan",
+                "label": "Seventh steer; external handoff read-only",
+                "recorded_at": "2026-10-30T08:28:52.697378+00:00",
+                "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb",
+                "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+              }
+            ],
+            "expected": "A pooled CNN should cost tens of thousands of parameters; flattening or appended-token attention costs more. Existing auxiliary rasters may expose visible information absent from capped arrays, so primary comparisons must separate representation from additional input.",
+            "id": "DODGE-047",
+            "measurements": [],
+            "metadata": {},
+            "next_step": "Await Taylor approval before source-only architecture/expert implementation. Keep primary same-input grid and later expanded-visible intervention separate; review exact-zero logits/value parity and resource gates before any runtime approval.",
+            "parent_id": "DODGE-039",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 2,
+            "status": "completed",
+            "tags": [
+              "proposal-only",
+              "spatial-grid",
+              "CNN",
+              "observability",
+              "imitation"
+            ],
+            "title": "Scope observable spatial teacher architectures without building them",
+            "updated_at": "2026-10-30T08:35:06.919450+00:00",
+            "why": "Pooling keeps projection cost small. Spatial attention, exact warm-start gating and raster information parity determine costs beyond parameter counts. These are analytical estimates, not measured throughput or performance."
+          }
+        }
+      ],
+      "id": "DODGE-047",
+      "measurements": [],
+      "metadata": {},
+      "next_step": "Await Taylor approval before source-only architecture/expert implementation. Keep primary same-input grid and later expanded-visible intervention separate; review exact-zero logits/value parity and resource gates before any runtime approval.",
+      "parent_id": "DODGE-039",
+      "prediction_timing": "before_run",
+      "project": "dodge-native",
+      "revision": 2,
+      "status": "completed",
+      "tags": [
+        "proposal-only",
+        "spatial-grid",
+        "CNN",
+        "observability",
+        "imitation"
+      ],
+      "title": "Scope observable spatial teacher architectures without building them",
+      "updated_at": "2026-10-30T08:35:06.919450+00:00",
+      "why": "Pooling keeps projection cost small. Spatial attention, exact warm-start gating and raster information parity determine costs beyond parameter counts. These are analytical estimates, not measured throughput or performance."
+    },
+    {
+      "actual": "Prepared E/C/P observable-expert supervised proxy: two fit seeds per architecture, seed-grouped384/64/64 pool split,1024 dataset games and up to32768 states; held-out imitation metrics plus K1/K4 survival and P6 robustness follow-up. Core ceiling7h44m,11h56m with standing noise; no new cohort. No labels, fits, model loads or evaluations occurred; all efficacy remains unobserved.",
+      "actual_kind": "progress",
+      "created_at": "2026-10-30T08:28:52.759705+00:00",
+      "doing": "Propose a fixed seed-disjoint state bank and supervised entity-only/CNN/grid-token comparison with at least two fit seeds, common warm start, observable-expert labels, held-out loss and survival/noise follow-up. Freeze counts/budgets and gates; no data collection, label generation, fitting or evaluation.",
+      "evidence": [
+        {
+          "experiment_id": "DODGE-048",
+          "id": "4f2cd0b3f41d4a47a8715a7a92a0c6d2",
+          "kind": "plan",
+          "label": "Seventh steer; external handoff read-only",
+          "recorded_at": "2026-10-30T08:28:52.760085+00:00",
+          "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb",
+          "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+        },
+        {
+          "experiment_id": "DODGE-048",
+          "id": "86717a20db994aa78df69aa8f5e95a1f",
+          "kind": "plan",
+          "label": "Observable expert, same-input state bank and bounded architecture proxy; no execution",
+          "recorded_at": "2026-10-30T08:35:06.977131+00:00",
+          "sha256": "1bef888071bc284e05186ef2865c9581a81215f81524d6581bf74b74b688da1e",
+          "uri": "learning/runs/v2/spatial-teacher-proposal-parent-20261030-r7/imitation-proxy-proposal.json"
+        },
+        {
+          "experiment_id": "DODGE-048",
+          "id": "d76c68a176924d298b58b892bd19b05b",
+          "kind": "source",
+          "label": "Analytical architecture cost and raster input-parity scope; no model built",
+          "recorded_at": "2026-10-30T08:35:06.977100+00:00",
+          "sha256": "a893d0022b222e225ab1804ff2d3ae821df5cff77dabddfc0a0ada8c22065fea",
+          "uri": "learning/runs/v2/spatial-teacher-proposal-parent-20261030-r7/spatial-cost-scope.json"
+        }
+      ],
+      "expected": "Explicit spatial bias may improve observable-expert imitation or sample efficiency, but extra capacity, lost geometry in rasterization, a weak expert or distribution shift can erase gains. Proxy loss is not evidence of better PPO training or a teacher suitable for promotion.",
+      "history": [
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-048",
+          "reason": "Register predictions before spatial cost arithmetic and proxy design; proposal only",
+          "recorded_at": "2026-10-30T08:28:52.759705+00:00",
+          "revision": 1,
+          "snapshot": {
+            "actual": null,
+            "actual_kind": "unobserved",
+            "created_at": "2026-10-30T08:28:52.759705+00:00",
+            "doing": "Propose a fixed seed-disjoint state bank and supervised entity-only/CNN/grid-token comparison with at least two fit seeds, common warm start, observable-expert labels, held-out loss and survival/noise follow-up. Freeze counts/budgets and gates; no data collection, label generation, fitting or evaluation.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-048",
+                "id": "4f2cd0b3f41d4a47a8715a7a92a0c6d2",
+                "kind": "plan",
+                "label": "Seventh steer; external handoff read-only",
+                "recorded_at": "2026-10-30T08:28:52.760085+00:00",
+                "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb",
+                "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+              }
+            ],
+            "expected": "Explicit spatial bias may improve observable-expert imitation or sample efficiency, but extra capacity, lost geometry in rasterization, a weak expert or distribution shift can erase gains. Proxy loss is not evidence of better PPO training or a teacher suitable for promotion.",
+            "id": "DODGE-048",
+            "measurements": [],
+            "metadata": {},
+            "next_step": null,
+            "parent_id": "DODGE-036",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 1,
+            "status": "planned",
+            "tags": [
+              "proposal-only",
+              "spatial-grid",
+              "CNN",
+              "observability",
+              "imitation"
+            ],
+            "title": "Design an observable heuristic-imitation architecture proxy",
+            "updated_at": "2026-10-30T08:28:52.759705+00:00",
+            "why": null
+          }
+        },
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-048",
+          "reason": "Record seventh-steer spatial cost/proxy proposal only; preserve predictions and no-build boundary",
+          "recorded_at": "2026-10-30T08:35:06.976747+00:00",
+          "revision": 2,
+          "snapshot": {
+            "actual": "Prepared E/C/P observable-expert supervised proxy: two fit seeds per architecture, seed-grouped384/64/64 pool split,1024 dataset games and up to32768 states; held-out imitation metrics plus K1/K4 survival and P6 robustness follow-up. Core ceiling7h44m,11h56m with standing noise; no new cohort. No labels, fits, model loads or evaluations occurred; all efficacy remains unobserved.",
+            "actual_kind": "progress",
+            "created_at": "2026-10-30T08:28:52.759705+00:00",
+            "doing": "Propose a fixed seed-disjoint state bank and supervised entity-only/CNN/grid-token comparison with at least two fit seeds, common warm start, observable-expert labels, held-out loss and survival/noise follow-up. Freeze counts/budgets and gates; no data collection, label generation, fitting or evaluation.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-048",
+                "id": "4f2cd0b3f41d4a47a8715a7a92a0c6d2",
+                "kind": "plan",
+                "label": "Seventh steer; external handoff read-only",
+                "recorded_at": "2026-10-30T08:28:52.760085+00:00",
+                "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb",
+                "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+              },
+              {
+                "experiment_id": "DODGE-048",
+                "id": "86717a20db994aa78df69aa8f5e95a1f",
+                "kind": "plan",
+                "label": "Observable expert, same-input state bank and bounded architecture proxy; no execution",
+                "recorded_at": "2026-10-30T08:35:06.977131+00:00",
+                "sha256": "1bef888071bc284e05186ef2865c9581a81215f81524d6581bf74b74b688da1e",
+                "uri": "learning/runs/v2/spatial-teacher-proposal-parent-20261030-r7/imitation-proxy-proposal.json"
+              },
+              {
+                "experiment_id": "DODGE-048",
+                "id": "d76c68a176924d298b58b892bd19b05b",
+                "kind": "source",
+                "label": "Analytical architecture cost and raster input-parity scope; no model built",
+                "recorded_at": "2026-10-30T08:35:06.977100+00:00",
+                "sha256": "a893d0022b222e225ab1804ff2d3ae821df5cff77dabddfc0a0ada8c22065fea",
+                "uri": "learning/runs/v2/spatial-teacher-proposal-parent-20261030-r7/spatial-cost-scope.json"
+              }
+            ],
+            "expected": "Explicit spatial bias may improve observable-expert imitation or sample efficiency, but extra capacity, lost geometry in rasterization, a weak expert or distribution shift can erase gains. Proxy loss is not evidence of better PPO training or a teacher suitable for promotion.",
+            "id": "DODGE-048",
+            "measurements": [],
+            "metadata": {},
+            "next_step": "Obtain source-only implementation approval first, then independent observability/initial-parity/resource review and separate bounded dataset/fit/evaluation approvals. No original FullState/oracle labels, implicit B5 approval, held-lease disposition or checkpoint promotion.",
+            "parent_id": "DODGE-036",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 2,
+            "status": "planned",
+            "tags": [
+              "proposal-only",
+              "spatial-grid",
+              "CNN",
+              "observability",
+              "imitation"
+            ],
+            "title": "Design an observable heuristic-imitation architecture proxy",
+            "updated_at": "2026-10-30T08:35:06.976747+00:00",
+            "why": null
+          }
+        }
+      ],
+      "id": "DODGE-048",
+      "measurements": [],
+      "metadata": {},
+      "next_step": "Obtain source-only implementation approval first, then independent observability/initial-parity/resource review and separate bounded dataset/fit/evaluation approvals. No original FullState/oracle labels, implicit B5 approval, held-lease disposition or checkpoint promotion.",
+      "parent_id": "DODGE-036",
+      "prediction_timing": "before_run",
+      "project": "dodge-native",
+      "revision": 2,
+      "status": "planned",
+      "tags": [
+        "proposal-only",
+        "spatial-grid",
+        "CNN",
+        "observability",
+        "imitation"
+      ],
+      "title": "Design an observable heuristic-imitation architecture proxy",
+      "updated_at": "2026-10-30T08:35:06.976747+00:00",
       "why": null
     }
   ],

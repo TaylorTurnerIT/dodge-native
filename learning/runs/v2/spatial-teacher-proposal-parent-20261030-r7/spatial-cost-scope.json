@@ -1,0 +1,146 @@
+{
+  "architecture_built": false,
+  "attention": {
+    "append256_pair_matrix_ratio": 17.309708885840575,
+    "append64_pair_matrix_ratio": 3.204541990550221,
+    "warning": "Quadratic attention ratio is not total model runtime. Cross-attention preserves81 legacy tokens and adds81x64 interactions, not a145-token legacy self-attention pass."
+  },
+  "baseline_parameters": 321290,
+  "cost_limits": "MAC counts cover declared convolution/linear/attention cores, not embeddings/heads/LayerNorm/activations/raster work/backward, software overhead or wall time. No Torch-instantiated parameter verification, device profile or memory qualification ran.",
+  "formulas": {
+    "conv3x3": "9*in*out+out",
+    "cross_MACs": "2 blocks*(2*(S+G)*d^2+2*S*G*d)",
+    "linear": "in*out+out",
+    "transformer_MACs": "L*(4*S*d^2+2*S^2*d+2*S*d*f)",
+    "transformer_layer": "4*d^2+4*d + d*f+f + f*d+d +4*d"
+  },
+  "frontend": {
+    "convs": "3x3 padded conv8->32 stride1;32->32 stride1;32->64 stride2, GELU, no BatchNorm",
+    "input": "B,8,16,16",
+    "output": "B,64,8,8",
+    "positions": "Fixed2D sinusoidal positions on grid tokens only; no learned modality embedding counted."
+  },
+  "input_storage": {
+    "existing_arrays_bytes_per_state": 5896,
+    "float32_bytes_per_state": 8192,
+    "grid_512env_1024step_bytes": 4294967296,
+    "grid_64env_256step_bytes": 134217728,
+    "grid_channels": 8,
+    "grid_side": 16,
+    "recommendation": "Derive grids on minibatches from stored admitted arrays; avoid a full float32 rollout grid duplicate.512x1024 stores4GiB grid alone plus about2.88GiB base arrays, exceeding6GiB before model/optimizer overhead."
+  },
+  "models_loaded": 0,
+  "raster_audit": {
+    "expanded_visible_arm": "Full visible-scene occupancy/warnings could be a later observability-reviewed information intervention, with matched entity/expert information. Keep distinct from the primary representation-only proxy.",
+    "finding": "Existing auxiliary targets contain all admitted visible enemies before token truncation and onscreen warning segments. Those segments are not recoverable from the four arrays visible-pattern scalar; raw targets are not an equal-information grid for checkpoint420.",
+    "primary": "Reuse16x16 canonical coordinate/raster conventions but rebuild from only the same four sanitized capped arrays. Do not blindly turn auxiliary_targets on as a new teacher input.",
+    "source": "features.rs:337-354,372-402; raster.rs:8-24,133-183"
+  },
+  "record": "DODGE-047",
+  "runtime_launches": 0,
+  "schema": "dodge_spatial_teacher_source_cost_proposal_v7",
+  "source_layout": {
+    "entity_features": 16,
+    "entity_slots": 80,
+    "ffn": 256,
+    "global_features": 14,
+    "heads": 4,
+    "layers": 2,
+    "model_dim": 128
+  },
+  "source_pins": {
+    "crates/dodge-rl-env/src/features.rs": "78d72ee29fdcf2c0828e26d0a4265b50809f4c9899183332a4c48fb326dc006c",
+    "crates/dodge-rl-env/src/raster.rs": "a48c80a0a549e76e7e77bdd79ef2aa0b6171669d761770c6b33b3ea0921a6927",
+    "docs/v2-environment-contract.md": "79e953f20487bb442888fe40cee5f43226ae2cfc7ef0b9ef0fc3a377db4e01aa",
+    "python/dodge_rl/models/teacher.py": "e4d7f597a2824c2b0d4ba261dddc9d7d1ee1d5592c2fc966a44c54b5ec417e35"
+  },
+  "status": "analytical_proposal_not_built_or_profiled",
+  "variants": [
+    {
+      "analytical_core_MACs": 24592896,
+      "core_MAC_ratio": 1.0,
+      "extra_parameters": 0,
+      "gate": "none",
+      "id": "E",
+      "name": "Entity-only checkpoint420 architecture",
+      "parameter_increase_percent": 0.0,
+      "total_parameters": 321290,
+      "transformer_tokens": 81
+    },
+    {
+      "analytical_core_MACs": 28729856,
+      "core_MAC_ratio": 1.1682176836758063,
+      "extra_parameters": 38401,
+      "gate": "one zero scalar; random nonzero branch projection",
+      "id": "C-global",
+      "name": "CNN + global mean pool + gated latent residual",
+      "parameter_increase_percent": 11.95213047402658,
+      "total_parameters": 359691,
+      "transformer_tokens": 81
+    },
+    {
+      "analytical_core_MACs": 28754432,
+      "core_MAC_ratio": 1.1692169966481378,
+      "extra_parameters": 62977,
+      "gate": "one zero scalar after legacy final norm; preserve original actor/value heads",
+      "id": "C",
+      "name": "CNN +2x2 adaptive mean pool + gated latent residual; recommended primary",
+      "parameter_increase_percent": 19.601294780416445,
+      "total_parameters": 384267,
+      "transformer_tokens": 81
+    },
+    {
+      "analytical_core_MACs": 41402880,
+      "core_MAC_ratio": 1.683530073074761,
+      "extra_parameters": 171522,
+      "gate": "one zero scalar per cross-attention block, with separate Q/KV norms; legacy self-attention domain unchanged",
+      "grid_tokens": 64,
+      "id": "P",
+      "name": "CNN64 grid tokens + two separately gated cross-attention residuals",
+      "parameter_increase_percent": 53.38541504559743,
+      "total_parameters": 492812,
+      "transformer_tokens": 81
+    },
+    {
+      "analytical_core_MACs": 29245952,
+      "core_MAC_ratio": 1.1892032560947683,
+      "extra_parameters": 554497,
+      "gate": "one zero scalar",
+      "id": "C-flat",
+      "name": "CNN + flatten8x8x64 ->128; not recommended",
+      "parameter_increase_percent": 172.58458090821375,
+      "total_parameters": 875787,
+      "transformer_tokens": 81
+    },
+    {
+      "analytical_core_MACs": 78021632,
+      "core_MAC_ratio": 3.172527220868986,
+      "extra_parameters": 38401,
+      "gate": "legacy_latent + g*(augmented_latent-legacy_latent); zero embeddings alone do not preserve old attention",
+      "id": "P-append64",
+      "legacy_pass_tokens": 81,
+      "name": "Append64 CNN grid tokens; zero-gated blend of separate legacy/augmented passes",
+      "parameter_increase_percent": 11.95213047402658,
+      "total_parameters": 359691,
+      "transformer_tokens": 145
+    },
+    {
+      "analytical_core_MACs": 171344896,
+      "core_MAC_ratio": 6.9672516811358856,
+      "extra_parameters": 1153,
+      "gate": "same dual-pass requirement; defer this expensive option",
+      "id": "P-append256",
+      "legacy_pass_tokens": 81,
+      "name": "Append256 direct grid tokens; dual-pass blend only if warm-started",
+      "parameter_increase_percent": 0.3588658221544399,
+      "total_parameters": 322443,
+      "transformer_tokens": 337
+    }
+  ],
+  "warm_start": {
+    "Adam": "Proxy uses fresh Adam for every arm. Later PPO warm starts require a reviewed name-based legacy Adam-state mapping plus fresh state for new parameters; never silently copy by parameter index.",
+    "initial_gradient": "With g=0, first step can update g while branch gradient is zero. Do not also zero branch output projection or skip gate gradient during training; that can prevent opening.",
+    "loading": "Versioned successor copies every legacy weight; initialize new branch with isolated RNG and finite activations, then zero only residual gates. Preserve old head/trunk topology. Save gates/new architecture identity in checkpoints.",
+    "parity": "Require initial logits AND values plus source-input invariance and checkpoint round-trip parity before runtime. Mathematical gating is not a measured MPS parity result."
+  }
+}

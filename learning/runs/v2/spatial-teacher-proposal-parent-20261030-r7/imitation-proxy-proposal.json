@@ -1,0 +1,126 @@
+{
+  "approval_sequence": [
+    "Approve source-only implementation of the observable expert, same-input grid contract and E/C/P wrappers; this does not approve data/fits",
+    "Independent review, exact-zero/logit/value/hidden-state/serialization parity and resource qualification each need their registered scope",
+    "Approve bounded expert/dataset collection, then supervised proxy and evaluation packets separately; no S1 lease reset/retry implied"
+  ],
+  "budgets": {
+    "capacity_controls_clean_evaluation_seconds": 7560,
+    "capacity_controls_core_supplement_seconds": 12840,
+    "capacity_controls_fit_seconds": 5280,
+    "capacity_controls_noise_supplement_seconds": 7560,
+    "capacity_controls_total_with_noise_supplement_seconds": 20400,
+    "clean_evaluation_seconds": 15120,
+    "core_total_seconds": 27840,
+    "dataset_seconds": 3780,
+    "expert_qualification_seconds": 1020,
+    "fits_seconds": 7920,
+    "gate": "Forecast all loops/raster/labels/I/O plus20% margin inside caps from separately authorized resource qualification. Refuse launch if infeasible; no implicit expansion of B5/A1 or held S1 disposition.",
+    "launches_now": 0,
+    "new_game_seed_cohorts": 0,
+    "seed_reservations_now": 0,
+    "standing_noise_supplement_seconds": 15120,
+    "type": "Proposed hard ceilings, not forecasts or authorization. Separate6GiB RSS/MPS, AC and one MPS job; exact-once/review/lease/parent gates unchanged.",
+    "with_noise_total_seconds": 42960
+  },
+  "dataset": {
+    "behaviors": [
+      "sampled420 at K4",
+      "observable expert at K4"
+    ],
+    "episodes_per_seed": 2,
+    "existing_pool_seeds": 512,
+    "history": "All current arrays already include registered measured motion; expert gets no extra raw-frame/index history. Any extra temporal input must be provided to every arm and aligned with student history in a separate contract.",
+    "limits": "The512 pool was used historically by420. Proxy holdout means no supervised fit seed leakage, not never-seen game seeds or independent teacher generalization.",
+    "sampling": "Deterministic uniform reservoir of up to32 decision states/game, independent of labels/future outcomes. Preserve short episodes and actual counts; no replacement games. Freeze state/label manifest before fitting. No oracle branch data.",
+    "seed_split": {
+      "test": 64,
+      "train": 384,
+      "validation": 64
+    },
+    "split_rule": "Ascending actual pool seed order; both behavior episodes and all states from a seed stay in one split. Seed IDs are bookkeeping only, never model/expert inputs.",
+    "states_per_game_cap": 32,
+    "storage": "Store original arrays once (~184.25MiB at32768 states excluding metadata); derive grid on demand. No image/simulator snapshot/native binary in tracked evidence.",
+    "test_state_cap": 4096,
+    "total_games": 1024,
+    "total_state_cap": 32768,
+    "train_state_cap": 24576,
+    "validation_state_cap": 4096,
+    "weights": "Equal episode weight then equal state weight within episode; all architectures receive identical ordered minibatches/labels and no extra information."
+  },
+  "expert": {
+    "gate": "DODGE-045 found FullState ineligible. First implement/review and explicitly approve evaluation of a stateless12-frame public-physics predictor using exactly the four admitted arrays. No analytic native motion, raw pattern/type/timer lookup or engine-future rollout.",
+    "labels": "Deterministic chosen action with frozen tie-breaking from that observable expert only. Expert future-model scores are approximate predictions, never engine-oracle scores. No privileged action/value/auxiliary labels.",
+    "qualification_cohort": "first128 ascending consumed telemetry seeds; source/resource gates and explicit go-ahead required",
+    "qualification_existing_seeds": 128,
+    "qualification_games": 256,
+    "qualification_models": "observable expert and420, K4",
+    "suitability": "Report expert survival, class balance/tie rates and majority-action baseline. A weak/degenerate expert limits proxy interpretation; never fix it silently after seeing proxy results."
+  },
+  "fits": {
+    "capacity_rule": "Gated128->h->128 latent MLP, no grid. These are additional separately approved fits/evaluations before attributing gains to spatial bias rather than capacity. Full-width scratch study is also separate; warm proxy does not settle scratch PPO architecture ranking.",
+    "independent_fit_seeds_per_architecture": 2,
+    "initialization": "Same420 encoder/actor weights in each arm; new branch RNG isolated and gates0. All use fresh Adam, freeze critic head and no value/auxiliary/PPO loss. This is supervised warm-start adaptation, not an efficacy PPO run.",
+    "limits": "Up to20 fixed-data epochs or2000 optimizer steps, whichever first; same example passes across arms.20min work+2min receipts per fit, no silent truncation/retry.",
+    "objective": "Hard-label cross entropy to observable expert action. No smoothing/oracle sharpening. This deliberately tests an imitation proxy; successful hard-label fitting does not qualify the resulting soft teacher.",
+    "optimizer": "Proposed Adam1e-4, eps1e-5, batch512, gradient clip0.5; no LR/entropy-schedule sweep in this proxy. Exact fit seed vectors must be frozen after source approval.",
+    "optional_capacity_controls": [
+      {
+        "extra_parameters": 62837,
+        "fits": 2,
+        "id": "E-capC",
+        "target": "near C"
+      },
+      {
+        "extra_parameters": 171548,
+        "fits": 2,
+        "id": "E-capP",
+        "target": "near P"
+      }
+    ],
+    "primary_architectures": [
+      "E",
+      "C",
+      "P"
+    ],
+    "selection": "Predeclare validation CE endpoint selection; retain terminal and selected endpoints. Never choose architecture/checkpoint using test or survival then call the same data confirmation.",
+    "total_fits": 6,
+    "value_limit": "The critic head is frozen but encoder adaptation can change its values. No value-distillation targets or critic-quality claim may come from this actor-only proxy; later value training/validation is separately gated."
+  },
+  "metrics": {
+    "interpretation": "Telemetry cohort is already consumed/exposed development. Proxy loss and even development survival cannot authorize the full-send entry, unseen-seed claims, promotion or PPO improvement claims. No new cohort is opened here.",
+    "offline": [
+      "held-out seed-grouped CE/NLL",
+      "action agreement and macro-F1/class counts versus majority baseline",
+      "fit/data efficiency at common passes and wall time",
+      "per-episode mean loss and seed-cluster bootstrap",
+      "parameter/MAC count, measured component throughput/RSS/MPS when approved"
+    ],
+    "robustness": "P6 standing noise supplement:4 perturbations x256 fixed subset seeds x8 models x2 rates =16384 additional games; compare with clean subset rows. Intended/selected/executed switches and entropy/soft-label metrics remain required.",
+    "survival": "After strict fit/eval acceptance, evaluate6 preregistered validation-selected models plus420 and observable expert on1024 consumed telemetry seeds at K1 andK4:16384 clean games. Report separately sorted marginal Q1/Q4, Mean/Worst/Best/milestones; all training replicas separate."
+  },
+  "no_architecture_build": true,
+  "no_runtime_launch": true,
+  "performance_results": null,
+  "primary_grid": {
+    "channels": [
+      "lethal_now from admitted hazard tokens",
+      "lethal_soon_observed12: exposed current nonlethal hazard estimate0<until_lethal*120<=12",
+      "enemy_body types1..2",
+      "powerup types4..6",
+      "player footprint from admitted global position/size",
+      "mean measured enemy-family dx in source normalized units",
+      "mean measured enemy-family dy in source normalized units",
+      "enemy-family coverage count /64"
+    ],
+    "expanded_visible_followup": "A later same-C-architecture capped-grid versus full-visible-grid contrast can isolate added visible information separately from spatial bias. Full-visible geometry/warnings/measured motion need their own renderer/provenance audit, capture/labeler contract and counted budget; no hidden FullState fields or automatic use of raw auxiliary targets.",
+    "geometry": "Canonical16x16 grid has8-pixel cells on128x128 world, unlike planned student8x8 grid of16-pixel patches. Reuse half-open/point/inverted-box and drawn-warning raster conventions, but primary input has no extra warning geometry. Float-array decoding is not exact fixed-point geometry; freeze edge conventions and parity fixtures before implementation.",
+    "later": "Wall/clearance/free-space channels require separately specified deterministic derivations. No hidden timers, offscreen hidden geometry, RNG or pattern IDs. Expanded full-visible grid is separate, not silently mixed into C/P.",
+    "overlap": "Velocity/count use enemy-family types1..3 and footprint-overlap cells. Equal-weight mean over contributing tokens; empty cells0. Opposing flows can cancel. Unknown measured zero remains ambiguous; never import hidden history-valid flags or analytic velocity.",
+    "semantics": "lethal_soon_observed12 is a versioned estimate, not an exact copy of native charging/warning channel or true future. No full-list overflow recovery. Empty/known-free cells are not a safety guarantee.",
+    "source": "Pure function of global_feats/entity_feats/entity_types/entity_mask and registered public physics; sanitize padding exactly as baseline."
+  },
+  "record": "DODGE-048",
+  "schema": "dodge_spatial_imitation_proxy_proposal_v7",
+  "status": "proposal_only_not_implementation_or_launch_authority"
+}
