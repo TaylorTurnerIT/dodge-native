@@ -1,0 +1,94 @@
+{
+  "schema": "dodge_advisor054_independent_review_v1",
+  "reviewer": "gpt-6-luna",
+  "status": "blocking_findings",
+  "record": "DODGE-054",
+  "run_id": "advisor-input-screen-20261030-r3",
+  "registration_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-teacher-heuristic-input-20261030/learning/runs/v2/advisor-input-screen-20261030-r3/registration-r1.json",
+  "registration_sha256": "559187fc2594986eea32a9f0f1456258a2605dcda542a1de9c399327c405cf15",
+  "source_commit": "445f87195b9c38fe34c1bd78ae2dc8558c15236f",
+  "registration_runtime_commit": "72cf5e955e29e93eee155f824cf3bb9b0597d3eb",
+  "source_runtime_origin_checks": {
+    "registration_sha256_verified": true,
+    "runtime_manifest_sha256": "7acc5afc47ebb0ca1c6ad064a115ec8432e94528142055438c0b0d31cbc8525a",
+    "registered_source_input_and_runtime_members_checked": 69,
+    "registered_hashes_match": true,
+    "native_extension_sha256": "ae9238670a0beea0951374562fcd5116013b7715b40be2bfc512ca242bdec7b7",
+    "native_extension_origin": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/runtime-clean-r2/dodge_rl/_native.cpython-312-darwin.so",
+    "native_extension_origin_hash_matches": true,
+    "owner_cpu_import_preflight": {
+      "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-teacher-heuristic-input-20261030/learning/runs/v2/advisor-input-screen-20261030-r3/runtime-preflight.json",
+      "sha256": "d7ad51d6444c0332ec63234e028983fca4923c658bbf2946dfdc9ec757b2a787",
+      "status": "CPU_import_preflight_passed",
+      "reported_loaded_module_origins_match_pins": true,
+      "native_games": 0,
+      "MPS_queries": 0,
+      "MPS_optimizer_steps": 0,
+      "runtime": "Python 3.12.15, NumPy 2.5.4, PyTorch 2.14.1"
+    },
+    "review_scope": "Static exact-source/hash inspection only; reviewer did not import runtime modules, construct games, query MPS, or run training."
+  },
+  "P6": {
+    "observability_and_short_history_accepted": false,
+    "decision": "Rejected pending removal or a source-level causal association that does not consume hidden identity metadata.",
+    "basis": "The advisor implementation consumes only the four admitted arrays and has no separate advisor history. However, the upstream producer of entity motion matches prior engine geometry with hidden EnemySerial identity metadata. That association changes entity features 6..9, which the advisor uses to project candidate trajectories. Equal-array determinism does not establish that this identity association is observable from the admitted three raw frames.",
+    "limits": "This finding does not demand exact float-to-pixel inversion or claim the 12-frame estimates are true engine future. Renderer quantization, occlusion, and partial offscreen geometry remain disclosed limits. The blocker is the source's direct hidden-identity association, not uncertainty about reconstructing exact pixels.",
+    "provenance_reviewed": "/Users/taylor/.t3/worktrees/dodge-native/t3-teacher-heuristic-input-20261030/learning/runs/v2/advisor-input-screen-20261030-r3/observability-provenance.json",
+    "provenance_sha256": "2b6c5b905c5b0e2ae41225189616e5ae1a322e93426e23a1c4a74250328b91b1"
+  },
+  "findings": [
+    {
+      "severity": "blocking",
+      "path": "crates/dodge-rl-env/src/features.rs",
+      "line": "195-229; 494-500; 510-513",
+      "trigger": "For persistent enemies, `History::observe_raw` receives `EnemySerial` values from `env.rs:225-226`, finds the prior sample by serial equality, and computes motion deltas. Those deltas are exported as entity features 6..9. The advisor extrapolates those fields across its 12-frame candidate horizon (`runtime/dodge_rl/advisor.py:101-105`). When enemies overlap, occlude, cross, or otherwise lack unambiguous visual correspondence, hidden identity selects which prior geometry is attached to each current row.",
+      "consequence": "Advisor inputs include motion correspondence supplied by engine-only identity metadata, beyond what current plus three raw rendered frames alone establish. P6 observable-history acceptance cannot be granted for this exact source."
+    }
+  ],
+  "source_and_training_review": {
+    "model_adam_migration": "Source inspection finds checkpoint420 legacy parameters mapped by pinned name manifest and target live parameter identity. The four added advisor parameters are constrained to advisor_residual.{0,2}.{weight,bias}; migration preserves all legacy model/Adam tensors and leaves new Adam state empty. Owner CPU readiness reports exact named-state serialization/order checks, zero-gate parity, and first synthetic optimizer step.",
+    "advisor_boundary_and_cache": "Advisor callable accepts only the four typed arrays. PPO strips environment-supplied extra keys, derives cache at the frozen boundary, seals cache against source mutation/content drift, carries rows through shuffled macro and microbatches, and recomputes after any reset. Source fixtures cover metadata injection, stale/cross-rollout cache, shuffled rows, and final partial vector retention.",
+    "PPO_GAE_telemetry": "PPO diff adds advisor feature caching/provenance checks; source diff shows no GAE, reward, action, loss, optimizer, or target changes. Worker GAE probe checks return/tensor identity and is restored in finally. No unintended PPO/GAE change found by static review.",
+    "frame_and_close_accounting": "K=1 source counts native elapsed frames, validates per-slot totals, retains valid partial final vectors, and avoids close-boundary reset. Worker/audit require actual frame target within one vector batch and full registered update rows.",
+    "seeds_and_lifecycle": "Registration binds 512-member pool, exclusion ranges, paired streams and independent replica roots. `common.bind_dispatch` requires exact review and registration binding, predecessor disposition with no 051 retry and no owned groups, coordinator CAS handoff, and lease equality. Lifecycle source retains direct child reap/group-absence checks and immutable first failure. Battery/AC probes are passive; AC is not required; only PreventUserIdleSystemSleep is asserted when available.",
+    "scope": "Training-only, four jobs r1-E/r1-H/r2-H/r2-E; 36 updates, 2,359,296 actual frames/job; no full simulator restore, resume, promotion, or evaluation gate. DODGE-051 remains failed."
+  },
+  "integration_contract": {
+    "lease_template_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-teacher-heuristic-input-20261030/learning/runs/v2/advisor-input-screen-20261030-r3/expected-lease-template.json",
+    "lease_template": {
+      "kind": "teacher_variant_training_screen",
+      "record": "DODGE-054",
+      "run_id": "advisor-input-screen-20261030-r3",
+      "dispatch_token": "advisor054-r3-single-dispatch-20261030",
+      "registration_sha256": "559187fc2594986eea32a9f0f1456258a2605dcda542a1de9c399327c405cf15",
+      "runtime_manifest_sha256": "7acc5afc47ebb0ca1c6ad064a115ec8432e94528142055438c0b0d31cbc8525a",
+      "review_sha256": "REQUIRED_FROM_COORDINATOR_INDEPENDENT_REVIEW"
+    },
+    "bind_dispatch_contract": "common.bind_dispatch requires review.status=no_blocking_findings and review.observability_and_short_history_accepted=true; hash-matched predecessor disposition with execution_handoff_accepted=true, failed_051_retry_authorized=false, owned_groups_absent=true; hash-matched coordinator_exact_CAS_completed handoff whose replacement_lease equals exact_lease; exact lease bound to record/package/registration/runtime/review/dispatch token; and current global state equal to that exact lease.",
+    "parent_source_handoff": "Separate parent-owned source-level next sequential-dispatch integration remains pending. This review does not claim it reviewed or accepted. DODGE-055 live lease remains untouched; no dispatch is authorized by this report."
+  },
+  "tests": {
+    "reviewer_ran": [],
+    "owner_evidence": [
+      {
+        "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-teacher-heuristic-input-20261030/learning/runs/v2/advisor-input-screen-20261030-r3/source-tests.json",
+        "sha256": "0f4c6186b7872cdea1dbcef6e6f7f595b60485f8503ff9b82176d4efef5c068c",
+        "reported": "62 passed in 7.38s; 0 native games; 0 scientific training updates; 0 MPS optimizer steps.",
+        "authority": "Owner-reported guarded CPU/source fixtures; not independently rerun and not runtime qualification."
+      },
+      {
+        "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-teacher-heuristic-input-20261030/learning/runs/v2/advisor-input-screen-20261030-r3/cpu-readiness-final.json",
+        "sha256": "4f387126b34795337971592ba284b86bd47c6a7ca7edf1a7a9e14ebab776ffcf",
+        "reported": "Passed named CPU migration/serialization/order fixtures and one synthetic CPU optimizer step; 0 native games; no MPS qualification.",
+        "authority": "Owner-reported CPU evidence only."
+      }
+    ]
+  },
+  "remaining_gates": [
+    "Resolve the blocking P6 hidden-identity history finding, freeze a successor packet, and obtain a new exact review of that registration.",
+    "Complete the separate parent-owned sequential-dispatch source integration and reviewed DODGE-051 failure disposition/handoff.",
+    "Wait for the live DODGE-055 global lease to be released by its coordinator; do not interrupt it or clear any lease.",
+    "Only after independent source acceptance and exact coordinator dispatch: qualify the first two counted updates/job and full actual-frame path with 20% margin plus I/O reserve on native/MPS/device; no discard or retry."
+  ],
+  "mutations": "Review output written: this review.json. Parent state.json appeared modified during required notebook context initialization; its diff showed the active DODGE-055 lease and contemporaneous queue additions. Reviewer did not reset or edit that file. No candidate source, pin, claim, output, cache, cohort, or active lease was intentionally modified by source review."
+}
