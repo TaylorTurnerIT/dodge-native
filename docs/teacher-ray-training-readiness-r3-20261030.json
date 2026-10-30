@@ -1,0 +1,104 @@
+{
+  "status": "CPU_source_and_420_migration_ready",
+  "scope": "training_only_for_independent_review",
+  "source_commit": "7ff3e45e089b64fb3a3b36e8d63de997e98651ce",
+  "registration_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-teacher-ray-geometry-20261030/learning/runs/v2/teacher-ray-screen-20261030-r3/registration-r3.json",
+  "registration_sha256": "58a29434e1e899e6c520674b3b6d8c553596f52baa0c12e4545979a631793e98",
+  "runtime_manifest_sha256": "78c4c23169f01b645a32344e88db75936eaee650403300864664d471d74f4c7e",
+  "native_binary": {
+    "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-teacher-ray-geometry-20261030/learning/runs/v2/teacher-ray-screen-20261030-r3/runtime/dodge_rl/_native.cpython-312-darwin.so",
+    "sha256": "ae9238670a0beea0951374562fcd5116013b7715b40be2bfc512ca242bdec7b7"
+  },
+  "CPU_preflight_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-teacher-ray-geometry-20261030/learning/runs/v2/teacher-ray-screen-20261030-r3/CPU-runtime-preflight.json",
+  "CPU_preflight_sha256": "a25fd95bfb852d8e916c01e29525f27a6eba9b9a34050a464c97ab4c4251ca2f",
+  "CPU_tests_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-teacher-ray-geometry-20261030/learning/runs/v2/teacher-ray-screen-20261030-r3/CPU-tests.json",
+  "CPU_tests_sha256": "805b6370e8a2785354fa7bd504cbe380c05c7d88a9c68f236a23a6eacd0f31e0",
+  "interpreter": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+  "interpreter_sha256": "8dcafa7835e861e88a8f8ac7e61effbf5a987f32b0ec47bb1f3c9987caf9216d",
+  "expected_lease": {
+    "kind": "teacher_ray_training_screen",
+    "owner_token": "rays055-20261030-first-screen-r3",
+    "package": "/Users/taylor/.t3/worktrees/dodge-native/t3-teacher-ray-geometry-20261030/learning/runs/v2/teacher-ray-screen-20261030-r3",
+    "promoted": false,
+    "run_id": "teacher-ray-screen-20261030-r3"
+  },
+  "power_policy_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/teacher-training-queue-parent-20261030-r1/power-policy-r2.json",
+  "power_policy_sha256": "04ecef20ad9be64bf2c09e1efeda6c43d50be690b4b49d3983dd0ac4fe73385d",
+  "authority_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/teacher-training-queue-parent-20261030-r1/authority-r2.json",
+  "authority_sha256": "18a53a035598756ce3936dd0b73da0439e2c3dcc94eb66bf477ad07904d98e58",
+  "queue_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/teacher-training-queue-parent-20261030-r1/queue-r5.json",
+  "queue_sha256": "c94cda4d59fa5d7df62599dbf427a4dc191740fbb42e0d15ec47501bce4c1c3c",
+  "seed_registry_sha256": "bd6beac7bda62fb5a00affa9b4cc953d6c6447e373669ebe4c464ffa5f62879a",
+  "training": {
+    "jobs": 4,
+    "replicas_per_condition": 2,
+    "conditions": [
+      "control",
+      "rays"
+    ],
+    "K": 1,
+    "frames_each": 2359296,
+    "total_frames": 9437184,
+    "envs": 64,
+    "rollout": 1024,
+    "updates_each": 36,
+    "microbatch": 512,
+    "effective_minibatch": 2048,
+    "work_seconds_each": 5400,
+    "receipt_seconds_each": 180,
+    "total_seconds": 22320
+  },
+  "future_command": [
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python",
+    "-B",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-teacher-ray-geometry-20261030/learning/runs/v2/teacher-ray-screen-20261030-r3/run_once.py",
+    "--dispatch",
+    "<coordinator-created-training-dispatch.json>",
+    "--sha256",
+    "<exact-dispatch-sha256>"
+  ],
+  "dispatch_contract": {
+    "status": "dispatched_once",
+    "stage": "training",
+    "record": "DODGE-055",
+    "coordinator_thread": "518b8c2d-01fb-4f39-acc3-f2d9f1f35c4e",
+    "fields_required": [
+      "registration_path",
+      "registration_sha256",
+      "expected_lease",
+      "review_path",
+      "review_sha256",
+      "authority_path",
+      "authority_sha256",
+      "readiness_path",
+      "readiness_sha256"
+    ],
+    "review_status": "no_blocking_findings",
+    "review_must_bind_registration_sha256": true
+  },
+  "previous_candidates": [
+    {
+      "revision": 1,
+      "files": 33,
+      "all_bytes_unchanged": true
+    },
+    {
+      "revision": 2,
+      "files": 32,
+      "all_bytes_unchanged": true
+    }
+  ],
+  "execution_authorized_now": false,
+  "independently_accepted": false,
+  "native_games": 0,
+  "MPS_qualification_attempts": 0,
+  "claims": [],
+  "blockers": [
+    "Coordinator Luna exact-source/registration observability/migration/lifecycle/power review and acceptance.",
+    "Coordinator strict DODGE-051 failure disposition/exact held-lease handoff and free-lease dispatch. No selflaunch.",
+    "Real counted-prefix MPS/resource/full-path20%+IO qualification remains unobserved; occurs only in dispatched first attempt."
+  ],
+  "evaluation": "Separate frozen review/dispatch after strict training acceptance; r3 observer refuses evaluation stage. D13 remains unopened.",
+  "readiness_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-teacher-ray-geometry-20261030/learning/runs/v2/teacher-ray-screen-20261030-r3/readiness.json",
+  "readiness_sha256": "de512ca4cc953607834f0ad4e3ae8d74047a9293cd8bd3fd12aeaba72524aa88"
+}
