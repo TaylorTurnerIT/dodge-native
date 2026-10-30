@@ -21,6 +21,24 @@ What "perfect teacher" should also mean for distillation, beyond survival:
 - Informative, calibrated action distributions: KL distillation uses soft targets, so aggressive entropy decay or collapse can make labels less useful. Weigh entropy schedules against this, and prefer low action jitter (the policy switches action at 76% of decisions at K=4; label noise like that is harder to learn from pixels).
 - A control rate the student can sustain: K=1 means a student decision every frame at 60 Hz from a short stack; K=2 to 4 are cheaper. Do not choose K on teacher survival alone, but do not dive into this yet.
 
+## More information for the teacher (spatial grid and derived geometry)
+
+Current teacher (`OmniscientEntityTeacher`): a transformer over 1 global token plus up to 80 entity tokens (enemies, powerups, rectangles) with relative geometry, signed gaps, motion and hazard timing. It is not a vision transformer; the ViT is the planned student (four 128x128 grayscale frames, 16x16-pixel patches).
+
+Why a grid might help: an entity set has no tokens for empty space, yet escape routes and cul-de-sacs (the pattern 3 and 39 deaths against a wall plus a rectangle) are absences. Attention over entities has to infer free space; a grid represents it directly and brings translation structure. Also relevant: a teacher that works on patch-shaped tokens matches the student's tokens, which eases the spatial-attention and auxiliary supervision already planned for distillation. Whether it actually raises survival is untested; the user reports that another (CNN) model benefited from a grid with per-cell enemy velocity, whose results I have not seen.
+
+What exists: the environment already rasterises canonical 16x16 patch targets (lethal_now, lethal_soon, enemy_body, powerup, player; `docs/v2-environment-contract.md`, "Canonical raster targets"), built from admitted entities and currently used only as student auxiliary targets (`auxiliary_targets` is off in teacher training). Missing for the teacher: per-cell velocity, time-to-lethal, walls and a free-space channel.
+
+Options, all derived from the admitted observation (inside the clairvoyance rule):
+- Patch tokens: an 8x8 or 16x16 grid of tokens added next to the entity tokens, channels such as occupancy, enemy velocity x and y, lethal now, lethal soon with time to lethal, powerup, walls.
+- CNN branch on the same multi-channel grid, fused into the global token.
+- Cheap derived features: 8-way clearance (time to collision along each movement direction), a free-space or escape-route distance map, short motion history (previous 2 to 4 frames of player and entity positions).
+- Never: pattern IDs, upcoming patterns, spawn or fyou timers, RNG, offscreen hidden rectangles.
+
+Cost: a new input contract and a from-scratch or partially warm-started teacher (new embeddings can start gated at zero so checkpoint 420 stays usable). Fair test: same budget and seeds, at least two training seeds per arm, entity-only against entity plus grid tokens against CNN fusion. A cheaper first test of representation: supervised imitation of the heuristic (after the observability audit) with each architecture, compared on held-out states and survival, hours instead of PPO weeks.
+
+Priority: Phase 1 to 2 boundary. After the gamma and lambda sweep and scale runs fix the base recipe, run the architecture comparison; the imitation proxy can run earlier in Phase 0 to 1.
+
 ## Facts that change the picture
 
 1. **The hand-written heuristic runs at 4-frame control, not 1-frame.** `docs/v2-baseline-campaign.md:21`: "Hold each policy action for at most four raw frames." It scores 6,115 mean alive frames (1,000 episodes, 15 capped) against 2,626 for checkpoint 420 with sampled actions at the same control rate (DODGE-012) and 4,387 at 1-frame. The cohorts are not paired, but the gap is large. The heuristic (`crates/dodge-rl-env/tests/support/m0_policy.rs`) simulates the player's inertia exactly, extrapolates every hazard linearly, looks 12 frames ahead over all 9 actions and keeps only actions that stay at least 4 px clear. It reads full game state, like the privileged teacher. So a 12-frame look-ahead with an exact player model beats the learned policy at its own control rate: the failure looks like short-horizon planning, not a missing 1-frame reflex.
