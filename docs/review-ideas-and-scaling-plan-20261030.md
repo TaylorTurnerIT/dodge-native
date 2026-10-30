@@ -21,6 +21,17 @@ What the data show: with the same weights, K=1 inference gives a bell-shaped sur
 
 What DODGE-013 does and does not settle: one warm-started replica, 11.8M frames, game-time gamma and GAE, no KL, entropy, value-loss or advantage telemetry (its own note). It rules out "switch to K=1 and continue" as a free win. Still open: K=1 from scratch, K=1 with the scaling changes (large batch, fresh seed stream, longer rollouts so the credit horizon fits), K=2, and an instrumented diagnostic of why the warm start regressed (a 4x smaller per-decision reward and 4x more decisions per game-second change advantage scale, update cadence and KL budget even when gamma and lambda are matched). K=1 costs 5-6x more wall clock per game-second, so S2 (pipeline speed) gates any serious K=1 run. Self-imposed rule worth reconsidering with the user: one MPS campaign at a time.
 
+### Which K, and how to train it
+
+K=4 may be best only because it is the one value that was tried. A common reading of the pattern (K=4 trains well, K=1 acts better) is that coarse decisions make learning easier, with a shorter credit horizon and less per-decision noise, while fine decisions help execution. That is a hypothesis, not a result here. Cheap and expensive ways to test it:
+- Inference only, no training: run checkpoint 420 at K=2 and K=3 on the same 2,048 fresh seeds as the existing K=1 and K=4 runs (paired contrasts). Shows whether the response to finer control is monotone. Needs AC power.
+- K=2 and K=3 trained arms next to K=1 and K=4 (from scratch and from 420), game-time-matched gamma and GAE.
+- K annealing 4 to 3 to 2 to 1 during training (DODGE-013 jumped straight from 4 to 1), or K sampled per episode so one network sees several rates; both are untried.
+
+## Learning-rate schedule
+
+Why the rate moved in steps: there is no scheduler in the code (`make_optimizer` in `train_teacher.py` is Adam with a fixed rate; the plan says "3e-4 constant"; `validate_config` requires the config to equal the registered default). Each change was a manual reaction to a plateau or endpoint regression, run as its own pinned, reviewed branch from a saved checkpoint through a resume-with-new-LR hook: 3e-4, then 1e-4 from retained 204 (mean +29.3%, Q1 -10.1%), then 3e-5 from 276. Each step is confounded with training seed and duration, and Adam moments carry over from the previous rate. One decay run (3e-5 to 1e-5, linear) was tried once: only an intermediate checkpoint won, the endpoint fell. So the schedule shape is genuinely untested, not tested and rejected. Plan: make the schedule part of the optimizer state (saved in checkpoints), then compare constant, warmup plus cosine to a floor, and KL-adaptive over at least two training seeds per arm, with learning rate rechecked whenever batch size changes.
+
 ## Scaling track (the user's hypothesis)
 
 Goal: find out whether more data, more diverse seeds and larger batches move the weak tail (Q1), and what limits throughput.
