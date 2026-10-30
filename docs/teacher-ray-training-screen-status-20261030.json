@@ -1,0 +1,110 @@
+{
+  "schema": "teacher_ray_training_screen_stop_status_v1",
+  "record": "DODGE-055",
+  "status": "STOPPED_at_coordinator_power_incident_no_dispatch",
+  "incident": "Coordinator reports DODGE-051 AC loss during r1-shorter update7; only first r1-matched trajectory accepted, whole campaign not accepted. DODGE051 exact lease held; Battery Power45% discharging. Not independently rechecked here.",
+  "authority": "Actual bounded training authority exists, but coordinator orders whole queue stopped until incident disposition. No permission request or exception inferred.",
+  "packets": [
+    {
+      "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-teacher-ray-geometry-20261030/learning/runs/v2/teacher-ray-screen-20261030-r1",
+      "registration_sha256": "6fdda4c0aabe515c26b0ce827c809d9b5e0c0043df7f79d27f6865a9f0e2e04e",
+      "status": "superseded_unclaimed",
+      "claims": [],
+      "training_output_files": 0,
+      "evaluation_output_files": 0,
+      "cache_empty": true
+    },
+    {
+      "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-teacher-ray-geometry-20261030/learning/runs/v2/teacher-ray-screen-20261030-r2",
+      "registration_sha256": "abdb7643b99e1d947a4a5f562c9a31cf67ea84605f58ed26526f7e13e845d3ed",
+      "status": "unclaimed_unreviewed_queue_stopped",
+      "claims": [],
+      "training_output_files": 0,
+      "evaluation_output_files": 0,
+      "cache_empty": true
+    }
+  ],
+  "planned_training": {
+    "K": 1,
+    "conditions": [
+      "entity_control",
+      "R0_rays"
+    ],
+    "replicas_per_condition": 2,
+    "frames_per_trajectory": 2359296,
+    "actual_frames_total_target": 9437184,
+    "envs": 64,
+    "rollout": 1024,
+    "updates_per_trajectory": 36,
+    "microbatch": 512,
+    "effective_minibatch": 2048,
+    "gamma": 0.9987476493904754,
+    "gae_lambda": 0.9872585449014338,
+    "work_seconds_per_trajectory": 5400,
+    "receipt_seconds_per_trajectory": 180,
+    "training_total_ceiling_seconds": 22320
+  },
+  "planned_evaluation": {
+    "cohort": "D13",
+    "status": "reserved_unopened",
+    "fixed_endpoints": 5,
+    "groups": 25,
+    "games": 10240,
+    "clean_games": 5120,
+    "noise_games": 5120,
+    "work_seconds": 7200,
+    "receipt_seconds": 180,
+    "overall_ceiling_seconds": 29700
+  },
+  "actual": {
+    "native_games": 0,
+    "training_gameplay_frames": 0,
+    "evaluation_games": 0,
+    "MPS_optimizer_steps": 0,
+    "MPS_qualification_attempts": 0,
+    "lease_changes": 0,
+    "ledger_changes": 0,
+    "notebook_changes": 0
+  },
+  "CPU_evidence": {
+    "owner_reported_not_independent": true,
+    "guarded_model_migration_PPO_checks": "59 passed in2.36s",
+    "lifecycle_executor_analysis_fixtures": "8 passed in2.137s",
+    "checkpoint420": "Read-only CPU zero-gate and named Adam migration, first synthetic Adam step exact vs control; source file hash unchanged.",
+    "integration": "Synthetic CPU PPO retains final partial effective minibatch; CPU input route tested without MPS allocation.",
+    "runtime_preflight_packet": "r1 only; r2 not yet repeated",
+    "r1_preflight_sha256": "7069116a31f5cd58f31731d0a6a30f4747a0801ec4b4fe6fbdd55e9d6e2b05c9",
+    "CPU_geometry_median_seconds": {
+      "B64": 0.0014482289989246055,
+      "B512": 0.013020603990298696
+    },
+    "limits": "Synthetic CPU evidence only; no real MPS/resource/full-path qualification. A CPU harness tripwire alias conflict initially failed1/58; corrected before the reported59-pass run."
+  },
+  "remaining_blockers": [
+    "Coordinator incident disposition and free exact-lease dispatch. No selflaunch.",
+    "Independent Luna source/observability/migration/worker/evaluator review has not started.",
+    "r2 frozen-runtime preflight/readiness attestation still pending.",
+    "Failure-path collected-valid-vector fields need review for interruption before a new collection completes.",
+    "Counted real MPS prefix/full-path20%+IO/resource qualification remains unobserved.",
+    "D13 cannot open before strict whole-training parent acceptance and separate free-lease evaluation dispatch."
+  ],
+  "source_sha256": {
+    "learning/experiments/teacher_ray_screen/common.py": "760f829802ca8b583325333ee197dad97c093b1256ede1366f3ee2cad9cbb0df",
+    "learning/experiments/teacher_ray_screen/evaluate_once.py": "8d843d3bb711a8a873c4935dceaef943886f38e3fdfcadeaf17c4ed12829f37c",
+    "learning/experiments/teacher_ray_screen/evaluate_worker.py": "54fb8998ee59cb02fec1135f479d58e6a9d552e416f421c305375a8e07c461fa",
+    "learning/experiments/teacher_ray_screen/evaluation_analysis.py": "7d04ceac6b03c53153cc2d6c4bd95901a93b6c925f0450e8c388d98d50e63265",
+    "learning/experiments/teacher_ray_screen/fingerprints.py": "6ef9cf3f08fe800f54230801a921a2f5c82e47e5013ef3087ead6499d2533d61",
+    "learning/experiments/teacher_ray_screen/lifecycle.py": "a9620ef19c4b46f86798cc56b01987628a8af8982864bc85105f853c8d22fac0",
+    "learning/experiments/teacher_ray_screen/ppo_runtime.py": "d7b997c84bba0a83a054aa3621288652798e7f67c4c7c08fe729ad5f1ae1d53d",
+    "learning/experiments/teacher_ray_screen/prepare.py": "6be0e645eebd21c9cb293b75b652f16e2a32e0b81605933806c98b6d01c28580",
+    "learning/experiments/teacher_ray_screen/run_once.py": "eaf0cc4d5425946fff0f0571fef2c91df6881cac6b9cbc316558aca138c437d6",
+    "learning/experiments/teacher_ray_screen/test_source.py": "5c9a7a134bf7705a8fa324dbaa77ea499f58dbe1e8c36ef3fb7782a7abe8fab0",
+    "learning/experiments/teacher_ray_screen/update_telemetry.py": "14255b57db471be03abae109eb00f64bb40ad99533846a3a522fc550346f8ae9",
+    "learning/experiments/teacher_ray_screen/worker.py": "6d2bdac34fa7c33709c9cd6595230ff879a841efcad2511d10a558842499431a",
+    "python/dodge_rl/models/ray_teacher.py": "9c28f6bd3878e3888bf69a6d79d958afe5c6cf4fcd115fe66fa68255bf7b0a09",
+    "python/dodge_rl/ray_frontend.py": "d192673c80087a1ac8a1b72611fca3456b555410c52a057c3f18e63d48124f43",
+    "python/dodge_rl/ray_migration.py": "18669b1151f160ff000d22ea6b8d9902fef0e96d24b2f0827fc3a6df3f3f5f6d",
+    "python/tests/run_ray_source_checks.py": "67c9e00a13e596e11b65cb5c287fa31b7ad444b70ade0367f10803f6c123dd77",
+    "python/tests/test_ray_migration_source.py": "0ae17dd06838fa2da989db656374e7b4e74ceb5e3e5f1c7c047e0035b68b31f1"
+  }
+}

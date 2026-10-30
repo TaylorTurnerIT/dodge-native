@@ -1,14 +1,10 @@
-"""Opt-in synthetic-CPU R0 adapter; no training/evaluation runner registration.
-
-No native import, checkpoint loader, optimizer mapping or history is provided.
-The stdlib frontend copies CPU arrays to Python scalars; its cost is unqualified.
-"""
+"""Zero-gated R0 residual with CPU geometry and CPU/MPS learned parameters."""
 
 import torch
 from torch import Tensor, nn
 
 from ..clearance_rays import (
-    FEATURE_NAMES, RAY_FEATURE_DIM, RAY_SCHEMA, clearance_ray_features,
+    FEATURE_NAMES, RAY_FEATURE_DIM, RAY_SCHEMA,
 )
 from .teacher import MODEL_DIM, OmniscientEntityTeacher, TeacherOutput
 
@@ -20,6 +16,16 @@ class RayGeometryTeacher(nn.Module):
     names are deliberately distinct; this class does not migrate checkpoint or
     optimizer state. Constructing the branch preserves the caller's CPU RNG.
     """
+
+    cpu_geometry_inputs = True
+
+    @property
+    def actor_head(self):
+        return self.legacy.actor_head
+
+    @property
+    def critic_head(self):
+        return self.legacy.critic_head
 
     def __init__(self, legacy: OmniscientEntityTeacher, *, branch_seed: int = 0):
         super().__init__()
@@ -44,19 +50,19 @@ class RayGeometryTeacher(nn.Module):
         entity_types: Tensor, entity_mask: Tensor,
     ) -> TeacherOutput:
         self.legacy._validate_inputs(global_feats, entity_feats, entity_types, entity_mask)
-        if global_feats.device.type != "cpu" or any(
-            p.device.type != "cpu" or p.dtype != torch.float32 for p in self.parameters()
+        from ..ray_frontend import batched_clearance_rays
+        if global_feats.device.type != "cpu":
+            raise ValueError("R0 adapter requires original CPU arrays")
+        device = self.gate.device
+        if device.type not in ("cpu", "mps") or any(
+            p.device != device or p.dtype != torch.float32 for p in self.parameters()
         ):
-            raise ValueError("R0 adapter currently supports float32 CPU tensors only")
-        # The pure reference skips masked rows before scalar validation/decoding.
-        # No hidden fields or auxiliary targets can enter this call boundary.
-        rays = clearance_ray_features(*(
-            value.detach().tolist()
-            for value in (global_feats, entity_feats, entity_types, entity_mask)
-        ))
-        ray_tensor = torch.tensor(rays, dtype=torch.float32, device="cpu")
-        legacy_latent, attentions = self.legacy.encode(
+            raise ValueError("R0 requires one float32 CPU/MPS parameter device")
+        ray_tensor = batched_clearance_rays(
             global_feats, entity_feats, entity_types, entity_mask,
+        ).to(device)
+        legacy_latent, attentions = self.legacy.encode(
+            *(value.to(device) for value in (global_feats, entity_feats, entity_types, entity_mask)),
         )
         latent = legacy_latent + self.gate * self.branch(ray_tensor)
         return TeacherOutput(
@@ -67,7 +73,7 @@ class RayGeometryTeacher(nn.Module):
 
     def architecture_description(self) -> dict:
         return {
-            "version": "entity_teacher_r0_cpu_reference_v1",
+            "version": "entity_teacher_r0_cpu_geometry_mps_branch_v2",
             "legacy": self.legacy.architecture_description(),
             "ray_schema": RAY_SCHEMA,
             "ray_features": list(FEATURE_NAMES),
@@ -75,5 +81,5 @@ class RayGeometryTeacher(nn.Module):
             "residual": "legacy_final_norm_latent + scalar_gate * branch",
             "initial_gate": 0.0,
             "parameter_count": sum(p.numel() for p in self.parameters()),
-            "qualified_for_campaign": False,
+            "geometry_device": "cpu_float64_before_single_transfer",
         }
