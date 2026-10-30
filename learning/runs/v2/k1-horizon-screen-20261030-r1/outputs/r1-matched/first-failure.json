@@ -1,0 +1,21 @@
+{
+  "elapsed_seconds": 1356.6096527079935,
+  "error": "ValueError('Cancellation/work deadline')",
+  "job": "r1-matched",
+  "progress": {
+    "complete": true,
+    "epoch": 3,
+    "epochs_completed": 4,
+    "in_update": false,
+    "minibatch": 124,
+    "optimizer_steps": 128,
+    "phase": "complete",
+    "state": "complete"
+  },
+  "resources": {
+    "peak_mps_driver_bytes": 2382184448,
+    "peak_rss_bytes": 2372108288
+  },
+  "status": "first_failure_preserved_lease_held",
+  "traceback": "Traceback (most recent call last):\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/k1-horizon-screen-20261030-r1/worker.py\", line 144, in main\n    returned = instrument_update(prepared, ppo, recorder, telemetry,\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/k1-horizon-screen-20261030-r1/update_telemetry.py\", line 253, in instrument_update\n    collection, metrics, boundary = prepared.update_once(check_guard=check_guard)\n                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/k1-horizon-screen-20261030-r1/worker.py\", line 116, in update_once\n    collection = ppo.collect_rollout(model, adapter.env, reg['rollout'], 'mps',\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/runtime-clean-r2/dodge_rl/ppo.py\", line 375, in collect_rollout\n    _guard(check_guard)\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/runtime-clean-r2/dodge_rl/ppo.py\", line 50, in _guard\n    check_guard()\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/k1-horizon-screen-20261030-r1/worker.py\", line 50, in guard\n    c.need(not cancelled and now - started < reg['work_seconds'], 'Cancellation/work deadline')\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/k1-horizon-screen-20261030-r1/common.py\", line 18, in need\n    raise ValueError(message)\nValueError: Cancellation/work deadline\n"
+}
