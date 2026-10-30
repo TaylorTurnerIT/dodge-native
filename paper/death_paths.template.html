@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dodge: where games end inside any pattern</title>
+<style>
+:root{--bg:#fcfcfb;--ink:#1a1a1a;--ink2:#555;--mut:#8a8a8a;--grid:#e6e6e3;--rect:#0072B2;--enemy:#D55E00}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.45 -apple-system,system-ui,sans-serif}
+main{max-width:1020px;margin:0 auto;padding:18px 16px 28px}
+h1{font-size:17px;margin:0 0 2px}
+p.sub{margin:0 0 12px;color:var(--ink2)}
+.bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+select{border:1px solid var(--grid);background:#fff;border-radius:6px;padding:5px 8px;font:inherit;color:var(--ink)}
+label{color:var(--ink2)}
+.tab{border:1px solid var(--grid);background:#fff;border-radius:6px;padding:5px 10px;cursor:pointer;font:inherit;color:var(--ink)}
+.tab[aria-selected=true]{border-color:var(--ink);font-weight:600}
+.legend{margin-left:auto;display:flex;gap:14px;color:var(--ink2)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.grid{display:grid;grid-template-columns:560px 1fr;gap:16px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+canvas{width:100%;max-width:560px;aspect-ratio:1;border:1px solid var(--grid);background:#fff;border-radius:4px;display:block}
+.side{display:flex;flex-direction:column;min-width:0}
+#list{height:300px;overflow:auto;border:1px solid var(--grid);border-radius:4px;background:#fff}
+.row{display:flex;gap:8px;padding:3px 8px;cursor:pointer;border-bottom:1px solid #f1f1ee;font-variant-numeric:tabular-nums}
+.row:hover{background:#f6f6f3}.row.sel{background:#eef3f8;font-weight:600}
+.row i{width:9px;height:9px;border-radius:50%;margin-top:5px;flex:none}
+.row span:nth-child(3){flex:1}
+#info{margin-top:10px;padding:8px 10px;border:1px solid var(--grid);border-radius:4px;background:#fff;min-height:132px;color:var(--ink2)}
+#info b{color:var(--ink)}
+.ctl{display:flex;gap:8px;align-items:center;margin-top:8px}
+.ctl input[type=range]{flex:1}
+button{border:1px solid var(--grid);background:#fff;border-radius:6px;padding:4px 10px;font:inherit;cursor:pointer}
+.note{margin-top:12px;color:var(--mut);font-size:12px}
+</style></head><body><main>
+<h1>Where games end inside a pattern</h1>
+<p class="sub">Checkpoint 420, argmax, 4-frame decisions, 2,048 fresh seeds. Each line is the player's last 120 frames before a death while the chosen pattern was active.</p>
+<div class="bar">
+  <label for="pat">Pattern</label><select id="pat" aria-label="Pattern"></select>
+  <label for="ord" style="margin-left:8px">ordered by share of encounters ending in death</label><select id="ord"><option value="r4">4-frame</option><option value="r1">1-frame</option></select>
+</div>
+<div class="grid">
+  <div>
+    <canvas id="cv" width="640" height="640"></canvas>
+    <div class="ctl"><button id="play">Play</button><input id="t" type="range" min="0" max="119" value="119"><span id="tl" style="min-width:92px;text-align:right"></span></div>
+  </div>
+  <div class="side">
+    <div class="legend" style="margin:0 0 6px"><span><i style="background:var(--rect)"></i>died on a rectangle</span><span><i style="background:var(--enemy)"></i>died on an enemy</span></div>
+    <div id="list" role="listbox" aria-label="Runs"></div>
+    <div id="info"></div>
+  </div>
+</div>
+<p class="note">Click a line, a dot or a list row to isolate one run, then scrub or play it. Click empty space or press Esc to see all runs. The saved trace records the killing enemy's path and only a <em>count</em> of the other enemies, so other enemies are not drawn; the nearest-enemy gap is shown instead. Pattern rectangles are the fixed layout (one per pattern id); they are drawn only on frames where the pattern was active, dashed while charging and solid once lethal. Patterns 13, 14, 25 and 26 appear only at high score. Moving patterns and ids with randomised layouts show their rectangles only at the death frame.</p>
+</main>
+<script>
+const D=/*DATA*/null;
+const RECT="#0072B2",ENEMY="#D55E00",S=640/128;
+const cv=document.getElementById("cv"),g=cv.getContext("2d");
+let pid=null,sel=null,fr=119,timer=null,hover=null;
+const byP=p=>D.runs.filter(r=>r.pid===p);
+const col=r=>r.cause==="rect"?RECT:ENEMY;
+const X=v=>v*S;
+const patSel=document.getElementById("pat"),ordSel=document.getElementById("ord");
+function ordered(){const m=ordSel.value,o=m==="r4"?"r1":"r4";
+  const key=(p,k)=>{const s=D.stats[p][k];return s?s[1]:-1;},enc=(p,k)=>{const s=D.stats[p][k];return s?s[0]:0;};
+  return D.pids.slice().sort((a,b)=>key(b,m)-key(a,m)||enc(b,m)-enc(a,m)||key(b,o)-key(a,o)||a-b);}
+function fillSelect(){
+  patSel.innerHTML="";
+  ordered().forEach(p=>{const s=D.stats[p],o=document.createElement("option");o.value=p;
+    const f=k=>s[k]?`${s[k][1]}% of ${s[k][0]}`:"n/a";
+    o.textContent=`pattern ${p} (${s.type||"?"}) · 4-frame ${f("r4")} · 1-frame ${f("r1")} · ${byP(p).length} paths`;patSel.appendChild(o);});
+  patSel.value=pid;
+}
+patSel.onchange=()=>{pid=+patSel.value;sel=null;stop();render();};
+ordSel.onchange=()=>{fillSelect();};
+function stop(){if(timer){clearInterval(timer);timer=null;document.getElementById("play").textContent="Play";}}
+document.getElementById("play").onclick=()=>{
+  if(timer){stop();return;} if(!sel)return; if(fr>=119)fr=0;
+  document.getElementById("play").textContent="Pause";
+  timer=setInterval(()=>{fr++;if(fr>=119){fr=119;stop();}draw();},50);};
+const tr=document.getElementById("t");tr.oninput=()=>{stop();fr=+tr.value;draw();};
+addEventListener("keydown",e=>{if(e.key==="Escape"){sel=null;stop();render();}});
+function layout(){return D.layouts[pid]||null;}
+function drawRects(alpha,charging,rects){
+  g.strokeStyle="rgba(0,114,178,.9)";g.lineWidth=1.5;
+  rects.forEach(q=>{const [x,y,w,h]=q,ch=charging||q[4]===0;
+    if(ch){g.fillStyle="rgba(0,114,178,.06)";g.setLineDash([6,4]);}else{g.fillStyle=`rgba(0,114,178,${alpha})`;g.setLineDash([]);}
+    g.fillRect(X(x),X(y),X(w),X(h));g.strokeRect(X(x),X(y),X(w),X(h));});
+  g.setLineDash([]);
+}
+function frame(){
+  g.clearRect(0,0,640,640);
+  g.strokeStyle="#ececE8";g.lineWidth=1;g.strokeRect(.5,.5,639,639);
+  g.fillStyle="#8a8a8a";g.font="11px system-ui";g.fillText("128 × 128 playfield",8,630);
+}
+function path(r,from,to,color,w,a){
+  g.strokeStyle=color;g.globalAlpha=a;g.lineWidth=w;g.lineJoin="round";g.beginPath();
+  for(let i=from;i<=to;i++){const x=X(r.x[i]),y=X(r.y[i]);i===from?g.moveTo(x,y):g.lineTo(x,y);}g.stroke();g.globalAlpha=1;
+}
+function draw(){
+  frame();
+  const rs=byP(pid);
+  if(!sel){
+    if(layout())drawRects(.14,false,layout());
+    else if(rs.length){g.fillStyle="#555";g.font="12px system-ui";g.fillText("layout varies by run: rectangles are shown only when a run is isolated",10,36);}
+    rs.forEach(r=>{const hot=r===hover;path(r,60,119,col(r),hot?2.4:1,hot?1:.4);});
+    rs.forEach(r=>{const n=r.x.length-1;g.fillStyle=col(r);g.globalAlpha=r===hover?1:.75;g.beginPath();g.arc(X(r.x[n]),X(r.y[n]),r===hover?5:3.4,0,7);g.fill();g.strokeStyle="#fff";g.lineWidth=1;g.stroke();g.globalAlpha=1;});
+    g.fillStyle="#555";g.font="12px system-ui";g.fillText("last 60 frames shown; dots mark where each run died",10,18);
+  }else{
+    const r=sel,n=r.x.length-1,i=Math.min(fr,n);
+    if(layout()){if(r.st[i])drawRects(.3,r.st[i]===1,layout());}
+    else if(i===n)drawRects(.3,false,r.rects);
+    path(r,0,n,"#bdbdb8",1.2,.9);
+    path(r,Math.max(0,i-30),i,col(r),2.4,1);
+    // killer
+    const k=r.kp[i];
+    if(k&&r.killer){
+      const s=r.killer.size;g.fillStyle=ENEMY;g.globalAlpha=.9;
+      if(r.killer.p===0)g.fillRect(X(k[0]),X(k[1]),X(s),X(s));
+      g.strokeStyle=ENEMY;g.lineWidth=2;g.globalAlpha=1;g.strokeRect(X(k[0]),X(k[1]),X(s),X(s));
+      g.globalAlpha=.35;g.beginPath();r.kp.forEach((q,j)=>{if(q&&j<=i){const x=X(q[0]+s/2),y=X(q[1]+s/2);g.lineTo(x,y);}});g.strokeStyle=ENEMY;g.setLineDash([4,3]);g.lineWidth=1.2;g.stroke();g.setLineDash([]);g.globalAlpha=1;
+    }
+    // player (a circle; collision uses a square of the same half-width)
+    const pr=r.psize,px=X(r.x[i]),py=X(r.y[i]);
+    g.fillStyle="#1a1a1a";g.beginPath();g.arc(px,py,X(pr),0,7);g.fill();
+    g.strokeStyle="rgba(26,26,26,.5)";g.setLineDash([3,2]);g.lineWidth=1;g.strokeRect(px-X(pr),py-X(pr),2*X(pr),2*X(pr));g.setLineDash([]);
+    g.fillStyle="#555";g.font="12px system-ui";g.fillText(i===n?"death frame":`${n-i} frames before death`,10,18);
+    if(!layout()&&i<n)g.fillText("this pattern moves or varies: rectangles are recorded only at the death frame",10,36);
+  }
+  tr.disabled=!sel;
+  document.getElementById("tl").textContent=sel?`frame −${sel.x.length-1-Math.min(fr,sel.x.length-1)}`:"";
+  tr.value=fr;info();
+}
+function info(){
+  const el=document.getElementById("info");
+  if(!sel){const rs=byP(pid),e=rs.filter(r=>r.cause==="enemy").length;
+    if(!rs.length){el.innerHTML=`<b>No recorded deaths in pattern ${pid}</b> at 4-frame decisions.`;return;}
+    const st=D.stats[pid],ch=rs.filter(r=>!r.armed).length;
+    el.innerHTML=`<b>${rs.length} deaths in pattern ${pid}</b>: ${rs.length-e} on a rectangle, ${e} on an enemy`+(ch?`; ${ch} before the rectangles became lethal`:"")+`.<br>Share of encounters ending in death: ${st.r4?st.r4[1]+"% of "+st.r4[0]+" (4-frame)":"n/a"}${st.r1?" · "+st.r1[1]+"% of "+st.r1[0]+" (1-frame, paths not recorded)":""}. Small counts are noisy.<br>Hover a line to highlight it; click to isolate.`;return;}
+  const r=sel,i=Math.min(fr,r.x.length-1),gap=r.gap[i],k=r.killer;
+  const kn=k?(k.p===0?"normal enemy":k.p===1?"kamikaze body":"enemy"):"";
+  el.innerHTML=`<b>seed ${r.seed}</b> · died at frame ${r.frames.toLocaleString()}, ${r.since} frames into pattern ${r.pid}, score ${r.score}<br>
+  cause: <b>${r.kind.replace(/_/g," ")}</b>${k?` · killer: ${kn}, age ${k.age} frames, size ${k.size}px${k.fyou?", spawned by the guard":""}`:""}<br>
+  at this frame: pattern ${["not yet active","active, rectangles charging (not lethal yet)","active, rectangles lethal"][r.st[i]]} · ${r.n[i]} enemies on screen · nearest enemy gap ${gap===null?"—":gap+" px"}<br>
+  enemies alive at death: ${r.alive[0]} normal, ${r.alive[1]} kamikaze, ${r.alive[2]} explosion`;
+}
+function list(){
+  const el=document.getElementById("list");el.innerHTML="";
+  byP(pid).forEach(r=>{const d=document.createElement("div");d.className="row"+(r===sel?" sel":"");
+    d.innerHTML=`<i style="background:${col(r)}"></i><span>${r.seed}</span><span>${r.kind.replace(/_/g," ").replace(" pattern","")}</span><span>${r.frames.toLocaleString()}</span>`;
+    d.onclick=()=>choose(r);el.appendChild(d);if(r===sel)d.scrollIntoView({block:"nearest"});});
+}
+function choose(r){stop();sel=r;fr=119;render();}
+function render(){list();draw();}
+function nearest(ev){
+  const b=cv.getBoundingClientRect(),mx=(ev.clientX-b.left)*640/b.width,my=(ev.clientY-b.top)*640/b.height;
+  let best=null,bd=1e9;
+  byP(pid).forEach(r=>{for(let i=60;i<=119;i+=1){const d=Math.hypot(X(r.x[i])-mx,X(r.y[i])-my);if(d<bd){bd=d;best=r;}}});
+  return bd<14?best:null;
+}
+cv.onmousemove=e=>{if(sel)return;const h=nearest(e);if(h!==hover){hover=h;cv.style.cursor=h?"pointer":"default";draw();}};
+cv.onclick=e=>{const h=sel?null:nearest(e);if(h)choose(h);else if(sel){sel=null;stop();render();}};
+pid=+ordered()[0];fillSelect();render();
+</script></body></html>
