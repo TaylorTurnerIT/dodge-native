@@ -1,0 +1,24 @@
+{
+  "attempted_update": 8,
+  "collected_valid_transitions": null,
+  "collected_valid_vectors": null,
+  "collection_status": "interrupted_before_return",
+  "elapsed_seconds": 490.2774078329967,
+  "error": "ValueError('Player center/size outside admitted physics range')",
+  "job": "r1-rays",
+  "observed_gameplay_frames": 522304,
+  "observed_returned_frames_this_attempt": 63552,
+  "observed_returned_vectors_this_attempt": 993,
+  "progress": {
+    "attempted_update": 8,
+    "complete": false,
+    "in_update": true,
+    "phase": "collection"
+  },
+  "resources": {
+    "peak_mps_driver_bytes": 2382184448,
+    "peak_rss_bytes": 2543190016
+  },
+  "status": "first_failure_preserved_lease_held",
+  "traceback": "Traceback (most recent call last):\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-teacher-ray-geometry-20261030/learning/runs/v2/teacher-ray-screen-20261030-r3/worker.py\", line 227, in main\n    returned = instrument_update(prepared, ppo, recorder, telemetry,\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-teacher-ray-geometry-20261030/learning/runs/v2/teacher-ray-screen-20261030-r3/update_telemetry.py\", line 253, in instrument_update\n    collection, metrics, boundary = prepared.update_once(check_guard=check_guard)\n                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-teacher-ray-geometry-20261030/learning/runs/v2/teacher-ray-screen-20261030-r3/worker.py\", line 49, in update_once\n    collection = self.ppo.collect_rollout(\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-teacher-ray-geometry-20261030/learning/runs/v2/teacher-ray-screen-20261030-r3/runtime/dodge_rl/ppo.py\", line 373, in collect_rollout\n    final_values = _model_output(model, final, device).values.cpu()\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-teacher-ray-geometry-20261030/learning/runs/v2/teacher-ray-screen-20261030-r3/runtime/dodge_rl/ppo.py\", line 199, in _model_output\n    output = model(*(observation[name].to(input_device) for name in _OBSERVATIONS))\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1783, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1794, in _call_impl\n    return forward_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-teacher-ray-geometry-20261030/learning/runs/v2/teacher-ray-screen-20261030-r3/runtime/dodge_rl/models/ray_teacher.py\", line 61, in forward\n    ray_tensor = batched_clearance_rays(\n                 ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/lib/python3.12/site-packages/torch/utils/_contextlib.py\", line 124, in decorate_context\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/taylor/.t3/worktrees/dodge-native/t3-teacher-ray-geometry-20261030/learning/runs/v2/teacher-ray-screen-20261030-r3/runtime/dodge_rl/ray_frontend.py\", line 32, in batched_clearance_rays\n    raise ValueError(\"Player center/size outside admitted physics range\")\nValueError: Player center/size outside admitted physics range\n"
+}
