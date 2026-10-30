@@ -13,6 +13,14 @@ Evidence base: checkpoint 420 death telemetry (`learning/reports/death-telemetry
 5. **Recent evidence does not support "same recipe, a bit more training".** DODGE-013 trained 11.8M frames per arm from 420: 4-frame training showed no clear Q1 gain over checkpoint 420 (1,625 vs 1,750), and 1-frame training regressed to 651. Checkpoint 600 had higher Mean but lower Q1 than 420 (DODGE-001). So extra updates at 64 envs and a 512-seed pool have plateaued or traded off. That is compatible with the scaling hypothesis only if the plateau comes from gradient noise, a small seed pool or short horizons, which is exactly what the tests below separate. The 1-frame regression also means the review's "fine-tune at K=1" has already been tried in one form (game-time-matched gamma and GAE, same reward); the review's version differs by also removing score from the reward.
 6. **Death telemetry (DODGE-014/015 data):** enemy contact during patterns is the dominant failure; the policy changes its action at 76% of consecutive decisions (last-128 sample), turns toward the killer in the final 10-15 frames, and runs into already-filled rectangles while chased. fyou is not the cause.
 
+## K=1 track (the user's hypothesis about control rate)
+
+Validation against the paper draft (`paper/main.tex` in the paper worktree): the review quoted the paper faithfully (4,400 vs 6,115 mean frames, 2,626 to 4,387 at K=1, 256 x 64 rollouts, minibatch 512, segment abandonment every 60 updates, constant learning rate 3e-5). The draft says the policy "was never trained at K=1"; that is out of date, because DODGE-013 did train from 420 at K=1 and regressed.
+
+What the data show: with the same weights, K=1 inference gives a bell-shaped survival distribution (mean 4,434, median 4,346, 6% dead before 1,000 frames) while K=4 has an early-death shoulder (mean 3,342, median 3,101, 14% dead before 1,000), see `charts/chart10.png`. That is inference at a finer rate for a policy trained at K=4; it does not show K=1 training is better.
+
+What DODGE-013 does and does not settle: one warm-started replica, 11.8M frames, game-time gamma and GAE, no KL, entropy, value-loss or advantage telemetry (its own note). It rules out "switch to K=1 and continue" as a free win. Still open: K=1 from scratch, K=1 with the scaling changes (large batch, fresh seed stream, longer rollouts so the credit horizon fits), K=2, and an instrumented diagnostic of why the warm start regressed (a 4x smaller per-decision reward and 4x more decisions per game-second change advantage scale, update cadence and KL budget even when gamma and lambda are matched). K=1 costs 5-6x more wall clock per game-second, so S2 (pipeline speed) gates any serious K=1 run. Self-imposed rule worth reconsidering with the user: one MPS campaign at a time.
+
 ## Scaling track (the user's hypothesis)
 
 Goal: find out whether more data, more diverse seeds and larger batches move the weak tail (Q1), and what limits throughput.
@@ -21,7 +29,7 @@ Goal: find out whether more data, more diverse seeds and larger batches move the
 - **S1, throughput profile (minutes).** Time one update split into: environment stepping, observation stacking and transfer, model inference on MPS, GAE, PPO epochs. Test 64, 128, 256, 512 envs with 4/8/12 threads and rollout lengths 256/512/1,024, plus CPU vs MPS inference. Output: frames/s per configuration and the real bottleneck. Expect the engine to be a small share; verify.
 - **S2, pipeline fix (code).** Whatever S1 shows: batched inference, avoiding per-env Python loops, pinned buffers, vectorised rollout storage. Target at least 10x frames/s. Parity-test against the current loop on the same weights (same seeds give the same rollouts).
 - **S3, scaled run from 420 (training, gated).** Fresh unbounded seed stream (no pool), 256 or more envs, rollout of 512 or more steps, minibatch 2,048 as the Opus proposal suggested, learning rate rechecked for batch size, game-time gamma and GAE unchanged. Compare against the DODGE-013 4-frame arm at equal frames first (isolates batch and seed diversity from length), then extend to 10x the frames. Primary metric Q1, with Mean, Q4 and milestone counts, on a fresh shared cohort.
-- **S4, scaled run from scratch (training, gated).** Only after S3 shows direction, since a from-scratch run tests whether 420's basin is the limit.
+- **S4, scaled run from scratch (training, gated).** Only after S3 shows direction, since a from-scratch run tests whether 420's basin is the limit. Run it at K=1 (and K=2) as well as K=4: from scratch is where K=1 has never been tried.
 
 Prediction to register first: if gradient noise and seed reuse limit the policy, S3 improves Q1 at equal frames; if the limit is representation or horizon (fact 1), it will not.
 

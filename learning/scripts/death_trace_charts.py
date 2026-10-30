@@ -522,6 +522,49 @@ def chart_heatmap(rows, cellpx=16):
                  s.render(), f"Hottest cells: {where}. Death position alone does not separate wall from open field; see the paths above.")
 
 
+# ---------------------------------------------------------------- chart 10: shape of the survival distribution
+def chart_survival_shape(records, width=500, top=10000):
+    edges = np.arange(0, top + width, width)
+    series = (("argmax_r1", "1-frame decisions", BLUE), ("argmax_r4", "4-frame decisions", ORANGE))
+    shares = {}
+    for key, _, _ in series:
+        a = np.array([r["alive_frames"] for r in records[key]], float)
+        h = np.histogram(np.minimum(a, top + width - 1), bins=edges)[0] / len(a)
+        shares[key] = (h, a)
+    W, H, L, R, T, B = 700, 270, 44, 10, 20, 40
+    ymax = nice_max(max(h.max() for h, _ in shares.values()))
+    s = Svg(W, H)
+    for k in range(5):
+        v = ymax * k / 4
+        y = H - B - (H - T - B) * v / ymax
+        s.line(L, y, W - R, y)
+        s.text(L - 6, y + 4, f"{100*v:.0f}%", "s", anchor="end")
+    nb = len(edges) - 1
+    X = lambda i: L + (W - L - R) * (i + 0.5) / nb
+    Y = lambda v: H - B - (H - T - B) * v / ymax
+    for i in range(0, nb + 1, 4):
+        s.text(L + (W - L - R) * i / nb, H - B + 15, f"{edges[i]/1000:g}k" + ("+" if i == nb else ""), "s", 11, "middle")
+    s.text(L + (W - L - R) / 2, H - 2, "frames survived (500-frame bins)", "s", 11, "middle")
+    s.text(L, T - 8, "share of games that die in the bin", "s", 11)
+    for key, label, color in series:
+        h, a = shares[key]
+        pts = " ".join(f"{X(i):.1f},{Y(v):.1f}" for i, v in enumerate(h))
+        s.add(f'<polyline points="{pts}" fill="none" stroke="{color}" stroke-width="2" stroke-linejoin="round"/>')
+        for i in range(0, nb, 2):
+            lo = edges[i]
+            s.add(f'<circle cx="{X(i):.1f}" cy="{Y(h[i]):.1f}" r="4" fill="{color}" stroke="var(--background)" stroke-width="2"><title>{esc(f"{label}: {100*h[i]:.1f}% of games die at {lo}-{lo+width} frames")}</title></circle>')
+    stats = {k: (np.mean(a), np.median(a), (a < 1000).mean(), (a < 500).mean()) for k, (_, a) in shares.items()}
+    rows = [[lab, f"{stats[k][0]:.0f}", f"{stats[k][1]:.0f}", f"{100*stats[k][3]:.1f}%", f"{100*stats[k][2]:.1f}%"] for k, lab, _ in series]
+    s1, s4 = stats["argmax_r1"], stats["argmax_r4"]
+    return chart(
+        "1-frame deaths form a bell; 4-frame deaths have an early shoulder",
+        f"Checkpoint 420, argmax, 2,048 fresh games per setting. Same weights; only the decision rate at inference differs.",
+        legend([(lab, color, "line") for _, lab, color in series]) + s.render(),
+        f"1-frame: mean {s1[0]:.0f}, median {s1[1]:.0f}, {100*s1[2]:.0f}% dead before 1,000 frames. "
+        f"4-frame: mean {s4[0]:.0f}, median {s4[1]:.0f}, {100*s4[2]:.0f}% dead before 1,000 frames.",
+        table_view(["setting", "mean", "median", "dead <500", "dead <1,000"], rows))
+
+
 # ---------------------------------------------------------------- page
 def page(sections):
     return ("<!doctype html><html><head><meta charset='utf-8'><title>Checkpoint 420 deaths</title><style>"
@@ -542,7 +585,7 @@ def main():
     base = float(np.median([g / P for r in r4 for g, pid in zip(r["trace"]["samples"]["enemy_gap"], r["trace"]["samples"]["pattern_id"]) if g >= 0]))
     sections = [chart_pattern_base_rate(tables), chart_cause_split(records), chart_time_in_pattern(records),
                 chart_enemy_gap_cdf(r4), chart_approach(r4, base), chart_rect_approach(r4, base),
-                chart_paths(r4), chart_heatmap(r4), chart_pattern_dots(tables)]
+                chart_paths(r4), chart_heatmap(r4), chart_pattern_dots(tables), chart_survival_shape(records)]
     args.out.write_text(page(sections))
     if args.split_dir:
         args.split_dir.mkdir(parents=True, exist_ok=True)
