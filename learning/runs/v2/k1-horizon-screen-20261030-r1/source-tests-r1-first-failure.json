@@ -1,0 +1,10 @@
+{
+  "scope": "CPU source/dummy child only; no training/native games/lease/marker",
+  "test_count": 8,
+  "status": "one_error_before_training",
+  "first_error": "PermissionError: [Errno 1] Operation not permitted",
+  "case": "test_real_dummy_nonzero_exit_preserved",
+  "cause": "Attempted killpg on already-exited root with no live descendants; Darwin refuses signalling zombie-only group.",
+  "repair": "Observe exit and descendants before signalling; reap an already-exited child directly.",
+  "training_attempt_consumed": false
+}
