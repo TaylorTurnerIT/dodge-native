@@ -1,0 +1,171 @@
+{
+  "findings": [
+    {
+      "id": "live_state",
+      "lines": [
+        57,
+        80,
+        120
+      ],
+      "observation": "Checkpoint v1 records abandoned live episodes and accepts only fresh_env resume; Adam and global RNG are present.",
+      "source": "python/dodge_rl/checkpoints.py",
+      "source_sha256": "807141943a742c6e9fdd34274c191b3c318134cc7fb0c1c6256874cadee1cbc3",
+      "status": "blocker",
+      "successor_requirement": "Versioned full VecEnv/core RNG/feature History/adapter/cached-observation/action-phase serialization and exact continuation qualification."
+    },
+    {
+      "id": "formal_recovery",
+      "lines": [
+        372,
+        390,
+        407,
+        414
+      ],
+      "observation": "Recovery stores model/Adam/RNG plus episode metadata, explicitly no full environment state or automatic resume. Final checkpoint omits runtime/RNG state.",
+      "source": "learning/runs/v2/one-frame-training-comparison-luna-20261029-r2/worker.py",
+      "source_sha256": "5843ef9f5fbc526ee540566eabbc600d7c4a8f8af44093efd14b4dac56d5d288",
+      "status": "blocker",
+      "successor_requirement": "Every completed update must commit full state and a durable journal anchor; old artifacts cannot reconstruct lost live games."
+    },
+    {
+      "id": "checkpoint_atomicity",
+      "lines": [
+        84,
+        109
+      ],
+      "observation": "Existing atomic no-replace publication fsyncs file/directory and preserves failed partials; no atomic state-plus-journal transaction here.",
+      "source": "python/dodge_rl/checkpoints.py",
+      "source_sha256": "807141943a742c6e9fdd34274c191b3c318134cc7fb0c1c6256874cadee1cbc3",
+      "status": "reusable_component_not_full_protocol",
+      "successor_requirement": "Qualify a crash-consistent manifest commit over state, telemetry, schedule and cumulative wall accounting; preserve torn writes as incidents."
+    },
+    {
+      "id": "native_boundary",
+      "lines": [
+        266,
+        380
+      ],
+      "observation": "Python VecDodgeEnv exposes step/reset/observation/metadata APIs, not full-wrapper snapshot/restore.",
+      "source": "crates/dodge-rl-env/src/python.rs",
+      "source_sha256": "604db40f4b49f462fe7fd81dd62f4fe845fb0061e742e7cf6b11a49324da25ab",
+      "status": "blocker",
+      "successor_requirement": "Core snapshot alone is insufficient: include per-slot feature history, indices, pending resets and held-action phase; no reset at monitoring barriers."
+    },
+    {
+      "id": "learning_rate",
+      "lines": [
+        74,
+        89
+      ],
+      "observation": "make_optimizer constructs fixed-LR Adam; same-phase restart is explicitly disabled without parent cumulative-budget authority.",
+      "source": "python/dodge_rl/train_teacher.py",
+      "source_sha256": "1d134bfb221ff52139e1243c9e4f9c3063432942a3274c567b71db4d7669c0cf",
+      "status": "blocker",
+      "successor_requirement": "Separately reviewed scheduler-aware successor and parent budget/phase protocol; do not weaken old guards or infer retry authority."
+    },
+    {
+      "id": "fixed_lr_guard",
+      "lines": [
+        449,
+        452
+      ],
+      "observation": "Actual formal PreparedUpdates validates constant Adam LR/epsilon. Its scheduler_reference is a curriculum assignment scheduler, not an LR scheduler.",
+      "source": "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/runtime-clean-r2/dodge_rl/curriculum.py",
+      "source_sha256": "d90d0d158a75f6184af9c67839a3b7ad04637dfea33f3f2abad14641e2d20a68",
+      "status": "blocker",
+      "successor_requirement": "Validate registered LR/entropy schedule state each update and restore, preserving epsilon and independent PPO stop controls."
+    },
+    {
+      "id": "metric_computation",
+      "lines": [
+        448,
+        460,
+        532,
+        553,
+        565
+      ],
+      "observation": "PPO computes epoch/final KL, entropy, value loss, explained variance, clip fraction and gradients. EV is undefined for near-zero target variance; GAE runs once.",
+      "source": "python/dodge_rl/ppo.py",
+      "source_sha256": "abf25f327f9ff749a8a32de4edb07705f12ebcdc5cd0eba8775ad4f693eff1d5",
+      "status": "reusable_with_limits",
+      "successor_requirement": "Persist original definitions and null/definedness. Log raw pre-normalization advantage scale and switches; do not claim PPO lacks existing metrics."
+    },
+    {
+      "id": "metric_retention",
+      "lines": [
+        122,
+        138
+      ],
+      "observation": "Formal journal keeps counts/epochs/early-stop booleans but discards numerical KL/entropy/value/EV/clip metrics.",
+      "source": "learning/runs/v2/one-frame-training-comparison-luna-20261029-r2/worker.py",
+      "source_sha256": "5843ef9f5fbc526ee540566eabbc600d7c4a8f8af44093efd14b4dac56d5d288",
+      "status": "blocker",
+      "successor_requirement": "Exactly one complete identity-bound telemetry row per committed update, including valid closing partials, with counters and weighted denominators."
+    },
+    {
+      "id": "telemetry_successor",
+      "lines": [
+        194,
+        294
+      ],
+      "observation": "Synthetic-tested adapter logs KL/entropy/value/GAE moments/switches, but omits EV/clip fraction and expects one GAE call.",
+      "source": "learning/runs/v2/control-frequency-diagnostic-parent-20261030-r1/update_telemetry.py",
+      "source_sha256": "a073dc06573147a1909ec7341578cc0d50bc96684cc8081df161d8c9b4c59493",
+      "status": "incomplete_source_preparation",
+      "successor_requirement": "New capsule adds EV/clip fields, schedule/frame clocks and optional per-epoch refresh contract; qualify against real PPO and passive parity."
+    },
+    {
+      "id": "evaluation_rng",
+      "lines": [
+        427,
+        451
+      ],
+      "observation": "Terminal evaluator loads a separate model but reseeds Python/NumPy/Torch/MPS global RNG. This is valid terminal evaluation, not isolated training interleaving.",
+      "source": "learning/runs/v2/one-frame-training-comparison-luna-20261029-r2/worker.py",
+      "source_sha256": "5843ef9f5fbc526ee540566eabbc600d7c4a8f8af44093efd14b4dac56d5d288",
+      "status": "blocker_for_midrun_reuse",
+      "successor_requirement": "Dedicated evaluation process plus full training suspension/checkpoint; prove no training RNG/model/Adam/env/history/module-flag mutation."
+    },
+    {
+      "id": "evaluation_cohort",
+      "lines": [
+        110,
+        169
+      ],
+      "observation": "Base evaluator reuses 64 development seeds and argmax actions; restoring model.train flag does not implement rotating1024-seed sampled-K1 monitoring.",
+      "source": "python/dodge_rl/dev_eval.py",
+      "source_sha256": "eecf71936f10938169c0283ed1bb0717b87e46da7ee4ac8636a20d366df3753b",
+      "status": "blocker_for_long_monitor",
+      "successor_requirement": "Registered disjoint cohorts, fixed common controller, exact counts and strict terminal acceptance before reading outcomes."
+    },
+    {
+      "id": "training_stream",
+      "lines": [
+        50,
+        89
+      ],
+      "observation": "Native tuple-hash stream supports exclusions but finite u32 seeds can collide; formal campaign used the fixed pool.",
+      "source": "crates/dodge-rl-env/src/seed.rs",
+      "source_sha256": "239cb9d88a61fff7d63c3c13c80e4552caafe814729160f8fb2948d3c1498832",
+      "status": "needs_successor_registration",
+      "successor_requirement": "Fresh non-pool stream excludes all historic/held-out allocations, deduplicates training starts within each replica, logs rejections/indices, fails on exhaustion; paired replicas may share their registered training seed sequence."
+    },
+    {
+      "id": "resource_guard",
+      "lines": [
+        36,
+        61
+      ],
+      "observation": "Existing worker guards work time, lease and RSS/MPS independently; larger batches, two replicas and full snapshots were not qualified by this run.",
+      "source": "learning/runs/v2/one-frame-training-comparison-luna-20261029-r2/worker.py",
+      "source_sha256": "5843ef9f5fbc526ee540566eabbc600d7c4a8f8af44093efd14b4dac56d5d288",
+      "status": "reusable_not_requalified",
+      "successor_requirement": "Keep6GiB separate ceilings and one MPS job; qualify aggregate observer/child RSS, MPS peaks, I/O, disk reserve, AC guard and full budget forecast."
+    }
+  ],
+  "readiness": "blocked_pending_successor_implementation_review_qualification_and_user_approval",
+  "record": "DODGE-043",
+  "schema": "dodge_long_run_source_readiness_v5",
+  "scope": "Read-only source and accepted receipts only; no model load, games, optimizer steps, imports of RL code or launches.",
+  "status": "source_audit_complete_runtime_not_qualified"
+}

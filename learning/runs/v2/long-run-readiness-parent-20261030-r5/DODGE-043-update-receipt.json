@@ -1,0 +1,44 @@
+{
+  "id": "DODGE-043",
+  "project": "dodge-native",
+  "title": "Audit current pipeline against the full-send readiness gate",
+  "status": "completed",
+  "doing": "Perform a source/receipt-only gap audit of live simulator carry-over, scheduler/normalizer/averaging checkpoint state, full per-update PPO telemetry, evaluation isolation, fresh-stream exclusions, clocks and strict lifecycle. Compare generic code with the actual DODGE-013 journal path; no model loading, fixtures, games or training.",
+  "expected": "Source-informed expectation: fresh-env checkpointing abandons live games, generic PPO computes some required metrics that the formal worker drops, and scheduler/full-state restore support is incomplete. Existing learner/RNG and strict resource/exact-once controls should be reusable, but source preparation cannot qualify the new long run.",
+  "actual": "Source-only audit confirms fresh-env checkpointing abandons live games; formal recovery explicitly lacks full simulator state. Generic PPO computes numerical KL/entropy/value/EV/clip metrics, but formal update rows discard them. Fixed-LR guards, missing full-state/scheduler checkpoints, terminal evaluator global-RNG reseeding and unqualified I/O/resource costs block a robust long run. No games, model loads, optimizer steps or runtime qualification occurred.",
+  "why": "The existing strict campaign was a terminal comparison, not a resumable long-run pipeline. Reuse its lifecycle components in a separately reviewed successor; do not weaken frozen guards.",
+  "next_step": "Prepare full native/wrapper/learner state, schedule-aware guards, complete telemetry and isolated evaluation; qualify exact continuation and full-path resources before explicit launch approval.",
+  "actual_kind": "observed",
+  "prediction_timing": "before_run",
+  "parent_id": "DODGE-040",
+  "revision": 2,
+  "created_at": "2026-10-30T08:04:42.586940+00:00",
+  "updated_at": "2026-10-30T08:13:58.258842+00:00",
+  "tags": [
+    "long-run",
+    "readiness",
+    "source-audit"
+  ],
+  "metadata": {},
+  "evidence": [
+    {
+      "id": "5da7aea4cad7456a8a456ab53323fa04",
+      "experiment_id": "DODGE-043",
+      "kind": "source",
+      "label": "Thirteen source-pinned readiness findings; not runtime qualification",
+      "uri": "learning/runs/v2/long-run-readiness-parent-20261030-r5/readiness-audit.json",
+      "sha256": "d1709399083c96e33396af8eeed25543e1d746f871618fc91e890089d44ee0cc",
+      "recorded_at": "2026-10-30T08:13:58.259209+00:00"
+    },
+    {
+      "id": "eb84a5baa9e14d4f818431785fbe75a5",
+      "experiment_id": "DODGE-043",
+      "kind": "plan",
+      "label": "User-directed long-run gate; no launch authority",
+      "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md",
+      "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb",
+      "recorded_at": "2026-10-30T08:04:42.588636+00:00"
+    }
+  ],
+  "measurements": []
+}

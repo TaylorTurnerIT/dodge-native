@@ -1,0 +1,25 @@
+{
+  "id": "DODGE-043",
+  "project": "dodge-native",
+  "title": "Audit current pipeline against the full-send readiness gate",
+  "status": "planned",
+  "doing": "Perform a source/receipt-only gap audit of live simulator carry-over, scheduler/normalizer/averaging checkpoint state, full per-update PPO telemetry, evaluation isolation, fresh-stream exclusions, clocks and strict lifecycle. Compare generic code with the actual DODGE-013 journal path; no model loading, fixtures, games or training.",
+  "expected": "Source-informed expectation: fresh-env checkpointing abandons live games, generic PPO computes some required metrics that the formal worker drops, and scheduler/full-state restore support is incomplete. Existing learner/RNG and strict resource/exact-once controls should be reusable, but source preparation cannot qualify the new long run.",
+  "actual": null,
+  "actual_kind": "unobserved",
+  "prediction_timing": "before_run",
+  "parent_id": "DODGE-040",
+  "tags": [
+    "long-run",
+    "readiness",
+    "source-audit"
+  ],
+  "evidence": [
+    {
+      "kind": "plan",
+      "label": "User-directed long-run gate; no launch authority",
+      "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md",
+      "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb"
+    }
+  ]
+}

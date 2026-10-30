@@ -113,7 +113,7 @@ C2–C6 implement the priority-list item12 diagnostics/ablations and item13 rewa
 
 Only A1 currently has a reviewed concrete launch package. The other rows are explicit seed/workload/budget proposals; they still need frozen source, real resource forecasts, registration and review before their separate launch approval. The immediate ready approval scope is **audited disposition of failed S1-r1, release only its exact lease, and exactly one A1/S1-r2 attempt under its unchanged42-minute total cap**. Approving that scope does not approve A2–C10, any new cohort or any training.
 
-### Conditional long-run envelope
+### Conditional long-run envelope (P4 sketch, superseded by P5 below)
 
 G1 proposes one locked recipe with two training seeds, at most117,964,800 raw frames per trajectory,9h training work +10m receipts per trajectory. At most six development looks request1,024 new seeds each (6,144 total); a separate2,048-seed final confirmation remains unopened until endpoints are fixed. Each look evaluates the two models and420:18,432 development games in total plus6,144 final games. Proposed evaluation ceiling is8h work +24m receipts, making a **26h44m combined envelope**. These are ceilings awaiting measured feasibility, not an indefinite permission to continue learning.
 
@@ -121,6 +121,57 @@ Entry needs a prospectively frozen recipe and gains on Q1 and Mean on independen
 
 The detailed machine-readable workload, per-trajectory caps and predictions are in `learning/runs/v2/priority-runlist-parent-20261030-r4/priority-run-list-v4.json`.
 
+
+### Gate for the long run: P5 design and readiness
+
+Taylor's intended sequence is Phase0/1 tuning, a prospectively qualified winning recipe, then a bounded long run while held-out performance improves. DODGE-043 records the source-only readiness audit; DODGE-044 preserves predictions for the long run. Its results remain unobserved. The [P5 protocol](../learning/runs/v2/long-run-readiness-parent-20261030-r5/long-run-protocol-v5.json) replaces only P4's G1 sketch; other priority packets and their budgets stand. No launch, cohort opening, lease disposition or promotion is authorized.
+
+**Entry is a recipe comparison, not a comparison to an old endpoint.** Freeze the candidate and current-recipe controls before opening a fresh1,024-seed entry cohort. Require two independent training-randomness vectors per recipe, matched initialization and equal actual raw-frame exposure. A warm-start recipe uses matching warm-start controls; scratch uses matching scratch controls.420 is context, not an equal-exposure control. Model-only tuning endpoints cannot recover their missing live games: reproduce qualifying endpoints with full-state checkpoints if needed, rather than resetting environments and claiming continuity.
+
+Proposed entry test: each training-replica pair has positive marginal-Q1 and Mean differences, and the average pair contrast has a shared-game-seed bootstrap lower95% bound above0 for both. Sort each model separately for Q1; never average paired per-game deltas to estimate a marginal tail. Use2,000 shared-seed draws, resampling each seed across every model and replica together. This is conditional game-seed uncertainty, not a training-population interval from n=2. Lock all comparisons, controller and seed vectors before execution; entry data become exposed development once used to select a recipe.
+
+**Schedules and clocks.** Carry the winning Phase1 LR/entropy algorithm and state into a separately registered long phase. Do not choose cosine by assumption: constant, warmup+cosine-to-floor and KL-adaptive remain the requested comparison. Before approval, freeze exact starting/peak/floor rates, warmup and maximum horizon, or adaptive target/deadband/multipliers; also freeze entropy coefficients, gamma/lambda, K, N/T and minibatch. Use actual gameplay frames as the schedule clock, retaining startup frames and policy decisions separately. Define an explicit schedule transition from entry, never an accidental warmup restart. Changes to batch size require another LR qualification. No manual mid-run drops or automatic extension beyond the approved maximum.
+
+**Long-run exposure and monitoring.** Two independent qualified entry states receive at most117,964,800 additional raw frames each. Keep every completed-update checkpoint. Six nominal barriers are19,660,800;39,321,600;58,982,400;78,643,200;98,304,000;117,964,800 additional frames. Reach barriers at completed updates without resetting live slots. Retain whole closing vector steps and optimize valid partial rollouts; freeze actual overshoot and between-replica frame-gap ceilings with the chosen N/K before launch. Unequal or budget-truncated exposures cannot masquerade as the full equal-frame result.
+
+At each barrier, evaluate current2 and incumbent2 on the **same fresh1,024-seed cohort**, under fixed sampled K1 control. Initialization sets incumbents to frozen entry states. This costs4,096 games/look,24,576 total. Re-evaluating incumbents on the new cohort prevents changes in cohort difficulty from looking like learning. Report each replica's Worst/Q1/Mean/Q4/Best, counts reaching1,000/3,000/6,000/12,000/18,000 frames, early deaths, actual exposure and frame-gap. Plot current policies and incumbents separately: a rising best-so-far curve is not continued learning. Any deployment-controller or noise-robustness evaluation needs its own explicit packet and budget; controller choice cannot change after seeing long-run looks.
+
+Joint progress requires both replicas' point Q1 and Mean gains against their incumbents, plus positive aggregate bootstrap lower95% bounds for both metrics. Update both incumbents only on joint progress; otherwise keep them. Three valid accepted looks without joint progress stop for plateau. Missing/failed evaluation receipts are incidents, not patience ticks and not grounds for a replacement cohort. The intervals are nominal development intervals used by a fixed stopping rule, not repeated independent confirmation. Proposed held-out collapse stops when each replica's Q1 and Mean contrast against its current incumbent has upper95% below0. A separate frozen-entry comparison during every look would require extra models and budget; it is not hidden inside this four-model design.
+
+**Final confirmation.** Lock latest valid terminal raw2, rolling last5 averaged2, frozen entry2 and420 before opening2,048 new seeds:7 models,14,336 games. Primary comparison is latest raw versus frozen entry; averages versus raw are secondary. Report each training replica separately. Never substitute the best development checkpoint silently or promote a checkpoint. If fewer than five completed long updates exist, average the available complete updates and state the window. A failed mid-update endpoint is ineligible. Fresh final data support fixed-endpoint claims conditional on these trajectories, not certainty over training seeds or uncorrected secondary comparisons.
+
+|Packet|Maximum work + receipts|Evaluation games|Status|
+|---|---:|---:|---|
+|Entry qualification, all four training trajectories missing|4×(3h+3m), plus2×(1h+3m) evaluation =14h18m|5,120|Additional to long run|
+|Entry, only two matched controls missing|2×(3h+3m), plus2×(1h+3m) =8h12m|5,120|Candidate states must already qualify|
+|Long training, two replicas|2×(9h+10m) =18h20m|0|Includes import/restore/update/checkpoint I/O|
+|Six monitoring looks|6×(1h+3m) =6h18m|24,576|Four models/look|
+|Final confirmation, four shards|4×(1h+3m) =4h12m|14,336|Seven models on2,048 seeds|
+|**Long-run total, excluding entry**|**28h50m**|**38,912**|Ceiling, not forecast|
+
+This requests9,216 distinct evaluation seeds:entry1,024 + monitoring6,144 + final2,048. None are reserved or opened now. Before training, register exclusion ranges for all future looks/final without opening their games. Exclude D7/D8/D9, consumed death-telemetry seeds, historical held-out allocations and every new evaluation range from training. Use a non-pool training stream with logged per-replica collision rejection and exhaustion failure; the finite u32 seed space cannot supply infinitely many unique seeds. Paired replicas may share a registered training-game sequence, with independent training randomness. No adaptive reuse of evaluation cohorts for later selection.
+
+**Health and durability.** Log numerical epoch/final KL, threshold hits and stops before the maximum epoch, epochs/Adam steps, weighted entropy/value loss/clip fraction, EV and its definedness/target variance, raw GAE moments per refresh, reward/return/value scale, within-episode switch numerators/denominators, LR/entropy state, frame/seed counters, timings and memory every update. Preserve EV=null for a correctly identified near-zero target variance. Switching state carries across rollout boundaries; resets do not count as switches. Every committed complete update, including a valid final partial rollout, must have exactly one durable telemetry row.
+
+Nonfinite data, invalid counters/distributions, missing telemetry, state/lease drift, power/resource violations and torn writes are immediate incidents. Proposed additional boundary stop: final full-rollout KL>0.15 for three consecutive completed updates; qualify and freeze this threshold before approval. Low entropy, negative EV or large value loss alone are warnings, not proof of collapse. Keep PPO's separately registered epoch stop independent. Hard wall,6GiB RSS and6GiB MPS driver limits, plus AC power guard, always win. Budget-limited completion is not plateau. A mid-update hard stop preserves partial failure and held lease; it cannot invent a completed endpoint.
+
+Full-state checkpoints must include model/Adam, all RNGs, LR/entropy schedules, normalizers, each simulator/core RNG, feature History, cached observations, seed indices/collision set, current K/held-action phase, prior-action telemetry state, frame/cumulative-wall clocks, incumbent/patience state, averaging queue, source/runtime/parent/previous-checkpoint hashes. Publish state and telemetry through a durable no-replace commit manifest. Restore only a complete boundary with parent-owned cumulative time accounting. Atomic file publication alone is insufficient. Keep all raw checkpoints and last5 arithmetic model-weight averages; never average Adam. Changed normalization bases need a valid common-basis transform or must block averaging.
+
+Full-state restore preserves live games **at the committed boundary**. A power failure can lose uncommitted work after that boundary; disclose it and preserve first failure. Normal preapproved phase handoffs and recovery after failure are distinct. No automatic recovery, marker reuse or retry follows a crash. Interleave serial replicas/evaluation only through reviewed, uniquely claimed child phases. Evaluate in a separate process and prove no mutation of training model/Adam/RNG/env/history/module flags. The existing one-MPS-job rule stays. A two-job contention/resource qualification could be proposed to Taylor separately; spare compute does not itself relax per-process or aggregate limits.
+
+**Current blockers, source-only findings:**
+
+|Source|Finding|Required before long launch|
+|---|---|---|
+|`checkpoints.py:57–80,120`|Explicit fresh-env resume abandons live games; Adam/global RNG are present.|Full native/wrapper/learner restore and next-step parity.|
+|Formal `worker.py:372–425`|Recovery explicitly lacks full environment state; final model/Adam checkpoint lacks complete runtime/RNG state.|Every-update full-state commit, not metadata-only recovery.|
+|`train_teacher.py:74–89`; frozen `curriculum.py:449–452`|Fixed LR and disabled same-phase restart; curriculum scheduler is not an LR scheduler.|New schedule-aware successor and parent cumulative-budget protocol.|
+|`ppo.py:448–565`; formal `worker.py:122–138`|PPO computes KL/entropy/value/EV/clip metrics; formal journal drops numerical values.|Persist metrics with correct definitions, raw GAE and switch state.|
+|DODGE-022 adapter|Synthetic-only preparation; lacks EV/clip fields and requires one GAE call.|New telemetry capsule, real passive parity and any per-epoch refresh contract.|
+|Formal `worker.py:427–451`; `dev_eval.py:110–169`|Terminal evaluation reseeds global RNG; base evaluator reuses64 argmax seeds.|Isolated sampled-controller rotating-cohort evaluator and strict parent acceptance.|
+|Native seed stream and resource guards|Exclusions/guards reusable; uniqueness, new shapes, disk/I/O and aggregate peaks unqualified.|S1/S2, full-state C8, resource/disk/AC qualification and20%-margin forecast.|
+
+The [source-pinned audit](../learning/runs/v2/long-run-readiness-parent-20261030-r5/readiness-audit.json) contains exact references and limits. Qualification must measure snapshot size/write time, maximum update count, disk reserve, aggregate observer/child RSS and MPS peaks; project the entire approved path with20% margin inside the ceilings. If infeasible, redesign before approval. No old guard or frozen capsule changes. The failed S1-r1 exact lease remains held; S1-r2 still awaits explicit successor/failure-disposition authorization.324 remains the official parent.
 
 ## K=1 track (the user's hypothesis about control rate)
 
