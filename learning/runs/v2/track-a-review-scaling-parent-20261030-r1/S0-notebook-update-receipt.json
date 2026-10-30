@@ -1,0 +1,53 @@
+{
+  "id": "DODGE-016",
+  "project": "dodge-native",
+  "title": "S0: Audit Uniform2 training-seed reuse from324 through600",
+  "status": "completed",
+  "doing": "Audit saved seed configurations and complete training start/episode journals for Uniform2 from parent324 through600. Separate retained ancestry, discarded interrupted work, and startup/reset/terminal episodes; report unique seeds and episodes per seed without simulator or training execution.",
+  "expected": "Before this retrospective data audit: the fixed512 pool likely persisted through Uniform2 and its recovery; unique seeds should be at most512 per segment, with repeated episodes. Missing start journals would limit exact episode counts rather than justify inferred counts.",
+  "actual": "All512 pool seeds were reused throughout retained Uniform2 ancestry:18,550 episode starts and17,846 completions, averaging36.23 starts and34.86 completions per unique seed. Continuation420 is cumulative852; the27.5M-frame estimate covers its420 continuation updates, not its complete ancestry.",
+  "why": "Exact journaled resets/completions and constructor seeds derived from the pinned hash stream match the same512-pool throughout. This establishes limited seed diversity, not that reuse caused the plateau; discarded interrupted work is counted separately.",
+  "next_step": "Use S1 to measure pipeline cost; propose fresh-stream S3 with a matched pool control before any new training.",
+  "actual_kind": "audited",
+  "prediction_timing": "before_run",
+  "parent_id": "DODGE-011",
+  "revision": 2,
+  "created_at": "2026-10-30T05:30:57.405294+00:00",
+  "updated_at": "2026-10-30T05:38:16.924598+00:00",
+  "tags": [
+    "seed-audit",
+    "scaling",
+    "S0"
+  ],
+  "metadata": {},
+  "evidence": [
+    {
+      "id": "5ee09e197e644683ac2481edb7108ce7",
+      "experiment_id": "DODGE-016",
+      "kind": "audit",
+      "label": "Independent Luna recomputation; no blocking findings",
+      "uri": "learning/runs/v2/track-a-s0-review-luna-20261030-r1/review.json",
+      "sha256": "8377c9beaf8cebba1447af2aa242765021c6dbe7d2e1879ba0ee3dd2e477dd29",
+      "recorded_at": "2026-10-30T05:38:16.925926+00:00"
+    },
+    {
+      "id": "999422d7697849289e233cca3b4d3f2b",
+      "experiment_id": "DODGE-016",
+      "kind": "plan",
+      "label": "User-authorized Track A handoff; external review ideas and scaling hypothesis",
+      "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md",
+      "sha256": "56eb69549ae259bd6a334b5e9d9457ce30e6b1486716cf588a594e29658d3dd5",
+      "recorded_at": "2026-10-30T05:30:57.405660+00:00"
+    },
+    {
+      "id": "bae5fc2b974d47c6879b809677204a87",
+      "experiment_id": "DODGE-016",
+      "kind": "result",
+      "label": "Exact seed reuse audit with per-seed starts and completed episodes",
+      "uri": "learning/runs/v2/track-a-review-scaling-parent-20261030-r1/S0-seed-audit.json",
+      "sha256": "553430ff747fa389eeb5adf3571193453359826266eeee9df8c5f936084e1280",
+      "recorded_at": "2026-10-30T05:38:16.925895+00:00"
+    }
+  ],
+  "measurements": []
+}

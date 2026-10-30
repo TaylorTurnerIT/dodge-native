@@ -7848,8 +7848,17 @@
       "actual": null,
       "actual_kind": "unobserved",
       "created_at": "2026-10-28T18:53:33.227321+00:00",
-      "doing": "Reconstruct up to 12 reachable pre-failure states from the recorded cases. Restore the full simulator state, RNG, and required observation-wrapper history. From each state, test all nine initial movement actions, followed by the frozen policy, with eight continuation-randomness repetitions and a 512-raw-frame horizon. This is up to 864 short branches. Validate restoration before interpreting comparisons; arbitrary frame-counter jumps are invalid.",
+      "doing": "Replay checkpoint420 enemy-contact deaths at K4 and restore exact simulator/RNG/wrapper/controller states60/45/30/15raw frames before death. Compare K4 and K1 policy continuations and a12frame nine-action diagnostic oracle. Register consumed telemetry seeds3657433088..3657435135; use only a separately authorized fresh item3 cohort if needed. Restoration parity and strict receipts precede interpretation.",
       "evidence": [
+        {
+          "experiment_id": "DODGE-004",
+          "id": "3f04e03e1e3642278c05224196fb9bc4",
+          "kind": "plan",
+          "label": "User-authorized Track A handoff; external review ideas and scaling hypothesis",
+          "recorded_at": "2026-10-30T05:30:57.617589+00:00",
+          "sha256": "56eb69549ae259bd6a334b5e9d9457ce30e6b1486716cf588a594e29658d3dd5",
+          "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+        },
         {
           "experiment_id": "DODGE-004",
           "id": "plan-4",
@@ -7860,7 +7869,7 @@
           "uri": "git:3d4398884919832c5d6857834c7f29b10cddb187:docs/dodge-research-iteration-plan.md"
         }
       ],
-      "expected": "If a harmful sampled choice is the immediate problem, some alternative actions should survive while the selected action fails. If useful actions have little policy probability, learning or representation becomes a stronger lead. If every tested action fails, move the branch point earlier to investigate how the policy entered trouble. The finite set of branches does not establish an optimal action or an unavoidable death.",
+      "expected": "K1 may rescue a subset of late K4 contact deaths if reaction delay dominates; a12frame nine-action oracle may rescue cases where policy choices remain poor. If even earlier branches fail, finite-horizon local search cannot prove unavoidable death; earlier commitment and planning become stronger hypotheses.",
       "history": [
         {
           "actor": "migration",
@@ -7908,6 +7917,62 @@
             "updated_at": "2026-10-28T18:53:33.227321+00:00",
             "why": "These comparisons can distinguish local action-selection problems from earlier planning failures. They also suggest a route to better advantage estimates or training examples. The best simulated branch is a diagnostic reference using extra computation, not a deployable policy. Check full-game behavior before claiming an intervention improves survival."
           }
+        },
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-004",
+          "reason": "Refine unexecuted counterfactual plan to user Track A death-telemetry handoff",
+          "recorded_at": "2026-10-30T05:30:57.617242+00:00",
+          "revision": 2,
+          "snapshot": {
+            "actual": null,
+            "actual_kind": "unobserved",
+            "created_at": "2026-10-28T18:53:33.227321+00:00",
+            "doing": "Replay checkpoint420 enemy-contact deaths at K4 and restore exact simulator/RNG/wrapper/controller states60/45/30/15raw frames before death. Compare K4 and K1 policy continuations and a12frame nine-action diagnostic oracle. Register consumed telemetry seeds3657433088..3657435135; use only a separately authorized fresh item3 cohort if needed. Restoration parity and strict receipts precede interpretation.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-004",
+                "id": "3f04e03e1e3642278c05224196fb9bc4",
+                "kind": "plan",
+                "label": "User-authorized Track A handoff; external review ideas and scaling hypothesis",
+                "recorded_at": "2026-10-30T05:30:57.617589+00:00",
+                "sha256": "56eb69549ae259bd6a334b5e9d9457ce30e6b1486716cf588a594e29658d3dd5",
+                "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+              },
+              {
+                "experiment_id": "DODGE-004",
+                "id": "plan-4",
+                "kind": "plan",
+                "label": "Original four-question iteration plan",
+                "recorded_at": "2026-10-28T18:53:33.227365+00:00",
+                "sha256": "9998f0cdda0945daec4f6b0905de8c8d404578580580e84237319dccfaf95f00",
+                "uri": "git:3d4398884919832c5d6857834c7f29b10cddb187:docs/dodge-research-iteration-plan.md"
+              }
+            ],
+            "expected": "K1 may rescue a subset of late K4 contact deaths if reaction delay dominates; a12frame nine-action oracle may rescue cases where policy choices remain poor. If even earlier branches fail, finite-horizon local search cannot prove unavoidable death; earlier commitment and planning become stronger hypotheses.",
+            "id": "DODGE-004",
+            "measurements": [],
+            "metadata": {
+              "imported_from": "git:3d4398884919832c5d6857834c7f29b10cddb187:docs/dodge-research-iteration-plan.md",
+              "source_section": 4,
+              "unobserved_result_prompt": "Not run. Record short-horizon survival, score and reward, estimated action rankings, and policy probability assigned to useful alternatives. Include a replay of the recorded action as a restoration/control check.",
+              "why_is_hypothesis": true
+            },
+            "next_step": "Prepare and independently review snapshot/controller parity, branching design, seed registration and bounded exact-once gates before execution.",
+            "parent_id": null,
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 2,
+            "status": "planned",
+            "tags": [
+              "research-plan",
+              "Q1",
+              "diagnostic"
+            ],
+            "title": "Test action quality with counterfactual branches",
+            "updated_at": "2026-10-30T05:30:57.617242+00:00",
+            "why": "These comparisons can distinguish local action-selection problems from earlier planning failures. They also suggest a route to better advantage estimates or training examples. The best simulated branch is a diagnostic reference using extra computation, not a deployable policy. Check full-game behavior before claiming an intervention improves survival."
+          }
         }
       ],
       "id": "DODGE-004",
@@ -7918,11 +7983,11 @@
         "unobserved_result_prompt": "Not run. Record short-horizon survival, score and reward, estimated action rankings, and policy probability assigned to useful alternatives. Include a replay of the recorded action as a restoration/control check.",
         "why_is_hypothesis": true
       },
-      "next_step": null,
+      "next_step": "Prepare and independently review snapshot/controller parity, branching design, seed registration and bounded exact-once gates before execution.",
       "parent_id": null,
       "prediction_timing": "before_run",
       "project": "dodge-native",
-      "revision": 1,
+      "revision": 2,
       "status": "planned",
       "tags": [
         "research-plan",
@@ -7930,7 +7995,7 @@
         "diagnostic"
       ],
       "title": "Test action quality with counterfactual branches",
-      "updated_at": "2026-10-28T18:53:33.227321+00:00",
+      "updated_at": "2026-10-30T05:30:57.617242+00:00",
       "why": "These comparisons can distinguish local action-selection problems from earlier planning failures. They also suggest a route to better advantage estimates or training examples. The best simulated branch is a diagnostic reference using extra computation, not a deployable policy. Check full-game behavior before claiming an intervention improves survival."
     },
     {
@@ -22340,6 +22405,768 @@
       "title": "Compare one-frame and four-frame PPO training at equal game exposure",
       "updated_at": "2026-10-30T00:20:00.159454+00:00",
       "why": "The frozen-policy inference benefit did not translate into a benefit from this one-frame training recipe. One paired trajectory cannot establish training-replica uncertainty or cause; missing numerical KL, entropy, value-loss and advantage telemetry leaves mechanisms unresolved."
+    },
+    {
+      "actual": "All512 pool seeds were reused throughout retained Uniform2 ancestry:18,550 episode starts and17,846 completions, averaging36.23 starts and34.86 completions per unique seed. Continuation420 is cumulative852; the27.5M-frame estimate covers its420 continuation updates, not its complete ancestry.",
+      "actual_kind": "audited",
+      "created_at": "2026-10-30T05:30:57.405294+00:00",
+      "doing": "Audit saved seed configurations and complete training start/episode journals for Uniform2 from parent324 through600. Separate retained ancestry, discarded interrupted work, and startup/reset/terminal episodes; report unique seeds and episodes per seed without simulator or training execution.",
+      "evidence": [
+        {
+          "experiment_id": "DODGE-016",
+          "id": "5ee09e197e644683ac2481edb7108ce7",
+          "kind": "audit",
+          "label": "Independent Luna recomputation; no blocking findings",
+          "recorded_at": "2026-10-30T05:38:16.925926+00:00",
+          "sha256": "8377c9beaf8cebba1447af2aa242765021c6dbe7d2e1879ba0ee3dd2e477dd29",
+          "uri": "learning/runs/v2/track-a-s0-review-luna-20261030-r1/review.json"
+        },
+        {
+          "experiment_id": "DODGE-016",
+          "id": "999422d7697849289e233cca3b4d3f2b",
+          "kind": "plan",
+          "label": "User-authorized Track A handoff; external review ideas and scaling hypothesis",
+          "recorded_at": "2026-10-30T05:30:57.405660+00:00",
+          "sha256": "56eb69549ae259bd6a334b5e9d9457ce30e6b1486716cf588a594e29658d3dd5",
+          "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+        },
+        {
+          "experiment_id": "DODGE-016",
+          "id": "bae5fc2b974d47c6879b809677204a87",
+          "kind": "result",
+          "label": "Exact seed reuse audit with per-seed starts and completed episodes",
+          "recorded_at": "2026-10-30T05:38:16.925895+00:00",
+          "sha256": "553430ff747fa389eeb5adf3571193453359826266eeee9df8c5f936084e1280",
+          "uri": "learning/runs/v2/track-a-review-scaling-parent-20261030-r1/S0-seed-audit.json"
+        }
+      ],
+      "expected": "Before this retrospective data audit: the fixed512 pool likely persisted through Uniform2 and its recovery; unique seeds should be at most512 per segment, with repeated episodes. Missing start journals would limit exact episode counts rather than justify inferred counts.",
+      "history": [
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-016",
+          "reason": "Register Track A prediction before audit/profile/evaluation execution",
+          "recorded_at": "2026-10-30T05:30:57.405294+00:00",
+          "revision": 1,
+          "snapshot": {
+            "actual": null,
+            "actual_kind": "unobserved",
+            "created_at": "2026-10-30T05:30:57.405294+00:00",
+            "doing": "Audit saved seed configurations and complete training start/episode journals for Uniform2 from parent324 through600. Separate retained ancestry, discarded interrupted work, and startup/reset/terminal episodes; report unique seeds and episodes per seed without simulator or training execution.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-016",
+                "id": "999422d7697849289e233cca3b4d3f2b",
+                "kind": "plan",
+                "label": "User-authorized Track A handoff; external review ideas and scaling hypothesis",
+                "recorded_at": "2026-10-30T05:30:57.405660+00:00",
+                "sha256": "56eb69549ae259bd6a334b5e9d9457ce30e6b1486716cf588a594e29658d3dd5",
+                "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+              }
+            ],
+            "expected": "Before this retrospective data audit: the fixed512 pool likely persisted through Uniform2 and its recovery; unique seeds should be at most512 per segment, with repeated episodes. Missing start journals would limit exact episode counts rather than justify inferred counts.",
+            "id": "DODGE-016",
+            "measurements": [],
+            "metadata": {},
+            "next_step": null,
+            "parent_id": "DODGE-011",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 1,
+            "status": "planned",
+            "tags": [
+              "seed-audit",
+              "scaling",
+              "S0"
+            ],
+            "title": "S0: Audit Uniform2 training-seed reuse from324 through600",
+            "updated_at": "2026-10-30T05:30:57.405294+00:00",
+            "why": null
+          }
+        },
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-016",
+          "reason": "Record independently verified S0 counts and distinguish continuation numbering from total ancestry",
+          "recorded_at": "2026-10-30T05:38:16.924598+00:00",
+          "revision": 2,
+          "snapshot": {
+            "actual": "All512 pool seeds were reused throughout retained Uniform2 ancestry:18,550 episode starts and17,846 completions, averaging36.23 starts and34.86 completions per unique seed. Continuation420 is cumulative852; the27.5M-frame estimate covers its420 continuation updates, not its complete ancestry.",
+            "actual_kind": "audited",
+            "created_at": "2026-10-30T05:30:57.405294+00:00",
+            "doing": "Audit saved seed configurations and complete training start/episode journals for Uniform2 from parent324 through600. Separate retained ancestry, discarded interrupted work, and startup/reset/terminal episodes; report unique seeds and episodes per seed without simulator or training execution.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-016",
+                "id": "5ee09e197e644683ac2481edb7108ce7",
+                "kind": "audit",
+                "label": "Independent Luna recomputation; no blocking findings",
+                "recorded_at": "2026-10-30T05:38:16.925926+00:00",
+                "sha256": "8377c9beaf8cebba1447af2aa242765021c6dbe7d2e1879ba0ee3dd2e477dd29",
+                "uri": "learning/runs/v2/track-a-s0-review-luna-20261030-r1/review.json"
+              },
+              {
+                "experiment_id": "DODGE-016",
+                "id": "999422d7697849289e233cca3b4d3f2b",
+                "kind": "plan",
+                "label": "User-authorized Track A handoff; external review ideas and scaling hypothesis",
+                "recorded_at": "2026-10-30T05:30:57.405660+00:00",
+                "sha256": "56eb69549ae259bd6a334b5e9d9457ce30e6b1486716cf588a594e29658d3dd5",
+                "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+              },
+              {
+                "experiment_id": "DODGE-016",
+                "id": "bae5fc2b974d47c6879b809677204a87",
+                "kind": "result",
+                "label": "Exact seed reuse audit with per-seed starts and completed episodes",
+                "recorded_at": "2026-10-30T05:38:16.925895+00:00",
+                "sha256": "553430ff747fa389eeb5adf3571193453359826266eeee9df8c5f936084e1280",
+                "uri": "learning/runs/v2/track-a-review-scaling-parent-20261030-r1/S0-seed-audit.json"
+              }
+            ],
+            "expected": "Before this retrospective data audit: the fixed512 pool likely persisted through Uniform2 and its recovery; unique seeds should be at most512 per segment, with repeated episodes. Missing start journals would limit exact episode counts rather than justify inferred counts.",
+            "id": "DODGE-016",
+            "measurements": [],
+            "metadata": {},
+            "next_step": "Use S1 to measure pipeline cost; propose fresh-stream S3 with a matched pool control before any new training.",
+            "parent_id": "DODGE-011",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 2,
+            "status": "completed",
+            "tags": [
+              "seed-audit",
+              "scaling",
+              "S0"
+            ],
+            "title": "S0: Audit Uniform2 training-seed reuse from324 through600",
+            "updated_at": "2026-10-30T05:38:16.924598+00:00",
+            "why": "Exact journaled resets/completions and constructor seeds derived from the pinned hash stream match the same512-pool throughout. This establishes limited seed diversity, not that reuse caused the plateau; discarded interrupted work is counted separately."
+          }
+        }
+      ],
+      "id": "DODGE-016",
+      "measurements": [],
+      "metadata": {},
+      "next_step": "Use S1 to measure pipeline cost; propose fresh-stream S3 with a matched pool control before any new training.",
+      "parent_id": "DODGE-011",
+      "prediction_timing": "before_run",
+      "project": "dodge-native",
+      "revision": 2,
+      "status": "completed",
+      "tags": [
+        "seed-audit",
+        "scaling",
+        "S0"
+      ],
+      "title": "S0: Audit Uniform2 training-seed reuse from324 through600",
+      "updated_at": "2026-10-30T05:38:16.924598+00:00",
+      "why": "Exact journaled resets/completions and constructor seeds derived from the pinned hash stream match the same512-pool throughout. This establishes limited seed diversity, not that reuse caused the plateau; discarded interrupted work is counted separately."
+    },
+    {
+      "actual": "The first S1 cell failed before importing Torch: registration resolved the venv executable symlink to base Python, producing ModuleNotFoundError(\"No module named torch\"). Zero native games, PPO rollouts or Adam steps ran; worker14786 exited1, was directly reaped and its process group was absent. First receipts and exact lease remain preserved; no retry.",
+      "actual_kind": "observed",
+      "created_at": "2026-10-30T05:30:57.446517+00:00",
+      "doing": "Run the reviewed16cell one-factor S1 sweep, exactly one disposable checkpoint420 model/Adam update per cell. User explicitly approved forward/backward/Adam profiling with every learned update discarded. Measure native calls including observation export, observation copies, transfer, model forward, GAE, PPO validation/epochs and residual Python; no new cohort or saved weights.",
+      "evidence": [
+        {
+          "experiment_id": "DODGE-017",
+          "id": "2df657a74fcf468d9df975458c27b462",
+          "kind": "registration",
+          "label": "Exact sixteen-cell profiling registration and6GiB limits",
+          "recorded_at": "2026-10-30T05:40:02.547241+00:00",
+          "sha256": "c2fa6d6eea4117a2ad6f5535cf101b5f2e531ccdc07e200df3ee36297801ad55",
+          "uri": "learning/runs/v2/track-a-review-scaling-parent-20261030-r1/S1-registration.json"
+        },
+        {
+          "experiment_id": "DODGE-017",
+          "id": "47f958050cd145bab4625dbc5812b711",
+          "kind": "audit",
+          "label": "Independent source-only prelaunch review",
+          "recorded_at": "2026-10-30T05:40:02.547273+00:00",
+          "sha256": "03a67540c63114e6f106270b753c3a99f33fe7597babd006308b6eb8962ac362",
+          "uri": "learning/runs/v2/track-a-s1-source-review-luna-20261030-r1/review.json"
+        },
+        {
+          "experiment_id": "DODGE-017",
+          "id": "61080a51daae4e8d94a522f08f9a7bde",
+          "kind": "plan",
+          "label": "User-authorized Track A handoff; external review ideas and scaling hypothesis",
+          "recorded_at": "2026-10-30T05:30:57.446836+00:00",
+          "sha256": "56eb69549ae259bd6a334b5e9d9457ce30e6b1486716cf588a594e29658d3dd5",
+          "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+        },
+        {
+          "experiment_id": "DODGE-017",
+          "id": "98000f45d7c744fc870b4cb04a15baa7",
+          "kind": "result",
+          "label": "First failed cell receipt; no Torch or simulator work",
+          "recorded_at": "2026-10-30T05:41:56.807979+00:00",
+          "sha256": "0d019e85c6c9871a786eed786e42c51dfa4deb889754ba22e2b6380a377cd8ff",
+          "uri": "learning/runs/v2/track-a-review-scaling-parent-20261030-r1/S1-output/cell-00.json"
+        },
+        {
+          "experiment_id": "DODGE-017",
+          "id": "d8021056975f45948cb0f19c8bb3faad",
+          "kind": "audit",
+          "label": "Direct reap, group absence and first failure; lease retained",
+          "recorded_at": "2026-10-30T05:41:56.808141+00:00",
+          "sha256": "a9ad648b879adaa3fda6d174b3c9718c4f3a48ecc82ef4de650ceecfeacb3e2b",
+          "uri": "learning/runs/v2/track-a-review-scaling-parent-20261030-r1/S1-first-failure.json"
+        }
+      ],
+      "expected": "Env stepping should be a small fraction relative to observation marshaling, transformer inference and PPO backpropagation. More environments may improve inference batching while larger storage may exceed6GiB; report measured guard refusal and partial cells, never extrapolate them as completed.",
+      "history": [
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-017",
+          "reason": "Register Track A prediction before audit/profile/evaluation execution",
+          "recorded_at": "2026-10-30T05:30:57.446517+00:00",
+          "revision": 1,
+          "snapshot": {
+            "actual": null,
+            "actual_kind": "unobserved",
+            "created_at": "2026-10-30T05:30:57.446517+00:00",
+            "doing": "Register a bounded inference/data-pipeline and disposable-update profiler, sweeping64/128/256/512envs,4/8/12threads,256/512/1024rollouts and CPU/MPS inference. No retained training, new cohort, source changes to frozen packages, or adoption; optimizer-step timing awaits explicit clarification.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-017",
+                "id": "61080a51daae4e8d94a522f08f9a7bde",
+                "kind": "plan",
+                "label": "User-authorized Track A handoff; external review ideas and scaling hypothesis",
+                "recorded_at": "2026-10-30T05:30:57.446836+00:00",
+                "sha256": "56eb69549ae259bd6a334b5e9d9457ce30e6b1486716cf588a594e29658d3dd5",
+                "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+              }
+            ],
+            "expected": "Env stepping should be a small fraction relative to observation marshaling, transformer inference and PPO backpropagation. More environments may improve inference batching while larger storage may exceed6GiB; report measured guard refusal and partial cells, never extrapolate them as completed.",
+            "id": "DODGE-017",
+            "measurements": [],
+            "metadata": {},
+            "next_step": null,
+            "parent_id": "DODGE-013",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 1,
+            "status": "planned",
+            "tags": [
+              "throughput",
+              "S1",
+              "scaling"
+            ],
+            "title": "S1: Attribute training-pipeline time under6GiB",
+            "updated_at": "2026-10-30T05:30:57.446517+00:00",
+            "why": null
+          }
+        },
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-017",
+          "reason": "Record explicit disposable Adam-step approval and reviewed profiling registration before execution",
+          "recorded_at": "2026-10-30T05:40:02.546056+00:00",
+          "revision": 2,
+          "snapshot": {
+            "actual": "Source registration and independent review accepted; disposable profiling has not yet started.",
+            "actual_kind": "progress",
+            "created_at": "2026-10-30T05:30:57.446517+00:00",
+            "doing": "Run the reviewed16cell one-factor S1 sweep, exactly one disposable checkpoint420 model/Adam update per cell. User explicitly approved forward/backward/Adam profiling with every learned update discarded. Measure native calls including observation export, observation copies, transfer, model forward, GAE, PPO validation/epochs and residual Python; no new cohort or saved weights.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-017",
+                "id": "2df657a74fcf468d9df975458c27b462",
+                "kind": "registration",
+                "label": "Exact sixteen-cell profiling registration and6GiB limits",
+                "recorded_at": "2026-10-30T05:40:02.547241+00:00",
+                "sha256": "c2fa6d6eea4117a2ad6f5535cf101b5f2e531ccdc07e200df3ee36297801ad55",
+                "uri": "learning/runs/v2/track-a-review-scaling-parent-20261030-r1/S1-registration.json"
+              },
+              {
+                "experiment_id": "DODGE-017",
+                "id": "47f958050cd145bab4625dbc5812b711",
+                "kind": "audit",
+                "label": "Independent source-only prelaunch review",
+                "recorded_at": "2026-10-30T05:40:02.547273+00:00",
+                "sha256": "03a67540c63114e6f106270b753c3a99f33fe7597babd006308b6eb8962ac362",
+                "uri": "learning/runs/v2/track-a-s1-source-review-luna-20261030-r1/review.json"
+              },
+              {
+                "experiment_id": "DODGE-017",
+                "id": "61080a51daae4e8d94a522f08f9a7bde",
+                "kind": "plan",
+                "label": "User-authorized Track A handoff; external review ideas and scaling hypothesis",
+                "recorded_at": "2026-10-30T05:30:57.446836+00:00",
+                "sha256": "56eb69549ae259bd6a334b5e9d9457ce30e6b1486716cf588a594e29658d3dd5",
+                "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+              }
+            ],
+            "expected": "Env stepping should be a small fraction relative to observation marshaling, transformer inference and PPO backpropagation. More environments may improve inference batching while larger storage may exceed6GiB; report measured guard refusal and partial cells, never extrapolate them as completed.",
+            "id": "DODGE-017",
+            "measurements": [],
+            "metadata": {},
+            "next_step": null,
+            "parent_id": "DODGE-013",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 2,
+            "status": "running",
+            "tags": [
+              "throughput",
+              "S1",
+              "scaling"
+            ],
+            "title": "S1: Attribute training-pipeline time under6GiB",
+            "updated_at": "2026-10-30T05:40:02.546056+00:00",
+            "why": null
+          }
+        },
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-017",
+          "reason": "Preserve first S1 pre-Torch startup failure and held lease; no retry authorized",
+          "recorded_at": "2026-10-30T05:41:56.806744+00:00",
+          "revision": 3,
+          "snapshot": {
+            "actual": "The first S1 cell failed before importing Torch: registration resolved the venv executable symlink to base Python, producing ModuleNotFoundError(\"No module named torch\"). Zero native games, PPO rollouts or Adam steps ran; worker14786 exited1, was directly reaped and its process group was absent. First receipts and exact lease remain preserved; no retry.",
+            "actual_kind": "observed",
+            "created_at": "2026-10-30T05:30:57.446517+00:00",
+            "doing": "Run the reviewed16cell one-factor S1 sweep, exactly one disposable checkpoint420 model/Adam update per cell. User explicitly approved forward/backward/Adam profiling with every learned update discarded. Measure native calls including observation export, observation copies, transfer, model forward, GAE, PPO validation/epochs and residual Python; no new cohort or saved weights.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-017",
+                "id": "2df657a74fcf468d9df975458c27b462",
+                "kind": "registration",
+                "label": "Exact sixteen-cell profiling registration and6GiB limits",
+                "recorded_at": "2026-10-30T05:40:02.547241+00:00",
+                "sha256": "c2fa6d6eea4117a2ad6f5535cf101b5f2e531ccdc07e200df3ee36297801ad55",
+                "uri": "learning/runs/v2/track-a-review-scaling-parent-20261030-r1/S1-registration.json"
+              },
+              {
+                "experiment_id": "DODGE-017",
+                "id": "47f958050cd145bab4625dbc5812b711",
+                "kind": "audit",
+                "label": "Independent source-only prelaunch review",
+                "recorded_at": "2026-10-30T05:40:02.547273+00:00",
+                "sha256": "03a67540c63114e6f106270b753c3a99f33fe7597babd006308b6eb8962ac362",
+                "uri": "learning/runs/v2/track-a-s1-source-review-luna-20261030-r1/review.json"
+              },
+              {
+                "experiment_id": "DODGE-017",
+                "id": "61080a51daae4e8d94a522f08f9a7bde",
+                "kind": "plan",
+                "label": "User-authorized Track A handoff; external review ideas and scaling hypothesis",
+                "recorded_at": "2026-10-30T05:30:57.446836+00:00",
+                "sha256": "56eb69549ae259bd6a334b5e9d9457ce30e6b1486716cf588a594e29658d3dd5",
+                "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+              },
+              {
+                "experiment_id": "DODGE-017",
+                "id": "98000f45d7c744fc870b4cb04a15baa7",
+                "kind": "result",
+                "label": "First failed cell receipt; no Torch or simulator work",
+                "recorded_at": "2026-10-30T05:41:56.807979+00:00",
+                "sha256": "0d019e85c6c9871a786eed786e42c51dfa4deb889754ba22e2b6380a377cd8ff",
+                "uri": "learning/runs/v2/track-a-review-scaling-parent-20261030-r1/S1-output/cell-00.json"
+              },
+              {
+                "experiment_id": "DODGE-017",
+                "id": "d8021056975f45948cb0f19c8bb3faad",
+                "kind": "audit",
+                "label": "Direct reap, group absence and first failure; lease retained",
+                "recorded_at": "2026-10-30T05:41:56.808141+00:00",
+                "sha256": "a9ad648b879adaa3fda6d174b3c9718c4f3a48ecc82ef4de650ceecfeacb3e2b",
+                "uri": "learning/runs/v2/track-a-review-scaling-parent-20261030-r1/S1-first-failure.json"
+              }
+            ],
+            "expected": "Env stepping should be a small fraction relative to observation marshaling, transformer inference and PPO backpropagation. More environments may improve inference batching while larger storage may exceed6GiB; report measured guard refusal and partial cells, never extrapolate them as completed.",
+            "id": "DODGE-017",
+            "measurements": [],
+            "metadata": {},
+            "next_step": "Prepare a separate source-reviewed S1 successor retaining the lexical venv executable path and checking its prefix/imports before lease acquisition. Request explicit approval for failed-lease disposition and one fresh profiling attempt; downstream empirical Track A remains pending.",
+            "parent_id": "DODGE-013",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 3,
+            "status": "failed",
+            "tags": [
+              "throughput",
+              "S1",
+              "scaling"
+            ],
+            "title": "S1: Attribute training-pipeline time under6GiB",
+            "updated_at": "2026-10-30T05:41:56.806744+00:00",
+            "why": "Resolving an executable symlink changed Python virtual-environment discovery. Static review checked source and file hashes but missed invocation-path semantics; input pins remained unchanged and provide no throughput evidence."
+          }
+        }
+      ],
+      "id": "DODGE-017",
+      "measurements": [],
+      "metadata": {},
+      "next_step": "Prepare a separate source-reviewed S1 successor retaining the lexical venv executable path and checking its prefix/imports before lease acquisition. Request explicit approval for failed-lease disposition and one fresh profiling attempt; downstream empirical Track A remains pending.",
+      "parent_id": "DODGE-013",
+      "prediction_timing": "before_run",
+      "project": "dodge-native",
+      "revision": 3,
+      "status": "failed",
+      "tags": [
+        "throughput",
+        "S1",
+        "scaling"
+      ],
+      "title": "S1: Attribute training-pipeline time under6GiB",
+      "updated_at": "2026-10-30T05:41:56.806744+00:00",
+      "why": "Resolving an executable symlink changed Python virtual-environment discovery. Static review checked source and file hashes but missed invocation-path semantics; input pins remained unchanged and provide no throughput evidence."
+    },
+    {
+      "actual": null,
+      "actual_kind": "unobserved",
+      "created_at": "2026-10-30T05:30:57.488404+00:00",
+      "doing": "After counterfactual registration, evaluate the original AABB safe-powerup heuristic and frozen420 at K4 on exactly the same allowed game seeds with matched settings. Keep the heuristic full-state privileged advantage explicit; report marginal survival summaries, milestones and shared-seed intervals. No new cohort beyond the item3 authorization.",
+      "evidence": [
+        {
+          "experiment_id": "DODGE-018",
+          "id": "b0d6f9b79ded48a0b0d76e0582e3f067",
+          "kind": "plan",
+          "label": "User-authorized Track A handoff; external review ideas and scaling hypothesis",
+          "recorded_at": "2026-10-30T05:30:57.488742+00:00",
+          "sha256": "56eb69549ae259bd6a334b5e9d9457ce30e6b1486716cf588a594e29658d3dd5",
+          "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+        }
+      ],
+      "expected": "The heuristic should outperform420 at K4, confirming a planning/inductive-bias gap independent of a K1 control advantage. Paired estimates may differ from the historic unpaired6115-versus2626 comparison.",
+      "history": [
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-018",
+          "reason": "Register Track A prediction before audit/profile/evaluation execution",
+          "recorded_at": "2026-10-30T05:30:57.488404+00:00",
+          "revision": 1,
+          "snapshot": {
+            "actual": null,
+            "actual_kind": "unobserved",
+            "created_at": "2026-10-30T05:30:57.488404+00:00",
+            "doing": "After counterfactual registration, evaluate the original AABB safe-powerup heuristic and frozen420 at K4 on exactly the same allowed game seeds with matched settings. Keep the heuristic full-state privileged advantage explicit; report marginal survival summaries, milestones and shared-seed intervals. No new cohort beyond the item3 authorization.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-018",
+                "id": "b0d6f9b79ded48a0b0d76e0582e3f067",
+                "kind": "plan",
+                "label": "User-authorized Track A handoff; external review ideas and scaling hypothesis",
+                "recorded_at": "2026-10-30T05:30:57.488742+00:00",
+                "sha256": "56eb69549ae259bd6a334b5e9d9457ce30e6b1486716cf588a594e29658d3dd5",
+                "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+              }
+            ],
+            "expected": "The heuristic should outperform420 at K4, confirming a planning/inductive-bias gap independent of a K1 control advantage. Paired estimates may differ from the historic unpaired6115-versus2626 comparison.",
+            "id": "DODGE-018",
+            "measurements": [],
+            "metadata": {},
+            "next_step": null,
+            "parent_id": "DODGE-004",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 1,
+            "status": "planned",
+            "tags": [
+              "heuristic",
+              "paired-evaluation",
+              "Track-A"
+            ],
+            "title": "Paired AABB heuristic at four-frame control",
+            "updated_at": "2026-10-30T05:30:57.488404+00:00",
+            "why": null
+          }
+        }
+      ],
+      "id": "DODGE-018",
+      "measurements": [],
+      "metadata": {},
+      "next_step": null,
+      "parent_id": "DODGE-004",
+      "prediction_timing": "before_run",
+      "project": "dodge-native",
+      "revision": 1,
+      "status": "planned",
+      "tags": [
+        "heuristic",
+        "paired-evaluation",
+        "Track-A"
+      ],
+      "title": "Paired AABB heuristic at four-frame control",
+      "updated_at": "2026-10-30T05:30:57.488404+00:00",
+      "why": null
+    },
+    {
+      "actual": null,
+      "actual_kind": "unobserved",
+      "created_at": "2026-10-30T05:30:57.530372+00:00",
+      "doing": "Evaluate a prespecified equal-weight arithmetic model-parameter average of360/420/480/540/600 against420 and constituent checkpoints on the same allowed cohort at K4. Verify architecture/key/dtype compatibility; no Adam-state averaging, training or promotion.",
+      "evidence": [
+        {
+          "experiment_id": "DODGE-019",
+          "id": "09bfd4712ced43bd94cb74fcd5fb7433",
+          "kind": "plan",
+          "label": "User-authorized Track A handoff; external review ideas and scaling hypothesis",
+          "recorded_at": "2026-10-30T05:30:57.530699+00:00",
+          "sha256": "56eb69549ae259bd6a334b5e9d9457ce30e6b1486716cf588a594e29658d3dd5",
+          "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+        }
+      ],
+      "expected": "Averaging may smooth trajectory variation and improve Q1, but could dilute420 or combine incompatible optima. Any effect is exploratory and conditional on one lineage; it cannot estimate training-replica variation.",
+      "history": [
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-019",
+          "reason": "Register Track A prediction before audit/profile/evaluation execution",
+          "recorded_at": "2026-10-30T05:30:57.530372+00:00",
+          "revision": 1,
+          "snapshot": {
+            "actual": null,
+            "actual_kind": "unobserved",
+            "created_at": "2026-10-30T05:30:57.530372+00:00",
+            "doing": "Evaluate a prespecified equal-weight arithmetic model-parameter average of360/420/480/540/600 against420 and constituent checkpoints on the same allowed cohort at K4. Verify architecture/key/dtype compatibility; no Adam-state averaging, training or promotion.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-019",
+                "id": "09bfd4712ced43bd94cb74fcd5fb7433",
+                "kind": "plan",
+                "label": "User-authorized Track A handoff; external review ideas and scaling hypothesis",
+                "recorded_at": "2026-10-30T05:30:57.530699+00:00",
+                "sha256": "56eb69549ae259bd6a334b5e9d9457ce30e6b1486716cf588a594e29658d3dd5",
+                "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+              }
+            ],
+            "expected": "Averaging may smooth trajectory variation and improve Q1, but could dilute420 or combine incompatible optima. Any effect is exploratory and conditional on one lineage; it cannot estimate training-replica variation.",
+            "id": "DODGE-019",
+            "measurements": [],
+            "metadata": {},
+            "next_step": null,
+            "parent_id": "DODGE-011",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 1,
+            "status": "planned",
+            "tags": [
+              "checkpoint-averaging",
+              "Track-A"
+            ],
+            "title": "Evaluate offline arithmetic checkpoint averaging",
+            "updated_at": "2026-10-30T05:30:57.530372+00:00",
+            "why": null
+          }
+        }
+      ],
+      "id": "DODGE-019",
+      "measurements": [],
+      "metadata": {},
+      "next_step": null,
+      "parent_id": "DODGE-011",
+      "prediction_timing": "before_run",
+      "project": "dodge-native",
+      "revision": 1,
+      "status": "planned",
+      "tags": [
+        "checkpoint-averaging",
+        "Track-A"
+      ],
+      "title": "Evaluate offline arithmetic checkpoint averaging",
+      "updated_at": "2026-10-30T05:30:57.530372+00:00",
+      "why": null
+    },
+    {
+      "actual": null,
+      "actual_kind": "unobserved",
+      "created_at": "2026-10-30T05:30:57.573491+00:00",
+      "doing": "Audit all eight square symmetries around63.5 for clamp[2,125], action mapping, player inertia, enemy/pattern geometry, pickups and observation features. Use synthetic Rust fixtures and distinguish transition, distributional spawn/RNG, and feature equivariance. No native training or new game cohort.",
+      "evidence": [
+        {
+          "experiment_id": "DODGE-020",
+          "id": "f560814ac7da45afb7c766c0ba15b964",
+          "kind": "plan",
+          "label": "User-authorized Track A handoff; external review ideas and scaling hypothesis",
+          "recorded_at": "2026-10-30T05:30:57.573865+00:00",
+          "sha256": "56eb69549ae259bd6a334b5e9d9457ce30e6b1486716cf588a594e29658d3dd5",
+          "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+        }
+      ],
+      "expected": "The127-x clamp symmetry should hold for interior player dynamics, while feature centering at64, geometry conventions, RNG ordering or spawn layouts may violate exact D4 equivariance. A failed symmetry must be localized before proposing augmentation.",
+      "history": [
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-020",
+          "reason": "Register Track A prediction before audit/profile/evaluation execution",
+          "recorded_at": "2026-10-30T05:30:57.573491+00:00",
+          "revision": 1,
+          "snapshot": {
+            "actual": null,
+            "actual_kind": "unobserved",
+            "created_at": "2026-10-30T05:30:57.573491+00:00",
+            "doing": "Audit all eight square symmetries around63.5 for clamp[2,125], action mapping, player inertia, enemy/pattern geometry, pickups and observation features. Use synthetic Rust fixtures and distinguish transition, distributional spawn/RNG, and feature equivariance. No native training or new game cohort.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-020",
+                "id": "f560814ac7da45afb7c766c0ba15b964",
+                "kind": "plan",
+                "label": "User-authorized Track A handoff; external review ideas and scaling hypothesis",
+                "recorded_at": "2026-10-30T05:30:57.573865+00:00",
+                "sha256": "56eb69549ae259bd6a334b5e9d9457ce30e6b1486716cf588a594e29658d3dd5",
+                "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+              }
+            ],
+            "expected": "The127-x clamp symmetry should hold for interior player dynamics, while feature centering at64, geometry conventions, RNG ordering or spawn layouts may violate exact D4 equivariance. A failed symmetry must be localized before proposing augmentation.",
+            "id": "DODGE-020",
+            "measurements": [],
+            "metadata": {},
+            "next_step": null,
+            "parent_id": "DODGE-004",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 1,
+            "status": "planned",
+            "tags": [
+              "D4",
+              "symmetry",
+              "Track-A"
+            ],
+            "title": "Audit Rust D4 equivariance before augmentation",
+            "updated_at": "2026-10-30T05:30:57.573491+00:00",
+            "why": null
+          }
+        }
+      ],
+      "id": "DODGE-020",
+      "measurements": [],
+      "metadata": {},
+      "next_step": null,
+      "parent_id": "DODGE-004",
+      "prediction_timing": "before_run",
+      "project": "dodge-native",
+      "revision": 1,
+      "status": "planned",
+      "tags": [
+        "D4",
+        "symmetry",
+        "Track-A"
+      ],
+      "title": "Audit Rust D4 equivariance before augmentation",
+      "updated_at": "2026-10-30T05:30:57.573491+00:00",
+      "why": null
+    },
+    {
+      "actual": "Separate source package prepared and independently reviewed. The no-game/no-optimizer import qualification passed with the correct venv prefix, Torch2.14.1, available MPS and pinned native module; r2 profiling remains unlaunched.",
+      "actual_kind": "progress",
+      "created_at": "2026-10-30T05:45:00.335839+00:00",
+      "doing": "Proposed one fresh16cell S1 profiling attempt using the lexical venv executable and a prefix/Torch/MPS/native import gate before any lease or marker. Exact failed r1 lease disposition and successor launch require explicit user approval. Discard every profile update, save no learned weights, use only the already-consumed512 training seeds, preserve6GiB separate caps.",
+      "evidence": [
+        {
+          "experiment_id": "DODGE-021",
+          "id": "1b06841ebcf04ee184320468447a08e5",
+          "kind": "source",
+          "label": "Real import qualification only; no games, model or optimizer steps",
+          "recorded_at": "2026-10-30T05:45:00.337270+00:00",
+          "sha256": "760643f8ed66b1051914715da38e2d79d0b7bdb43eac4c44ed9052cb603b657d",
+          "uri": "learning/runs/v2/track-a-s1-successor-parent-20261030-r2/runtime-preflight-source-qualification.json"
+        },
+        {
+          "experiment_id": "DODGE-021",
+          "id": "769759d677534856aab2b72dcb546ed0",
+          "kind": "audit",
+          "label": "Independent successor source-only review",
+          "recorded_at": "2026-10-30T05:45:00.337284+00:00",
+          "sha256": "ef28367c949ea5d02d42c1d1aa14bf016faea0b264f6f0743086531b38893cac",
+          "uri": "learning/runs/v2/track-a-s1-successor-review-luna-20261030-r2/review.json"
+        },
+        {
+          "experiment_id": "DODGE-021",
+          "id": "f369a3400e724b72aabab0bbc667089c",
+          "kind": "registration",
+          "label": "Prepared successor registration; explicit launch approval still required",
+          "recorded_at": "2026-10-30T05:45:00.337105+00:00",
+          "sha256": "a38c3ca04073887bb6e370114481c46075ec8760bf4331c3fe806cfbc123f836",
+          "uri": "learning/runs/v2/track-a-s1-successor-parent-20261030-r2/S1-registration.json"
+        }
+      ],
+      "expected": "Before successor profiling: environment stepping should be a small share relative to observation marshaling, model inference and PPO backpropagation. Larger batches may improve utilization, while storage and attention memory may constrain them. No measured throughput is inferred from the source-only import qualification.",
+      "history": [
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-021",
+          "reason": "Register proposed S1 successor prediction before any profiling; r1 failure and lease preserved",
+          "recorded_at": "2026-10-30T05:45:00.335839+00:00",
+          "revision": 1,
+          "snapshot": {
+            "actual": "Separate source package prepared and independently reviewed. The no-game/no-optimizer import qualification passed with the correct venv prefix, Torch2.14.1, available MPS and pinned native module; r2 profiling remains unlaunched.",
+            "actual_kind": "progress",
+            "created_at": "2026-10-30T05:45:00.335839+00:00",
+            "doing": "Proposed one fresh16cell S1 profiling attempt using the lexical venv executable and a prefix/Torch/MPS/native import gate before any lease or marker. Exact failed r1 lease disposition and successor launch require explicit user approval. Discard every profile update, save no learned weights, use only the already-consumed512 training seeds, preserve6GiB separate caps.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-021",
+                "id": "1b06841ebcf04ee184320468447a08e5",
+                "kind": "source",
+                "label": "Real import qualification only; no games, model or optimizer steps",
+                "recorded_at": "2026-10-30T05:45:00.337270+00:00",
+                "sha256": "760643f8ed66b1051914715da38e2d79d0b7bdb43eac4c44ed9052cb603b657d",
+                "uri": "learning/runs/v2/track-a-s1-successor-parent-20261030-r2/runtime-preflight-source-qualification.json"
+              },
+              {
+                "experiment_id": "DODGE-021",
+                "id": "769759d677534856aab2b72dcb546ed0",
+                "kind": "audit",
+                "label": "Independent successor source-only review",
+                "recorded_at": "2026-10-30T05:45:00.337284+00:00",
+                "sha256": "ef28367c949ea5d02d42c1d1aa14bf016faea0b264f6f0743086531b38893cac",
+                "uri": "learning/runs/v2/track-a-s1-successor-review-luna-20261030-r2/review.json"
+              },
+              {
+                "experiment_id": "DODGE-021",
+                "id": "f369a3400e724b72aabab0bbc667089c",
+                "kind": "registration",
+                "label": "Prepared successor registration; explicit launch approval still required",
+                "recorded_at": "2026-10-30T05:45:00.337105+00:00",
+                "sha256": "a38c3ca04073887bb6e370114481c46075ec8760bf4331c3fe806cfbc123f836",
+                "uri": "learning/runs/v2/track-a-s1-successor-parent-20261030-r2/S1-registration.json"
+              }
+            ],
+            "expected": "Before successor profiling: environment stepping should be a small share relative to observation marshaling, model inference and PPO backpropagation. Larger batches may improve utilization, while storage and attention memory may constrain them. No measured throughput is inferred from the source-only import qualification.",
+            "id": "DODGE-021",
+            "measurements": [],
+            "metadata": {},
+            "next_step": null,
+            "parent_id": "DODGE-017",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 1,
+            "status": "planned",
+            "tags": [
+              "S1",
+              "successor",
+              "scaling",
+              "profiling"
+            ],
+            "title": "S1 successor: disposable profiling with intact venv invocation",
+            "updated_at": "2026-10-30T05:45:00.335839+00:00",
+            "why": null
+          }
+        }
+      ],
+      "id": "DODGE-021",
+      "measurements": [],
+      "metadata": {},
+      "next_step": null,
+      "parent_id": "DODGE-017",
+      "prediction_timing": "before_run",
+      "project": "dodge-native",
+      "revision": 1,
+      "status": "planned",
+      "tags": [
+        "S1",
+        "successor",
+        "scaling",
+        "profiling"
+      ],
+      "title": "S1 successor: disposable profiling with intact venv invocation",
+      "updated_at": "2026-10-30T05:45:00.335839+00:00",
+      "why": null
     }
   ],
   "project_context": [

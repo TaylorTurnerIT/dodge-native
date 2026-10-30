@@ -1,0 +1,35 @@
+{
+  "schema": "dodge_track_a_s1_independent_source_review_v1",
+  "status": "no_blocking_findings",
+  "scope": {
+    "registration": "learning/runs/v2/track-a-review-scaling-parent-20261030-r1/S1-registration.json",
+    "profile": "learning/runs/v2/track-a-review-scaling-parent-20261030-r1/profile_s1.py",
+    "launcher": "learning/runs/v2/track-a-review-scaling-parent-20261030-r1/run_s1.py",
+    "runtime": "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/runtime-clean-r2",
+    "runtime_manifest": "learning/runs/v2/one-frame-training-comparison-luna-20261029-r1/runtime-clean-r2-manifest.json",
+    "read_only_review": true,
+    "execution_performed": false
+  },
+  "sha256": {
+    "registration": "c2fa6d6eea4117a2ad6f5535cf101b5f2e531ccdc07e200df3ee36297801ad55",
+    "profile_s1.py": "5c1abbeebc7c6c9977cf55e3c98f357f364e6789f04f1581388b874eeee956ed",
+    "run_s1.py": "1e2536e279009b8cf17d2a99629d2a988d0f13cefeec38822d3961fe07dc0b37",
+    "runtime_manifest": "2107469618b9eba595f06e28518cbab2339fd9db5aa8e17db8f809d54376e31d",
+    "checkpoint_global_420.pt": "7e0de8640f1337261412d91cde6bc692772ff212fbd360f5aad415dc6bc7ed4b"
+  },
+  "findings": [],
+  "review_basis": [
+    "The registration defines the requested 16-cell one-factor-at-a-time sweep: env count, inference device, thread count, and rollout length vary in the registered pairs. Threads are explicitly confounded between Torch intraop and native Rayon; this is not a full factorial design.",
+    "Profile imports the pinned runtime from the registered runtime_root, checks loaded dodge_rl module paths and hashes against input_pins, verifies the exact lease and all input pins, and loads checkpoint 420 onto CPU before strict model restore.",
+    "For CPU inference cells, learner and Adam optimizer are separately restored on MPS; for MPS inference cells, learner and inference model share the MPS instance. Adam state is loaded onto optimizer-owned parameters through PyTorch load_state_dict. PPO rollout storage is CPU per pinned PPO API. No checkpoint or trained weights are saved.",
+    "The collector and boundary adapter wiring follows pinned collect_rollout and _finish_after_ppo contracts. Full rollout decision counts are checked by the launcher. Seeds come only from registered training-pool512 values and exclude registered ranges; no new seed cohort is introduced.",
+    "Launcher enforces exclusive launch and per-cell claims, stops after first failure, directly waits/reaps each child, checks process-group absence, retains the lease on failure, checks receipts and pins before terminal audit, then clears only the matching lease after audit creation.",
+    "The registration specifies separate 6 GiB RSS and MPS thresholds. The profile checks process high-water RSS and sampled MPS driver allocation; MPS allocator fraction is capped below the threshold. Launcher also samples aggregate parent-plus-child RSS. No resource behavior was measured in this source-only review.",
+    "Timing instrumentation synchronizes MPS around measured transfers and forwards, separates native step/reset, observation validation/copy, collection forwarding/transfer, GAE, and residual collection work. PPO total includes nested forward/transfer; registration correctly says those nested counters are attribution, not additive. Setup and initial environment construction are outside update timing."
+  ],
+  "limits": [
+    "Source review only. Source compilation was reported by parent; this review did not compile or execute code, import Torch, profile, interact with game state, inspect or mutate leases/markers/ledger/notebook, or validate runtime behavior.",
+    "No result establishes actual MPS/RSS ceiling enforcement, exact-once behavior under interruption, checkpoint immutability after execution, performance, or safe completion. Runtime qualification remains pending execution evidence and parent audit.",
+    "The 16 registered cells are a one-factor-at-a-time subset. Thread count changes both Torch intraop and native Rayon, and setup/initial constructor cost is excluded from update timing."
+  ]
+}

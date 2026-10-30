@@ -1,0 +1,38 @@
+{
+  "id": "DODGE-021",
+  "project": "dodge-native",
+  "title": "S1 successor: disposable profiling with intact venv invocation",
+  "status": "planned",
+  "doing": "Proposed one fresh16cell S1 profiling attempt using the lexical venv executable and a prefix/Torch/MPS/native import gate before any lease or marker. Exact failed r1 lease disposition and successor launch require explicit user approval. Discard every profile update, save no learned weights, use only the already-consumed512 training seeds, preserve6GiB separate caps.",
+  "expected": "Before successor profiling: environment stepping should be a small share relative to observation marshaling, model inference and PPO backpropagation. Larger batches may improve utilization, while storage and attention memory may constrain them. No measured throughput is inferred from the source-only import qualification.",
+  "actual": "Separate source package prepared and independently reviewed. The no-game/no-optimizer import qualification passed with the correct venv prefix, Torch2.14.1, available MPS and pinned native module; r2 profiling remains unlaunched.",
+  "actual_kind": "progress",
+  "prediction_timing": "before_run",
+  "parent_id": "DODGE-017",
+  "tags": [
+    "S1",
+    "successor",
+    "scaling",
+    "profiling"
+  ],
+  "evidence": [
+    {
+      "kind": "registration",
+      "label": "Prepared successor registration; explicit launch approval still required",
+      "uri": "learning/runs/v2/track-a-s1-successor-parent-20261030-r2/S1-registration.json",
+      "sha256": "a38c3ca04073887bb6e370114481c46075ec8760bf4331c3fe806cfbc123f836"
+    },
+    {
+      "kind": "source",
+      "label": "Real import qualification only; no games, model or optimizer steps",
+      "uri": "learning/runs/v2/track-a-s1-successor-parent-20261030-r2/runtime-preflight-source-qualification.json",
+      "sha256": "760643f8ed66b1051914715da38e2d79d0b7bdb43eac4c44ed9052cb603b657d"
+    },
+    {
+      "kind": "audit",
+      "label": "Independent successor source-only review",
+      "uri": "learning/runs/v2/track-a-s1-successor-review-luna-20261030-r2/review.json",
+      "sha256": "ef28367c949ea5d02d42c1d1aa14bf016faea0b264f6f0743086531b38893cac"
+    }
+  ]
+}

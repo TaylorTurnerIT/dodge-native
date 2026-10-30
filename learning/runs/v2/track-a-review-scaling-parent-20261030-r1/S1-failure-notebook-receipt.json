@@ -1,0 +1,71 @@
+{
+  "id": "DODGE-017",
+  "project": "dodge-native",
+  "title": "S1: Attribute training-pipeline time under6GiB",
+  "status": "failed",
+  "doing": "Run the reviewed16cell one-factor S1 sweep, exactly one disposable checkpoint420 model/Adam update per cell. User explicitly approved forward/backward/Adam profiling with every learned update discarded. Measure native calls including observation export, observation copies, transfer, model forward, GAE, PPO validation/epochs and residual Python; no new cohort or saved weights.",
+  "expected": "Env stepping should be a small fraction relative to observation marshaling, transformer inference and PPO backpropagation. More environments may improve inference batching while larger storage may exceed6GiB; report measured guard refusal and partial cells, never extrapolate them as completed.",
+  "actual": "The first S1 cell failed before importing Torch: registration resolved the venv executable symlink to base Python, producing ModuleNotFoundError(\"No module named torch\"). Zero native games, PPO rollouts or Adam steps ran; worker14786 exited1, was directly reaped and its process group was absent. First receipts and exact lease remain preserved; no retry.",
+  "why": "Resolving an executable symlink changed Python virtual-environment discovery. Static review checked source and file hashes but missed invocation-path semantics; input pins remained unchanged and provide no throughput evidence.",
+  "next_step": "Prepare a separate source-reviewed S1 successor retaining the lexical venv executable path and checking its prefix/imports before lease acquisition. Request explicit approval for failed-lease disposition and one fresh profiling attempt; downstream empirical Track A remains pending.",
+  "actual_kind": "observed",
+  "prediction_timing": "before_run",
+  "parent_id": "DODGE-013",
+  "revision": 3,
+  "created_at": "2026-10-30T05:30:57.446517+00:00",
+  "updated_at": "2026-10-30T05:41:56.806744+00:00",
+  "tags": [
+    "throughput",
+    "S1",
+    "scaling"
+  ],
+  "metadata": {},
+  "evidence": [
+    {
+      "id": "2df657a74fcf468d9df975458c27b462",
+      "experiment_id": "DODGE-017",
+      "kind": "registration",
+      "label": "Exact sixteen-cell profiling registration and6GiB limits",
+      "uri": "learning/runs/v2/track-a-review-scaling-parent-20261030-r1/S1-registration.json",
+      "sha256": "c2fa6d6eea4117a2ad6f5535cf101b5f2e531ccdc07e200df3ee36297801ad55",
+      "recorded_at": "2026-10-30T05:40:02.547241+00:00"
+    },
+    {
+      "id": "47f958050cd145bab4625dbc5812b711",
+      "experiment_id": "DODGE-017",
+      "kind": "audit",
+      "label": "Independent source-only prelaunch review",
+      "uri": "learning/runs/v2/track-a-s1-source-review-luna-20261030-r1/review.json",
+      "sha256": "03a67540c63114e6f106270b753c3a99f33fe7597babd006308b6eb8962ac362",
+      "recorded_at": "2026-10-30T05:40:02.547273+00:00"
+    },
+    {
+      "id": "61080a51daae4e8d94a522f08f9a7bde",
+      "experiment_id": "DODGE-017",
+      "kind": "plan",
+      "label": "User-authorized Track A handoff; external review ideas and scaling hypothesis",
+      "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md",
+      "sha256": "56eb69549ae259bd6a334b5e9d9457ce30e6b1486716cf588a594e29658d3dd5",
+      "recorded_at": "2026-10-30T05:30:57.446836+00:00"
+    },
+    {
+      "id": "98000f45d7c744fc870b4cb04a15baa7",
+      "experiment_id": "DODGE-017",
+      "kind": "result",
+      "label": "First failed cell receipt; no Torch or simulator work",
+      "uri": "learning/runs/v2/track-a-review-scaling-parent-20261030-r1/S1-output/cell-00.json",
+      "sha256": "0d019e85c6c9871a786eed786e42c51dfa4deb889754ba22e2b6380a377cd8ff",
+      "recorded_at": "2026-10-30T05:41:56.807979+00:00"
+    },
+    {
+      "id": "d8021056975f45948cb0f19c8bb3faad",
+      "experiment_id": "DODGE-017",
+      "kind": "audit",
+      "label": "Direct reap, group absence and first failure; lease retained",
+      "uri": "learning/runs/v2/track-a-review-scaling-parent-20261030-r1/S1-first-failure.json",
+      "sha256": "a9ad648b879adaa3fda6d174b3c9718c4f3a48ecc82ef4de650ceecfeacb3e2b",
+      "recorded_at": "2026-10-30T05:41:56.808141+00:00"
+    }
+  ],
+  "measurements": []
+}

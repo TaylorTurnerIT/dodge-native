@@ -1,0 +1,35 @@
+{
+  "schema": "dodge_track_a_s1_successor_source_review_v1",
+  "status": "no_blocking_findings",
+  "scope": {
+    "successor": "learning/runs/v2/track-a-s1-successor-parent-20261030-r2",
+    "old_attempt": "learning/runs/v2/track-a-review-scaling-parent-20261030-r1",
+    "read_only_review": true,
+    "profiling_or_lease_mutation_performed": false
+  },
+  "sha256": {
+    "successor_registration": "a38c3ca04073887bb6e370114481c46075ec8760bf4331c3fe806cfbc123f836",
+    "successor_profile_s1.py": "5c1abbeebc7c6c9977cf55e3c98f357f364e6789f04f1581388b874eeee956ed",
+    "successor_run_s1.py": "4af3c3e539cf0261fafafa7dabc95d8568317047e5a1d85d58648dbed30e68b9",
+    "dispose_failed_s1.py": "6f7e491f9f74b3e408df77f370980c480cc833fd78b672cf3b6c99919a57dfdb",
+    "runtime_preflight_qualification": "760643f8ed66b1051914715da38e2d79d0b7bdb43eac4c44ed9052cb603b657d",
+    "pinned_runtime_manifest": "2107469618b9eba595f06e28518cbab2339fd9db5aa8e17db8f809d54376e31d",
+    "old_registration": "c2fa6d6eea4117a2ad6f5535cf101b5f2e531ccdc07e200df3ee36297801ad55",
+    "old_cell_00_receipt": "0d019e85c6c9871a786eed786e42c51dfa4deb889754ba22e2b6380a377cd8ff",
+    "old_first_failure": "a9ad648b879adaa3fda6d174b3c9718c4f3a48ecc82ef4de650ceecfeacb3e2b"
+  },
+  "findings": [],
+  "review_basis": [
+    "The r1 first-failure evidence records ModuleNotFoundError for Torch before any profiling timings, game construction, or optimizer step. Cell 00 exited 1; worker PID/PGID 14786 was directly reaped and its group was absent. The receipt and failure report preserve the old exact lease as held. Disposer verifies these receipts and their hashes before disposition.",
+    "Successor registration preserves the 16-cell design and pinned PPO/runtime/checkpoint inputs. It replaces the resolved base interpreter with lexical python/.venv/bin/python, pins that executable, and marks launch authority false. Successor profile_s1.py is byte-identical to reviewed source (same SHA256); its PPO collect_rollout, SeededTrainingAdapter boundary, optimizer restore, and no-weight-save behavior match the prior source review.",
+    "Launcher preflight executes the registered interpreter before ledger/lease/claim mutation. It verifies sys.prefix against the venv prefix, Torch importability, MPS availability, and the loaded native extension path/hash. The supplied qualification receipt reports Torch 2.14.1, MPS available, native extension pinned, 228032512 RSS bytes, zero games constructed, and zero optimizer steps.",
+    "The approval path binds the successor run ID and explicit one-attempt plus failed-r1-disposition booleans. The disposer requires the supplied approval file hash, validates old failure receipts and original pins, verifies the old exact lease, writes the disposition audit, then clears that exact lease and records a release receipt. The successor launcher requires the same approval fields and a release receipt whose parent audit hash matches the audit before acquiring its own lease.",
+    "Successor launch remains gated by future S1-source-acceptance.json and user approval artifacts; registration itself grants no launch authority. Launch is exact-once: exclusive claim, first-failure stop, direct child wait/reap and process-group absence checks, lease retained on failure, terminal audit before exact lease release. Seed source remains registered training-pool512 only; no new cohort is added.",
+    "The original timing limits still apply: 16 cells are one-factor-at-a-time, threads confound Torch intraop and native Rayon, setup and initial environment construction are outside update timing, and nested PPO forward/transfer counters are attribution rather than additive phases. RSS uses process high-water; MPS driver allocation is sampled and allocator fraction capped below 6 GiB. These are source review observations, not measured profiler behavior."
+  ],
+  "limits": [
+    "Review did not execute the profiler, touch games, load checkpoint 420, run optimizer steps, clear either lease, create markers, or mutate ledger/notebook/source. Runtime import qualification is supplied evidence only; it is not launch authorization.",
+    "No runtime evidence establishes successful 16-cell completion, resource-limit behavior during training, exact-once behavior under interruption, checkpoint immutability after profiling, performance, or promotion. Future launch requires separate explicit approval and the failed-r1 disposition receipt.",
+    "The first attempt remains a preserved zero-compute failure, not a performance sample or retryable cell."
+  ]
+}

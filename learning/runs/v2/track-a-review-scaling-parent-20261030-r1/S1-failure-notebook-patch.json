@@ -1,0 +1,21 @@
+{
+  "status": "failed",
+  "actual_kind": "observed",
+  "actual": "The first S1 cell failed before importing Torch: registration resolved the venv executable symlink to base Python, producing ModuleNotFoundError(\"No module named torch\"). Zero native games, PPO rollouts or Adam steps ran; worker14786 exited1, was directly reaped and its process group was absent. First receipts and exact lease remain preserved; no retry.",
+  "why": "Resolving an executable symlink changed Python virtual-environment discovery. Static review checked source and file hashes but missed invocation-path semantics; input pins remained unchanged and provide no throughput evidence.",
+  "next_step": "Prepare a separate source-reviewed S1 successor retaining the lexical venv executable path and checking its prefix/imports before lease acquisition. Request explicit approval for failed-lease disposition and one fresh profiling attempt; downstream empirical Track A remains pending.",
+  "evidence": [
+    {
+      "kind": "result",
+      "label": "First failed cell receipt; no Torch or simulator work",
+      "uri": "learning/runs/v2/track-a-review-scaling-parent-20261030-r1/S1-output/cell-00.json",
+      "sha256": "0d019e85c6c9871a786eed786e42c51dfa4deb889754ba22e2b6380a377cd8ff"
+    },
+    {
+      "kind": "audit",
+      "label": "Direct reap, group absence and first failure; lease retained",
+      "uri": "learning/runs/v2/track-a-review-scaling-parent-20261030-r1/S1-first-failure.json",
+      "sha256": "a9ad648b879adaa3fda6d174b3c9718c4f3a48ecc82ef4de650ceecfeacb3e2b"
+    }
+  ]
+}

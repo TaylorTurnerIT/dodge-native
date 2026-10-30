@@ -1,0 +1,53 @@
+{
+  "id": "DODGE-017",
+  "project": "dodge-native",
+  "title": "S1: Attribute training-pipeline time under6GiB",
+  "status": "running",
+  "doing": "Run the reviewed16cell one-factor S1 sweep, exactly one disposable checkpoint420 model/Adam update per cell. User explicitly approved forward/backward/Adam profiling with every learned update discarded. Measure native calls including observation export, observation copies, transfer, model forward, GAE, PPO validation/epochs and residual Python; no new cohort or saved weights.",
+  "expected": "Env stepping should be a small fraction relative to observation marshaling, transformer inference and PPO backpropagation. More environments may improve inference batching while larger storage may exceed6GiB; report measured guard refusal and partial cells, never extrapolate them as completed.",
+  "actual": "Source registration and independent review accepted; disposable profiling has not yet started.",
+  "why": null,
+  "next_step": null,
+  "actual_kind": "progress",
+  "prediction_timing": "before_run",
+  "parent_id": "DODGE-013",
+  "revision": 2,
+  "created_at": "2026-10-30T05:30:57.446517+00:00",
+  "updated_at": "2026-10-30T05:40:02.546056+00:00",
+  "tags": [
+    "throughput",
+    "S1",
+    "scaling"
+  ],
+  "metadata": {},
+  "evidence": [
+    {
+      "id": "2df657a74fcf468d9df975458c27b462",
+      "experiment_id": "DODGE-017",
+      "kind": "registration",
+      "label": "Exact sixteen-cell profiling registration and6GiB limits",
+      "uri": "learning/runs/v2/track-a-review-scaling-parent-20261030-r1/S1-registration.json",
+      "sha256": "c2fa6d6eea4117a2ad6f5535cf101b5f2e531ccdc07e200df3ee36297801ad55",
+      "recorded_at": "2026-10-30T05:40:02.547241+00:00"
+    },
+    {
+      "id": "47f958050cd145bab4625dbc5812b711",
+      "experiment_id": "DODGE-017",
+      "kind": "audit",
+      "label": "Independent source-only prelaunch review",
+      "uri": "learning/runs/v2/track-a-s1-source-review-luna-20261030-r1/review.json",
+      "sha256": "03a67540c63114e6f106270b753c3a99f33fe7597babd006308b6eb8962ac362",
+      "recorded_at": "2026-10-30T05:40:02.547273+00:00"
+    },
+    {
+      "id": "61080a51daae4e8d94a522f08f9a7bde",
+      "experiment_id": "DODGE-017",
+      "kind": "plan",
+      "label": "User-authorized Track A handoff; external review ideas and scaling hypothesis",
+      "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md",
+      "sha256": "56eb69549ae259bd6a334b5e9d9457ce30e6b1486716cf588a594e29658d3dd5",
+      "recorded_at": "2026-10-30T05:30:57.446836+00:00"
+    }
+  ],
+  "measurements": []
+}

@@ -1,0 +1,66 @@
+{
+  "schema": "dodge_track_a_s0_independent_review_v1",
+  "status": "reviewed",
+  "verdict": "no_blocking_findings",
+  "scope": "Read-only independent review of audit_seeds.py and S0-seed-audit.json against pinned registrations, journals, and pool.",
+  "independent_recomputation": {
+    "pool_size": 512,
+    "groups": {
+      "producer60": {
+        "episode_starts": 1912,
+        "completed_episodes": 1848,
+        "unique_started_seeds": 507,
+        "unique_completed_seeds": 506,
+        "per_seed_counts_match_audit": true,
+        "completion_channels_deduplicated": ["seeded_step", "collection_complete_before_PPO"]
+      },
+      "original_prefix360": {
+        "episode_starts": 10337,
+        "completed_episodes": 9953,
+        "unique_started_seeds": 512,
+        "unique_completed_seeds": 512,
+        "per_seed_counts_match_audit": true,
+        "retained_segments": 6
+      },
+      "recovery240": {
+        "episode_starts": 6301,
+        "completed_episodes": 6045,
+        "unique_started_seeds": 512,
+        "unique_completed_seeds": 512,
+        "per_seed_counts_match_audit": true
+      },
+      "original_after360_discarded": {
+        "episode_starts": 1070,
+        "completed_episodes": 1006,
+        "start_seed_events_at_update401": 28,
+        "counted_as_retained": false
+      }
+    },
+    "retained_combined": {
+      "episode_starts": 18550,
+      "completed_episodes": 17846,
+      "unique_started_seeds": 512,
+      "unique_completed_seeds": 512,
+      "per_seed_counts_match_audit": true
+    },
+    "stream_check": "Every observed start, derived fresh-constructor start, and completion seed matched the pinned sorted-pool hash stream and registration identity.",
+    "numbering_check": "Parent phase324 to producer phase384 is 60 updates. Continuation local labels 0..600 use cumulative origin432; local checkpoint420 is cumulative852. Original continuation updates361..400 and update401 collection work are excluded; recovery supplies retained labels361..600."
+  },
+  "findings": [],
+  "limits": [
+    "Fresh-environment constructor starts are derived from pinned registration identity, pool, and saved episode indices; journals directly record reset starts and completions.",
+    "This review establishes exposure only for the recorded learner family; it does not establish universal workspace seed nonuse, model overfitting, checkpoint qualification, or promotion authority.",
+    "No audit script rerun, Torch import, game execution, or training occurred."
+  ],
+  "input_hashes_sha256": {
+    "learning/runs/v2/track-a-review-scaling-parent-20261030-r1/audit_seeds.py": "1f5140123e3bee8ea6925bff1f7e1049f429449044e17dd3e1097dcbabda5cf8",
+    "learning/runs/v2/track-a-review-scaling-parent-20261030-r1/S0-seed-audit.json": "553430ff747fa389eeb5adf3571193453359826266eeee9df8c5f936084e1280",
+    "learning/runs/v2/rl-next-experiments-parent-20261027-r1/training-pool512-accepted.json": "5093727c2fdabd794267ccbc44a43b1fb29747b545cff645b66b0ad578180f04",
+    "learning/runs/v2/fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1/fullgame-seed-priority-luna-20261027-r1-replica-2-uniform/registration-final.json": "6b52eab9d2e01e81fded6b3a89a95ff53ded6711ef87c8214d09ca573c78ef59",
+    "learning/runs/v2/fullgame-priority-remaining-r3-bindings-sonnet-20261027-r1/fullgame-seed-priority-luna-20261027-r1-replica-2-uniform/worker-output/training-events.jsonl": "ce1f20b41bafe6e1c645633b4855d2d2081bd2f34b41cefec54f58c2c7924da2",
+    "learning/runs/v2/uniform2-continuation600-luna-20261028-r2/registration-final.json": "5d3032f30a6793f3322beb30bafe904859424975a551d80127a3e1fa85602d97",
+    "learning/runs/v2/uniform2-continuation600-luna-20261028-r2/worker-output/training-events.jsonl": "952f9458a584c0026f0c9fa5c75820ac761d380232c781f812b419007e5baefb",
+    "learning/runs/v2/uniform2-recovery240-luna-20261028-r1/registration-final.json": "c40923a4846af5e07b0e2d528f545b759885fc1d84ae6a02287086c9a2fad39e",
+    "learning/runs/v2/uniform2-recovery240-luna-20261028-r1/worker-output/training-events.jsonl": "a9afd7d61e425a0372f5095464a30d06dbd67907f07ae18c43c776fba703f220"
+  }
+}
