@@ -4,18 +4,170 @@ import json
 import os
 from pathlib import Path
 import signal
+import subprocess
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
 import common as c
 import lifecycle
 import run_once
+from worker import PreparedUpdates, failure_observations
 from evaluate_worker import Executor,domain_seed,summary
 
 
 class SourceTests(unittest.TestCase):
+    def power_run_fixture(self, sources):
+        actual_run=subprocess.run
+        readings=iter(sources);last=['Battery Power']
+        def run(argv,*args,**kwargs):
+            if argv[:3]==['/usr/bin/pmset','-g','batt']:
+                try:last[0]=next(readings)
+                except StopIteration:pass
+                if isinstance(last[0],Exception):raise last[0]
+                return SimpleNamespace(stdout=f"Now drawing from '{last[0]}'\n -InternalBattery 45%; discharging;\n")
+            if argv[:3]==['/usr/bin/pmset','-g','assertions']:
+                return SimpleNamespace(stdout='pid 54321(caffeinate): PreventUserIdleSystemSleep named: fixture\n')
+            if argv==['/bin/ps','-axo','pid=,ppid=,pgid=,command=']:
+                return SimpleNamespace(stdout='54321 12345 54321 /usr/bin/caffeinate -ims -w 12345\n')
+            return actual_run(argv,*args,**kwargs)
+        return run
+
+    def run_power_dummy(self,sources):
+        with tempfile.TemporaryDirectory() as d:
+            out=Path(d);journal=c.Journal(out/'power.jsonl')
+            with patch.object(c.subprocess,'run',side_effect=self.power_run_fixture(sources)):
+                def monitor(_):
+                    c.record_power(journal,sleep=c.power_assertions(12345))
+                result=lifecycle.run_child([sys.executable,'-B','-c','import time;time.sleep(.7)'],
+                    out,dict(os.environ),monitor,10)
+            journal.close()
+            rows=[json.loads(x) for x in (out/'power.jsonl').read_text().splitlines()]
+            self.assertEqual(result['raw_exit_code'],0)
+            self.assertTrue(result['group_absent'])
+            return rows
+
+    def test_initial_battery_and_missing_AC_specific_assertion_complete_child(self):
+        rows=self.run_power_dummy(['Battery Power'])
+        self.assertTrue(all(r['power']['source']=='Battery Power' for r in rows))
+        self.assertTrue(all(r['sleep']['assertions']==['PreventUserIdleSystemSleep'] for r in rows))
+
+    def test_AC_to_battery_transition_completes_running_dummy(self):
+        rows=self.run_power_dummy(['AC Power','Battery Power'])
+        self.assertEqual(rows[0]['power']['source'],'AC Power')
+        self.assertIn('Battery Power',[r['power']['source'] for r in rows[1:]])
+
+    def test_failed_power_probe_is_logged_unavailable_and_child_completes(self):
+        rows=self.run_power_dummy([subprocess.TimeoutExpired('pmset',3)])
+        self.assertTrue(all(r['power']['status']=='unavailable' for r in rows))
+        with patch.object(c.subprocess,'run',return_value=SimpleNamespace(stdout='malformed')):
+            self.assertEqual(c.passive_power()['status'],'unavailable')
+        with patch.object(c.subprocess,'run',side_effect=c.CampaignStop('deadline')):
+            with self.assertRaises(c.CampaignStop):c.passive_power()
+
+    def test_resource_and_lease_stops_still_terminate_dummy_on_battery(self):
+        for reason in ('RSS','lease','wall'):
+            with self.subTest(reason=reason),tempfile.TemporaryDirectory() as d:
+                out=Path(d)
+                reg=dict(state_path='mock-only',expected_lease={'token':'fixture'},rss_bytes=100,
+                         mps_bytes=100)
+                state={'active_long_campaign':{'token':'lost' if reason=='lease' else 'fixture'}}
+                with patch.object(c.subprocess,'run',side_effect=self.power_run_fixture(['Battery Power'])),\
+                     patch.object(c,'read',return_value=state),patch.object(c,'process_rss',return_value=1):
+                    def monitor(_):
+                        self.assertEqual(c.passive_power()['source'],'Battery Power')
+                        c.check_observer_resources(reg,[dict(rss_bytes=100 if reason=='RSS' else 0)],1,54321)
+                    with self.assertRaisesRegex(ValueError,'Child failure preserved'):
+                        lifecycle.run_child([sys.executable,'-B','-c','import time;time.sleep(60)'],out,
+                            dict(os.environ),monitor,.15 if reason=='wall' else 10,2)
+                self.assertTrue(c.read(out/'exit.json')['group_absent'])
+        with patch.object(c,'check_lease'):
+            for rss,mps in ((100,0),(0,100)):
+                with self.assertRaisesRegex(ValueError,'resource ceiling'):
+                    c.check_worker_resources(reg,rss,mps)
+
+    def prepared_fixture(self):
+        class Adapter:
+            env=object()
+            completed_updates=0
+            pending_update=None
+            gameplay_frames=0
+            observed_native_steps=0
+            def begin_update(self,update):
+                if update!=self.completed_updates+1 or self.pending_update is not None:
+                    raise ValueError('Fake update order')
+                self.pending_update=update
+            def returned(self):
+                self.observed_native_steps+=1
+                self.gameplay_frames+=64
+            def _finish_after_ppo(self):
+                self.completed_updates+=1;self.pending_update=None
+                return dict(completed_updates=self.completed_updates)
+        adapter=Adapter()
+        ppo=SimpleNamespace(optimizer_calls=0,vectors=1024,fail_optimizer=False)
+        def collect(*args,check_guard=None,**kwargs):
+            for _ in range(ppo.vectors):
+                adapter.returned()
+                if check_guard is not None:check_guard()
+            actions=SimpleNamespace(shape=(ppo.vectors,64),numel=lambda:ppo.vectors*64)
+            return SimpleNamespace(batch=SimpleNamespace(actions=actions))
+        def optimize(*args,progress,**kwargs):
+            ppo.optimizer_calls+=1
+            if ppo.fail_optimizer:
+                progress.update(optimizer_steps=1,phase='optimization')
+                raise RuntimeError('Synthetic optimizer interruption')
+            progress.update(complete=True,in_update=False,phase='complete')
+            return dict(optimizer_steps=1)
+        ppo.collect_rollout=collect;ppo.ppo_update=optimize
+        config=SimpleNamespace(learning_rate=3e-5,adam_eps=1e-5)
+        optimizer=SimpleNamespace(param_groups=[dict(lr=3e-5,eps=1e-5)])
+        reg=dict(rollout=1024,microbatch=512,effective_minibatch=2048,frame_target=2359296)
+        return PreparedUpdates(None,optimizer,adapter,config,ppo,reg,'cpu'),ppo
+
+    def test_interrupted_next_collection_cannot_reuse_last_successful_batch(self):
+        prepared,ppo=self.prepared_fixture()
+        first=prepared.update_once()
+        self.assertIs(first,prepared.last_result)
+        self.assertEqual(prepared.collected_valid_vectors,1024)
+        first_snapshot=failure_observations(prepared)
+        def interrupt():
+            if prepared.adapter.observed_native_steps==1026:
+                raise KeyboardInterrupt('Synthetic interruption after two returned vectors')
+        with self.assertRaises(KeyboardInterrupt):prepared.update_once(check_guard=interrupt)
+        observed=failure_observations(prepared)
+        self.assertEqual(observed['attempted_update'],2)
+        self.assertEqual(observed['collection_status'],'interrupted_before_return')
+        self.assertIsNone(observed['collected_valid_vectors'])
+        self.assertIsNone(observed['collected_valid_transitions'])
+        self.assertEqual(observed['observed_returned_vectors_this_attempt'],2)
+        self.assertEqual(observed['observed_returned_frames_this_attempt'],128)
+        self.assertEqual(observed['observed_gameplay_frames'],65664)
+        self.assertEqual(prepared.progress['phase'],'collection')
+        self.assertFalse(prepared.progress['complete'])
+        self.assertEqual(ppo.optimizer_calls,1)
+        self.assertEqual(prepared.adapter.completed_updates,1)
+        with tempfile.TemporaryDirectory() as d:
+            path=Path(d)/'first-failure.json'
+            c.save(path,observed)
+            self.assertEqual(c.read(path),observed)
+        self.assertEqual(first_snapshot['collected_valid_vectors'],1024)
+
+    def test_optimizer_interruption_reports_current_returned_partial_batch(self):
+        prepared,ppo=self.prepared_fixture();prepared.update_once()
+        ppo.vectors=2;ppo.fail_optimizer=True
+        with self.assertRaisesRegex(RuntimeError,'Synthetic optimizer interruption'):
+            prepared.update_once()
+        observed=failure_observations(prepared)
+        self.assertEqual(observed['attempted_update'],2)
+        self.assertEqual(observed['collection_status'],'returned_valid_batch')
+        self.assertEqual(observed['collected_valid_vectors'],2)
+        self.assertEqual(observed['collected_valid_transitions'],128)
+        self.assertEqual(observed['observed_returned_frames_this_attempt'],128)
+        self.assertEqual(prepared.adapter.completed_updates,1)
+        self.assertEqual(prepared.progress['optimizer_steps'],1)
+
     def test_real_command_builder_to_dummy_child_and_direct_reap(self):
         with tempfile.TemporaryDirectory() as d:
             root=Path(d);out=root/'r1-control';out.mkdir()

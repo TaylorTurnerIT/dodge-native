@@ -27,6 +27,7 @@ def audit(reg,digest,out):
     for name in ('episodes','analysis','prefix'):
         file=out/({'episodes':'episodes.jsonl','analysis':'analysis.json','prefix':'prefix-qualification.json'}[name])
         c.need(c.sha(file)==result[name+'_sha256'],'Evaluation evidence hash differs')
+    c.need(c.sha(out/'power.jsonl')==result['passive_power_sha256'],'Evaluation passive power journal differs')
     prefix=c.read(out/'prefix-qualification.json')
     c.need(prefix['counted_games']==64 and prefix['forecast_seconds']<7200,'D13 counted-prefix forecast differs')
     with (out/'episodes.jsonl').open() as f:rows=[json.loads(line) for line in f]
@@ -46,8 +47,8 @@ def main():
     args=parser.parse_args();gate,reg=validate_dispatch(args.dispatch,args.sha256,stage='evaluation')
     training_binding(reg,gate)
     out=c.HERE/'evaluation-output';c.need(not list(out.iterdir()),'Evaluation output already consumed')
-    c.ac_power();helper=subprocess.Popen(['/usr/bin/caffeinate','-ims','-w',str(os.getpid())])
-    started=time.monotonic();claimed=False;last_power=float('-inf')
+    helper=subprocess.Popen(['/usr/bin/caffeinate','-ims','-w',str(os.getpid())])
+    started=time.monotonic();claimed=False;last_power=float('-inf');power_log=None
     try:
         power=None
         for _ in range(20):
@@ -55,8 +56,10 @@ def main():
             except ValueError:time.sleep(.1)
         c.need(power is not None,'Evaluation caffeinate assertions absent')
         c.save(out/'observer.claimed',dict(pid=os.getpid(),dispatch_sha256=args.sha256,power=power));claimed=True
+        power_log=c.Journal(out/'observer-power.jsonl')
+        c.record_power(power_log,sleep=power)
 
-        def deadline(*_):raise TimeoutError('D13 observer deadline')
+        def deadline(*_):raise c.CampaignStop('D13 observer deadline')
         signal.signal(signal.SIGALRM,deadline);signal.signal(signal.SIGTERM,deadline);signal.signal(signal.SIGINT,deadline)
         signal.setitimer(signal.ITIMER_REAL,7370)
 
@@ -65,7 +68,7 @@ def main():
             c.check_lease(reg);now=time.monotonic()
             c.need(now-started<7380 and helper.poll() is None,'Evaluation observer deadline/helper')
             c.need(sum(x['rss_bytes'] for x in members)+int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)+c.process_rss(helper.pid)<reg['rss_bytes'],'Evaluation aggregate RSS')
-            if now-last_power>=5:c.power_assertions(os.getpid());last_power=now
+            if now-last_power>=5:c.record_power(power_log,sleep=c.power_assertions(os.getpid()));last_power=now
 
         argv=[reg['interpreter'],'-B',str(c.HERE/'evaluate_worker.py'),'--registration',gate['registration_path'],
               '--sha256',gate['registration_sha256'],'--dispatch',args.dispatch,'--dispatch-sha256',args.sha256]
@@ -74,8 +77,10 @@ def main():
         evidence=audit(reg,gate['registration_sha256'],out)
         c.verify_pins(reg);monitor([])
         c.need(not list((c.HERE/'empty-pycache').iterdir()),'Cache changed')
+        power_log.close();power_log=None
         c.save(out/'parent-terminal-audit.json',dict(status='D13_complete_pending_coordinator_acceptance',
             registration_sha256=gate['registration_sha256'],dispatch_sha256=args.sha256,evidence=evidence,
+            observer_power_sha256=c.sha(out/'observer-power.jsonl'),
             elapsed_seconds=time.monotonic()-started,lease_cleared=False,promoted=False))
         return 0
     except BaseException as error:
@@ -83,6 +88,7 @@ def main():
             c.save(out/'observer-first-failure.json',dict(status='first_failure_preserved_lease_held',error=repr(error),traceback=traceback.format_exc()))
         raise
     finally:
+        if power_log is not None:power_log.close()
         signal.setitimer(signal.ITIMER_REAL,0);helper.terminate();helper.wait(timeout=5)
 
 

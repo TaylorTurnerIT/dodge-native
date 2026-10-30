@@ -8,9 +8,14 @@ from pathlib import Path
 import re
 import struct
 import subprocess
+import time
 
 HERE = Path(__file__).resolve().parent
 STREAM_DOMAIN = b'dodge_ray_uniform512_v1\0'
+
+
+class CampaignStop(BaseException):
+    """Deadline/cancellation must not be swallowed as a passive probe error."""
 
 
 def need(ok, message):
@@ -93,6 +98,8 @@ def load_registration(path, digest):
          'Registered screen shape differs')
     need(reg['record'] == 'DODGE-055' and reg['action_repeat'] == 1, 'Wrong record/K')
     need(reg['state_path'] == reg['coordinator_state_path'], 'Independent ledger forbidden')
+    need(reg['AC_required'] is False and reg['battery_operation_allowed'] is True,
+         'Future packet requires battery-allowed policy')
     verify_pins(reg)
     members = {str(p.relative_to(reg['runtime_root'])) for p in Path(reg['runtime_root']).rglob('*') if p.is_file()}
     need(members == set(reg['runtime_members']), 'Runtime member set drift')
@@ -104,11 +111,28 @@ def check_lease(reg):
     need(not (HERE / 'cancel.requested').exists(), 'Parent cancellation requested')
 
 
-def ac_power():
-    result = subprocess.run(['/usr/bin/pmset', '-g', 'batt'], check=True, capture_output=True,
-                            text=True, timeout=3).stdout
-    need('AC Power' in result.splitlines()[0], 'AC power required')
-    return result.splitlines()[0]
+def passive_power():
+    """Power source/percentage never authorize stopping or changing a recipe."""
+    try:
+        text = subprocess.run(['/usr/bin/pmset','-g','batt'],check=True,
+            capture_output=True,text=True,timeout=3).stdout
+        first = text.splitlines()[0] if text.splitlines() else ''
+        source = next((s for s in ('AC Power','Battery Power') if s in first),None)
+        if source is None:
+            raise ValueError('Unrecognized power-probe output')
+        percentage = re.search(r'\b(\d{1,3})%',text)
+        percentage = int(percentage.group(1)) if percentage else None
+        if percentage is not None and not 0 <= percentage <= 100:
+            raise ValueError('Invalid battery percentage')
+        return dict(status='available',source=source,battery_percentage=percentage,
+                    raw=text[:4096])
+    except Exception as error:
+        return dict(status='unavailable',source=None,battery_percentage=None,error=repr(error))
+
+
+def record_power(journal, *, sleep=None):
+    journal.emit(dict(kind='passive_power_observation',monotonic=time.monotonic(),
+                      power=passive_power(),sleep=sleep))
 
 
 def process_rss(pid):
@@ -118,8 +142,18 @@ def process_rss(pid):
     return int(text)*1024
 
 
+def check_observer_resources(reg,members,observer_rss,helper_pid):
+    check_lease(reg)
+    need(sum(x['rss_bytes'] for x in members)+observer_rss+process_rss(helper_pid)
+         < reg['rss_bytes'],'Aggregate observer/worker/helper RSS ceiling')
+
+
+def check_worker_resources(reg,rss,mps):
+    check_lease(reg)
+    need(rss < reg['rss_bytes'] and mps < reg['mps_bytes'],'Separate6GiB resource ceiling')
+
+
 def power_assertions(parent_pid):
-    ac_power()
     rows = subprocess.run(['/bin/ps', '-axo', 'pid=,ppid=,pgid=,command='], check=True,
                           capture_output=True, text=True, timeout=3).stdout
     helpers = []
@@ -128,15 +162,22 @@ def power_assertions(parent_pid):
         if len(parts) == 4 and parts[1] == str(parent_pid) and parts[3].startswith('/usr/bin/caffeinate -ims '):
             helpers.append(int(parts[0]))
     need(len(helpers) == 1, 'One owned caffeinate -ims helper required')
-    assertions = subprocess.run(['/usr/bin/pmset', '-g', 'assertions'], check=True,
-                               capture_output=True, text=True, timeout=3).stdout
+    try:
+        assertions = subprocess.run(['/usr/bin/pmset', '-g', 'assertions'], check=True,
+                                   capture_output=True, text=True, timeout=3).stdout
+        if not assertions.strip():
+            raise ValueError('Empty sleep-assertion probe output')
+    except Exception as error:
+        # The owned, live -i helper is still required. Probe unavailability is
+        # logged, not treated as evidence that its assertion disappeared.
+        return dict(helper_pid=helpers[0],assertions=[],status='unavailable',error=repr(error))
     held = set()
     for line in assertions.splitlines():
         match = re.search(r'pid (\d+)\(caffeinate\).*?\b(Prevent\w+)\b', line)
         if match and int(match.group(1)) == helpers[0]:
             held.add(match.group(2))
-    need({'PreventUserIdleSystemSleep', 'PreventSystemSleep'} <= held, 'Owned sleep assertions absent')
-    return dict(helper_pid=helpers[0], assertions=sorted(held))
+    need('PreventUserIdleSystemSleep' in held, 'Owned idle-sleep assertion absent')
+    return dict(helper_pid=helpers[0], assertions=sorted(held),status='available')
 
 
 def build_streams(reg, replica):

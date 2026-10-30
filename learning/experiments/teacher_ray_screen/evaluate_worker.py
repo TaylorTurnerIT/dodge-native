@@ -88,6 +88,7 @@ def main():
     started=time.monotonic();cancelled=False;last_check=last_power=float('-inf')
     torch=None;peaks=dict(peak_rss_bytes=0,peak_mps_driver_bytes=0)
     journal=None
+    power_log=None
 
     def cancel(*_):
         nonlocal cancelled
@@ -105,9 +106,10 @@ def main():
             c.need(peaks['peak_rss_bytes']<reg['rss_bytes'] and peaks['peak_mps_driver_bytes']<reg['mps_bytes'],'Separate evaluation resource ceiling')
             last_check=now
         if now-last_power>=5:
-            c.ac_power();last_power=now
+            c.record_power(power_log);last_power=now
 
     try:
+        power_log=c.Journal(out/'power.jsonl')
         guard();sys.path.insert(0,reg['runtime_root'])
         torch=importlib.import_module('torch');np=importlib.import_module('numpy')
         native=importlib.import_module('dodge_rl')
@@ -202,12 +204,15 @@ def main():
         from evaluation_analysis import analyze
         analysis=analyze(rows,evaluation,guard)
         c.save(out/'analysis.json',analysis);guard();c.verify_pins(reg)
+        power_log.close();power_log=None
         c.save(out/'result.json',dict(status='complete_D13_evaluation_no_promotion',registration_sha256=args.sha256,
             games=len(rows),actual_frames=frames,resources=peaks,elapsed_seconds=time.monotonic()-started,
+            passive_power_sha256=c.sha(out/'power.jsonl'),
             episodes_sha256=c.sha(out/'episodes.jsonl'),analysis_sha256=c.sha(out/'analysis.json'),
             prefix_sha256=c.sha(out/'prefix-qualification.json'),promoted=False))
         return 0
     except BaseException as error:
+        if power_log is not None:power_log.close()
         if journal is not None:journal.close()
         c.save(out/'first-failure.json',dict(status='first_failure_preserved_lease_held',error=repr(error),
             traceback=traceback.format_exc(),resources=peaks,elapsed_seconds=time.monotonic()-started))

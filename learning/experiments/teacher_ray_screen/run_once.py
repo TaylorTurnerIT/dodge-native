@@ -33,6 +33,7 @@ def audit_job(reg, digest, job):
            and c.sha(out / 'updates.jsonl') == result['telemetry_sha256']
            and c.sha(out / 'native-events.jsonl') == result['native_journal_sha256'], 'Journal/qualification artifact differs')
     c.need(c.sha(out / 'migration.json') == result['migration_sha256'], 'Migration receipt differs')
+    c.need(c.sha(out / 'power.jsonl') == result['passive_power_sha256'], 'Passive power journal differs')
     prefix = c.read(out / 'prefix-qualification.json')
     c.need(prefix['status'] == 'accepted_counted_prefix' and prefix['updates'] == reg['prefix_updates']
            and prefix['counted_frames'] == reg['prefix_updates'] * reg['envs'] * reg['rollout']
@@ -60,6 +61,7 @@ def audit_job(reg, digest, job):
 
 
 def validate_dispatch(path, digest, stage='training'):
+    c.need(stage=='training','Evaluation requires a separate frozen review/dispatch after training acceptance')
     c.need(c.sha(path) == digest, 'Coordinator dispatch hash differs')
     gate = c.read(path)
     c.need(gate['status'] == 'dispatched_once' and gate['stage'] == stage
@@ -76,7 +78,10 @@ def validate_dispatch(path, digest, stage='training'):
     c.need(readiness['status'] == 'CPU_source_and_420_migration_ready'
            and readiness['registration_sha256'] == gate['registration_sha256'], 'CPU readiness binding differs')
     authority = c.read(gate['authority_path'])
-    c.need(authority['schema'] == 'teacher_training_queue_authority_v1'
+    c.need(gate['authority_path']==reg['authority_path']
+           and gate['authority_sha256']==reg['authority_sha256'], 'Current authority binding differs')
+    c.need(authority['schema'] == 'teacher_training_queue_authority_v2'
+           and authority['limits']['AC_required'] is False
            and authority['first_screens_only'] and authority['no_claim_or_lease_reset'], 'Training queue authority differs')
     reg = dict(reg,expected_lease=expected)
     c.check_lease(reg)
@@ -93,11 +98,11 @@ def main():
     c.need(not (c.HERE/'launch.claimed').exists(), 'Campaign already consumed')
     cache = c.HERE/'empty-pycache'
     c.need(cache.is_dir() and not list(cache.iterdir()), 'Fresh empty cache required')
-    c.ac_power()
     helper = subprocess.Popen(['/usr/bin/caffeinate','-ims','-w',str(os.getpid())])
     completed = []
     started = time.monotonic()
     claimed = False
+    power_log = None
     try:
         # Let assertions register before consuming the one-shot campaign marker.
         power = None
@@ -110,6 +115,8 @@ def main():
         c.save(c.HERE/'launch.claimed',dict(pid=os.getpid(),registration_sha256=digest,
             dispatch_sha256=args.sha256,power=power))
         claimed = True
+        power_log=c.Journal(c.HERE/'observer-power.jsonl')
+        c.record_power(power_log,sleep=power)
         cancelled = False
         last_power = float('-inf')
 
@@ -118,7 +125,7 @@ def main():
             cancelled = True
         signal.signal(signal.SIGTERM,cancel); signal.signal(signal.SIGINT,cancel)
         def deadline(*_):
-            raise TimeoutError('Global observer deadline, bounded cleanup reserve')
+            raise c.CampaignStop('Global observer deadline, bounded cleanup reserve')
         signal.signal(signal.SIGALRM,deadline)
         signal.setitimer(signal.ITIMER_REAL,reg['campaign_total_seconds']-10)
 
@@ -127,11 +134,10 @@ def main():
             now = time.monotonic()
             c.need(not cancelled and now-started < reg['campaign_total_seconds'], 'Campaign deadline/cancellation')
             c.check_lease(reg)
-            rss = sum(x['rss_bytes'] for x in members) + int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss) + c.process_rss(helper.pid)
-            c.need(rss < reg['rss_bytes'], 'Aggregate observer/worker RSS ceiling')
+            c.check_observer_resources(reg,members,int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss),helper.pid)
             c.need(helper.poll() is None, 'Caffeinate exited')
             if now-last_power >= 5:
-                c.power_assertions(os.getpid()); last_power=now
+                c.record_power(power_log,sleep=c.power_assertions(os.getpid())); last_power=now
 
         environment = dict(os.environ,PYTHONDONTWRITEBYTECODE='1',PYTHONPYCACHEPREFIX=str(cache))
         for index,job in enumerate(reg['jobs']):
@@ -149,9 +155,11 @@ def main():
         c.verify_pins(reg); monitor([])
         c.need(not list(cache.iterdir()), 'Frozen cache changed')
         c.need(sum(x['counts']['frames'] for x in completed) == 4*reg['frame_target'], 'Actual campaign frame total differs')
+        power_log.close();power_log=None
         c.save(c.HERE/'parent-terminal-audit.json',dict(schema='dodge_ray_training_parent_audit_v1',
             status='training_complete_pending_coordinator_acceptance',registration_sha256=digest,
             dispatch_sha256=args.sha256,trajectories=completed,elapsed_seconds=time.monotonic()-started,
+            observer_power_sha256=c.sha(c.HERE/'observer-power.jsonl'),
             evaluation_games=0,cohort_D13_opened=False,lease_cleared=False,promoted=False))
         return 0
     except BaseException as error:
@@ -161,6 +169,7 @@ def main():
                 elapsed_seconds=time.monotonic()-started))
         raise
     finally:
+        if power_log is not None:power_log.close()
         signal.setitimer(signal.ITIMER_REAL,0)
         try:
             helper.terminate()
@@ -173,4 +182,3 @@ def main():
 
 if __name__ == '__main__':
     raise SystemExit(main())
-

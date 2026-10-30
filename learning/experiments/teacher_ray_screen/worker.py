@@ -15,6 +15,81 @@ import common as c
 from fingerprints import fingerprint
 
 
+class PreparedUpdates:
+    """One worker session; partial observations never reuse a previous batch."""
+
+    def __init__(self, model, optimizer, adapter, config, ppo, reg, device):
+        self.model, self.optimizer, self.adapter = model, optimizer, adapter
+        self.config, self.ppo, self.reg, self.device = config, ppo, reg, device
+        self.microbatch_size = reg['microbatch']
+        self.effective_minibatch_size = reg['effective_minibatch']
+        self.progress = {}
+        self.attempted_update = None
+        self.collection_status = 'not_started'
+        self.collected_valid_vectors = self.collected_valid_transitions = None
+        self.start_frames = self.start_vectors = None
+
+    def update_once(self, check_guard=None):
+        # Reset before *any* check that may fail in a new attempt. A collector
+        # that raises has not returned a validated RolloutBatch, even if the
+        # adapter already observed some native return costs.
+        self.attempted_update = self.adapter.completed_updates + 1
+        self.collection_status = 'pre_collection'
+        self.collected_valid_vectors = self.collected_valid_transitions = None
+        self.start_frames = self.adapter.gameplay_frames
+        self.start_vectors = self.adapter.observed_native_steps
+        self.progress.clear()
+        self.progress.update(in_update=True, complete=False, phase='collection',
+                             attempted_update=self.attempted_update)
+        c.need(all(g['lr'] == self.config.learning_rate and g['eps'] == self.config.adam_eps
+                   for g in self.optimizer.param_groups), 'Adam LR/eps changed')
+        self.adapter.begin_update(self.attempted_update)
+        self.collection_status = 'collecting'
+        try:
+            collection = self.ppo.collect_rollout(
+                self.model, self.adapter.env, self.reg['rollout'], self.device,
+                config=self.config, check_guard=check_guard, boundary_adapter=self.adapter,
+                gameplay_frame_budget=self.reg['frame_target'] - self.adapter.gameplay_frames)
+        except BaseException:
+            self.collection_status = 'interrupted_before_return'
+            raise
+        self.collected_valid_vectors = int(collection.batch.actions.shape[0])
+        self.collected_valid_transitions = int(collection.batch.actions.numel())
+        self.collection_status = 'returned_valid_batch'
+        self.progress['phase'] = 'optimization'
+        metrics = self.ppo.ppo_update(
+            self.model, self.optimizer, collection.batch, self.config,
+            check_guard=check_guard, progress=self.progress,
+            microbatch_size=self.microbatch_size,
+            effective_minibatch_size=self.effective_minibatch_size)
+        boundary = self.adapter._finish_after_ppo()
+        self.collection_status = 'completed_after_ppo'
+        self.last_result = collection, metrics, boundary
+        return self.last_result
+
+
+def failure_observations(prepared):
+    """Separate returned native costs from a collector's validated batch count.
+
+    An in-flight native call that never returned cannot be counted here. These
+    are observations, not proof of every frame executed before a hard kill.
+    """
+    if prepared is None:
+        return dict(attempted_update=None, collection_status='not_started',
+            observed_gameplay_frames=None, observed_returned_frames_this_attempt=None,
+            observed_returned_vectors_this_attempt=None,
+            collected_valid_vectors=None, collected_valid_transitions=None)
+    return dict(attempted_update=prepared.attempted_update,
+        collection_status=prepared.collection_status,
+        observed_gameplay_frames=prepared.adapter.gameplay_frames,
+        observed_returned_frames_this_attempt=(None if prepared.start_frames is None else
+            prepared.adapter.gameplay_frames - prepared.start_frames),
+        observed_returned_vectors_this_attempt=(None if prepared.start_vectors is None else
+            prepared.adapter.observed_native_steps - prepared.start_vectors),
+        collected_valid_vectors=prepared.collected_valid_vectors,
+        collected_valid_transitions=prepared.collected_valid_transitions)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--registration', required=True)
@@ -35,6 +110,7 @@ def main():
     telemetry = None
     events = None
     prepared = None
+    power_log = None
     peaks = dict(peak_rss_bytes=0, peak_mps_driver_bytes=0)
     last_check = last_power = float('-inf')
 
@@ -54,12 +130,13 @@ def main():
             mps = int(torch.mps.driver_allocated_memory()) if torch is not None else 0
             peaks['peak_rss_bytes'] = max(peaks['peak_rss_bytes'], rss)
             peaks['peak_mps_driver_bytes'] = max(peaks['peak_mps_driver_bytes'], mps)
-            c.need(rss < reg['rss_bytes'] and mps < reg['mps_bytes'], 'Separate6GiB resource ceiling')
+            c.check_worker_resources(reg,rss,mps)
             last_check = now
         if now - last_power >= 5:
-            c.ac_power(); last_power = now
+            c.record_power(power_log); last_power = now
 
     try:
+        power_log = c.Journal(out / 'power.jsonl')
         guard()
         sys.path.insert(0, reg['runtime_root'])
         torch = importlib.import_module('torch')
@@ -129,28 +206,7 @@ def main():
         events.emit(dict(kind='initial_assignments', assignments=adapter.assignment_events))
         config = ppo.PPOConfig(**dict(reg['ppo'], **reg['arms'][job['arm']]))
 
-        class Prepared:
-            microbatch_size = reg['microbatch']
-            effective_minibatch_size = reg['effective_minibatch']
-            def __init__(self):
-                self.adapter, self.config = adapter, config
-                self.progress = {}
-            def update_once(self, check_guard=None):
-                c.need(all(g['lr'] == config.learning_rate and g['eps'] == config.adam_eps for g in optimizer.param_groups), 'Adam LR/eps changed')
-                adapter.begin_update(adapter.completed_updates + 1)
-                collection = ppo.collect_rollout(model, adapter.env, reg['rollout'], 'mps',
-                    config=config, check_guard=check_guard, boundary_adapter=adapter,
-                    gameplay_frame_budget=reg['frame_target'] - adapter.gameplay_frames)
-                self.collected_valid_vectors = int(collection.batch.actions.shape[0])
-                self.collected_valid_transitions = int(collection.batch.actions.numel())
-                metrics = ppo.ppo_update(model, optimizer, collection.batch, config, check_guard=check_guard,
-                    progress=self.progress, microbatch_size=self.microbatch_size,
-                    effective_minibatch_size=self.effective_minibatch_size)
-                boundary = adapter._finish_after_ppo()
-                self.last_result = collection, metrics, boundary
-                return self.last_result
-
-        prepared = Prepared()
+        prepared = PreparedUpdates(model, optimizer, adapter, config, ppo, reg, 'mps')
         recorder = Recorder(job['id'], 1)
         telemetry = JsonlSink(out / 'updates.jsonl')
         update_times = []
@@ -216,22 +272,23 @@ def main():
             rows = [json.loads(line) for line in f]
         counts = c.validate_telemetry(rows, reg, job)
         c.need(counts['frames'] == reg['frame_target'] and adapter.budget_reached, 'Final target absent')
+        power_log.close(); power_log = None
         c.save(out / 'result.json', dict(schema='dodge_ray_worker_result_v1', status='complete', job=job,
             registration_sha256=args.sha256, counts=counts, checkpoints=checkpoints,
             prefix_sha256=c.sha(out / 'prefix-qualification.json'), telemetry_sha256=c.sha(out / 'updates.jsonl'),
             native_journal_sha256=c.sha(out / 'native-events.jsonl'), resources=dict(peaks),
             elapsed_seconds=time.monotonic() - started, actual_startup_frames=adapter.initial_startup_frames + adapter.reset_startup_frames,
             consumed_seeds=sorted(adapter.consumed_actual_seeds), stream_sha256=stream_digest,
+            passive_power_sha256=c.sha(out / 'power.jsonl'),
             source_checkpoint_unchanged=True, migration_sha256=c.sha(out / 'migration.json'), promoted=False, evaluation_games=0))
         return 0
     except BaseException as error:
+        if power_log is not None: power_log.close()
         if telemetry is not None: telemetry.close()
         if events is not None: events.close()
         c.save(out / 'first-failure.json', dict(status='first_failure_preserved_lease_held',
             job=job['id'], error=repr(error), traceback=traceback.format_exc(), resources=dict(peaks),
-            observed_gameplay_frames=None if prepared is None else prepared.adapter.gameplay_frames,
-            collected_valid_vectors=None if prepared is None else getattr(prepared,'collected_valid_vectors',None),
-            collected_valid_transitions=None if prepared is None else getattr(prepared,'collected_valid_transitions',None),
+            **failure_observations(prepared),
             progress={} if prepared is None else prepared.progress, elapsed_seconds=time.monotonic() - started))
         raise
 

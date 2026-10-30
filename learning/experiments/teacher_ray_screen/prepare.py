@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[3]
 PARENT = Path('/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79')
 QUEUE = PARENT / 'learning/runs/v2/teacher-training-queue-parent-20261030-r1'
 SEED_SHA = 'bd6beac7bda62fb5a00affa9b4cc953d6c6447e373669ebe4c464ffa5f62879a'
+RESUMPTION_SHA = 'a057090cfd5ea90ffba1457012ed20762e1c356a7b589bb7db1e302bdd6f2245'
 
 
 def main():
@@ -26,10 +27,22 @@ def main():
     registry_path = QUEUE / 'seed-registry-r1.json'
     c.need(c.sha(registry_path) == SEED_SHA, 'Seed registry differs')
     registry = c.read(registry_path)
+    authority_path=QUEUE/'authority-r2.json'
+    power_path=QUEUE/'power-policy-r2.json'
+    queue_path=QUEUE/'queue-r5.json'
+    authority=c.read(authority_path);power=c.read(power_path);queue=c.read(queue_path)
+    c.need(c.sha(authority_path)==queue['authority_sha256']
+           and c.sha(power_path)==queue['power_policy_sha256']==authority['power_policy_sha256'],
+           'Current authority/power binding differs')
+    c.need(power['AC_required'] is False and power['battery_operation_allowed'] is True
+           and power['sleep_prevention']['required_assertions']==['PreventUserIdleSystemSleep'],
+           'Battery-allowed power policy required')
+    resumption_path = QUEUE/'source-resumption-disposition-r1.json'
+    c.need(c.sha(resumption_path) == RESUMPTION_SHA, 'Source resumption disposition differs')
     history = c.read(registry['fresh_training_additional_exclusions']['seed_values_paths'][0])
     c.need(history['count'] == len(history['sorted_unique_seed_values']) == 189743, 'History coverage differs')
     reg = {key: copy.deepcopy(old[key]) for key in (
-        'AC_required','IO_reserve_seconds','adam_fingerprint','allocator_bytes','checkpoint_path',
+        'IO_reserve_seconds','adam_fingerprint','allocator_bytes','checkpoint_path',
         'checkpoint_sha256','effective_minibatch','envs','frame_target','interpreter','microbatch',
         'model_fingerprint','mps_bytes','pool_path','ppo','prefix_updates','receipt_seconds','rollout',
         'rss_bytes','state_path','threads','updates','work_seconds','campaign_total_seconds')}
@@ -39,6 +52,10 @@ def main():
         coordinator_state_path=old['state_path'], coordinator_thread='518b8c2d-01fb-4f39-acc3-f2d9f1f35c4e',
         action_repeat=1, no_retry=True, no_automatic_resume=True, promotion=False,
         one_MPS_job=True, launch_authority=False, evaluation_games=0,
+        review_scope='training_only',evaluation_requires_separate_frozen_review=True,
+        AC_required=False,battery_operation_allowed=True,power_policy_path=str(power_path),
+        power_policy_sha256=c.sha(power_path),authority_path=str(authority_path),
+        authority_sha256=c.sha(authority_path),queue_path=str(queue_path),queue_sha256=c.sha(queue_path),
         exclusions=registry['future_training_exclusion_ranges'],
         checkpoint_updates=[12,24,36],
         arms={name:dict(gamma=0.9987476493904754,gae_lambda=0.9872585449014338) for name in ('control','rays')},
@@ -72,7 +89,7 @@ def main():
         evaluation_expected_lease=dict(kind='teacher_ray_D13_evaluation',run_id=f'teacher-ray-D13-20261030-r{args.revision}',
             package=str(out),owner_token=f'rays055-D13-20261030-first-eval-r{args.revision}',promoted=False))
     pins = dict(registry['pins'])
-    pins.update({str(p):c.sha(p) for p in [base_path,QUEUE/'authority.json',QUEUE/'queue-r4.json',registry_path,
+    pins.update({str(p):c.sha(p) for p in [base_path,authority_path,queue_path,power_path,registry_path,resumption_path,
         Path(reg['checkpoint_path']),Path(reg['interpreter'])]})
     if args.supersedes:
         prior=args.supersedes.resolve(); prior_reg=c.read(prior)
@@ -81,7 +98,7 @@ def main():
                not list((prior.parent/'evaluation-output').iterdir()),'Cannot supersede a consumed candidate')
         pins[str(prior)]=c.sha(prior)
         reg['supersedes_unclaimed_candidate']=dict(registration_path=str(prior),sha256=c.sha(prior),
-            reason='Source readiness correction: preserve observed actual frames/valid partial collection on failure; no training or qualification attempted.')
+            reason='Reset per-attempt collection receipts; implement battery-allowed passive power policy. CPU/source resumption only; no training or qualification attempted.')
     for p,h in pins.items():
         c.need(c.sha(p) == h, 'Input pin differs: '+p)
     out.mkdir(parents=True)
