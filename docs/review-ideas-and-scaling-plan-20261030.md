@@ -39,6 +39,17 @@ Phase 2, smaller or less certain, run as ablations once the base recipe moves
 15. Segment carry-over (do not abandon live games), snapshot-prioritised replay [S].
 16. Vision-student distillation, after a stronger teacher exists.
 
+## Gate for the long run
+
+The user's bet: once tuning finds a recipe with clear signal, run it as long as it keeps learning. For that to work, decide these before launching, not during:
+- Entry rule: the recipe beats the current one on Q1 and mean at equal frames, on a fresh cohort of 1,024 or more seeds, in at least two training seeds. A single lucky run does not qualify (DODGE-013, DODGE-009 and DODGE-010 each showed one-run effects that did not replicate).
+- Schedule: the learning rate and entropy schedules are planned for a known maximum length, or use constant-then-final-decay so the run can be extended. No manual rate drops mid-run.
+- Evaluation: every N updates on a rotating held-out cohort that training never touches, with Q1, mean, Q4 and 1,000-frame milestones; training curves alone are not the signal. Keep every checkpoint, not only the best, and an averaged-weights copy.
+- Health signals logged each update: KL and early-stop frequency, entropy, value explained variance, advantage scale, action-switch rate, clip fraction. Pre-register what counts as collapse.
+- Stop rule: stop when held-out Q1 and mean have not improved beyond bootstrap noise over a fixed number of evaluations (for example, three), not when the budget feels spent. Report the stop and why.
+- Robustness: checkpoint and resume must not lose live games or optimizer state (an earlier run lost 40 updates to an interruption); AC power with the power guard; RSS and MPS caps unchanged.
+- Seeds: unbounded fresh stream for training, seed ranges registered, and no evaluation cohort reused for selection.
+
 ## K=1 track (the user's hypothesis about control rate)
 
 Validation against the paper draft (`paper/main.tex` in the paper worktree): the review quoted the paper faithfully (4,400 vs 6,115 mean frames, 2,626 to 4,387 at K=1, 256 x 64 rollouts, minibatch 512, segment abandonment every 60 updates, constant learning rate 3e-5). The draft says the policy "was never trained at K=1"; that is out of date, because DODGE-013 did train from 420 at K=1 and regressed.
