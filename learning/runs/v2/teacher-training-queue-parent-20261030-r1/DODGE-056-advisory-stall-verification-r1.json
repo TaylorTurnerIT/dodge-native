@@ -1,0 +1,37 @@
+{
+  "schema": "dodge056_advisory_stall_verification_v1",
+  "observed_at": "2026-10-31T03:55:43.562066+00:00",
+  "source_commit": "cbfd206c7e1df57b10ed4d252c2798a13af7845e",
+  "source_sha256": "85b55fc89fe032a50eb8f074059965a42c1a7854fa1c8acd40132f644751f7f7",
+  "test_source_sha256": "31564193909a811efbfcdb6339c0655fd33ef14aba43e175159bf92bf82bc129",
+  "independent_CPU_tests": {
+    "passed": 6,
+    "failed": 0,
+    "output": "test_active_policy_does_not_stop_even_if_other_metrics_flat (__main__.Tests.test_active_policy_does_not_stop_even_if_other_metrics_flat) ... ok\ntest_exact_warmup_and_patience_no_early_stop (__main__.Tests.test_exact_warmup_and_patience_no_early_stop) ... ok\ntest_failure_and_bad_telemetry_are_not_successful_stops (__main__.Tests.test_failure_and_bad_telemetry_are_not_successful_stops) ... ok\ntest_improving_critic_or_changing_occupancy_does_not_stop (__main__.Tests.test_improving_critic_or_changing_occupancy_does_not_stop) ... ok\ntest_missing_critic_variance_is_not_zero_error (__main__.Tests.test_missing_critic_variance_is_not_zero_error) ... ok\ntest_recipe_order_and_input_immutability (__main__.Tests.test_recipe_order_and_input_immutability) ... ok\n\n----------------------------------------------------------------------\nRan 6 tests in 0.001s\n\nOK\n"
+  },
+  "replayed_jobs": [
+    {
+      "job": "r1-control",
+      "updates": 36,
+      "stop_update": null,
+      "source_sha256": "e435b3ae55bbb0e9d14de0ec2d9886f9b4cdb283035cf04f66388f5b1b822615"
+    },
+    {
+      "job": "r1-rays",
+      "updates": 36,
+      "stop_update": null,
+      "source_sha256": "06cfdc3d0cee911570fb86fa3f2b4427431e5797b134b71415772cc1bf7707c5"
+    },
+    {
+      "job": "r2-rays",
+      "updates": 2,
+      "stop_update": null,
+      "source_sha256": "28a834625a4082db7dc9154fb2c90fd0a51b1de34ff8d9a29b7a0127cb29a035"
+    }
+  ],
+  "replay_artifact_sha256": "e5b78a26a25d4818d32865baf0ed3af69426ece14036f6a4932d1ab09f5c31c6",
+  "threshold_status": "Post hoc exploratory defaults, selected after inspecting056 logs. Not prospective validation or evidence of survival convergence.",
+  "implementation_scope": "Read-only saved training metrics, stdlib advisory detector; not wired into frozen training source.",
+  "outcome": "No advisory optimizer-stall stop suggested for either36-update job or failed2-update job.",
+  "execution": "No native games, MPS, evaluation, lease mutation or Colab submission."
+}
