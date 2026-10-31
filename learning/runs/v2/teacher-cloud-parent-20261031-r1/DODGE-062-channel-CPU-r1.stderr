@@ -1,0 +1,36 @@
+test_HTTP_error_is_single_attempt_and_redacted (__main__.ChannelTests.test_HTTP_error_is_single_attempt_and_redacted) ... ok
+test_actual_child_exit_is_permanent (__main__.ChannelTests.test_actual_child_exit_is_permanent) ... ok
+test_close_is_idempotent_and_ends_owned_process (__main__.ChannelTests.test_close_is_idempotent_and_ends_owned_process) ... ok
+test_exact_admission_bytes_are_preserved (__main__.ChannelTests.test_exact_admission_bytes_are_preserved) ... ok
+test_framing_cap_prevents_unbounded_child_output (__main__.ChannelTests.test_framing_cap_prevents_unbounded_child_output) ... ok
+test_many_real_PUTs_reuse_one_process_and_HTTP_connection (__main__.ChannelTests.test_many_real_PUTs_reuse_one_process_and_HTTP_connection) ... ok
+test_oversized_request_poisoned_without_HTTP (__main__.ChannelTests.test_oversized_request_poisoned_without_HTTP) ... ok
+test_redirect_is_rejected_without_second_request (__main__.ChannelTests.test_redirect_is_rejected_without_second_request) ... ok
+test_replayed_worker_request_never_calls_HTTP (__main__.ChannelTests.test_replayed_worker_request_never_calls_HTTP) ... ok
+test_response_sequence_mismatch_poisoned (__main__.ChannelTests.test_response_sequence_mismatch_poisoned) ... ok
+test_startup_identity_mismatch_reaps (__main__.ChannelTests.test_startup_identity_mismatch_reaps) ... ok
+test_timeout_poison_reaps_and_never_retries_or_restarts (__main__.ChannelTests.test_timeout_poison_reaps_and_never_retries_or_restarts) ... ok
+----------------------------------------
+Exception occurred during processing of request from ('127.0.0.1', 63146)
+Traceback (most recent call last):
+  File "/Users/taylor/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/socketserver.py", line 697, in process_request_thread
+    self.finish_request(request, client_address)
+  File "/Users/taylor/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/socketserver.py", line 362, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "/Users/taylor/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/socketserver.py", line 766, in __init__
+    self.handle()
+  File "/Users/taylor/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/http/server.py", line 442, in handle
+    self.handle_one_request()
+  File "/Users/taylor/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/http/server.py", line 408, in handle_one_request
+    self.raw_requestline = self.rfile.readline(65537)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/socket.py", line 720, in readinto
+    return self._sock.recv_into(b)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+ConnectionResetError: [Errno 54] Connection reset by peer
+----------------------------------------
+
+----------------------------------------------------------------------
+Ran 12 tests in 1.330s
+
+OK

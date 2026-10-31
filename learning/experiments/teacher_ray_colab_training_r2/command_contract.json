@@ -1,0 +1,150 @@
+{
+  "archive": {
+    "decoder": "receipts.decode_archive(path, expected_sha, reg, require_complete=True); production MUST keep allow_fixtures=False",
+    "manifest": "artifact-manifest.json",
+    "roles": [
+      "claim",
+      "log",
+      "checkpoint_or_partial",
+      "partial",
+      "receipt_or_metadata"
+    ],
+    "saved_weights": "Training may save snapshots12/24/36; failed/partial files block acceptance and remain preserved",
+    "schema": "dodge_colab_training_archive_v1"
+  },
+  "commands": {
+    "stage_TEXT": "stage_launcher.py",
+    "stage_program_argv": [
+      "python",
+      "-B",
+      "/content/dodge062/source/remote_entry.py",
+      "--registration",
+      "/content/dodge062/registration.json",
+      "--sha256",
+      "<unchanged registration SHA>",
+      "--stage",
+      "build|train"
+    ],
+    "unpack_TEXT": "unpack_launcher.py"
+  },
+  "control": {
+    "allowed_stage": [
+      "build",
+      "train"
+    ],
+    "fail_closed": "Missing/invalid/expired/mismatched/replayed control or cancel.requested stops work. Parent stops renewer first then cancels/tears down exact owned endpoint.",
+    "initial_TTL_seconds": 45,
+    "maximum_TTL_seconds": 60,
+    "path": "/content/dodge062/control.json",
+    "refresh_seconds": 15,
+    "required_fields": [
+      "record",
+      "job_nonce",
+      "registration_sha256",
+      "expected_lease_sha256",
+      "issued_at_utc",
+      "expires_at_utc",
+      "sequence",
+      "allowed_stage"
+    ],
+    "sequence": "positive integer; nondecreasing; identical sequence must have identical content; issued_at cannot reverse",
+    "stage_transition": "Drain old-stage uploads before advancing stage/sequence; this is liveness, never independent launch authority.",
+    "train_additional_required_field": "runtime_admission_sha256",
+    "writer": "Parent sole serialized control writer independent of blocking exec/build/download"
+  },
+  "downloads": [
+    {
+      "before_native_constructor": true,
+      "remote": "/content/dodge062/build-artifacts.tar",
+      "stage": "build"
+    },
+    {
+      "before_unassign": true,
+      "includes_training_checkpoints": true,
+      "remote": "/content/dodge062/training-artifacts.tar",
+      "stage": "train"
+    }
+  ],
+  "financial_contract": "Parent-only, draft not frozen; no duplicate billing implementation.",
+  "identity_fields": [
+    "record",
+    "job_nonce",
+    "registration_sha256",
+    "payload_sha256"
+  ],
+  "launcher_environment": {
+    "DODGE062_EXECUTION_ADMITTED": "true",
+    "DODGE062_REGISTRATION_SHA256": "<registered SHA>",
+    "DODGE062_STAGE": "build|train"
+  },
+  "no_preparation_launch": true,
+  "parent_registration_pending": true,
+  "preparation_only": true,
+  "receipt_schema": "dodge_colab_training_stage_v1",
+  "record": "DODGE-062",
+  "registration_required_owner_fields": [
+    "remote_input_pins",
+    "runtime_root",
+    "vendor_root",
+    "checkpoint_path",
+    "pool_path",
+    "output_root",
+    "training_stage_authorized",
+    "no_retry",
+    "no_resume",
+    "promotion",
+    "accelerator",
+    "expected_lease_sha256",
+    "native_setup_work_seconds",
+    "stage_timeout_seconds",
+    "linux_toolchain"
+  ],
+  "registration_schema": "dodge_colab_native_training_registration_v1",
+  "remote_root": "/content/dodge062",
+  "runtime_admission": {
+    "binding": "Control runtime_admission_sha256 binds this file; certificate binds source/PythonABI/compiler/ELF/runtime/native binary/framework libraries; import/type/loader check precedes constructor.",
+    "path": "/content/dodge062/runtime-admission.json",
+    "required_fields": [
+      "record",
+      "job_nonce",
+      "registration_sha256",
+      "expected_lease_sha256",
+      "accepted_build_certificate_sha256"
+    ]
+  },
+  "schema": "dodge062_owner_command_contract_v1",
+  "stage_ownership": {
+    "campaign": "owns strict serial result aggregation/archive; no final parent acceptance or lease release",
+    "native_build": "zero native imports/games/training frames/weights; cert owns compiler,source,ELF,SOABI and binary/runtime origins",
+    "runtime_import": "zero constructors/games/frames/weights; owns imported native loader/type/binary ABI evidence",
+    "supervisor": "owns child exit/group absence/sampled RSS+CUDA driver peaks; forwards existing worker counters or null unknowns",
+    "worker": "owns actual gameplay/startup/vector counts, completed updates/current partials, telemetry/checkpoint hashes; trained_weights_saved reflects actual snapshots/partials"
+  },
+  "unresolved_execution_gates": [
+    "Final parent controller/financial authority/registration and independent source review",
+    "Actual isolated Linux compile and source/ELF/SOABI/dependency certificate validation",
+    "Actual native import/type/array ABI boundaries and counted first2 A100 updates/job",
+    "Full-path/resources/financial admission before completing four jobs"
+  ],
+  "uploads": [
+    {
+      "remote": "/content/dodge062/source-input.tar",
+      "role": "source_and_vendor"
+    },
+    {
+      "remote": "/content/dodge062/registration.json",
+      "role": "unchanged_registration"
+    },
+    {
+      "remote": "/content/dodge062/inputs/checkpoint420.pt",
+      "role": "original420",
+      "sha256": "7e0de8640f1337261412d91cde6bc692772ff212fbd360f5aad415dc6bc7ed4b"
+    },
+    {
+      "prep_access": "Not opened/read; digest copied from frozen056 registration",
+      "remote": "/content/dodge062/inputs/training-pool512.json",
+      "role": "fixed512_training_pool",
+      "sha256": "5093727c2fdabd794267ccbc44a43b1fb29747b545cff645b66b0ad578180f04"
+    }
+  ]
+}
