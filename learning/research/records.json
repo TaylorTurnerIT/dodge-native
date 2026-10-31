@@ -46175,8 +46175,8 @@
       "why": "The installed PyTorch CUDA memory-limit API requires a numbered device such as cuda:0; CPU tests did not exercise that CUDA setup call."
     },
     {
-      "actual": null,
-      "actual_kind": "unobserved",
+      "actual": "Explicit cuda:0 correction frozen. Actual PyTorch CPU replay reproduces the old error and accepts the indexed device;121 source tests pass with1 skipped,36 controller tests and420 CPU migration pass. No new VM allocated.",
+      "actual_kind": "progress",
       "created_at": "2026-10-31T05:30:55.575009+00:00",
       "doing": "Review a separate T4 synthetic compatibility successor selecting cuda:0 explicitly; preserve failed059 and fit combined059+060 allocation time and costs within the existing900s/8CU allowance.",
       "evidence": [
@@ -46188,6 +46188,24 @@
           "recorded_at": "2026-10-31T05:30:55.576036+00:00",
           "sha256": "be6e70b949e910232e37d80c32628ccb031ea6dc3cffd57e3c8174a4786bf13c",
           "uri": "learning/runs/v2/teacher-cloud-parent-20261031-r1/authority-r4.json"
+        },
+        {
+          "experiment_id": "DODGE-060",
+          "id": "f5da8910e27c4c5a95dc181747a1a989",
+          "kind": "registration",
+          "label": "Explicitly indexed CUDA successor within remaining compatibility budget",
+          "recorded_at": "2026-10-31T05:32:42.620142+00:00",
+          "sha256": "3742a27289e93eae9c07896aa8af4fa51495edaf43b86d02955e2926a926c385",
+          "uri": "learning/runs/v2/teacher-ray-colab-cuda-compat-20261031-r4/registration-r1.json"
+        },
+        {
+          "experiment_id": "DODGE-060",
+          "id": "f93b7c475e514feb9e328e60285c059b",
+          "kind": "result",
+          "label": "Device-index CPU replay plus121 source/36 controller fixtures",
+          "recorded_at": "2026-10-31T05:32:42.620181+00:00",
+          "sha256": "72a587ba1034678d53db730ec97dd6e7a657e385d4f47ddcc2c82b12ca981484",
+          "uri": "learning/runs/v2/teacher-ray-colab-cuda-compat-20261031-r4/CPU-readiness-r1.json"
         }
       ],
       "expected": "CPU replay reproduces the unindexed-device error and verifies the explicit index. The correction should pass the observed CUDA memory-limit setup call, while actual model/Adam CUDA compatibility and numerical tolerances remain unobserved.",
@@ -46243,6 +46261,76 @@
             "updated_at": "2026-10-31T05:30:55.575009+00:00",
             "why": null
           }
+        },
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-060",
+          "reason": "Freeze explicit CUDA index and remaining combined-budget successor for independent review",
+          "recorded_at": "2026-10-31T05:32:42.619336+00:00",
+          "revision": 2,
+          "snapshot": {
+            "actual": "Explicit cuda:0 correction frozen. Actual PyTorch CPU replay reproduces the old error and accepts the indexed device;121 source tests pass with1 skipped,36 controller tests and420 CPU migration pass. No new VM allocated.",
+            "actual_kind": "progress",
+            "created_at": "2026-10-31T05:30:55.575009+00:00",
+            "doing": "Review a separate T4 synthetic compatibility successor selecting cuda:0 explicitly; preserve failed059 and fit combined059+060 allocation time and costs within the existing900s/8CU allowance.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-060",
+                "id": "ee865e186f514fe599ada77a67581abe",
+                "kind": "plan",
+                "label": "Bounded successor within original combined900s/8CU request",
+                "recorded_at": "2026-10-31T05:30:55.576036+00:00",
+                "sha256": "be6e70b949e910232e37d80c32628ccb031ea6dc3cffd57e3c8174a4786bf13c",
+                "uri": "learning/runs/v2/teacher-cloud-parent-20261031-r1/authority-r4.json"
+              },
+              {
+                "experiment_id": "DODGE-060",
+                "id": "f5da8910e27c4c5a95dc181747a1a989",
+                "kind": "registration",
+                "label": "Explicitly indexed CUDA successor within remaining compatibility budget",
+                "recorded_at": "2026-10-31T05:32:42.620142+00:00",
+                "sha256": "3742a27289e93eae9c07896aa8af4fa51495edaf43b86d02955e2926a926c385",
+                "uri": "learning/runs/v2/teacher-ray-colab-cuda-compat-20261031-r4/registration-r1.json"
+              },
+              {
+                "experiment_id": "DODGE-060",
+                "id": "f93b7c475e514feb9e328e60285c059b",
+                "kind": "result",
+                "label": "Device-index CPU replay plus121 source/36 controller fixtures",
+                "recorded_at": "2026-10-31T05:32:42.620181+00:00",
+                "sha256": "72a587ba1034678d53db730ec97dd6e7a657e385d4f47ddcc2c82b12ca981484",
+                "uri": "learning/runs/v2/teacher-ray-colab-cuda-compat-20261031-r4/CPU-readiness-r1.json"
+              }
+            ],
+            "expected": "CPU replay reproduces the unindexed-device error and verifies the explicit index. The correction should pass the observed CUDA memory-limit setup call, while actual model/Adam CUDA compatibility and numerical tolerances remain unobserved.",
+            "id": "DODGE-060",
+            "measurements": [],
+            "metadata": {
+              "CPU_replay_observed_before_prediction": true,
+              "authority_basis": "Continue user Go for cheaper non-training compatibility without increasing total time or spending.",
+              "combined_CU_cap": 8,
+              "combined_assigned_seconds_cap": 900,
+              "maximum_quote_CU_per_hour": 3,
+              "prior_assigned_seconds_upper_bound": 36.729438066482544,
+              "successor_assigned_seconds_cap": 860
+            },
+            "next_step": "Exact independent source review, then one separately recorded T4 successor using at most860 remaining assigned seconds; preserve failed059 and keep combined900s/8CU allowance. No059 rerun or A100 training qualification.",
+            "parent_id": "DODGE-059",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 2,
+            "status": "conditional",
+            "tags": [
+              "colab",
+              "T4",
+              "synthetic-compatibility",
+              "CUDA-index",
+              "single-attempt"
+            ],
+            "title": "Explicit CUDA device correction within remaining T4 test budget",
+            "updated_at": "2026-10-31T05:32:42.619336+00:00",
+            "why": null
+          }
         }
       ],
       "id": "DODGE-060",
@@ -46256,11 +46344,11 @@
         "prior_assigned_seconds_upper_bound": 36.729438066482544,
         "successor_assigned_seconds_cap": 860
       },
-      "next_step": "Freeze the corrected source and exact independent review before one separately recorded T4 successor; no rerun or mutation of059, no A100 training qualification.",
+      "next_step": "Exact independent source review, then one separately recorded T4 successor using at most860 remaining assigned seconds; preserve failed059 and keep combined900s/8CU allowance. No059 rerun or A100 training qualification.",
       "parent_id": "DODGE-059",
       "prediction_timing": "before_run",
       "project": "dodge-native",
-      "revision": 1,
+      "revision": 2,
       "status": "conditional",
       "tags": [
         "colab",
@@ -46270,7 +46358,7 @@
         "single-attempt"
       ],
       "title": "Explicit CUDA device correction within remaining T4 test budget",
-      "updated_at": "2026-10-31T05:30:55.575009+00:00",
+      "updated_at": "2026-10-31T05:32:42.619336+00:00",
       "why": null
     }
   ],
