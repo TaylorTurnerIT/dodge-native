@@ -1,0 +1,38 @@
+{
+  "id": "DODGE-060",
+  "project": "dodge-native",
+  "title": "Explicit CUDA device correction within remaining T4 test budget",
+  "status": "conditional",
+  "doing": "Review a separate T4 synthetic compatibility successor selecting cuda:0 explicitly; preserve failed059 and fit combined059+060 allocation time and costs within the existing900s/8CU allowance.",
+  "expected": "CPU replay reproduces the unindexed-device error and verifies the explicit index. The correction should pass the observed CUDA memory-limit setup call, while actual model/Adam CUDA compatibility and numerical tolerances remain unobserved.",
+  "actual": null,
+  "why": null,
+  "actual_kind": "unobserved",
+  "prediction_timing": "before_run",
+  "parent_id": "DODGE-059",
+  "next_step": "Freeze the corrected source and exact independent review before one separately recorded T4 successor; no rerun or mutation of059, no A100 training qualification.",
+  "tags": [
+    "colab",
+    "T4",
+    "synthetic-compatibility",
+    "CUDA-index",
+    "single-attempt"
+  ],
+  "metadata": {
+    "authority_basis": "Continue user Go for cheaper non-training compatibility without increasing total time or spending.",
+    "prior_assigned_seconds_upper_bound": 36.729438066482544,
+    "successor_assigned_seconds_cap": 860,
+    "combined_assigned_seconds_cap": 900,
+    "combined_CU_cap": 8,
+    "maximum_quote_CU_per_hour": 3,
+    "CPU_replay_observed_before_prediction": true
+  },
+  "evidence": [
+    {
+      "kind": "plan",
+      "label": "Bounded successor within original combined900s/8CU request",
+      "uri": "learning/runs/v2/teacher-cloud-parent-20261031-r1/authority-r4.json",
+      "sha256": "be6e70b949e910232e37d80c32628ccb031ea6dc3cffd57e3c8174a4786bf13c"
+    }
+  ]
+}
