@@ -1,0 +1,21 @@
+{
+  "actual": "Billing repair worked on one T4 at1.15CU/hour with unchanged balance. CUDA setup then failed because our code passed an unnumbered device; we requested release after36.7294s and confirmed no VM remains. No model migration/forward/optimizer step completed; exact059 lock remains held.",
+  "actual_kind": "observed",
+  "evidence": [
+    {
+      "kind": "result",
+      "label": "Actual T4 setup failure, successful billing admission and our requested release",
+      "sha256": "faa15d84c87e9b0b3e9b58cffcafbd4dc618c80738a546dbcff9fe732aa286b2",
+      "uri": "learning/runs/v2/teacher-cloud-parent-20261031-r1/blocking-incident-DODGE059-T4-r1.json"
+    },
+    {
+      "kind": "result",
+      "label": "Preserved remote failure bundle and runtime versions",
+      "sha256": "9cb38e698c6462132b1c2ad40029e6127932efc8258af1286956d8b7c6ff11a8",
+      "uri": "learning/runs/v2/teacher-cloud-parent-20261031-r1/dispatch-DODGE059-T4-r1/remote-failure-bundle-index.json"
+    }
+  ],
+  "next_step": "Preserve failed059 and all receipts. Prepare an explicitly indexed CUDA device in a separate source successor with CPU regression and independent review before any further VM allocation; no rerun of059.",
+  "status": "failed",
+  "why": "The installed PyTorch CUDA memory-limit API requires a numbered device such as cuda:0; CPU tests did not exercise that CUDA setup call."
+}
