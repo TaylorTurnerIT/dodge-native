@@ -1,4 +1,4 @@
-"""Draft pure financial controls for separately reviewed A100 training.
+"""Pure financial controls for separately reviewed A100 training.
 
 This module performs no network, allocation, game, seed, or ledger operation.
 An unchanged balance is allowed and never proves zero cost or freshness.
@@ -29,7 +29,7 @@ def finite(value):
 
 class TrainingBudget:
     def __init__(self, initial_balance, allocation_start, config=Config()):
-        if config != Config(): raise ValueError('Training budget draft limits differ')
+        if config != Config(): raise ValueError('Training budget limits differ')
         if not finite(initial_balance) or initial_balance < config.maximum_existing_CU:
             raise ValueError('Existing credit balance unavailable/insufficient')
         if not finite(allocation_start): raise ValueError('Allocation clock unavailable')
