@@ -28198,6 +28198,15 @@
         },
         {
           "experiment_id": "DODGE-032",
+          "id": "a6a8a72875f44d27888881154537e623",
+          "kind": "plan",
+          "label": "Discussion proposal: longer training and fixed-batch parallelism; no execution authority",
+          "recorded_at": "2026-10-31T12:09:12.721156+00:00",
+          "sha256": "bf7991dafc3d40db77633d1b4791b5422ab7ba3bd69a8f97f587ed27eecd18d2",
+          "uri": "docs/training-setup-followups-20261031.json"
+        },
+        {
+          "experiment_id": "DODGE-032",
           "id": "b7219947672749bd9b1f95dff5d6a2cc",
           "kind": "plan",
           "label": "Full literature checklist and preregistered interventions/predictions",
@@ -28408,6 +28417,103 @@
             "updated_at": "2026-10-30T06:50:29.742621+00:00",
             "why": null
           }
+        },
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-032",
+          "reason": "Link existing fixed-batch rollout allocation proposal to local066 baseline and separate duration067; preserve predictions",
+          "recorded_at": "2026-10-31T12:09:12.720672+00:00",
+          "revision": 4,
+          "snapshot": {
+            "actual": null,
+            "actual_kind": "unobserved",
+            "created_at": "2026-10-30T06:12:47.845126+00:00",
+            "doing": "Propose rollout-allocation contrasts at fixed K and total raw frames per update:128envs x6144rawframes,256x3072,512x1536, with T adjusted by K. Keep effective batch, optimizer cadence, reward, discount, LR schedule and total training exposure matched. Resource-qualify every shape under separate6GiB limits; at least2 training seeds per cell. No launch authorized.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-032",
+                "id": "439b4df3dddd4afa999f45658abc5aa4",
+                "kind": "plan",
+                "label": "Priority reconciliation, observation-only shield and long-run gate",
+                "recorded_at": "2026-10-30T06:50:29.743008+00:00",
+                "sha256": "20a3dd5c48ad6e1b994391836836e1514b1006bfe2a00018a10dd0ce96077905",
+                "uri": "docs/review-ideas-and-scaling-plan-20261030.md"
+              },
+              {
+                "experiment_id": "DODGE-032",
+                "id": "5d94dd78dbbd480cb6e2a83a63fd8c6e",
+                "kind": "plan",
+                "label": "Machine-readable horizon, encoder, normalization, advantage and rollout allocation plan",
+                "recorded_at": "2026-10-30T06:16:20.522998+00:00",
+                "sha256": "2ecb194846089a5809168ac8fa684a91d3344f76fdb4db83f6e8dc1d00eae08d",
+                "uri": "learning/runs/v2/ppo-literature-checklist-parent-20261030-r3/literature-checklist-proposal-v3.json"
+              },
+              {
+                "experiment_id": "DODGE-032",
+                "id": "6a4fd625d622421e9de2f985e42d3f18",
+                "kind": "plan",
+                "label": "User-directed literature checklist handoff; papers are priors, not Dodge results",
+                "recorded_at": "2026-10-30T06:12:47.845468+00:00",
+                "sha256": "7e7d9fe301e93b453bb99068efd457789f298cf0101cfcfd1b9f2b8418c888fb",
+                "uri": "/Users/taylor/.t3/worktrees/dodge-native/t3-death-telemetry-fyou-patterns/docs/review-ideas-and-scaling-plan-20261030.md"
+              },
+              {
+                "experiment_id": "DODGE-032",
+                "id": "a6a8a72875f44d27888881154537e623",
+                "kind": "plan",
+                "label": "Discussion proposal: longer training and fixed-batch parallelism; no execution authority",
+                "recorded_at": "2026-10-31T12:09:12.721156+00:00",
+                "sha256": "bf7991dafc3d40db77633d1b4791b5422ab7ba3bd69a8f97f587ed27eecd18d2",
+                "uri": "docs/training-setup-followups-20261031.json"
+              },
+              {
+                "experiment_id": "DODGE-032",
+                "id": "b7219947672749bd9b1f95dff5d6a2cc",
+                "kind": "plan",
+                "label": "Full literature checklist and preregistered interventions/predictions",
+                "recorded_at": "2026-10-30T06:16:20.522961+00:00",
+                "sha256": "4d2730f352a768e64f98087e8e2d0230f158f77d2921d688603584c2fd99bb76",
+                "uri": "docs/review-ideas-and-scaling-plan-20261030.md"
+              },
+              {
+                "experiment_id": "DODGE-032",
+                "id": "da0818276fa04c99bc62b1fdfbc6ceb1",
+                "kind": "plan",
+                "label": "Ordered approval packets with seed counts, hard ceilings and readiness",
+                "recorded_at": "2026-10-30T06:50:29.742973+00:00",
+                "sha256": "246b2b9e1043ea5e8dbe99bef2640b6b6a20faa4bd851a293d6bb1111c5d782e",
+                "uri": "learning/runs/v2/priority-runlist-parent-20261030-r4/priority-run-list-v4.json"
+              }
+            ],
+            "expected": "Longer chunks may improve learning by reducing frequent bootstrap boundaries or preserving within-env experience, while more envs may improve diversity or utilization. This compares N/T allocation at fixed batch, not an isolated horizon-only effect; runtime speed and sample efficiency can move in opposite directions.",
+            "id": "DODGE-032",
+            "measurements": [],
+            "metadata": {
+              "priority_runlist_v4": {
+                "launch_authority": false,
+                "packets": [
+                  "B3"
+                ],
+                "proposal_path": "learning/runs/v2/priority-runlist-parent-20261030-r4/priority-run-list-v4.json",
+                "proposal_sha256": "246b2b9e1043ea5e8dbe99bef2640b6b6a20faa4bd851a293d6bb1111c5d782e"
+              }
+            },
+            "next_step": "Keep original larger-shape alternatives as planning history. Add local candidates32x2048,64x1024,128x512 at fixed65536frames/update around066; match total exposure and optimizer cadence, resource-qualify each shape. Longer-training budget is separate067. No change to running066 or automatic launch/cohort opening.",
+            "parent_id": "DODGE-023",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 4,
+            "status": "planned",
+            "tags": [
+              "rollout-length",
+              "environment-count",
+              "S3",
+              "literature-checklist"
+            ],
+            "title": "Compare longer per-env rollouts against more envs at fixed batch",
+            "updated_at": "2026-10-31T12:09:12.720672+00:00",
+            "why": null
+          }
         }
       ],
       "id": "DODGE-032",
@@ -28422,11 +28528,11 @@
           "proposal_sha256": "246b2b9e1043ea5e8dbe99bef2640b6b6a20faa4bd851a293d6bb1111c5d782e"
         }
       },
-      "next_step": "Use the staged checklist plan and preserve each predicted alternative. Complete source/resource/seed/lease gates and obtain Taylor go-ahead before any run; do not mix interventions or open a cohort.",
+      "next_step": "Keep original larger-shape alternatives as planning history. Add local candidates32x2048,64x1024,128x512 at fixed65536frames/update around066; match total exposure and optimizer cadence, resource-qualify each shape. Longer-training budget is separate067. No change to running066 or automatic launch/cohort opening.",
       "parent_id": "DODGE-023",
       "prediction_timing": "before_run",
       "project": "dodge-native",
-      "revision": 3,
+      "revision": 4,
       "status": "planned",
       "tags": [
         "rollout-length",
@@ -28435,7 +28541,7 @@
         "literature-checklist"
       ],
       "title": "Compare longer per-env rollouts against more envs at fixed batch",
-      "updated_at": "2026-10-30T06:50:29.742621+00:00",
+      "updated_at": "2026-10-31T12:09:12.720672+00:00",
       "why": null
     },
     {
@@ -53073,6 +53179,109 @@
       "title": "Return to local MPS entity-versus-rays training",
       "updated_at": "2026-10-31T12:01:10.135689+00:00",
       "why": null
+    },
+    {
+      "actual": null,
+      "actual_kind": "unobserved",
+      "created_at": "2026-10-31T12:09:12.626371+00:00",
+      "doing": "Propose fixed36/72/144update endpoints for fresh matched local control/rays trajectories from original420+Adam, at least2 training replicas per arm. Keep rollout, optimizer, seeds and reward fixed; compare added exposure separately from parallelism. No current-run extension or automatic resume.",
+      "evidence": [
+        {
+          "experiment_id": "DODGE-067",
+          "id": "964d33d184c5434f961e3f9d36457041",
+          "kind": "plan",
+          "label": "Discussion proposal: longer training and fixed-batch parallelism; no execution authority",
+          "recorded_at": "2026-10-31T12:09:12.627455+00:00",
+          "sha256": "bf7991dafc3d40db77633d1b4791b5422ab7ba3bd69a8f97f587ed27eecd18d2",
+          "uri": "docs/training-setup-followups-20261031.json"
+        }
+      ],
+      "expected": "Additional exposure may improve undertrained policies, plateau, overfit the training pool or worsen play. PPO diagnostics alone will not establish survival convergence; assess prespecified endpoints under a separately frozen evaluation contract.",
+      "history": [
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-067",
+          "reason": "Taylor asked to add longer training setup experiment; proposal only, current066 untouched",
+          "recorded_at": "2026-10-31T12:09:12.626371+00:00",
+          "revision": 1,
+          "snapshot": {
+            "actual": null,
+            "actual_kind": "unobserved",
+            "created_at": "2026-10-31T12:09:12.626371+00:00",
+            "doing": "Propose fixed36/72/144update endpoints for fresh matched local control/rays trajectories from original420+Adam, at least2 training replicas per arm. Keep rollout, optimizer, seeds and reward fixed; compare added exposure separately from parallelism. No current-run extension or automatic resume.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-067",
+                "id": "964d33d184c5434f961e3f9d36457041",
+                "kind": "plan",
+                "label": "Discussion proposal: longer training and fixed-batch parallelism; no execution authority",
+                "recorded_at": "2026-10-31T12:09:12.627455+00:00",
+                "sha256": "bf7991dafc3d40db77633d1b4791b5422ab7ba3bd69a8f97f587ed27eecd18d2",
+                "uri": "docs/training-setup-followups-20261031.json"
+              }
+            ],
+            "expected": "Additional exposure may improve undertrained policies, plateau, overfit the training pool or worsen play. PPO diagnostics alone will not establish survival convergence; assess prespecified endpoints under a separately frozen evaluation contract.",
+            "id": "DODGE-067",
+            "measurements": [],
+            "metadata": {
+              "candidate_update_endpoints": [
+                36,
+                72,
+                144
+              ],
+              "current_run_unchanged": true,
+              "execution_authorized": false,
+              "related_experiments": [
+                "DODGE-032"
+              ]
+            },
+            "next_step": "After066 disposition, design fresh local-only longer trajectories with prespecified endpoints and qualified wall/resource budgets. Coordinate with032fixed-batch N/T comparison; no launch or evaluation authorized by this record.",
+            "parent_id": "DODGE-066",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 1,
+            "status": "planned",
+            "tags": [
+              "local-only",
+              "training-duration",
+              "PPO",
+              "proposed"
+            ],
+            "title": "Test longer local PPO training for control and rays",
+            "updated_at": "2026-10-31T12:09:12.626371+00:00",
+            "why": "The current36update budget is an initial comparison budget, not evidence that learning has converged."
+          }
+        }
+      ],
+      "id": "DODGE-067",
+      "measurements": [],
+      "metadata": {
+        "candidate_update_endpoints": [
+          36,
+          72,
+          144
+        ],
+        "current_run_unchanged": true,
+        "execution_authorized": false,
+        "related_experiments": [
+          "DODGE-032"
+        ]
+      },
+      "next_step": "After066 disposition, design fresh local-only longer trajectories with prespecified endpoints and qualified wall/resource budgets. Coordinate with032fixed-batch N/T comparison; no launch or evaluation authorized by this record.",
+      "parent_id": "DODGE-066",
+      "prediction_timing": "before_run",
+      "project": "dodge-native",
+      "revision": 1,
+      "status": "planned",
+      "tags": [
+        "local-only",
+        "training-duration",
+        "PPO",
+        "proposed"
+      ],
+      "title": "Test longer local PPO training for control and rays",
+      "updated_at": "2026-10-31T12:09:12.626371+00:00",
+      "why": "The current36update budget is an initial comparison budget, not evidence that learning has converged."
     }
   ],
   "project_context": [

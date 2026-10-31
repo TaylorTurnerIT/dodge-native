@@ -1,0 +1,50 @@
+{
+  "allocation_experiment": {
+    "controls": "Keep total training frames, optimizer cadence, PPO settings and seed source matched. Measure wall time/resources separately from learning; varying N/T changes trajectory segmentation and sample correlation.",
+    "existing_record": "DODGE-032",
+    "fixed_fresh_frames_per_update": 65536,
+    "local_candidate_envs_times_rollout": [
+      [
+        32,
+        2048
+      ],
+      [
+        64,
+        1024
+      ],
+      [
+        128,
+        512
+      ]
+    ]
+  },
+  "automatic_resume_authorized": false,
+  "cohorts_opened": [],
+  "duration_experiment": {
+    "arms": [
+      "control",
+      "rays"
+    ],
+    "candidate_fixed_update_endpoints": [
+      36,
+      72,
+      144
+    ],
+    "controls": "Match original420+Adam, seeds, reward, discount, rollout shape, minibatches, learning rate and PPO passes. Training exposure is the intended intervention.",
+    "endpoint_design": "Prefer prespecified checkpoints along fresh longer trajectories, subject to final registration. Endpoints on one trajectory are paired observations, not independent training replicas.",
+    "fresh_frames_per_update": 65536,
+    "minimum_independent_training_replicas_per_arm": 2,
+    "prediction": "More exposure may improve an undertrained policy, plateau, overfit the training pool or degrade performance. Low KL or flat losses alone do not establish convergence.",
+    "question": "Does additional PPO training improve the control or rays policy beyond the current short screen?"
+  },
+  "evaluation_or_promotion_authorized": false,
+  "execution_authorized": false,
+  "execution_location": "local_machine_only",
+  "launch_requirements": "Separate frozen local packet, resource/time qualification, fixed evaluation contract and normal exact lease ownership; no concurrent accelerator run or extension of066.",
+  "new_record": "DODGE-067",
+  "related_existing_record": "DODGE-032",
+  "running_packet_changed": false,
+  "running_record": "DODGE-066",
+  "schema": "dodge_training_setup_followups_v1",
+  "status": "proposed_only"
+}
