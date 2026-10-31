@@ -46175,11 +46175,29 @@
       "why": "The installed PyTorch CUDA memory-limit API requires a numbered device such as cuda:0; CPU tests did not exercise that CUDA setup call."
     },
     {
-      "actual": "Explicit cuda:0 correction frozen. Actual PyTorch CPU replay reproduces the old error and accepts the indexed device;121 source tests pass with1 skipped,36 controller tests and420 CPU migration pass. No new VM allocated.",
-      "actual_kind": "progress",
+      "actual": "Corrected setup ran original420 model/Adam on Tesla T4: one disposable step and GPU numerical checks passed. Our report reader then raised KeyError for a field absent from the CUDA body but explicitly false in both outer reports; we requested VM release after48.421s and confirmed removal. Original060 remains failed and its lock held.",
+      "actual_kind": "observed",
       "created_at": "2026-10-31T05:30:55.575009+00:00",
       "doing": "Review a separate T4 synthetic compatibility successor selecting cuda:0 explicitly; preserve failed059 and fit combined059+060 allocation time and costs within the existing900s/8CU allowance.",
       "evidence": [
+        {
+          "experiment_id": "DODGE-060",
+          "id": "27bf6c77af1f49ca904a3b7e88cc97ea",
+          "kind": "result",
+          "label": "Preserved reporting failure with successful underlying GPU test and our requested release",
+          "recorded_at": "2026-10-31T05:45:53.362964+00:00",
+          "sha256": "ee7f21b582741ccd8bfce6ed4ed6b0ec3635882a4f6b311e8ba032e2a78061b7",
+          "uri": "learning/runs/v2/teacher-cloud-parent-20261031-r1/blocking-incident-DODGE060-report-r1.json"
+        },
+        {
+          "experiment_id": "DODGE-060",
+          "id": "743b6865e53a48e38ea9f679d44f097c",
+          "kind": "result",
+          "label": "Raw GPU result summary and exact archive hash; not campaign acceptance",
+          "recorded_at": "2026-10-31T05:45:53.362994+00:00",
+          "sha256": "b5876cf7e0424a5ee31ff54de573a9b85295397cb514292e2edb999fb3326b0a",
+          "uri": "learning/runs/v2/teacher-cloud-parent-20261031-r1/dispatch-DODGE060-T4-r1/GPU-result-summary.json"
+        },
         {
           "experiment_id": "DODGE-060",
           "id": "ee865e186f514fe599ada77a67581abe",
@@ -46331,6 +46349,94 @@
             "updated_at": "2026-10-31T05:32:42.619336+00:00",
             "why": null
           }
+        },
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-060",
+          "reason": "Preserve actual GPU success and separate strict report-reader failure without rewriting060",
+          "recorded_at": "2026-10-31T05:45:53.362658+00:00",
+          "revision": 3,
+          "snapshot": {
+            "actual": "Corrected setup ran original420 model/Adam on Tesla T4: one disposable step and GPU numerical checks passed. Our report reader then raised KeyError for a field absent from the CUDA body but explicitly false in both outer reports; we requested VM release after48.421s and confirmed removal. Original060 remains failed and its lock held.",
+            "actual_kind": "observed",
+            "created_at": "2026-10-31T05:30:55.575009+00:00",
+            "doing": "Review a separate T4 synthetic compatibility successor selecting cuda:0 explicitly; preserve failed059 and fit combined059+060 allocation time and costs within the existing900s/8CU allowance.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-060",
+                "id": "27bf6c77af1f49ca904a3b7e88cc97ea",
+                "kind": "result",
+                "label": "Preserved reporting failure with successful underlying GPU test and our requested release",
+                "recorded_at": "2026-10-31T05:45:53.362964+00:00",
+                "sha256": "ee7f21b582741ccd8bfce6ed4ed6b0ec3635882a4f6b311e8ba032e2a78061b7",
+                "uri": "learning/runs/v2/teacher-cloud-parent-20261031-r1/blocking-incident-DODGE060-report-r1.json"
+              },
+              {
+                "experiment_id": "DODGE-060",
+                "id": "743b6865e53a48e38ea9f679d44f097c",
+                "kind": "result",
+                "label": "Raw GPU result summary and exact archive hash; not campaign acceptance",
+                "recorded_at": "2026-10-31T05:45:53.362994+00:00",
+                "sha256": "b5876cf7e0424a5ee31ff54de573a9b85295397cb514292e2edb999fb3326b0a",
+                "uri": "learning/runs/v2/teacher-cloud-parent-20261031-r1/dispatch-DODGE060-T4-r1/GPU-result-summary.json"
+              },
+              {
+                "experiment_id": "DODGE-060",
+                "id": "ee865e186f514fe599ada77a67581abe",
+                "kind": "plan",
+                "label": "Bounded successor within original combined900s/8CU request",
+                "recorded_at": "2026-10-31T05:30:55.576036+00:00",
+                "sha256": "be6e70b949e910232e37d80c32628ccb031ea6dc3cffd57e3c8174a4786bf13c",
+                "uri": "learning/runs/v2/teacher-cloud-parent-20261031-r1/authority-r4.json"
+              },
+              {
+                "experiment_id": "DODGE-060",
+                "id": "f5da8910e27c4c5a95dc181747a1a989",
+                "kind": "registration",
+                "label": "Explicitly indexed CUDA successor within remaining compatibility budget",
+                "recorded_at": "2026-10-31T05:32:42.620142+00:00",
+                "sha256": "3742a27289e93eae9c07896aa8af4fa51495edaf43b86d02955e2926a926c385",
+                "uri": "learning/runs/v2/teacher-ray-colab-cuda-compat-20261031-r4/registration-r1.json"
+              },
+              {
+                "experiment_id": "DODGE-060",
+                "id": "f93b7c475e514feb9e328e60285c059b",
+                "kind": "result",
+                "label": "Device-index CPU replay plus121 source/36 controller fixtures",
+                "recorded_at": "2026-10-31T05:32:42.620181+00:00",
+                "sha256": "72a587ba1034678d53db730ec97dd6e7a657e385d4f47ddcc2c82b12ca981484",
+                "uri": "learning/runs/v2/teacher-ray-colab-cuda-compat-20261031-r4/CPU-readiness-r1.json"
+              }
+            ],
+            "expected": "CPU replay reproduces the unindexed-device error and verifies the explicit index. The correction should pass the observed CUDA memory-limit setup call, while actual model/Adam CUDA compatibility and numerical tolerances remain unobserved.",
+            "id": "DODGE-060",
+            "measurements": [],
+            "metadata": {
+              "CPU_replay_observed_before_prediction": true,
+              "authority_basis": "Continue user Go for cheaper non-training compatibility without increasing total time or spending.",
+              "combined_CU_cap": 8,
+              "combined_assigned_seconds_cap": 900,
+              "maximum_quote_CU_per_hour": 3,
+              "prior_assigned_seconds_upper_bound": 36.729438066482544,
+              "successor_assigned_seconds_cap": 860
+            },
+            "next_step": "Independently review an audit-only reconciliation of the archived GPU results and source-backed companion scope statements. Preserve all060 failures and reports; no rerun, field insertion, acceptance waiver or new GPU allocation.",
+            "parent_id": "DODGE-059",
+            "prediction_timing": "before_run",
+            "project": "dodge-native",
+            "revision": 3,
+            "status": "failed",
+            "tags": [
+              "colab",
+              "T4",
+              "synthetic-compatibility",
+              "CUDA-index",
+              "single-attempt"
+            ],
+            "title": "Explicit CUDA device correction within remaining T4 test budget",
+            "updated_at": "2026-10-31T05:45:53.362658+00:00",
+            "why": "A mismatch between the actual result format and our reader, rather than a GPU numerical or memory failure. The raw files are preserved for independent audit without another VM."
+          }
         }
       ],
       "id": "DODGE-060",
@@ -46344,12 +46450,12 @@
         "prior_assigned_seconds_upper_bound": 36.729438066482544,
         "successor_assigned_seconds_cap": 860
       },
-      "next_step": "Exact independent source review, then one separately recorded T4 successor using at most860 remaining assigned seconds; preserve failed059 and keep combined900s/8CU allowance. No059 rerun or A100 training qualification.",
+      "next_step": "Independently review an audit-only reconciliation of the archived GPU results and source-backed companion scope statements. Preserve all060 failures and reports; no rerun, field insertion, acceptance waiver or new GPU allocation.",
       "parent_id": "DODGE-059",
       "prediction_timing": "before_run",
       "project": "dodge-native",
-      "revision": 2,
-      "status": "conditional",
+      "revision": 3,
+      "status": "failed",
       "tags": [
         "colab",
         "T4",
@@ -46358,7 +46464,98 @@
         "single-attempt"
       ],
       "title": "Explicit CUDA device correction within remaining T4 test budget",
-      "updated_at": "2026-10-31T05:32:42.619336+00:00",
+      "updated_at": "2026-10-31T05:45:53.362658+00:00",
+      "why": "A mismatch between the actual result format and our reader, rather than a GPU numerical or memory failure. The raw files are preserved for independent audit without another VM."
+    },
+    {
+      "actual": null,
+      "actual_kind": "unobserved",
+      "created_at": "2026-10-31T05:49:17.226026+00:00",
+      "doing": "Independently audit successful archived060 GPU checks and source-backed explicit outer scope declarations, preserving the failed controller run and every original report field. No new VM or GPU work.",
+      "evidence": [
+        {
+          "experiment_id": "DODGE-061",
+          "id": "d825ae78b96443f1b71715697fe15f70",
+          "kind": "plan",
+          "label": "Audit-only reconciliation authority, with no new GPU work",
+          "recorded_at": "2026-10-31T05:49:17.227387+00:00",
+          "sha256": "4a60fde725e1144b8c81fd3caf14ba56af13bd51a6cf562bf7fdc521bf2fbf03",
+          "uri": "learning/runs/v2/teacher-cloud-parent-20261031-r1/authority-r5-archive-only.json"
+        }
+      ],
+      "expected": "Retrospective: saved reports already show successful model/Adam/CUDA checks. Acceptance requires exact archive/source identity, all original numeric/resource/budget checks and explicit outer no-trained-weights statements; missing inner metadata must remain missing.",
+      "history": [
+        {
+          "actor": "agent",
+          "experiment_id": "DODGE-061",
+          "reason": "Separate retrospective archive audit from preserved060 report-contract failure; no new GPU",
+          "recorded_at": "2026-10-31T05:49:17.226026+00:00",
+          "revision": 1,
+          "snapshot": {
+            "actual": null,
+            "actual_kind": "unobserved",
+            "created_at": "2026-10-31T05:49:17.226026+00:00",
+            "doing": "Independently audit successful archived060 GPU checks and source-backed explicit outer scope declarations, preserving the failed controller run and every original report field. No new VM or GPU work.",
+            "evidence": [
+              {
+                "experiment_id": "DODGE-061",
+                "id": "d825ae78b96443f1b71715697fe15f70",
+                "kind": "plan",
+                "label": "Audit-only reconciliation authority, with no new GPU work",
+                "recorded_at": "2026-10-31T05:49:17.227387+00:00",
+                "sha256": "4a60fde725e1144b8c81fd3caf14ba56af13bd51a6cf562bf7fdc521bf2fbf03",
+                "uri": "learning/runs/v2/teacher-cloud-parent-20261031-r1/authority-r5-archive-only.json"
+              }
+            ],
+            "expected": "Retrospective: saved reports already show successful model/Adam/CUDA checks. Acceptance requires exact archive/source identity, all original numeric/resource/budget checks and explicit outer no-trained-weights statements; missing inner metadata must remain missing.",
+            "id": "DODGE-061",
+            "measurements": [],
+            "metadata": {
+              "new_allocations": 0,
+              "no_missing_field_inserted": true,
+              "original060_campaign_success": false
+            },
+            "next_step": "Run CPU archive-corruption and ownership fixtures; freeze source and independent review before any audit ownership transfer or release. No new GPU allocation or training.",
+            "parent_id": "DODGE-060",
+            "prediction_timing": "retrospective",
+            "project": "dodge-native",
+            "revision": 1,
+            "status": "conditional",
+            "tags": [
+              "colab",
+              "T4",
+              "archive-audit",
+              "retrospective",
+              "no-new-GPU"
+            ],
+            "title": "Audit archived T4 evidence without another GPU run",
+            "updated_at": "2026-10-31T05:49:17.226026+00:00",
+            "why": null
+          }
+        }
+      ],
+      "id": "DODGE-061",
+      "measurements": [],
+      "metadata": {
+        "new_allocations": 0,
+        "no_missing_field_inserted": true,
+        "original060_campaign_success": false
+      },
+      "next_step": "Run CPU archive-corruption and ownership fixtures; freeze source and independent review before any audit ownership transfer or release. No new GPU allocation or training.",
+      "parent_id": "DODGE-060",
+      "prediction_timing": "retrospective",
+      "project": "dodge-native",
+      "revision": 1,
+      "status": "conditional",
+      "tags": [
+        "colab",
+        "T4",
+        "archive-audit",
+        "retrospective",
+        "no-new-GPU"
+      ],
+      "title": "Audit archived T4 evidence without another GPU run",
+      "updated_at": "2026-10-31T05:49:17.226026+00:00",
       "why": null
     }
   ],
