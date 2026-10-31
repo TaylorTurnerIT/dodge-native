@@ -1,0 +1,49 @@
+{
+  "schema": "dodge_review_evidence_v1",
+  "record": "DODGE-066",
+  "registration_sha256": "6a15523b444345b73ff632cc420687ab68e4a5292c2b2c3b0e83e47134e11f45",
+  "independent_checks": [
+    {
+      "check": "Working tree and exact head",
+      "result": "HEAD 13928219144ed8aee49ccfec3ca96f1b13cfccc0. Existing dirty state.json and untracked obsolete Colab dispatcher observed and left untouched."
+    },
+    {
+      "check": "Authority, exact predecessor, and lease state",
+      "result": "DODGE-066 local-only authority permits one fresh successor attempt, forbids claim/lease reset, evaluation, and promotion. Current active_long_campaign exactly matches failed DODGE-065 lease rays065-a100-bootstrap-20261031-r1. No handoff performed."
+    },
+    {
+      "check": "Failed065 disposition and cache",
+      "result": "Coordinator check-only validated the pinned failed065 registration/incident/receipts/source/input identities and terminal zero-work proof; exact lease remains held. DODGE-066 empty-pycache is empty."
+    },
+    {
+      "check": "Registration and source/input pins",
+      "result": "Coordinator --check-only validated registration, authority, readiness, preflight receipt, all registration source/input pins, and both coordinator source pins. Registration hash and plan hash matched supplied exact values."
+    },
+    {
+      "check": "Dispatch and acceptance control flow",
+      "result": "Dispatch requires fresh confined output, exact currently-held failed065 lease, no prior local claim/failure/output, then writes durable failed disposition before exact non-null handoff. Acceptance requires directly reaped matching coordinator and absent process group, strict four-trajectory terminal evidence and per-job audit equality. It creates coordinator-terminal-audit.json exclusively before clearing only the exact DODGE-066 lease; release receipt follows. Worker audit_job reads accepted worker receipts and does not rewrite them."
+    },
+    {
+      "check": "Bounded CPU tests",
+      "result": "learning/tests/test_teacher_local_dispatch_20261031_r1.py: 2 tests passed. learning/runs/v2/teacher-ray-local-20261031-r1/test_source.py: 16 tests passed. Both processes reaped to exit 0."
+    },
+    {
+      "check": "Coordinator check-only",
+      "result": "Printed {\"status\": \"local_CPU_preparation_verified\", \"execution_authorized\": false}; no dispatch/handoff/training path entered."
+    }
+  ],
+  "prior_owner_evidence_not_independently_rerun": [
+    {
+      "path": "learning/runs/v2/teacher-local-parent-20261031-r1/readiness-r1.json",
+      "claims": "Prior 2 coordinator tests and 16 source tests passed; CPU preflight completed; zero native games and zero MPS work. Receipt pins validated during this review. CPU preflight was not rerun."
+    },
+    {
+      "path": "learning/runs/v2/teacher-local-parent-20261031-r1/failed065-disposition-preparation.json",
+      "claims": "Prior disposition says DODGE-065 campaign failed, assignment absence confirmed, and exact lease remains held. Coordinator check-only revalidated its registered incident and receipt pins."
+    }
+  ],
+  "limits": [
+    "No MPS/CUDA/native game, live resource qualification, training, evaluation, promotion, dispatch, or lease mutation performed.",
+    "Review and CPU checks do not authorize launch; separate user-authorized local execution flow must retain all registration gates and caps."
+  ]
+}
