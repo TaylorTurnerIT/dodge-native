@@ -1,0 +1,83 @@
+{
+  "schema": "dodge060_independent_indexed_t4_source_review_evidence_v1",
+  "record": "DODGE-060",
+  "registration": {
+    "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/teacher-ray-colab-cuda-compat-20261031-r4/registration-r1.json",
+    "sha256": "3742a27289e93eae9c07896aa8af4fa51495edaf43b86d02955e2926a926c385",
+    "source_pin_count": 34,
+    "input_pin_count": 56,
+    "all_registered_source_and_input_pins_match": true,
+    "source_freeze_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/teacher-ray-colab-cuda-compat-20261031-r4/source-freeze-r1.json",
+    "source_freeze_sha256": "f64dce5a3f1518cfe2f29a8e87e57afa906c6e786847919cc638baab50e65759",
+    "source_freeze_internal_pin_counts": {"source": 34, "input": 55},
+    "source_freeze_internal_pins_match": true,
+    "payload_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/teacher-ray-colab-cuda-compat-20261031-r4/payload.tar",
+    "payload_sha256": "d5c2dcc00c51804c1c5742db20c8b25f2ddcec7d4045a0987e91ab9b57c329af",
+    "payload_bytes": 92160,
+    "payload_code_members": 12,
+    "payload_manifest_and_member_hashes_match": true,
+    "original420_checkpoint_sha256": "7e0de8640f1337261412d91cde6bc692772ff212fbd360f5aad415dc6bc7ed4b"
+  },
+  "coordinator_source_pins": {
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/experiments/teacher_colab_compat_dispatch_20261031_r4.py": {
+      "sha256": "a350d55dd251efe8da31d53b688697e845c34a98236988f81ecf891e94b3be94",
+      "observed_sha256": "a350d55dd251efe8da31d53b688697e845c34a98236988f81ecf891e94b3be94",
+      "match": true
+    },
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/experiments/coordinator_dispatch_v2.py": {
+      "sha256": "77655f4e200ccce33950cd53201ef509394f8bff81e92fdd208c52668890fa16",
+      "observed_sha256": "77655f4e200ccce33950cd53201ef509394f8bff81e92fdd208c52668890fa16",
+      "match": true
+    }
+  },
+  "source_review": {
+    "device_correction": "compatibility.py:49-53 constructs torch.device('cuda', 0), preserves CPU construction, and records device_index; compatibility.py:91-114 passes that same resolved device to memory-property lookup and set_per_process_memory_fraction. Model placement, Adam moment-device checks, synchronization, allocator accounting, and CUDA RNG capture/restore use the resolved device in compatibility.py:130-201 and runtime_overlay/dodge_rl/device_runtime.py:17-72.",
+    "model_and_optimizer_boundary": "The runtime_overlay RayGeometryTeacher intentionally keeps geometry inputs on CPU and moves learned parameters and ray features to the selected device. The fixture checks exact zero-gate same-device parity, CPU/device tolerance 2e-5, preserved checkpoint model and Adam fingerprints, and one disposable Adam step. No simulator or native runtime is imported; compatibility.py:27-31 installs the native-import tripwire.",
+    "controller_integration": "Controller validates registration, review, authority, source/input pins, payload and exact checkpoint; prior failed059 time/cost and exact lease are bound before handoff. One assignment UUID is persisted before the sole SDK assign call, retries are pinned to zero, and endpoint ownership is durably recorded before private session storage. Ambiguous allocation retains the lease without retry or unowned stop. Receipt retrieval precedes exact-owned teardown. Fresh absence, removal classification, and combined budget are recorded before pending acceptance; terminal acceptance validates receipts and absence, durably records the audit, then releases the exact lease under the shared lock.",
+    "terminal_budget": "Registration and authority bind prior assigned seconds 36.729438066482544 and prior cost upper estimate 0.03060786505540212 CU. Successor assigned-time cap is 860 seconds; controller requires combined time <=900 seconds and cost estimate <=8 CU, with 3 CU/hour ceiling, 6 CU work cutoff, and 120-second teardown reserve. BillingGuard includes prior cost and full elapsed ceiling estimate. Balance freshness is not claimed.",
+    "prior_failure": "Read-only failed059_disposition returned acknowledged_failed_campaign, campaign_success=false, unchanged original pins, preserved assignment absence, prior 36.729438066482544-second upper bound, and exact DODGE-059 lease. No prior failure, lease, or ledger artifact was changed.",
+    "training_boundary": "The source and authority prohibit native games, training frames, cohorts, held-out evaluation, trained-weight saving, and promotion. DODGE-058 remains reserved for separate A100 native qualification; T4 success cannot qualify it."
+  },
+  "cpu_fixtures": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python/.venv/bin/python -B learning/tests/test_teacher_colab_compat_dispatch_20261031_r4.py",
+      "exit_code": 0,
+      "result": "passed",
+      "tests": 36,
+      "scope": "Dummy child, file/CAS, fake provider and offline installed-SDK request/origin fixtures; no account calls."
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python/.venv/bin/python -B learning/experiments/teacher_ray_colab_t4_r3/source_tests/run_ray_source_checks.py",
+      "exit_code": 0,
+      "result": "passed",
+      "tests": 121,
+      "skipped": 1,
+      "scope": "CPU source checks, native/accelerator tripwires, and actual PyTorch CPU device-index error replay/checker."
+    }
+  ],
+  "cpu_readiness_receipt": {
+    "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/teacher-ray-colab-cuda-compat-20261031-r4/CPU-readiness-r1.json",
+    "sha256": "72a587ba1034678d53db730ec97dd6e7a657e385d4f47ddcc2c82b12ca981484",
+    "status": "CPU_source_and_420_migration_ready",
+    "actual_cuda_observed": false
+  },
+  "CPU_420_receipt": {
+    "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/teacher-ray-colab-cuda-compat-20261031-r4/CPU-420-compatibility.json",
+    "sha256": "5a93976006176821a66d1010fbecc52d297ae44ecdfa5e5520b292e6018e399f",
+    "device": "cpu",
+    "device_index": null,
+    "GPU": null,
+    "synthetic_optimizer_steps": 1,
+    "native_games": 0,
+    "training_frames": 0
+  },
+  "non_mutation": {
+    "cloud_account_network_or_allocation_calls": false,
+    "controller_main_sdk_live_modes_or_terminal_acceptance_called": false,
+    "native_MPS_CUDA_games_or_seed_use": false,
+    "source_registration_payload_inputs_or_cache_modified": false,
+    "live_ledger_written": false,
+    "prior059_disposition_function_called_read_only": true,
+    "review_outputs": ["review.json", "evidence.json"]
+  }
+}
