@@ -1,0 +1,74 @@
+{
+  "authority_sha256": "4189e5d192e2684a5e5f24b57b90ef424bee150ac53a446869e3ed5f3930870a",
+  "coordinator_source_pins": {
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/experiments/coordinator_dispatch_v2.py": "77655f4e200ccce33950cd53201ef509394f8bff81e92fdd208c52668890fa16",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/experiments/teacher_colab_control_channel_20261031_r1.py": "3d78a782afb8ac23114853d03f1724822ce6d2d43d697957b5ee80c26263ed78",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/experiments/teacher_colab_training_budget_20261031_r2.py": "bbb90eafa2ff2f6b058356b4be20e5aa898f03794532dfcc7948a246636fc71f",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/experiments/teacher_colab_training_dispatch_20261031_r2.py": "23086e5da92bfbc494a2d3f2621be4e7d99e1c22d16ec08bae291b3b462f767e",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/experiments/teacher_colab_training_transport_20261031_r2.py": "da715e81eb3a18b1fb4d141f566847ecb3ca9ad00ed925a36e5c82b5bf02bb9b"
+  },
+  "findings": [
+    {
+      "consequence": "The control child raises ValueError(\"Loaded unpinned control dependency\") before emitting readiness. Parent PipeClient therefore fails during prepare_control; DODGE-062 cannot reach build or training on this registered environment. The helper-only pipe/HTTP tests do not exercise this production handler path.",
+      "independent_evidence": "Ran actual serve_control in SDK Python with fixture-owned session and loopback-only HTTP. Child exited before readiness. Direct dependency inventory found unpinned idna and charset_normalizer modules; same failure reproduced at checked_origins line 152.",
+      "line": 152,
+      "path": "learning/experiments/teacher_colab_training_transport_20261031_r2.py",
+      "severity": "blocker",
+      "trigger": "The actual warm serve_control path imports requests and urllib3, then checked_origins rejects every loaded requests.* or urllib3.* module without an input pin. Registration pins requests/urllib3 .py files only. The pinned SDK Python 3.12 environment also loads unpinned idna and charset_normalizer files and extension modules through requests.packages.*."
+    }
+  ],
+  "fixture_note": "Loopback timeout fixture catches expected BrokenPipeError/ConnectionResetError when a deliberately slow response writes after client reap; this is expected fixture socket cleanup, not production-path evidence.",
+  "independently_run_tests": [
+    {
+      "command": "python/.venv/bin/python -B -m pytest -q learning/tests/test_teacher_colab_training_dispatch_20261031_r2.py",
+      "result": "passed; 35 passed"
+    },
+    {
+      "command": "python/.venv/bin/python -B -m pytest -q learning/tests/test_teacher_colab_training_budget_20261031_r2.py",
+      "result": "passed; 7 passed, 5 subtests passed"
+    },
+    {
+      "command": "python/.venv/bin/python -B -m pytest -q learning/tests/test_teacher_colab_control_channel_20261031_r1.py",
+      "result": "passed; 12 passed"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 RAY_CHECKPOINT420_CPU_FIXTURE=1 python/.venv/bin/python -B learning/experiments/teacher_ray_colab_training_r2/source_tests/run_ray_source_checks.py",
+      "result": "passed; 105 passed"
+    },
+    {
+      "command": "python3 -B learning/experiments/teacher_colab_training_dispatch_20261031_r2.py --plan learning/runs/v2/teacher-cloud-parent-20261031-r1/DODGE-062-preparation-plan-r1.json --sha256 8e178eee38615ee5f1d72870e2ddab2285f5ddee6bf69dbddaccf33cd5f0be7e --check-only",
+      "result": "passed; CPU_preparation_pins_verified; pool_opened=false; execution_authorized=false"
+    },
+    {
+      "command": "Loopback actual serve_control + PipeClient probe in registered SDK Python",
+      "result": "blocked at startup by unpinned loaded control dependency; no live cloud/network request"
+    }
+  ],
+  "limits": [
+    "No cloud API/authentication, account inventory, allocation, lease/state mutation, engine import, game construction, GPU/MPS, dispatch, prepare/launcher/worker, install, or training was performed.",
+    "The deferred training pool was neither opened nor hashed. D10-D13 were not opened. The original 420 checkpoint was used only through registered pin checks and the guarded CPU fixture.",
+    "No live server/network failure cause or live fix is established. Saved058 failure remains an observed renew_once TimeoutExpired; offline cold imports do not explain it. A100 process, native waitid/proc/NVML behavior, resource limits, throughput, and live billing freshness remain unverified.",
+    "Review and passing CPU/source checks grant no allocation, dispatch, lease, training, acceptance, or promotion authority."
+  ],
+  "owner_freeze_sha256": "13e4d8eb20e5cda4e5c05feff822342bac662ba4eac71c010214f3867832006a",
+  "owner_source_commit": "ece3df3bcac93dfe0ec9136e19c74f4e4a52c7c9",
+  "parent_commit": "ab6fe696b0a3c59842bfcfdfcc9337ade2e6aac3",
+  "record": "DODGE-062",
+  "registration_path": "learning/runs/v2/teacher-cloud-parent-20261031-r1/DODGE-062-A100-training-registration-r1.json",
+  "registration_sha256": "14b616d432a9bdf6ba775e2bfbb73c7bf8407eee32db7a9d85fd34357cec9534",
+  "review_scope": {
+    "coordinator_source_pins_verified": 5,
+    "input_pins_verified": 103,
+    "native_and_runtime_lineage_files_compared": 62,
+    "owner_source_files": 92,
+    "payload_bytes": 21739520,
+    "payload_embedded_manifest": "source-manifest.json",
+    "payload_members": 1937,
+    "prior_058_source_input_receipt_hashes_rechecked": true,
+    "source_pins_verified": 101,
+    "training_pool_opened_or_hashed": false
+  },
+  "review_type": "fresh_independent_read_only_joint_source_review",
+  "schema": "dodge062_independent_joint_source_review_v1",
+  "status": "blocking_findings"
+}

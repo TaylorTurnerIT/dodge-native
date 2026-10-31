@@ -1,0 +1,48 @@
+test_actual_entry_readiness_and_many_PUTs_keep_one_process_connection (__main__.RealServiceTests.test_actual_entry_readiness_and_many_PUTs_keep_one_process_connection) ... ok
+test_actual_entry_rejects_wrong_dependency_hash_before_readiness (__main__.RealServiceTests.test_actual_entry_rejects_wrong_dependency_hash_before_readiness) ... ERROR
+test_actual_service_cancellation_prevents_later_grants (__main__.RealServiceTests.test_actual_service_cancellation_prevents_later_grants) ... ok
+test_actual_service_lease_loss_prevents_HTTP (__main__.RealServiceTests.test_actual_service_lease_loss_prevents_HTTP) ... ok
+test_actual_service_preserves_exact_admission_bytes (__main__.RealServiceTests.test_actual_service_preserves_exact_admission_bytes) ... ok
+test_actual_service_wrong_control_identity_prevents_HTTP (__main__.RealServiceTests.test_actual_service_wrong_control_identity_prevents_HTTP) ... ok
+test_rejected_r1_reproduces_failure_before_readiness_and_HTTP (__main__.RealServiceTests.test_rejected_r1_reproduces_failure_before_readiness_and_HTTP) ... ERROR
+
+======================================================================
+ERROR: test_actual_entry_rejects_wrong_dependency_hash_before_readiness (__main__.RealServiceTests.test_actual_entry_rejects_wrong_dependency_hash_before_readiness)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/tests/test_teacher_colab_control_service_20261031_r1.py", line 128, in test_actual_entry_rejects_wrong_dependency_hash_before_readiness
+    with self.assertRaises(EOFError):self.start(bad_digest=True)
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/tests/test_teacher_colab_control_service_20261031_r1.py", line 110, in start
+    with patch('subprocess.Popen',side_effect=spawn):transport.prepare_control(timeout=5)
+                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/experiments/teacher_colab_training_transport_20261031_r2.py", line 107, in prepare_control
+    self.control = channel.PipeClient(command,self.env,self.output/'control-transport.jsonl',ready,
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/experiments/teacher_colab_control_channel_20261031_r1.py", line 58, in __init__
+    if ready!=expected_ready:raise ValueError('Control startup identity differs')
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: Control startup identity differs
+
+======================================================================
+ERROR: test_rejected_r1_reproduces_failure_before_readiness_and_HTTP (__main__.RealServiceTests.test_rejected_r1_reproduces_failure_before_readiness_and_HTTP)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/tests/test_teacher_colab_control_service_20261031_r1.py", line 117, in test_rejected_r1_reproduces_failure_before_readiness_and_HTTP
+    with self.assertRaises(EOFError):self.start(missing=True)
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/tests/test_teacher_colab_control_service_20261031_r1.py", line 110, in start
+    with patch('subprocess.Popen',side_effect=spawn):transport.prepare_control(timeout=5)
+                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/experiments/teacher_colab_training_transport_20261031_r2.py", line 107, in prepare_control
+    self.control = channel.PipeClient(command,self.env,self.output/'control-transport.jsonl',ready,
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/experiments/teacher_colab_control_channel_20261031_r1.py", line 58, in __init__
+    if ready!=expected_ready:raise ValueError('Control startup identity differs')
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: Control startup identity differs
+
+----------------------------------------------------------------------
+Ran 7 tests in 7.974s
+
+FAILED (errors=2)
