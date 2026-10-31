@@ -1,0 +1,110 @@
+{
+  "schema": "dodge058_source_preparation_contract_draft_v1",
+  "record": "DODGE-058",
+  "status": "draft_not_execution_authority",
+  "new_remote_execution_authorized": false,
+  "target_accelerator": "A100",
+  "assignment_attempts_proposed": 1,
+  "fallback_GPU_allowed": false,
+  "purchase_topup_allowed": false,
+  "budget": {
+    "total_assigned_seconds": 24000,
+    "native_setup_seconds": 1200,
+    "scientific_training_cap_seconds": 22320,
+    "final_retrieval_teardown_reserve_seconds": 480,
+    "maximum_existing_CU": 48,
+    "work_cutoff_CU": 47,
+    "quote_ceiling_CU_per_hour": 7,
+    "prior_pending_allowance_CU": 1,
+    "accounting": "max(observed debit, prior allowance + elapsed*7/3600); add remaining horizon at7 for projection; no whole-run double counting",
+    "maximum_horizon_projection_CU": 47.666666666666664,
+    "meter_freshness_proven": false,
+    "hard_billing_guarantee": false
+  },
+  "prior_owned_assignment_allowance_basis": [
+    {
+      "receipt_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/teacher-cloud-parent-20261031-r1/dispatch-DODGE057-A100-r2/teardown.json",
+      "receipt_sha256": "5b04fdb520e14b2b7429bb3aa696c23f438b0f081880072d48f4959d56c79fc9",
+      "assigned_seconds_upper_bound": 103.36131286621094,
+      "rate_ceiling_CU_per_hour": 30.0,
+      "cost_upper_estimate_CU": 0.8613442738850912
+    },
+    {
+      "receipt_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/teacher-cloud-parent-20261031-r1/dispatch-DODGE059-T4-r1/teardown.json",
+      "receipt_sha256": "1121487c0416d261068290192dd40d91297e97147428aa20ccdb538be9ccf2c2",
+      "assigned_seconds_upper_bound": 36.729438066482544,
+      "rate_ceiling_CU_per_hour": 3.0,
+      "cost_upper_estimate_CU": 0.03060786505540212
+    },
+    {
+      "receipt_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/teacher-cloud-parent-20261031-r1/dispatch-DODGE060-T4-r1/teardown.json",
+      "receipt_sha256": "9d036e2c21b04a034a4b354de765db1a81100bdef0d8687f31e90a25d495f194",
+      "assigned_seconds_upper_bound": 48.42095470428467,
+      "rate_ceiling_CU_per_hour": 3.0,
+      "cost_upper_estimate_CU": 0.04035079558690389
+    }
+  ],
+  "source_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/experiments/teacher_colab_training_budget_20261031_r1.py",
+  "source_sha256": "2f0712e21cf8945949b18078642bb28142712010d3c28fbdf8063848b1e644aa",
+  "test_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/tests/test_teacher_colab_training_budget_20261031_r1.py",
+  "test_sha256": "5660222c3d466f1846d9f1e22c56a0fa39a095e883ff6e6654d2ce8283e67027",
+  "CPU_tests_passed": 7,
+  "CPU_stdout_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/teacher-cloud-parent-20261031-r1/DODGE-058-budget-CPU-tests-r1.txt",
+  "CPU_stdout_sha256": "031f78823e551243afb92670388e99a4281512b6d1367c7f07936ee6d79f6b79",
+  "control_contract": {
+    "path": "/content/dodge058/control.json",
+    "refresh_seconds": 15,
+    "maximum_TTL_seconds": 60,
+    "initial_TTL_seconds": 45,
+    "stages": [
+      "build",
+      "train"
+    ],
+    "cancellation_path": "/content/dodge058/cancel.requested",
+    "runtime_admission": "Parent validates build cert and writes separate immutable runtime-admission.json; control fortrain binds its hash. Original registration unchanged.",
+    "transport": "Bounded non-chunked ContentsAPI PUT independent of kernel execution; owned refresh task stops on lease/billing/cancel failure.",
+    "pending_owner_precise_schema": true
+  },
+  "candidate_remote_runtime": {
+    "python": "3.13.16 (main, Oct  1 2026, 15:40:24) [GCC 13.3.0]",
+    "torch": "2.11.0+cu130",
+    "numpy": "2.1.3",
+    "cuda_runtime": "13.0",
+    "package_origins": {
+      "numpy_native": {
+        "path": "/usr/local/lib/python3.13/dist-packages/numpy/_core/_multiarray_umath.cpython-313-x86_64-linux-gnu.so",
+        "sha256": "f6c2202e9fdefe9f299ed5d62ae75015605122666e499e73be7c05450ba9be74"
+      },
+      "numpy_python": {
+        "path": "/usr/local/lib/python3.13/dist-packages/numpy/__init__.py",
+        "sha256": "39c42db027548f958e096e8babe3fa0e3e773d24aa39eb6363fc0e3abbec34b1"
+      },
+      "python": {
+        "path": "/usr/bin/python3.13",
+        "sha256": "a35753ccb97941cce1467786cce892e608141f09d717188a3235d4f51a754446"
+      },
+      "torch_native": {
+        "path": "/usr/local/lib/python3.13/dist-packages/torch/_C.cpython-313-x86_64-linux-gnu.so",
+        "sha256": "a1064cb98a2e7beffccae6b89ff79355a45061e56966cc28d89483e7593dff8a"
+      },
+      "torch_python": {
+        "path": "/usr/local/lib/python3.13/dist-packages/torch/__init__.py",
+        "sha256": "f30968f8aeabc2e5b5530a65de2de412ef7e29e3193de9cda2118a033fb3745c"
+      }
+    },
+    "basis": "Actual archived T4 runtime; A100 candidate must match exact registered versions/hashes before build/import, otherwise fail without pip/image changes."
+  },
+  "native_source_manifest": {
+    "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/one-frame-native-luna-20261028-r1/source-manifest.json",
+    "sha256": "0bcb713bea8d193a10150b662ea326b33fcdcaf546c6f7824e195468a89da060",
+    "members": 46,
+    "current_HEAD_equivalence_assumed": false
+  },
+  "remaining_gates": [
+    "Owner staged source/command/receipt/admission/control schemas and exact vendor/toolchain hashes",
+    "Parent staged controller and real fault fixtures",
+    "Frozen final authority/registration and exact joint independent review",
+    "Runtime A100 image match and Linux build/import/ABI qualification",
+    "Actual counted native/CUDA resource/full-path prefix qualification per trajectory"
+  ]
+}
