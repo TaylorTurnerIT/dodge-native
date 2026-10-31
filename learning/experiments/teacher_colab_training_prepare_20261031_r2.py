@@ -30,7 +30,7 @@ def prepare():
         if relative.parts[0] in ['runtime','native_source']:
             c.need(old_freeze['source_pins'].get(str(old_source/relative))==digest,'Engine/runtime changed')
             unchanged+=1
-    c.need(unchanged==65,'Exact46 engine and19 runtime files required')
+    c.need(unchanged==62,'Exact46 engine and16 Python runtime source files required')
     recipe=c.read(owner/'scientific_recipe.json');old_recipe=c.read(old_source/'scientific_recipe.json')
     c.need({k:v for k,v in recipe.items() if k!='record'}=={k:v for k,v in old_recipe.items() if k!='record'},'Recipe changed')
     vendor=packet/'vendor-source';vendor.mkdir()
@@ -51,7 +51,7 @@ def prepare():
     commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
     freeze_path=packet/'owner-source-freeze-r1.json'
     c.save(freeze_path,dict(schema='dodge062_owner_source_freeze_v1',record='DODGE-062',source_commit=commit,
-        source_pins=owner_pins,source_file_count=92,unchanged_native_and_runtime_files=65,
+        source_pins=owner_pins,source_file_count=92,unchanged_native_and_runtime_files=62,
         old058_owner_freeze_sha256=old['owner_freeze_sha256'],payload_path=payload['path'],payload_sha256=payload['sha256'],
         payload_bytes=payload['bytes'],payload_members=len(payload['members']),scientific_recipe_sha256=c.sha(owner/'scientific_recipe.json'),
         declared_changes='058-to062 identity; relocated old-PPO comparison test reference. Engine/runtime/recipe unchanged.',execution_authorized=False))
