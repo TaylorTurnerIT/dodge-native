@@ -1,0 +1,107 @@
+{
+  "schema": "dodge062_independent_review_evidence_v1",
+  "record": "DODGE-062",
+  "review_path": "learning/runs/v2/teacher-cloud-parent-20261031-r1/reviews/DODGE-062-A100-persistent-control-luna-r2/review.json",
+  "registration_local_path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/runs/v2/teacher-cloud-parent-20261031-r1/DODGE-062-A100-training-registration-r2.json",
+  "registration_sha256": "822f3359981bb6865fc3f5c4033a31cb4a554d51d9319f7bb4765e8bb737ea67",
+  "authority_sha256": "4189e5d192e2684a5e5f24b57b90ef424bee150ac53a446869e3ed5f3930870a",
+  "owner_freeze_sha256": "13e4d8eb20e5cda4e5c05feff822342bac662ba4eac71c010214f3867832006a",
+  "coordinator_source_pins": {
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/experiments/coordinator_dispatch_v2.py": "77655f4e200ccce33950cd53201ef509394f8bff81e92fdd208c52668890fa16",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/experiments/teacher_colab_control_channel_20261031_r1.py": "3d78a782afb8ac23114853d03f1724822ce6d2d43d697957b5ee80c26263ed78",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/experiments/teacher_colab_training_budget_20261031_r2.py": "bbb90eafa2ff2f6b058356b4be20e5aa898f03794532dfcc7948a246636fc71f",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/experiments/teacher_colab_training_dispatch_20261031_r2.py": "23086e5da92bfbc494a2d3f2621be4e7d99e1c22d16ec08bae291b3b462f767e",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/experiments/teacher_colab_training_transport_20261031_r2.py": "da715e81eb3a18b1fb4d141f566847ecb3ca9ad00ed925a36e5c82b5bf02bb9b"
+  },
+  "independent_checks": [
+    {
+      "check": "exact head and frozen bindings",
+      "result": "pass; parent HEAD e4b1ec292ce7925232eb47f7187c18e28089a273; exact registration SHA, authority SHA, and owner-freeze SHA match request"
+    },
+    {
+      "check": "registration pins",
+      "result": "pass; all 103 source pins and 132 input pins match current bytes; 235 total; all five coordinator pins match current bytes, registration source pins, and preserved r1 review pins"
+    },
+    {
+      "check": "owner payload",
+      "result": "pass; source-payload.tar SHA256 2824a083987c240eef9ee0aaed19c2a62399823160f33c59cb390696dc6b8000, 21739520 bytes; 1937 payload members plus embedded source-manifest.json"
+    },
+    {
+      "check": "058 source and recipe lineage",
+      "result": "pass; 46 native-source and 16 Python-runtime file digests match preserved058; 92 owner source files; scientific_recipe.json differs only at record identity"
+    },
+    {
+      "check": "r2-only dependency closure",
+      "result": "pass; r2 adds 24 input members: complete idna and charset_normalizer source closure, including cd.cpython-312-darwin.so and md.cpython-312-darwin.so; exact-r2 actual service starts only when all loaded checked origins are pinned"
+    },
+    {
+      "check": "actual warm control path",
+      "result": "pass; independently ran actual Transport.prepare_control -> unchanged adapter main -> official StateStore -> serve_control. Reproduced r1 rejection before readiness/HTTP; r2 reaches readiness, sends five PUTs over one process/connection, rejects bad dependency digest before readiness, and blocks HTTP on lease loss, bad identity, and post-cancellation grant. Exact admission bytes preserved. Fixture lease/state differ from production authority; request destination is loopback HTTP only."
+    },
+    {
+      "check": "proxy refresh and control lifetime source review",
+      "result": "pass; parent 15-second snapshot reuses listed owned A100 assignment proxy info and persists refreshed session; pinned SDK StateStore.get reloads the session file for each control PUT. Warm child has one HTTPS requests.Session, 2/5-second socket limits, no redirects/retries, 8-second parent deadline, 15-second startup, serialized monotonic request IDs, identity/lease checks, credential-free journal, and direct reap. Only cancellation may use bounded cold fallback after pipe poison; no grant can rearm. Live token refresh/HTTPS was not exercised."
+    },
+    {
+      "check": "dispatch, handoff, admission, and terminal gates",
+      "result": "pass; source checks require exact non-null058-to-062 shared-lock CAS, fixed failed058 registration/incident/receipt hashes, one persisted UUID/A100 allocation, endpoint proof before private session store, ambiguous allocation without inferred ownership, fresh zero-account and price gates, build certificate/hash and pre-import ELF/runtime inventory before separate admission, strict allow_fixtures=false archive decoding with stage counters, telemetry, checkpoint hashes, process-group absence, and passive-prefix receipts, first-failure lease retention, direct control-child reap/death, and coordinator audit before exact062-to-null release"
+    },
+    {
+      "check": "recipe, caps, and work boundaries",
+      "result": "pass; r1/r2 identity, nonce, expected/prior leases, payload, control contract, scientific recipe, four-job ABBA order, 36 updates/job, 2359296 frames/job, PPO/Adam, gamma/lambda, resource caps, and financial limits unchanged. Each job gates after two counted updates (131072 frames) on passive GAE/return checks, device/resource receipts, and 20-percent full-path forecast plus 240-second IO reserve. Budget source implements max(observed, 1.25 + elapsed*7/3600), 24000-second total, 1200-second setup, 22320-second campaign, 480-second teardown reserve, 47-CU work cutoff, 48-CU ceiling; it explicitly marks balance freshness unproven."
+    },
+    {
+      "check": "058 failure disposition",
+      "result": "pass; failure disposition SHA256 7c8aaa058db42faea9b6d407aa451526e9a3c5d57921c6d19c38b70905cbbf26 binds campaign_success=false, original registration fc307984b593918c8eac9eda3673c80647940e2db3ef91b12362df3606ef06f9, incident cbf08eabd59d53caec630c834126ec2d8eb90bd2a041b30c1c47d33346a14139, and exact non-null058 lease. Read-only orchestration state snapshot still holds that exact058 lease; no state or lease mutation."
+    },
+    {
+      "check": "preparation check-only",
+      "result": "pass; r2 plan SHA fbd95be2866067f964e92019d188333d9a51bdef06e1ec64cc74c1df60b60408 returned CPU_preparation_pins_verified, pool_opened=false, execution_authorized=false"
+    }
+  ],
+  "independently_run_tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python/.venv/bin/python -B -m pytest -q learning/tests/test_teacher_colab_control_service_20261031_r1.py",
+      "result": "passed; 7 passed"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python/.venv/bin/python -B -m pytest -q learning/tests/test_teacher_colab_training_dispatch_20261031_r2.py",
+      "result": "passed; 35 passed"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python/.venv/bin/python -B -m pytest -q learning/tests/test_teacher_colab_training_budget_20261031_r2.py",
+      "result": "passed; 7 passed, 5 subtests passed"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python/.venv/bin/python -B -m pytest -q learning/tests/test_teacher_colab_control_channel_20261031_r1.py",
+      "result": "passed; 12 passed"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 RAY_CHECKPOINT420_CPU_FIXTURE=1 python/.venv/bin/python -B learning/experiments/teacher_ray_colab_training_r2/source_tests/run_ray_source_checks.py",
+      "result": "passed; 105 passed"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python/.venv/bin/python -B learning/experiments/teacher_colab_training_dispatch_20261031_r2.py --plan learning/runs/v2/teacher-cloud-parent-20261031-r1/DODGE-062-preparation-plan-r2.json --sha256 fbd95be2866067f964e92019d188333d9a51bdef06e1ec64cc74c1df60b60408 --check-only",
+      "result": "passed; CPU_preparation_pins_verified; pool_opened=false; execution_authorized=false"
+    }
+  ],
+  "preserved_prior_review": {
+    "path": "learning/runs/v2/teacher-cloud-parent-20261031-r1/reviews/DODGE-062-A100-persistent-control-luna-r1/review.json",
+    "sha256": "b79090791f5274e3582a37cdaf243ed5b4f487509646e6c10ac1723f69866825",
+    "disposition": "r1 remains blocking; not overwritten"
+  },
+  "reviewer_vs_owner": "Pin checks and named CPU suites were independently rerun. Frozen owner receipts and readiness logs were checked as supporting claims, not substituted for reruns.",
+  "non_mutation": {
+    "cloud_credentials_or_account_calls": 0,
+    "VM_allocations": 0,
+    "lease_mutations": 0,
+    "native_engine_imports_or_constructors": 0,
+    "training_or_evaluation": 0,
+    "deferred_training_pool_local_or_D10_D13_opened_or_hashed": false,
+    "preexisting_dirty_state_and_untracked_dispatch_source_touched": false
+  },
+  "limits": [
+    "Loopback fixture replaces cloud auth and routes the expected HTTPS URL to local HTTP. It does not prove live Colab/TLS negotiation, live token refresh, or the cause of the historical058 timeout.",
+    "No Linux native build/ABI, A100 throughput, waitid/proc/NVML, or live billing/freshness verification. Passing source and CPU checks do not authorize execution, qualification, coordinator acceptance, or promotion."
+  ]
+}
