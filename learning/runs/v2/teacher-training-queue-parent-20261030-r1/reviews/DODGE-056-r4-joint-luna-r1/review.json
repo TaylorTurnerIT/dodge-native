@@ -1,0 +1,48 @@
+{
+  "schema": "dodge_joint_source_integration_review_v1",
+  "record": "DODGE-056",
+  "status": "no_blocking_findings",
+  "registration_sha256": "1881aad8554a0841246248c2cb0e6ae49dc425716f924b6824b440eeaa53a94e",
+  "source_commit": "fa60c0f72100334c605eca2bc7c539cca06789af",
+  "coordinator_source_pins": {
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/experiments/coordinator_dispatch_v3.py": "cd17565dd5608fa296d0454fb6f1c41b0c1addbf902f7a15fbb5252eaff5acec",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/experiments/coordinator_dispatch_v2.py": "77655f4e200ccce33950cd53201ef509394f8bff81e92fdd208c52668890fa16"
+  },
+  "findings": [],
+  "independent_cpu_fixtures": {
+    "coordinator": {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python/.venv/bin/python -B learning/tests/test_coordinator_dispatch_v3.py",
+      "passed": 23,
+      "failed": 0,
+      "scope": "Temporary ledgers and dummy artifacts; includes output symlink outside/inside/swap-during-mkdir cases. No live ledger mutation, native game, MPS, or dispatch."
+    },
+    "ray_geometry_model_bootstrap": {
+      "command": "PYTHONDONTWRITEBYTECODE=1 /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python -B learning/experiments/teacher_ray_screen_r4/source_tests/run_ray_source_checks.py",
+      "passed": 83,
+      "skipped": 1,
+      "failed": 0,
+      "scope": "Harness blocked native constructors and accelerator APIs; one Torch CPU thread; pytest cache and bytecode disabled. The explicit real-420 CPU optimizer fixture remained skipped."
+    },
+    "lifecycle_handoff_power": {
+      "command": "PYTHONDONTWRITEBYTECODE=1 /Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/python/.venv/bin/python -B learning/experiments/teacher_ray_screen_r4/test_source.py",
+      "passed": 16,
+      "failed": 0,
+      "scope": "Stdlib dummy-child, cache, power-probe, failure-reporting, and failed-055 handoff fixtures; no native game or live lease write."
+    }
+  },
+  "owner_cpu_evidence": {
+    "CPU_tests_sha256": "9c03e6a0d194fdadea827f77906327b5ad14ee233de1ffbf151d7589f45611f8",
+    "CPU_preflight_sha256": "4bb28891382599bbf6dba2e33db51a1bd9401fdea03140862882f21d9e654483",
+    "readiness_sha256": "489b8396fa10adb1429838308754328e5aaabdcf885d820816b9d8a1eb22f37b",
+    "readiness_status": "CPU_source_and_420_migration_ready",
+    "owner_report": "84 model/geometry/migration/bootstrap checks and 16 lifecycle/cache/power/handoff checks passed. Preflight reports CPU zero-gate parity, 41 legacy Adam states mapped by name, five new parameters without state, no optimizer steps, no games, and no MPS work. Owner evidence is distinct from independent fixture runs."
+  },
+  "limits": [
+    "No native constructors, games, MPS queries, training, evaluation, promotion, dispatch, lease CAS, or checkpoint acceptance were performed by this review.",
+    "No MPS counted-prefix, device/resource, or full-path 20%+I/O qualification exists yet. The first two counted MPS updates per trajectory remain a future qualification gate after separately authorized dispatch.",
+    "DODGE-055 failed scalar was not saved. Q16 source arithmetic makes transient size overshoot a plausible cause, not an established cause of that specific failure.",
+    "R0 uses only the same four admitted observation arrays and public physics. It adds no future state, FullState, timer, RNG, pattern, or extra-entity input. It does not resolve known legacy-array history/current-admission approximations or establish universal vision recoverability or teacher adoption.",
+    "The review does not dispatch DODGE-056 or declare scientific success. D13 remains unopened; whole-campaign terminal acceptance and any later evaluation/promotion remain separate gates."
+  ],
+  "review_scope": "Exact frozen candidate registration/runtime/source plus corrected parent coordinator v3/v2 and failed-055-to-056 handoff contract."
+}
