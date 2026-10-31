@@ -1,0 +1,50 @@
+{
+  "schema": "dodge_independent_training_source_review_v1",
+  "review_id": "DODGE-056-coordinator-v3-luna-r1",
+  "status": "blocking_findings",
+  "review_scope": "Independent read-only source review of DODGE-056 failed055 handoff helper and CPU fixtures. No helper dispatch, live ledger mutation, native game, MPS work, evaluation, or promotion.",
+  "candidate_source_commit": "b49975f",
+  "coordinator_source_pins": {
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/experiments/coordinator_dispatch_v3.py": "87e0a7a643e415602a4c7c3d33c704605940b1fe2a65cca4aefa96326dc7e392",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/experiments/coordinator_dispatch_v2.py": "77655f4e200ccce33950cd53201ef509394f8bff81e92fdd208c52668890fa16"
+  },
+  "test_source_pin": {
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/tests/test_coordinator_dispatch_v3.py": "38e51f9002552ed4ad607c6dc2f04dd89961dcbf65df25984bbf8411e18419b8"
+  },
+  "findings": [
+    {
+      "severity": "blocking",
+      "path": "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/experiments/coordinator_dispatch_v3.py",
+      "line": 195,
+      "related_line": 196,
+      "trigger": "Pass an output path whose parent resolves to QUEUE but whose final directory is an existing symlink to a directory outside QUEUE. The parent check passes, mkdir(exist_ok=True) follows the symlink, and claim plus all handoff receipts are written through it.",
+      "consequence": "Dispatch evidence is not confined to the coordinator-owned queue namespace. This weakens the expected immutable receipt location and can direct durable files into an unrelated path.",
+      "corrective_action": "Reject symlink output paths and require the resolved output directory to be a direct child of QUEUE before creating or writing it. Add a temporary-directory test using an output symlink to an external directory; assert rejection before claim, ledger mutation, or external writes. Obtain a fresh exact-source review."
+    }
+  ],
+  "tests": {
+    "actually_run": [
+      {
+        "command": "python/.venv/bin/python -B learning/tests/test_coordinator_dispatch_v3.py",
+        "scope": "Temporary ledger, filesystem durability, CAS, claim, and fault fixtures only; no live writes or training.",
+        "passed": 20,
+        "failed": 0
+      },
+      {
+        "command": "python/.venv/bin/python -B -c \"import importlib.util; p='learning/experiments/coordinator_dispatch_v3.py'; s=importlib.util.spec_from_file_location('review_v3',p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); print(m.failed_predecessor_audit())\"",
+        "scope": "Read-only verification of failed055 pins, receipts, process groups, lease identity, and failure counts.",
+        "result": "DODGE-055 failure disposition verified; exact held lease and existing failed receipts preserved."
+      }
+    ]
+  },
+  "limits": {
+    "authority_and_source_constraints": "Reviewed against supplied DODGE-056 authority, queue, and source-test receipts. Helper requires exact registration/review/readiness/authority hashes, both coordinator source pins, runtime manifest and loaded-origin/interpreter bindings, fixed four-job/36-update/2359296-frame recipe, resource limits, battery allowed, and no evaluation, promotion, retry, or automatic resume.",
+    "failure_handoff": "v2 dependency hash is pinned and unchanged. Source orders durable acknowledged-failure disposition before exact non-null CAS; post-CAS receipt failure retains claim, first failure, and current owner. Fixtures cover unrelated ledger data, foreign owner, CAS race, and post-CAS I/O failure.",
+    "candidate_packet_review": "Separate ray-owner packet review remains pending. This result does not review or declare the successor packet ready.",
+    "actual_dispatch_or_training": false,
+    "live_ledger_mutation": false,
+    "native_games_or_MPS": false,
+    "evaluation_or_checkpoint_promotion": false,
+    "scientific_success": false
+  }
+}

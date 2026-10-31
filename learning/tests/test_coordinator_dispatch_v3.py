@@ -183,6 +183,39 @@ class DispatchTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'not held'): c.dispatch(self.plan, self.output)
         self.assert_no_dispatch()
 
+    def test_output_symlink_cannot_redirect_receipts_outside_queue(self):
+        outside = self.root / 'unrelated'; outside.mkdir()
+        self.output.symlink_to(outside, target_is_directory=True)
+        with self.assertRaisesRegex(ValueError, 'real direct child'):
+            c.dispatch(self.plan, self.output)
+        self.assertEqual(self.state.read_bytes(), self.original)
+        self.assertTrue(self.output.is_symlink())
+        self.assertEqual(list(outside.iterdir()), [])
+        self.assertFalse((self.package / 'launch.claimed').exists())
+
+    def test_output_symlink_inside_queue_is_also_rejected(self):
+        inside = self.queue / 'other-dispatch'; inside.mkdir()
+        self.output.symlink_to(inside, target_is_directory=True)
+        with self.assertRaisesRegex(ValueError, 'real direct child'):
+            c.dispatch(self.plan, self.output)
+        self.assertEqual(self.state.read_bytes(), self.original)
+        self.assertEqual(list(inside.iterdir()), [])
+
+    def test_output_symlink_swap_during_mkdir_is_rejected_before_claim(self):
+        outside = self.root / 'unrelated'; outside.mkdir()
+        original = Path.mkdir
+        def replaced(path, *args, **kwargs):
+            if path == self.output:
+                path.symlink_to(outside, target_is_directory=True)
+            else:
+                return original(path, *args, **kwargs)
+        with patch.object(Path, 'mkdir', replaced):
+            with self.assertRaisesRegex(ValueError, 'changed while creating'):
+                c.dispatch(self.plan, self.output)
+        self.assertEqual(self.state.read_bytes(), self.original)
+        self.assertEqual(list(outside.iterdir()), [])
+        self.assertFalse((self.package / 'launch.claimed').exists())
+
     def test_invalid_template_schema_status_or_attempt_rejected_before_claim(self):
         original = copy.deepcopy(self.plan['dispatch_template'])
         for key, value in [('schema', 'wrong'), ('status', 'ready'), ('stage', 'evaluation'),

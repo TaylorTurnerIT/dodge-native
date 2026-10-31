@@ -1,0 +1,24 @@
+{
+  "schema": "dodge_coordinator_parent_review_fix_v1",
+  "recorded_at": "2026-10-31T00:39:51.385800+00:00",
+  "record": "DODGE-056",
+  "status": "parent_finding_resolved_final_packet_integration_review_pending",
+  "original_independent_review_path": "learning/runs/v2/teacher-training-queue-parent-20261030-r1/reviews/DODGE-056-coordinator-v3-luna-r1/review.json",
+  "original_independent_review_sha256": "a3e8f7a19d02710529ed53349dd5cf2a63804334a0a5e123a9b168fbfa28754f",
+  "original_independent_review_unchanged": true,
+  "finding": "Final-component output symlink could redirect durable dispatch receipts outside coordinator namespace.",
+  "resolution": "Reject final symlinks and require resolved direct child of QUEUE before mkdir and again after mkdir, before anyclaim/CAS/write.",
+  "tests": {
+    "command": "python/.venv/bin/python -B learning/tests/test_coordinator_dispatch_v3.py",
+    "passed": 23,
+    "scope": "Original20CPUtemporaryledger fixtures plus3symlink regressions: outsidequeue, insidequeue, and swapduringmkdir. Each asserts no lease mutation, claim or redirected receipt. No livegames/MPS/ledger writes."
+  },
+  "corrected_source_pins": {
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/experiments/coordinator_dispatch_v3.py": "cd17565dd5608fa296d0454fb6f1c41b0c1addbf902f7a15fbb5252eaff5acec",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/experiments/coordinator_dispatch_v2.py": "77655f4e200ccce33950cd53201ef509394f8bff81e92fdd208c52668890fa16",
+    "/Users/taylor/.t3/worktrees/dodge-native/t3-c8044e79/learning/tests/test_coordinator_dispatch_v3.py": "dcc993117a633e7d939096ae350f1eacfee4a322410505f20f0d658d8f257793"
+  },
+  "remaining_gate": "Fresh frozen candidate source/integration review binds corrected helperhash; no new delegate solely for small parentfix. No sourceclaim that original Luna reviewed corrected hash.",
+  "dispatch_authorized": false,
+  "failed055lease": "unchanged and held"
+}

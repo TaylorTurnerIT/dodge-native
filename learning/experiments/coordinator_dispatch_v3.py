@@ -192,8 +192,13 @@ def dispatch(plan, directory):
     need(read(disposition['state_path']).get('active_long_campaign') == disposition['exact_lease'],
          'Exact failed055 lease is not held')
     directory = Path(directory)
-    need(directory.parent.resolve() == QUEUE.resolve(), 'Dispatch output must be coordinator-owned')
+    def confined_output():
+        return (not directory.is_symlink()
+                and directory.parent.resolve() == QUEUE.resolve()
+                and directory.resolve().parent == QUEUE.resolve())
+    need(confined_output(), 'Dispatch output must be a real direct child of coordinator queue')
     directory.mkdir(exist_ok=True)
+    need(confined_output(), 'Dispatch output changed while creating coordinator directory')
     need(not list(directory.iterdir()), 'Dispatch evidence directory already consumed')
     save(directory / 'dispatch.claimed', dict(record='DODGE-056', pid=os.getpid(),
          registration_sha256=plan['registration_sha256']))
