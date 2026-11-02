@@ -82,9 +82,9 @@ class Delta(unittest.TestCase):
             self.assertEqual([p.name for p in Path(tmp).iterdir()],['candidate.json'])
 
     def test_only_seed_policy_may_change_in_candidate(self):
-        root=Path(__file__).resolve().parents[4]
-        path=root/'learning/runs/v2/fresh-seed-performance-preparation-20261102-r1'
-        reg=c.read(path/'candidate-config.json');recipe=c.read(root/'learning/runs/v2/performance-loop-20261101-r1/config.json')
+        root=Path(__file__).resolve().parents[5]
+        path=root
+        reg=c.read(path/'config.json');recipe=c.read(root/'inputs/source-config.json')
         c.validate_shape(reg,recipe)
         for key,value in [('envs',128),('work_seconds',7200),('action_repeat',4)]:
             changed=dict(reg,**{key:value})
@@ -96,9 +96,9 @@ class Delta(unittest.TestCase):
         with self.assertRaises(ValueError):c.validate_shape(changed,recipe)
 
     def test_baseline_reuse_requires_exact_machine_runtime_controller(self):
-        root=Path(__file__).resolve().parents[4]
-        reg=c.read(root/'learning/runs/v2/fresh-seed-performance-preparation-20261102-r1/candidate-config.json')
-        prior=c.read(root/'learning/runs/v2/control12-lr1e5-m1-20261102-r2/config.json')
+        root=Path(__file__).resolve().parents[5]
+        reg=c.read(root/'config.json')
+        prior=c.read(root/'inputs/baseline-source-config.json')
         c.validate_baseline_binding(reg,prior)
         for key,value in [('machine',{'fixture':'anotherMac'}),('evaluation_controller_domain','changed')]:
             changed=dict(reg,**{key:value})

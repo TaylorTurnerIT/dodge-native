@@ -65,10 +65,13 @@ def main():
     repo=Path(__file__).resolve().parents[4]
     paths=[Path(p).relative_to(Path(old)/'source') for p in prior['source_pins']]
     paths.append(Path('learning/experiments/local_performance_loop/fresh/test_entropy_delta.py'))
+    changed = {'common.py','seed_bank.py','owner.py','worker.py','test_entropy_delta.py'}
     manifest={}
     for path in sorted(set(paths)):
         destination=root/'source'/path;destination.parent.mkdir(parents=True,exist_ok=True)
-        shutil.copyfile(repo/path,destination)
+        delta = path.parent == Path('learning/experiments/local_performance_loop/fresh') and path.name in changed
+        # Inherit exact accepted snapshot bytes, including its test fixtures.
+        shutil.copyfile(repo/path if delta else prior_dir/'source'/path,destination)
         manifest[remote+'/source/'+str(path)]=sha(destination)
     reg['source_pins']=manifest
     save(root/'source-manifest.json',manifest)

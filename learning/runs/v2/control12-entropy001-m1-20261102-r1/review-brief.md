@@ -1,6 +1,6 @@
 Review only the DODGE-074 lower-entropy and exposed-training-replay delta against frozen073. Do not modify files or run models, Torch, native games, production seed lookup, device work, leases, builds, capacity tests or unchanged tests.
 
-Exact pins are in identity-before-review.json. Config SHA a7dcc0ee89e270c3ceb939e3234eba60effa1348fc3628837f6d8b2ec2eb12dd. Source manifest SHA a8fa6cc05e19f3c3a76edb5afbd2d4a355f9134de65069881102aea503295801. Host caller SHA43ce806e0fa88f2257ee48079620b8d2204a6988bab3bf9539da422ab5c31143. All30 snapshot entries must match; compare the29 inherited entries with073 to identify the four changed modules. The added test module is the30th entry.
+Exact pins are in identity-before-review.json. Config SHA 61a6f4a6e767b2fa21a1bc69a78130ee5293a9dca772b185620b38a657b6d86d. Source manifest SHA 25dd204b34fe996b7a6213d9219205cb5a92050158655bc85efd3dd9bdf1d591. Host caller SHA99f7c06e9f6932ff28019c78af6eed76183e35005241451a34983e39c4c63b9c. All30 snapshot entries must match; compare the29 inherited entries with073 to identify the four changed modules. The added test module is the30th entry.
 
 Actual reusable changes are fresh/common.py, seed_bank.py, worker.py and owner.py. The original fresh profile remains accepted. The declared objective permits only constant ent_coef0.001; original Adam and LR remain unchanged. Replay binds accepted073 config and audit/release, same scientific settings, exact exclusion lineage, prior actual run_id as seed campaign, and a separate current run/lease. Audit checks actual entropy_coefficient telemetry. No global freshness claim is allowed.
 
@@ -11,3 +11,5 @@ The only permitted test is python/.venv/bin/python -B learning/experiments/local
 review.json and SOURCE_COMMIT.json intentionally await exact review and the final source commit. They must exist and bind the current identities before launch. Reuse073 directory/source-commit/ledger tests without repeating them. New authority records the latest actual Taylor instruction and identifies entropy selection as the accountable owner's decision, not a fabricated specific Taylor quotation.
 
 Return accepted or concrete blockers with path/trigger/consequence, verified pins and finite limits. This review proves source compatibility only; the first two counted updates must qualify actual074 training inside its one invocation.
+
+Correction r2 restores inherited fresh/test_delta.py exactly to073. The generator now copies all unchanged entries from the frozen predecessor snapshot rather than the mutable reusable-source tree. No algorithm or new-test byte changed. Reuse the prior four CPU checks; only rehash/compare this correction. Prior Luna finding is in review-luna-r1.json and all r1 pins are preserved.
