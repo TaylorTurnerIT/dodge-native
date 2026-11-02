@@ -60,6 +60,10 @@ def main():
         verify_artifacts(contract,args.archive,Path(__file__).resolve())
         if root.exists() or root.is_symlink():
             raise ValueError('075 destination exists; preserve first state, never retry')
+        with tarfile.open(args.archive,'r:gz') as bundle:
+            embedded=json.load(bundle.extractfile('config.json'))
+        if str(root) != contract['run_root'] or str(root) != embedded['run_dir']:
+            raise ValueError('extraction root differs from registered run_dir')
         root.mkdir(parents=True);owns_root=True
         extracted=extract_into_empty_root(args.archive,root,contract['payload_files'])
         sys.path.insert(0,str(root))
@@ -76,7 +80,7 @@ def main():
         c.need(state['active_long_campaign'] is None and state['active_inference_diagnostic'] is None,'M1 busy; never clear a lease')
         c.need(not any(name=='torch' or name=='dodge_rl' or name.startswith('dodge_rl.') for name in sys.modules),'model/native import occurred during staging')
         c.need(c.sha(reg['state_path'])==ledger_hash,'read-only stage gate changed machine ledger')
-        receipt={'status':'staged_full_packet_readonly_gates_passed_no_runtime','record':'DODGE-075','registration_sha256':contract['registration_sha256'],'archive_sha256':contract['archive']['sha256'],'stage_script_sha256':contract['script']['sha256'],'files_extracted':extracted,'source_pins_checked':len(reg['source_pins']),'input_pins_checked':len(reg['input_pins']),'runtime_members_checked':len(reg['runtime_members']),'directory_contract':directories,'source_commit':source_commit,'read_only_ledger':ledger,'actual_host_route':route,'lease_operations':0,'model_native_loads':0,'optimizer_steps':0,'runtime_invocations':0,'recorded_at_Central':datetime.now(ZoneInfo('America/Chicago')).isoformat()}
+        receipt={'status':'staged_full_packet_readonly_gates_passed_no_runtime','record':'DODGE-075','registration_sha256':contract['registration_sha256'],'archive_sha256':contract['archive']['sha256'],'stage_script_sha256':contract['script']['sha256'],'files_extracted':extracted,'source_pins_checked':len(reg['source_pins']),'input_pins_checked':len(reg['input_pins']),'runtime_members_checked':len(reg['runtime_members']),'directory_contract':directories,'source_commit':source_commit,'read_only_ledger':ledger,'actual_host_route':route,'scope':'read-only staging; no host driver invoked by this script','recorded_at_Central':datetime.now(ZoneInfo('America/Chicago')).isoformat()}
         save_new(root/'staging-preflight.json',receipt);print(json.dumps(receipt,sort_keys=True))
     except BaseException as error:
         if owns_root and root.exists() and not (root/'stage-first-failure.json').exists():
