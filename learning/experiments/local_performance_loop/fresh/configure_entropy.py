@@ -26,11 +26,15 @@ def main():
     remote=str(Path(prior['project_root'])/'learning/runs/v2'/root.name)
     old=prior['run_dir']
     authority=dict(record=args.record,run_id=root.name,training_execution_authorized=True,fresh_games_authorized=True,
+        one_invocation=True,prepared_candidate_sha256=prior['prepared_candidate_sha256'],
+        checkpoint_sha256=prior['warmstart']['sha256'],original_adam_fingerprint=prior['warmstart']['adam_fingerprint'],
+        source_LR_unchanged=prior['ppo']['learning_rate'],seed_stream_identity=prior['fresh_stream']['stream_identity'],
+        objective_delta=dict(parameter='ent_coef',before=.01,after=.001,schedule='constant'),
         existing_Taylor_mandate='Act autonomously I have already given the direction. Go forth and prosper',
         latest_direct_Taylor_instruction='discard all earlier stops on Dodge AI, including no-retry and no-successor rules and old memory notes like DODGE-055; only new stops from Taylor count. Keep earlier results and do not delete them. Machine limits, spending limits and publication limits still apply. Keep working.',
         authority_interpretation='Continue the performance-first local loop under the latest human mandate. This is not a new Taylor quote approving a named entropy value. The accountable owner selects the existing DODGE-037 lever after accepted073 regressed.',
         scope='One original control12 plus complete original Adam at LR3e-5; only constant entropy coefficient changes from0.01 to0.001 relative to073. Deliberately replay the bound073 exposed training stream; no globally fresh claim, heldout, replica, ray, cloud or public promotion.',
-        no_cloud=True,public_promotion=False,one_invocation=True,no_wall_clock_cancellation=True,
+        no_cloud=True,public_promotion=False,no_wall_clock_cancellation=True,
         first_failure='Preserve evidence and exact lease on genuine runtime failure. Do not silently restart this invocation.',
         review_roster=['codex/gpt-6-luna','claudeAgent/claude-haiku-5-5; Luna alone if unavailable'],
         completion='M4 SSH execution-task completion -> accountable M4 owner -> department callback; no polling schedules or reverse pairing.')
@@ -49,7 +53,7 @@ def main():
     reg['expected_lease'].update(kind='local_control12_entropy_replay_continuation',record=args.record,owner_token=root.name,package=remote)
     reg['launch_context']['entrypoint']=remote+'/host_driver.py'
     reg['fresh_stream']['role']='exposed_training_replay_unique_within_trajectory'
-    reg['fresh_stream']['replay']=dict(campaign_run_id=prior['run_id'],config_path=old+'/config.json',
+    reg['fresh_stream']['replay']=dict(source_run_id=prior['run_id'],seed_campaign=prior['fresh_stream']['campaign'],config_path=old+'/config.json',
         config_sha256=sha(prior_dir/'config.json'),audit_path=old+'/output/parent-terminal-audit.json',
         release_path=old+'/output/lease-release.json',
         exposure='Seeds are unique within this trajectory but deliberately overlap073. Prior exclusions and heldouts stay identical. Changed episode boundaries can consume different ordinal prefixes; this is not matched-action trajectory identity.')

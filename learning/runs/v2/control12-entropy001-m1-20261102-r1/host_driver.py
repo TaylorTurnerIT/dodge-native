@@ -15,7 +15,7 @@ import common as c
 from lifecycle import run_child,group_members
 from ssh_route_guard import verify_preflight
 from directory_contract import check_layout,check_source_commit,check_ledger
-DIGEST='61a6f4a6e767b2fa21a1bc69a78130ee5293a9dca772b185620b38a657b6d86d'
+DIGEST='44076f2b0c7578889e92024be8ff5dfe6d261c6a6c8c8d82e38994cf4e23595b'
 reg=c.load_registration(RUN/'config.json',DIGEST)
 c.review_gate(reg,DIGEST);c.verify_environment(reg)
 out=RUN/'output'

@@ -72,7 +72,8 @@ def validate_training_replay(reg):
     prior = read(replay['config_path'])
     need(sha(replay['config_path']) == replay['config_sha256']
          and reg['input_pins'][replay['config_path']] == replay['config_sha256'], 'Replay config binding differs')
-    need(prior['record'] == 'DODGE-073' and replay['campaign_run_id'] == prior['run_id']
+    need(prior['record'] == 'DODGE-073' and replay['source_run_id'] == prior['run_id']
+         and replay['seed_campaign'] == prior['fresh_stream']['campaign']
          and reg['run_id'] != prior['run_id'], 'Separate attempt with original stream campaign required')
     need(reg['fresh_stream']['role'] == 'exposed_training_replay_unique_within_trajectory'
          and reg['objective_delta'] == dict(parameter='ent_coef', before=.01, after=.001, schedule='constant'),
@@ -96,6 +97,26 @@ def validate_training_replay(reg):
         need(sha(path) == reg['input_pins'][path], 'Replay closeout pin differs')
 
 
+
+def validate_authority(authority, reg):
+    """Check every inherited execution binding plus this registered objective delta."""
+    need(authority['training_execution_authorized'] and authority['fresh_games_authorized']
+         and authority['record'] == reg['record'] and authority['run_id'] == reg['run_id']
+         and authority['one_invocation']
+         and authority['prepared_candidate_sha256'] == reg['prepared_candidate_sha256']
+         and authority['checkpoint_sha256'] == reg['warmstart']['sha256']
+         and authority['original_adam_fingerprint'] == reg['warmstart']['adam_fingerprint']
+         and authority['source_LR_unchanged'] == reg['ppo']['learning_rate'] == 3e-5
+         and authority['seed_stream_identity'] == reg['fresh_stream']['stream_identity'],
+         'Authority does not bind this exact training candidate')
+    if 'objective_delta' in reg:
+        need(authority.get('objective_delta') == reg['objective_delta']
+             and reg['objective_delta'] == dict(parameter='ent_coef', before=.01, after=.001, schedule='constant'),
+             'Authority does not bind this exact entropy delta')
+    else:
+        need('objective_delta' not in authority, 'Original profile cannot carry an undeclared entropy delta')
+
+
 def load_registration(path, digest):
     global RUN
     need(sha(path) == digest, 'Fresh registration hash differs')
@@ -104,8 +125,7 @@ def load_registration(path, digest):
     need(reg['execution_authorized'] and reg['training_authorized'] and reg['fresh_games_authorized'],
          'Source-only candidate: separate fresh-games execution disposition required')
     authority=read(reg['authority_path'])
-    need(authority['training_execution_authorized'] and authority['fresh_games_authorized'],
-         'Current source-preparation instruction is not execution authority')
+    validate_authority(authority, reg)
     RUN=Path(reg['run_dir']).resolve(); accepted.RUN=RUN; accepted.base.RUN=RUN
     need(Path(reg['runner']).resolve() == CODE and reg['expected_lease']['package'] == str(RUN)
          and reg['expected_lease']['owner_token'] == reg['run_id'] and reg['expected_lease']['machine'] == reg['machine'],

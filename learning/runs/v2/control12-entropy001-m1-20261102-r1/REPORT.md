@@ -1,6 +1,6 @@
 DODGE-074 tests constant entropy pressure0.001 instead of0.01. It starts from original control12 with complete original Adam at LR3e-5. All other recipe, controller, memory and retention settings match accepted073.
 
-This deliberately replays073's exposed training stream. Seeds stay unique within a trajectory. Different policy actions can change episode boundaries and the consumed ordinal prefixes. This is development optimization, not independent confirmation or identical action trajectories.
+This deliberately replays073's exposed training stream. The replay source_run_id binds the prior attempt; seed_campaign remains the original fresh_stream.campaign. Seeds stay unique within a trajectory. Different policy actions can change episode boundaries and the consumed ordinal prefixes. This is development optimization, not independent confirmation or identical action trajectories.
 
 The first72 additional updates include512 consumed-development games every12 updates. Retain the highest observed mean if Q1 stays at least90% of control12 and early deaths stay within control12 plus ceil(2% of games). Beyond72, continue only under the existing guarded gain/stall rule. Preserve every learner+Adam checkpoint, original control12 and420. No elapsed-time cutoff applies.
 

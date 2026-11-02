@@ -1,0 +1,24 @@
+{
+  "recommendation": "not_accepted",
+  "registration_sha256": "61a6f4a6e767b2fa21a1bc69a78130ee5293a9dca772b185620b38a657b6d86d",
+  "host_driver_sha256": "99f7c06e9f6932ff28019c78af6eed76183e35005241451a34983e39c4c63b9c",
+  "source_manifest_sha256": "25dd204b34fe996b7a6213d9219205cb5a92050158655bc85efd3dd9bdf1d591",
+  "source_pins_verified": 30,
+  "blockers": [
+    {
+      "path": "fresh/seed_bank.py:32-39",
+      "finding": "Replay wrongly selects prior attempt run_id rather than the accepted lineage campaign.",
+      "expected_campaign": "fresh-control12-k1-m1-proposed-20261102-r1",
+      "expected_stream_identity": "e6da144f37b0b13e69cbc1cf49b081bb70e2f33f5214b6801ec63b1cf09076e8",
+      "consequence": "Real StreamSpec identity differs; specification fails closed before training.",
+      "test_gap": "Mocked StreamSpec asserts the wrong campaign and hides the identity mismatch. Use real metadata identity without seed lookup."
+    }
+  ],
+  "nonblocking_concerns": [
+    "Restore frozen073 authority record/run/checkpoint/Adam/LR/candidate/stream bindings removed while copying mutable source."
+  ],
+  "tests_rerun": 0,
+  "identity_computation": "Real StreamSpec metadata only with registered historical exclusions; no seed_for calls",
+  "limits": "Source review only; physical M1 runtime inputs, admission and training are unqualified.",
+  "source": "Completed exact independent Haiku5.5 r2 task result received by accountable parent"
+}

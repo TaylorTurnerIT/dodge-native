@@ -29,8 +29,7 @@ def specification(reg):
     pool = [r['seed'] for r in read_bound(lineage['pool'])['seeds']]
     if len(history) != len(set(history)) or len(history) != 189743 or len(set(pool)) != 512:
         raise ValueError('Registered history/pool counts differ')
-    replay = lineage.get('replay')
-    campaign = reg['run_id'] if replay is None else replay['campaign_run_id']
+    campaign = lineage['campaign']
     spec = StreamSpec(campaign=campaign, replica=str(reg['replicas']['1']['environment_seed']),
         slots=reg['envs'], heldout_manifest_sha256=lineage['registry']['sha256'],
         additional_exclusions=tuple(map(tuple, registry['future_training_exclusion_ranges']))
