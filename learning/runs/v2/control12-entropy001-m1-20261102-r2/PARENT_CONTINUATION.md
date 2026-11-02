@@ -1,0 +1,9 @@
+DODGE-075 is the separate successor to the preserved DODGE-074 prelaunch staging failure. Taylor's existing authority explicitly authorizes one scoped performance workload; this packet does not revoke that authority. It does not invoke SSH, stage remotely, build native code, load a model, or start runtime work.
+
+The run, package, and owner identities are new: `control12-entropy001-m1-20261102-r2`, `/Users/taylor/Projects/dodge-native/learning/runs/v2/control12-entropy001-m1-20261102-r2`, and owner token `control12-entropy001-m1-20261102-r2`. All production algorithm files remain byte-identical to accepted074. All 30 accepted source files remain byte-identical. Its recipe, model, original Adam/LR, entropy, exposed seed campaign and stream identity, panel, telemetry, and policy remain bound by `registration.json`.
+
+`stage_delivery.py` sends the exact archive, stage script, and contract through the registered trusted SSH alias. It reads back exact remote filenames, byte counts, and SHA-256 values before it executes the stage script. The remote stage script safely extracts the full payload, creates the required fresh directories, verifies all registered source/input/runtime and M1 route/ledger gates, and writes a first-failure receipt without retry. It does not invoke `host_driver.py`.
+
+The archive includes `config.json`, `authority.json`, `host_driver.py`, `directory_contract.py`, `ssh_route_guard.py`, the complete 30-file `source/` tree, manifest, and setup provenance. Independent exact DODGE-075 review and final source-commit binding remain explicit stage gates. Replace the pending review and source-commit records and regenerate the contract/archive after those exact pins are final.
+
+Only the two targeted CPU negative tests are in scope here: reject an archive-name mismatch and reject a stale script readback. Source/recipe proofs reuse accepted074 evidence. No new native, model, build, capacity, or SSH proof is claimed.
