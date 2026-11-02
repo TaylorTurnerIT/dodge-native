@@ -1,0 +1,20 @@
+--- frozen070/host_driver.py
++++ 071/host_driver.py
+@@ -16 +16,2 @@
+-DIGEST='2909bad7f027e71238d3acd2e6b529b88ee3d0604691ad732a62d3d504062741'
++from ssh_route_guard import verify_preflight
++DIGEST='2f9adc5af999020da9278d094cc5fc4abece2fae87642197d8d114e0618f5b5d'
+@@ -20 +21,12 @@
+-c.need(not (out/'coordinator.claimed').exists() and not (out/'owner.claimed').exists(),'No launch retry')
++c.need(not any((out/name).exists() for name in ['host-driver.claimed','coordinator.claimed','owner.claimed',
++       'host-driver-first-failure.json','host-route-first-failure.json','host-route-context.json']),'No launch retry')
++review=c.read(RUN/'review.json')
++c.need(review['host_driver_sha256']==c.sha(Path(__file__)) and review['route_source_pins']==reg['route_source_pins'],
++       'Exact host route/caller review binding differs')
++try:
++    route_context=verify_preflight(reg['launch_context'])
++    c.save(out/'host-route-context.json',dict(status='verified_actual_SSH_host_before_claim',**route_context))
++except BaseException as error:
++    c.save(out/'host-route-first-failure.json',dict(status='blocked_preserve_first_route_failure_no_retry',
++        error_class=type(error).__name__,reason=str(error)))
++    raise
