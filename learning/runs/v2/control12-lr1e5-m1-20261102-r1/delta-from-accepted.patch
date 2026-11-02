@@ -1,0 +1,306 @@
+--- accepted20338f4/worker.py
++++ continuation/worker.py
+@@ -15,6 +15,8 @@
+ import common as c
+ from policy import advance,summarize
+ from evaluation import evaluate
++from warmstart import load_control,verify_only_lr_changed
++from analysis import compare
+ 
+ 
+ def main():
+@@ -55,31 +57,41 @@
+                     path=str(c.Path(module.__file__).resolve());c.need(path in reg['input_pins'] and c.sha(path)==reg['input_pins'][path],'Unpinned runtime '+name)
+         runtime_check();guard()
+         c.save(out/'device.json',dict(device='mps',torch_version=torch.__version__,numpy_version=np.__version__,interpreter=sys.executable,elapsed_time_cancellation=False))
+-        # Reuse only exact068 checkpoint420 rows with the identical per-game sampler.
+-        cached=[json.loads(s) for s in c.Path(reg['cached_420_episodes']).read_text().splitlines()]
+-        cached=sorted((r for r in cached if r['model']=='420'),key=lambda r:r['seed'])
+-        c.need([r['seed'] for r in cached]==reg['evaluation_seeds'][:128],'Cached420 coverage differs')
+-        baseline_out=out/'baseline';baseline_out.mkdir()
+-        torch.manual_seed(reg['replicas']['1']['constructor_seed']);state=checkpoint.load_checkpoint(c.Path(reg['checkpoint_path']),expected_sha256=reg['checkpoint_sha256'])
+-        model=teacher.OmniscientEntityTeacher();model.load_state_dict(state['model'],strict=True);del state
+-        model.to('mps');model.eval()
+-        supplement=evaluate(model,reg['evaluation_seeds'][128:],reg,baseline_out,guard,torch,np,native,checkpoint,fingerprint)
+-        extra=[json.loads(s) for s in (baseline_out/'episodes.jsonl').read_text().splitlines()]
+-        baseline=summarize(cached+extra)
+-        c.save(out/'baseline.json',dict(metrics=baseline,cached_games=128,new_games=384,cached_episodes_sha256=c.sha(reg['cached_420_episodes']),supplement_result_sha256=c.sha(baseline_out/'result.json'),checkpoint_sha256=reg['checkpoint_sha256']))
+-        del model;gc.collect();torch.mps.empty_cache()
+-        reference=baseline
++        c.verify_environment(reg)
++        # Both baselines run on this machine; no M4 floating-point rows are reused.
++        baseline_metrics={}
++        for label in ['420','control12']:
++            baseline_out=out/('baseline-'+label);baseline_out.mkdir()
++            torch.manual_seed(reg['replicas']['1']['constructor_seed'])
++            state=(checkpoint.load_checkpoint(c.Path(reg['checkpoint_path']),expected_sha256=reg['checkpoint_sha256'])
++                if label=='420' else load_control(reg,torch,fingerprint))
++            model=teacher.OmniscientEntityTeacher();model.load_state_dict(state['model'],strict=True);del state
++            model.to('mps');model.eval()
++            measured=evaluate(model,reg['evaluation_seeds'],reg,baseline_out,guard,torch,np,native,checkpoint,fingerprint)
++            baseline_metrics[label]=measured['metrics']
++            del model;gc.collect();torch.mps.empty_cache();guard()
++        control12_rows=[json.loads(x) for x in (out/'baseline-control12/episodes.jsonl').read_text().splitlines()]
++        baseline420_rows=[json.loads(x) for x in (out/'baseline-420/episodes.jsonl').read_text().splitlines()]
++        c.save(out/'baseline-paired-uncertainty.json',compare(control12_rows,baseline420_rows,np))
++        baseline=baseline_metrics['control12'];reference=baseline
++        c.save(out/'baseline.json',dict(metrics=baseline,context420=baseline_metrics['420'],cached_games=0,
++            new_games=1024,paired_uncertainty_sha256=c.sha(out/'baseline-paired-uncertainty.json'),source_control12_sha256=reg['warmstart']['sha256'],source420_sha256=reg['checkpoint_sha256'],
++            baseline_results={label:c.sha(out/('baseline-'+label)/'result.json') for label in ['420','control12']}))
+         for arm in reg['job_order']:
+             directory=out/arm;directory.mkdir();(directory/'evaluations').mkdir();(directory/'checkpoints').mkdir()
+             seed=reg['replicas']['1'];torch.manual_seed(seed['constructor_seed'])
+-            original=checkpoint.load_checkpoint(c.Path(reg['checkpoint_path']),expected_sha256=reg['checkpoint_sha256']);checkpoint.require_complete_update(original)
+-            c.need(fingerprint(original['model'])==reg['model_fingerprint'] and fingerprint(original['optimizer'])==reg['adam_fingerprint'],'Original420 learner/Adam differs')
++            original=load_control(reg,torch,fingerprint)
+             legacy=teacher.OmniscientEntityTeacher();legacy.load_state_dict(original['model'],strict=True)
+-            model=ray.RayGeometryTeacher(legacy,branch_seed=seed['branch_seed']) if arm=='rays' else legacy
+-            model.to('mps');optimizer,manifest=migration.migrate_adam(original['optimizer'],legacy,model,learning_rate=reg['ppo']['learning_rate'],adam_eps=reg['ppo']['adam_eps'])
++            model=legacy;model.to('mps')
++            optimizer,manifest=migration.migrate_adam(original['optimizer'],legacy,model,
++                learning_rate=reg['ppo']['learning_rate'],adam_eps=reg['ppo']['adam_eps'])
++            verify_only_lr_changed(original['optimizer'],optimizer.state_dict(),fingerprint)
++            checkpoint.restore_rng(original['rng'],'mps')
++            c.need(fingerprint(checkpoint.capture_rng('mps'))==fingerprint(original['rng']),'Source RNG restore differs')
++            c.save(directory/'migration.json',dict(manifest,source_model_fingerprint=reg['warmstart']['model_fingerprint'],
++                source_adam_fingerprint=reg['warmstart']['adam_fingerprint'],content_except_LR_preserved=True,
++                actual_LR_before=3e-5,actual_LR_after=1e-5,source_rng_restored=True,full_simulator_restore=False))
+             del original
+-            random.seed(seed['python_seed']);np.random.seed(seed['numpy_seed']);torch.manual_seed(seed['torch_cpu_seed']);torch.mps.manual_seed(seed['torch_mps_seed'])
+-            c.save(directory/'migration.json',dict(manifest,source_model_fingerprint=reg['model_fingerprint'],source_adam_fingerprint=reg['adam_fingerprint']))
+             initial_branch=None if arm=='control' else fingerprint(model.branch.state_dict())
+             telemetry=JsonlSink(directory/'updates.jsonl');journals.append(telemetry)
+             events=c.Journal(directory/'native-events.jsonl');journals.append(events)
+@@ -106,24 +118,47 @@
+                 prepared=training.PreparedUpdates(model,optimizer,adapter,config,ppo,reg,'mps')
+                 row=dict(kind='initial_assignments',simulator_segment=segment,after_update=recorder.completed_updates,reason=reason,stream_sha256=digest,assignments=adapter.assignment_events,exact_simulator_resume=False)
+                 events.emit(row);segments.append(row);del streams
+-            new_games('fresh_original420_start')
++            new_games('fresh_control12_learner_Adam_new_simulator_segment')
+             def save_learner(u,measured):
+                 path=directory/'checkpoints'/f'checkpoint-{u:06d}.pt'
+                 state=dict(schema='performance_loop_learner_v1',arm=arm,completed_updates=u,actual_gameplay_frames=u*65536,
++                    parent_checkpoint_sha256=reg['warmstart']['sha256'],inherited_parent_updates=12,learner_updates_since420=12+u,
+                     actual_Adam_steps=adam_steps,model=checkpoint._cpu_copy(model.state_dict()),optimizer=checkpoint._cpu_copy(optimizer.state_dict()),rng=checkpoint.capture_rng('mps'),
+                     adapter=adapter.snapshot(),simulator_segment=segment,full_environment_state_captured=False,automatic_resume_authorized=False,passive_reset_history='Full history in native-events.jsonl; in-memory reset copies bounded after each completed update.',
+                     measured_performance=measured,registration_sha256=a.sha256,model_fingerprint=fingerprint(model.state_dict()),adam_fingerprint=fingerprint(optimizer.state_dict()),promoted=False)
+                 digest=c.publish(path,lambda f:torch.save(state,f));path.chmod(0o444)
+                 meta=dict(path=str(path),sha256=digest,update=u,actual_gameplay_frames=u*65536,actual_Adam_steps=adam_steps,model_fingerprint=state['model_fingerprint'],adam_fingerprint=state['adam_fingerprint'],performance=measured,simulator_segment=segment,full_simulator_restore=False)
+                 c.save(path.with_suffix('.json'),meta);del state;return meta
++            prefix_passive_checks=[];update_times=[]
+             checkpoints=[save_learner(0,baseline)];policy_state={'best':dict(update=0,**baseline)};stop=None
+             for update in range(1,reg['max_updates']+1):
+                 guard()
+                 remaining=min(len(adapter.seeds_by_slot[i])-info['seed']['episode']-1 for i,info in enumerate(env.episode_info()))
+                 if remaining<=1024:new_games('registered_seed_stream_capacity_rollover')
+                 checkpoint.restore_rng(current_rng,'mps')
+-                collection,metrics,boundary=instrument_update(prepared,ppo,recorder,telemetry,resource_snapshot=lambda:dict(peaks),check_guard=guard)
++                begin=time.monotonic();captured=[];original_gae=ppo.compute_gae
++                def probe(*a,**kw):
++                    result=original_gae(*a,**kw);captured.append((result,tuple(x.clone() for x in result)));return result
++                if update<=reg['prefix_updates']:ppo.compute_gae=probe
++                try:
++                    collection,metrics,boundary=instrument_update(prepared,ppo,recorder,telemetry,resource_snapshot=lambda:dict(peaks),check_guard=guard)
++                    c.need(all(a is b for a,b in zip((collection,metrics,boundary),prepared.last_result)),'Telemetry changed return identity')
++                    if update<=reg['prefix_updates']:
++                        c.need(ppo.compute_gae is probe and len(captured)==1,'Counted GAE hook identity differs')
++                        c.need(all(torch.equal(a,b) for a,b in zip(*captured[0])),'Passive GAE tensors changed')
++                        prefix_passive_checks.append(True)
++                finally:ppo.compute_gae=original_gae
++                torch.mps.synchronize();guard();update_times.append(time.monotonic()-begin)
+                 current_rng=checkpoint.capture_rng('mps')
++                if update==reg['prefix_updates']:
++                    c.save(directory/'prefix-qualification.json',dict(status='accepted_counted_M1_training_prefix',
++                        counted_updates=update,counted_frames=recorder.frames,actual_K1_frames_per_full_vector=64,
++                        passive_GAE_and_return_identity_checks=prefix_passive_checks,resources=dict(peaks),
++                        measured_update_seconds=update_times,elapsed_full_path_seconds=time.monotonic()-started,
++                        initial72_training_estimate_seconds=1.2*max(update_times)*reg['initial_updates'],
++                        estimate_is_not_admission_or_stopping_rule=True,full_simulator_restore=False,
++                        migration_sha256=c.sha(directory/'migration.json')))
++                    print(c.canonical(dict(kind='counted_prefix',updates=update,frames=recorder.frames,resources=peaks)).decode(),flush=True)
+                 c.need(recorder.frames==update*65536 and metrics['optimizer_steps']==metrics['epochs_completed']*32,'Actual training exposure differs')
+                 adam_steps+=metrics['optimizer_steps']
+                 row=dict(update=update,simulator_segment=segment,policy_loss=float(metrics['policy_loss']),actor_grad_norm=float(metrics['actor_grad_norm']),critic_grad_norm=float(metrics['critic_grad_norm']),trunk_grad_norm=float(metrics['trunk_grad_norm']),grad_norm=float(metrics['grad_norm']))
+@@ -144,9 +179,10 @@
+                 checked=evaluate(model,reg['evaluation_seeds'],reg,evaluation_out,guard,torch,np,native,checkpoint,fingerprint)
+                 c.need(fingerprint(env.episode_info())==before_env and fingerprint(optimizer.state_dict())==before_adam,'Play check changed live training state')
+                 c.need(fingerprint(checkpoint.capture_rng('mps'))==fingerprint(current_rng),'Training RNG drift across play check')
++                c.save(evaluation_out/'paired-vs-control12.json',compare([json.loads(x) for x in (evaluation_out/'episodes.jsonl').read_text().splitlines()],control12_rows,np))
+                 meta=save_learner(update,checked['metrics']);checkpoints.append(meta)
+                 policy_state,decision=advance(policy_state,checked['metrics'],update,reference,reg['policy'])
+-                decision.update(arm=arm,evaluation_result_sha256=c.sha(evaluation_out/'result.json'),checkpoint_sha256=meta['sha256'],metrics=checked['metrics'])
++                decision.update(arm=arm,paired_uncertainty_sha256=c.sha(evaluation_out/'paired-vs-control12.json'),evaluation_result_sha256=c.sha(evaluation_out/'result.json'),checkpoint_sha256=meta['sha256'],metrics=checked['metrics'])
+                 decisions.emit(decision);decisions.sync()
+                 c.save(directory/f'decision-{update:06d}.json',decision)
+                 print(c.canonical(dict(kind='measured_play',**decision)).decode(),flush=True)
+@@ -156,9 +192,8 @@
+             best_update=policy_state['best']['update'];best=next(x for x in checkpoints if x['update']==best_update)
+             terminal=dict(arm=arm,updates=update,actual_gameplay_frames=update*65536,Adam_steps=adam_steps,stop_reason=stop,best=best,
+                 checkpoints=checkpoints,simulator_segments=[{k:v for k,v in x.items() if k!='assignments'} for x in segments],
+-                artifacts={n:c.sha(directory/n) for n in ['updates.jsonl','native-events.jsonl','activity.jsonl','decisions.jsonl','migration.json']})
++                artifacts={n:c.sha(directory/n) for n in ['updates.jsonl','native-events.jsonl','activity.jsonl','decisions.jsonl','migration.json','prefix-qualification.json']})
+             c.save(directory/'result.json',terminal);completed.append(terminal)
+-            if best['performance']['Q1']>reference['Q1'] and best['performance']['Mean']>=reference['Mean']*.95:reference=best['performance']
+             del prepared,adapter,env,model,legacy,optimizer,current_rng;gc.collect();torch.mps.empty_cache();guard()
+         runtime_check();c.verify_pins(reg);c.verify_runtime_members(reg)
+         c.save(out/'result.json',dict(status='complete_performance_loop',registration_sha256=a.sha256,arms=completed,
+@@ -166,7 +201,8 @@
+         return 0
+     except BaseException as error:
+         for journal in journals:journal.close()
+-        c.save(out/'first-failure.json',dict(status='first_failure_preserved_exact_lease_held_no_retry',error=repr(error),traceback=traceback.format_exc(),completed_arms=[r['arm'] for r in completed],resources=peaks,elapsed_seconds=time.monotonic()-started))
++        c.save(out/'first-failure.json',dict(status='first_failure_preserved_exact_lease_held_no_retry',error=repr(error),traceback=traceback.format_exc(),completed_arms=[r['arm'] for r in completed],resources=peaks,elapsed_seconds=time.monotonic()-started,
++            partial_observations=(training.failure_observations(prepared) if 'training' in locals() and 'prepared' in locals() else None)))
+         raise
+ 
+ 
+--- accepted20338f4/owner.py
++++ continuation/owner.py
+@@ -13,6 +13,7 @@
+ import common as c
+ from lifecycle import run_child,group_members
+ from policy import advance,summarize
++from analysis import compare
+ 
+ 
+ def audit_child(directory,reg):
+@@ -45,17 +46,34 @@
+     for key,file in [('worker_exit_sha256','worker/exit.json'),('caffeinate_exit_sha256','caffeinate-exit.json'),('power_sha256','power.jsonl')]:c.need(supervisor[key]==c.sha(out/file),'Supervisor receipt differs')
+     result=c.read(worker/'result.json');c.need(result['status']=='complete_performance_loop' and result['registration_sha256']==digest and not result['promoted'] and not result['held_confirmation_opened'],'Worker terminal status differs')
+     c.need(result['resources']['peak_rss_bytes']<reg['rss_bytes'] and result['resources']['peak_mps_driver_bytes']<reg['mps_bytes'],'Resources exceeded')
+-    cached=[json.loads(s) for s in Path(reg['cached_420_episodes']).read_text().splitlines()];cached=sorted((r for r in cached if r['model']=='420'),key=lambda r:r['seed'])
+-    c.need([r['seed'] for r in cached]==reg['evaluation_seeds'][:128],'Cached baseline differs')
+-    supplement=play_rows(worker/'baseline/episodes.jsonl',reg['evaluation_seeds'][128:]);baseline=summarize(cached+supplement)
+-    baseline_receipt=c.read(worker/'baseline.json');c.need(baseline==baseline_receipt['metrics'] and c.sha(worker/'baseline.json')==result['baseline_sha256'],'Baseline metrics differ')
+-    base_result=c.read(worker/'baseline/result.json');c.need(base_result['episodes_sha256']==c.sha(worker/'baseline/episodes.jsonl') and base_result['metrics']==summarize(supplement),'Supplement hash/metrics differ')
++    baseline_receipt=c.read(worker/'baseline.json');baseline=baseline_receipt['metrics']
++    for label,expected_fp in [('420',reg['model_fingerprint']),('control12',reg['warmstart']['model_fingerprint'])]:
++        directory=worker/('baseline-'+label);rows=play_rows(directory/'episodes.jsonl',reg['evaluation_seeds']);ev=c.read(directory/'result.json')
++        expected_metrics=baseline if label=='control12' else baseline_receipt['context420']
++        c.need(ev['metrics']==summarize(rows)==expected_metrics and ev['model_fingerprint']==expected_fp
++               and ev['episodes_sha256']==c.sha(directory/'episodes.jsonl')
++               and baseline_receipt['baseline_results'][label]==c.sha(directory/'result.json'),'Same-machine baseline identity/hash differs')
++    c.need(baseline_receipt['cached_games']==0 and baseline_receipt['new_games']==1024
++           and c.sha(worker/'baseline.json')==result['baseline_sha256'],'No cross-machine baseline cache reuse')
++    import numpy as np
++    control12_rows=play_rows(worker/'baseline-control12/episodes.jsonl',reg['evaluation_seeds'])
++    c.need(c.read(worker/'baseline-paired-uncertainty.json')==compare(control12_rows,play_rows(worker/'baseline-420/episodes.jsonl',reg['evaluation_seeds']),np)
++        and baseline_receipt['paired_uncertainty_sha256']==c.sha(worker/'baseline-paired-uncertainty.json'),'Baseline paired uncertainty differs')
+     reference=baseline;arms=[]
+-    c.need([r['arm'] for r in result['arms']]==reg['job_order'],'Only one matched pair required')
++    c.need([r['arm'] for r in result['arms']]==reg['job_order'],'Exactly one control continuation required')
+     for terminal in result['arms']:
+         arm=terminal['arm'];directory=worker/arm
+         c.need(c.read(directory/'result.json')==terminal,'Arm result differs')
+         for name,h in terminal['artifacts'].items():c.need(c.sha(directory/name)==h,'Arm journal hash differs '+name)
++        migration=c.read(directory/'migration.json');prefix=c.read(directory/'prefix-qualification.json')
++        c.need(migration['content_except_LR_preserved'] and migration['source_rng_restored']
++            and migration['source_model_fingerprint']==reg['warmstart']['model_fingerprint']
++            and migration['source_adam_fingerprint']==reg['warmstart']['adam_fingerprint']
++            and migration['actual_LR_before']==3e-5 and migration['actual_LR_after']==1e-5,'Warm-start migration differs')
++        c.need(prefix['status']=='accepted_counted_M1_training_prefix' and prefix['counted_updates']==2
++            and prefix['counted_frames']==131072 and prefix['passive_GAE_and_return_identity_checks']==[True,True]
++            and prefix['migration_sha256']==c.sha(directory/'migration.json')
++            and prefix['estimate_is_not_admission_or_stopping_rule'],'Real counted M1 qualification missing')
+         rows=[json.loads(s) for s in (directory/'updates.jsonl').read_text().splitlines()]
+         counts=c.validate_telemetry(rows,dict(reg,updates=terminal['updates']),dict(id=arm,arm=arm))
+         c.need(counts==dict(updates=terminal['updates'],frames=terminal['actual_gameplay_frames'],Adam_steps=terminal['Adam_steps']),'Actual completed training counts differ')
+@@ -81,6 +99,8 @@
+             c.need(c.read(path.with_suffix('.json'))==meta,'Checkpoint metadata differs')
+         for index,d in enumerate(decisions):
+             u=d['update'];evdir=directory/'evaluations'/f'{u:06d}';ev=c.read(evdir/'result.json');data=play_rows(evdir/'episodes.jsonl',reg['evaluation_seeds'])
++            c.need(d['paired_uncertainty_sha256']==c.sha(evdir/'paired-vs-control12.json')
++                and c.read(evdir/'paired-vs-control12.json')==compare(data,control12_rows,np),'Paired uncertainty hash/recalculation differs')
+             c.need(ev['metrics']==summarize(data) and ev['episodes_sha256']==c.sha(evdir/'episodes.jsonl') and d['evaluation_result_sha256']==c.sha(evdir/'result.json'),'Play metrics/hash differs')
+             meta=checkpoints[index+1];c.need(meta['performance']==ev['metrics'] and meta['model_fingerprint']==ev['model_fingerprint'] and d['checkpoint_sha256']==meta['sha256'],'Play-to-learner binding differs')
+             policy_state,replayed=advance(policy_state,ev['metrics'],u,reference,reg['policy'])
+@@ -90,39 +110,59 @@
+         c.need(decisions and decisions[-1]['stop_reason']==terminal['stop_reason'],'Terminal performance disposition differs')
+         best=next(m for m in checkpoints if m['update']==policy_state['best']['update']);c.need(best==terminal['best'],'Best checkpoint preservation differs')
+         arms.append(dict(arm=arm,counts=counts,stop_reason=terminal['stop_reason'],best=best,evaluations=evaluations))
+-        if best['performance']['Q1']>reference['Q1'] and best['performance']['Mean']>=reference['Mean']*.95:reference=best['performance']
+-    return dict(status='accepted_local_performance_loop',record=reg['record'],registration_sha256=digest,baseline=baseline,arms=arms,
++    return dict(status='accepted_local_control_continuation',record=reg['record'],registration_sha256=digest,baseline=baseline,baseline420=baseline_receipt['context420'],arms=arms,
+         worker_result_sha256=c.sha(worker/'result.json'),worker_exit_sha256=c.sha(worker/'exit.json'),supervisor_exit_sha256=c.sha(out/'supervisor/exit.json'),
+         caffeinate_exit_sha256=c.sha(out/'caffeinate-exit.json'),resources=result['resources'],elapsed_seconds=time.monotonic()-start,
+         development_selection=True,public_promotion=False,held_large_evaluation_opened=False,all_owned_accelerator_groups_absent=True)
+ 
+ 
+ def main():
+-    p=argparse.ArgumentParser();p.add_argument('--registration',required=True);p.add_argument('--sha256',required=True);p.add_argument('--check-only',action='store_true');a=p.parse_args()
++    p=argparse.ArgumentParser();p.add_argument('--registration',required=True);p.add_argument('--sha256',required=True)
++    p.add_argument('--check-only',action='store_true');p.add_argument('--accept-terminal',action='store_true');a=p.parse_args()
+     def cancel(*_):raise c.CampaignStop('User cancelled owner')
+     signal.signal(signal.SIGTERM,cancel);signal.signal(signal.SIGINT,cancel)
+-    reg=c.load_registration(a.registration,a.sha256);review=c.review_gate(reg,a.sha256)
+-    if a.check_only:print('Pinned source/config/review checked; no native work.');return 0
++    reg=c.load_registration(a.registration,a.sha256);review=c.review_gate(reg,a.sha256);c.verify_environment(reg)
++    if a.check_only:print('Source/config/review/interpreter verified; no native work.');return 0
++    out=c.RUN/'output'
++    if a.accept_terminal:
++        c.need(not (out/'parent-terminal-audit.json').exists() and not (out/'lease-release.json').exists(),'Never overwrite or repeat terminal acceptance')
++        root=c.read(out/'owner/exit.json');audit_child(out/'owner',reg)
++        proof=c.read(out/'coordinator-exit.json')
++        c.need(proof['directly_reaped'] and proof['local_groups_absent'] and proof['observed_exit_code']==0
++            and proof['owner_exit_sha256']==c.sha(out/'owner/exit.json'),'Coordinator direct owner reap proof missing')
++        audit=strict_audit(reg,a.sha256,c.read(out/'dispatch.json')['started_monotonic'])
++        c.need(c.read(out/'pending-terminal-audit.json')['arms']==audit['arms'],'Pending terminal result drift')
++        path=Path(reg['state_path'])
++        with (path.parent/'horizon-ledger.lock').open('a') as lock:
++            fcntl.flock(lock,fcntl.LOCK_EX);state=c.read(path);c.machine_state(reg,state)
++            c.need(state['active_long_campaign']==reg['expected_lease'],'Exact terminal lease lost')
++            audit.update(owner_exit_sha256=c.sha(out/'owner/exit.json'),coordinator_exit_sha256=c.sha(out/'coordinator-exit.json'))
++            h=c.save(out/'parent-terminal-audit.json',audit)
++            state['active_long_campaign']=None;tmp=path.parent/('.continuation-release-'+str(os.getpid()))
++            with tmp.open('x') as f:json.dump(state,f,sort_keys=True);f.flush();os.fsync(f.fileno())
++            os.replace(tmp,path);c.sync_directory(path.parent)
++            c.save(out/'lease-release.json',dict(accepted_audit_sha256=h,machine=reg['machine'],previous_lease=reg['expected_lease'],lease_value_after_release=None))
++        print(c.canonical(audit).decode(),flush=True);return 0
+     processes=subprocess.check_output(['/bin/ps','-axo','pid=,command='],text=True)
+-    conflicts=[s for s in processes.splitlines() if reg['project_root'] in s and any(x in s for x in ['worker.py','run_once.py','train_teacher','evaluate_worker.py','supervisor.py']) and ' -c ' not in s]
++    conflicts=[line for line in processes.splitlines() if reg['project_root'] in line and any(x in line for x in ['worker.py','run_once.py','train_teacher','evaluate_worker.py','supervisor.py']) and ' -c ' not in line]
+     c.need(not conflicts,'Another project native worker present')
+-    out=c.RUN/'output';start=time.monotonic();c.save(out/'owner.claimed',dict(pid=os.getpid(),pgid=os.getpgrp(),registration_sha256=a.sha256))
++    pressure=subprocess.check_output(['/usr/bin/memory_pressure','-Q'],text=True)
++    import re
++    percent=re.search(r'System-wide memory free percentage:\s*(\d+)%',pressure)
++    c.need(percent is not None and int(percent.group(1))>=20,'Host headroom unavailable at admission')
++    start=time.monotonic();c.save(out/'owner.claimed',dict(pid=os.getpid(),pgid=os.getpgrp(),registration_sha256=a.sha256))
+     try:
+         c.need(shutil.disk_usage(c.RUN).free>reg['minimum_free_disk_bytes'],'Disk reserve unavailable')
+         c.cas_ledger(reg,None,reg['expected_lease'])
+-        c.save(out/'dispatch.json',dict(status='dispatched_once',registration_sha256=a.sha256,review_sha256=review,expected_lease=reg['expected_lease'],started_monotonic=start))
++        c.save(out/'dispatch.json',dict(status='dispatched_once',registration_sha256=a.sha256,review_sha256=review,
++            expected_lease=reg['expected_lease'],started_monotonic=start,protected_processes=c.protected_identities(),memory_pressure=pressure))
+         def monitor(members):
+-            c.check_lease(reg);c.need(sum(x['rss_bytes'] for x in members)+int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)<reg['rss_bytes'],'Owner/supervisor RSS ceiling')
+-        run_child([reg['interpreter'],'-B',str(c.CODE/'supervisor.py'),'--registration',a.registration,'--sha256',a.sha256],out/'supervisor',dict(os.environ,PYTHONDONTWRITEBYTECODE='1',PYTHONPYCACHEPREFIX=reg['cache']),monitor,None,cleanup_seconds=60)
+-        audit=strict_audit(reg,a.sha256,start)
+-        path=Path(reg['state_path'])
+-        with (path.parent/'horizon-ledger.lock').open('a') as lock:
+-            fcntl.flock(lock,fcntl.LOCK_EX);state=c.read(path);c.need(state['active_long_campaign']==reg['expected_lease'],'Exact terminal lease lost')
+-            h=c.save(out/'parent-terminal-audit.json',audit);state['active_long_campaign']=None;tmp=path.parent/('.performance-loop-release-'+str(os.getpid()))
+-            with tmp.open('x') as f:json.dump(state,f,sort_keys=True);f.flush();os.fsync(f.fileno())
+-            os.replace(tmp,path);c.sync_directory(path.parent)
+-            c.save(out/'lease-release.json',dict(accepted_audit_sha256=h,previous_lease=reg['expected_lease'],lease_value_after_release=None))
+-        print(c.canonical(audit).decode(),flush=True);return 0
++            c.check_lease(reg);c.need(sum(x['rss_bytes'] for x in members)+int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)+c.process_rss(os.getppid())<reg['rss_bytes'],'Owner/supervisor/coordinator RSS ceiling')
++        run_child([reg['interpreter'],'-B',str(c.CODE/'supervisor.py'),'--registration',a.registration,'--sha256',a.sha256],
++            out/'supervisor',dict(os.environ,PYTHONDONTWRITEBYTECODE='1',PYTHONPYCACHEPREFIX=reg['cache'],PYTORCH_ENABLE_MPS_FALLBACK='0'),monitor,None,cleanup_seconds=60)
++        audit=strict_audit(reg,a.sha256,start);audit['status']='training_complete_pending_coordinator_acceptance'
++        c.save(out/'pending-terminal-audit.json',audit)
++        print('Worker/supervisor complete; exact lease remains held pending coordinator direct reap and acceptance.',flush=True);return 0
+     except BaseException as error:
+         c.save(out/'owner-first-failure.json',dict(status='blocked_no_retry_preserve_exact_lease',error=repr(error),traceback=traceback.format_exc()));raise
+ 
+--- accepted20338f4/supervisor.py
++++ continuation/supervisor.py
+@@ -20,7 +20,7 @@
+     def monitor(members):
+         nonlocal last
+         c.check_lease(reg)
+-        rss=sum(m['rss_bytes'] for m in members)+int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)+c.process_rss(os.getppid())+c.process_rss(helper.pid)
++        rss=sum(m['rss_bytes'] for m in members)+int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)+c.process_rss(os.getppid())+c.process_rss(helper.pid)+c.process_rss(c.read(out/'coordinator.claimed')['pid'])
+         c.need(rss<reg['rss_bytes'],'Aggregate owner/supervisor/helper/worker RSS cap')
+         c.need(observe(helper,waitid_function()) is None,'Owned sleep helper exited early')
+         if time.monotonic()-last>=5:

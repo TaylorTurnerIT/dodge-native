@@ -1,0 +1,22 @@
+{
+  "status": "not_authorizing_registration_hash_mismatch",
+  "expected_registration_sha256": "2909bad7f027e71238d3acd2e6b529b88ee3d0604691ad732a62d3d504062741",
+  "original_review": {
+    "recommendation": "accepted",
+    "registration_sha256": "d3241cb8e272bf461487e2e9edcd925351ed9244b4c77a955d1313b03fdb4157",
+    "source_pins": "Match the config source_pins and source-manifest.json: all 19 listed pins match. The package also pins the reused training components and M1 runtime inputs.",
+    "blockers": [],
+    "limits": [
+      "This is a source review with the permitted delta suite only. It does not prove live M1 admission, training, or native runtime behavior.",
+      "The nine delta checks passed: python/.venv/bin/python -B learning/experiments/local_performance_loop/continuation/test_delta.py.",
+      "Parent terminal acceptance still requires direct coordinator reap and strict audit; pending audit does not release the exact lease."
+    ],
+    "notes": [
+      "Warmstart validates the control checkpoint boundary and uses a continuation-specific loader. It preserves learner and Adam state, changes only the learning rate, and restores source RNG. The worker starts a fresh simulator segment.",
+      "Continuation update counts exclude the inherited 12 updates; checkpoints record inherited updates separately.",
+      "Training RNG is captured before play checks and restored afterward. The policy uses guarded mean progress and play conditions; no old Q1-gain gate or elapsed-time deadline appears in the reviewed path.",
+      "The coordinator directly reaps the owner and checks process-group absence. `--accept-terminal` requires that proof, validates terminal counts and artifacts, writes the accepted audit, then clears the exact lease. Failures preserve the lease.",
+      "The permitted test suite passed. No broader tests or machine probes were run."
+    ]
+  }
+}
