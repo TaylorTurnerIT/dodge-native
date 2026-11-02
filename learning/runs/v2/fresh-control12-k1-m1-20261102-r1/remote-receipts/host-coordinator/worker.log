@@ -1,0 +1,19 @@
+Traceback (most recent call last):
+  File "/Users/taylor/Projects/dodge-native/learning/runs/v2/fresh-control12-k1-m1-20261102-r1/source/learning/experiments/local_performance_loop/fresh/coordinator.py", line 4, in <module>
+    runpy.run_path(str(common.CODE.parent/'continuation/coordinator.py'), run_name='__main__')
+  File "<frozen runpy>", line 287, in run_path
+  File "<frozen runpy>", line 98, in _run_module_code
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/taylor/Projects/dodge-native/learning/runs/v2/fresh-control12-k1-m1-20261102-r1/source/learning/experiments/local_performance_loop/continuation/coordinator.py", line 50, in <module>
+    if __name__=='__main__':main()
+                            ^^^^^^
+  File "/Users/taylor/Projects/dodge-native/learning/runs/v2/fresh-control12-k1-m1-20261102-r1/source/learning/experiments/local_performance_loop/continuation/coordinator.py", line 26, in main
+    root=run_child([reg['interpreter'],'-B',str(c.CODE/'owner.py'),'--registration',args.registration,'--sha256',args.sha256],
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/Projects/dodge-native/learning/runs/v2/fresh-control12-k1-m1-20261102-r1/source/learning/experiments/local_performance_loop/lifecycle.py", line 69, in run_child
+    log = (out / 'worker.log').open('x')
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/taylor/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/pathlib.py", line 1013, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/taylor/Projects/dodge-native/learning/runs/v2/fresh-control12-k1-m1-20261102-r1/output/owner/worker.log'

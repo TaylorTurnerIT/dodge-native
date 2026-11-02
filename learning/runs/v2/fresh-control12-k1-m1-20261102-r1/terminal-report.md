@@ -1,0 +1,9 @@
+DODGE-072 executed exactly once and failed before owner spawn. The host caller started at 2026-11-02 06:37:05 CST. Terminal readback at 06:39:38 CST confirmed failure and no owned processes.
+
+The coordinator could not open output/owner/worker.log because output/owner was absent (lifecycle.py:69). It exited 1 and the host caller directly reaped it. No owner, supervisor, worker, acceptance process or sleep helper started. No updates, gameplay frames, Adam steps, fresh seed assignments, native resets, model loads or new checkpoints occurred. First-two qualification and original Adam runtime checks were not reached; no performance result exists.
+
+The M1 lease remains null and its bytes match prelaunch SHA-256 bd3b9e2f2baa0eabb2424b0da9f7edab9eeca52681b40dfc62bd79ca231283a9. No lease acquisition or release occurred. Original control12/420 checkpoints, all 49 input pins, 29 source pins, route pin and cached baseline hashes still match. Phonon and Voxtype retain their original process identities.
+
+Session 93767 was collected with write_stdin after completed-command absence was established. The tool returned exit_code 0 with a host failure traceback; remote coordinator raw/observed exit 1 is the authoritative child result. No separate background completion notification or host-driver exit-code receipt was observed. No accepted audit, release or host success receipt exists.
+
+First-failure receipts and logs are mirrored byte-identically with verified SHA-256 hashes under remote-receipts/. terminal-readback.json binds the remote inventory, process absence, lease observation and input hashes. EXECUTION_OWNER.json records terminal ownership completion. No repair, retry, reset, lease clearing, extra experiment or department message occurred. The accountable parent alone updates the notebook and sends terminal callback fresh-control12-k1-m1-20261102-r1-terminal-call-home-v1.
