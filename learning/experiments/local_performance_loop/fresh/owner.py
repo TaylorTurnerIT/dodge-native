@@ -76,6 +76,10 @@ def strict_audit(reg,digest,start):
             and prefix['estimate_is_not_admission_or_stopping_rule'],'Real counted M1 qualification missing')
         rows=[json.loads(s) for s in (directory/'updates.jsonl').read_text().splitlines()]
         counts=c.validate_telemetry(rows,dict(reg,updates=terminal['updates']),dict(id=arm,arm=arm))
+        c.need(all(row['entropy_coefficient'] == reg['ppo']['ent_coef'] for row in rows),
+               'Actual entropy coefficient differs from the registered objective')
+        c.need(terminal['training_exposure_role'] == reg['fresh_stream']['role']
+               and terminal['objective_delta'] == reg.get('objective_delta'), 'Training exposure/objective receipt differs')
         c.need(counts==dict(updates=terminal['updates'],frames=terminal['actual_gameplay_frames'],Adam_steps=terminal['Adam_steps']),'Actual completed training counts differ')
         frames=0;steps=0;initials=0
         with (directory/'native-events.jsonl').open() as f:
@@ -112,7 +116,9 @@ def strict_audit(reg,digest,start):
             evaluations.append(dict(update=u,metrics=ev['metrics'],evaluation_sha256=c.sha(evdir/'result.json')))
         c.need(decisions and decisions[-1]['stop_reason']==terminal['stop_reason'],'Terminal performance disposition differs')
         best=next(m for m in checkpoints if m['update']==policy_state['best']['update']);c.need(best==terminal['best'],'Best checkpoint preservation differs')
-        arms.append(dict(arm=arm,counts=counts,fresh_seed_counts=fresh_counts,stop_reason=terminal['stop_reason'],best=best,evaluations=evaluations))
+        arms.append(dict(arm=arm,counts=counts,fresh_seed_counts=fresh_counts,
+            training_exposure_role=reg['fresh_stream']['role'],objective_delta=reg.get('objective_delta'),
+            stop_reason=terminal['stop_reason'],best=best,evaluations=evaluations))
     return dict(status='accepted_local_control_continuation',record=reg['record'],registration_sha256=digest,baseline=baseline,baseline420=baseline_receipt['context420'],arms=arms,
         worker_result_sha256=c.sha(worker/'result.json'),worker_exit_sha256=c.sha(worker/'exit.json'),supervisor_exit_sha256=c.sha(out/'supervisor/exit.json'),
         caffeinate_exit_sha256=c.sha(out/'caffeinate-exit.json'),resources=result['resources'],elapsed_seconds=time.monotonic()-start,

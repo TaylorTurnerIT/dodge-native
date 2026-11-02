@@ -1,0 +1,13 @@
+Review only the DODGE-074 lower-entropy and exposed-training-replay delta against frozen073. Do not modify files or run models, Torch, native games, production seed lookup, device work, leases, builds, capacity tests or unchanged tests.
+
+Exact pins are in identity-before-review.json. Config SHA a7dcc0ee89e270c3ceb939e3234eba60effa1348fc3628837f6d8b2ec2eb12dd. Source manifest SHA a8fa6cc05e19f3c3a76edb5afbd2d4a355f9134de65069881102aea503295801. Host caller SHA43ce806e0fa88f2257ee48079620b8d2204a6988bab3bf9539da422ab5c31143. All30 snapshot entries must match; compare the29 inherited entries with073 to identify the four changed modules. The added test module is the30th entry.
+
+Actual reusable changes are fresh/common.py, seed_bank.py, worker.py and owner.py. The original fresh profile remains accepted. The declared objective permits only constant ent_coef0.001; original Adam and LR remain unchanged. Replay binds accepted073 config and audit/release, same scientific settings, exact exclusion lineage, prior actual run_id as seed campaign, and a separate current run/lease. Audit checks actual entropy_coefficient telemetry. No global freshness claim is allowed.
+
+The host caller, directory and SSH guard are reused; only the caller's config digest changes. Its physical launch path is M4 normal exec -> trusted strict SSH macbook-1 -> actual M1 Python. Registered Projects paths, venv, ledger, runtime, weights and cached baseline rows are ON M1, not this M4 checkout. Their absence on M4 is not a launch failure. Use073 M1-context-review-evidence.json and terminal-readback.json for inherited context. Parent will rehash staged inputs before launch. Do not SSH during this review.
+
+The only permitted test is python/.venv/bin/python -B learning/experiments/local_performance_loop/fresh/test_entropy_delta.py. Confirm those reusable source bytes equal this snapshot. Four tests already pass; tests use synthetic fixtures and saved configs. No unchanged test suite is needed.
+
+review.json and SOURCE_COMMIT.json intentionally await exact review and the final source commit. They must exist and bind the current identities before launch. Reuse073 directory/source-commit/ledger tests without repeating them. New authority records the latest actual Taylor instruction and identifies entropy selection as the accountable owner's decision, not a fabricated specific Taylor quotation.
+
+Return accepted or concrete blockers with path/trigger/consequence, verified pins and finite limits. This review proves source compatibility only; the first two counted updates must qualify actual074 training inside its one invocation.

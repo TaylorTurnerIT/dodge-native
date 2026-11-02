@@ -123,7 +123,7 @@ def main():
                 prepared=training.PreparedUpdates(model,optimizer,adapter,config,ppo,reg,'mps')
                 row=dict(kind='initial_assignments',simulator_segment=segment,after_update=recorder.completed_updates,reason=reason,stream_sha256=digest,fresh_stream_identity=reg['fresh_stream']['stream_identity'],bank_episode_offset=(segment-1)*reg['fresh_stream']['bank_episodes_per_slot'],assignments=adapter.assignment_events,exact_simulator_resume=False)
                 events.emit(row);segments.append(row);del streams
-            new_games('fresh_unique_seeds_control12_learner_Adam_new_simulator_segment')
+            new_games('registered_training_stream_control12_learner_Adam_new_simulator_segment')
             def save_learner(u,measured):
                 path=directory/'checkpoints'/f'checkpoint-{u:06d}.pt'
                 state=dict(schema='performance_loop_learner_v1',arm=arm,completed_updates=u,actual_gameplay_frames=u*65536,
@@ -196,6 +196,7 @@ def main():
             for j in [telemetry,events,activity,decisions]:j.close();journals.remove(j)
             best_update=policy_state['best']['update'];best=next(x for x in checkpoints if x['update']==best_update)
             terminal=dict(arm=arm,updates=update,actual_gameplay_frames=update*65536,Adam_steps=adam_steps,stop_reason=stop,best=best,
+                training_exposure_role=reg['fresh_stream']['role'],objective_delta=reg.get('objective_delta'),
                 checkpoints=checkpoints,simulator_segments=[{k:v for k,v in x.items() if k!='assignments'} for x in segments],
                 artifacts={n:c.sha(directory/n) for n in ['updates.jsonl','native-events.jsonl','activity.jsonl','decisions.jsonl','migration.json','prefix-qualification.json']})
             c.save(directory/'result.json',terminal);completed.append(terminal)

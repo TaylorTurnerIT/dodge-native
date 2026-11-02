@@ -29,7 +29,9 @@ def specification(reg):
     pool = [r['seed'] for r in read_bound(lineage['pool'])['seeds']]
     if len(history) != len(set(history)) or len(history) != 189743 or len(set(pool)) != 512:
         raise ValueError('Registered history/pool counts differ')
-    spec = StreamSpec(campaign=reg['run_id'], replica=str(reg['replicas']['1']['environment_seed']),
+    replay = lineage.get('replay')
+    campaign = reg['run_id'] if replay is None else replay['campaign_run_id']
+    spec = StreamSpec(campaign=campaign, replica=str(reg['replicas']['1']['environment_seed']),
         slots=reg['envs'], heldout_manifest_sha256=lineage['registry']['sha256'],
         additional_exclusions=tuple(map(tuple, registry['future_training_exclusion_ranges']))
             + tuple(map(tuple, reg['exclusions'])) + ((0, 1),)
@@ -118,4 +120,4 @@ def audit_assignments(events, spec, episodes_per_slot):
         raise ValueError('Missing actual fresh assignments or uncommitted native reset')
     return dict(stream_sha256=spec.identity, consumed_unique_training_seeds=len(seen),
                 simulator_segments=segment, assignments_per_segment=counts,
-                native_seed_mode='evaluation_explicit_seed_list', role='training_only_fresh_stream')
+                native_seed_mode='evaluation_explicit_seed_list', role='training_only_unique_within_trajectory')

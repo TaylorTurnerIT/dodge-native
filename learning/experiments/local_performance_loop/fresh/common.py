@@ -21,8 +21,17 @@ def validate_shape(reg, recipe):
          'First-attempt/local-only controls differ')
     need((reg['envs'], reg['rollout'], reg['action_repeat'], reg['effective_minibatch'], reg['microbatch'])
          == (64, 1024, 1, 2048, 512), 'Accepted K1 shape differs')
-    need(reg['ppo'] == recipe['ppo'] and reg['ppo']['learning_rate'] == 3e-5
-         and reg['arms'] == {'control': recipe['arms']['control']}, 'Fresh seeds are the only recipe change')
+    expected_ppo = dict(recipe['ppo'])
+    if 'objective_delta' in reg:
+        need(reg['objective_delta'] == dict(parameter='ent_coef', before=.01, after=.001, schedule='constant'),
+             'Only the registered constant entropy delta is permitted')
+        need(recipe['ppo']['ent_coef'] == .01 and 'replay' in reg['fresh_stream'],
+             'Entropy intervention requires the bound exposed training replay')
+        expected_ppo['ent_coef'] = .001
+    else:
+        need('replay' not in reg['fresh_stream'], 'Training replay requires the registered objective delta')
+    need(reg['ppo'] == expected_ppo and reg['ppo']['learning_rate'] == 3e-5
+         and reg['arms'] == {'control': recipe['arms']['control']}, 'Unregistered recipe change')
     need((reg['initial_updates'],reg['segment_updates'],reg['prefix_updates']) == (72,12,2), 'Play cadence differs')
     need(reg['work_seconds'] is None and reg['total_seconds'] is None and not reg['forecast_fit_gate'],
          'No wall-clock cancellation or forecast admission')
@@ -57,6 +66,36 @@ def validate_baseline_binding(reg, prior):
         need(prior['input_pins'][path] == reg['input_pins'][path], 'Cached baseline runtime source differs')
 
 
+def validate_training_replay(reg):
+    """Bind deliberate exposed training replay; never call it globally fresh."""
+    replay = reg['fresh_stream']['replay']
+    prior = read(replay['config_path'])
+    need(sha(replay['config_path']) == replay['config_sha256']
+         and reg['input_pins'][replay['config_path']] == replay['config_sha256'], 'Replay config binding differs')
+    need(prior['record'] == 'DODGE-073' and replay['campaign_run_id'] == prior['run_id']
+         and reg['run_id'] != prior['run_id'], 'Separate attempt with original stream campaign required')
+    need(reg['fresh_stream']['role'] == 'exposed_training_replay_unique_within_trajectory'
+         and reg['objective_delta'] == dict(parameter='ent_coef', before=.01, after=.001, schedule='constant'),
+         'Replay exposure/objective declaration differs')
+    expected = dict(prior['ppo'], ent_coef=.001)
+    need(reg['ppo'] == expected, 'Only entropy may change from the accepted replay source')
+    for key in ['arms','replicas','envs','rollout','action_repeat','effective_minibatch','microbatch',
+                'initial_updates','segment_updates','prefix_updates','policy','evaluation_seeds',
+                'evaluation_controller_domain','exclusions','machine','runtime_root','runtime_members',
+                'warmstart','checkpoint_path','checkpoint_sha256','baseline_sources']:
+        need(reg[key] == prior[key], 'Replay scientific identity differs: '+key)
+    for key,value in prior['fresh_stream'].items():
+        if key != 'role':
+            need(reg['fresh_stream'][key] == value, 'Replay stream lineage differs: '+key)
+    audit = read(replay['audit_path']); release = read(replay['release_path'])
+    need(audit['status'] == 'accepted_local_control_continuation' and audit['record'] == prior['record']
+         and audit['registration_sha256'] == replay['config_sha256']
+         and release['accepted_audit_sha256'] == sha(replay['audit_path'])
+         and release['lease_value_after_release'] is None, 'Accepted and released replay source required')
+    for path in [replay['audit_path'], replay['release_path']]:
+        need(sha(path) == reg['input_pins'][path], 'Replay closeout pin differs')
+
+
 def load_registration(path, digest):
     global RUN
     need(sha(path) == digest, 'Fresh registration hash differs')
@@ -73,6 +112,8 @@ def load_registration(path, digest):
          'Machine-bound successor package/lease identity differs')
     validate_shape(reg, read(reg['source_config_path']))
     verify_pins(reg); verify_runtime_members(reg)
+    if 'objective_delta' in reg:
+        validate_training_replay(reg)
     need(not list(Path(reg['cache']).rglob('*')), 'Bytecode cache changed')
     need(read(reg['accepted067_path'])['status'] == 'accepted_local_performance_loop'
          and read(reg['accepted_M1_path'])['status'] == 'accepted_M1_import_tiny_device_only', 'Accepted input proof missing')
