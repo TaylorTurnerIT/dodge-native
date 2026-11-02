@@ -1,0 +1,79 @@
+--- accepted/worker.py
++++ fresh/worker.py
+@@ -18 +18,2 @@
+-from warmstart import load_control,verify_only_lr_changed
++from warmstart import load_control,verify_optimizer_unchanged
++from seed_bank import build_streams
+@@ -61 +62,2 @@
+-        # Both baselines run on this machine; no M4 floating-point rows are reused.
++        # Exact same-M1 071 baselines are immutable inputs, not new games.
++        # They bind the identical models/runtime/controller/development panel.
+@@ -65,8 +67,12 @@
+-            torch.manual_seed(reg['replicas']['1']['constructor_seed'])
+-            state=(checkpoint.load_checkpoint(c.Path(reg['checkpoint_path']),expected_sha256=reg['checkpoint_sha256'])
+-                if label=='420' else load_control(reg,torch,fingerprint))
+-            model=teacher.OmniscientEntityTeacher();model.load_state_dict(state['model'],strict=True);del state
+-            model.to('mps');model.eval()
+-            measured=evaluate(model,reg['evaluation_seeds'],reg,baseline_out,guard,torch,np,native,checkpoint,fingerprint)
+-            baseline_metrics[label]=measured['metrics']
+-            del model;gc.collect();torch.mps.empty_cache();guard()
++            source=reg['baseline_sources'][label]
++            episodes=c.Path(source['episodes_path'])
++            c.need(c.sha(episodes)==source['episodes_sha256'] and c.sha(source['result_path'])==source['result_sha256'],
++                'Same-M1 cached baseline bytes changed')
++            prior=c.read(source['result_path'])
++            expected_fp=reg['model_fingerprint'] if label=='420' else reg['warmstart']['model_fingerprint']
++            c.need(prior['model_fingerprint']==expected_fp and prior['episodes_sha256']==source['episodes_sha256'],
++                'Same-M1 baseline model/episodes identity differs')
++            c.publish(baseline_out/'episodes.jsonl',lambda stream:stream.write(episodes.read_bytes()))
++            c.save(baseline_out/'result.json',dict(prior,reused_same_M1_baseline=True,
++                source_result_sha256=source['result_sha256'],new_games=0))
++            baseline_metrics[label]=prior['metrics']
+@@ -77,2 +83,2 @@
+-        c.save(out/'baseline.json',dict(metrics=baseline,context420=baseline_metrics['420'],cached_games=0,
+-            new_games=1024,paired_uncertainty_sha256=c.sha(out/'baseline-paired-uncertainty.json'),source_control12_sha256=reg['warmstart']['sha256'],source420_sha256=reg['checkpoint_sha256'],
++        c.save(out/'baseline.json',dict(metrics=baseline,context420=baseline_metrics['420'],cached_games=1024,
++            new_games=0,paired_uncertainty_sha256=c.sha(out/'baseline-paired-uncertainty.json'),source_control12_sha256=reg['warmstart']['sha256'],source420_sha256=reg['checkpoint_sha256'],
+@@ -88 +94 @@
+-            verify_only_lr_changed(original['optimizer'],optimizer.state_dict(),fingerprint)
++            verify_optimizer_unchanged(original['optimizer'],optimizer.state_dict(),fingerprint)
+@@ -92,2 +98,2 @@
+-                source_adam_fingerprint=reg['warmstart']['adam_fingerprint'],content_except_LR_preserved=True,
+-                actual_LR_before=3e-5,actual_LR_after=1e-5,source_rng_restored=True,full_simulator_restore=False))
++                source_adam_fingerprint=reg['warmstart']['adam_fingerprint'],optimizer_unchanged=True,
++                actual_LR_before=3e-5,actual_LR_after=3e-5,source_rng_restored=True,full_simulator_restore=False))
+@@ -109,3 +115,2 @@
+-                segment+=1;stream_reg=dict(reg,frame_target=reg['initial_updates']*65536)
+-                stream_reg['replicas']={'1':dict(seed,environment_seed=seed['environment_seed']+segment-1)}
+-                pool,strata,streams,digest=c.build_streams(stream_reg,'1')
++                segment+=1
++                pool,strata,streams,digest=build_streams(reg,'1',segment-1)
+@@ -119 +124 @@
+-                row=dict(kind='initial_assignments',simulator_segment=segment,after_update=recorder.completed_updates,reason=reason,stream_sha256=digest,assignments=adapter.assignment_events,exact_simulator_resume=False)
++                row=dict(kind='initial_assignments',simulator_segment=segment,after_update=recorder.completed_updates,reason=reason,stream_sha256=digest,fresh_stream_identity=reg['fresh_stream']['stream_identity'],bank_episode_offset=(segment-1)*reg['fresh_stream']['bank_episodes_per_slot'],assignments=adapter.assignment_events,exact_simulator_resume=False)
+@@ -121 +126 @@
+-            new_games('fresh_control12_learner_Adam_new_simulator_segment')
++            new_games('fresh_unique_seeds_control12_learner_Adam_new_simulator_segment')
+@@ -137 +142 @@
+-                if remaining<=1024:new_games('registered_seed_stream_capacity_rollover')
++                if remaining<=1024:new_games('registered_disjoint_fresh_bank_capacity_rollover_unused_seeds_abandoned')
+--- accepted/owner.py
++++ fresh/owner.py
+@@ -56,2 +56,2 @@
+-    c.need(baseline_receipt['cached_games']==0 and baseline_receipt['new_games']==1024
+-           and c.sha(worker/'baseline.json')==result['baseline_sha256'],'No cross-machine baseline cache reuse')
++    c.need(baseline_receipt['cached_games']==1024 and baseline_receipt['new_games']==0
++           and c.sha(worker/'baseline.json')==result['baseline_sha256'],'Only exact same-M1 baseline cache reuse')
+@@ -69 +69 @@
+-        c.need(migration['content_except_LR_preserved'] and migration['source_rng_restored']
++        c.need(migration['optimizer_unchanged'] and migration['source_rng_restored']
+@@ -72 +72 @@
+-            and migration['actual_LR_before']==3e-5 and migration['actual_LR_after']==1e-5,'Warm-start migration differs')
++            and migration['actual_LR_before']==3e-5 and migration['actual_LR_after']==3e-5,'Warm-start migration differs')
+@@ -88,0 +89,3 @@
++        with (directory/'native-events.jsonl').open() as stream:
++            fresh_counts=c.audit_assignments((json.loads(line) for line in stream),c.specification(reg),reg['fresh_stream']['bank_episodes_per_slot'])
++        c.need(fresh_counts['simulator_segments']==initials,'Fresh assignment coverage differs')
+@@ -112 +115 @@
+-        arms.append(dict(arm=arm,counts=counts,stop_reason=terminal['stop_reason'],best=best,evaluations=evaluations))
++        arms.append(dict(arm=arm,counts=counts,fresh_seed_counts=fresh_counts,stop_reason=terminal['stop_reason'],best=best,evaluations=evaluations))
