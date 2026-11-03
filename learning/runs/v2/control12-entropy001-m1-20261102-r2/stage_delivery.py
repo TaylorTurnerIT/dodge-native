@@ -9,6 +9,7 @@ phase='not_started'
 owns_claim=False
 def deliver(packet):
     global phase, owns_claim
+    owns_claim=False
     phase='claim'
     packet=Path(packet);contract_path=packet/'staging-contract.json';contract=json.loads(contract_path.read_text())
     claim=packet/'stage-delivery.claimed'
