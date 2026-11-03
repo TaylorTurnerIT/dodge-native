@@ -6,12 +6,14 @@ SCP=['/usr/bin/scp','-o','BatchMode=yes','-o','StrictHostKeyChecking=yes','-o','
 def sha(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def run(args): return subprocess.run(args,text=True,capture_output=True,check=True).stdout.strip()
 phase='not_started'
+owns_claim=False
 def deliver(packet):
-    global phase
+    global phase, owns_claim
     phase='claim'
     packet=Path(packet);contract_path=packet/'staging-contract.json';contract=json.loads(contract_path.read_text())
     claim=packet/'stage-delivery.claimed'
     fd=os.open(claim,os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)
+    owns_claim=True
     with os.fdopen(fd,'w') as stream:
         json.dump({'status':'delivery_started_no_retry','contract_sha256':sha(contract_path)},stream);stream.flush();os.fsync(stream.fileno())
     directory=os.open(packet,os.O_RDONLY);os.fsync(directory);os.close(directory)
@@ -54,7 +56,7 @@ if __name__=='__main__':
         print(deliver(sys.argv[1]))
     except BaseException as error:
         packet=Path(sys.argv[1]); failure=packet/'stage-delivery-first-failure.json'
-        if (packet/'stage-delivery.claimed').exists() and not failure.exists():
+        if owns_claim and not failure.exists():
             with failure.open('x') as stream:
                 json.dump({'status':'first_delivery_failure_preserved','phase':phase,'error_class':type(error).__name__},stream);stream.flush();os.fsync(stream.fileno())
             directory=os.open(packet,os.O_RDONLY);os.fsync(directory);os.close(directory)
