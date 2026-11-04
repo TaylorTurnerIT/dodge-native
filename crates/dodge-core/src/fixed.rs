@@ -20,7 +20,7 @@ impl PicoFixed {
 
     pub const fn from_int(value: i32) -> Self {
         Self {
-            raw: value * ONE_RAW,
+            raw: value.wrapping_mul(ONE_RAW),
         }
     }
 
@@ -64,7 +64,7 @@ impl PicoFixed {
         if self.raw & FRACTION_MASK == 0 {
             floor
         } else {
-            Self::from_raw(floor.raw + ONE_RAW)
+            Self::from_raw(floor.raw.wrapping_add(ONE_RAW))
         }
     }
 
@@ -79,15 +79,15 @@ impl PicoFixed {
     }
 
     pub const fn add(self, other: Self) -> Self {
-        Self::from_raw(self.raw + other.raw)
+        Self::from_raw(self.raw.wrapping_add(other.raw))
     }
 
     pub const fn sub(self, other: Self) -> Self {
-        Self::from_raw(self.raw - other.raw)
+        Self::from_raw(self.raw.wrapping_sub(other.raw))
     }
 
     pub const fn neg(self) -> Self {
-        Self::from_raw(-self.raw)
+        Self::from_raw(self.raw.wrapping_neg())
     }
 
     pub fn mul_fixed(self, other: Self) -> Self {
@@ -104,7 +104,7 @@ impl PicoFixed {
     }
 
     pub fn rem_fixed(self, other: Self) -> Self {
-        Self::from_raw(self.raw % other.raw)
+        Self::from_raw(self.raw.wrapping_rem(other.raw))
     }
 }
 
@@ -168,6 +168,27 @@ mod tests {
         assert_eq!(
             value.rem_fixed(PicoFixed::from_int(2)),
             PicoFixed::from_int(-1)
+        );
+    }
+
+    #[test]
+    fn fixed_width_boundaries_wrap_deterministically() {
+        assert_eq!(
+            PicoFixed::from_raw(i32::MAX).add(PicoFixed::ONE).raw(),
+            i32::MIN + 65_535
+        );
+        assert_eq!(
+            PicoFixed::from_raw(i32::MIN).sub(PicoFixed::ONE).raw(),
+            i32::MAX - 65_535
+        );
+        assert_eq!(PicoFixed::from_raw(i32::MIN).neg().raw(), i32::MIN);
+        assert_eq!(PicoFixed::from_int(i32::MAX).raw(), -65_536);
+        assert_eq!(PicoFixed::from_raw(i32::MAX).ceil().raw(), i32::MIN);
+        assert_eq!(
+            PicoFixed::from_raw(i32::MIN)
+                .rem_fixed(PicoFixed::from_raw(-1))
+                .raw(),
+            0
         );
     }
 }
