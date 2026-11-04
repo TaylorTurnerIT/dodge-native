@@ -3027,13 +3027,17 @@ mod tests {
             personality: -1,
             inside: true,
             ..EnemyState::normal(
-                PicoFixed::from_int(10), PicoFixed::from_int(10), PicoFixed::from_int(30),
+                PicoFixed::from_int(10),
+                PicoFixed::from_int(10),
+                PicoFixed::from_int(30),
             )
         });
         game.enemies.push(EnemyState {
             inside: true,
             ..EnemyState::normal(
-                PicoFixed::from_int(10), PicoFixed::from_int(10), PicoFixed::from_int(3),
+                PicoFixed::from_int(10),
+                PicoFixed::from_int(10),
+                PicoFixed::from_int(3),
             )
         });
 
@@ -3050,18 +3054,36 @@ mod tests {
             inside: true,
             vx: PicoFixed::ONE,
             ..EnemyState::normal(
-                PicoFixed::from_int(127), PicoFixed::from_int(10), PicoFixed::from_int(30),
+                PicoFixed::from_int(127),
+                PicoFixed::from_int(10),
+                PicoFixed::from_int(30),
             )
         };
         game.enemies.push(explosion);
 
         game.update_enemies();
 
-        let Some(updated) = game.enemies.first() else {
-            panic!("explosion should remain present");
-        };
-        assert!(updated.vx > PicoFixed::ZERO);
-        assert!(updated.x > PicoFixed::from_int(127));
+        assert!(game.enemies.first().is_some_and(
+            |updated| updated.vx > PicoFixed::ZERO && updated.x > PicoFixed::from_int(127)
+        ));
+    }
+
+    #[test]
+    fn growing_normal_enemy_bounces_using_size_before_growth() {
+        let mut game = NativeGame::new(NativeConfig::new(42));
+        game.enemies.push(EnemyState {
+            inside: true,
+            vx: PicoFixed::ONE,
+            ..EnemyState::normal(
+                PicoFixed::from_int(127),
+                PicoFixed::from_int(10),
+                PicoFixed::from_int(3),
+            )
+        });
+        game.update_enemies();
+        assert!(game.enemies.first().is_some_and(
+            |updated| updated.size == PicoFixed::from_int(2) && updated.vx > PicoFixed::ZERO
+        ));
     }
 
     #[test]
@@ -3080,13 +3102,11 @@ mod tests {
         });
         game.update_enemies();
 
-        let Some(updated) = game.enemies.first() else {
-            panic!("explosion should remain present");
-        };
-        assert_eq!(updated.size, PicoFixed::from_int(30));
-        assert!(updated.isizing);
-        assert_eq!(updated.x, PicoFixed::from_f32(9.5));
-        assert_eq!(updated.y, PicoFixed::from_f32(9.5));
+        assert!(game.enemies.first().is_some_and(|updated| updated.size
+            == PicoFixed::from_int(30)
+            && updated.isizing
+            && updated.x == PicoFixed::from_f32(9.5)
+            && updated.y == PicoFixed::from_f32(9.5)));
     }
 
     #[test]
