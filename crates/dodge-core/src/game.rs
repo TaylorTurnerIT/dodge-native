@@ -19,7 +19,7 @@ const DIFFICULTY_SPEED_TARGET: PicoFixed = PicoFixed::from_int(3);
 const DIFFICULTY_EST_TARGET: PicoFixed = PicoFixed::from_raw(14_417);
 const SCORE_PER_SHATTER: PicoFixed = PicoFixed::from_raw(32_768);
 const ENEMY_SPEED_STEP: PicoFixed = PicoFixed::from_raw(655);
-const KAMIKAZE_RADIUS_SQUARED: PicoFixed = PicoFixed::from_int(625);
+const KAMIKAZE_RADIUS: PicoFixed = PicoFixed::from_int(25);
 const INITIAL_PATTERN_DELAY_FRAMES: u32 = 420;
 const ACTIVE_PATTERN_DELAY_FRAMES: u32 = 600;
 
@@ -1195,8 +1195,8 @@ impl NativeGame {
             let y = original.y;
             let mut vx = original.vx.mul_fixed(ENEMY_FRICTION);
             let mut vy = original.vy.mul_fixed(ENEMY_FRICTION);
-            // `updateenemies` keeps the pre-growth `s` local for pattern and
-            // crush checks, while later overlap/edge code reads `_e.s`.
+            // `updateenemies` keeps the pre-growth `s` local for pattern,
+            // crush, and edge checks. Overlap reads the updated `_e.s`.
             let source_size = original.size;
             let mut size = source_size;
             let mut next_x = original.x;
@@ -1207,12 +1207,12 @@ impl NativeGame {
             if size < original.max_size && original.personality != -1 {
                 size = size.add(self.freeze_rate);
             }
-            if size < original.max_size && original.personality == -1 && isizing {
+            if source_size < original.max_size && original.personality == -1 && isizing {
                 size = size.add(self.freeze_rate);
                 next_x = next_x.sub(ENEMY_HALF_STEP.mul_fixed(self.freeze_rate));
                 next_y = next_y.sub(ENEMY_HALF_STEP.mul_fixed(self.freeze_rate));
             }
-            if size >= original.max_size && original.personality == -1 {
+            if source_size >= original.max_size && original.personality == -1 {
                 isizing = false;
             }
             if original.personality == -1 && !isizing {
@@ -1291,6 +1291,8 @@ impl NativeGame {
                 if self.enemy_should_collide
                     && current_enemy.inside
                     && other.inside
+                    && current_enemy.personality != -1
+                    && other.personality != -1
                     && current_enemy.x.add(current_enemy.size) > other.x.sub(other_offset)
                     && current_enemy.y.add(current_enemy.size) > other.y.sub(other_offset)
                     && current_enemy.x.sub(current_offset) < other.x.add(other.size)
@@ -1306,14 +1308,14 @@ impl NativeGame {
             }
 
             if current_enemy.inside && current_enemy.personality != -1 {
-                if current_enemy.y >= PicoFixed::from_int(129).sub(current_enemy.size) {
+                if y >= PicoFixed::from_int(129).sub(source_size) {
                     vy = fixed_abs(vy).neg();
-                } else if current_enemy.y <= PicoFixed::from_int(-2) {
+                } else if y <= PicoFixed::from_int(-2) {
                     vy = fixed_abs(vy);
                 }
-                if current_enemy.x >= PicoFixed::from_int(129).sub(current_enemy.size) {
+                if x >= PicoFixed::from_int(129).sub(source_size) {
                     vx = fixed_abs(vx).neg();
-                } else if current_enemy.x <= PicoFixed::from_int(-2) {
+                } else if x <= PicoFixed::from_int(-2) {
                     vx = fixed_abs(vx);
                 }
             }
@@ -1957,13 +1959,17 @@ fn update_enemy_speed(enemy: EnemyState, player: PlayerState) -> PicoFixed {
     if enemy.personality != 1 {
         return enemy.speed;
     }
-    let dx = enemy.x.sub(player.x);
-    let dy = enemy.y.sub(player.y);
+    // Cartridge `dist` scales before squaring to avoid Q16.16 overflow.
+    // Keep division and square-root quantization before rescaling by 16.
+    let dx = PicoFixed::from_raw(enemy.x.sub(player.x).raw() / 16);
+    let dy = PicoFixed::from_raw(enemy.y.sub(player.y).raw() / 16);
     let distance_squared = dx.mul_fixed(dx).add(dy.mul_fixed(dy));
-    if distance_squared <= KAMIKAZE_RADIUS_SQUARED {
+    let distance = PicoFixed::from_raw((distance_squared.to_double().sqrt() * 65_536.0) as i32)
+        .mul_fixed(PicoFixed::from_int(16));
+    if distance <= KAMIKAZE_RADIUS {
         enemy.speed.sub(ENEMY_SPEED_STEP)
     } else if enemy.speed < PicoFixed::ONE {
-        enemy.speed.add(ENEMY_SPEED_STEP).min(PicoFixed::ONE)
+        enemy.speed.add(ENEMY_SPEED_STEP)
     } else {
         PicoFixed::ONE
     }
@@ -2221,10 +2227,13 @@ fn settings_row(cursor: u8) -> i16 {
 
 #[cfg(test)]
 mod tests {
-    use super::{FrameEvent, INITIAL_PATTERN_DELAY_FRAMES, NativeGame, pico_cosine, pico_sine};
+    use super::{
+        ENEMY_SPEED_STEP, FrameEvent, INITIAL_PATTERN_DELAY_FRAMES, NativeGame, pico_cosine,
+        pico_sine, update_enemy_speed,
+    };
     use crate::{
         Action, AudioEvent, BUTTON_X_MASK, CoreError, EnemyState, Mode, NativeConfig, PatternRect,
-        PatternState, PatternTarget, PicoFixed,
+        PatternState, PatternTarget, PicoFixed, PlayerState,
     };
 
     fn start_game(game: &mut NativeGame) {
@@ -3012,6 +3021,95 @@ mod tests {
     }
 
     #[test]
+    fn explosion_does_not_mark_overlapping_enemy_for_death() {
+        let mut game = NativeGame::new(NativeConfig::new(42));
+        game.enemies.push(EnemyState {
+            personality: -1,
+            inside: true,
+            ..EnemyState::normal(
+                PicoFixed::from_int(10),
+                PicoFixed::from_int(10),
+                PicoFixed::from_int(30),
+            )
+        });
+        game.enemies.push(EnemyState {
+            inside: true,
+            ..EnemyState::normal(
+                PicoFixed::from_int(10),
+                PicoFixed::from_int(10),
+                PicoFixed::from_int(3),
+            )
+        });
+
+        game.update_enemies();
+
+        assert!(game.enemies().iter().all(|enemy| !enemy.is_dying));
+    }
+
+    #[test]
+    fn explosion_growth_uses_pre_growth_coordinates_and_size_for_edge_bounce() {
+        let mut game = NativeGame::new(NativeConfig::new(42));
+        let explosion = EnemyState {
+            personality: -1,
+            inside: true,
+            vx: PicoFixed::ONE,
+            ..EnemyState::normal(
+                PicoFixed::from_int(127),
+                PicoFixed::from_int(10),
+                PicoFixed::from_int(30),
+            )
+        };
+        game.enemies.push(explosion);
+
+        game.update_enemies();
+
+        assert!(game.enemies.first().is_some_and(
+            |updated| updated.vx > PicoFixed::ZERO && updated.x > PicoFixed::from_int(127)
+        ));
+    }
+
+    #[test]
+    fn growing_normal_enemy_bounces_using_size_before_growth() {
+        let mut game = NativeGame::new(NativeConfig::new(42));
+        game.enemies.push(EnemyState {
+            inside: true,
+            vx: PicoFixed::ONE,
+            ..EnemyState::normal(
+                PicoFixed::from_int(127),
+                PicoFixed::from_int(10),
+                PicoFixed::from_int(3),
+            )
+        });
+        game.update_enemies();
+        assert!(game.enemies.first().is_some_and(
+            |updated| updated.size == PicoFixed::from_int(2) && updated.vx > PicoFixed::ZERO
+        ));
+    }
+
+    #[test]
+    fn explosion_growth_does_not_shrink_on_the_frame_it_reaches_max_size() {
+        let mut game = NativeGame::new(NativeConfig::new(42));
+        game.enemies.push(EnemyState {
+            personality: -1,
+            inside: true,
+            isizing: true,
+            size: PicoFixed::from_int(29),
+            ..EnemyState::normal(
+                PicoFixed::from_int(10),
+                PicoFixed::from_int(10),
+                PicoFixed::from_int(30),
+            )
+        });
+        game.update_enemies();
+
+        assert!(game.enemies.first().is_some_and(|updated| updated.size
+            == PicoFixed::from_int(30)
+            && updated.isizing
+            && updated.x == PicoFixed::from_f32(9.5)
+            && updated.y == PicoFixed::from_f32(9.5)));
+    }
+
+    #[test]
     fn draw_side_effect_rng_is_consumed_for_powerup_enemy_trails() {
         let mut game = NativeGame::new(NativeConfig::new(42));
         start_game(&mut game);
@@ -3055,6 +3153,74 @@ mod tests {
             game.enemies().last().map(|enemy| enemy.speed),
             Some(PicoFixed::from_raw(64_881))
         );
+    }
+
+    #[test]
+    fn kamikaze_distance_scales_before_squaring() {
+        let player = PlayerState::default();
+        // Exact component magnitudes recovered from the failed seed's squares.
+        for sign in [-1, 1] {
+            let enemy = EnemyState {
+                x: player.x.add(PicoFixed::from_raw(sign * 8_463_075)),
+                y: player.y.add(PicoFixed::from_raw(sign * 8_352_089)),
+                personality: 1,
+                speed: PicoFixed::from_f32(0.5),
+                ..EnemyState::normal(PicoFixed::ZERO, PicoFixed::ZERO, PicoFixed::ONE)
+            };
+            assert_eq!(
+                update_enemy_speed(enemy, player),
+                enemy.speed.add(ENEMY_SPEED_STEP)
+            );
+        }
+    }
+
+    #[test]
+    fn kamikaze_distance_preserves_cartridge_threshold_quantization() {
+        let player = PlayerState::default();
+        for (offset, close) in [(0, true), (31, true), (32, false)] {
+            for sign in [-1, 1] {
+                let enemy = EnemyState {
+                    x: player
+                        .x
+                        .add(PicoFixed::from_raw(sign * (25 * 65_536 + offset))),
+                    y: player.y,
+                    personality: 1,
+                    speed: PicoFixed::from_f32(0.5),
+                    ..EnemyState::normal(PicoFixed::ZERO, PicoFixed::ZERO, PicoFixed::ONE)
+                };
+                assert_eq!(
+                    update_enemy_speed(enemy, player),
+                    if close {
+                        enemy.speed.sub(ENEMY_SPEED_STEP)
+                    } else {
+                        enemy.speed.add(ENEMY_SPEED_STEP)
+                    }
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn kamikaze_speed_growth_can_overshoot_but_caps_when_already_at_one() {
+        let player = PlayerState::default();
+        let enemy = EnemyState {
+            x: player.x.add(PicoFixed::from_int(26)),
+            y: player.y,
+            personality: 1,
+            speed: PicoFixed::from_raw(65_535),
+            ..EnemyState::normal(PicoFixed::ZERO, PicoFixed::ZERO, PicoFixed::ONE)
+        };
+
+        assert_eq!(
+            update_enemy_speed(enemy, player),
+            PicoFixed::from_raw(66_190)
+        );
+        for speed in [PicoFixed::ONE, PicoFixed::from_raw(65_537)] {
+            assert_eq!(
+                update_enemy_speed(EnemyState { speed, ..enemy }, player),
+                PicoFixed::ONE
+            );
+        }
     }
 
     #[test]
