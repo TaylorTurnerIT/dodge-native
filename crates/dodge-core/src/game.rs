@@ -3862,3 +3862,7 @@ mod observation_tests;
 #[cfg(test)]
 #[path = "death_tests.rs"]
 mod death_tests;
+
+#[cfg(test)]
+#[path = "start_tests.rs"]
+mod start_tests;
