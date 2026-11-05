@@ -53,4 +53,3 @@ impl From<dodge_core::CoreError> for EnvError {
         Self::Native(value.to_string())
     }
 }
-
