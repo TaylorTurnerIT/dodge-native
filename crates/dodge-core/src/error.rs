@@ -7,6 +7,10 @@ pub enum CoreError {
     InvalidButtonIndex(u8),
     InvalidActionName,
     InvalidFrameCount(u32),
+    InvalidSearchDepth(u8),
+    InvalidFutureSeedCount(usize),
+    InvalidPlannerPolicy,
+    InvalidPlannerBudget { required: u32, budget: u32 },
     DivisionByZero,
     InvalidRngCheckpoint,
     InvalidSnapshotMagic,
@@ -28,6 +32,21 @@ impl Display for CoreError {
             Self::InvalidActionName => formatter.write_str("invalid Dodge action name"),
             Self::InvalidFrameCount(frames) => {
                 write!(formatter, "invalid native frame count: {frames}")
+            }
+            Self::InvalidSearchDepth(depth) => {
+                write!(formatter, "invalid planner search depth: {depth}")
+            }
+            Self::InvalidFutureSeedCount(count) => {
+                write!(formatter, "invalid planner future seed count: {count}")
+            }
+            Self::InvalidPlannerPolicy => {
+                formatter.write_str("planner M0 rollout requires the AABB dodger policy")
+            }
+            Self::InvalidPlannerBudget { required, budget } => {
+                write!(
+                    formatter,
+                    "planner requires {required} frame budget units, limit is {budget}"
+                )
             }
             Self::DivisionByZero => formatter.write_str("PICO-8 fixed division by zero"),
             Self::InvalidRngCheckpoint => formatter.write_str("invalid PICO-8 RNG checkpoint"),

@@ -314,9 +314,15 @@ impl IndexedFramebuffer {
     }
 
     fn project(&self, state: &RenderState) -> Self {
+        let mut projected = Self::blank();
+        self.project_into(state, &mut projected.pixels);
+        projected
+    }
+
+    pub(crate) fn project_into(&self, state: &RenderState, out: &mut [u8; FRAMEBUFFER_SIZE]) {
         let camera_x = camera_offset(state.camera_x);
         let camera_y = camera_offset(state.camera_y);
-        let mut projected = Self::blank();
+        out.fill(0);
         for world_y in 0..FRAMEBUFFER_HEIGHT as i32 {
             for world_x in 0..FRAMEBUFFER_WIDTH as i32 {
                 let screen_x = world_x - camera_x;
@@ -326,16 +332,14 @@ impl IndexedFramebuffer {
                 {
                     let source_index = screen_y as usize * FRAMEBUFFER_WIDTH + screen_x as usize;
                     let target_index = world_y as usize * FRAMEBUFFER_WIDTH + world_x as usize;
-                    if let (Some(target), Some(source)) = (
-                        projected.pixels.get_mut(target_index),
-                        self.pixels.get(source_index),
-                    ) {
+                    if let (Some(target), Some(source)) =
+                        (out.get_mut(target_index), self.pixels.get(source_index))
+                    {
                         *target = *source;
                     }
                 }
             }
         }
-        projected
     }
 
     fn sprite(
@@ -387,11 +391,7 @@ pub struct Snapshot {
 impl Snapshot {
     pub(crate) fn from_game(game: &NativeGame) -> Self {
         let logical_state = game.full_state();
-        let mut render_state = RenderState::new(logical_state.transition_render_y);
-        render_state.camera_x = logical_state.camera_x;
-        render_state.camera_y = logical_state.camera_y;
-        render_state.screen_palette[12] = logical_state.settings.theme_background;
-        render_state.screen_palette[1] = logical_state.settings.theme_shadow;
+        let render_state = RenderView::from(&logical_state).render_state();
         let framebuffer = logical_state.physical_screen.project(&render_state);
         Self::with_parts(logical_state, render_state, framebuffer)
     }
@@ -506,8 +506,60 @@ impl Snapshot {
     }
 }
 
+/// Private raster-only inputs. No owned vectors or framebuffer clones.
+pub(crate) struct RenderView<'a> {
+    pub lifecycle: LifecycleState,
+    pub input: InputState,
+    pub enemies: &'a [EnemyState],
+    pub particles: &'a [ParticleState],
+    pub active_pattern: Option<&'a PatternState>,
+    pub score: PicoFixed,
+    pub settings: SettingsState,
+    pub highscores: &'a [PicoFixed; 12],
+    pub new_highscore: bool,
+    pub has_played: bool,
+    pub transition_render_y: i16,
+    pub transition_from: Mode,
+    pub camera_x: PicoFixed,
+    pub camera_y: PicoFixed,
+}
+
+impl<'a> From<&'a FullState> for RenderView<'a> {
+    fn from(state: &'a FullState) -> Self {
+        Self {
+            lifecycle: state.lifecycle,
+            input: state.input,
+            enemies: &state.enemies,
+            particles: &state.particles,
+            active_pattern: state
+                .active_pattern
+                .and_then(|index| state.patterns.get(index)),
+            score: state.score,
+            settings: state.settings,
+            highscores: &state.highscores,
+            new_highscore: state.new_highscore,
+            has_played: state.has_played,
+            transition_render_y: state.transition_render_y,
+            transition_from: state.transition_from,
+            camera_x: state.camera_x,
+            camera_y: state.camera_y,
+        }
+    }
+}
+
+impl RenderView<'_> {
+    pub(crate) fn render_state(&self) -> RenderState {
+        let mut render = RenderState::new(self.transition_render_y);
+        render.camera_x = self.camera_x;
+        render.camera_y = self.camera_y;
+        render.screen_palette[12] = self.settings.theme_background;
+        render.screen_palette[1] = self.settings.theme_shadow;
+        render
+    }
+}
+
 pub(crate) fn render_full_state_into(
-    state: &FullState,
+    state: &RenderView<'_>,
     render: &RenderState,
     framebuffer: &mut IndexedFramebuffer,
 ) {
@@ -542,7 +594,7 @@ pub(crate) fn render_full_state_into(
 }
 
 fn render_transition_base(
-    state: &FullState,
+    state: &RenderView<'_>,
     render: &RenderState,
     framebuffer: &mut IndexedFramebuffer,
 ) {
@@ -583,7 +635,7 @@ fn render_transition_base(
     }
 }
 
-fn render_menu(state: &FullState, render: &RenderState, framebuffer: &mut IndexedFramebuffer) {
+fn render_menu(state: &RenderView<'_>, render: &RenderState, framebuffer: &mut IndexedFramebuffer) {
     framebuffer.sprite(17, 6, 18, 14, 7, render);
     let prompt = if state.input.current_mask() != 0 {
         "press ❎"
@@ -598,7 +650,11 @@ fn render_menu(state: &FullState, render: &RenderState, framebuffer: &mut Indexe
     print2(framebuffer, "oskar zanota", 40, 103, render);
 }
 
-fn render_settings(state: &FullState, render: &RenderState, framebuffer: &mut IndexedFramebuffer) {
+fn render_settings(
+    state: &RenderView<'_>,
+    render: &RenderState,
+    framebuffer: &mut IndexedFramebuffer,
+) {
     framebuffer.sprite(160, 38, 8, 8, 2, render);
     let categories = [("", 1_u8), ("gameplay", 3_u8)];
     let names = ["theme", "difficulty", "patterns", "powerups"];
@@ -718,7 +774,7 @@ fn difficulty_name(index: u8) -> &'static str {
     }
 }
 
-fn current_highscore(state: &FullState) -> PicoFixed {
+fn current_highscore(state: &RenderView<'_>) -> PicoFixed {
     let difficulty = state.settings.difficulty;
     let patterns = state.settings.patterns_enabled;
     let powerups = state.settings.powerups_enabled;
@@ -910,12 +966,12 @@ fn map_color(color: u8, state: &RenderState) -> Option<u8> {
     state.palette_index(color)
 }
 
-fn render_game(state: &FullState, render: &RenderState, framebuffer: &mut IndexedFramebuffer) {
+fn render_game(state: &RenderView<'_>, render: &RenderState, framebuffer: &mut IndexedFramebuffer) {
     if state.lifecycle.dead {
         render_game_over(state, render, framebuffer);
         return;
     }
-    for particle in &state.particles {
+    for particle in state.particles {
         let x = coordinate(particle.x);
         let y = coordinate(particle.y);
         if particle.kind == 0 {
@@ -925,7 +981,7 @@ fn render_game(state: &FullState, render: &RenderState, framebuffer: &mut Indexe
             framebuffer.plot_world(x, y, particle.color, render);
         }
     }
-    for particle in &state.particles {
+    for particle in state.particles {
         if particle.kind == 0 {
             framebuffer.circle_fill(
                 coordinate(particle.x),
@@ -936,7 +992,7 @@ fn render_game(state: &FullState, render: &RenderState, framebuffer: &mut Indexe
             );
         }
     }
-    for enemy in &state.enemies {
+    for enemy in state.enemies {
         let x = coordinate(enemy.x);
         let y = coordinate(enemy.y);
         if enemy.personality >= 2 {
@@ -953,9 +1009,7 @@ fn render_game(state: &FullState, render: &RenderState, framebuffer: &mut Indexe
             }
         }
     }
-    if let Some(pattern_index) = state.active_pattern
-        && let Some(pattern) = state.patterns.get(pattern_index)
-    {
+    if let Some(pattern) = state.active_pattern {
         render_pattern(pattern, render, framebuffer);
     }
     let score = ceil_fixed(state.score);
@@ -965,7 +1019,11 @@ fn render_game(state: &FullState, render: &RenderState, framebuffer: &mut Indexe
     print2(framebuffer, &score_text, 1, 1, render);
 }
 
-fn render_game_over(state: &FullState, render: &RenderState, framebuffer: &mut IndexedFramebuffer) {
+fn render_game_over(
+    state: &RenderView<'_>,
+    render: &RenderState,
+    framebuffer: &mut IndexedFramebuffer,
+) {
     let button_active = state.input.source_input_mode();
     let settings_prompt = if button_active {
         "press 🅾 to open settings"
@@ -994,7 +1052,7 @@ fn render_game_over(state: &FullState, render: &RenderState, framebuffer: &mut I
     }
 }
 
-fn render_wave(state: &FullState, render: &RenderState, framebuffer: &mut IndexedFramebuffer) {
+fn render_wave(state: &RenderView<'_>, render: &RenderState, framebuffer: &mut IndexedFramebuffer) {
     // Pemsa's deterministic headless clock reports time just after the
     // completed frame: frame 501 is 8.3666 seconds, or (501 + 1) / 60.
     let time = PicoFixed::from_int(state.lifecycle.frame as i32)
@@ -1018,6 +1076,13 @@ fn render_wave(state: &FullState, render: &RenderState, framebuffer: &mut Indexe
 fn source_sine(angle: PicoFixed) -> PicoFixed {
     let radians = f64::from(angle.to_f32()) * std::f64::consts::TAU;
     PicoFixed::from_f32(-(radians.sin() as f32))
+}
+
+/// Scene eligibility only; mode/death substitution happens outside the pattern
+/// renderer. Keep this predicate shared with the borrowed warning accessor.
+pub(crate) fn rect_warnings_drawn(pattern: &PatternState, rect: &PatternRect) -> bool {
+    pattern.timer < PicoFixed::from_int(125)
+        && !(pattern.pattern_type == 0 && rect.sh < PicoFixed::from_int(2))
 }
 
 fn render_pattern(
@@ -1127,7 +1192,7 @@ fn render_pattern(
                 render,
             );
         } else {
-            if pattern.timer < PicoFixed::from_int(125) {
+            if rect_warnings_drawn(pattern, rect) {
                 for warning in &rect.warnings {
                     line2(
                         framebuffer,
@@ -2133,6 +2198,32 @@ mod tests {
         assert!(truncated.is_some());
         if let Some(truncated) = truncated {
             assert!(Snapshot::from_canonical_bytes(truncated).is_err());
+        }
+    }
+}
+
+#[cfg(test)]
+mod headless_projection_tests {
+    use super::*;
+
+    #[test]
+    fn camera_exposed_physical_edges_survive_clear_but_projection_pads_zero() {
+        for (x, y) in [(1, -1), (-1, 1), (2, 2), (-2, -2)] {
+            let mut render = RenderState::new(0);
+            render.camera_x = PicoFixed::from_int(x);
+            render.camera_y = PicoFixed::from_int(y);
+            render.screen_palette[12] = 9;
+            let mut physical = IndexedFramebuffer::filled(15);
+            physical.clear(12, &render);
+            // Physical clear deliberately leaves camera-exposed memory intact.
+            assert!(physical.pixels().contains(&15));
+            let expected = physical.project(&render);
+            let mut projected = [255; FRAMEBUFFER_SIZE];
+            physical.project_into(&render, &mut projected);
+            assert_eq!(&projected, expected.pixels());
+            assert!(projected.contains(&0));
+            assert!(projected.contains(&9));
+            assert!(projected.iter().all(|&pixel| pixel == 0 || pixel == 9));
         }
     }
 }
