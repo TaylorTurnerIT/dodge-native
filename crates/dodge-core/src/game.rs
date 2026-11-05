@@ -240,6 +240,9 @@ pub struct NativeGame {
     highscores: [PicoFixed; 12],
     frame_audio: Vec<AudioEvent>,
     death: crate::DeathDiagnostic,
+    // Taylor Turner's observation-only gameplay trace; absent from snapshots
+    // and equality.
+    trace: crate::RunTrace,
     // Observation-only, outside the snapshot contract: enemies resolved
     // through `is_dying` (each scored at half weight) and training telemetry.
     uncontrolled_kills: u32,
@@ -302,6 +305,7 @@ impl NativeGame {
             highscores: config.highscores,
             frame_audio: Vec::new(),
             death: crate::DeathDiagnostic::default(),
+            trace: crate::RunTrace::default(),
             uncontrolled_kills: 0,
             telemetry: Telemetry::NONE,
             lives_remaining: config.training.lives,
@@ -353,6 +357,7 @@ impl NativeGame {
         self.transition_from = Mode::Menu;
         self.frame_audio.clear();
         self.death = crate::DeathDiagnostic::default();
+        self.trace = crate::RunTrace::begin(self.trace.enabled(), self.enemies.next_birth());
         self.reset_training_state();
         self.snapshot()
     }
@@ -424,6 +429,7 @@ impl NativeGame {
             highscores: state.highscores,
             frame_audio: Vec::new(),
             death: crate::DeathDiagnostic::restored(state.lifecycle.dead),
+            trace: crate::RunTrace::default(),
             uncontrolled_kills: 0,
             telemetry: Telemetry::NONE,
             lives_remaining: 0,
@@ -565,6 +571,12 @@ impl NativeGame {
             _ => {}
         }
         if game_update_from_draw {
+            // Count only frames that began in `Mode::Game`: the env's gameplay
+            // frames exclude the startup frames that finish the transition.
+            if mode_before == Mode::Game && self.trace.enabled() {
+                let in_center = self.player_in_center();
+                self.trace.begin_frame(in_center);
+            }
             self.update_game_frame(events);
         }
         let game_update_from_transition_draw = self.lifecycle.mode == Mode::TransitionToSettings
@@ -674,6 +686,19 @@ impl NativeGame {
     /// `Unknown` for a game restored dead from a snapshot.
     pub fn death_diagnostic(&self) -> crate::DeathDiagnostic {
         self.death
+    }
+
+    /// Enable the observation-only gameplay trace and restart it. Call before
+    /// gameplay begins; the trace never affects simulation and is absent from
+    /// snapshots and equality. Disabled games record nothing. Resets and
+    /// retries keep the setting; a restore starts disabled.
+    pub fn set_trace_enabled(&mut self, enabled: bool) {
+        self.trace = crate::RunTrace::begin(enabled, self.enemies.next_birth());
+    }
+
+    /// Diagnostic-only gameplay trace; empty unless `set_trace_enabled(true)`.
+    pub fn run_trace(&self) -> &crate::RunTrace {
+        &self.trace
     }
 
     pub fn enemies(&self) -> &[EnemyState] {
@@ -918,6 +943,10 @@ impl NativeGame {
             self.update_pattern_schedule();
             self.track_pattern_retry(before);
         }
+        self.trace.end_frame(self.enemies.serials());
+        if self.trace.enabled() {
+            self.trace_record_frame();
+        }
     }
 
     fn begin_transition(&mut self, mode: Mode) {
@@ -1017,6 +1046,7 @@ impl NativeGame {
             .collect::<Vec<_>>();
         self.lifecycle.dead = false;
         self.death = crate::DeathDiagnostic::default();
+        self.trace = crate::RunTrace::begin(self.trace.enabled(), self.enemies.next_birth());
         self.reset_training_state();
         self.score = PicoFixed::ZERO;
         self.survival_frames = 0;
@@ -1232,9 +1262,9 @@ impl NativeGame {
         }
     }
 
-    fn update_fyou(&mut self, events: &mut impl EventSink) {
-        let in_center = self
-            .player
+    /// Whether the player is in the central box `update_fyou` watches.
+    fn player_in_center(&self) -> bool {
+        self.player
             .x
             .add(self.player.size)
             .sub(PicoFixed::from_int(2))
@@ -1256,8 +1286,11 @@ impl NativeGame {
                 .y
                 .sub(self.player.size)
                 .add(PicoFixed::from_int(2))
-                < PicoFixed::from_int(68);
-        if !in_center {
+                < PicoFixed::from_int(68)
+    }
+
+    fn update_fyou(&mut self, events: &mut impl EventSink) {
+        if !self.player_in_center() {
             self.friendly_timer = 0;
             return;
         }
@@ -1265,7 +1298,14 @@ impl NativeGame {
         if self.friendly_timer > 50 {
             self.friendly_timer = 0;
             self.telemetry.fyou_triggers = self.telemetry.fyou_triggers.saturating_add(1);
+            let before = self.enemies.len();
             self.add_corner_enemies(events);
+            if self.trace.enabled() {
+                // Count what was added: with normal enemies off, nothing is.
+                let spawned = self.enemies.len().saturating_sub(before);
+                let serials = self.enemies.serials().and_then(|all| all.get(before..));
+                self.trace.record_fyou(spawned, serials);
+            }
         }
     }
 
@@ -1305,6 +1345,12 @@ impl NativeGame {
             };
             if collision {
                 events.push(FrameEvent::Collision);
+                if enemy.personality < 2 && self.lives_remaining == 0 {
+                    self.trace_death(
+                        crate::DeathCause::for_enemy_personality(enemy.personality),
+                        Some(index),
+                    );
+                }
                 self.collide_enemy(index, enemy, events);
             } else {
                 index += 1;
@@ -1355,12 +1401,208 @@ impl NativeGame {
                         self.spend_life();
                         break;
                     }
+                    self.trace_death(cause, None);
                     self.die(cause);
                     events.push(FrameEvent::Death);
                     break;
                 }
             }
         }
+    }
+
+    fn trace_rects(&self) -> Vec<crate::RectAtDeath> {
+        let Some(pattern) = self.active_pattern.and_then(|i| self.patterns.get(i)) else {
+            return Vec::new();
+        };
+        pattern
+            .rects
+            .iter()
+            .map(|rect| crate::RectAtDeath {
+                x: rect.x.raw(),
+                y: rect.y.raw(),
+                width: rect.width.raw(),
+                height: rect.height.raw(),
+                sh: rect.sh.raw(),
+                shown: rect.shown,
+                lethal: pattern.pattern_type == 1 || rect.sh == PicoFixed::from_int(2),
+            })
+            .collect()
+    }
+
+    /// Sample the player's surroundings at the end of a gameplay frame.
+    fn trace_record_frame(&mut self) {
+        let player = self.player;
+        let size = player.size.raw();
+        let (px0, px1) = (
+            player.x.raw() - size + 2 * 65536,
+            player.x.raw() + size - 2 * 65536,
+        );
+        let (py0, py1) = (
+            player.y.raw() - size + 2 * 65536,
+            player.y.raw() + size - 2 * 65536,
+        );
+        let gap =
+            |x0: i32, x1: i32, y0: i32, y1: i32, bx0: i32, bx1: i32, by0: i32, by1: i32| -> i32 {
+                let gx = i64::from((bx0 - x1).max(x0 - bx1).max(0));
+                let gy = i64::from((by0 - y1).max(y0 - by1).max(0));
+                ((gx * gx + gy * gy) as f64).sqrt() as i32
+            };
+        let mut lethal_gap = -1;
+        let mut pending_gap = -1;
+        let mut pattern_id = 0;
+        if let Some(pattern) = self.active_pattern.and_then(|i| self.patterns.get(i)) {
+            pattern_id = pattern.id;
+            for rect in &pattern.rects {
+                if !rect.shown && rect.sh <= PicoFixed::ZERO {
+                    continue;
+                }
+                let (rx, ry) = (rect.x.raw(), rect.y.raw());
+                let value = gap(
+                    px0,
+                    px1,
+                    py0,
+                    py1,
+                    rx,
+                    rx + rect.width.raw() - 65536,
+                    ry,
+                    ry + rect.height.raw() - 65536,
+                );
+                let lethal = pattern.pattern_type == 1 || rect.sh == PicoFixed::from_int(2);
+                let slot = if lethal {
+                    &mut lethal_gap
+                } else {
+                    &mut pending_gap
+                };
+                if *slot < 0 || value < *slot {
+                    *slot = value;
+                }
+            }
+        }
+        let (ex0, ex1) = (player.x.raw() - size + 65536, player.x.raw() + size - 65536);
+        let (ey0, ey1) = (player.y.raw() - size + 65536, player.y.raw() + size - 65536);
+        let mut enemy_gap = -1;
+        let mut points = Vec::new();
+        let serials = self.enemies.serials();
+        for (index, enemy) in self.enemies.iter().enumerate() {
+            if let Some(serial) = serials.and_then(|all| all.get(index)) {
+                points.push(crate::EnemyPoint {
+                    birth: serial.birth(),
+                    x: enemy.x.raw(),
+                    y: enemy.y.raw(),
+                    size: enemy.size.raw(),
+                });
+            }
+            if enemy.personality >= 2 {
+                continue;
+            }
+            let (bx, by, bs) = (enemy.x.raw(), enemy.y.raw(), enemy.size.raw());
+            let value = gap(ex0, ex1, ey0, ey1, bx, bx + bs, by, by + bs);
+            if enemy_gap < 0 || value < enemy_gap {
+                enemy_gap = value;
+            }
+        }
+        let sample = crate::FrameSample {
+            frame: self.trace.frame(),
+            x: player.x.raw(),
+            y: player.y.raw(),
+            vx: player.vx.raw(),
+            vy: player.vy.raw(),
+            lethal_rect_gap: lethal_gap,
+            pending_rect_gap: pending_gap,
+            enemy_gap,
+            enemies: u16::try_from(self.enemies.len()).unwrap_or(u16::MAX),
+            pattern_id,
+        };
+        if self.trace.wants_rects() {
+            let rects = self.trace_rects();
+            if rects.iter().any(|rect| rect.lethal) {
+                self.trace.set_span_rects(rects);
+            }
+        }
+        self.trace.record_frame(sample, points);
+    }
+
+    /// Capture the trace context at the first lethal contact. `killer` is the
+    /// index of the colliding enemy, still present in the list.
+    fn trace_death(&mut self, cause: crate::DeathCause, killer: Option<usize>) {
+        if !self.trace.needs_death_context() {
+            return;
+        }
+        let frame = self.trace.frame();
+        let serials = self.enemies.serials();
+        let killer_enemy = killer.and_then(|index| {
+            let enemy = self.enemies.get(index)?;
+            let serial = serials.and_then(|all| all.get(index)).copied();
+            Some(crate::KillerEnemy {
+                personality: enemy.personality,
+                x: enemy.x.raw(),
+                y: enemy.y.raw(),
+                size: enemy.size.raw(),
+                fyou_spawned: serial.and_then(|s| self.trace.is_fyou_birth(s)),
+                age_frames: serial
+                    .and_then(|s| self.trace.birth_frame(s))
+                    .map(|born| frame.saturating_sub(born)),
+            })
+        });
+        let mut enemies_alive = [0_u16; 4];
+        let mut fyou_alive = Some(0_u16);
+        for (index, enemy) in self.enemies.iter().enumerate() {
+            if killer == Some(index) {
+                continue;
+            }
+            let slot = match enemy.personality {
+                0 => 0,
+                1 => 1,
+                -1 => 2,
+                _ => 3,
+            };
+            if let Some(count) = enemies_alive.get_mut(slot) {
+                *count = count.saturating_add(1);
+            }
+            let is_fyou = serials
+                .and_then(|all| all.get(index))
+                .and_then(|s| self.trace.is_fyou_birth(*s));
+            fyou_alive = match (fyou_alive, is_fyou) {
+                (Some(total), Some(true)) => Some(total.saturating_add(1)),
+                (Some(total), Some(false)) => Some(total),
+                _ => None,
+            };
+        }
+        let active_pattern = self.active_pattern.and_then(|index| {
+            let pattern = self.patterns.get(index)?;
+            let start = self.trace.active_span().map_or(frame, |s| s.start_frame);
+            Some(crate::ActivePatternAtDeath {
+                id: pattern.id,
+                pattern_type: pattern.pattern_type,
+                variants: pattern.variants.clone(),
+                start_frame: start,
+                frames_since_start: frame.saturating_sub(start),
+            })
+        });
+        let context = crate::DeathContext {
+            cause,
+            frame,
+            killer: killer_enemy,
+            enemies_alive,
+            fyou_enemies_alive: fyou_alive,
+            player_x_raw: self.player.x.raw(),
+            player_y_raw: self.player.y.raw(),
+            player_vx_raw: self.player.vx.raw(),
+            player_vy_raw: self.player.vy.raw(),
+            player_size_raw: self.player.size.raw(),
+            center_dwell_frames: self.trace.center_dwell_frames(),
+            fyou_timer: self.friendly_timer,
+            fyou_enabled: self.friendly_enabled,
+            active_pattern,
+            last_pattern_end_frame: self.trace.last_pattern_end(),
+            freeze_active: self.freeze_active,
+            rects: self.trace_rects(),
+            killer_path: killer
+                .and_then(|index| serials.and_then(|all| all.get(index)))
+                .map_or_else(Vec::new, |serial| self.trace.killer_path(serial.birth())),
+            recent: self.trace.recent(),
+        };
+        self.trace.set_death(context);
     }
 
     fn collide_enemy(&mut self, index: usize, enemy: EnemyState, events: &mut impl EventSink) {
@@ -1981,6 +2223,9 @@ impl NativeGame {
         };
         self.active_pattern = Some(selected);
         self.pattern_active = true;
+        if let Some(pattern) = self.patterns.get(selected) {
+            self.trace.pattern_start(pattern.id, pattern.pattern_type);
+        }
         let variants = self
             .patterns
             .get(selected)
@@ -2008,6 +2253,7 @@ impl NativeGame {
         let Some(pattern_snapshot) = self.patterns.get(pattern_index).cloned() else {
             self.active_pattern = None;
             self.pattern_active = false;
+            self.trace.pattern_end();
             return;
         };
         if let Some(pattern) = self.patterns.get_mut(pattern_index) {
@@ -2205,6 +2451,7 @@ impl NativeGame {
             }
             self.active_pattern = None;
             self.pattern_active = false;
+            self.trace.pattern_end();
             self.friendly_enabled = true;
             self.spawns = initial_spawns();
         }
@@ -3866,3 +4113,7 @@ mod death_tests;
 #[cfg(test)]
 #[path = "start_tests.rs"]
 mod start_tests;
+
+#[cfg(test)]
+#[path = "trace_tests.rs"]
+mod trace_tests;
