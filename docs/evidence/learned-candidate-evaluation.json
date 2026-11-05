@@ -1,0 +1,79 @@
+{
+  "available_runner_source": {
+    "artifact": "external source artifact",
+    "sha256": "7f40e2f8e5544712a75478be7ff50d182177f61ad6827302650a065178b92d4e"
+  },
+  "supporting_sources": [
+    {
+      "artifact": "external source artifact",
+      "sha256": "de41d410ebd645010a7176fe1eeaddfee986bfa93b72dfcd710ea8d37c00a629",
+      "scope": "planner policy interface"
+    },
+    {
+      "artifact": "external source artifact",
+      "sha256": "167b8d159b14f88ebb7a6792702817445436a9c1c95bb3e6a8aeadcf14721025",
+      "scope": "pixel dataset contract"
+    },
+    {
+      "artifact": "external source artifact",
+      "sha256": "b1d442c5517155a3941f925799b6b8818e931f2ba9f6f9c9000150f4b255e799",
+      "scope": "vision student model"
+    }
+  ],
+  "entity_lines_candidate": {
+    "status": "interface-compatible, execution blocked",
+    "blocker": "The native runner accepts six learned linear entity-line model JSON arms. Its preflight also requires model files, copy report, dataset metadata, exact source pins, and a bounded config. No candidate model JSON, copy report, or safe evaluation config is retained in this checkout. No execution was started.",
+    "runner_requirements": {
+      "model_format": "per-arm JSON weights and normalizers, with nine outputs",
+      "arms": [
+        "baseline",
+        "entity_lines",
+        "pattern_intersection_proxy",
+        "time_to_impact",
+        "clearance32",
+        "all_inputs"
+      ],
+      "source_sha256": "7f40e2f8e5544712a75478be7ff50d182177f61ad6827302650a065178b92d4e"
+    }
+  },
+  "checkpoint_420": {
+    "blocker": "The available entity-lines native runner accepts JSON linear models with arm-specific feature dimensions. Checkpoint 420 is a Torch checkpoint and requires entity-transformer inputs and a compatible loader. The four-frame pixel callback is not the relevant native interface, but no runner bridge from this checkpoint to the current game is present in the inspected safe sources.",
+    "artifact": "external model artifact",
+    "checkpoint_sha256": "7e0de8640f1337261412d91cde6bc692772ff212fbd360f5aad415dc6bc7ed4b",
+    "supporting_sources": [
+      {
+        "artifact": "external source artifact",
+        "sha256": "be478416b33c772a7ff9c28f2c974f767c205f7df77bcf7346ab36133d384652"
+      },
+      {
+        "artifact": "external source artifact",
+        "sha256": "02230eea7a3b36c786d3deeb31471baf8270efb09c3c1e77b7a77c7cfae240f3"
+      }
+    ]
+  },
+  "execution": "No game evaluation was launched. No model training, GPU use, cloud job, or desktop window was started.",
+  "game_source_revision": "6484880e250bab799325b1d28b8e846592a1b666",
+  "missing_evidence": [
+    "reviewed adapter from the checkpoint 420 feature interface to the current game",
+    "parity-fixed source and binary pins compatible with each model",
+    "reproducible checkpoint loading and action-cadence configuration",
+    "per-game immutable startup and terminal receipts on the shared 12 development seeds"
+  ],
+  "other_learned_candidates": {
+    "blocker": "Vision-student checkpoints use pixel inputs and are not accepted by the entity-lines runner. Their gameplay performance and parity-bound full-game evaluation are not measured.",
+    "status": "not runnable through the inspected entity-lines interface"
+  },
+  "protocol": {
+    "device": "CPU",
+    "difficulties": [
+      1,
+      2,
+      3
+    ],
+    "frame_cap": 18000,
+    "max_cores": 4,
+    "priority": "lowest",
+    "seeds_per_difficulty": 12
+  },
+  "status": "no candidate execution qualified; entity-lines candidates are interface-compatible but required evidence inputs are missing"
+}
