@@ -19,12 +19,12 @@ mod state;
 mod value;
 
 pub use action::{Action, BUTTON_X_MASK};
-pub use config::NativeConfig;
+pub use config::{NativeConfig, TrainingOptions};
 pub use death::{DeathCause, DeathDiagnostic};
 pub use enemy_rows::EnemySerial;
 pub use error::CoreError;
 pub use fixed::{PicoFixed, pico_ceil, pico_floor, pico_mid, pico_mod};
-pub use game::{AudioEvent, FrameEvent, FrameResult, NativeGame};
+pub use game::{AudioEvent, FrameEvent, FrameResult, NativeGame, Telemetry};
 pub use headless::{ActivePatternView, HeadlessResult, PrivilegedView};
 pub use input::{BUTTON_MASK_LIMIT, Button, InputState};
 pub use lifecycle::{LifecycleState, Mode};
