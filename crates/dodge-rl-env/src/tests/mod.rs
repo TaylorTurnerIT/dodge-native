@@ -3,5 +3,6 @@
 mod action_repeat;
 mod counters;
 mod source_fixtures;
+mod step_info;
 mod training;
 mod velocity_flow;

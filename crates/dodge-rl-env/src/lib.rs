@@ -14,7 +14,7 @@ mod seed;
 mod tests;
 mod velocity_flow;
 
-pub use config::{EnvConfig, ObservationKind, SeedMode, TrainingConfig};
+pub use config::{EnvConfig, ObservationKind, SeedMode, StepInfo, TrainingConfig};
 pub use counters::{
     CounterBatch, DEATH_KAMIKAZE_ENEMY, DEATH_KAMIKAZE_EXPLOSION, DEATH_MOVING_PATTERN_RECT,
     DEATH_NONE, DEATH_NORMAL_ENEMY, DEATH_STATIC_PATTERN_RECT, LaneCounters, death_cause_code,

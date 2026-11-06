@@ -11,7 +11,7 @@ use pyo3::{
 
 use crate::{
     BatchInfo, CounterBatch, Diagnostics, EnvConfig, EnvError, EpisodeInfo, ObservationBatch,
-    ObservationKind, ResetBatch, SeedMetadata, SeedMode, StepBatch, TrainingConfig,
+    ObservationKind, ResetBatch, SeedMetadata, SeedMode, StepBatch, StepInfo, TrainingConfig,
     VELOCITY_FLOW_SIZE, VELOCITY_FLOW_VERSION, VecDodgeEnv,
 };
 
@@ -24,6 +24,25 @@ fn observation_kind(name: &str) -> PyResult<ObservationKind> {
         _ => Err(PyValueError::new_err(
             "observation must be \"entity\" or \"velocity_flow\"",
         )),
+    }
+}
+
+fn step_info_kind(name: &str) -> PyResult<StepInfo> {
+    match name {
+        "all" => Ok(StepInfo::All),
+        "ended" => Ok(StepInfo::Ended),
+        "none" => Ok(StepInfo::None),
+        _ => Err(PyValueError::new_err(
+            "step_info must be \"all\", \"ended\" or \"none\"",
+        )),
+    }
+}
+
+const fn step_info_name(kind: StepInfo) -> &'static str {
+    match kind {
+        StepInfo::All => "all",
+        StepInfo::Ended => "ended",
+        StepInfo::None => "none",
     }
 }
 
@@ -258,6 +277,9 @@ fn step_batch<'py>(py: Python<'py>, value: StepBatch) -> PyResult<Bound<'py, PyD
     out.set_item("terminated", value.terminated.into_pyarray(py))?;
     out.set_item("truncated", value.truncated.into_pyarray(py))?;
     out.set_item("info", episodes(py, value.info)?)?;
+    if let Some(indices) = value.info_indices {
+        out.set_item("info_indices", indices.into_pyarray(py))?;
+    }
     if let Some(value) = value.counters {
         out.set_item("counters", counters(py, value)?)?;
     }
@@ -292,6 +314,7 @@ fn batch_info<'py>(py: Python<'py>, value: BatchInfo) -> PyResult<Bound<'py, PyD
     out.set_item("spawn_rate_percent", c.training.spawn_rate_percent)?;
     out.set_item("lives", c.training.lives)?;
     out.set_item("observation_kind", observation_name(c.observation))?;
+    out.set_item("step_info", step_info_name(c.step_info))?;
     out.set_item("velocity_flow_version", VELOCITY_FLOW_VERSION)?;
     out.set_item("velocity_flow_shape", [VELOCITY_FLOW_SIZE])?;
     let mode = PyDict::new(py);
@@ -362,7 +385,7 @@ struct PyVecDodgeEnv {
 #[pymethods]
 impl PyVecDodgeEnv {
     #[new]
-    #[pyo3(signature = (batch_size=1, action_repeat=4, difficulty=2, patterns_enabled=true, powerups_enabled=true, raw_frame_cap=18_000, num_threads=1, chunk_size=8, render_pixels=false, auxiliary_targets=false, run_seed=0, seeds_by_slot=None, excluded_seed_ranges=None, initial_episode_indices=None, normal_enemies=true, kamikaze_enemies=true, spawn_rate_percent=100, lives=0, observation="entity"))]
+    #[pyo3(signature = (batch_size=1, action_repeat=4, difficulty=2, patterns_enabled=true, powerups_enabled=true, raw_frame_cap=18_000, num_threads=1, chunk_size=8, render_pixels=false, auxiliary_targets=false, run_seed=0, seeds_by_slot=None, excluded_seed_ranges=None, initial_episode_indices=None, normal_enemies=true, kamikaze_enemies=true, spawn_rate_percent=100, lives=0, observation="entity", step_info="all"))]
     #[allow(clippy::too_many_arguments)]
     fn new(
         py: Python<'_>,
@@ -385,6 +408,7 @@ impl PyVecDodgeEnv {
         spawn_rate_percent: u32,
         lives: u8,
         observation: &str,
+        step_info: &str,
     ) -> PyResult<Self> {
         let config = EnvConfig {
             batch_size,
@@ -409,6 +433,7 @@ impl PyVecDodgeEnv {
                 lives,
             },
             observation: observation_kind(observation)?,
+            step_info: step_info_kind(step_info)?,
         };
         // Includes validation, seed preflight, NativeGame::new, bounded startup,
         // initial features, and optional rendering. No Python callbacks occur.

@@ -13,6 +13,19 @@ pub enum ObservationKind {
     VelocityFlow,
 }
 
+/// Which slots a step reports `EpisodeInfo` for. Building a Python dict per
+/// slot on every step is a large share of a step's cost at large batches.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum StepInfo {
+    /// Every slot, every step.
+    #[default]
+    All,
+    /// Only slots that terminated or were truncated on this step.
+    Ended,
+    /// None; `episode_info()` still reads any slot.
+    None,
+}
+
 /// Opt-in training variations of the cartridge game. The default is the
 /// cartridge itself (`TrainingOptions::CARTRIDGE`).
 ///
@@ -82,6 +95,8 @@ pub struct EnvConfig {
     pub training: TrainingConfig,
     /// Default: the entity observation.
     pub observation: ObservationKind,
+    /// Default: info for every slot.
+    pub step_info: StepInfo,
 }
 
 impl Default for EnvConfig {
@@ -102,6 +117,7 @@ impl Default for EnvConfig {
             initial_episode_indices: None,
             training: TrainingConfig::default(),
             observation: ObservationKind::Entity,
+            step_info: StepInfo::All,
         }
     }
 }
