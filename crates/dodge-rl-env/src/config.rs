@@ -97,8 +97,10 @@ impl EnvConfig {
         if self.batch_size == 0 {
             return Err(EnvError::Config("batch_size must be positive"));
         }
-        if !(2..=4).contains(&self.action_repeat) {
-            return Err(EnvError::Config("action_repeat must be 2..=4"));
+        // Entity motion history is observed on every raw frame, not per
+        // decision, so any repeat from a single frame upward is sound.
+        if !(1..=5).contains(&self.action_repeat) {
+            return Err(EnvError::Config("action_repeat must be 1..=5"));
         }
         if !(1..=3).contains(&self.difficulty) {
             return Err(EnvError::Config("difficulty must be 1..=3"));
