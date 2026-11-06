@@ -7,6 +7,7 @@ use crate::counters::CounterBatch;
 use crate::critic::{CRITIC_FEATURE_COUNT, encode_critic_features};
 use crate::features::{History, Observation, ObservationBatch};
 use crate::seed::{SEED_EXCLUSION_VERSION, SeedMetadata, normalize_seed_exclusions, seed_for};
+use crate::slot_state::SlotState;
 use crate::velocity_flow::{VELOCITY_FLOW_SIZE, encode_velocity_flow};
 use crate::{EnvConfig, EnvError, MOTION_VERSION, ObservationKind, SEED_STREAM_VERSION, StepInfo};
 
@@ -396,6 +397,13 @@ impl VecDodgeEnv {
     /// Available after failure for partial-state diagnostics, never neural input.
     pub fn episode_info(&self) -> Vec<EpisodeInfo> {
         self.slots.iter().map(Slot::info).collect()
+    }
+
+    /// One slot's raw game state under the cartridge's names. A pure read: it
+    /// works on any slot, including ended and poisoned ones.
+    pub fn slot_state(&self, slot: usize) -> Result<SlotState, EnvError> {
+        let slot = self.slots.get(slot).ok_or(EnvError::SlotIndex(slot))?;
+        Ok(SlotState::read(&slot.game))
     }
 
     pub fn observations(&self) -> Result<ObservationBatch, EnvError> {
