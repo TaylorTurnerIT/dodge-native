@@ -4,6 +4,7 @@ use dodge_core::{
 use rayon::prelude::*;
 
 use crate::counters::CounterBatch;
+use crate::critic::{CRITIC_FEATURE_COUNT, encode_critic_features};
 use crate::features::{History, Observation, ObservationBatch};
 use crate::seed::{SEED_EXCLUSION_VERSION, SeedMetadata, normalize_seed_exclusions, seed_for};
 use crate::velocity_flow::{VELOCITY_FLOW_SIZE, encode_velocity_flow};
@@ -96,6 +97,8 @@ struct Slot {
     /// The VelocityFlow row, encoded at the end of every reset and step.
     /// Empty until then, and always in entity mode.
     velocity_flow: Vec<f32>,
+    /// The critic row, encoded with the VelocityFlow row when enabled.
+    critic: Vec<f32>,
     pixel_stack: Option<Vec<u8>>,
     startup_frames: u32,
     gameplay_frames: u32,
@@ -130,6 +133,7 @@ impl Slot {
             history: History::default(),
             observation: None,
             velocity_flow: Vec::new(),
+            critic: Vec::new(),
             pixel_stack: config.render_pixels.then(|| vec![0; 4 * FRAMEBUFFER_SIZE]),
             startup_frames: 0,
             gameplay_frames: 0,
@@ -177,6 +181,10 @@ impl Slot {
         if config.observation == ObservationKind::VelocityFlow {
             self.velocity_flow.resize(VELOCITY_FLOW_SIZE, 0.0);
             encode_velocity_flow(&self.game, &mut self.velocity_flow);
+            if config.critic_features {
+                self.critic.resize(CRITIC_FEATURE_COUNT, 0.0);
+                encode_critic_features(&self.game, &mut self.critic);
+            }
             return Ok(());
         }
         let lifecycle = self.game.lifecycle();
@@ -393,15 +401,23 @@ impl VecDodgeEnv {
             let rows = indices
                 .iter()
                 .map(|i| {
-                    let row = self.slots[*i].velocity_flow.as_slice();
-                    if row.len() == VELOCITY_FLOW_SIZE {
-                        Ok(row)
+                    let slot = &self.slots[*i];
+                    let row = slot.velocity_flow.as_slice();
+                    let critic = slot.critic.as_slice();
+                    let critic_ready =
+                        !self.config.critic_features || critic.len() == CRITIC_FEATURE_COUNT;
+                    if row.len() == VELOCITY_FLOW_SIZE && critic_ready {
+                        Ok((row, critic))
                     } else {
                         Err(EnvError::Contract("slot has no completed observation"))
                     }
                 })
                 .collect::<Result<Vec<_>, _>>()?;
-            return Ok(ObservationBatch::velocity_flow(indices, rows.into_iter()));
+            return Ok(ObservationBatch::velocity_flow(
+                indices,
+                rows.into_iter(),
+                self.config.critic_features,
+            ));
         }
         let rows = indices
             .iter()

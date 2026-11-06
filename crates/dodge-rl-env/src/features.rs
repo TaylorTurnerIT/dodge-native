@@ -61,6 +61,8 @@ pub struct ObservationBatch {
     /// `Some` (B x `VELOCITY_FLOW_SIZE`) only for the VelocityFlow observation,
     /// in which case the entity arrays above are empty.
     pub velocity_flow: Option<Vec<f32>>,
+    /// `Some` (B x `CRITIC_FEATURE_COUNT`) only with `critic_features`.
+    pub critic: Option<Vec<f32>>,
 }
 
 impl ObservationBatch {
@@ -82,6 +84,7 @@ impl ObservationBatch {
             pixel_aux_pair_valid: Vec::new(),
             diagnostics: Vec::new(),
             velocity_flow: None,
+            critic: None,
         };
         for row in rows {
             batch.global_feats.extend_from_slice(&row.global_feats[0]);
@@ -105,14 +108,21 @@ impl ObservationBatch {
 
     /// VelocityFlow rows. There are no entity features, pixels or targets, and
     /// no entity diagnostics.
+    /// Critic rows come with each VelocityFlow row when `critic` is set.
     pub(crate) fn velocity_flow<'a>(
         indices: Vec<usize>,
-        rows: impl Iterator<Item = &'a [f32]>,
+        rows: impl Iterator<Item = (&'a [f32], &'a [f32])>,
+        critic: bool,
     ) -> Self {
         let count = indices.len();
         let mut values = Vec::with_capacity(count * crate::VELOCITY_FLOW_SIZE);
-        for row in rows {
+        let mut critic_values =
+            critic.then(|| Vec::with_capacity(count * crate::CRITIC_FEATURE_COUNT));
+        for (row, critic_row) in rows {
             values.extend_from_slice(row);
+            if let Some(out) = &mut critic_values {
+                out.extend_from_slice(critic_row);
+            }
         }
         Self {
             indices,
@@ -126,6 +136,7 @@ impl ObservationBatch {
             pixel_aux_pair_valid: vec![false; count],
             diagnostics: vec![Diagnostics::default(); count],
             velocity_flow: Some(values),
+            critic: critic_values,
         }
     }
 

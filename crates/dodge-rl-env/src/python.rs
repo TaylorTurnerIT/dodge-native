@@ -10,9 +10,10 @@ use pyo3::{
 };
 
 use crate::{
-    BatchInfo, CounterBatch, Diagnostics, EnvConfig, EnvError, EpisodeInfo, ObservationBatch,
-    ObservationKind, ResetBatch, SeedMetadata, SeedMode, StepBatch, StepInfo, TrainingConfig,
-    VELOCITY_FLOW_SIZE, VELOCITY_FLOW_VERSION, VecDodgeEnv,
+    BatchInfo, CRITIC_FEATURE_COUNT, CRITIC_FEATURE_VERSION, CRITIC_GROUPS, CounterBatch,
+    Diagnostics, EnvConfig, EnvError, EpisodeInfo, ObservationBatch, ObservationKind, ResetBatch,
+    SeedMetadata, SeedMode, StepBatch, StepInfo, TrainingConfig, VELOCITY_FLOW_SIZE,
+    VELOCITY_FLOW_VERSION, VecDodgeEnv,
 };
 
 const ENTITY_SCHEMA_VERSION: &str = "dodge_global14_entity80x16_v2_r2";
@@ -199,6 +200,10 @@ fn observation<'py>(py: Python<'py>, value: ObservationBatch) -> PyResult<Bound<
         // VelocityFlow keeps the entity keys, as None; entity results are as they were.
         Some(rows) => {
             out.set_item("observation", array(py, rows, &[b, VELOCITY_FLOW_SIZE])?)?;
+            match value.critic {
+                Some(v) => out.set_item("critic", array(py, v, &[b, CRITIC_FEATURE_COUNT])?)?,
+                None => out.set_item("critic", py.None())?,
+            }
             for key in [
                 "global_feats",
                 "entity_feats",
@@ -315,6 +320,9 @@ fn batch_info<'py>(py: Python<'py>, value: BatchInfo) -> PyResult<Bound<'py, PyD
     out.set_item("lives", c.training.lives)?;
     out.set_item("observation_kind", observation_name(c.observation))?;
     out.set_item("step_info", step_info_name(c.step_info))?;
+    out.set_item("critic_features", c.critic_features)?;
+    out.set_item("critic_feature_version", CRITIC_FEATURE_VERSION)?;
+    out.set_item("critic_feature_count", CRITIC_FEATURE_COUNT)?;
     out.set_item("velocity_flow_version", VELOCITY_FLOW_VERSION)?;
     out.set_item("velocity_flow_shape", [VELOCITY_FLOW_SIZE])?;
     let mode = PyDict::new(py);
@@ -385,7 +393,7 @@ struct PyVecDodgeEnv {
 #[pymethods]
 impl PyVecDodgeEnv {
     #[new]
-    #[pyo3(signature = (batch_size=1, action_repeat=4, difficulty=2, patterns_enabled=true, powerups_enabled=true, raw_frame_cap=18_000, num_threads=1, chunk_size=8, render_pixels=false, auxiliary_targets=false, run_seed=0, seeds_by_slot=None, excluded_seed_ranges=None, initial_episode_indices=None, normal_enemies=true, kamikaze_enemies=true, spawn_rate_percent=100, lives=0, observation="entity", step_info="all"))]
+    #[pyo3(signature = (batch_size=1, action_repeat=4, difficulty=2, patterns_enabled=true, powerups_enabled=true, raw_frame_cap=18_000, num_threads=1, chunk_size=8, render_pixels=false, auxiliary_targets=false, run_seed=0, seeds_by_slot=None, excluded_seed_ranges=None, initial_episode_indices=None, normal_enemies=true, kamikaze_enemies=true, spawn_rate_percent=100, lives=0, observation="entity", step_info="all", critic_features=false))]
     #[allow(clippy::too_many_arguments)]
     fn new(
         py: Python<'_>,
@@ -409,6 +417,7 @@ impl PyVecDodgeEnv {
         lives: u8,
         observation: &str,
         step_info: &str,
+        critic_features: bool,
     ) -> PyResult<Self> {
         let config = EnvConfig {
             batch_size,
@@ -434,6 +443,7 @@ impl PyVecDodgeEnv {
             },
             observation: observation_kind(observation)?,
             step_info: step_info_kind(step_info)?,
+            critic_features,
         };
         // Includes validation, seed preflight, NativeGame::new, bounded startup,
         // initial features, and optional rendering. No Python callbacks occur.
@@ -512,5 +522,12 @@ fn _native(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<PyVecDodgeEnv>()?;
     module.add("VELOCITY_FLOW_SIZE", VELOCITY_FLOW_SIZE)?;
     module.add("VELOCITY_FLOW_VERSION", VELOCITY_FLOW_VERSION)?;
+    module.add("CRITIC_FEATURE_VERSION", CRITIC_FEATURE_VERSION)?;
+    module.add("CRITIC_FEATURE_COUNT", CRITIC_FEATURE_COUNT)?;
+    let groups = PyDict::new(module.py());
+    for (name, start, stop) in CRITIC_GROUPS {
+        groups.set_item(name, (start, stop))?;
+    }
+    module.add("CRITIC_GROUPS", groups)?;
     Ok(())
 }
