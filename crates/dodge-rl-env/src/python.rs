@@ -110,6 +110,21 @@ fn integer_input(input: &Bound<'_, PyAny>) -> PyResult<Vec<i64>> {
         .collect()
 }
 
+/// Optional per-slot seeds: any input `integer_input` takes, every value in
+/// `0..=u32::MAX`. `None` stays `None`.
+fn seed_input(input: Option<&Bound<'_, PyAny>>) -> PyResult<Option<Vec<u32>>> {
+    let Some(input) = input.filter(|v| !v.is_none()) else {
+        return Ok(None);
+    };
+    integer_input(input)?
+        .into_iter()
+        .map(|v| {
+            u32::try_from(v).map_err(|_| PyValueError::new_err("seeds must be in 0..=4294967295"))
+        })
+        .collect::<PyResult<Vec<_>>>()
+        .map(Some)
+}
+
 fn array<'py, T: Element>(
     py: Python<'py>,
     data: Vec<T>,
@@ -144,6 +159,10 @@ fn seed<'py>(py: Python<'py>, value: SeedMetadata) -> PyResult<Bound<'py, PyDict
     out.set_item("counter", value.counter)?;
     out.set_item("actual_seed", value.actual_seed)?;
     out.set_item("evaluation", value.evaluation)?;
+    // Only present for games the caller seeded, so default dicts are unchanged.
+    if value.explicit {
+        out.set_item("explicit", true)?;
+    }
     Ok(out)
 }
 
@@ -470,10 +489,12 @@ impl PyVecDodgeEnv {
         step_batch(py, value)
     }
 
+    #[pyo3(signature = (indices, seeds=None))]
     fn reset_done<'py>(
         &mut self,
         py: Python<'py>,
         indices: &Bound<'py, PyAny>,
+        seeds: Option<&Bound<'py, PyAny>>,
     ) -> PyResult<Bound<'py, PyDict>> {
         let indices = integer_input(indices)?
             .into_iter()
@@ -482,14 +503,23 @@ impl PyVecDodgeEnv {
                     .map_err(|_| PyValueError::new_err("reset index must be nonnegative"))
             })
             .collect::<PyResult<Vec<_>>>()?;
+        let seeds = seed_input(seeds)?;
         let value = py
-            .detach(|| self.inner.reset_done(&indices))
+            .detach(|| self.inner.reset_done_seeded(&indices, seeds.as_deref()))
             .map_err(env_error)?;
         reset_batch(py, value)
     }
 
-    fn reset_all<'py>(&mut self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
-        let value = py.detach(|| self.inner.reset_all()).map_err(env_error)?;
+    #[pyo3(signature = (seeds=None))]
+    fn reset_all<'py>(
+        &mut self,
+        py: Python<'py>,
+        seeds: Option<&Bound<'py, PyAny>>,
+    ) -> PyResult<Bound<'py, PyDict>> {
+        let seeds = seed_input(seeds)?;
+        let value = py
+            .detach(|| self.inner.reset_all_seeded(seeds.as_deref()))
+            .map_err(env_error)?;
         reset_batch(py, value)
     }
 
@@ -506,6 +536,17 @@ impl PyVecDodgeEnv {
             .map(|i| i.seed.episode.checked_add(1))
             .collect();
         out.set_item("next_episode_indices", next)?;
+        // Slots whose current game was started on a caller-chosen seed.
+        let explicit: Vec<_> = self
+            .inner
+            .episode_info()
+            .iter()
+            .filter(|i| i.seed.explicit)
+            .map(|i| i.seed.slot)
+            .collect();
+        if !explicit.is_empty() {
+            out.set_item("explicit_seed_slots", explicit)?;
+        }
         Ok(out)
     }
 

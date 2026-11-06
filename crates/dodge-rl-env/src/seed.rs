@@ -38,6 +38,25 @@ pub struct SeedMetadata {
     pub counter: u64,
     pub actual_seed: u32,
     pub evaluation: bool,
+    /// The caller chose this seed for a reset (`reset_done`/`reset_all` with
+    /// `seeds`) instead of the stream or the evaluation list drawing it. Such
+    /// a game keeps its slot's `episode` and `counter` unchanged.
+    pub explicit: bool,
+}
+
+impl SeedMetadata {
+    /// Metadata for a game started on a caller-chosen seed. The episode index
+    /// stays where it was, so the stream's next draw is unaffected.
+    pub(crate) fn explicit(slot: usize, episode: u64, actual_seed: u32) -> Self {
+        Self {
+            slot,
+            episode,
+            counter: 0,
+            actual_seed,
+            evaluation: false,
+            explicit: true,
+        }
+    }
 }
 
 /// SplitMix64 finalizer, with explicit wrapping arithmetic (not its PRNG step).
@@ -87,6 +106,7 @@ fn training_seed_normalized(
         counter,
         actual_seed,
         evaluation: false,
+        explicit: false,
     })
 }
 
@@ -134,6 +154,7 @@ pub(crate) fn seed_for(
                 counter: 0,
                 actual_seed: seed,
                 evaluation: true,
+                explicit: false,
             })
         }
     }

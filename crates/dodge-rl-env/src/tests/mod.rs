@@ -3,6 +3,7 @@
 mod action_repeat;
 mod counters;
 mod critic;
+mod seeded_resets;
 mod source_fixtures;
 mod step_info;
 mod training;
