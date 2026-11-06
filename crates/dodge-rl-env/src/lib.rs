@@ -1,5 +1,6 @@
 //! Owned-batch Dodge environment with optional Python support and no window dependency.
 mod config;
+mod counters;
 mod env;
 mod features;
 pub mod geometry;
@@ -14,6 +15,10 @@ mod tests;
 mod velocity_flow;
 
 pub use config::{EnvConfig, ObservationKind, SeedMode, TrainingConfig};
+pub use counters::{
+    CounterBatch, DEATH_KAMIKAZE_ENEMY, DEATH_KAMIKAZE_EXPLOSION, DEATH_MOVING_PATTERN_RECT,
+    DEATH_NONE, DEATH_NORMAL_ENEMY, DEATH_STATIC_PATTERN_RECT, LaneCounters, death_cause_code,
+};
 pub use env::{BatchInfo, DeathInfo, EpisodeInfo, ResetBatch, StepBatch, VecDodgeEnv};
 pub use features::{
     Diagnostics, ENEMY_SLOTS, ENTITY_DIM, ENTITY_SLOTS, GLOBAL_DIM, MOTION_VERSION, Observation,
