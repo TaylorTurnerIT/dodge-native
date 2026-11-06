@@ -110,6 +110,7 @@ impl Slot {
         native.difficulty = config.difficulty;
         native.patterns_enabled = config.patterns_enabled;
         native.powerups_enabled = config.powerups_enabled;
+        native.training = config.training.options();
         Self {
             game: NativeGame::new(native),
             seed,
