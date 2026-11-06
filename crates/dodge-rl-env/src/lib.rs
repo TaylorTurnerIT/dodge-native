@@ -11,8 +11,9 @@ pub mod raster;
 mod seed;
 #[cfg(test)]
 mod tests;
+mod velocity_flow;
 
-pub use config::{EnvConfig, SeedMode, TrainingConfig};
+pub use config::{EnvConfig, ObservationKind, SeedMode, TrainingConfig};
 pub use env::{BatchInfo, DeathInfo, EpisodeInfo, ResetBatch, StepBatch, VecDodgeEnv};
 pub use features::{
     Diagnostics, ENEMY_SLOTS, ENTITY_DIM, ENTITY_SLOTS, GLOBAL_DIM, MOTION_VERSION, Observation,
@@ -22,6 +23,7 @@ pub use seed::{
     MANDATORY_SEED_RANGE, SEED_EXCLUSION_VERSION, SEED_STREAM_VERSION, SeedMetadata,
     normalize_seed_exclusions, training_seed, training_seed_with_exclusions,
 };
+pub use velocity_flow::{VELOCITY_FLOW_SIZE, VELOCITY_FLOW_VERSION, encode_velocity_flow};
 
 /// A failed call never implies rollback. A batch failure requires `reset_all`.
 #[derive(Clone, Debug, PartialEq, Eq)]

@@ -2,6 +2,17 @@ use dodge_core::{PicoFixed, TrainingOptions};
 
 use crate::EnvError;
 
+/// What a step returns as the policy's observation.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ObservationKind {
+    /// The global and per-entity features, with optional pixels and targets.
+    #[default]
+    Entity,
+    /// LaunchSpark/DodgeAI's VelocityFlow grid (`VELOCITY_FLOW_SIZE` values).
+    /// No entity motion history is kept.
+    VelocityFlow,
+}
+
 /// Opt-in training variations of the cartridge game. The default is the
 /// cartridge itself (`TrainingOptions::CARTRIDGE`).
 ///
@@ -69,6 +80,8 @@ pub struct EnvConfig {
     pub initial_episode_indices: Option<Vec<u64>>,
     /// Enemy toggles, spawn rate and lives. Default: the cartridge game.
     pub training: TrainingConfig,
+    /// Default: the entity observation.
+    pub observation: ObservationKind,
 }
 
 impl Default for EnvConfig {
@@ -88,6 +101,7 @@ impl Default for EnvConfig {
             excluded_seed_ranges: Vec::new(),
             initial_episode_indices: None,
             training: TrainingConfig::default(),
+            observation: ObservationKind::Entity,
         }
     }
 }
@@ -116,6 +130,13 @@ impl EnvConfig {
         {
             return Err(EnvError::Config(
                 "evaluation needs a nonempty seed list per slot",
+            ));
+        }
+        if self.observation != ObservationKind::Entity
+            && (self.render_pixels || self.auxiliary_targets)
+        {
+            return Err(EnvError::Config(
+                "render_pixels and auxiliary_targets need the entity observation",
             ));
         }
         if !(50..=150).contains(&self.training.spawn_rate_percent) {
