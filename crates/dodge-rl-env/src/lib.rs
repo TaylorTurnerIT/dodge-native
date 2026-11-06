@@ -14,6 +14,7 @@ mod seed;
 mod slot_state;
 #[cfg(test)]
 mod tests;
+mod trace_view;
 mod velocity_flow;
 
 pub use config::{EnvConfig, ObservationKind, SeedMode, StepInfo, TrainingConfig};
@@ -34,6 +35,10 @@ pub use seed::{
     normalize_seed_exclusions, training_seed, training_seed_with_exclusions,
 };
 pub use slot_state::{EnemyState, PatternSnapshot, RectState, SlotState};
+pub use trace_view::{
+    DeathPatternView, DeathView, KillerView, PlayerView, RecentView, RectView, SampleView,
+    SpanView, TraceView, TriggerView,
+};
 pub use velocity_flow::{VELOCITY_FLOW_SIZE, VELOCITY_FLOW_VERSION, encode_velocity_flow};
 
 /// A failed call never implies rollback. A batch failure requires `reset_all`.
