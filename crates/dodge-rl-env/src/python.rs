@@ -10,9 +10,29 @@ use pyo3::{
 };
 
 use crate::{
-    BatchInfo, Diagnostics, EnvConfig, EnvError, EpisodeInfo, ObservationBatch, ResetBatch,
-    SeedMetadata, SeedMode, StepBatch, TrainingConfig, VecDodgeEnv,
+    BatchInfo, Diagnostics, EnvConfig, EnvError, EpisodeInfo, ObservationBatch, ObservationKind,
+    ResetBatch, SeedMetadata, SeedMode, StepBatch, TrainingConfig, VELOCITY_FLOW_SIZE,
+    VELOCITY_FLOW_VERSION, VecDodgeEnv,
 };
+
+const ENTITY_SCHEMA_VERSION: &str = "dodge_global14_entity80x16_v2_r2";
+
+fn observation_kind(name: &str) -> PyResult<ObservationKind> {
+    match name {
+        "entity" => Ok(ObservationKind::Entity),
+        "velocity_flow" => Ok(ObservationKind::VelocityFlow),
+        _ => Err(PyValueError::new_err(
+            "observation must be \"entity\" or \"velocity_flow\"",
+        )),
+    }
+}
+
+const fn observation_name(kind: ObservationKind) -> &'static str {
+    match kind {
+        ObservationKind::Entity => "entity",
+        ObservationKind::VelocityFlow => "velocity_flow",
+    }
+}
 
 fn env_error(error: EnvError) -> PyErr {
     match error {
@@ -156,10 +176,26 @@ fn episodes<'py>(py: Python<'py>, values: Vec<EpisodeInfo>) -> PyResult<Bound<'p
 fn observation<'py>(py: Python<'py>, value: ObservationBatch) -> PyResult<Bound<'py, PyDict>> {
     let b = value.batch_size();
     let out = PyDict::new(py);
-    out.set_item("global_feats", array(py, value.global_feats, &[b, 1, 14])?)?;
-    out.set_item("entity_feats", array(py, value.entity_feats, &[b, 80, 16])?)?;
-    out.set_item("entity_types", array(py, value.entity_types, &[b, 80])?)?;
-    out.set_item("entity_mask", array(py, value.entity_mask, &[b, 80])?)?;
+    match value.velocity_flow {
+        // VelocityFlow keeps the entity keys, as None; entity results are as they were.
+        Some(rows) => {
+            out.set_item("observation", array(py, rows, &[b, VELOCITY_FLOW_SIZE])?)?;
+            for key in [
+                "global_feats",
+                "entity_feats",
+                "entity_types",
+                "entity_mask",
+            ] {
+                out.set_item(key, py.None())?;
+            }
+        }
+        None => {
+            out.set_item("global_feats", array(py, value.global_feats, &[b, 1, 14])?)?;
+            out.set_item("entity_feats", array(py, value.entity_feats, &[b, 80, 16])?)?;
+            out.set_item("entity_types", array(py, value.entity_types, &[b, 80])?)?;
+            out.set_item("entity_mask", array(py, value.entity_mask, &[b, 80])?)?;
+        }
+    }
     out.set_item("indices", value.indices.into_pyarray(py))?;
     match value.pixels {
         Some(v) => out.set_item("pixels", array(py, v, &[b, 4, 128, 128])?)?,
@@ -225,6 +261,9 @@ fn batch_info<'py>(py: Python<'py>, value: BatchInfo) -> PyResult<Bound<'py, PyD
     out.set_item("kamikaze_enemies", c.training.kamikaze_enemies)?;
     out.set_item("spawn_rate_percent", c.training.spawn_rate_percent)?;
     out.set_item("lives", c.training.lives)?;
+    out.set_item("observation_kind", observation_name(c.observation))?;
+    out.set_item("velocity_flow_version", VELOCITY_FLOW_VERSION)?;
+    out.set_item("velocity_flow_shape", [VELOCITY_FLOW_SIZE])?;
     let mode = PyDict::new(py);
     match c.seed_mode {
         SeedMode::Training { run_seed } => {
@@ -256,7 +295,10 @@ fn batch_info<'py>(py: Python<'py>, value: BatchInfo) -> PyResult<Bound<'py, PyD
     out.set_item("motion_version", value.motion_version)?;
     out.set_item(
         "observation_schema_version",
-        "dodge_global14_entity80x16_v2_r2",
+        match c.observation {
+            ObservationKind::Entity => ENTITY_SCHEMA_VERSION,
+            ObservationKind::VelocityFlow => VELOCITY_FLOW_VERSION,
+        },
     )?;
     out.set_item("binding_api_version", "dodge_vec_owned_v1")?;
     out.set_item(
@@ -290,7 +332,7 @@ struct PyVecDodgeEnv {
 #[pymethods]
 impl PyVecDodgeEnv {
     #[new]
-    #[pyo3(signature = (batch_size=1, action_repeat=4, difficulty=2, patterns_enabled=true, powerups_enabled=true, raw_frame_cap=18_000, num_threads=1, chunk_size=8, render_pixels=false, auxiliary_targets=false, run_seed=0, seeds_by_slot=None, excluded_seed_ranges=None, initial_episode_indices=None, normal_enemies=true, kamikaze_enemies=true, spawn_rate_percent=100, lives=0))]
+    #[pyo3(signature = (batch_size=1, action_repeat=4, difficulty=2, patterns_enabled=true, powerups_enabled=true, raw_frame_cap=18_000, num_threads=1, chunk_size=8, render_pixels=false, auxiliary_targets=false, run_seed=0, seeds_by_slot=None, excluded_seed_ranges=None, initial_episode_indices=None, normal_enemies=true, kamikaze_enemies=true, spawn_rate_percent=100, lives=0, observation="entity"))]
     #[allow(clippy::too_many_arguments)]
     fn new(
         py: Python<'_>,
@@ -312,6 +354,7 @@ impl PyVecDodgeEnv {
         kamikaze_enemies: bool,
         spawn_rate_percent: u32,
         lives: u8,
+        observation: &str,
     ) -> PyResult<Self> {
         let config = EnvConfig {
             batch_size,
@@ -335,6 +378,7 @@ impl PyVecDodgeEnv {
                 spawn_rate_percent,
                 lives,
             },
+            observation: observation_kind(observation)?,
         };
         // Includes validation, seed preflight, NativeGame::new, bounded startup,
         // initial features, and optional rendering. No Python callbacks occur.
@@ -411,5 +455,7 @@ impl PyVecDodgeEnv {
 #[pymodule]
 fn _native(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<PyVecDodgeEnv>()?;
+    module.add("VELOCITY_FLOW_SIZE", VELOCITY_FLOW_SIZE)?;
+    module.add("VELOCITY_FLOW_VERSION", VELOCITY_FLOW_VERSION)?;
     Ok(())
 }

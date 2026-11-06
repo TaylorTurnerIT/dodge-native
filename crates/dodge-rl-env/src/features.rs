@@ -58,6 +58,9 @@ pub struct ObservationBatch {
     pub pixel_valid: Vec<bool>,
     pub pixel_aux_pair_valid: Vec<bool>,
     pub diagnostics: Vec<Diagnostics>,
+    /// `Some` (B x `VELOCITY_FLOW_SIZE`) only for the VelocityFlow observation,
+    /// in which case the entity arrays above are empty.
+    pub velocity_flow: Option<Vec<f32>>,
 }
 
 impl ObservationBatch {
@@ -78,6 +81,7 @@ impl ObservationBatch {
             pixel_valid: Vec::new(),
             pixel_aux_pair_valid: Vec::new(),
             diagnostics: Vec::new(),
+            velocity_flow: None,
         };
         for row in rows {
             batch.global_feats.extend_from_slice(&row.global_feats[0]);
@@ -97,6 +101,32 @@ impl ObservationBatch {
             batch.diagnostics.push(row.diagnostics);
         }
         batch
+    }
+
+    /// VelocityFlow rows. There are no entity features, pixels or targets, and
+    /// no entity diagnostics.
+    pub(crate) fn velocity_flow<'a>(
+        indices: Vec<usize>,
+        rows: impl Iterator<Item = &'a [f32]>,
+    ) -> Self {
+        let count = indices.len();
+        let mut values = Vec::with_capacity(count * crate::VELOCITY_FLOW_SIZE);
+        for row in rows {
+            values.extend_from_slice(row);
+        }
+        Self {
+            indices,
+            global_feats: Vec::new(),
+            entity_feats: Vec::new(),
+            entity_types: Vec::new(),
+            entity_mask: Vec::new(),
+            pixels: None,
+            auxiliary: None,
+            pixel_valid: vec![false; count],
+            pixel_aux_pair_valid: vec![false; count],
+            diagnostics: vec![Diagnostics::default(); count],
+            velocity_flow: Some(values),
+        }
     }
 
     pub fn batch_size(&self) -> usize {

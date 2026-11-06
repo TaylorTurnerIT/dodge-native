@@ -5,7 +5,8 @@ use rayon::prelude::*;
 
 use crate::features::{History, Observation, ObservationBatch};
 use crate::seed::{SEED_EXCLUSION_VERSION, SeedMetadata, normalize_seed_exclusions, seed_for};
-use crate::{EnvConfig, EnvError, MOTION_VERSION, SEED_STREAM_VERSION};
+use crate::velocity_flow::{VELOCITY_FLOW_SIZE, encode_velocity_flow};
+use crate::{EnvConfig, EnvError, MOTION_VERSION, ObservationKind, SEED_STREAM_VERSION};
 
 const STARTUP_LIMIT: u32 = 64;
 const PINNED_STARTUP_FRAMES: u32 = 13;
@@ -83,6 +84,9 @@ struct Slot {
     seed: SeedMetadata,
     history: History,
     observation: Option<Observation>,
+    /// The VelocityFlow row, encoded at the end of every reset and step.
+    /// Empty until then, and always in entity mode.
+    velocity_flow: Vec<f32>,
     pixel_stack: Option<Vec<u8>>,
     startup_frames: u32,
     gameplay_frames: u32,
@@ -116,6 +120,7 @@ impl Slot {
             seed,
             history: History::default(),
             observation: None,
+            velocity_flow: Vec::new(),
             pixel_stack: config.render_pixels.then(|| vec![0; 4 * FRAMEBUFFER_SIZE]),
             startup_frames: 0,
             gameplay_frames: 0,
@@ -143,8 +148,10 @@ impl Slot {
                         "startup frame count differs from accepted pin (13)",
                     ));
                 }
-                self.history
-                    .observe_raw(self.game.privileged_view(), self.game.enemy_serials())?;
+                if config.observation == ObservationKind::Entity {
+                    self.history
+                        .observe_raw(self.game.privileged_view(), self.game.enemy_serials())?;
+                }
                 self.update_observation(config, true)?;
                 return Ok(());
             }
@@ -158,6 +165,11 @@ impl Slot {
     }
 
     fn update_observation(&mut self, config: &EnvConfig, initial: bool) -> Result<(), EnvError> {
+        if config.observation == ObservationKind::VelocityFlow {
+            self.velocity_flow.resize(VELOCITY_FLOW_SIZE, 0.0);
+            encode_velocity_flow(&self.game, &mut self.velocity_flow);
+            return Ok(());
+        }
         let lifecycle = self.game.lifecycle();
         let warnings = self
             .game
@@ -223,8 +235,10 @@ impl Slot {
                 self.death = Some(self.death_info());
             }
             self.truncated = !result.dead && self.gameplay_frames >= config.raw_frame_cap;
-            self.history
-                .observe_raw(self.game.privileged_view(), self.game.enemy_serials())?;
+            if config.observation == ObservationKind::Entity {
+                self.history
+                    .observe_raw(self.game.privileged_view(), self.game.enemy_serials())?;
+            }
             #[cfg(test)]
             if let Some(observer) = &mut self.raw_observer {
                 observer(&self.game);
@@ -366,6 +380,20 @@ impl VecDodgeEnv {
     }
 
     fn observation_subset(&self, indices: Vec<usize>) -> Result<ObservationBatch, EnvError> {
+        if self.config.observation == ObservationKind::VelocityFlow {
+            let rows = indices
+                .iter()
+                .map(|i| {
+                    let row = self.slots[*i].velocity_flow.as_slice();
+                    if row.len() == VELOCITY_FLOW_SIZE {
+                        Ok(row)
+                    } else {
+                        Err(EnvError::Contract("slot has no completed observation"))
+                    }
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            return Ok(ObservationBatch::velocity_flow(indices, rows.into_iter()));
+        }
         let rows = indices
             .iter()
             .map(|i| {
