@@ -100,6 +100,9 @@ pub struct EnvConfig {
     /// Also return `CRITIC_FEATURE_COUNT` privileged values per slot for a
     /// value head. VelocityFlow only; default off.
     pub critic_features: bool,
+    /// Record Taylor Turner's gameplay trace for games started from now on.
+    /// Read-only: it never changes a game. Default off.
+    pub trace: bool,
 }
 
 impl Default for EnvConfig {
@@ -122,6 +125,7 @@ impl Default for EnvConfig {
             observation: ObservationKind::Entity,
             step_info: StepInfo::All,
             critic_features: false,
+            trace: false,
         }
     }
 }

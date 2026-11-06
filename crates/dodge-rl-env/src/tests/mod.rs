@@ -7,5 +7,6 @@ mod seeded_resets;
 mod slot_state;
 mod source_fixtures;
 mod step_info;
+mod trace;
 mod training;
 mod velocity_flow;
