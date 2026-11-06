@@ -787,6 +787,16 @@ impl NativeGame {
         self.uncontrolled_kills
     }
 
+    /// Frames the player has spent inside the anti-camping box.
+    pub const fn friendly_timer(&self) -> u32 {
+        self.friendly_timer
+    }
+
+    /// Whether the anti-camping check is armed; some patterns disarm it.
+    pub const fn friendly_enabled(&self) -> bool {
+        self.friendly_enabled
+    }
+
     /// Index into `patterns()` of the active pattern.
     pub const fn active_pattern_index(&self) -> Option<usize> {
         self.active_pattern
@@ -1763,23 +1773,7 @@ impl NativeGame {
             }
         }
         self.enemy_timer = self.enemy_timer.add(PicoFixed::ONE);
-        let spawn_multiplier = self
-            .active_pattern
-            .and_then(|index| self.patterns.get(index))
-            .map_or(PicoFixed::ONE, |pattern| {
-                if pattern.special == PicoFixed::from_int(2)
-                    || pattern.special == PicoFixed::from_int(3)
-                {
-                    PicoFixed::from_f32(1.75)
-                } else {
-                    PicoFixed::ONE
-                }
-            });
-        let threshold = self
-            .enemy_est
-            .mul_fixed(SPAWN_INTERVAL)
-            .mul_fixed(spawn_multiplier)
-            .mul_fixed(PicoFixed::from_int(2).sub(self.freeze_rate));
+        let threshold = self.spawn_threshold();
         if self.enemy_timer <= threshold || self.spawns.is_empty() {
             return;
         }
@@ -1797,23 +1791,154 @@ impl NativeGame {
     }
 
     fn random_personality(&mut self) -> i8 {
-        let total = self
-            .enemy_stats
-            .iter()
-            .map(|value| value.floor().raw().max(0) >> 16)
-            .sum::<i32>();
-        if total <= 0 {
-            return 0;
-        }
-        let roll = (self.rng.rnd(PicoFixed::from_int(total)).floor().raw() >> 16).max(0);
-        let mut cursor = 0_i32;
-        for (index, value) in self.enemy_stats.iter().enumerate() {
-            cursor += value.floor().raw().max(0) >> 16;
-            if roll < cursor {
-                return index as i8;
+        pick_personality(&self.enemy_stats, &mut self.rng)
+    }
+
+    /// The enemy timer must exceed this for the next enemy to spawn.
+    pub fn spawn_threshold(&self) -> PicoFixed {
+        let spawn_multiplier = self
+            .active_pattern
+            .and_then(|index| self.patterns.get(index))
+            .map_or(PicoFixed::ONE, |pattern| {
+                if pattern.special == PicoFixed::from_int(2)
+                    || pattern.special == PicoFixed::from_int(3)
+                {
+                    PicoFixed::from_f32(1.75)
+                } else {
+                    PicoFixed::ONE
+                }
+            });
+        self.enemy_est
+            .mul_fixed(SPAWN_INTERVAL)
+            .mul_fixed(spawn_multiplier)
+            .mul_fixed(PicoFixed::from_int(2).sub(self.freeze_rate))
+    }
+
+    /// Indices of the patterns eligible at the current score, repeated by
+    /// their probability weight, in the order the selection draws over.
+    pub fn pattern_weights(&self) -> Vec<usize> {
+        let mut weighted = Vec::new();
+        for (index, pattern) in self.patterns.iter().enumerate() {
+            if self.score >= pattern.mins && self.score <= pattern.maxs {
+                let repetitions = (pattern.probability.floor().raw() >> 16).max(0);
+                for _ in 0..repetitions {
+                    weighted.push(index);
+                }
             }
         }
-        0
+        weighted
+    }
+
+    /// The pattern the next selection would pick from the current RNG state,
+    /// without touching the game. Privileged: a critic may read it, a policy
+    /// must not.
+    pub fn preview_pattern_pick(&self) -> Option<usize> {
+        let weighted = self.pattern_weights();
+        let mut rng = self.rng;
+        let position = rng
+            .rnd(PicoFixed::from_int(weighted.len() as i32))
+            .floor()
+            .raw()
+            / PicoFixed::ONE.raw();
+        weighted
+            .get(usize::try_from(position).unwrap_or(usize::MAX))
+            .copied()
+    }
+
+    /// The max size and personality the next enemy spawn would roll from the
+    /// current RNG state, without touching the game. Applies the same
+    /// training-option zeroing of `enemy_stats` that `spawn_enemies` does,
+    /// but reads `enemy_stats` as they stand: the next frame refreshes them
+    /// before it spawns. Privileged, like `preview_pattern_pick`.
+    pub fn preview_enemy_roll(&self) -> (PicoFixed, i8) {
+        let options = self.config.training;
+        let mut stats = self.enemy_stats;
+        if options != crate::TrainingOptions::CARTRIDGE {
+            if !options.normal_enemies {
+                stats[0] = PicoFixed::ZERO;
+            }
+            if !options.kamikaze_enemies {
+                stats[1] = PicoFixed::ZERO;
+            }
+        }
+        let mut rng = self.rng;
+        let size_roll = rng.rnd(PicoFixed::from_int(100));
+        let max_size = enemy_max_size_from_roll(size_roll);
+        (max_size, pick_personality(&stats, &mut rng))
+    }
+
+    /// Frames until the next pattern starts, counting the spawn rate, or
+    /// `None` while a pattern is active or patterns are off.
+    pub fn pattern_countdown_frames(&self) -> Option<f64> {
+        if !self.patterns_enabled || self.active_pattern.is_some() {
+            return None;
+        }
+        let left = f64::from(self.pattern_delay_frames.saturating_sub(self.pattern_timer));
+        Some(left / self.config.training.spawn_rate.to_double())
+    }
+
+    /// Where the difficulty curve is taking `speed`, `enemy_est`,
+    /// `bounce_cap_static` and `bounce_cap_moving`, in that order, at the
+    /// current difficulty setting.
+    pub fn difficulty_targets(&self) -> [PicoFixed; 4] {
+        let curve = DIFFICULTY_CURVES
+            .get(difficulty_index(self.settings.difficulty))
+            .copied()
+            .unwrap_or(DIFFICULTY_CURVES[0]);
+        [
+            DIFFICULTY_SPEED_TARGET,
+            DIFFICULTY_EST_TARGET,
+            curve.static_target,
+            curve.moving_target,
+        ]
+    }
+
+    pub const fn enemy_timer(&self) -> PicoFixed {
+        self.enemy_timer
+    }
+
+    pub const fn enemy_stats(&self) -> [PicoFixed; 5] {
+        self.enemy_stats
+    }
+
+    pub const fn bounce_cap_static(&self) -> PicoFixed {
+        self.bounce_cap_static
+    }
+
+    pub const fn bounce_cap_moving(&self) -> PicoFixed {
+        self.bounce_cap_moving
+    }
+
+    pub const fn enemy_max_size(&self) -> PicoFixed {
+        self.enemy_max_size
+    }
+
+    pub const fn freeze_active(&self) -> bool {
+        self.freeze_active
+    }
+
+    pub const fn freeze_timer(&self) -> u32 {
+        self.freeze_timer
+    }
+
+    pub const fn size_timer(&self) -> PicoFixed {
+        self.size_timer
+    }
+
+    pub const fn patterns_enabled(&self) -> bool {
+        self.patterns_enabled
+    }
+
+    pub const fn pattern_timer(&self) -> u32 {
+        self.pattern_timer
+    }
+
+    pub const fn pattern_delay_frames(&self) -> u32 {
+        self.pattern_delay_frames
+    }
+
+    pub const fn spawn_rate(&self) -> PicoFixed {
+        self.config.training.spawn_rate
     }
 
     fn nearest_corner(&self) -> (PicoFixed, PicoFixed) {
@@ -2201,15 +2326,7 @@ impl NativeGame {
         self.pattern_timer = 0;
         self.pattern_carry = PicoFixed::ZERO;
         self.pattern_delay_frames = ACTIVE_PATTERN_DELAY_FRAMES;
-        let mut weighted = Vec::new();
-        for (index, pattern) in self.patterns.iter().enumerate() {
-            if self.score >= pattern.mins && self.score <= pattern.maxs {
-                let repetitions = (pattern.probability.floor().raw() >> 16).max(0);
-                for _ in 0..repetitions {
-                    weighted.push(index);
-                }
-            }
-        }
+        let weighted = self.pattern_weights();
         let selected_position = self
             .rng
             .rnd(PicoFixed::from_int(weighted.len() as i32))
@@ -2603,6 +2720,27 @@ fn enemy_max_size_from_roll(roll: PicoFixed) -> PicoFixed {
     } else {
         PicoFixed::from_int(6)
     }
+}
+
+/// Picks an enemy personality by weight, drawing one RNG value unless no
+/// personality has weight.
+fn pick_personality(stats: &[PicoFixed; 5], rng: &mut PicoRng) -> i8 {
+    let total = stats
+        .iter()
+        .map(|value| value.floor().raw().max(0) >> 16)
+        .sum::<i32>();
+    if total <= 0 {
+        return 0;
+    }
+    let roll = (rng.rnd(PicoFixed::from_int(total)).floor().raw() >> 16).max(0);
+    let mut cursor = 0_i32;
+    for (index, value) in stats.iter().enumerate() {
+        cursor += value.floor().raw().max(0) >> 16;
+        if roll < cursor {
+            return index as i8;
+        }
+    }
+    0
 }
 
 #[cfg(test)]
@@ -4079,6 +4217,81 @@ mod tests {
             count
         };
         assert!(spawned(150.0) > spawned(50.0));
+    }
+
+    fn hard_game_after_300_frames() -> NativeGame {
+        let mut game = NativeGame::new(NativeConfig {
+            difficulty: 3,
+            patterns_enabled: true,
+            powerups_enabled: true,
+            ..NativeConfig::new(42)
+        });
+        start_game(&mut game);
+        for _ in 0..300 {
+            assert!(game.advance_frame(0).is_ok());
+        }
+        game
+    }
+
+    #[test]
+    fn preview_pattern_pick_matches_the_selection() {
+        let mut game = hard_game_after_300_frames();
+        game.active_pattern = None;
+        game.freeze_active = false;
+        game.pattern_timer = game.pattern_delay_frames - 1;
+        let preview = game.preview_pattern_pick();
+        let before = game.clone();
+        game.update_pattern_schedule();
+        assert_eq!(game.active_pattern, preview);
+        assert!(preview.is_some());
+        assert_eq!(before.preview_pattern_pick(), preview); // pure
+    }
+
+    #[test]
+    fn preview_enemy_roll_matches_the_spawn() {
+        let mut game = hard_game_after_300_frames();
+        game.enemy_timer = game.spawn_threshold(); // next add crosses it
+        let (max_size, personality) = game.preview_enemy_roll();
+        let mut events = Vec::new();
+        game.spawn_enemies(&mut events);
+        let spawned = game.enemies().last();
+        assert!(spawned.is_some());
+        let Some(spawned) = spawned else { return };
+        assert_eq!(
+            (spawned.max_size, spawned.personality),
+            (max_size, personality)
+        );
+    }
+
+    #[test]
+    fn previews_do_not_touch_the_game() {
+        let game = hard_game_after_300_frames();
+        let copy = game.clone();
+        let _ = (
+            game.preview_pattern_pick(),
+            game.preview_enemy_roll(),
+            game.pattern_weights(),
+            game.spawn_threshold(),
+            game.pattern_countdown_frames(),
+            game.difficulty_targets(),
+        );
+        assert_eq!(game, copy);
+    }
+
+    #[test]
+    fn pattern_countdown_counts_the_frames_to_the_next_pattern() {
+        let mut game = NativeGame::new(NativeConfig::new(42));
+        start_game(&mut game);
+        game.should_collide = false;
+        let countdown = game.pattern_countdown_frames();
+        assert!(countdown.is_some_and(|frames| frames > 0.0));
+        let mut frames = 0;
+        while game.active_pattern.is_none() && frames < 1_000 {
+            assert!(game.advance_frame(0).is_ok());
+            frames += 1;
+        }
+        assert_eq!(countdown, Some(f64::from(frames)));
+        assert_eq!(game.pattern_countdown_frames(), None);
     }
 
     #[test]
