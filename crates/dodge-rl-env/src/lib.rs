@@ -11,6 +11,7 @@ pub mod geometry;
 mod python;
 pub mod raster;
 mod seed;
+mod slot_state;
 #[cfg(test)]
 mod tests;
 mod velocity_flow;
@@ -32,6 +33,7 @@ pub use seed::{
     MANDATORY_SEED_RANGE, SEED_EXCLUSION_VERSION, SEED_STREAM_VERSION, SeedMetadata,
     normalize_seed_exclusions, training_seed, training_seed_with_exclusions,
 };
+pub use slot_state::{EnemyState, PatternSnapshot, RectState, SlotState};
 pub use velocity_flow::{VELOCITY_FLOW_SIZE, VELOCITY_FLOW_VERSION, encode_velocity_flow};
 
 /// A failed call never implies rollback. A batch failure requires `reset_all`.

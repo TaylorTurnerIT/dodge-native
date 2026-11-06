@@ -12,7 +12,7 @@ use pyo3::{
 use crate::{
     BatchInfo, CRITIC_FEATURE_COUNT, CRITIC_FEATURE_VERSION, CRITIC_GROUPS, CounterBatch,
     Diagnostics, EnvConfig, EnvError, EpisodeInfo, ObservationBatch, ObservationKind, ResetBatch,
-    SeedMetadata, SeedMode, StepBatch, StepInfo, TrainingConfig, VELOCITY_FLOW_SIZE,
+    SeedMetadata, SeedMode, SlotState, StepBatch, StepInfo, TrainingConfig, VELOCITY_FLOW_SIZE,
     VELOCITY_FLOW_VERSION, VecDodgeEnv,
 };
 
@@ -285,6 +285,59 @@ fn counters<'py>(py: Python<'py>, value: CounterBatch) -> PyResult<Bound<'py, Py
     Ok(out)
 }
 
+/// `lane_state`'s dict: the same keys and value types, nested the same way.
+fn slot_state<'py>(py: Python<'py>, value: SlotState) -> PyResult<Bound<'py, PyDict>> {
+    let state = PyDict::new(py);
+    state.set_item("px", value.px)?;
+    state.set_item("py", value.py)?;
+    state.set_item("dpx", value.dpx)?;
+    state.set_item("dpy", value.dpy)?;
+    state.set_item("size", value.size)?;
+    state.set_item("ftimer", value.ftimer)?;
+    state.set_item("fy", value.fy)?;
+    state.set_item("spd", value.spd)?;
+    state.set_item("frz", value.frz)?;
+    let enemies = PyList::empty(py);
+    for enemy in value.enemies {
+        let entry = PyDict::new(py);
+        entry.set_item("x", enemy.x)?;
+        entry.set_item("y", enemy.y)?;
+        entry.set_item("s", enemy.s)?;
+        entry.set_item("p", enemy.p)?;
+        entry.set_item("vx", enemy.vx)?;
+        entry.set_item("vy", enemy.vy)?;
+        entry.set_item("spd", enemy.spd)?;
+        enemies.append(entry)?;
+    }
+    state.set_item("enemies", enemies)?;
+    match value.cp {
+        None => state.set_item("cp", py.None())?,
+        Some(pattern) => {
+            let cp = PyDict::new(py);
+            cp.set_item("id", pattern.id)?;
+            cp.set_item("tpe", pattern.tpe)?;
+            cp.set_item("timer", pattern.timer)?;
+            let rects = PyList::empty(py);
+            for rect in pattern.rects {
+                let entry = PyDict::new(py);
+                entry.set_item("x", rect.x)?;
+                entry.set_item("y", rect.y)?;
+                entry.set_item("w", rect.w)?;
+                entry.set_item("h", rect.h)?;
+                entry.set_item("sh", rect.sh)?;
+                entry.set_item("dx", rect.dx)?;
+                entry.set_item("dy", rect.dy)?;
+                entry.set_item("spd", rect.spd)?;
+                entry.set_item("warnings", rect.warnings)?;
+                rects.append(entry)?;
+            }
+            cp.set_item("rects", rects)?;
+            state.set_item("cp", cp)?;
+        }
+    }
+    Ok(state)
+}
+
 fn step_batch<'py>(py: Python<'py>, value: StepBatch) -> PyResult<Bound<'py, PyDict>> {
     let out = PyDict::new(py);
     out.set_item("observations", observation(py, value.observations)?)?;
@@ -521,6 +574,15 @@ impl PyVecDodgeEnv {
             .detach(|| self.inner.reset_all_seeded(seeds.as_deref()))
             .map_err(env_error)?;
         reset_batch(py, value)
+    }
+
+    /// One slot's raw game state: px, py, dpx, dpy, size, ftimer, fy, spd, frz,
+    /// enemies (list of x, y, s, p, vx, vy, spd) and cp (None, or id, tpe,
+    /// timer and rects of x, y, w, h, sh, dx, dy, spd, warnings). A read only;
+    /// works on ended slots too. An unknown slot is a ValueError.
+    fn slot_state<'py>(&self, py: Python<'py>, slot: usize) -> PyResult<Bound<'py, PyDict>> {
+        let value = self.inner.slot_state(slot).map_err(env_error)?;
+        slot_state(py, value)
     }
 
     fn episode_info<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
