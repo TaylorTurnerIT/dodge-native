@@ -16,6 +16,7 @@ mod planner;
 mod rng;
 mod snapshot;
 mod state;
+mod trace;
 mod value;
 
 pub use action::{Action, BUTTON_X_MASK};
@@ -39,6 +40,10 @@ pub use snapshot::{
     IndexedFramebuffer, PALETTE_SIZE, RenderState, Snapshot, SnapshotProvenance,
 };
 pub use state::{EnemyState, ParticleState, PlayerState, SettingsState};
+pub use trace::{
+    ActivePatternAtDeath, DeathContext, ENEMY_HISTORY_FRAMES, EnemyPoint, FrameSample, FyouTrigger,
+    KillerEnemy, PatternSpan, RECENT_FRAMES, RectAtDeath, RunTrace, SAMPLE_EVERY,
+};
 pub use value::{FEATURE_COUNT, FEATURE_SCHEMA, ValueFeatures, ValueModel, value_features};
 
 /// Workspace-level version of native state contract.
