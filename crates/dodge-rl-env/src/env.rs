@@ -7,7 +7,7 @@ use crate::counters::CounterBatch;
 use crate::features::{History, Observation, ObservationBatch};
 use crate::seed::{SEED_EXCLUSION_VERSION, SeedMetadata, normalize_seed_exclusions, seed_for};
 use crate::velocity_flow::{VELOCITY_FLOW_SIZE, encode_velocity_flow};
-use crate::{EnvConfig, EnvError, MOTION_VERSION, ObservationKind, SEED_STREAM_VERSION};
+use crate::{EnvConfig, EnvError, MOTION_VERSION, ObservationKind, SEED_STREAM_VERSION, StepInfo};
 
 const STARTUP_LIMIT: u32 = 64;
 const PINNED_STARTUP_FRAMES: u32 = 13;
@@ -71,7 +71,11 @@ pub struct StepBatch {
     pub elapsed_raw_frames: Vec<u32>,
     pub terminated: Vec<bool>,
     pub truncated: Vec<bool>,
+    /// Every slot's info, or with `StepInfo::Ended`/`None` only the slots in
+    /// `info_indices`.
     pub info: Vec<EpisodeInfo>,
+    /// `None` with `StepInfo::All`; otherwise the slot of each `info` entry.
+    pub info_indices: Option<Vec<usize>>,
     /// Per-slot game counters, `Some` with the VelocityFlow observation.
     pub counters: Option<CounterBatch>,
 }
@@ -485,25 +489,38 @@ impl VecDodgeEnv {
         if !failures.is_empty() {
             return Err(self.poison(failures));
         }
-        let info = self.episode_info();
+        let terminated: Vec<bool> = self.slots.iter().map(|s| s.terminated).collect();
+        let truncated: Vec<bool> = self.slots.iter().map(|s| s.truncated).collect();
+        let (info, info_indices) = match self.config.step_info {
+            StepInfo::All => (self.episode_info(), None),
+            StepInfo::Ended => {
+                let ended: Vec<usize> = (0..self.slots.len())
+                    .filter(|i| terminated[*i] || truncated[*i])
+                    .collect();
+                let info = ended.iter().map(|i| self.slots[*i].info()).collect();
+                (info, Some(ended))
+            }
+            StepInfo::None => (Vec::new(), Some(Vec::new())),
+        };
         let all: Vec<usize> = (0..self.slots.len()).collect();
         Ok(StepBatch {
             counters: self.counter_subset(&all),
             observations: self.observations()?,
             rewards: counts
                 .iter()
-                .zip(&info)
-                .map(|(c, i)| {
+                .zip(&terminated)
+                .map(|(c, terminated)| {
                     (c.score as f64 / 65536.0 + f64::from(c.alive) / 100.0
-                        - if i.terminated { 5.0 } else { 0.0 }) as f32
+                        - if *terminated { 5.0 } else { 0.0 }) as f32
                 })
                 .collect(),
             score_delta_raw_fixed: counts.iter().map(|c| c.score).collect(),
             alive_raw_frames: counts.iter().map(|c| c.alive).collect(),
             elapsed_raw_frames: counts.iter().map(|c| c.elapsed).collect(),
-            terminated: info.iter().map(|i| i.terminated).collect(),
-            truncated: info.iter().map(|i| i.truncated).collect(),
+            terminated,
+            truncated,
             info,
+            info_indices,
         })
     }
 
