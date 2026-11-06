@@ -3,6 +3,7 @@
 mod action_repeat;
 mod counters;
 mod critic;
+mod render;
 mod seeded_resets;
 mod slot_state;
 mod source_fixtures;

@@ -411,6 +411,21 @@ impl VecDodgeEnv {
         Ok(SlotState::read(&slot.game))
     }
 
+    /// The current 128x128 palette-index frame of each slot in `indices`
+    /// (repeats allowed), row-major, one frame after another. A pure read of
+    /// the game: it works on live, ended and dead slots (a dead slot shows its
+    /// death frame) and leaves the pixel stack and observations alone.
+    pub fn render(&self, indices: &[usize]) -> Result<Vec<u8>, EnvError> {
+        let mut out = Vec::with_capacity(indices.len() * FRAMEBUFFER_SIZE);
+        for &index in indices {
+            let slot = self.slots.get(index).ok_or(EnvError::SlotIndex(index))?;
+            let mut frame = [0; FRAMEBUFFER_SIZE];
+            slot.game.render_into(&mut frame);
+            out.extend_from_slice(&frame);
+        }
+        Ok(out)
+    }
+
     /// Turn the gameplay trace on or off for games started by later resets.
     /// Games already running keep their setting; nothing in a game changes.
     pub fn set_trace_enabled(&mut self, enabled: bool) {
