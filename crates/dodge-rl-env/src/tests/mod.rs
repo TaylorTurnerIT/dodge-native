@@ -2,6 +2,7 @@
 //! checking that each addition, left off, selects the existing behaviour.
 mod action_repeat;
 mod counters;
+mod critic;
 mod source_fixtures;
 mod step_info;
 mod training;

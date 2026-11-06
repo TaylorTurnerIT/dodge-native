@@ -97,6 +97,9 @@ pub struct EnvConfig {
     pub observation: ObservationKind,
     /// Default: info for every slot.
     pub step_info: StepInfo,
+    /// Also return `CRITIC_FEATURE_COUNT` privileged values per slot for a
+    /// value head. VelocityFlow only; default off.
+    pub critic_features: bool,
 }
 
 impl Default for EnvConfig {
@@ -118,6 +121,7 @@ impl Default for EnvConfig {
             training: TrainingConfig::default(),
             observation: ObservationKind::Entity,
             step_info: StepInfo::All,
+            critic_features: false,
         }
     }
 }
@@ -153,6 +157,11 @@ impl EnvConfig {
         {
             return Err(EnvError::Config(
                 "render_pixels and auxiliary_targets need the entity observation",
+            ));
+        }
+        if self.critic_features && self.observation != ObservationKind::VelocityFlow {
+            return Err(EnvError::Config(
+                "critic_features needs the velocity_flow observation",
             ));
         }
         if !(50..=150).contains(&self.training.spawn_rate_percent) {

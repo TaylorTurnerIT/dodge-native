@@ -1,6 +1,7 @@
 //! Owned-batch Dodge environment with optional Python support and no window dependency.
 mod config;
 mod counters;
+mod critic;
 mod env;
 mod features;
 pub mod geometry;
@@ -18,6 +19,9 @@ pub use config::{EnvConfig, ObservationKind, SeedMode, StepInfo, TrainingConfig}
 pub use counters::{
     CounterBatch, DEATH_KAMIKAZE_ENEMY, DEATH_KAMIKAZE_EXPLOSION, DEATH_MOVING_PATTERN_RECT,
     DEATH_NONE, DEATH_NORMAL_ENEMY, DEATH_STATIC_PATTERN_RECT, LaneCounters, death_cause_code,
+};
+pub use critic::{
+    CRITIC_FEATURE_COUNT, CRITIC_FEATURE_VERSION, CRITIC_GROUPS, encode_critic_features,
 };
 pub use env::{BatchInfo, DeathInfo, EpisodeInfo, ResetBatch, StepBatch, VecDodgeEnv};
 pub use features::{
