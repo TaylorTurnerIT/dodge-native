@@ -27,18 +27,33 @@ fn env_error(error: EnvError) -> PyErr {
     }
 }
 
-/// Accept exact 1D int64 arrays, or lists/tuples of Python integers. Copy every
-/// element before detach. No NumPy guard, view, or Python input enters Rayon.
-fn integer_input(input: &Bound<'_, PyAny>) -> PyResult<Vec<i64>> {
-    if let Ok(array) = input.cast::<PyArray1<i64>>() {
-        let readonly = array
+/// Copy a 1D integer array of one of these dtypes into owned `i64`s.
+fn integer_array<T: Element + Copy + Into<i64>>(
+    input: &Bound<'_, PyAny>,
+) -> Option<PyResult<Vec<i64>>> {
+    let array = input.cast::<PyArray1<T>>().ok()?;
+    Some(
+        array
             .try_readonly()
-            .map_err(|e| PyValueError::new_err(e.to_string()))?;
-        return Ok(readonly.as_array().iter().copied().collect());
+            .map(|readonly| readonly.as_array().iter().map(|v| (*v).into()).collect())
+            .map_err(|e| PyValueError::new_err(e.to_string())),
+    )
+}
+
+/// Accept exact 1D int64, int32, uint32 or uint8 arrays, or lists/tuples of
+/// Python integers. Every element is widened to i64 and copied before detach.
+/// No NumPy guard, view, or Python input enters Rayon.
+fn integer_input(input: &Bound<'_, PyAny>) -> PyResult<Vec<i64>> {
+    if let Some(values) = integer_array::<i64>(input)
+        .or_else(|| integer_array::<i32>(input))
+        .or_else(|| integer_array::<u32>(input))
+        .or_else(|| integer_array::<u8>(input))
+    {
+        return values;
     }
     if !input.is_instance_of::<PyList>() && !input.is_instance_of::<PyTuple>() {
         return Err(PyTypeError::new_err(
-            "expected a 1D numpy int64 array or Python integer list/tuple",
+            "expected a 1D numpy int64, int32, uint32 or uint8 array, or a Python integer list/tuple",
         ));
     }
     input
