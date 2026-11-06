@@ -149,6 +149,48 @@ impl AudioEvent {
     }
 }
 
+/// Observation-only counters for training dashboards. Never read by the
+/// simulation, never touches the RNG, and not part of the snapshot contract;
+/// a restored game starts from `Telemetry::NONE`. The cause of death is
+/// `NativeGame::death_diagnostic`.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Telemetry {
+    /// Identifier of the pattern active at the first lethal contact, -1 for
+    /// none or while alive.
+    pub death_pattern: i16,
+    /// Times the anti-camping check fired.
+    pub fyou_triggers: u32,
+    /// Explode, freeze and shrink pickups collected.
+    pub pickups: [u32; 3],
+    /// Lethal collisions absorbed by `TrainingOptions::lives`.
+    pub lives_spent: u32,
+}
+
+impl Telemetry {
+    pub const NONE: Self = Self {
+        death_pattern: -1,
+        fyou_triggers: 0,
+        pickups: [0; 3],
+        lives_spent: 0,
+    };
+}
+
+impl Default for Telemetry {
+    fn default() -> Self {
+        Self::NONE
+    }
+}
+
+/// The active pattern as it started, kept so an absorbed pattern hit can
+/// restart it without advancing the RNG.
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct PatternRetry {
+    index: usize,
+    pattern: PatternState,
+    spawns: Vec<SpawnPoint>,
+    friendly_enabled: bool,
+}
+
 /// Deterministic, engine-free native game boundary.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NativeGame {
@@ -198,6 +240,15 @@ pub struct NativeGame {
     highscores: [PicoFixed; 12],
     frame_audio: Vec<AudioEvent>,
     death: crate::DeathDiagnostic,
+    // Observation-only, outside the snapshot contract: enemies resolved
+    // through `is_dying` (each scored at half weight) and training telemetry.
+    uncontrolled_kills: u32,
+    telemetry: Telemetry,
+    // Opt-in `TrainingOptions` state, outside the snapshot contract. At the
+    // cartridge options these never change the simulation.
+    lives_remaining: u8,
+    pattern_carry: PicoFixed,
+    pattern_retry: Option<PatternRetry>,
 }
 
 impl NativeGame {
@@ -251,6 +302,11 @@ impl NativeGame {
             highscores: config.highscores,
             frame_audio: Vec::new(),
             death: crate::DeathDiagnostic::default(),
+            uncontrolled_kills: 0,
+            telemetry: Telemetry::NONE,
+            lives_remaining: config.training.lives,
+            pattern_carry: PicoFixed::ZERO,
+            pattern_retry: None,
         }
     }
 
@@ -297,6 +353,7 @@ impl NativeGame {
         self.transition_from = Mode::Menu;
         self.frame_audio.clear();
         self.death = crate::DeathDiagnostic::default();
+        self.reset_training_state();
         self.snapshot()
     }
 
@@ -318,6 +375,7 @@ impl NativeGame {
             theme_background: state.settings.theme_background,
             theme_shadow: state.settings.theme_shadow,
             highscores: state.highscores,
+            training: crate::TrainingOptions::CARTRIDGE,
         };
         Ok(Self {
             config,
@@ -366,6 +424,11 @@ impl NativeGame {
             highscores: state.highscores,
             frame_audio: Vec::new(),
             death: crate::DeathDiagnostic::restored(state.lifecycle.dead),
+            uncontrolled_kills: 0,
+            telemetry: Telemetry::NONE,
+            lives_remaining: 0,
+            pattern_carry: PicoFixed::ZERO,
+            pattern_retry: None,
         })
     }
 
@@ -687,6 +750,93 @@ impl NativeGame {
         self.survival_frames
     }
 
+    /// Observation-only training counters; never part of snapshots.
+    pub const fn telemetry(&self) -> Telemetry {
+        self.telemetry
+    }
+
+    /// Enemies resolved through `is_dying` (colliding with each other or
+    /// crushed by a pattern), which the cartridge scores at half weight.
+    /// Observation-only; never part of snapshots.
+    pub const fn uncontrolled_kills(&self) -> u32 {
+        self.uncontrolled_kills
+    }
+
+    /// Index into `patterns()` of the active pattern.
+    pub const fn active_pattern_index(&self) -> Option<usize> {
+        self.active_pattern
+    }
+
+    /// Identifier of the active pattern, -1 for none.
+    pub fn active_pattern_id(&self) -> i16 {
+        self.active_pattern
+            .and_then(|index| self.patterns.get(index))
+            .map_or(-1, |pattern| i16::from(pattern.id))
+    }
+
+    fn reset_training_state(&mut self) {
+        self.uncontrolled_kills = 0;
+        self.telemetry = Telemetry::NONE;
+        self.lives_remaining = self.config.training.lives;
+        self.pattern_carry = PicoFixed::ZERO;
+        self.pattern_retry = None;
+    }
+
+    fn enemy_allowed(&self, personality: i8) -> bool {
+        match personality {
+            0 => self.config.training.normal_enemies,
+            1 | -1 => self.config.training.kamikaze_enemies,
+            _ => true,
+        }
+    }
+
+    /// Remember the pattern as it starts, so a life can restart it.
+    fn track_pattern_retry(&mut self, before: Option<usize>) {
+        if self.config.training.lives == 0 {
+            return;
+        }
+        match (before, self.active_pattern) {
+            (None, Some(index)) => {
+                self.pattern_retry = self.patterns.get(index).map(|pattern| PatternRetry {
+                    index,
+                    pattern: pattern.clone(),
+                    spawns: self.spawns.clone(),
+                    friendly_enabled: self.friendly_enabled,
+                });
+            }
+            (Some(_), None) => self.pattern_retry = None,
+            _ => {}
+        }
+    }
+
+    /// Put the active pattern back to the state it started in. Touches no RNG.
+    fn restart_active_pattern(&mut self) -> bool {
+        if self.active_pattern.is_none() {
+            return false;
+        }
+        let Some(retry) = self.pattern_retry.clone() else {
+            return false;
+        };
+        let Some(slot) = self.patterns.get_mut(retry.index) else {
+            return false;
+        };
+        *slot = retry.pattern;
+        self.active_pattern = Some(retry.index);
+        self.spawns = retry.spawns;
+        self.friendly_enabled = retry.friendly_enabled;
+        true
+    }
+
+    /// Spend a life on a lethal contact, if one is left.
+    fn spend_life(&mut self) -> bool {
+        if self.lives_remaining == 0 {
+            return false;
+        }
+        self.lives_remaining -= 1;
+        self.telemetry.lives_spent = self.telemetry.lives_spent.saturating_add(1);
+        true
+    }
+
     pub const fn transition_render_y(&self) -> i16 {
         self.transition_render_y
     }
@@ -764,7 +914,9 @@ impl NativeGame {
         if !self.lifecycle.dead {
             self.spawn_enemies(events);
             self.update_enemies();
+            let before = self.active_pattern;
             self.update_pattern_schedule();
+            self.track_pattern_retry(before);
         }
     }
 
@@ -865,6 +1017,7 @@ impl NativeGame {
             .collect::<Vec<_>>();
         self.lifecycle.dead = false;
         self.death = crate::DeathDiagnostic::default();
+        self.reset_training_state();
         self.score = PicoFixed::ZERO;
         self.survival_frames = 0;
         self.shake = PicoFixed::ZERO;
@@ -1111,11 +1264,15 @@ impl NativeGame {
         self.friendly_timer += 1;
         if self.friendly_timer > 50 {
             self.friendly_timer = 0;
+            self.telemetry.fyou_triggers = self.telemetry.fyou_triggers.saturating_add(1);
             self.add_corner_enemies(events);
         }
     }
 
     fn add_corner_enemies(&mut self, events: &mut impl EventSink) {
+        if !self.enemy_allowed(0) {
+            return;
+        }
         for spawn in self.spawns.clone() {
             self.enemies
                 .push(EnemyState::normal(spawn.x, spawn.y, self.enemy_max_size));
@@ -1189,11 +1346,16 @@ impl NativeGame {
                         .sub(self.player.size)
                         < rect.y.add(rect.height).sub(PicoFixed::ONE)
                 {
-                    self.die(if pattern.pattern_type == 1 {
+                    let cause = if pattern.pattern_type == 1 {
                         crate::DeathCause::MovingPatternRect
                     } else {
                         crate::DeathCause::StaticPatternRect
-                    });
+                    };
+                    if self.lives_remaining > 0 && self.restart_active_pattern() {
+                        self.spend_life();
+                        break;
+                    }
+                    self.die(cause);
                     events.push(FrameEvent::Death);
                     break;
                 }
@@ -1207,14 +1369,19 @@ impl NativeGame {
         match enemy.personality {
             personality if personality < 2 => {
                 self.remove_enemy_at(index);
-                self.die(crate::DeathCause::for_enemy_personality(enemy.personality));
-                events.push(FrameEvent::Death);
+                // An absorbed hit removes the enemy as usual and is not a death.
+                if !self.spend_life() {
+                    self.die(crate::DeathCause::for_enemy_personality(enemy.personality));
+                    events.push(FrameEvent::Death);
+                }
             }
             2 => {
+                self.telemetry.pickups[0] = self.telemetry.pickups[0].saturating_add(1);
                 self.emit_sfx(60, None);
                 self.explode_powerup_enemy(index);
             }
             3 => {
+                self.telemetry.pickups[1] = self.telemetry.pickups[1].saturating_add(1);
                 self.remove_enemy_at(index);
                 self.freeze_active = true;
                 self.freeze_timer = 0;
@@ -1223,6 +1390,7 @@ impl NativeGame {
                 self.apply_difficulty(false);
             }
             4 => {
+                self.telemetry.pickups[2] = self.telemetry.pickups[2].saturating_add(1);
                 self.remove_enemy_at(index);
                 self.player.size = PicoFixed::from_int(2);
                 self.size_timer = PicoFixed::ZERO;
@@ -1272,6 +1440,9 @@ impl NativeGame {
     }
 
     fn die(&mut self, cause: crate::DeathCause) {
+        if self.death.cause().is_none() {
+            self.telemetry.death_pattern = self.active_pattern_id();
+        }
         self.death.record(cause);
         self.emit_sfx(62, None);
         self.lifecycle.mark_dead();
@@ -1326,6 +1497,29 @@ impl NativeGame {
     }
 
     fn spawn_enemies(&mut self, events: &mut impl EventSink) {
+        let options = self.config.training;
+        if options != crate::TrainingOptions::CARTRIDGE {
+            // The remainder of the spawn rate, so the cadence scales without
+            // touching the dynamic interval, freeze or pattern multipliers.
+            self.enemy_timer = self.enemy_timer.add(options.spawn_rate.sub(PicoFixed::ONE));
+            if !options.normal_enemies {
+                self.enemy_stats[0] = PicoFixed::ZERO;
+            }
+            if !options.kamikaze_enemies {
+                self.enemy_stats[1] = PicoFixed::ZERO;
+            }
+            let eligible = self
+                .enemy_stats
+                .iter()
+                .map(|value| value.floor().raw().max(0) >> 16)
+                .sum::<i32>();
+            if eligible <= 0 {
+                // Nothing may spawn: keep the timer's increment and skip the
+                // rolls rather than asking for an absent personality.
+                self.enemy_timer = self.enemy_timer.add(PicoFixed::ONE);
+                return;
+            }
+        }
         self.enemy_timer = self.enemy_timer.add(PicoFixed::ONE);
         let spawn_multiplier = self
             .active_pattern
@@ -1682,6 +1876,7 @@ impl NativeGame {
         }
         self.emit_sfx(63, None);
         self.score = self.score.add(SCORE_PER_SHATTER);
+        self.uncontrolled_kills = self.uncontrolled_kills.saturating_add(1);
         self.shake = self.shake.add(PicoFixed::from_f32(0.07));
         self.apply_difficulty(true);
     }
@@ -1706,6 +1901,9 @@ impl NativeGame {
     }
 
     fn add_kamikaze(&mut self, enemy: EnemyState) {
+        if !self.enemy_allowed(-1) {
+            return;
+        }
         self.enemies.push(EnemyState {
             x: enemy.x.add(enemy.size.mul_fixed(PicoFixed::from_f32(0.5))),
             y: enemy.y.add(enemy.size.mul_fixed(PicoFixed::from_f32(0.5))),
@@ -1750,11 +1948,16 @@ impl NativeGame {
         if self.freeze_active {
             return;
         }
-        self.pattern_timer += 1;
+        // Whole frames of the spawn rate; at the cartridge rate this is +1.
+        self.pattern_carry = self.pattern_carry.add(self.config.training.spawn_rate);
+        let whole = self.pattern_carry.floor();
+        self.pattern_carry = self.pattern_carry.sub(whole);
+        self.pattern_timer += u32::try_from(whole.raw().max(0) >> 16).unwrap_or(0);
         if self.pattern_timer < self.pattern_delay_frames {
             return;
         }
         self.pattern_timer = 0;
+        self.pattern_carry = PicoFixed::ZERO;
         self.pattern_delay_frames = ACTIVE_PATTERN_DELAY_FRAMES;
         let mut weighted = Vec::new();
         for (index, pattern) in self.patterns.iter().enumerate() {
@@ -3447,6 +3650,205 @@ mod tests {
         assert_eq!(pico_sine(angle), expected_sine);
         assert_eq!(pico_cosine(angle), expected_cosine);
     }
+
+    fn idle_until_dead(game: &mut NativeGame, limit: u32) -> u32 {
+        let mut frames = 0;
+        while !game.lifecycle().dead && frames < limit {
+            assert!(game.advance_frame(0).is_ok());
+            frames += 1;
+        }
+        frames
+    }
+
+    fn training(options: crate::TrainingOptions, seed: u32) -> NativeGame {
+        NativeGame::new(NativeConfig {
+            training: options,
+            ..NativeConfig::new(seed)
+        })
+    }
+
+    #[test]
+    fn telemetry_counts_the_guard_and_names_the_first_lethal_contact() {
+        let mut game = NativeGame::new(NativeConfig::new(42));
+        start_game(&mut game);
+        assert_eq!(game.telemetry(), crate::Telemetry::NONE);
+        // The player starts inside the anti-camping box, so idling trips it.
+        idle_until_dead(&mut game, 20_000);
+        assert!(game.lifecycle().dead);
+        let telemetry = game.telemetry();
+        assert!(telemetry.fyou_triggers >= 1);
+        assert!(game.death_diagnostic().cause().is_some());
+        assert_eq!(telemetry.lives_spent, 0);
+    }
+
+    #[test]
+    fn telemetry_resets_with_the_game() {
+        let mut game = NativeGame::new(NativeConfig::new(42));
+        start_game(&mut game);
+        for _ in 0..60 {
+            assert!(game.advance_frame(0).is_ok());
+        }
+        assert!(game.telemetry().fyou_triggers >= 1);
+        game.reset();
+        assert_eq!(game.telemetry(), crate::Telemetry::NONE);
+        assert_eq!(game.uncontrolled_kills(), 0);
+    }
+
+    #[test]
+    fn cartridge_options_leave_the_game_unchanged() {
+        let mut plain = NativeGame::new(NativeConfig::new(7));
+        let mut explicit = training(crate::TrainingOptions::CARTRIDGE, 7);
+        start_game(&mut plain);
+        start_game(&mut explicit);
+        for _ in 0..600 {
+            assert!(plain.advance_frame(0).is_ok());
+            assert!(explicit.advance_frame(0).is_ok());
+        }
+        assert_eq!(plain.snapshot(), explicit.snapshot());
+    }
+
+    #[test]
+    fn a_life_absorbs_the_first_lethal_contact() {
+        let mut mortal = NativeGame::new(NativeConfig::new(42));
+        start_game(&mut mortal);
+        let first_death = idle_until_dead(&mut mortal, 20_000);
+        assert!(mortal.lifecycle().dead);
+
+        let mut game = training(
+            crate::TrainingOptions {
+                lives: 1,
+                ..crate::TrainingOptions::CARTRIDGE
+            },
+            42,
+        );
+        start_game(&mut game);
+        let survived = idle_until_dead(&mut game, 20_000);
+        assert_eq!(game.telemetry().lives_spent, 1);
+        assert!(survived > first_death);
+    }
+
+    #[test]
+    fn a_life_restarts_the_pattern_that_hit() {
+        let mut game = training(
+            crate::TrainingOptions {
+                lives: 1,
+                ..crate::TrainingOptions::CARTRIDGE
+            },
+            42,
+        );
+        start_game(&mut game);
+        game.should_collide = false;
+        let mut lethal = None;
+        for _ in 0..20_000 {
+            assert!(game.advance_frame(0).is_ok());
+            lethal = game
+                .active_pattern
+                .and_then(|index| game.patterns.get(index))
+                .filter(|pattern| pattern.pattern_type != 1)
+                .and_then(|pattern| {
+                    pattern
+                        .rects
+                        .iter()
+                        .find(|rect| rect.sh == PicoFixed::from_int(2))
+                })
+                .map(|rect| (rect.x, rect.y, rect.width, rect.height));
+            if lethal.is_some() {
+                break;
+            }
+        }
+        assert!(lethal.is_some(), "no static pattern became lethal");
+        let Some((x, y, width, height)) = lethal else {
+            return;
+        };
+        game.enemies.clear();
+        game.player.x = x.add(PicoFixed::from_raw(width.raw() / 2));
+        game.player.y = y.add(PicoFixed::from_raw(height.raw() / 2));
+        let mut untouched = game.clone();
+        game.should_collide = true;
+        let result = game.advance_frame(0);
+        assert!(result.is_ok_and(|value| !value.dead));
+        assert_eq!(game.telemetry().lives_spent, 1);
+        assert!(game.death_diagnostic().cause().is_none());
+        // Restarted from its first frame, so no rectangle is lethal yet.
+        let pattern = game
+            .active_pattern
+            .and_then(|index| game.patterns.get(index));
+        assert!(pattern.is_some_and(|value| {
+            value
+                .rects
+                .iter()
+                .all(|rect| rect.sh < PicoFixed::from_int(2))
+        }));
+        // The restart itself draws nothing from the RNG.
+        assert!(untouched.advance_frame(0).is_ok());
+        assert_eq!(game.rng_checkpoint(), untouched.rng_checkpoint());
+    }
+
+    #[test]
+    fn disabled_enemy_types_never_appear() {
+        let mut game = training(
+            crate::TrainingOptions {
+                normal_enemies: false,
+                kamikaze_enemies: false,
+                ..crate::TrainingOptions::CARTRIDGE
+            },
+            42,
+        );
+        start_game(&mut game);
+        for _ in 0..3_000 {
+            if game.lifecycle().dead {
+                break;
+            }
+            assert!(game.advance_frame(0).is_ok());
+            assert!(game.enemies().iter().all(|enemy| enemy.personality >= 2));
+        }
+    }
+
+    #[test]
+    fn spawn_rate_scales_how_often_enemies_arrive() {
+        let spawned = |percent: f32| {
+            let mut game = NativeGame::new(NativeConfig {
+                training: crate::TrainingOptions {
+                    spawn_rate: PicoFixed::from_f32(percent / 100.0),
+                    lives: 255,
+                    ..crate::TrainingOptions::CARTRIDGE
+                },
+                patterns_enabled: false,
+                ..NativeConfig::new(42)
+            });
+            start_game(&mut game);
+            let mut count = 0;
+            for _ in 0..3_000 {
+                let result = game.advance_frame(0);
+                assert!(result.is_ok());
+                count += result.map_or(0, |value| {
+                    value
+                        .events
+                        .iter()
+                        .filter(|event| **event == FrameEvent::EnemySpawn)
+                        .count()
+                });
+            }
+            count
+        };
+        assert!(spawned(150.0) > spawned(50.0));
+    }
+
+    #[test]
+    fn restore_returns_to_cartridge_rules() {
+        let mut game = training(
+            crate::TrainingOptions {
+                lives: 3,
+                ..crate::TrainingOptions::CARTRIDGE
+            },
+            42,
+        );
+        start_game(&mut game);
+        let restored = NativeGame::restore(&game.snapshot());
+        assert!(restored.is_ok_and(|value| {
+            value.config.training == crate::TrainingOptions::CARTRIDGE && value.lives_remaining == 0
+        }));
+    }
 }
 
 #[cfg(test)]
@@ -3460,3 +3862,7 @@ mod observation_tests;
 #[cfg(test)]
 #[path = "death_tests.rs"]
 mod death_tests;
+
+#[cfg(test)]
+#[path = "start_tests.rs"]
+mod start_tests;
