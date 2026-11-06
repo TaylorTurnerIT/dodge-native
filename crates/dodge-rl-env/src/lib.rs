@@ -9,8 +9,10 @@ pub mod geometry;
 mod python;
 pub mod raster;
 mod seed;
+#[cfg(test)]
+mod tests;
 
-pub use config::{EnvConfig, SeedMode};
+pub use config::{EnvConfig, SeedMode, TrainingConfig};
 pub use env::{BatchInfo, DeathInfo, EpisodeInfo, ResetBatch, StepBatch, VecDodgeEnv};
 pub use features::{
     Diagnostics, ENEMY_SLOTS, ENTITY_DIM, ENTITY_SLOTS, GLOBAL_DIM, MOTION_VERSION, Observation,

@@ -11,7 +11,7 @@ use pyo3::{
 
 use crate::{
     BatchInfo, Diagnostics, EnvConfig, EnvError, EpisodeInfo, ObservationBatch, ResetBatch,
-    SeedMetadata, SeedMode, StepBatch, VecDodgeEnv,
+    SeedMetadata, SeedMode, StepBatch, TrainingConfig, VecDodgeEnv,
 };
 
 fn env_error(error: EnvError) -> PyErr {
@@ -206,6 +206,10 @@ fn batch_info<'py>(py: Python<'py>, value: BatchInfo) -> PyResult<Bound<'py, PyD
     out.set_item("chunk_size", c.chunk_size)?;
     out.set_item("render_pixels", c.render_pixels)?;
     out.set_item("auxiliary_targets", c.auxiliary_targets)?;
+    out.set_item("normal_enemies", c.training.normal_enemies)?;
+    out.set_item("kamikaze_enemies", c.training.kamikaze_enemies)?;
+    out.set_item("spawn_rate_percent", c.training.spawn_rate_percent)?;
+    out.set_item("lives", c.training.lives)?;
     let mode = PyDict::new(py);
     match c.seed_mode {
         SeedMode::Training { run_seed } => {
@@ -271,7 +275,7 @@ struct PyVecDodgeEnv {
 #[pymethods]
 impl PyVecDodgeEnv {
     #[new]
-    #[pyo3(signature = (batch_size=1, action_repeat=4, difficulty=2, patterns_enabled=true, powerups_enabled=true, raw_frame_cap=18_000, num_threads=1, chunk_size=8, render_pixels=false, auxiliary_targets=false, run_seed=0, seeds_by_slot=None, excluded_seed_ranges=None, initial_episode_indices=None))]
+    #[pyo3(signature = (batch_size=1, action_repeat=4, difficulty=2, patterns_enabled=true, powerups_enabled=true, raw_frame_cap=18_000, num_threads=1, chunk_size=8, render_pixels=false, auxiliary_targets=false, run_seed=0, seeds_by_slot=None, excluded_seed_ranges=None, initial_episode_indices=None, normal_enemies=true, kamikaze_enemies=true, spawn_rate_percent=100, lives=0))]
     #[allow(clippy::too_many_arguments)]
     fn new(
         py: Python<'_>,
@@ -289,6 +293,10 @@ impl PyVecDodgeEnv {
         seeds_by_slot: Option<Vec<Vec<u32>>>,
         excluded_seed_ranges: Option<Vec<(u32, u32)>>,
         initial_episode_indices: Option<Vec<u64>>,
+        normal_enemies: bool,
+        kamikaze_enemies: bool,
+        spawn_rate_percent: u32,
+        lives: u8,
     ) -> PyResult<Self> {
         let config = EnvConfig {
             batch_size,
@@ -306,6 +314,12 @@ impl PyVecDodgeEnv {
             }),
             excluded_seed_ranges: excluded_seed_ranges.unwrap_or_default(),
             initial_episode_indices,
+            training: TrainingConfig {
+                normal_enemies,
+                kamikaze_enemies,
+                spawn_rate_percent,
+                lives,
+            },
         };
         // Includes validation, seed preflight, NativeGame::new, bounded startup,
         // initial features, and optional rendering. No Python callbacks occur.

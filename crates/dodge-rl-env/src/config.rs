@@ -1,4 +1,45 @@
+use dodge_core::{PicoFixed, TrainingOptions};
+
 use crate::EnvError;
+
+/// Opt-in training variations of the cartridge game. The default is the
+/// cartridge itself (`TrainingOptions::CARTRIDGE`).
+///
+/// The spawn rate is kept as an integer percent so `EnvConfig` stays `Eq`; it
+/// is converted exactly as LaunchSpark/DodgeAI's batch binding converts it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct TrainingConfig {
+    pub normal_enemies: bool,
+    pub kamikaze_enemies: bool,
+    /// Multiplier on the enemy spawn and between-pattern timers, in percent,
+    /// `50..=150`.
+    pub spawn_rate_percent: u32,
+    /// Lethal contacts absorbed per game.
+    pub lives: u8,
+}
+
+impl Default for TrainingConfig {
+    fn default() -> Self {
+        Self {
+            normal_enemies: true,
+            kamikaze_enemies: true,
+            spawn_rate_percent: 100,
+            lives: 0,
+        }
+    }
+}
+
+impl TrainingConfig {
+    /// The core options these settings select.
+    pub fn options(&self) -> TrainingOptions {
+        TrainingOptions {
+            normal_enemies: self.normal_enemies,
+            kamikaze_enemies: self.kamikaze_enemies,
+            spawn_rate: PicoFixed::from_f32(self.spawn_rate_percent as f32 / 100.0),
+            lives: self.lives,
+        }
+    }
+}
 
 /// Evaluation lists are explicit, per stable slot, then episode. Exhaustion is
 /// an error; evaluation seeds are never drawn from the training stream.
@@ -26,6 +67,8 @@ pub struct EnvConfig {
     pub excluded_seed_ranges: Vec<(u32, u32)>,
     /// Fresh construction starts at these per-slot episode indices.
     pub initial_episode_indices: Option<Vec<u64>>,
+    /// Enemy toggles, spawn rate and lives. Default: the cartridge game.
+    pub training: TrainingConfig,
 }
 
 impl Default for EnvConfig {
@@ -44,6 +87,7 @@ impl Default for EnvConfig {
             seed_mode: SeedMode::Training { run_seed: 0 },
             excluded_seed_ranges: Vec::new(),
             initial_episode_indices: None,
+            training: TrainingConfig::default(),
         }
     }
 }
@@ -70,6 +114,11 @@ impl EnvConfig {
         {
             return Err(EnvError::Config(
                 "evaluation needs a nonempty seed list per slot",
+            ));
+        }
+        if !(50..=150).contains(&self.training.spawn_rate_percent) {
+            return Err(EnvError::Config(
+                "spawn_rate_percent must be between 50 and 150",
             ));
         }
         crate::seed::normalize_seed_exclusions(&self.excluded_seed_ranges)?;
