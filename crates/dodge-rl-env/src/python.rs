@@ -10,9 +10,9 @@ use pyo3::{
 };
 
 use crate::{
-    BatchInfo, Diagnostics, EnvConfig, EnvError, EpisodeInfo, ObservationBatch, ObservationKind,
-    ResetBatch, SeedMetadata, SeedMode, StepBatch, TrainingConfig, VELOCITY_FLOW_SIZE,
-    VELOCITY_FLOW_VERSION, VecDodgeEnv,
+    BatchInfo, CounterBatch, Diagnostics, EnvConfig, EnvError, EpisodeInfo, ObservationBatch,
+    ObservationKind, ResetBatch, SeedMetadata, SeedMode, StepBatch, TrainingConfig,
+    VELOCITY_FLOW_SIZE, VELOCITY_FLOW_VERSION, VecDodgeEnv,
 };
 
 const ENTITY_SCHEMA_VERSION: &str = "dodge_global14_entity80x16_v2_r2";
@@ -218,6 +218,30 @@ fn observation<'py>(py: Python<'py>, value: ObservationBatch) -> PyResult<Bound<
     Ok(out)
 }
 
+/// One array per counter, named and typed as LaunchSpark/DodgeAI's
+/// `observe_velocity` returns them. Rows follow `observations["indices"]`.
+fn counters<'py>(py: Python<'py>, value: CounterBatch) -> PyResult<Bound<'py, PyDict>> {
+    let b = value.batch_size();
+    let out = PyDict::new(py);
+    out.set_item("score", value.score.into_pyarray(py))?;
+    out.set_item("player_x", value.player_x.into_pyarray(py))?;
+    out.set_item("player_y", value.player_y.into_pyarray(py))?;
+    out.set_item(
+        "uncontrolled_kills",
+        value.uncontrolled_kills.into_pyarray(py),
+    )?;
+    out.set_item("survival_frames", value.survival_frames.into_pyarray(py))?;
+    out.set_item("dead", value.dead.into_pyarray(py))?;
+    out.set_item("pattern_active", value.pattern_active.into_pyarray(py))?;
+    out.set_item("pattern_id", value.pattern_id.into_pyarray(py))?;
+    out.set_item("death_cause", value.death_cause.into_pyarray(py))?;
+    out.set_item("death_pattern", value.death_pattern.into_pyarray(py))?;
+    out.set_item("fyou_triggers", value.fyou_triggers.into_pyarray(py))?;
+    out.set_item("lives_spent", value.lives_spent.into_pyarray(py))?;
+    out.set_item("pickups", array(py, value.pickups, &[b, 3])?)?;
+    Ok(out)
+}
+
 fn step_batch<'py>(py: Python<'py>, value: StepBatch) -> PyResult<Bound<'py, PyDict>> {
     let out = PyDict::new(py);
     out.set_item("observations", observation(py, value.observations)?)?;
@@ -234,6 +258,9 @@ fn step_batch<'py>(py: Python<'py>, value: StepBatch) -> PyResult<Bound<'py, PyD
     out.set_item("terminated", value.terminated.into_pyarray(py))?;
     out.set_item("truncated", value.truncated.into_pyarray(py))?;
     out.set_item("info", episodes(py, value.info)?)?;
+    if let Some(value) = value.counters {
+        out.set_item("counters", counters(py, value)?)?;
+    }
     Ok(out)
 }
 
@@ -241,6 +268,9 @@ fn reset_batch<'py>(py: Python<'py>, value: ResetBatch) -> PyResult<Bound<'py, P
     let out = PyDict::new(py);
     out.set_item("observations", observation(py, value.observations)?)?;
     out.set_item("info", episodes(py, value.info)?)?;
+    if let Some(value) = value.counters {
+        out.set_item("counters", counters(py, value)?)?;
+    }
     Ok(out)
 }
 

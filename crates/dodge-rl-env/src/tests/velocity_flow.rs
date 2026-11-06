@@ -30,7 +30,9 @@ fn layout_constants() {
 /// Bit parity with the source encoder on the games both engines play alike.
 #[test]
 fn matches_the_source_encoder() {
-    super::source_fixtures::check(include_str!("fixtures/velocity_flow_source.txt"), encode);
+    super::source_fixtures::check(include_str!("fixtures/velocity_flow_source.txt"), |game| {
+        super::source_fixtures::fnv(&encode(game))
+    });
 }
 
 #[test]

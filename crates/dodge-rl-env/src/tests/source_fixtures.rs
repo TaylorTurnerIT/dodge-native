@@ -118,16 +118,19 @@ fn action_index(seed: u32, frame: u32) -> usize {
     ((lcg(state) >> 33) % 9) as usize
 }
 
-/// FNV-1a over the little-endian bits of every value.
-pub(super) fn fnv(values: &[f32]) -> u64 {
+/// FNV-1a over bytes.
+pub(super) fn fnv_bytes(bytes: impl IntoIterator<Item = u8>) -> u64 {
     let mut hash = 0xcbf2_9ce4_8422_2325_u64;
-    for value in values {
-        for byte in value.to_bits().to_le_bytes() {
-            hash ^= u64::from(byte);
-            hash = hash.wrapping_mul(0x0100_0000_01b3);
-        }
+    for byte in bytes {
+        hash ^= u64::from(byte);
+        hash = hash.wrapping_mul(0x0100_0000_01b3);
     }
     hash
+}
+
+/// FNV-1a over the little-endian bits of every value.
+pub(super) fn fnv(values: &[f32]) -> u64 {
+    fnv_bytes(values.iter().flat_map(|v| v.to_bits().to_le_bytes()))
 }
 
 fn started(s: Scenario) -> NativeGame {
@@ -150,8 +153,8 @@ fn started(s: Scenario) -> NativeGame {
     game
 }
 
-/// Check every fixture line, `scenario frame hash`, against `encode`.
-pub(super) fn check(fixture: &str, encode: impl Fn(&NativeGame) -> Vec<f32>) {
+/// Check every fixture line, `scenario frame hash`, against `digest`.
+pub(super) fn check(fixture: &str, digest: impl Fn(&NativeGame) -> u64) {
     let mut expected: Vec<Vec<(u32, u64)>> = vec![Vec::new(); scenarios().len()];
     for line in fixture.lines().filter(|l| !l.starts_with('#')) {
         let fields: Vec<&str> = line.split_whitespace().collect();
@@ -182,7 +185,7 @@ pub(super) fn check(fixture: &str, encode: impl Fn(&NativeGame) -> Vec<f32>) {
                 frame += 1;
             }
             assert_eq!(
-                fnv(&encode(&game)),
+                digest(&game),
                 hash,
                 "scenario {index} seed {} frame {frame}",
                 scenario.seed

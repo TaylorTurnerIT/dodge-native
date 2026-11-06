@@ -3,6 +3,7 @@ use dodge_core::{
 };
 use rayon::prelude::*;
 
+use crate::counters::CounterBatch;
 use crate::features::{History, Observation, ObservationBatch};
 use crate::seed::{SEED_EXCLUSION_VERSION, SeedMetadata, normalize_seed_exclusions, seed_for};
 use crate::velocity_flow::{VELOCITY_FLOW_SIZE, encode_velocity_flow};
@@ -71,12 +72,16 @@ pub struct StepBatch {
     pub terminated: Vec<bool>,
     pub truncated: Vec<bool>,
     pub info: Vec<EpisodeInfo>,
+    /// Per-slot game counters, `Some` with the VelocityFlow observation.
+    pub counters: Option<CounterBatch>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ResetBatch {
     pub observations: ObservationBatch,
     pub info: Vec<EpisodeInfo>,
+    /// Counters of the reset slots, `Some` with the VelocityFlow observation.
+    pub counters: Option<CounterBatch>,
 }
 
 struct Slot {
@@ -411,6 +416,16 @@ impl VecDodgeEnv {
         ))
     }
 
+    /// Counters for `indices`, in that order, when the observation carries them.
+    fn counter_subset(&self, indices: &[usize]) -> Option<CounterBatch> {
+        (self.config.observation == ObservationKind::VelocityFlow).then(|| {
+            CounterBatch::collect(
+                indices.to_vec(),
+                indices.iter().map(|i| &self.slots[*i].game),
+            )
+        })
+    }
+
     pub fn step(&mut self, action_ids: &[i64]) -> Result<StepBatch, EnvError> {
         if self.poisoned {
             return Err(EnvError::Poisoned);
@@ -471,7 +486,9 @@ impl VecDodgeEnv {
             return Err(self.poison(failures));
         }
         let info = self.episode_info();
+        let all: Vec<usize> = (0..self.slots.len()).collect();
         Ok(StepBatch {
+            counters: self.counter_subset(&all),
             observations: self.observations()?,
             rewards: counts
                 .iter()
@@ -549,6 +566,7 @@ impl VecDodgeEnv {
             self.last_failures.clear();
         }
         Ok(ResetBatch {
+            counters: self.counter_subset(indices),
             observations: self.observation_subset(indices.to_vec())?,
             info: indices.iter().map(|i| self.slots[*i].info()).collect(),
         })
