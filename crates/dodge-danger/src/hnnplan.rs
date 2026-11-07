@@ -75,6 +75,8 @@ pub struct PhysicsModel {
     rect: Option<RectLaw>,
     #[serde(default)]
     crush: Option<Crush>,
+    #[serde(default)]
+    spawn: Option<Spawn>,
     /// The learned force sampled on a grid, built once on load. See `ForceTable`.
     #[serde(skip)]
     table: Option<ForceTable>,
@@ -110,6 +112,24 @@ struct RectLaw {
     bounce_static: f64,
     #[serde(default)]
     bounce_moving: f64,
+}
+
+/// Where new enemies appear and how often (`hnn/spawns.py`, measured from observed frames).
+#[derive(Clone, Debug, Deserialize)]
+struct Spawn {
+    points: Vec<SpawnPoint>,
+    /// A player closer than this to a spawn point is in the way of a new enemy.
+    radius: f64,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+struct SpawnPoint {
+    x: f64,
+    y: f64,
+    /// Births per frame at any time.
+    rate_default: f64,
+    /// Births per frame while this many pattern rectangles are active.
+    rate_by_rects: std::collections::HashMap<String, f64>,
 }
 
 /// Learned classifier for "a moving rectangle destroys an enemy it overlaps" (`hnn/crush.py`).
@@ -646,6 +666,7 @@ fn rollout(
     let mut enemies = bodies.to_vec();
     let mut rects = read_rects(game);
     let law = model.rect;
+    let rect_count = rects.len();
     let mut cost = 0.0;
     let mut clearance = f64::INFINITY;
     let mut first_hit = None;
@@ -668,6 +689,20 @@ fn rollout(
         pvy = 0.8 * pvy + 0.5 * direction.1;
         px = (px + pvx).clamp(2.0, 125.0);
         py = (py + pvy).clamp(2.0, 125.0);
+        // Expected cost of standing where a new enemy is likely to appear.
+        if let Some(spawn) = &model.spawn {
+            for point in &spawn.points {
+                if (px - point.x).hypot(py - point.y) < spawn.radius {
+                    let rate = point.rate_default
+                        + point
+                            .rate_by_rects
+                            .get(&rect_count.to_string())
+                            .copied()
+                            .unwrap_or(0.0);
+                    cost += rate * (5_000.0 - 50.0 * f64::from(frame));
+                }
+            }
+        }
         let mut gap = f64::INFINITY;
         let (margin, radius) = kamikaze_margin();
         for body in &mut enemies {
@@ -920,6 +955,7 @@ mod tests {
             blast: None,
             rect: None,
             crush: None,
+            spawn: None,
             table: None,
         };
         model.table = Some(model.build_table());
