@@ -11,6 +11,8 @@ pub(crate) struct Sample {
     pub y: f64,
     pub size: f64,
     pub kind: i8,
+    pub player_x: f64,
+    pub player_y: f64,
 }
 
 #[derive(Clone, Debug)]
@@ -109,14 +111,20 @@ pub fn feed(game: &NativeGame) {
             y: e.y.to_double(),
             size: e.size.to_double(),
             kind: e.personality,
+            player_x: game.player().x.to_double(),
+            player_y: game.player().y.to_double(),
         })
         .collect();
     BODY_FRAMES.fetch_add(samples.len() as u64, Ordering::Relaxed);
     let window = std::env::var("HNN_OBS_WINDOW")
         .ok()
         .and_then(|s| s.parse::<usize>().ok())
-        .unwrap_or(3)
-        .clamp(2, 5);
+        .unwrap_or(if std::env::var_os("HNN_OBS_RATE_LS").is_some() {
+            8
+        } else {
+            3
+        })
+        .clamp(2, 8);
     CURRENT.with(|c| {
         let mut c = c.borrow_mut();
         let old = std::mem::take(&mut c.tracks);
@@ -196,6 +204,8 @@ mod tests {
                 y: 9.0 - i as f64,
                 size: 5.0 - i as f64,
                 kind: -1,
+                player_x: 0.0,
+                player_y: 0.0,
             });
         }
         assert_eq!(track.velocity(), (0.5, -1.0));

@@ -535,13 +535,13 @@ fn gaussian() -> f64 {
     })
 }
 
-fn read_bodies(game: &NativeGame) -> Vec<Body> {
+fn read_bodies(model: &PhysicsModel, game: &NativeGame) -> Vec<Body> {
     let mut bodies = if crate::observe::full() {
-        read_observed_bodies()
+        read_observed_bodies(model)
     } else {
         let mut exact = read_exact_bodies(game);
         if crate::observe::enabled() {
-            for (body, observed) in exact.iter_mut().zip(read_observed_bodies()) {
+            for (body, observed) in exact.iter_mut().zip(read_observed_bodies(model)) {
                 if crate::observe::replace("velocity") {
                     body.vx = observed.vx / body.rate.abs().max(0.2);
                     body.vy = observed.vy / body.rate.abs().max(0.2);
@@ -579,12 +579,63 @@ fn read_bodies(game: &NativeGame) -> Vec<Body> {
     bodies
 }
 
-fn read_observed_bodies() -> Vec<Body> {
-    crate::observe::tracks()
+fn read_observed_bodies(model: &PhysicsModel) -> Vec<Body> {
+    let tracks = crate::observe::tracks();
+    let use_rate = std::env::var_os("HNN_OBS_RATE_LS").is_some();
+    let rates: Vec<Option<f64>> = tracks
+        .iter()
+        .map(|track| {
+            if !use_rate {
+                return None;
+            }
+            let samples: Vec<_> = track.samples.iter().collect();
+            let mut numerator = 0.0;
+            let mut denominator = 0.0;
+            for triple in samples.windows(3) {
+                let (a, b, c) = (triple[0], triple[1], triple[2]);
+                if b.kind < 0 {
+                    continue;
+                }
+                let (dx, dy) = (b.x - a.x, b.y - a.y);
+                let (nx, ny) = (c.x - b.x, c.y - b.y);
+                let (fx, fy) =
+                    model.force_fast(b.x - c.player_x, b.y - c.player_y, usize::from(b.kind == 1));
+                let (ax, ay) = (nx - (1.0 - model.gamma) * dx, ny - (1.0 - model.gamma) * dy);
+                // Discard abrupt collision and bounce transitions.
+                if ax.hypot(ay) > 0.15 {
+                    continue;
+                }
+                numerator += ax * fx + ay * fy;
+                denominator += fx * fx + fy * fy;
+            }
+            (denominator > 1e-8).then_some((numerator / denominator).clamp(0.2, 5.0))
+        })
+        .collect();
+    let mut population: Vec<_> = rates.iter().flatten().copied().collect();
+    population.sort_by(f64::total_cmp);
+    let prior = population.get(population.len() / 2).copied().unwrap_or(1.0);
+    tracks
         .into_iter()
-        .filter_map(|track| {
+        .zip(rates)
+        .filter_map(|(track, estimate)| {
             let sample = *track.samples.back()?;
-            let (vx, vy) = track.velocity();
+            let (mut vx, mut vy) = track.velocity();
+            let rate = if use_rate {
+                estimate
+                    .map_or(prior, |r| 0.5 * (r + prior))
+                    .clamp(0.2, 5.0)
+            } else {
+                1.0
+            };
+            if use_rate {
+                if track.samples.len() >= 2 {
+                    let previous = track.samples[track.samples.len() - 2];
+                    vx = sample.x - previous.x;
+                    vy = sample.y - previous.y;
+                }
+                vx /= rate;
+                vy /= rate;
+            }
             let moves = sample.kind >= 0;
             Some(Body {
                 x: sample.x,
@@ -597,7 +648,7 @@ fn read_observed_bodies() -> Vec<Body> {
                     sample.size
                 },
                 kind: usize::from(sample.kind == 1),
-                rate: 1.0,
+                rate,
                 moves,
                 blast: sample.kind == -1,
                 growing: track.growing(),
@@ -1005,7 +1056,7 @@ pub fn imagine(
     rollout(
         model,
         game,
-        &read_bodies(game),
+        &read_bodies(model, game),
         direction,
         horizon,
         snapshot_at,
@@ -1055,7 +1106,7 @@ pub fn arrival_field(
     grid: usize,
     horizon: u32,
 ) -> Vec<f32> {
-    let bodies = read_bodies(game);
+    let bodies = read_bodies(model, game);
     let size = game.player().size.to_double();
     let mut field = Vec::with_capacity(grid * grid);
     for row in 0..grid {
@@ -1070,7 +1121,7 @@ pub fn arrival_field(
 
 /// The action with the lowest rollout cost, and all nine costs.
 pub fn choose(model: &PhysicsModel, game: &NativeGame, horizon: u32) -> (Action, [f64; 9]) {
-    let bodies = read_bodies(game);
+    let bodies = read_bodies(model, game);
     LAST_BODIES.with(|last| *last.borrow_mut() = bodies.clone());
     let mut costs = [0.0; 9];
     let mut best = 0;
