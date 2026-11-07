@@ -7,8 +7,8 @@
 //! same collision, clearance and wall terms that the lookahead policy uses.
 //!
 //! What it assumes without learning it: an enemy has its full size of 3 px, the clock rate
-//! stays what it is now, wall bounces do not happen (no enemy was seen to bounce), and
-//! enemies do not collide with each other.
+//! stays what it is now, an enemy bounces off the arena edge (sign flip at -2 and 129 - size, as
+//! seen in replays), and what else it learns is in the event layer.
 
 use std::sync::OnceLock;
 
@@ -480,6 +480,8 @@ struct Body {
     growing: bool,
     /// Marked as colliding; removed on the next frame (a kamikaze leaves an explosion).
     dying: bool,
+    /// Has been seen between x = 1 and x = 128. Only such enemies bounce off the arena edge.
+    inside: bool,
 }
 
 /// QUICK CHECK ONLY: perception noise. `HNN_NOISE_PX` (pixels, default 0 = off) is the standard
@@ -557,6 +559,7 @@ fn read_exact_bodies(game: &NativeGame) -> Vec<Body> {
                 blast: enemy.personality == -1,
                 growing: enemy.isizing,
                 dying: enemy.is_dying,
+                inside: enemy.inside,
             }
         })
         .collect()
@@ -632,6 +635,7 @@ fn apply_events(model: &PhysicsModel, enemies: &mut Vec<Body>) {
                     blast: true,
                     growing: true,
                     dying: false,
+                    inside: true,
                 });
             }
             false
@@ -762,8 +766,23 @@ fn rollout(
                         bounce_off(body, rect, law, speeds);
                     }
                 }
+                // Arena edge: an enemy that has entered turns around at the edge. The test uses
+                // the position before this frame's move. Speed is kept; only the sign flips.
+                if body.inside {
+                    if body.y >= 129.0 - body.size {
+                        body.vy = -body.vy.abs();
+                    } else if body.y <= -2.0 {
+                        body.vy = body.vy.abs();
+                    }
+                    if body.x >= 129.0 - body.size {
+                        body.vx = -body.vx.abs();
+                    } else if body.x <= -2.0 {
+                        body.vx = body.vx.abs();
+                    }
+                }
                 body.x += body.rate * body.vx;
                 body.y += body.rate * body.vy;
+                body.inside |= (1.0..=128.0).contains(&body.x);
             } else if body.blast {
                 // An explosion can be pushed. It keeps the velocity it has, losing the
                 // same fraction to friction as an enemy does (seen in the data: 0.99 per frame).
