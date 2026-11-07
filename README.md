@@ -7,6 +7,8 @@ the small command-line runner used to exercise it. It does not contain the
 reinforcement-learning code, training adapters, Pemsa runtime, datasets, or
 internal validation artifacts from the development project.
 
+Python tools for playing Dodge through the RL binding (SpaceBot, a watch window) are in [learning/README.md](learning/README.md).
+
 ## Run the game
 
 Install Rust from [rustup](https://rustup.rs/), then run on a system with
