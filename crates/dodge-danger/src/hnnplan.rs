@@ -131,8 +131,19 @@ impl PhysicsModel {
     /// Bounce speeds (static rectangle, moving rectangle) for the game as it stands now.
     fn bounce_speeds(&self, game: &NativeGame, law: &RectLaw, bodies: &[Body]) -> (f64, f64) {
         let speed = if crate::observe::replace("bounce") {
-            if crate::observe::full() && std::env::var_os("HNN_OBS_BOUNCE_CURVE").is_some() {
-                let mut rates: Vec<_> = bodies
+            if crate::observe::improved()
+                && std::env::var("HNN_OBS_BOUNCE_CURVE")
+                    .ok()
+                    .is_none_or(|v| v != "0")
+            {
+                let observed = if crate::observe::full() {
+                    None
+                } else {
+                    Some(read_observed_bodies(self, game.difficulty()))
+                };
+                let mut rates: Vec<_> = observed
+                    .as_deref()
+                    .unwrap_or(bodies)
                     .iter()
                     .filter(|body| body.moves && body.kind == 0)
                     .map(|body| body.rate)
