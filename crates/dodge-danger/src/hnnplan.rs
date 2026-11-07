@@ -71,6 +71,27 @@ pub struct PhysicsModel {
     collision: Option<Collision>,
     #[serde(default)]
     blast: Option<Blast>,
+    /// The learned force sampled on a grid, built once on load. See `ForceTable`.
+    #[serde(skip)]
+    table: Option<ForceTable>,
+}
+
+/// The learned force `-dU/d(offset)` tabulated over enemy-to-player offsets, for fast lookup.
+/// The network is smooth at the scale of the grid (0.5 px), so bilinear interpolation
+/// reproduces it closely (see the `table_matches_the_network` test). Beyond the grid the
+/// edge value is used.
+#[derive(Clone, Debug)]
+struct ForceTable {
+    /// `[kind][row * side + column]` of `(fx, fy)`; row = y offset, column = x offset.
+    values: Vec<Vec<[f32; 2]>>,
+}
+
+const TABLE_RANGE: f64 = 132.0;
+const TABLE_STEP: f64 = 0.5;
+const TABLE_KINDS: usize = 2;
+
+fn table_side() -> usize {
+    (2.0 * TABLE_RANGE / TABLE_STEP) as usize + 1
 }
 
 /// Probability above which two enemies are treated as colliding. Read from
@@ -104,8 +125,65 @@ fn mlp_forward(layers: &[Layer], input: &[f64]) -> f64 {
 
 impl PhysicsModel {
     pub fn from_json(text: &str) -> Result<Self, String> {
-        serde_json::from_str(text)
-            .map_err(|error| format!("could not parse physics model: {error}"))
+        let mut model: Self = serde_json::from_str(text)
+            .map_err(|error| format!("could not parse physics model: {error}"))?;
+        model.table = Some(model.build_table());
+        Ok(model)
+    }
+
+    /// Sample the network's force on the grid, on all cores.
+    fn build_table(&self) -> ForceTable {
+        let side = table_side();
+        let threads = std::thread::available_parallelism().map_or(4, usize::from);
+        let mut values = Vec::with_capacity(TABLE_KINDS);
+        for kind in 0..TABLE_KINDS {
+            let mut grid = vec![[0.0_f32; 2]; side * side];
+            let chunk = side.div_ceil(threads).max(1);
+            std::thread::scope(|scope| {
+                for (index, rows) in grid.chunks_mut(chunk * side).enumerate() {
+                    scope.spawn(move || {
+                        for (local, cell) in rows.iter_mut().enumerate() {
+                            let row = index * chunk + local / side;
+                            let column = local % side;
+                            let dy = row as f64 * TABLE_STEP - TABLE_RANGE;
+                            let dx = column as f64 * TABLE_STEP - TABLE_RANGE;
+                            let (fx, fy) = self.force(dx, dy, kind);
+                            *cell = [fx as f32, fy as f32];
+                        }
+                    });
+                }
+            });
+            values.push(grid);
+        }
+        ForceTable { values }
+    }
+
+    /// The force from the table (bilinear). Falls back to the network if there is no table.
+    #[inline]
+    fn force_fast(&self, dx: f64, dy: f64, kind: usize) -> (f64, f64) {
+        let Some(table) = &self.table else {
+            return self.force(dx, dy, kind);
+        };
+        let side = table_side();
+        let grid = &table.values[kind.min(TABLE_KINDS - 1)];
+        let limit = (side - 1) as f64 - 1e-9;
+        let fx = ((dx.clamp(-TABLE_RANGE, TABLE_RANGE) + TABLE_RANGE) / TABLE_STEP).min(limit);
+        let fy = ((dy.clamp(-TABLE_RANGE, TABLE_RANGE) + TABLE_RANGE) / TABLE_STEP).min(limit);
+        let (cx, cy) = (fx as usize, fy as usize);
+        let (tx, ty) = (fx - cx as f64, fy - cy as f64);
+        let at = |row: usize, column: usize| grid[row * side + column];
+        let (a, b, c, d) = (
+            at(cy, cx),
+            at(cy, cx + 1),
+            at(cy + 1, cx),
+            at(cy + 1, cx + 1),
+        );
+        let mix = |i: usize| {
+            let top = f64::from(a[i]) * (1.0 - tx) + f64::from(b[i]) * tx;
+            let bottom = f64::from(c[i]) * (1.0 - tx) + f64::from(d[i]) * tx;
+            top * (1.0 - ty) + bottom * ty
+        };
+        (mix(0), mix(1))
     }
 
     /// Force on an enemy at `(dx, dy)` from the player: `-dU/d(offset)`.
@@ -167,7 +245,57 @@ struct Body {
     dying: bool,
 }
 
+/// QUICK CHECK ONLY: perception noise. `HNN_NOISE_PX` (pixels, default 0 = off) is the standard
+/// deviation of an independent error on every enemy position on every frame. Velocity gets
+/// `sigma * HNN_NOISE_VEL / rate`; the default factor sqrt(2) is a two-frame difference, and
+/// a five-frame linear fit gives about 0.35. A factor of 0 leaves velocity exact.
+fn noise_sigma() -> f64 {
+    static VALUE: OnceLock<f64> = OnceLock::new();
+    *VALUE.get_or_init(|| {
+        std::env::var("HNN_NOISE_PX")
+            .ok()
+            .and_then(|t| t.parse().ok())
+            .unwrap_or(0.0)
+    })
+}
+
+fn gaussian() -> f64 {
+    use std::cell::Cell;
+    thread_local!(static STATE: Cell<u64> = const { Cell::new(0x2545_F491_4F6C_DD1D) });
+    STATE.with(|state| {
+        let mut sum = 0.0;
+        for _ in 0..12 {
+            let mut x = state.get();
+            x ^= x << 13;
+            x ^= x >> 7;
+            x ^= x << 17;
+            state.set(x);
+            sum += (x >> 11) as f64 / (1u64 << 53) as f64;
+        }
+        sum - 6.0
+    })
+}
+
 fn read_bodies(game: &NativeGame) -> Vec<Body> {
+    let mut bodies = read_exact_bodies(game);
+    let sigma = noise_sigma();
+    if sigma > 0.0 {
+        for body in bodies.iter_mut().filter(|body| body.moves) {
+            body.x += sigma * gaussian();
+            body.y += sigma * gaussian();
+            let factor = std::env::var("HNN_NOISE_VEL")
+                .ok()
+                .and_then(|text| text.parse::<f64>().ok())
+                .unwrap_or(std::f64::consts::SQRT_2);
+            let velocity_sigma = sigma * factor / body.rate.abs().max(0.2);
+            body.vx += velocity_sigma * gaussian();
+            body.vy += velocity_sigma * gaussian();
+        }
+    }
+    bodies
+}
+
+fn read_exact_bodies(game: &NativeGame) -> Vec<Body> {
     let view = game.privileged_view();
     let step = view.speed.to_double() * view.freeze_rate.to_double();
     game.enemies()
@@ -366,7 +494,7 @@ fn rollout(
                 }
             }
             if body.moves {
-                let (fx, fy) = model.force(body.x - px, body.y - py, body.kind);
+                let (fx, fy) = model.force_fast(body.x - px, body.y - py, body.kind);
                 body.vx += fx - model.gamma * body.vx;
                 body.vy += fy - model.gamma * body.vy;
                 body.x += body.rate * body.vx;
@@ -434,7 +562,7 @@ fn arrival_at(
         }
         for body in &mut enemies {
             if body.moves {
-                let (fx, fy) = model.force(body.x - px, body.y - py, body.kind);
+                let (fx, fy) = model.force_fast(body.x - px, body.y - py, body.kind);
                 body.vx += fx - model.gamma * body.vx;
                 body.vy += fy - model.gamma * body.vy;
                 body.x += body.rate * body.vx;
@@ -494,4 +622,52 @@ pub fn install(model: PhysicsModel) -> Result<(), String> {
 
 pub fn installed() -> Option<&'static PhysicsModel> {
     MODEL.get()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A small fixed network, so the test does not need a trained file.
+    fn model() -> PhysicsModel {
+        let layer = |inputs: usize, outputs: usize, seed: f64| Layer {
+            weights: (0..outputs)
+                .map(|row| {
+                    (0..inputs)
+                        .map(|col| ((row * 7 + col * 3) as f64 * 0.37 + seed).sin() * 0.4)
+                        .collect()
+                })
+                .collect(),
+            bias: (0..outputs)
+                .map(|row| (row as f64 * 0.11 + seed).cos() * 0.1)
+                .collect(),
+        };
+        let mut model = PhysicsModel {
+            layers: vec![layer(7, 12, 0.1), layer(12, 12, 0.7), layer(12, 1, 1.3)],
+            gamma: 0.01,
+            collision: None,
+            blast: None,
+            table: None,
+        };
+        model.table = Some(model.build_table());
+        model
+    }
+
+    #[test]
+    fn table_matches_the_network() {
+        let model = model();
+        let mut worst = 0.0_f64;
+        for step in 0..400 {
+            let dx = -120.0 + f64::from(step) * 0.6137;
+            let dy = 95.0 - f64::from(step) * 0.5311;
+            for kind in 0..2 {
+                let exact = model.force(dx, dy, kind);
+                let fast = model.force_fast(dx, dy, kind);
+                worst = worst
+                    .max((exact.0 - fast.0).abs())
+                    .max((exact.1 - fast.1).abs());
+            }
+        }
+        assert!(worst < 2e-4, "table differs from the network by {worst}");
+    }
 }

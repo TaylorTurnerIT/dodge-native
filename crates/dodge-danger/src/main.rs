@@ -22,6 +22,7 @@ struct Options {
     stream: bool,
     dataset: bool,
     deaths: bool,
+    survival: bool,
     seeds: u32,
     help: bool,
 }
@@ -46,6 +47,30 @@ fn run() -> Result<(), String> {
 
     if options.dataset {
         return dataset(&options);
+    }
+
+    if options.survival {
+        let threads = std::thread::available_parallelism().map_or(4, usize::from);
+        let rows = dodge_danger::survival_parallel(
+            &options.config,
+            options.policy,
+            options.seeds,
+            threads,
+        )?;
+        let total: u64 = rows.iter().map(|row| u64::from(row.1)).sum();
+        let died = rows.iter().filter(|row| row.2).count();
+        let worst = rows.iter().map(|row| row.1).min().unwrap_or(0);
+        println!(
+            "{} D{}: mean {:.0} frames, min {}, died {}/{} (cap {})",
+            options.policy.name(),
+            options.config.difficulty,
+            total as f64 / rows.len().max(1) as f64,
+            worst,
+            died,
+            rows.len(),
+            options.config.max_frames
+        );
+        return Ok(());
     }
 
     if options.deaths {
@@ -249,6 +274,7 @@ where
     let mut stream = false;
     let mut dataset = false;
     let mut deaths = false;
+    let mut survival = false;
     let mut seeds = 1;
     let mut help = false;
 
@@ -287,6 +313,7 @@ where
             "--stream" => stream = true,
             "--dataset" => dataset = true,
             "--deaths" => deaths = true,
+            "--survival" => survival = true,
             "--physics" => config.physics = true,
             "--physics-model" => {
                 let path = next_value(&mut values, "--physics-model")?;
@@ -337,6 +364,7 @@ where
         stream,
         dataset,
         deaths,
+        survival,
         seeds,
         help,
     })
@@ -404,6 +432,7 @@ fn usage() -> String {
            --physics            with --dataset: add each enemy's raw velocity and clock rate (ph)\n\
            --physics-model PATH load a learned enemy model; adds the hnn policy to --compare\n\
            --deaths             play --seeds games with the hnn policy, explain each death (NDJSON)\n\
+           --survival           play --seeds games with --policy in parallel; print the mean survival\n\
            --epsilon P          per-frame chance of a random-action burst (label stays the policy's)\n\
                                 (runs until death; --frames is ignored)\n\
          \n\

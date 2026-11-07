@@ -512,6 +512,57 @@ fn drive(
     })
 }
 
+/// Play `seeds` consecutive games with one policy on `threads` threads.
+/// Returns `(seed, survival frames, died)` sorted by seed.
+pub fn survival_parallel(
+    config: &DangerConfig,
+    policy: PolicyKind,
+    seeds: u32,
+    threads: usize,
+) -> Result<Vec<(u32, u32, bool)>, String> {
+    use std::sync::Mutex;
+    use std::sync::atomic::{AtomicU32, Ordering};
+    config.validate()?;
+    let next = AtomicU32::new(0);
+    let results: Mutex<Vec<(u32, u32, bool)>> = Mutex::new(Vec::new());
+    let failure: Mutex<Option<String>> = Mutex::new(None);
+    std::thread::scope(|scope| {
+        for _ in 0..threads.max(1) {
+            scope.spawn(|| {
+                loop {
+                    let offset = next.fetch_add(1, Ordering::Relaxed);
+                    if offset >= seeds {
+                        return;
+                    }
+                    let mut local = *config;
+                    local.seed = config.seed.wrapping_add(offset);
+                    match run_episode(&local, policy, false) {
+                        Ok(episode) => {
+                            if let Ok(mut list) = results.lock() {
+                                list.push((local.seed, episode.survival_frames, episode.dead));
+                            }
+                        }
+                        Err(error) => {
+                            if let Ok(mut slot) = failure.lock() {
+                                slot.get_or_insert(error);
+                            }
+                            return;
+                        }
+                    }
+                }
+            });
+        }
+    });
+    if let Ok(slot) = failure.lock()
+        && let Some(error) = slot.clone()
+    {
+        return Err(error);
+    }
+    let mut list = results.into_inner().map_err(|_| "poisoned".to_owned())?;
+    list.sort_unstable();
+    Ok(list)
+}
+
 /// Compare the non-neutral policies over a seed range. Each seed is a fresh game.
 pub fn compare(config: &DangerConfig, seeds: u32) -> Result<CompareOutput, String> {
     config.validate()?;
