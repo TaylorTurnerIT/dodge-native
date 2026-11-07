@@ -188,9 +188,9 @@ pub struct FrameRecord {
     /// Enemy x, y, vx, vy, size, personality. `vx` and `vy` are pixels per frame,
     /// after game speed, freeze and the enemy's own speed.
     pub e: Vec<[f32; 6]>,
-    /// Pattern rectangles that the landscape treats as lethal: x, y, width, height.
+    /// Active pattern rectangles: x, y, width, height, lethal (1.0) or harmless (0.0).
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub r: Vec<[f32; 4]>,
+    pub r: Vec<[f32; 5]>,
     /// Chosen action name.
     pub a: &'static str,
     /// Current goal.
@@ -766,14 +766,14 @@ impl FrameRecord {
         if let Some(pattern) = view.active_pattern {
             let lethal_pattern = pattern.pattern_type == 1;
             for rect in pattern.rects {
-                if lethal_pattern || rect.sh.to_double() == 2.0 {
-                    rects.push([
-                        rect.x.to_f32(),
-                        rect.y.to_f32(),
-                        rect.width.to_f32(),
-                        rect.height.to_f32(),
-                    ]);
-                }
+                let lethal = lethal_pattern || rect.sh.to_double() == 2.0;
+                rects.push([
+                    rect.x.to_f32(),
+                    rect.y.to_f32(),
+                    rect.width.to_f32(),
+                    rect.height.to_f32(),
+                    if lethal { 1.0 } else { 0.0 },
+                ]);
             }
         }
         Self {
