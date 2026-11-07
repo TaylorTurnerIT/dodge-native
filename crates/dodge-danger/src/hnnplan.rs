@@ -22,16 +22,84 @@ const ADULT_SIZE: f64 = 3.0;
 /// Pull toward the middle of the arena, scored at the end of a rollout.
 const GOAL_WEIGHT: f64 = 0.3;
 
+/// QUICK CHECK ONLY (not part of the learned model): extra cost for being close to a
+/// kamikaze, whose death turns into an explosion. Read from `HNN_KAMIKAZE_MARGIN`
+/// (cost units, default 0 = off) and `HNN_KAMIKAZE_RADIUS` (pixels, default 20).
+fn kamikaze_margin() -> (f64, f64) {
+    static VALUE: OnceLock<(f64, f64)> = OnceLock::new();
+    *VALUE.get_or_init(|| {
+        let read = |name: &str, default: f64| {
+            std::env::var(name)
+                .ok()
+                .and_then(|text| text.parse().ok())
+                .unwrap_or(default)
+        };
+        (
+            read("HNN_KAMIKAZE_MARGIN", 0.0),
+            read("HNN_KAMIKAZE_RADIUS", 20.0),
+        )
+    })
+}
+
 #[derive(Clone, Debug, Deserialize)]
 struct Layer {
     weights: Vec<Vec<f64>>,
     bias: Vec<f64>,
 }
 
+/// Learned pair-collision classifier (`hnn/events.py`).
+#[derive(Clone, Debug, Deserialize)]
+struct Collision {
+    near: f64,
+    layers: Vec<Layer>,
+}
+
+/// Explosion size law measured from observed explosions: grows by `rate` per frame
+/// from `start` to `peak`, then shrinks at the same rate.
+#[derive(Clone, Copy, Debug, Deserialize)]
+struct Blast {
+    start: f64,
+    rate: f64,
+    peak: f64,
+}
+
 #[derive(Clone, Debug, Deserialize)]
 pub struct PhysicsModel {
     layers: Vec<Layer>,
     gamma: f64,
+    #[serde(default)]
+    collision: Option<Collision>,
+    #[serde(default)]
+    blast: Option<Blast>,
+}
+
+/// Probability above which two enemies are treated as colliding. Read from
+/// `HNN_COLLISION_THRESHOLD` (default 0.3: a missed collision costs more than a false one).
+fn collision_threshold() -> f64 {
+    static VALUE: OnceLock<f64> = OnceLock::new();
+    *VALUE.get_or_init(|| {
+        std::env::var("HNN_COLLISION_THRESHOLD")
+            .ok()
+            .and_then(|t| t.parse().ok())
+            .unwrap_or(0.3)
+    })
+}
+
+fn mlp_forward(layers: &[Layer], input: &[f64]) -> f64 {
+    let mut current = input.to_vec();
+    let last = layers.len().saturating_sub(1);
+    for (index, layer) in layers.iter().enumerate() {
+        let mut next = Vec::with_capacity(layer.bias.len());
+        for (row, bias) in layer.weights.iter().zip(&layer.bias) {
+            let mut sum = *bias;
+            for (weight, value) in row.iter().zip(&current) {
+                sum += weight * value;
+            }
+            next.push(if index == last { sum } else { sum.tanh() });
+        }
+        current = next;
+    }
+    current.first().copied().unwrap_or(0.0)
 }
 
 impl PhysicsModel {
@@ -92,6 +160,11 @@ struct Body {
     kind: usize,
     rate: f64,
     moves: bool,
+    /// An explosion: fixed centre, size follows the learned law.
+    blast: bool,
+    growing: bool,
+    /// Marked as colliding; removed on the next frame (a kamikaze leaves an explosion).
+    dying: bool,
 }
 
 fn read_bodies(game: &NativeGame) -> Vec<Body> {
@@ -116,6 +189,9 @@ fn read_bodies(game: &NativeGame) -> Vec<Body> {
                 kind: usize::from(enemy.personality == 1),
                 rate: step * enemy.speed.to_double(),
                 moves,
+                blast: enemy.personality == -1,
+                growing: enemy.isizing,
+                dying: enemy.is_dying,
             }
         })
         .collect()
@@ -133,6 +209,101 @@ const DIRECTIONS: [(f64, f64); 9] = [
     (1.0, 1.0),
 ];
 
+/// Features of an enemy pair; must match `pair_features` in `hnn/events.py`.
+fn pair_features(a: &Body, b: &Body) -> [f64; 10] {
+    let mut f = [0.0; 10];
+    for (slot, step) in [0.0, 1.0].iter().enumerate() {
+        let (ax, ay) = (a.x + a.vx * a.rate * step, a.y + a.vy * a.rate * step);
+        let (bx, by) = (b.x + b.vx * b.rate * step, b.y + b.vy * b.rate * step);
+        let ox = (ax + a.size).min(bx + b.size) - ax.max(bx);
+        let oy = (ay + a.size).min(by + b.size) - ay.max(by);
+        f[slot * 3] = ox / 4.0;
+        f[slot * 3 + 1] = oy / 4.0;
+        f[slot * 3 + 2] = ox.min(oy) / 4.0;
+    }
+    f[6] = a.size / 4.0;
+    f[7] = b.size / 4.0;
+    f[8] = a.kind as f64;
+    f[9] = b.kind as f64;
+    f
+}
+
+/// Apply the learned event layer for one frame: remove enemies that were marked dying
+/// (a kamikaze leaves an explosion), mark new colliding pairs, and grow or shrink explosions.
+fn apply_events(model: &PhysicsModel, enemies: &mut Vec<Body>) {
+    let (Some(collision), Some(blast)) = (&model.collision, &model.blast) else {
+        return;
+    };
+    // Explosions follow the size law around a fixed centre.
+    for body in enemies.iter_mut().filter(|body| body.blast) {
+        let centre = (body.x + body.size / 2.0, body.y + body.size / 2.0);
+        if body.growing {
+            body.size += blast.rate;
+            if body.size >= blast.peak {
+                body.growing = false;
+            }
+        } else {
+            body.size -= blast.rate;
+        }
+        body.x = centre.0 - body.size / 2.0;
+        body.y = centre.1 - body.size / 2.0;
+    }
+    enemies.retain(|body| !body.blast || body.size > 0.0);
+
+    // Enemies marked on the previous frame leave now.
+    let mut born = Vec::new();
+    enemies.retain(|body| {
+        if body.dying && !body.blast {
+            if body.kind == 1 {
+                born.push(Body {
+                    x: body.x + body.size / 2.0 - blast.start / 2.0,
+                    y: body.y + body.size / 2.0 - blast.start / 2.0,
+                    vx: 0.0,
+                    vy: 0.0,
+                    size: blast.start,
+                    kind: 0,
+                    rate: 1.0,
+                    moves: false,
+                    blast: true,
+                    growing: true,
+                    dying: false,
+                });
+            }
+            false
+        } else {
+            true
+        }
+    });
+    enemies.extend(born);
+
+    // New collisions among enemies that are inside the arena.
+    let threshold = collision_threshold();
+    let count = enemies.len();
+    let mut marks = Vec::new();
+    for i in 0..count {
+        for j in (i + 1)..count {
+            let (a, b) = (&enemies[i], &enemies[j]);
+            if a.blast || b.blast || a.dying || b.dying || !a.moves || !b.moves {
+                continue;
+            }
+            if !(1.0..=128.0).contains(&a.x) || !(1.0..=128.0).contains(&b.x) {
+                continue;
+            }
+            if (a.x - b.x).hypot(a.y - b.y) > collision.near {
+                continue;
+            }
+            let logit = mlp_forward(&collision.layers, &pair_features(a, b));
+            if 1.0 / (1.0 + (-logit).exp()) > threshold {
+                marks.push((i, j));
+            }
+        }
+    }
+    for (i, j) in marks {
+        enemies[i].dying = true;
+        enemies[j].dying = true;
+    }
+}
+
 fn hits(px: f64, py: f64, size: f64, body: &Body) -> bool {
     px + size - 1.0 > body.x
         && py + size - 1.0 > body.y
@@ -144,14 +315,25 @@ fn wall_penalty(x: f64, y: f64) -> f64 {
     (8.0 - x).max(0.0) + (x - 120.0).max(0.0) + (8.0 - y).max(0.0) + (y - 120.0).max(0.0)
 }
 
-/// Cost of playing `direction` for `horizon` frames, with the learned enemy model.
+/// What one imagined rollout produced.
+#[derive(Clone, Debug)]
+pub struct Rollout {
+    pub cost: f64,
+    /// First frame on which the model predicts a hit, if any.
+    pub first_hit: Option<u32>,
+    /// Enemy `x, y, size` after `snapshot_at` frames, in the engine's enemy order.
+    pub snapshot: Vec<[f64; 3]>,
+}
+
+/// Roll the player and enemies forward while playing `direction`, and score the result.
 fn rollout(
     model: &PhysicsModel,
     game: &NativeGame,
     bodies: &[Body],
     direction: (f64, f64),
     horizon: u32,
-) -> f64 {
+    snapshot_at: u32,
+) -> Rollout {
     let player = game.player();
     let size = player.size.to_double();
     let (mut px, mut py) = (player.x.to_double(), player.y.to_double());
@@ -159,12 +341,15 @@ fn rollout(
     let mut enemies = bodies.to_vec();
     let mut cost = 0.0;
     let mut clearance = f64::INFINITY;
+    let mut first_hit = None;
+    let mut snapshot = Vec::new();
 
     for frame in 1..=horizon {
         // The engine checks for a hit first, then moves the player, then moves the enemies.
         if enemies.iter().any(|body| hits(px, py, size, body)) {
             cost += 5_000.0 - 50.0 * f64::from(frame);
             clearance = 0.0;
+            first_hit = Some(frame);
             break;
         }
         pvx = 0.8 * pvx + 0.5 * direction.0;
@@ -172,7 +357,14 @@ fn rollout(
         px = (px + pvx).clamp(2.0, 125.0);
         py = (py + pvy).clamp(2.0, 125.0);
         let mut gap = f64::INFINITY;
+        let (margin, radius) = kamikaze_margin();
         for body in &mut enemies {
+            if margin > 0.0 && body.kind == 1 && body.moves {
+                let distance = (px - body.x - body.size / 2.0).hypot(py - body.y - body.size / 2.0);
+                if distance < radius {
+                    cost += margin * (radius - distance) / radius;
+                }
+            }
             if body.moves {
                 let (fx, fy) = model.force(body.x - px, body.y - py, body.kind);
                 body.vx += fx - model.gamma * body.vx;
@@ -181,6 +373,13 @@ fn rollout(
                 body.y += body.rate * body.vy;
             }
             gap = gap.min(box_clearance(px, py, size, body.x, body.y, body.size));
+        }
+        apply_events(model, &mut enemies);
+        if frame == snapshot_at {
+            snapshot = enemies
+                .iter()
+                .map(|body| [body.x, body.y, body.size])
+                .collect();
         }
         clearance = clearance.min(gap);
         if gap.is_finite() {
@@ -192,7 +391,30 @@ fn rollout(
     if clearance.is_finite() {
         cost += 8.0 * (-clearance / 3.0).exp();
     }
-    cost
+    Rollout {
+        cost,
+        first_hit,
+        snapshot,
+    }
+}
+
+/// One imagined rollout for action number `index` (`Action::ALL` order). For diagnostics.
+pub fn imagine(
+    model: &PhysicsModel,
+    game: &NativeGame,
+    index: usize,
+    horizon: u32,
+    snapshot_at: u32,
+) -> Rollout {
+    let direction = DIRECTIONS.get(index).copied().unwrap_or((0.0, 0.0));
+    rollout(
+        model,
+        game,
+        &read_bodies(game),
+        direction,
+        horizon,
+        snapshot_at,
+    )
 }
 
 /// First frame on which a player standing still at `(px, py)` is hit, from learned rollouts.
@@ -250,7 +472,7 @@ pub fn choose(model: &PhysicsModel, game: &NativeGame, horizon: u32) -> (Action,
     let mut costs = [0.0; 9];
     let mut best = 0;
     for (index, direction) in DIRECTIONS.iter().enumerate() {
-        costs[index] = rollout(model, game, &bodies, *direction, horizon);
+        costs[index] = rollout(model, game, &bodies, *direction, horizon, 0).cost;
         if index == 0 {
             costs[index] += 0.25;
         }

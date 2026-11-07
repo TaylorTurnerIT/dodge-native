@@ -21,6 +21,7 @@ struct Options {
     compare: bool,
     stream: bool,
     dataset: bool,
+    deaths: bool,
     seeds: u32,
     help: bool,
 }
@@ -45,6 +46,24 @@ fn run() -> Result<(), String> {
 
     if options.dataset {
         return dataset(&options);
+    }
+
+    if options.deaths {
+        let threads = std::thread::available_parallelism().map_or(4, usize::from);
+        let study = dodge_danger::deaths::run(&options.config, options.seeds, threads)?;
+        let mut bytes = Vec::new();
+        for case in &study.deaths {
+            serde_json::to_writer(&mut bytes, case).map_err(|error| error.to_string())?;
+            bytes.push(b'\n');
+        }
+        write_output(options.output.as_deref(), &bytes)?;
+        eprintln!(
+            "dodge-danger: {} of {} games ended in a death before {} frames",
+            study.deaths.len(),
+            study.games,
+            options.config.max_frames
+        );
+        return Ok(());
     }
 
     if options.compare {
@@ -151,6 +170,7 @@ fn dataset(options: &Options) -> Result<(), String> {
                     }
                     if !record.ph.is_empty() {
                         line["ph"] = json!(record.ph);
+                        line["dy"] = json!(record.dy);
                     }
                     if let Some(played) = record.x {
                         line["x"] = json!(played);
@@ -228,6 +248,7 @@ where
     let mut compare = false;
     let mut stream = false;
     let mut dataset = false;
+    let mut deaths = false;
     let mut seeds = 1;
     let mut help = false;
 
@@ -265,6 +286,7 @@ where
             "--compare" => compare = true,
             "--stream" => stream = true,
             "--dataset" => dataset = true,
+            "--deaths" => deaths = true,
             "--physics" => config.physics = true,
             "--physics-model" => {
                 let path = next_value(&mut values, "--physics-model")?;
@@ -314,6 +336,7 @@ where
         compare,
         stream,
         dataset,
+        deaths,
         seeds,
         help,
     })
@@ -380,6 +403,7 @@ fn usage() -> String {
            --drive-model PATH   load a model and play its actions; the policy still labels\n\
            --physics            with --dataset: add each enemy's raw velocity and clock rate (ph)\n\
            --physics-model PATH load a learned enemy model; adds the hnn policy to --compare\n\
+           --deaths             play --seeds games with the hnn policy, explain each death (NDJSON)\n\
            --epsilon P          per-frame chance of a random-action burst (label stays the policy's)\n\
                                 (runs until death; --frames is ignored)\n\
          \n\

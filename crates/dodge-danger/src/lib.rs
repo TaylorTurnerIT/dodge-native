@@ -9,6 +9,7 @@
 //! This is not a trained HNN. It is a deterministic ground-truth generator and
 //! a visual probe for the next step: fitting a residual danger potential.
 
+pub mod deaths;
 pub mod hnnplan;
 pub mod landscape;
 pub mod learned;
@@ -216,6 +217,9 @@ pub struct FrameRecord {
     /// `raw velocity x rate` each frame.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub ph: Vec<[f32; 7]>,
+    /// With `ph`: 1 for each enemy the engine has marked as dying (it is removed shortly after).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub dy: Vec<u8>,
     /// Active pattern rectangles: x, y, width, height, lethal (1.0) or harmless (0.0).
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub r: Vec<[f32; 5]>,
@@ -896,6 +900,14 @@ impl FrameRecord {
                             (step * enemy.speed.to_double()) as f32,
                         ]
                     })
+                    .collect()
+            } else {
+                Vec::new()
+            },
+            dy: if physics {
+                game.enemies()
+                    .iter()
+                    .map(|enemy| u8::from(enemy.is_dying))
                     .collect()
             } else {
                 Vec::new()
