@@ -114,6 +114,36 @@ static DIAG_VELOCITY: [AtomicU64; 4] = [const { AtomicU64::new(0) }; 4];
 static DIAG_RATE: [AtomicU64; 4] = [const { AtomicU64::new(0) }; 4];
 static TEMPO_COUNT: [AtomicU64; 16] = [const { AtomicU64::new(0) }; 16];
 static TEMPO_SUM: [AtomicU64; 16] = [const { AtomicU64::new(0) }; 16];
+// Diagnostic-only sums: count, prediction, truth, squares, product, absolute error.
+static LABELS: [[AtomicU64; 7]; 3] = [const { [const { AtomicU64::new(0) }; 7] }; 3];
+static LABEL_CURVE_COUNT: [AtomicU64; 16] = [const { AtomicU64::new(0) }; 16];
+static LABEL_CURVE_SUM: [AtomicU64; 16] = [const { AtomicU64::new(0) }; 16];
+
+fn add_float(slot: &AtomicU64, value: f64) {
+    let _ = slot.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |old| {
+        Some((f64::from_bits(old) + value).to_bits())
+    });
+}
+
+pub(crate) fn label_error(category: usize, prediction: f64, truth: f64) {
+    let slots = &LABELS[category];
+    slots[0].fetch_add(1, Ordering::Relaxed);
+    for (slot, value) in slots[1..].iter().zip([
+        prediction,
+        truth,
+        prediction * prediction,
+        truth * truth,
+        prediction * truth,
+        (prediction - truth).abs(),
+    ]) {
+        add_float(slot, value);
+    }
+    if category == 0 {
+        let bin = (frame() / 500).min(15);
+        LABEL_CURVE_COUNT[bin].fetch_add(1, Ordering::Relaxed);
+        add_float(&LABEL_CURVE_SUM[bin], prediction);
+    }
+}
 
 pub(crate) fn tempo_sample(rate: f64) {
     let frame = CURRENT.with(|c| c.borrow().frame);
@@ -172,6 +202,44 @@ pub fn report() {
                 "tempo bin={} count={count} mean={:.5}",
                 i * 500,
                 TEMPO_SUM[i].load(Ordering::Relaxed) as f64 / count as f64 / 1_000_000.0
+            );
+        }
+    }
+    for (i, label) in ["global_rate", "raw_velocity_component", "kamikaze_factor"]
+        .iter()
+        .enumerate()
+    {
+        let s = &LABELS[i];
+        let n = s[0].load(Ordering::Relaxed) as f64;
+        if n > 1.0 {
+            let sums: Vec<f64> = s[1..]
+                .iter()
+                .map(|x| f64::from_bits(x.load(Ordering::Relaxed)))
+                .collect();
+            let covariance = sums[4] - sums[0] * sums[1] / n;
+            let variance = ((sums[2] - sums[0] * sums[0] / n) * (sums[3] - sums[1] * sums[1] / n))
+                .max(0.0)
+                .sqrt();
+            let correlation = if variance > 0.0 {
+                covariance / variance
+            } else {
+                0.0
+            };
+            eprintln!(
+                "label {label}: count={} mae={:.6} correlation={:.5}",
+                n as u64,
+                sums[5] / n,
+                correlation
+            );
+        }
+    }
+    for i in 0..16 {
+        let count = LABEL_CURVE_COUNT[i].load(Ordering::Relaxed);
+        if count > 0 {
+            eprintln!(
+                "label global_curve frame={} count={count} mean={:.5}",
+                i * 500,
+                f64::from_bits(LABEL_CURVE_SUM[i].load(Ordering::Relaxed)) / count as f64
             );
         }
     }

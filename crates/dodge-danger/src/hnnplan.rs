@@ -590,11 +590,30 @@ fn read_bodies(model: &PhysicsModel, game: &NativeGame) -> Vec<Body> {
         exact
     };
     if crate::observe::full() && std::env::var_os("HNN_OBS_DIAGNOSTIC").is_some() {
-        for ((body, exact), track) in bodies
-            .iter()
-            .zip(read_exact_bodies(game))
-            .zip(crate::observe::tracks())
-        {
+        let tracks = crate::observe::tracks();
+        let predicted_global = if crate::observe::learned() {
+            crate::observe::infer(&tracks).0
+        } else {
+            bodies
+                .iter()
+                .find(|b| b.moves && b.kind == 0)
+                .map_or(1.0, |b| b.rate)
+        };
+        let view = game.privileged_view();
+        let true_global = view.speed.to_double() * view.freeze_rate.to_double();
+        crate::observe::label_error(0, predicted_global, true_global);
+        for ((body, exact), track) in bodies.iter().zip(read_exact_bodies(game)).zip(tracks) {
+            if body.moves {
+                crate::observe::label_error(1, body.vx, exact.vx);
+                crate::observe::label_error(1, body.vy, exact.vy);
+                if body.kind == 1 {
+                    crate::observe::label_error(
+                        2,
+                        body.rate / predicted_global.max(0.01),
+                        exact.rate / true_global.max(0.01),
+                    );
+                }
+            }
             let samples: Vec<_> = track.samples.iter().collect();
             let category = if samples.len() < 2 {
                 0
