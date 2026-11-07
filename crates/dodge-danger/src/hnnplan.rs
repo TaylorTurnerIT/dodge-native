@@ -878,6 +878,8 @@ mod tests {
             gamma: 0.01,
             collision: None,
             blast: None,
+            rect: None,
+            crush: None,
             table: None,
         };
         model.table = Some(model.build_table());
