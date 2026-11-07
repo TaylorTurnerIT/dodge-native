@@ -50,7 +50,7 @@ fn run() -> Result<(), String> {
     }
 
     if options.survival {
-        let threads = std::thread::available_parallelism().map_or(4, usize::from);
+        let threads = dodge_danger::worker_threads();
         let rows = dodge_danger::survival_parallel(
             &options.config,
             options.policy,
@@ -74,7 +74,7 @@ fn run() -> Result<(), String> {
     }
 
     if options.deaths {
-        let threads = std::thread::available_parallelism().map_or(4, usize::from);
+        let threads = dodge_danger::worker_threads();
         let study = dodge_danger::deaths::run(&options.config, options.seeds, threads)?;
         let mut bytes = Vec::new();
         for case in &study.deaths {

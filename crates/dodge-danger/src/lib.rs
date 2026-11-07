@@ -1420,3 +1420,18 @@ mod tests {
         assert!(trace.frames.iter().any(|frame| frame.h.is_some()));
     }
 }
+
+/// Worker threads for parallel runs. `DODGE_THREADS` sets it; otherwise all cores but four are
+/// used, so the machine stays usable for the person running the jobs.
+pub fn worker_threads() -> usize {
+    if let Some(n) = std::env::var("DODGE_THREADS")
+        .ok()
+        .and_then(|v| v.parse::<usize>().ok())
+    {
+        return n.max(1);
+    }
+    std::thread::available_parallelism()
+        .map_or(4, usize::from)
+        .saturating_sub(4)
+        .max(1)
+}

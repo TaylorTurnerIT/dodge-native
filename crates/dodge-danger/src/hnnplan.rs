@@ -371,7 +371,7 @@ impl PhysicsModel {
     /// Sample the network's force on the grid, on all cores.
     fn build_table(&self) -> ForceTable {
         let side = table_side();
-        let threads = std::thread::available_parallelism().map_or(4, usize::from);
+        let threads = crate::worker_threads();
         let mut values = Vec::with_capacity(TABLE_KINDS);
         for kind in 0..TABLE_KINDS {
             let mut grid = vec![[0.0_f32; 2]; side * side];
@@ -480,6 +480,8 @@ struct Body {
     growing: bool,
     /// Marked as colliding; removed on the next frame (a kamikaze leaves an explosion).
     dying: bool,
+    /// Collision predictions use a one-frame-ahead feature; keep the body for that frame.
+    collision_delay: bool,
     /// Has been seen between x = 1 and x = 128. Only such enemies bounce off the arena edge.
     inside: bool,
 }
@@ -559,6 +561,7 @@ fn read_exact_bodies(game: &NativeGame) -> Vec<Body> {
                 blast: enemy.personality == -1,
                 growing: enemy.isizing,
                 dying: enemy.is_dying,
+                collision_delay: false,
                 inside: enemy.inside,
             }
         })
@@ -620,8 +623,12 @@ fn apply_events(model: &PhysicsModel, enemies: &mut Vec<Body>) {
 
     // Enemies marked on the previous frame leave now.
     let mut born = Vec::new();
-    enemies.retain(|body| {
+    enemies.retain_mut(|body| {
         if body.dying && !body.blast {
+            if body.collision_delay {
+                body.collision_delay = false;
+                return true;
+            }
             if body.kind == 1 {
                 born.push(Body {
                     x: body.x + body.size / 2.0 - blast.start / 2.0,
@@ -635,6 +642,7 @@ fn apply_events(model: &PhysicsModel, enemies: &mut Vec<Body>) {
                     blast: true,
                     growing: true,
                     dying: false,
+                    collision_delay: false,
                     inside: true,
                 });
             }
@@ -670,6 +678,8 @@ fn apply_events(model: &PhysicsModel, enemies: &mut Vec<Body>) {
     for (i, j) in marks {
         enemies[i].dying = true;
         enemies[j].dying = true;
+        enemies[i].collision_delay = true;
+        enemies[j].collision_delay = true;
     }
 }
 
