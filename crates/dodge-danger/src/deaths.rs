@@ -268,6 +268,7 @@ fn study_game(config: &DangerConfig, seed: u32) -> Result<Option<DeathCase>, Str
     let mut frame = 0_u32;
     let goal = (PLAYFIELD / 2.0, PLAYFIELD / 2.0);
     let mut rect_memory = hnnplan::RectSnapshot::new();
+    crate::observe::reset();
     loop {
         if frame >= config.max_frames {
             return Ok(None);
@@ -277,6 +278,7 @@ fn study_game(config: &DangerConfig, seed: u32) -> Result<Option<DeathCase>, Str
             history.pop_front();
         }
         hnnplan::set_history(rect_memory.clone());
+        crate::observe::feed(&game);
         let decision = decide(
             &game,
             goal,
@@ -329,6 +331,10 @@ fn study_game(config: &DangerConfig, seed: u32) -> Result<Option<DeathCase>, Str
     } else {
         Vec::new()
     });
+    crate::observe::reset();
+    for state in &states[chosen.saturating_sub(4)..=chosen] {
+        crate::observe::feed(state);
+    }
     analyse(
         model,
         &states[chosen],

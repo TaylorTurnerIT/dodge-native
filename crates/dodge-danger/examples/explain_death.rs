@@ -35,14 +35,17 @@ fn main() -> Result<(), String> {
     start_game(&mut game)?;
     let stop = death_frame.saturating_sub(before);
     let mut memory = hnnplan::RectSnapshot::new();
+    dodge_danger::observe::reset();
     for _ in 0..stop {
         hnnplan::set_history(memory.clone());
+        dodge_danger::observe::feed(&game);
         let (action, _) = hnnplan::choose(&model, &game, 36);
         memory = hnnplan::rect_snapshot(&game);
         game.advance_frame_headless(action.mask())
             .map_err(|e| e.to_string())?;
     }
     hnnplan::set_history(memory.clone());
+    dodge_danger::observe::feed(&game);
     let (action, costs) = hnnplan::choose(&model, &game, 36);
     let index = Action::ALL.iter().position(|x| *x == action).unwrap_or(0);
     let player = game.player();
@@ -60,7 +63,9 @@ fn main() -> Result<(), String> {
             r[0], r[1], r[2], r[3], r[4], r[5]
         );
     }
-    println!("  per action (held 36 frames): model cost | model predicts hit at | engine kills at (cause)");
+    println!(
+        "  per action (held 36 frames): model cost | model predicts hit at | engine kills at (cause)"
+    );
     for (i, act) in Action::ALL.iter().enumerate() {
         let im = hnnplan::imagine(&model, &game, i, 36, 0);
         let mut sim = game.clone();
@@ -76,7 +81,9 @@ fn main() -> Result<(), String> {
             }
         }
         let cause = if killed.is_some() {
-            sim.death_diagnostic().cause().map_or("unknown", |c| c.as_str())
+            sim.death_diagnostic()
+                .cause()
+                .map_or("unknown", |c| c.as_str())
         } else {
             ""
         };
@@ -163,10 +170,17 @@ fn main() -> Result<(), String> {
                     .snapshot
                     .iter()
                     .min_by(|a, b| {
-                        (a[0] - ex).hypot(a[1] - ey).total_cmp(&(b[0] - ex).hypot(b[1] - ey))
+                        (a[0] - ex)
+                            .hypot(a[1] - ey)
+                            .total_cmp(&(b[0] - ex).hypot(b[1] - ey))
                     })
                     .map_or(String::from("none"), |m| {
-                        format!("model nearest ({:.1},{:.1}) err {:.2}", m[0], m[1], (m[0] - ex).hypot(m[1] - ey))
+                        format!(
+                            "model nearest ({:.1},{:.1}) err {:.2}",
+                            m[0],
+                            m[1],
+                            (m[0] - ex).hypot(m[1] - ey)
+                        )
                     });
                 println!(
                     "     enemy kind {} at ({ex:.1},{ey:.1}) v ({:.2},{:.2}) size {:.0} dying {} | {near}",
@@ -181,7 +195,12 @@ fn main() -> Result<(), String> {
     }
     // Does this replay reach the recorded death?
     let mut frame = stop;
+    let mut first = true;
     loop {
+        if !first {
+            dodge_danger::observe::feed(&game);
+        }
+        first = false;
         hnnplan::set_history(memory.clone());
         let (action, _) = hnnplan::choose(&model, &game, 36);
         memory = hnnplan::rect_snapshot(&game);

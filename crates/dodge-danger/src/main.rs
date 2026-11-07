@@ -70,6 +70,9 @@ fn run() -> Result<(), String> {
             rows.len(),
             options.config.max_frames
         );
+        if dodge_danger::observe::enabled() {
+            dodge_danger::observe::report();
+        }
         return Ok(());
     }
 

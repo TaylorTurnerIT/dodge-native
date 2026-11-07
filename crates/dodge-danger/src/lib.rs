@@ -13,6 +13,7 @@ pub mod deaths;
 pub mod hnnplan;
 pub mod landscape;
 pub mod learned;
+pub mod observe;
 
 use dodge_core::{Action, BUTTON_X_MASK, EnemyState, Mode, NativeConfig, NativeGame, PlayerState};
 pub use landscape::LandscapeParams;
@@ -435,12 +436,16 @@ fn drive(
     let mut frame: u32 = 0;
     let mut frames_run: u32 = 0;
     let mut rect_memory = hnnplan::RectSnapshot::new();
+    observe::reset();
     let mut burst_left: u32 = 0;
     let mut burst_action = Action::Neutral;
 
     loop {
         if limit.is_some_and(|cap| frame >= cap) {
             break;
+        }
+        if policy == PolicyKind::Hnn {
+            observe::feed(&game);
         }
         if field.is_none() || frame % config.goal_every == 0 {
             let mut next = if policy == PolicyKind::Landscape {
