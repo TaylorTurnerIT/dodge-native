@@ -10,6 +10,7 @@
 //! a visual probe for the next step: fitting a residual danger potential.
 
 pub mod landscape;
+pub mod learned;
 
 use dodge_core::{Action, BUTTON_X_MASK, EnemyState, Mode, NativeConfig, NativeGame, PlayerState};
 pub use landscape::LandscapeParams;
@@ -45,6 +46,8 @@ pub enum PolicyKind {
     Random,
     /// Do nothing.
     Neutral,
+    /// Gradient descent on a learned potential (`learned.rs`). Needs `--model`.
+    Learned,
 }
 
 impl PolicyKind {
@@ -73,6 +76,7 @@ impl PolicyKind {
             Self::Flee => "flee",
             Self::Random => "random",
             Self::Neutral => "neutral",
+            Self::Learned => "learned",
         }
     }
 
@@ -84,6 +88,7 @@ impl PolicyKind {
             "flee" => Some(Self::Flee),
             "random" => Some(Self::Random),
             "neutral" => Some(Self::Neutral),
+            "learned" => Some(Self::Learned),
             _ => None,
         }
     }
@@ -104,6 +109,8 @@ pub struct DangerConfig {
     /// Per-frame chance of starting a burst of random actions that replaces the
     /// policy's action. The recorded label stays the policy's own choice. Zero by default.
     pub epsilon: f64,
+    /// Play the installed learned model's action while the policy still labels the frame.
+    pub drive_model: bool,
     /// Hand-set shape of every term in the danger landscape.
     pub landscape: LandscapeParams,
 }
@@ -121,6 +128,7 @@ impl Default for DangerConfig {
             patterns: false,
             powerups: false,
             epsilon: 0.0,
+            drive_model: false,
             landscape: LandscapeParams::default(),
         }
     }
@@ -420,6 +428,11 @@ fn drive(
 
         let decision = decide(&game, goal, config, policy, previous, &mut rng)?;
         let mut played = decision.action;
+        if config.drive_model
+            && let Some(model) = learned::installed()
+        {
+            played = model.choose(&learned::Observation::from_game(&game)).0;
+        }
         if config.epsilon > 0.0 {
             if burst_left == 0 {
                 let draw = (rng.next_u64() >> 11) as f64 / (1u64 << 53) as f64;
@@ -469,7 +482,11 @@ pub fn compare(config: &DangerConfig, seeds: u32) -> Result<CompareOutput, Strin
         return Err("seeds must be greater than zero".to_owned());
     }
     let mut rows = Vec::new();
-    for policy in PolicyKind::COMPARE {
+    let mut policies = PolicyKind::COMPARE.to_vec();
+    if learned::installed().is_some() {
+        policies.push(PolicyKind::Learned);
+    }
+    for policy in policies {
         let mut values = Vec::new();
         let mut seed_list = Vec::new();
         for offset in 0..seeds {
@@ -869,6 +886,18 @@ fn decide(
                 clearance: rollout.clearance,
                 path: rollout.path,
                 costs: Some(choice.costs),
+            })
+        }
+        PolicyKind::Learned => {
+            let model = learned::installed().ok_or("no learned model installed (use --model)")?;
+            let (action, logits) = model.choose(&learned::Observation::from_game(game));
+            let rollout = rollout_action(game, action, config.horizon)?;
+            Ok(Decision {
+                action,
+                ttc: rollout.ttc,
+                clearance: rollout.clearance,
+                path: rollout.path,
+                costs: Some(logits.map(|logit| -logit)),
             })
         }
         PolicyKind::Potential => {

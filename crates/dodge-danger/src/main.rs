@@ -241,6 +241,13 @@ where
             "--compare" => compare = true,
             "--stream" => stream = true,
             "--dataset" => dataset = true,
+            "--model" | "--drive-model" => {
+                let path = next_value(&mut values, argument.as_str())?;
+                let text = std::fs::read_to_string(&path)
+                    .map_err(|error| format!("could not read {path}: {error}"))?;
+                dodge_danger::learned::install(dodge_danger::learned::Model::from_json(&text)?)?;
+                config.drive_model = argument == "--drive-model";
+            }
             "--epsilon" => {
                 let text = next_value(&mut values, "--epsilon")?;
                 config.epsilon = text
@@ -336,6 +343,8 @@ fn usage() -> String {
            --params PATH        JSON overrides for the landscape policy's shapes\n\
            --stream             no frame limit; one JSON line per frame on stdout\n\
            --dataset            training set: compact line per frame, --seeds games, --frames cap each\n\
+           --model PATH         load a learned model (adds it to --compare; use --policy learned)\n\
+           --drive-model PATH   load a model and play its actions; the policy still labels\n\
            --epsilon P          per-frame chance of a random-action burst (label stays the policy's)\n\
                                 (runs until death; --frames is ignored)\n\
          \n\
