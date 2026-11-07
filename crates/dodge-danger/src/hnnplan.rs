@@ -77,6 +77,9 @@ pub struct PhysicsModel {
     crush: Option<Crush>,
     #[serde(default)]
     spawn: Option<Spawn>,
+    /// Post-bounce enemy speed against game speed, per difficulty (`hnn/bounce_curve.py`).
+    #[serde(default)]
+    bounce_curve: std::collections::HashMap<String, BounceCurve>,
     /// The learned force sampled on a grid, built once on load. See `ForceTable`.
     #[serde(skip)]
     table: Option<ForceTable>,
@@ -98,6 +101,44 @@ const TABLE_KINDS: usize = 2;
 
 fn table_side() -> usize {
     (2.0 * TABLE_RANGE / TABLE_STEP) as usize + 1
+}
+
+/// Post-bounce speed as a function of the game speed, measured from observed bounces.
+/// Each list holds `[game speed, bounce speed]` points in rising order.
+#[derive(Clone, Debug, Deserialize)]
+struct BounceCurve {
+    #[serde(rename = "static")]
+    fixed: Vec<[f64; 2]>,
+    moving: Vec<[f64; 2]>,
+}
+
+fn curve_at(points: &[[f64; 2]], x: f64) -> Option<f64> {
+    let first = points.first()?;
+    let last = points.last()?;
+    if x <= first[0] {
+        return Some(first[1]);
+    }
+    if x >= last[0] {
+        return Some(last[1]);
+    }
+    points.windows(2).find(|w| x <= w[1][0]).map(|w| {
+        let t = (x - w[0][0]) / (w[1][0] - w[0][0]).max(1e-9);
+        w[0][1] + t * (w[1][1] - w[0][1])
+    })
+}
+
+impl PhysicsModel {
+    /// Bounce speeds (static rectangle, moving rectangle) for the game as it stands now.
+    fn bounce_speeds(&self, game: &NativeGame, law: &RectLaw) -> (f64, f64) {
+        let speed = game.privileged_view().speed.to_double();
+        match self.bounce_curve.get(&game.difficulty().to_string()) {
+            Some(curve) => (
+                curve_at(&curve.fixed, speed).unwrap_or(law.bounce_static),
+                curve_at(&curve.moving, speed).unwrap_or(law.bounce_moving),
+            ),
+            None => (law.bounce_static, law.bounce_moving),
+        }
+    }
 }
 
 /// Pattern-rectangle law measured from observed frames (`hnn/events.py`): a static rectangle's
@@ -242,12 +283,8 @@ fn read_rects(game: &NativeGame) -> Vec<RectBody> {
 
 /// An enemy about to enter a full-progress rectangle is pushed out along the axis it overlaps
 /// least, at the measured bounce speed (249 of 251 observed velocity changes pointed away).
-fn bounce_off(body: &mut Body, rect: &RectBody, law: &RectLaw) {
-    let speed = if rect.moving {
-        law.bounce_moving
-    } else {
-        law.bounce_static
-    };
+fn bounce_off(body: &mut Body, rect: &RectBody, law: &RectLaw, speeds: (f64, f64)) {
+    let speed = if rect.moving { speeds.1 } else { speeds.0 };
     if speed <= 0.0 || rect.progress < law.lethal_at - 1e-6 {
         return;
     }
@@ -258,14 +295,17 @@ fn bounce_off(body: &mut Body, rect: &RectBody, law: &RectLaw) {
     if !inside {
         return;
     }
-    let push_x = (body.x + body.size - rect.x).min(rect.x + rect.w - body.x);
-    let push_y = (body.y + body.size - rect.y).min(rect.y + rect.h - body.y);
-    if push_x < push_y {
-        let away = body.x + body.size / 2.0 - (rect.x + rect.w / 2.0);
-        body.vx = speed * away.signum();
-    } else {
-        let away = body.y + body.size / 2.0 - (rect.y + rect.h / 2.0);
-        body.vy = speed * away.signum();
+    // Each axis along which the enemy's box sticks out past the rectangle is pushed away at the
+    // bounce speed. Observed bounces change both axes in about 64% of cases.
+    if body.x + body.vx < rect.x {
+        body.vx = -speed;
+    } else if body.x + body.vx + body.size > rect.x + rect.w {
+        body.vx = speed;
+    }
+    if body.y + body.vy < rect.y {
+        body.vy = -speed;
+    } else if body.y + body.vy + body.size > rect.y + rect.h {
+        body.vy = speed;
     }
 }
 
@@ -666,6 +706,7 @@ fn rollout(
     let mut enemies = bodies.to_vec();
     let mut rects = read_rects(game);
     let law = model.rect;
+    let speeds = law.map_or((0.0, 0.0), |law| model.bounce_speeds(game, &law));
     let rect_count = rects.len();
     let mut cost = 0.0;
     let mut clearance = f64::INFINITY;
@@ -718,7 +759,7 @@ fn rollout(
                 body.vy += fy - model.gamma * body.vy;
                 if let Some(law) = &law {
                     for rect in &rects {
-                        bounce_off(body, rect, law);
+                        bounce_off(body, rect, law, speeds);
                     }
                 }
                 body.x += body.rate * body.vx;
@@ -956,6 +997,7 @@ mod tests {
             rect: None,
             crush: None,
             spawn: None,
+            bounce_curve: std::collections::HashMap::new(),
             table: None,
         };
         model.table = Some(model.build_table());

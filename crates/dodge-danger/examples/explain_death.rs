@@ -54,7 +54,13 @@ fn main() -> Result<(), String> {
         costs[index],
         hnnplan::rect_snapshot(&game).len()
     );
-    println!("  per action (held 36 frames): model cost | model predicts hit at | engine kills at");
+    for (i, r) in hnnplan::rect_snapshot(&game).iter().enumerate() {
+        println!(
+            "  rect {i}: x {:.1} y {:.1} w {:.1} h {:.1} progress {:.2} moving {}",
+            r[0], r[1], r[2], r[3], r[4], r[5]
+        );
+    }
+    println!("  per action (held 36 frames): model cost | model predicts hit at | engine kills at (cause)");
     for (i, act) in Action::ALL.iter().enumerate() {
         let im = hnnplan::imagine(&model, &game, i, 36, 0);
         let mut sim = game.clone();
@@ -69,12 +75,18 @@ fn main() -> Result<(), String> {
                 break;
             }
         }
+        let cause = if killed.is_some() {
+            sim.death_diagnostic().cause().map_or("unknown", |c| c.as_str())
+        } else {
+            ""
+        };
         println!(
-            "    {:10} {:8.0} | {:?} | {:?}",
+            "    {:10} {:8.0} | {:?} | {:?} {}",
             act.name(),
             im.cost,
             im.first_hit,
-            killed
+            killed,
+            cause
         );
     }
     for n in [1_u32, 2, 3, 4, 6] {
@@ -126,6 +138,46 @@ fn main() -> Result<(), String> {
             t.is_dying,
             (t.x.to_double() - p.x.to_double()).hypot(t.y.to_double() - p.y.to_double())
         );
+    }
+    if std::env::var("EXPLAIN_DETAIL").is_ok() {
+        let mut sim = game.clone();
+        for n in 1_u32..=5 {
+            let r = sim
+                .advance_frame_headless(action.mask())
+                .map_err(|e| e.to_string())?;
+            let imagined = hnnplan::imagine(&model, &game, index, 36, n);
+            let p = sim.player();
+            let (px, py) = (p.x.to_double(), p.y.to_double());
+            println!(
+                "  detail +{n}{} player ({px:.1},{py:.1}) model enemies {} engine enemies {}",
+                if r.dead { " DEAD" } else { "" },
+                imagined.snapshot.len(),
+                sim.enemies().iter().filter(|e| e.personality < 2).count()
+            );
+            for e in sim.enemies().iter().filter(|e| e.personality < 2) {
+                let (ex, ey) = (e.x.to_double(), e.y.to_double());
+                if (ex - px).hypot(ey - py) > 22.0 {
+                    continue;
+                }
+                let near = imagined
+                    .snapshot
+                    .iter()
+                    .min_by(|a, b| {
+                        (a[0] - ex).hypot(a[1] - ey).total_cmp(&(b[0] - ex).hypot(b[1] - ey))
+                    })
+                    .map_or(String::from("none"), |m| {
+                        format!("model nearest ({:.1},{:.1}) err {:.2}", m[0], m[1], (m[0] - ex).hypot(m[1] - ey))
+                    });
+                println!(
+                    "     enemy kind {} at ({ex:.1},{ey:.1}) v ({:.2},{:.2}) size {:.0} dying {} | {near}",
+                    e.personality,
+                    e.vx.to_double(),
+                    e.vy.to_double(),
+                    e.size.to_double(),
+                    e.is_dying
+                );
+            }
+        }
     }
     // Does this replay reach the recorded death?
     let mut frame = stop;
