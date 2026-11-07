@@ -21,6 +21,7 @@ pub(crate) struct Track {
     pub inside: bool,
     pub id: u64,
     pub age: usize,
+    pub speed_factor: f64,
     serial: Option<dodge_core::EnemySerial>,
 }
 
@@ -69,6 +70,8 @@ struct Observation {
     tracks: Vec<Track>,
     frame: usize,
     next_id: u64,
+    global_rate: f64,
+    rate_frame: usize,
 }
 thread_local! { static CURRENT: RefCell<Observation> = RefCell::new(Observation::default()); }
 
@@ -115,6 +118,21 @@ pub(crate) fn tempo_sample(rate: f64) {
 }
 pub(crate) fn frame() -> usize {
     CURRENT.with(|c| c.borrow().frame)
+}
+pub(crate) fn global_rate(measured: Option<f64>, prior: f64) -> f64 {
+    CURRENT.with(|c| {
+        let mut c = c.borrow_mut();
+        if c.rate_frame != c.frame {
+            if c.global_rate <= 0.0 {
+                c.global_rate = measured.unwrap_or(prior);
+            } else {
+                let target = measured.map_or(prior, |r| 0.98 * r + 0.02 * prior);
+                c.global_rate = 0.8 * c.global_rate + 0.2 * target;
+            }
+            c.rate_frame = c.frame;
+        }
+        c.global_rate.max(0.2)
+    })
 }
 
 /// Test-only comparison against engine labels. Values never feed the planner.
@@ -239,9 +257,18 @@ pub fn feed(game: &NativeGame) {
                         id
                     },
                     age: 0,
+                    speed_factor: 1.0,
                     serial: None,
                 });
                 track.age += 1;
+                if sample.kind == 1 {
+                    if let Some(before) = track.samples.back() {
+                        let distance =
+                            (before.x - sample.player_x).hypot(before.y - sample.player_y);
+                        let change = if distance <= 26.0 { -0.007 } else { 0.007 };
+                        track.speed_factor = (track.speed_factor + change).clamp(0.05, 1.0);
+                    }
+                }
                 let serial = serials.get(j).copied().flatten();
                 if let (Some(old), Some(now)) = (track.serial, serial) {
                     MATCHES.fetch_add(1, Ordering::Relaxed);
@@ -279,6 +306,7 @@ mod tests {
             inside: false,
             id: 0,
             age: 0,
+            speed_factor: 1.0,
             serial: None,
         };
         assert_eq!(track.velocity(), (0.0, 0.0));

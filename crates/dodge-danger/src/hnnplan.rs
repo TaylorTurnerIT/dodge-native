@@ -636,20 +636,20 @@ fn read_bodies(model: &PhysicsModel, game: &NativeGame) -> Vec<Body> {
     bodies
 }
 
-// Mean observed population-rate estimates in 500-frame bins, from seeds 30000..30024.
+// Mean observed normal-enemy rate estimates in 500-frame bins, seeds 31000..31012.
 fn tempo_curve(difficulty: u8, frame: usize) -> f64 {
     let curves = [
         [
-            0.82028, 0.84462, 0.85485, 0.86831, 0.88996, 0.90672, 0.92049, 0.93747, 0.95361,
-            0.97322, 0.98966, 1.00490, 1.02146, 1.03958, 1.05385, 1.07114,
+            0.82084, 0.84257, 0.85804, 0.87625, 0.89212, 0.90931, 0.92586, 0.94234, 0.95599,
+            0.97225, 0.99060, 1.00588, 1.02077, 1.04046, 1.05639, 1.07190,
         ],
         [
-            1.06219, 1.14405, 1.20161, 1.26488, 1.32560, 1.38800, 1.45322, 1.51149, 1.57662,
-            1.63955, 1.69857, 1.75781, 1.81376, 1.86763, 1.92303, 1.97512,
+            1.06273, 1.14345, 1.20422, 1.27162, 1.33377, 1.39763, 1.46070, 1.52022, 1.58310,
+            1.63818, 1.70014, 1.75837, 1.81568, 1.87886, 1.93304, 1.98375,
         ],
         [
-            1.76812, 1.98091, 2.16349, 2.31349, 2.45598, 2.57264, 2.67091, 2.75127, 2.81545,
-            2.86366, 2.90013, 2.92954, 2.94764, 2.96153, 2.97125, 2.97978,
+            1.77803, 1.99075, 2.14936, 2.30759, 2.43065, 2.54737, 2.64700, 2.72902, 2.79719,
+            2.85231, 2.89670, 2.92680, 2.94687, 2.96038, 2.97220, 2.97896,
         ],
     ];
     let curve = &curves[usize::from(difficulty.saturating_sub(1).min(2))];
@@ -666,6 +666,11 @@ fn read_observed_bodies(model: &PhysicsModel, difficulty: u8) -> Vec<Body> {
         .iter()
         .map(|track| {
             if !use_rate {
+                return None;
+            }
+            if track.samples.back().is_none_or(|s| s.kind != 0)
+                && std::env::var_os("HNN_OBS_KAMIKAZE_PROBE").is_none()
+            {
                 return None;
             }
             let samples: Vec<_> = track.samples.iter().collect();
@@ -691,9 +696,6 @@ fn read_observed_bodies(model: &PhysicsModel, difficulty: u8) -> Vec<Body> {
             (denominator > 1e-8).then_some((numerator / denominator).clamp(0.2, 5.0))
         })
         .collect();
-    let mut population: Vec<_> = rates.iter().flatten().copied().collect();
-    population.sort_by(f64::total_cmp);
-    let mut prior = population.get(population.len() / 2).copied().unwrap_or(1.0);
     let mut normals: Vec<_> = tracks
         .iter()
         .zip(&rates)
@@ -726,25 +728,29 @@ fn read_observed_bodies(model: &PhysicsModel, difficulty: u8) -> Vec<Body> {
             crate::observe::tempo_sample(*normal_rate);
         }
     }
-    if std::env::var_os("HNN_OBS_TEMPO_CURVE").is_some() {
-        let curve = tempo_curve(difficulty, crate::observe::frame());
-        prior = if population.is_empty() {
-            curve
-        } else {
-            (prior + curve) * 0.5
-        };
-    }
+    let shared_rate = if use_rate {
+        crate::observe::global_rate(
+            normals.get(normals.len() / 2).copied(),
+            tempo_curve(difficulty, crate::observe::frame()),
+        )
+    } else {
+        1.0
+    };
     tracks
         .into_iter()
         .zip(rates)
-        .filter_map(|(track, estimate)| {
+        .filter_map(|(track, _estimate)| {
             let sample = *track.samples.back()?;
             let (mut vx, mut vy) = track.velocity();
             let centre_correction = sample.kind == -1 && crate::observe::centre_enabled();
             let rate = if use_rate {
-                estimate
-                    .map_or(prior, |r| 0.5 * (r + prior))
-                    .clamp(0.2, 5.0)
+                (shared_rate
+                    * if sample.kind == 1 {
+                        track.speed_factor
+                    } else {
+                        1.0
+                    })
+                .clamp(0.2, 5.0)
             } else {
                 1.0
             };
