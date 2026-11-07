@@ -9,6 +9,7 @@
 //! This is not a trained HNN. It is a deterministic ground-truth generator and
 //! a visual probe for the next step: fitting a residual danger potential.
 
+pub mod hnnplan;
 pub mod landscape;
 pub mod learned;
 
@@ -48,6 +49,8 @@ pub enum PolicyKind {
     Neutral,
     /// Gradient descent on a learned potential (`learned.rs`). Needs `--model`.
     Learned,
+    /// Lookahead through a learned Hamiltonian enemy model (`hnnplan.rs`). Needs `--physics-model`.
+    Hnn,
 }
 
 impl PolicyKind {
@@ -77,6 +80,7 @@ impl PolicyKind {
             Self::Random => "random",
             Self::Neutral => "neutral",
             Self::Learned => "learned",
+            Self::Hnn => "hnn",
         }
     }
 
@@ -89,6 +93,7 @@ impl PolicyKind {
             "random" => Some(Self::Random),
             "neutral" => Some(Self::Neutral),
             "learned" => Some(Self::Learned),
+            "hnn" => Some(Self::Hnn),
             _ => None,
         }
     }
@@ -375,6 +380,8 @@ pub fn trace_meta(config: &DangerConfig, policy: PolicyKind) -> TraceMeta {
         playfield: PLAYFIELD as f32,
         field: if policy == PolicyKind::Landscape {
             "potential"
+        } else if policy == PolicyKind::Hnn {
+            "hnn-arrival"
         } else {
             "arrival"
         },
@@ -421,6 +428,17 @@ fn drive(
         if field.is_none() || frame % config.goal_every == 0 {
             let mut next = if policy == PolicyKind::Landscape {
                 landscape_heat(&game, config)
+            } else if policy == PolicyKind::Hnn
+                && let Some(model) = hnnplan::installed()
+            {
+                // The field the learned model predicts, not the engine's exact one.
+                HeatField {
+                    width: config.grid,
+                    height: config.grid,
+                    arrival: hnnplan::arrival_field(model, &game, config.grid, config.horizon),
+                    goal: (PLAYFIELD / 2.0, PLAYFIELD / 2.0),
+                    goal_score: 0.0,
+                }
             } else {
                 compute_heat(&game, config)
             };
@@ -500,6 +518,9 @@ pub fn compare(config: &DangerConfig, seeds: u32) -> Result<CompareOutput, Strin
     let mut policies = PolicyKind::COMPARE.to_vec();
     if learned::installed().is_some() {
         policies.push(PolicyKind::Learned);
+    }
+    if hnnplan::installed().is_some() {
+        policies.push(PolicyKind::Hnn);
     }
     for policy in policies {
         let mut values = Vec::new();
@@ -932,6 +953,19 @@ fn decide(
                 clearance: rollout.clearance,
                 path: rollout.path,
                 costs: Some(logits.map(|logit| -logit)),
+            })
+        }
+        PolicyKind::Hnn => {
+            let model =
+                hnnplan::installed().ok_or("no physics model installed (use --physics-model)")?;
+            let (action, costs) = hnnplan::choose(model, game, config.horizon);
+            let rollout = rollout_action(game, action, config.horizon)?;
+            Ok(Decision {
+                action,
+                ttc: rollout.ttc,
+                clearance: rollout.clearance,
+                path: rollout.path,
+                costs: Some(costs),
             })
         }
         PolicyKind::Potential => {
