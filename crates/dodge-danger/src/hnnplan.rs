@@ -104,6 +104,12 @@ fn table_side() -> usize {
 struct RectLaw {
     sh_step: f64,
     lethal_at: f64,
+    /// Speed an enemy leaves a full-progress rectangle at, measured per rectangle type
+    /// (`hnn/bounce.py`). Zero turns the bounce off.
+    #[serde(default)]
+    bounce_static: f64,
+    #[serde(default)]
+    bounce_moving: f64,
 }
 
 /// Learned classifier for "a moving rectangle destroys an enemy it overlaps" (`hnn/crush.py`).
@@ -212,6 +218,35 @@ fn read_rects(game: &NativeGame) -> Vec<RectBody> {
             })
             .collect()
     })
+}
+
+/// An enemy about to enter a full-progress rectangle is pushed out along the axis it overlaps
+/// least, at the measured bounce speed (249 of 251 observed velocity changes pointed away).
+fn bounce_off(body: &mut Body, rect: &RectBody, law: &RectLaw) {
+    let speed = if rect.moving {
+        law.bounce_moving
+    } else {
+        law.bounce_static
+    };
+    if speed <= 0.0 || rect.progress < law.lethal_at - 1e-6 {
+        return;
+    }
+    let inside = body.x + body.vx < rect.x + rect.w
+        && body.x + body.size > rect.x
+        && body.y + body.size > rect.y
+        && body.y + body.vy < rect.y + rect.h;
+    if !inside {
+        return;
+    }
+    let push_x = (body.x + body.size - rect.x).min(rect.x + rect.w - body.x);
+    let push_y = (body.y + body.size - rect.y).min(rect.y + rect.h - body.y);
+    if push_x < push_y {
+        let away = body.x + body.size / 2.0 - (rect.x + rect.w / 2.0);
+        body.vx = speed * away.signum();
+    } else {
+        let away = body.y + body.size / 2.0 - (rect.y + rect.h / 2.0);
+        body.vy = speed * away.signum();
+    }
 }
 
 fn rect_lethal(rect: &RectBody, law: &RectLaw) -> bool {
@@ -646,6 +681,11 @@ fn rollout(
                 let (fx, fy) = model.force_fast(body.x - px, body.y - py, body.kind);
                 body.vx += fx - model.gamma * body.vx;
                 body.vy += fy - model.gamma * body.vy;
+                if let Some(law) = &law {
+                    for rect in &rects {
+                        bounce_off(body, rect, law);
+                    }
+                }
                 body.x += body.rate * body.vx;
                 body.y += body.rate * body.vy;
             } else if body.blast {
