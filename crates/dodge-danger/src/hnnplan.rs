@@ -478,7 +478,7 @@ struct Body {
     /// An explosion: fixed centre, size follows the learned law.
     blast: bool,
     growing: bool,
-    /// Marked as colliding; removed on the next frame (a kamikaze leaves an explosion).
+    /// Marked for removal; a predicted pair collision may remain for one extra frame.
     dying: bool,
     /// Collision predictions use a one-frame-ahead feature; keep the body for that frame.
     collision_delay: bool,
