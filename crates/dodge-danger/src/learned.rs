@@ -18,6 +18,12 @@ use std::sync::OnceLock;
 use dodge_core::{Action, NativeGame};
 use serde::Deserialize;
 
+/// Frames of the player's own path that are scored, and the spacing between scored frames.
+const PATH_FRAMES: u32 = 36;
+const PATH_STEP: u32 = 4;
+/// Tie-break: moving costs a little, so standing still wins when every path is equally safe.
+const MOVE_PENALTY: f64 = 0.0005;
+
 /// Step for the central difference, in pixels.
 const FD_STEP: f64 = 0.25;
 
@@ -57,9 +63,15 @@ pub struct Model {
     entity: Mlp,
     rect: Mlp,
     base: Mlp,
-    /// Logit scale: `logit = -beta * slope`.
-    beta: f64,
+    /// Danger readout `gamma * V + delta` and strength gate: `softplus(gate_w * danger + gate_c)`.
+    gamma: f64,
+    delta: f64,
+    #[serde(default)]
+    gate_w: f64,
+    #[serde(default)]
+    gate_c: f64,
     /// Logit bonus for each axis the action holds still (neutral holds two, a cardinal move one).
+    #[serde(default)]
     axis_bias: f64,
 }
 
@@ -196,14 +208,65 @@ impl Model {
         (gx, gy)
     }
 
-    /// The nine action logits and the steepest-descent action.
+    /// Mean predicted danger along the player's own path for each of the nine actions.
+    ///
+    /// The path comes from the player's motion rule (friction 0.8, 0.5 acceleration per
+    /// axis, playfield 2..125). It is the particle's own dynamics, not the engine's rollout:
+    /// no enemy is simulated. The danger comes from `V` through `sigmoid(gamma * V + delta)`
+    /// with the player's velocity set to zero, which is how the field loss trains it.
+    pub fn path_costs(&self, view: &Observation) -> [f64; 9] {
+        let mut resting = view.clone();
+        resting.player[2] = 0.0;
+        resting.player[3] = 0.0;
+        let mut costs = [0.0; 9];
+        for (index, (dx, dy)) in DIRECTIONS.iter().enumerate() {
+            let (mut x, mut y) = (view.player[0], view.player[1]);
+            let (mut vx, mut vy) = (view.player[2], view.player[3]);
+            let mut total = 0.0;
+            for frame in 1..=PATH_FRAMES {
+                vx = 0.8 * vx + 0.5 * dx;
+                vy = 0.8 * vy + 0.5 * dy;
+                x = (x + vx).clamp(2.0, 125.0);
+                y = (y + vy).clamp(2.0, 125.0);
+                if frame % PATH_STEP == 0 {
+                    let logit = self.gamma * self.value(&resting, x, y) + self.delta;
+                    total += 1.0 / (1.0 + (-logit).exp());
+                }
+            }
+            let held = f64::from(u8::from(*dx == 0.0) + u8::from(*dy == 0.0));
+            costs[index] = total / f64::from(PATH_FRAMES / PATH_STEP) + MOVE_PENALTY * (2.0 - held);
+        }
+        costs
+    }
+
+    /// The action with the lowest path cost, and the nine logits (negative costs).
     pub fn choose(&self, view: &Observation) -> (Action, [f64; 9]) {
+        let costs = self.path_costs(view);
+        let mut best = 0;
+        for (index, cost) in costs.iter().enumerate() {
+            if *cost < costs[best] {
+                best = index;
+            }
+        }
+        let action = Action::ALL.get(best).copied().unwrap_or(Action::Neutral);
+        (action, costs.map(|cost| -cost))
+    }
+
+    /// The nine action logits and the steepest-descent action.
+    ///
+    /// The slope picks the direction. Its length is ignored. The danger level at the
+    /// player sets how hard to push, so a faint slope still triggers a dodge when danger is high.
+    pub fn choose_by_slope(&self, view: &Observation) -> (Action, [f64; 9]) {
         let (gx, gy) = self.gradient(view);
+        let length = gx.hypot(gy) + 1e-3;
+        let (ux, uy) = (gx / length, gy / length);
+        let danger = self.gamma * self.value(view, view.player[0], view.player[1]) + self.delta;
+        let strength = softplus(self.gate_w * danger + self.gate_c);
         let mut logits = [0.0; 9];
         let mut best = 0;
         for (index, (dx, dy)) in DIRECTIONS.iter().enumerate() {
             let held = f64::from(u8::from(*dx == 0.0) + u8::from(*dy == 0.0));
-            logits[index] = -self.beta * (gx * dx + gy * dy) + self.axis_bias * held;
+            logits[index] = -strength * (ux * dx + uy * dy) + self.axis_bias * held;
             if logits[index] > logits[best] {
                 best = index;
             }
@@ -211,6 +274,10 @@ impl Model {
         let action = Action::ALL.get(best).copied().unwrap_or(Action::Neutral);
         (action, logits)
     }
+}
+
+fn softplus(x: f64) -> f64 {
+    if x > 30.0 { x } else { x.exp().ln_1p() }
 }
 
 static MODEL: OnceLock<Model> = OnceLock::new();

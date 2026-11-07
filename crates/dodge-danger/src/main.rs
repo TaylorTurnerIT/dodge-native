@@ -128,6 +128,9 @@ fn dataset(options: &Options) -> Result<(), String> {
     let stdout = std::io::stdout();
     let mut out = BufWriter::new(stdout.lock());
     let mut config = options.config;
+    // Store the arrival field on the frames where the lookahead goal is recomputed,
+    // so the field always matches the observation on the same line.
+    config.heat_every = config.goal_every;
     let first_seed = config.seed;
     let outcome = (|| -> Result<(), String> {
         for offset in 0..options.seeds {
@@ -148,6 +151,24 @@ fn dataset(options: &Options) -> Result<(), String> {
                     }
                     if let Some(played) = record.x {
                         line["x"] = json!(played);
+                    }
+                    // Arrival field on a coarse grid: 2x2 blocks of the field, bytes 0..=255.
+                    if let Some(heat) = &record.h
+                        && heat.w % 2 == 0
+                        && heat.h % 2 == 0
+                    {
+                        let mut coarse = Vec::with_capacity(heat.w * heat.h / 4);
+                        for row in 0..heat.h / 2 {
+                            for column in 0..heat.w / 2 {
+                                let mut sum = 0u32;
+                                for (dy, dx) in [(0, 0), (0, 1), (1, 0), (1, 1)] {
+                                    let index = (row * 2 + dy) * heat.w + column * 2 + dx;
+                                    sum += u32::from(heat.a.get(index).copied().unwrap_or(0));
+                                }
+                                coarse.push(sum / 4);
+                            }
+                        }
+                        line["h"] = json!({"w": heat.w / 2, "a": coarse});
                     }
                     index += 1;
                     serde_json::to_writer(&mut out, &line).map_err(|_| OUTPUT_CLOSED.to_owned())?;
