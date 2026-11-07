@@ -692,6 +692,27 @@ impl PyVecDodgeEnv {
         reset_batch(py, value)
     }
 
+    /// Palette-index frames (values 0..=15), shape (len(indices), 128, 128)
+    /// uint8, for the given slots. A read only: it works on ended and dead
+    /// slots (the death frame) and changes nothing. An unknown slot is a
+    /// ValueError.
+    fn render<'py>(
+        &self,
+        py: Python<'py>,
+        indices: &Bound<'py, PyAny>,
+    ) -> PyResult<Bound<'py, numpy::PyArrayDyn<u8>>> {
+        let indices = integer_input(indices)?
+            .into_iter()
+            .map(|i| {
+                usize::try_from(i).map_err(|_| PyValueError::new_err("slot must be nonnegative"))
+            })
+            .collect::<PyResult<Vec<_>>>()?;
+        let frames = py
+            .detach(|| self.inner.render(&indices))
+            .map_err(env_error)?;
+        array(py, frames, &[indices.len(), 128, 128])
+    }
+
     /// Turn the gameplay trace on or off for games that later resets start.
     /// Games already running keep their setting; no game changes.
     fn set_trace_enabled(&mut self, enabled: bool) {
