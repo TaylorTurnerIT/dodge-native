@@ -111,6 +111,8 @@ pub struct DangerConfig {
     pub epsilon: f64,
     /// Play the installed learned model's action while the policy still labels the frame.
     pub drive_model: bool,
+    /// Record each enemy's raw velocity and clock rate (for learning the physics).
+    pub physics: bool,
     /// Hand-set shape of every term in the danger landscape.
     pub landscape: LandscapeParams,
 }
@@ -129,6 +131,7 @@ impl Default for DangerConfig {
             powerups: false,
             epsilon: 0.0,
             drive_model: false,
+            physics: false,
             landscape: LandscapeParams::default(),
         }
     }
@@ -203,6 +206,11 @@ pub struct FrameRecord {
     /// Enemy x, y, vx, vy, size, personality. `vx` and `vy` are pixels per frame,
     /// after game speed, freeze and the enemy's own speed.
     pub e: Vec<[f32; 6]>,
+    /// Per enemy, when `physics` is on: x, y, raw vx, raw vy, size, personality, rate.
+    /// `rate` is game speed x freeze x the enemy's own speed. An enemy moves by
+    /// `raw velocity x rate` each frame.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub ph: Vec<[f32; 7]>,
     /// Active pattern rectangles: x, y, width, height, lethal (1.0) or harmless (0.0).
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub r: Vec<[f32; 5]>,
@@ -453,7 +461,14 @@ fn drive(
             } else {
                 None
             };
-            sink(FrameRecord::new(&game, &decision, goal, heat, played))?;
+            sink(FrameRecord::new(
+                &game,
+                &decision,
+                goal,
+                heat,
+                played,
+                config.physics,
+            ))?;
             frames_run += 1;
         }
 
@@ -803,6 +818,7 @@ impl FrameRecord {
         goal: (f64, f64),
         heat: Option<HeatRecord>,
         played: Action,
+        physics: bool,
     ) -> Self {
         let player = game.player();
         let view = game.privileged_view();
@@ -845,6 +861,24 @@ impl FrameRecord {
                 })
                 .collect(),
             r: rects,
+            ph: if physics {
+                game.enemies()
+                    .iter()
+                    .map(|enemy| {
+                        [
+                            enemy.x.to_f32(),
+                            enemy.y.to_f32(),
+                            enemy.vx.to_f32(),
+                            enemy.vy.to_f32(),
+                            enemy.size.to_f32(),
+                            f32::from(enemy.personality),
+                            (step * enemy.speed.to_double()) as f32,
+                        ]
+                    })
+                    .collect()
+            } else {
+                Vec::new()
+            },
             a: decision.action.name(),
             x: (played != decision.action).then(|| played.name()),
             g: [goal.0 as f32, goal.1 as f32],

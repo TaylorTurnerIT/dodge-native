@@ -149,6 +149,9 @@ fn dataset(options: &Options) -> Result<(), String> {
                     if !record.r.is_empty() {
                         line["r"] = json!(record.r);
                     }
+                    if !record.ph.is_empty() {
+                        line["ph"] = json!(record.ph);
+                    }
                     if let Some(played) = record.x {
                         line["x"] = json!(played);
                     }
@@ -262,6 +265,7 @@ where
             "--compare" => compare = true,
             "--stream" => stream = true,
             "--dataset" => dataset = true,
+            "--physics" => config.physics = true,
             "--model" | "--drive-model" => {
                 let path = next_value(&mut values, argument.as_str())?;
                 let text = std::fs::read_to_string(&path)
@@ -366,6 +370,7 @@ fn usage() -> String {
            --dataset            training set: compact line per frame, --seeds games, --frames cap each\n\
            --model PATH         load a learned model (adds it to --compare; use --policy learned)\n\
            --drive-model PATH   load a model and play its actions; the policy still labels\n\
+           --physics            with --dataset: add each enemy's raw velocity and clock rate (ph)\n\
            --epsilon P          per-frame chance of a random-action burst (label stays the policy's)\n\
                                 (runs until death; --frames is ignored)\n\
          \n\
