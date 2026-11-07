@@ -661,6 +661,48 @@ fn tempo_curve(difficulty: u8, frame: usize) -> f64 {
 
 fn read_observed_bodies(model: &PhysicsModel, difficulty: u8) -> Vec<Body> {
     let tracks = crate::observe::tracks();
+    if crate::observe::learned() {
+        let (global, estimates) = crate::observe::infer(&tracks);
+        return tracks
+            .into_iter()
+            .zip(estimates)
+            .filter_map(|(track, estimate)| {
+                let sample = *track.samples.back()?;
+                let mut displacement = (0.0, 0.0);
+                if track.samples.len() >= 2 {
+                    let previous = track.samples[track.samples.len() - 2];
+                    let shift = if sample.kind == -1 {
+                        (sample.size - previous.size) * 0.5
+                    } else {
+                        0.0
+                    };
+                    displacement = (sample.x - previous.x + shift, sample.y - previous.y + shift);
+                }
+                let (vx, vy, factor) =
+                    estimate.unwrap_or((displacement.0 / global, displacement.1 / global, 1.0));
+                let moves = sample.kind >= 0;
+                Some(Body {
+                    x: sample.x,
+                    y: sample.y,
+                    vx,
+                    vy,
+                    size: if moves {
+                        sample.size.max(ADULT_SIZE)
+                    } else {
+                        sample.size
+                    },
+                    kind: usize::from(sample.kind == 1),
+                    rate: global * factor,
+                    moves,
+                    blast: sample.kind == -1,
+                    growing: track.growing(),
+                    dying: false,
+                    collision_delay: false,
+                    inside: track.inside,
+                })
+            })
+            .collect();
+    }
     let use_rate = crate::observe::rate_enabled();
     let rates: Vec<Option<f64>> = tracks
         .iter()

@@ -2,8 +2,10 @@
 use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::OnceLock;
 
 use dodge_core::NativeGame;
+use serde::Deserialize;
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Sample {
@@ -79,7 +81,10 @@ pub fn enabled() -> bool {
     full() || std::env::var("HNN_OBS_ABLATION").is_ok_and(|v| !v.is_empty())
 }
 pub fn full() -> bool {
-    std::env::var("HNN_OBSERVED").is_ok_and(|v| v == "1")
+    std::env::var("HNN_OBSERVED").is_ok_and(|v| v == "1" || v == "2")
+}
+pub(crate) fn learned() -> bool {
+    std::env::var("HNN_OBSERVED").is_ok_and(|v| v == "2")
 }
 pub(crate) fn improved() -> bool {
     std::env::var_os("HNN_OBS_LEGACY").is_none()
@@ -225,7 +230,12 @@ pub fn feed(game: &NativeGame) {
             let Some(last) = track.samples.back() else {
                 continue;
             };
-            let (vx, vy) = track.velocity();
+            let (vx, vy) = if learned() && track.samples.len() >= 2 {
+                let previous = track.samples[track.samples.len() - 2];
+                (last.x - previous.x, last.y - previous.y)
+            } else {
+                track.velocity()
+            };
             for (j, sample) in samples.iter().enumerate() {
                 if sample.kind == last.kind {
                     let distance = (sample.x - last.x - vx).hypot(sample.y - last.y - vy);
@@ -294,6 +304,139 @@ pub fn feed(game: &NativeGame) {
 
 pub(crate) fn tracks() -> Vec<Track> {
     CURRENT.with(|c| c.borrow().tracks.clone())
+}
+
+#[derive(Deserialize)]
+struct LearnedWeights {
+    #[serde(rename = "entity.weight")]
+    entity_w: Vec<Vec<f64>>,
+    #[serde(rename = "entity.bias")]
+    entity_b: Vec<f64>,
+    #[serde(rename = "global_hidden.weight")]
+    global_w: Vec<Vec<f64>>,
+    #[serde(rename = "global_hidden.bias")]
+    global_b: Vec<f64>,
+    #[serde(rename = "global_output.weight")]
+    output_w: Vec<Vec<f64>>,
+    #[serde(rename = "global_output.bias")]
+    output_b: Vec<f64>,
+    #[serde(rename = "local_hidden.weight")]
+    local_w: Vec<Vec<f64>>,
+    #[serde(rename = "local_hidden.bias")]
+    local_b: Vec<f64>,
+    #[serde(rename = "local_output.weight")]
+    local_output_w: Vec<Vec<f64>>,
+    #[serde(rename = "local_output.bias")]
+    local_output_b: Vec<f64>,
+}
+
+#[derive(Deserialize)]
+struct LearnedModel {
+    format: String,
+    history: usize,
+    state: LearnedWeights,
+}
+
+fn affine(input: &[f64], weights: &[Vec<f64>], bias: &[f64], tanh: bool) -> Vec<f64> {
+    weights
+        .iter()
+        .zip(bias)
+        .map(|(row, b)| {
+            let value = row.iter().zip(input).map(|(w, x)| w * x).sum::<f64>() + b;
+            if tanh {
+                value.tanh()
+            } else {
+                value
+            }
+        })
+        .collect()
+}
+
+/// Global tempo and per-track velocity/factor from visible geometry only.
+pub(crate) fn infer(tracks: &[Track]) -> (f64, Vec<Option<(f64, f64, f64)>>) {
+    static MODEL: OnceLock<LearnedModel> = OnceLock::new();
+    let model = MODEL.get_or_init(|| {
+        let path = std::env::var("HNN_OBS_MODEL")
+            .unwrap_or_else(|_| format!("{}/models/observed.json", env!("CARGO_MANIFEST_DIR")));
+        let result = std::fs::read_to_string(&path)
+            .map_err(|e| e.to_string())
+            .and_then(|text| {
+                serde_json::from_str::<LearnedModel>(&text).map_err(|e| e.to_string())
+            });
+        match result {
+            Ok(model) if model.format == "observed_estimator_v1" && model.history == 5 => model,
+            Ok(_) => {
+                eprintln!("unsupported observed estimator model");
+                std::process::exit(2)
+            }
+            Err(e) => {
+                eprintln!("cannot load observed estimator from {path}: {e}");
+                std::process::exit(2)
+            }
+        }
+    });
+    let w = &model.state;
+    let frame = frame() as f64;
+    let mut embedded = Vec::new();
+    for (index, track) in tracks.iter().enumerate() {
+        if track.samples.len() < 5 {
+            continue;
+        }
+        let n = track.samples.len();
+        let last = track.samples[n - 1];
+        if !(0..=1).contains(&last.kind) {
+            continue;
+        }
+        let mut x = Vec::with_capacity(16);
+        for i in n - 4..n {
+            x.push(track.samples[i].x - track.samples[i - 1].x);
+            x.push(track.samples[i].y - track.samples[i - 1].y);
+        }
+        x.extend([
+            (last.x - last.player_x) / 128.0,
+            (last.y - last.player_y) / 128.0,
+            f64::from(last.kind),
+            (track.age as f64 / 300.0).min(3.0),
+            last.x / 128.0,
+            last.y / 128.0,
+            last.size / 30.0,
+            (frame / 8000.0).min(1.5),
+        ]);
+        let h = affine(&x, &w.entity_w, &w.entity_b, true);
+        embedded.push((index, x, h));
+        if embedded.len() == 24 {
+            break;
+        }
+    }
+    let mut predictions = vec![None; tracks.len()];
+    if embedded.is_empty() {
+        return (2.15, predictions);
+    }
+    let mut pooled = vec![0.0; w.entity_b.len()];
+    for (_, _, h) in &embedded {
+        for (p, v) in pooled.iter_mut().zip(h) {
+            *p += v / embedded.len() as f64;
+        }
+    }
+    let h = affine(&pooled, &w.global_w, &w.global_b, true);
+    let logit = affine(&h, &w.output_w, &w.output_b, false)[0];
+    let global = 0.3 + 3.7 / (1.0 + (-logit).exp());
+    for (index, x, h) in embedded {
+        let h = affine(&h, &w.local_w, &w.local_b, true);
+        let local = affine(&h, &w.local_output_w, &w.local_output_b, false);
+        let factor = if x[10] > 0.5 {
+            2.0 / (1.0 + (-local[2]).exp())
+        } else {
+            1.0
+        };
+        let rate = (global * factor).max(0.05);
+        predictions[index] = Some((
+            x[6] / rate + 0.1 * local[0].tanh(),
+            x[7] / rate + 0.1 * local[1].tanh(),
+            factor,
+        ));
+    }
+    (global, predictions)
 }
 
 #[cfg(test)]
