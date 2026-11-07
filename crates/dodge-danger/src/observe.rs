@@ -68,6 +68,16 @@ static BODY_FRAMES: AtomicU64 = AtomicU64::new(0);
 static PRIOR: AtomicU64 = AtomicU64::new(0);
 static MATCHES: AtomicU64 = AtomicU64::new(0);
 static MISMATCHES: AtomicU64 = AtomicU64::new(0);
+static DIAG_COUNT: [AtomicU64; 4] = [const { AtomicU64::new(0) }; 4];
+static DIAG_VELOCITY: [AtomicU64; 4] = [const { AtomicU64::new(0) }; 4];
+static DIAG_RATE: [AtomicU64; 4] = [const { AtomicU64::new(0) }; 4];
+
+/// Test-only comparison against engine labels. Values never feed the planner.
+pub(crate) fn diagnostic(category: usize, velocity_error: f64, rate_error: f64) {
+    DIAG_COUNT[category].fetch_add(1, Ordering::Relaxed);
+    DIAG_VELOCITY[category].fetch_add((velocity_error * 1_000_000.0) as u64, Ordering::Relaxed);
+    DIAG_RATE[category].fetch_add((rate_error * 1_000_000.0) as u64, Ordering::Relaxed);
+}
 /// Diagnostic counters only; identities are never used to choose a match.
 pub fn report() {
     let frames = FRAMES.load(Ordering::Relaxed);
@@ -79,6 +89,14 @@ pub fn report() {
         MISMATCHES.load(Ordering::Relaxed),
         1000.0 * MISMATCHES.load(Ordering::Relaxed) as f64 / frames.max(1) as f64
     );
+    for (i, label) in ["new", "abrupt", "blast", "other"].iter().enumerate() {
+        let count = DIAG_COUNT[i].load(Ordering::Relaxed);
+        if count > 0 {
+            eprintln!("diagnostic {label}: count={count} velocity_mae_px_per_frame={:.5} rate_mape_percent={:.2}",
+                DIAG_VELOCITY[i].load(Ordering::Relaxed) as f64 / count as f64 / 1_000_000.0,
+                DIAG_RATE[i].load(Ordering::Relaxed) as f64 / count as f64 / 10_000.0);
+        }
+    }
 }
 
 pub fn reset() {

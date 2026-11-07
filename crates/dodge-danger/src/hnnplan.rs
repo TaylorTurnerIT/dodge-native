@@ -562,6 +562,36 @@ fn read_bodies(model: &PhysicsModel, game: &NativeGame) -> Vec<Body> {
         }
         exact
     };
+    if crate::observe::full() && std::env::var_os("HNN_OBS_DIAGNOSTIC").is_some() {
+        for ((body, exact), track) in bodies
+            .iter()
+            .zip(read_exact_bodies(game))
+            .zip(crate::observe::tracks())
+        {
+            let samples: Vec<_> = track.samples.iter().collect();
+            let category = if samples.len() < 2 {
+                0
+            } else if samples.len() >= 3 {
+                let n = samples.len();
+                let (a, b, c) = (samples[n - 3], samples[n - 2], samples[n - 1]);
+                if ((c.x - b.x) - (b.x - a.x)).hypot((c.y - b.y) - (b.y - a.y)) > 0.15 {
+                    1
+                } else if !body.moves {
+                    2
+                } else {
+                    3
+                }
+            } else if !body.moves {
+                2
+            } else {
+                3
+            };
+            let error = (body.vx * body.rate - exact.vx * exact.rate)
+                .hypot(body.vy * body.rate - exact.vy * exact.rate);
+            let rate_error = (body.rate - exact.rate).abs() / exact.rate.abs().max(0.01);
+            crate::observe::diagnostic(category, error, rate_error);
+        }
+    }
     let sigma = noise_sigma();
     if sigma > 0.0 {
         for body in bodies.iter_mut().filter(|body| body.moves) {
