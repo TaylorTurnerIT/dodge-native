@@ -20,6 +20,7 @@ struct Options {
     output: Option<PathBuf>,
     compare: bool,
     stream: bool,
+    dataset: bool,
     seeds: u32,
     help: bool,
 }
@@ -40,6 +41,10 @@ fn run() -> Result<(), String> {
 
     if options.stream {
         return stream(&options);
+    }
+
+    if options.dataset {
+        return dataset(&options);
     }
 
     if options.compare {
@@ -101,7 +106,7 @@ fn stream(options: &Options) -> Result<(), String> {
 
     let meta = trace_meta(&options.config, options.policy);
     let outcome = write_line(&erased::Wrapped("meta", &meta)).and_then(|()| {
-        stream_episode(&options.config, options.policy, &mut |record| {
+        stream_episode(&options.config, options.policy, None, &mut |record| {
             write_line(&erased::Bare(&record))
         })
     });
@@ -111,6 +116,54 @@ fn stream(options: &Options) -> Result<(), String> {
         },
         Err(error) if error == OUTPUT_CLOSED => Ok(()),
         Err(error) => Err(error),
+    }
+}
+
+/// Write a training set: one compact line per frame, for `--seeds` consecutive
+/// games of at most `--frames` frames each. A line holds only what the player can see
+/// (`p` player, `e` enemies, `r` pattern rectangles) and the labels (`c` nine costs,
+/// `a` the policy's action, `x` the played action when a random burst replaced it).
+fn dataset(options: &Options) -> Result<(), String> {
+    use serde_json::json;
+    let stdout = std::io::stdout();
+    let mut out = BufWriter::new(stdout.lock());
+    let mut config = options.config;
+    let first_seed = config.seed;
+    let outcome = (|| -> Result<(), String> {
+        for offset in 0..options.seeds {
+            config.seed = first_seed.wrapping_add(offset);
+            let seed = config.seed;
+            let mut index: u32 = 0;
+            let result = stream_episode(
+                &config,
+                options.policy,
+                Some(config.max_frames),
+                &mut |record| {
+                    let mut line = json!({
+                        "s": seed, "f": index, "p": record.p, "e": record.e,
+                        "c": record.costs, "a": record.a,
+                    });
+                    if !record.r.is_empty() {
+                        line["r"] = json!(record.r);
+                    }
+                    if let Some(played) = record.x {
+                        line["x"] = json!(played);
+                    }
+                    index += 1;
+                    serde_json::to_writer(&mut out, &line).map_err(|_| OUTPUT_CLOSED.to_owned())?;
+                    out.write_all(b"\n").map_err(|_| OUTPUT_CLOSED.to_owned())
+                },
+            )?;
+            let end = json!({"end": {"s": seed, "survival": result.survival_frames,
+                "dead": result.dead, "frames": result.captured_frames}});
+            serde_json::to_writer(&mut out, &end).map_err(|_| OUTPUT_CLOSED.to_owned())?;
+            out.write_all(b"\n").map_err(|_| OUTPUT_CLOSED.to_owned())?;
+        }
+        out.flush().map_err(|_| OUTPUT_CLOSED.to_owned())
+    })();
+    match outcome {
+        Err(error) if error != OUTPUT_CLOSED => Err(error),
+        _ => Ok(()),
     }
 }
 
@@ -150,6 +203,7 @@ where
     let mut output = None;
     let mut compare = false;
     let mut stream = false;
+    let mut dataset = false;
     let mut seeds = 1;
     let mut help = false;
 
@@ -186,6 +240,13 @@ where
             "--out" => output = Some(PathBuf::from(next_value(&mut values, "--out")?)),
             "--compare" => compare = true,
             "--stream" => stream = true,
+            "--dataset" => dataset = true,
+            "--epsilon" => {
+                let text = next_value(&mut values, "--epsilon")?;
+                config.epsilon = text
+                    .parse::<f64>()
+                    .map_err(|error| format!("epsilon must be a number: {error}"))?;
+            }
             "--seeds" => seeds = parse_u32(&next_value(&mut values, "--seeds")?, "seeds")?,
             "--params" => {
                 let path = next_value(&mut values, "--params")?;
@@ -212,6 +273,7 @@ where
         output,
         compare,
         stream,
+        dataset,
         seeds,
         help,
     })
@@ -273,6 +335,8 @@ fn usage() -> String {
            --out PATH           write JSON to PATH instead of stdout\n\
            --params PATH        JSON overrides for the landscape policy's shapes\n\
            --stream             no frame limit; one JSON line per frame on stdout\n\
+           --dataset            training set: compact line per frame, --seeds games, --frames cap each\n\
+           --epsilon P          per-frame chance of a random-action burst (label stays the policy's)\n\
                                 (runs until death; --frames is ignored)\n\
          \n\
          Comparison:\n\

@@ -101,6 +101,9 @@ pub struct DangerConfig {
     pub heat_every: u32,
     pub patterns: bool,
     pub powerups: bool,
+    /// Per-frame chance of starting a burst of random actions that replaces the
+    /// policy's action. The recorded label stays the policy's own choice. Zero by default.
+    pub epsilon: f64,
     /// Hand-set shape of every term in the danger landscape.
     pub landscape: LandscapeParams,
 }
@@ -117,6 +120,7 @@ impl Default for DangerConfig {
             heat_every: 10,
             patterns: false,
             powerups: false,
+            epsilon: 0.0,
             landscape: LandscapeParams::default(),
         }
     }
@@ -126,6 +130,9 @@ impl DangerConfig {
     pub fn validate(&self) -> Result<(), String> {
         if self.difficulty == 0 || self.difficulty > 3 {
             return Err("difficulty must be 1, 2, or 3".to_owned());
+        }
+        if !(0.0..=1.0).contains(&self.epsilon) {
+            return Err("epsilon must be from 0 to 1".to_owned());
         }
         if self.max_frames == 0 {
             return Err("max_frames must be greater than zero".to_owned());
@@ -191,8 +198,11 @@ pub struct FrameRecord {
     /// Active pattern rectangles: x, y, width, height, lethal (1.0) or harmless (0.0).
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub r: Vec<[f32; 5]>,
-    /// Chosen action name.
+    /// The policy's chosen action. In a perturbed run this is the label.
     pub a: &'static str,
+    /// The action that was played, when a random burst replaced the policy's choice.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub x: Option<&'static str>,
     /// Current goal.
     pub g: [f32; 2],
     /// First collision frame in the chosen action's lookahead rollout. `horizon + 1` means none.
@@ -318,10 +328,11 @@ pub fn run_episode(
 pub fn stream_episode(
     config: &DangerConfig,
     policy: PolicyKind,
+    limit: Option<u32>,
     sink: &mut dyn FnMut(FrameRecord) -> Result<(), String>,
 ) -> Result<TraceResult, String> {
     config.validate()?;
-    let end = drive(config, policy, None, Some(sink))?;
+    let end = drive(config, policy, limit, Some(sink))?;
     Ok(TraceResult {
         survival_frames: end.survival_frames,
         dead: end.dead,
@@ -384,6 +395,8 @@ fn drive(
     let mut field: Option<HeatField> = None;
     let mut frame: u32 = 0;
     let mut frames_run: u32 = 0;
+    let mut burst_left: u32 = 0;
+    let mut burst_action = Action::Neutral;
 
     loop {
         if limit.is_some_and(|cap| frame >= cap) {
@@ -406,6 +419,20 @@ fn drive(
         }
 
         let decision = decide(&game, goal, config, policy, previous, &mut rng)?;
+        let mut played = decision.action;
+        if config.epsilon > 0.0 {
+            if burst_left == 0 {
+                let draw = (rng.next_u64() >> 11) as f64 / (1u64 << 53) as f64;
+                if draw < config.epsilon {
+                    burst_left = 6 + (rng.next_u64() % 9) as u32;
+                    burst_action = rng.action();
+                }
+            }
+            if burst_left > 0 {
+                burst_left -= 1;
+                played = burst_action;
+            }
+        }
 
         if let Some(sink) = on_frame.as_mut() {
             let heat = if frame % config.heat_every == 0 {
@@ -413,13 +440,13 @@ fn drive(
             } else {
                 None
             };
-            sink(FrameRecord::new(&game, &decision, goal, heat))?;
+            sink(FrameRecord::new(&game, &decision, goal, heat, played))?;
             frames_run += 1;
         }
 
-        previous = decision.action;
+        previous = played;
         let result = game
-            .advance_frame_headless(decision.action.mask())
+            .advance_frame_headless(played.mask())
             .map_err(|error| format!("frame {frame}: {error}"))?;
         if result.dead {
             break;
@@ -758,6 +785,7 @@ impl FrameRecord {
         decision: &Decision,
         goal: (f64, f64),
         heat: Option<HeatRecord>,
+        played: Action,
     ) -> Self {
         let player = game.player();
         let view = game.privileged_view();
@@ -801,6 +829,7 @@ impl FrameRecord {
                 .collect(),
             r: rects,
             a: decision.action.name(),
+            x: (played != decision.action).then(|| played.name()),
             g: [goal.0 as f32, goal.1 as f32],
             t: decision.ttc as f32,
             c: if decision.clearance.is_finite() {
