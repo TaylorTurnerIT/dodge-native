@@ -788,6 +788,12 @@ fn rollout(
                 // same fraction to friction as an enemy does (seen in the data: 0.99 per frame).
                 body.vx -= model.gamma * body.vx;
                 body.vy -= model.gamma * body.vy;
+                // Lethal rectangles push explosions away like any other enemy (seen in replays).
+                if let Some(law) = &law {
+                    for rect in &rects {
+                        bounce_off(body, rect, law, speeds);
+                    }
+                }
                 body.x += body.rate * body.vx;
                 body.y += body.rate * body.vy;
             }
