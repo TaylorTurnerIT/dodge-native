@@ -246,6 +246,14 @@ pub struct FrameRecord {
     /// Nine lookahead costs in `Action::ALL` order, when the policy computes them.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub costs: Option<Vec<f32>>,
+    /// HNN first-hit frames in action order; null means no hit within the horizon.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model_hits: Option<Vec<Option<u32>>>,
+    /// Chosen and best alternative action, each sampled every four frames.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model_ghosts: Option<Vec<Vec<Vec<[f32; 4]>>>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model_alternative: Option<&'static str>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -494,14 +502,48 @@ fn drive(
             } else {
                 None
             };
-            sink(FrameRecord::new(
-                &game,
-                &decision,
-                goal,
-                heat,
-                played,
-                config.physics,
-            ))?;
+            let mut record = FrameRecord::new(&game, &decision, goal, heat, played, config.physics);
+            if policy == PolicyKind::Hnn
+                && let (Some(model), Some(costs)) = (hnnplan::installed(), decision.costs)
+            {
+                record.costs = Some(
+                    costs
+                        .iter()
+                        .map(|value| (value * 10.0).round() as f32 / 10.0)
+                        .collect(),
+                );
+                let chosen = Action::ALL
+                    .iter()
+                    .position(|action| *action == decision.action)
+                    .unwrap_or(0);
+                let alternative = (0..9)
+                    .filter(|index| *index != chosen)
+                    .min_by(|a, b| costs[*a].total_cmp(&costs[*b]))
+                    .unwrap_or(0);
+                let (hits, ghosts) =
+                    hnnplan::stream_imagination(model, &game, config.horizon, chosen, alternative);
+                record.model_hits = Some(hits);
+                record.model_ghosts = Some(
+                    ghosts
+                        .into_iter()
+                        .map(|samples| {
+                            samples
+                                .into_iter()
+                                .map(|bodies| {
+                                    bodies
+                                        .into_iter()
+                                        .map(|body| {
+                                            body.map(|value| (value * 10.0).round() as f32 / 10.0)
+                                        })
+                                        .collect()
+                                })
+                                .collect()
+                        })
+                        .collect(),
+                );
+                record.model_alternative = Some(Action::ALL[alternative].name());
+            }
+            sink(record)?;
             frames_run += 1;
         }
 
@@ -1010,6 +1052,9 @@ impl FrameRecord {
             costs: decision
                 .costs
                 .map(|values| values.iter().map(|value| *value as f32).collect()),
+            model_hits: None,
+            model_ghosts: None,
+            model_alternative: None,
         }
     }
 }

@@ -702,6 +702,8 @@ pub struct Rollout {
     pub first_hit: Option<u32>,
     /// Enemy `x, y, size` after `snapshot_at` frames, in the engine's enemy order.
     pub snapshot: Vec<[f64; 3]>,
+    /// Samples every four frames when requested, up to the first hit.
+    pub samples: Vec<Vec<[f64; 4]>>,
 }
 
 /// Roll the player and enemies forward while playing `direction`, and score the result.
@@ -726,6 +728,7 @@ fn rollout(
     let mut clearance = f64::INFINITY;
     let mut first_hit = None;
     let mut snapshot = Vec::new();
+    let mut samples = Vec::new();
 
     for frame in 1..=horizon {
         // The engine checks for a hit first, then moves the player, then moves the enemies.
@@ -884,6 +887,21 @@ fn rollout(
                 .map(|body| [body.x, body.y, body.size])
                 .collect();
         }
+        if snapshot_at == u32::MAX && frame % 4 == 0 {
+            samples.push(
+                enemies
+                    .iter()
+                    .map(|body| {
+                        [
+                            body.x,
+                            body.y,
+                            body.size,
+                            if body.blast { -1.0 } else { body.kind as f64 },
+                        ]
+                    })
+                    .collect(),
+            );
+        }
         clearance = clearance.min(gap);
         if gap.is_finite() {
             cost += 12.0 / (gap + 1.0).powi(2);
@@ -898,6 +916,7 @@ fn rollout(
         cost,
         first_hit,
         snapshot,
+        samples,
     }
 }
 
@@ -979,6 +998,7 @@ pub fn arrival_field(
 /// The action with the lowest rollout cost, and all nine costs.
 pub fn choose(model: &PhysicsModel, game: &NativeGame, horizon: u32) -> (Action, [f64; 9]) {
     let bodies = read_bodies(game);
+    LAST_BODIES.with(|last| *last.borrow_mut() = bodies.clone());
     let mut costs = [0.0; 9];
     let mut best = 0;
     for (index, direction) in DIRECTIONS.iter().enumerate() {
@@ -992,6 +1012,43 @@ pub fn choose(model: &PhysicsModel, game: &NativeGame, horizon: u32) -> (Action,
     }
     let action = Action::ALL.get(best).copied().unwrap_or(Action::Neutral);
     (action, costs)
+}
+
+thread_local! {
+    static LAST_BODIES: std::cell::RefCell<Vec<Body>> = const { std::cell::RefCell::new(Vec::new()) };
+}
+
+/// Reuse the planner's input, including any perception noise, for stream diagnostics.
+pub fn stream_imagination(
+    model: &PhysicsModel,
+    game: &NativeGame,
+    horizon: u32,
+    chosen: usize,
+    alternative: usize,
+) -> (Vec<Option<u32>>, Vec<Vec<Vec<[f64; 4]>>>) {
+    LAST_BODIES.with(|last| {
+        let bodies = last.borrow();
+        let mut hits = Vec::with_capacity(9);
+        let mut paths = vec![Vec::new(), Vec::new()];
+        for (index, direction) in DIRECTIONS.iter().enumerate() {
+            let capture = index == chosen || index == alternative;
+            let result = rollout(
+                model,
+                game,
+                &bodies,
+                *direction,
+                horizon,
+                if capture { u32::MAX } else { 0 },
+            );
+            hits.push(result.first_hit);
+            if index == chosen {
+                paths[0] = result.samples;
+            } else if index == alternative {
+                paths[1] = result.samples;
+            }
+        }
+        (hits, paths)
+    })
 }
 
 static MODEL: OnceLock<PhysicsModel> = OnceLock::new();
