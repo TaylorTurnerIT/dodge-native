@@ -196,6 +196,9 @@ fn dataset(options: &Options) -> Result<(), String> {
                     if !record.ph.is_empty() {
                         line["ph"] = json!(record.ph);
                         line["dy"] = json!(record.dy);
+                        if !record.rs.is_empty() {
+                            line["rs"] = json!(record.rs);
+                        }
                     }
                     if let Some(played) = record.x {
                         line["x"] = json!(played);

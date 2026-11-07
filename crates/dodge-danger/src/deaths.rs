@@ -54,6 +54,11 @@ pub struct DeathCase {
     /// Engine hit frame if lookahead's action were held (`null` = none).
     pub engine_hit_lookahead: Option<u32>,
     pub enemies: usize,
+    /// Enemies alive on the frame of death. More than `enemies` means new ones appeared.
+    pub enemies_at_death: usize,
+    /// Pattern rectangles active at the decision, and how many of them are lethal now.
+    pub rects: usize,
+    pub rects_lethal: usize,
     pub kamikaze_near: bool,
     pub blast_near: bool,
     pub nearest_gap: f64,
@@ -237,6 +242,12 @@ fn analyse(
         model_cost_lookahead: model_costs[teacher_index],
         engine_hit_lookahead,
         enemies: lethal.len(),
+        enemies_at_death: 0,
+        rects: hnnplan::rect_snapshot(game).len(),
+        rects_lethal: hnnplan::rect_snapshot(game)
+            .iter()
+            .filter(|rect| rect[5] > 0.5 || rect[4] >= 1.999)
+            .count(),
         kamikaze_near: lethal.iter().any(|e| e.personality == 1),
         blast_near: lethal.iter().any(|e| e.personality == -1),
         nearest_gap,
@@ -256,6 +267,7 @@ fn study_game(config: &DangerConfig, seed: u32) -> Result<Option<DeathCase>, Str
     let mut history: VecDeque<NativeGame> = VecDeque::with_capacity(HISTORY + 1);
     let mut frame = 0_u32;
     let goal = (PLAYFIELD / 2.0, PLAYFIELD / 2.0);
+    let mut rect_memory = hnnplan::RectSnapshot::new();
     loop {
         if frame >= config.max_frames {
             return Ok(None);
@@ -264,6 +276,7 @@ fn study_game(config: &DangerConfig, seed: u32) -> Result<Option<DeathCase>, Str
         if history.len() > HISTORY {
             history.pop_front();
         }
+        hnnplan::set_history(rect_memory.clone());
         let decision = decide(
             &game,
             goal,
@@ -272,6 +285,7 @@ fn study_game(config: &DangerConfig, seed: u32) -> Result<Option<DeathCase>, Str
             Action::Neutral,
             &mut rng,
         )?;
+        rect_memory = hnnplan::rect_snapshot(&game);
         let result = game
             .advance_frame_headless(decision.action.mask())
             .map_err(|error| format!("frame {frame}: {error}"))?;
@@ -310,6 +324,11 @@ fn study_game(config: &DangerConfig, seed: u32) -> Result<Option<DeathCase>, Str
         low
     };
     let frames_before_death = u32::try_from(last - chosen).unwrap_or(0) + 1;
+    hnnplan::set_history(if chosen > 0 {
+        hnnplan::rect_snapshot(&states[chosen - 1])
+    } else {
+        Vec::new()
+    });
     analyse(
         model,
         &states[chosen],
@@ -320,7 +339,10 @@ fn study_game(config: &DangerConfig, seed: u32) -> Result<Option<DeathCase>, Str
         frames_before_death,
         lost_before_window,
     )
-    .map(Some)
+    .map(|mut case| {
+        case.enemies_at_death = game.enemies().iter().filter(|e| e.personality < 2).count();
+        Some(case)
+    })
 }
 
 pub struct Study {

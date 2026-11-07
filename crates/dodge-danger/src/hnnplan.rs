@@ -71,6 +71,10 @@ pub struct PhysicsModel {
     collision: Option<Collision>,
     #[serde(default)]
     blast: Option<Blast>,
+    #[serde(default)]
+    rect: Option<RectLaw>,
+    #[serde(default)]
+    crush: Option<Crush>,
     /// The learned force sampled on a grid, built once on load. See `ForceTable`.
     #[serde(skip)]
     table: Option<ForceTable>,
@@ -92,6 +96,144 @@ const TABLE_KINDS: usize = 2;
 
 fn table_side() -> usize {
     (2.0 * TABLE_RANGE / TABLE_STEP) as usize + 1
+}
+
+/// Pattern-rectangle law measured from observed frames (`hnn/events.py`): a static rectangle's
+/// warning progress rises by `sh_step` per frame and it is lethal once progress reaches `lethal_at`.
+#[derive(Clone, Copy, Debug, Deserialize)]
+struct RectLaw {
+    sh_step: f64,
+    lethal_at: f64,
+}
+
+/// Learned classifier for "a moving rectangle destroys an enemy it overlaps" (`hnn/crush.py`).
+#[derive(Clone, Debug, Deserialize)]
+struct Crush {
+    mean: Vec<f64>,
+    std: Vec<f64>,
+    layers: Vec<Layer>,
+}
+
+/// Probability above which a moving rectangle is taken to destroy an overlapping enemy.
+/// Read from `HNN_CRUSH_THRESHOLD` (default 0.5).
+fn crush_threshold() -> f64 {
+    static VALUE: OnceLock<f64> = OnceLock::new();
+    *VALUE.get_or_init(|| {
+        std::env::var("HNN_CRUSH_THRESHOLD")
+            .ok()
+            .and_then(|t| t.parse().ok())
+            .unwrap_or(0.5)
+    })
+}
+
+/// A pattern rectangle as the planner sees it: `x, y, width, height, progress, moving`.
+pub type RectSnapshot = Vec<[f64; 6]>;
+
+/// The active pattern's rectangles in the current frame.
+pub fn rect_snapshot(game: &NativeGame) -> RectSnapshot {
+    let view = game.privileged_view();
+    let Some(pattern) = view.active_pattern else {
+        return Vec::new();
+    };
+    let moving = if pattern.pattern_type == 1 { 1.0 } else { 0.0 };
+    pattern
+        .rects
+        .iter()
+        .map(|rect| {
+            [
+                rect.x.to_double(),
+                rect.y.to_double(),
+                rect.width.to_double(),
+                rect.height.to_double(),
+                rect.sh.to_double(),
+                moving,
+            ]
+        })
+        .collect()
+}
+
+thread_local! {
+    /// The previous frame's rectangles. The planner needs one frame of history to see how
+    /// a rectangle is moving, because rectangle velocity is not part of what a player sees.
+    static HISTORY: std::cell::RefCell<RectSnapshot> = const { std::cell::RefCell::new(Vec::new()) };
+}
+
+/// Tell the planner what the rectangles looked like one frame ago.
+pub fn set_history(previous: RectSnapshot) {
+    HISTORY.with(|slot| *slot.borrow_mut() = previous);
+}
+
+#[derive(Clone, Copy, Debug)]
+struct RectBody {
+    x: f64,
+    y: f64,
+    w: f64,
+    h: f64,
+    vx: f64,
+    vy: f64,
+    vw: f64,
+    vh: f64,
+    progress: f64,
+    /// +1 rising, -1 falling, 0 steady (from the change since the previous frame).
+    trend: f64,
+    moving: bool,
+}
+
+fn read_rects(game: &NativeGame) -> Vec<RectBody> {
+    let current = rect_snapshot(game);
+    HISTORY.with(|slot| {
+        let previous = slot.borrow();
+        let known = previous.len() == current.len();
+        current
+            .iter()
+            .enumerate()
+            .map(|(index, now)| {
+                let before = if known { previous[index] } else { *now };
+                let change = now[4] - before[4];
+                RectBody {
+                    x: now[0],
+                    y: now[1],
+                    w: now[2],
+                    h: now[3],
+                    vx: now[0] - before[0],
+                    vy: now[1] - before[1],
+                    vw: now[2] - before[2],
+                    vh: now[3] - before[3],
+                    progress: now[4],
+                    trend: if change > 1e-3 {
+                        1.0
+                    } else if change < -1e-3 {
+                        -1.0
+                    } else {
+                        0.0
+                    },
+                    moving: now[5] > 0.5,
+                }
+            })
+            .collect()
+    })
+}
+
+fn rect_lethal(rect: &RectBody, law: &RectLaw) -> bool {
+    rect.moving || rect.progress >= law.lethal_at - 1e-6
+}
+
+/// The game's visible hit rule for a rectangle (player box against rectangle box).
+fn rect_hits(px: f64, py: f64, size: f64, rect: &RectBody) -> bool {
+    px - 2.0 + size > rect.x
+        && py - 2.0 + size > rect.y
+        && px + 2.0 - size < rect.x + rect.w - 1.0
+        && py + 2.0 - size < rect.y + rect.h - 1.0
+}
+
+fn rect_gap(px: f64, py: f64, size: f64, rect: &RectBody) -> f64 {
+    let gap_x = (rect.x - (px + size - 1.0))
+        .max((px - size + 1.0) - (rect.x + rect.w))
+        .max(0.0);
+    let gap_y = (rect.y - (py + size - 1.0))
+        .max((py - size + 1.0) - (rect.y + rect.h))
+        .max(0.0);
+    gap_x.hypot(gap_y)
 }
 
 /// Probability above which two enemies are treated as colliding. Read from
@@ -467,6 +609,8 @@ fn rollout(
     let (mut px, mut py) = (player.x.to_double(), player.y.to_double());
     let (mut pvx, mut pvy) = (player.vx.to_double(), player.vy.to_double());
     let mut enemies = bodies.to_vec();
+    let mut rects = read_rects(game);
+    let law = model.rect;
     let mut cost = 0.0;
     let mut clearance = f64::INFINITY;
     let mut first_hit = None;
@@ -474,7 +618,12 @@ fn rollout(
 
     for frame in 1..=horizon {
         // The engine checks for a hit first, then moves the player, then moves the enemies.
-        if enemies.iter().any(|body| hits(px, py, size, body)) {
+        let rect_hit = law.is_some_and(|law| {
+            rects
+                .iter()
+                .any(|rect| rect_lethal(rect, &law) && rect_hits(px, py, size, rect))
+        });
+        if rect_hit || enemies.iter().any(|body| hits(px, py, size, body)) {
             cost += 5_000.0 - 50.0 * f64::from(frame);
             clearance = 0.0;
             first_hit = Some(frame);
@@ -499,10 +648,85 @@ fn rollout(
                 body.vy += fy - model.gamma * body.vy;
                 body.x += body.rate * body.vx;
                 body.y += body.rate * body.vy;
+            } else if body.blast {
+                // An explosion can be pushed. It keeps the velocity it has, losing the
+                // same fraction to friction as an enemy does (seen in the data: 0.99 per frame).
+                body.vx -= model.gamma * body.vx;
+                body.vy -= model.gamma * body.vy;
+                body.x += body.rate * body.vx;
+                body.y += body.rate * body.vy;
             }
             gap = gap.min(box_clearance(px, py, size, body.x, body.y, body.size));
         }
         apply_events(model, &mut enemies);
+        if let Some(law) = law {
+            for rect in &mut rects {
+                rect.x += rect.vx;
+                rect.y += rect.vy;
+                rect.w = (rect.w + rect.vw).max(0.0);
+                rect.h = (rect.h + rect.vh).max(0.0);
+                if let (true, Some(crush)) = (rect.moving, &model.crush) {
+                    for body in enemies.iter_mut().filter(|body| !body.blast && !body.dying) {
+                        let (ox, oy) = (
+                            (body.x + body.size).min(rect.x + rect.w) - body.x.max(rect.x),
+                            (body.y + body.size).min(rect.y + rect.h) - body.y.max(rect.y),
+                        );
+                        if ox <= 0.0 || oy <= 0.0 || !body.moves {
+                            continue;
+                        }
+                        let wall = body
+                            .x
+                            .min(body.y)
+                            .min(128.0 - body.x - body.size)
+                            .min(128.0 - body.y - body.size);
+                        let input = [
+                            ox / 4.0,
+                            oy / 4.0,
+                            ox.min(oy) / 4.0,
+                            rect.vx,
+                            rect.vy,
+                            rect.vw,
+                            rect.vh,
+                            rect.w / 64.0,
+                            rect.h / 64.0,
+                            body.size / 4.0,
+                            body.kind as f64,
+                            body.vx * body.rate,
+                            body.vy * body.rate,
+                            wall / 16.0,
+                        ];
+                        let scaled: Vec<f64> = input
+                            .iter()
+                            .zip(crush.mean.iter().zip(&crush.std))
+                            .map(|(value, (mean, std))| (value - mean) / std)
+                            .collect();
+                        let logit = mlp_forward(&crush.layers, &scaled);
+                        if 1.0 / (1.0 + (-logit).exp()) > crush_threshold() {
+                            body.dying = true;
+                        }
+                    }
+                }
+                let was_lethal = rect_lethal(rect, &law);
+                rect.progress =
+                    (rect.progress + rect.trend * law.sh_step).clamp(0.0, law.lethal_at);
+                if rect_lethal(rect, &law) {
+                    gap = gap.min(rect_gap(px, py, size, rect));
+                    // Measured from data: when a static rectangle turns lethal, 46 of 47
+                    // enemies inside it were flagged dying on the next frame.
+                    if !was_lethal && !rect.moving {
+                        for body in enemies.iter_mut().filter(|body| !body.blast) {
+                            if body.x + body.size > rect.x
+                                && body.y + body.size > rect.y
+                                && body.x < rect.x + rect.w
+                                && body.y < rect.y + rect.h
+                            {
+                                body.dying = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
         if frame == snapshot_at {
             snapshot = enemies
                 .iter()
@@ -565,6 +789,13 @@ fn arrival_at(
                 let (fx, fy) = model.force_fast(body.x - px, body.y - py, body.kind);
                 body.vx += fx - model.gamma * body.vx;
                 body.vy += fy - model.gamma * body.vy;
+                body.x += body.rate * body.vx;
+                body.y += body.rate * body.vy;
+            } else if body.blast {
+                // An explosion can be pushed. It keeps the velocity it has, losing the
+                // same fraction to friction as an enemy does (seen in the data: 0.99 per frame).
+                body.vx -= model.gamma * body.vx;
+                body.vy -= model.gamma * body.vy;
                 body.x += body.rate * body.vx;
                 body.y += body.rate * body.vy;
             }

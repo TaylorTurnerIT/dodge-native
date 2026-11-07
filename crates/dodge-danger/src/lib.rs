@@ -217,6 +217,10 @@ pub struct FrameRecord {
     /// `raw velocity x rate` each frame.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub ph: Vec<[f32; 7]>,
+    /// With `ph`: for each pattern rectangle, its warning progress (0 to 2; the rectangle is
+    /// lethal once it reaches 2, or always for moving patterns) and 1 if the pattern moves.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub rs: Vec<[f32; 2]>,
     /// With `ph`: 1 for each enemy the engine has marked as dying (it is removed shortly after).
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub dy: Vec<u8>,
@@ -422,6 +426,7 @@ fn drive(
     let mut field: Option<HeatField> = None;
     let mut frame: u32 = 0;
     let mut frames_run: u32 = 0;
+    let mut rect_memory = hnnplan::RectSnapshot::new();
     let mut burst_left: u32 = 0;
     let mut burst_action = Action::Neutral;
 
@@ -456,7 +461,13 @@ fn drive(
             field = Some(next);
         }
 
+        if policy == PolicyKind::Hnn {
+            hnnplan::set_history(rect_memory.clone());
+        }
         let decision = decide(&game, goal, config, policy, previous, &mut rng)?;
+        if policy == PolicyKind::Hnn {
+            rect_memory = hnnplan::rect_snapshot(&game);
+        }
         let mut played = decision.action;
         if config.drive_model
             && let Some(model) = learned::installed()
@@ -952,6 +963,24 @@ impl FrameRecord {
                         ]
                     })
                     .collect()
+            } else {
+                Vec::new()
+            },
+            rs: if physics {
+                view.active_pattern
+                    .map(|pattern| {
+                        pattern
+                            .rects
+                            .iter()
+                            .map(|rect| {
+                                [
+                                    rect.sh.to_f32(),
+                                    if pattern.pattern_type == 1 { 1.0 } else { 0.0 },
+                                ]
+                            })
+                            .collect()
+                    })
+                    .unwrap_or_default()
             } else {
                 Vec::new()
             },
