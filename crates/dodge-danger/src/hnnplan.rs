@@ -694,8 +694,37 @@ fn read_observed_bodies(model: &PhysicsModel, difficulty: u8) -> Vec<Body> {
     let mut population: Vec<_> = rates.iter().flatten().copied().collect();
     population.sort_by(f64::total_cmp);
     let mut prior = population.get(population.len() / 2).copied().unwrap_or(1.0);
-    if std::env::var_os("HNN_OBS_TEMPO_DATA").is_some() && !population.is_empty() {
-        crate::observe::tempo_sample(prior);
+    let mut normals: Vec<_> = tracks
+        .iter()
+        .zip(&rates)
+        .filter_map(|(t, r)| (t.samples.back()?.kind == 0).then_some(*r).flatten())
+        .collect();
+    normals.sort_by(f64::total_cmp);
+    if std::env::var_os("HNN_OBS_KAMIKAZE_PROBE").is_some() {
+        if let Some(global) = normals.get(normals.len() / 2) {
+            let frame = crate::observe::frame();
+            if frame % 4 == 0 {
+                for (track, rate) in tracks.iter().zip(&rates) {
+                    if let (Some(sample), Some(rate)) = (track.samples.back(), rate) {
+                        if sample.kind == 1 {
+                            eprintln!(
+                                "probe {frame} {} {} {:.5} {:.5} {:.5}",
+                                track.id,
+                                track.age,
+                                (sample.x - sample.player_x).hypot(sample.y - sample.player_y),
+                                rate,
+                                global
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if std::env::var_os("HNN_OBS_TEMPO_DATA").is_some() {
+        if let Some(normal_rate) = normals.get(normals.len() / 2) {
+            crate::observe::tempo_sample(*normal_rate);
+        }
     }
     if std::env::var_os("HNN_OBS_TEMPO_CURVE").is_some() {
         let curve = tempo_curve(difficulty, crate::observe::frame());

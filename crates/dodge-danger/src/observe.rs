@@ -19,6 +19,8 @@ pub(crate) struct Sample {
 pub(crate) struct Track {
     pub samples: VecDeque<Sample>,
     pub inside: bool,
+    pub id: u64,
+    pub age: usize,
     serial: Option<dodge_core::EnemySerial>,
 }
 
@@ -66,6 +68,7 @@ impl Track {
 struct Observation {
     tracks: Vec<Track>,
     frame: usize,
+    next_id: u64,
 }
 thread_local! { static CURRENT: RefCell<Observation> = RefCell::new(Observation::default()); }
 
@@ -152,6 +155,9 @@ pub fn report() {
 }
 
 pub fn reset() {
+    if std::env::var_os("HNN_OBS_KAMIKAZE_PROBE").is_some() {
+        eprintln!("probe-reset");
+    }
     CURRENT.with(|c| *c.borrow_mut() = Observation::default());
 }
 
@@ -195,6 +201,7 @@ pub fn feed(game: &NativeGame) {
         let mut c = c.borrow_mut();
         c.frame += 1;
         let old = std::mem::take(&mut c.tracks);
+        let mut next_id = c.next_id;
         let mut candidates = Vec::new();
         for (i, track) in old.iter().enumerate() {
             let Some(last) = track.samples.back() else {
@@ -226,8 +233,15 @@ pub fn feed(game: &NativeGame) {
                 let mut track = matches[j].map(|i| old[i].clone()).unwrap_or_else(|| Track {
                     samples: VecDeque::new(),
                     inside: false,
+                    id: {
+                        let id = next_id;
+                        next_id += 1;
+                        id
+                    },
+                    age: 0,
                     serial: None,
                 });
+                track.age += 1;
                 let serial = serials.get(j).copied().flatten();
                 if let (Some(old), Some(now)) = (track.serial, serial) {
                     MATCHES.fetch_add(1, Ordering::Relaxed);
@@ -247,6 +261,7 @@ pub fn feed(game: &NativeGame) {
                 track
             })
             .collect();
+        c.next_id = next_id;
     });
 }
 
@@ -262,6 +277,8 @@ mod tests {
         let mut track = Track {
             samples: VecDeque::new(),
             inside: false,
+            id: 0,
+            age: 0,
             serial: None,
         };
         assert_eq!(track.velocity(), (0.0, 0.0));
