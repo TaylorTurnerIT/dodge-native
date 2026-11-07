@@ -543,11 +543,11 @@ fn read_bodies(model: &PhysicsModel, game: &NativeGame) -> Vec<Body> {
         if crate::observe::enabled() {
             for (body, observed) in exact.iter_mut().zip(read_observed_bodies(model)) {
                 if crate::observe::replace("velocity") {
-                    body.vx = observed.vx / body.rate.abs().max(0.2);
-                    body.vy = observed.vy / body.rate.abs().max(0.2);
+                    body.vx = observed.vx * observed.rate / body.rate.abs().max(0.2);
+                    body.vy = observed.vy * observed.rate / body.rate.abs().max(0.2);
                 }
                 if crate::observe::replace("clock") {
-                    body.rate = 1.0;
+                    body.rate = observed.rate;
                 }
                 if crate::observe::replace("growing") {
                     body.growing = observed.growing;
@@ -611,7 +611,7 @@ fn read_bodies(model: &PhysicsModel, game: &NativeGame) -> Vec<Body> {
 
 fn read_observed_bodies(model: &PhysicsModel) -> Vec<Body> {
     let tracks = crate::observe::tracks();
-    let use_rate = std::env::var_os("HNN_OBS_RATE_LS").is_some();
+    let use_rate = crate::observe::improved();
     let rates: Vec<Option<f64>> = tracks
         .iter()
         .map(|track| {
@@ -650,8 +650,7 @@ fn read_observed_bodies(model: &PhysicsModel) -> Vec<Body> {
         .filter_map(|(track, estimate)| {
             let sample = *track.samples.back()?;
             let (mut vx, mut vy) = track.velocity();
-            let centre_correction =
-                sample.kind == -1 && std::env::var_os("HNN_OBS_BLAST_CENTRE").is_some();
+            let centre_correction = sample.kind == -1 && crate::observe::improved();
             let rate = if use_rate {
                 estimate
                     .map_or(prior, |r| 0.5 * (r + prior))

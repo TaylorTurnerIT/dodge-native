@@ -74,6 +74,9 @@ pub fn enabled() -> bool {
 pub fn full() -> bool {
     std::env::var("HNN_OBSERVED").is_ok_and(|v| v == "1")
 }
+pub(crate) fn improved() -> bool {
+    std::env::var_os("HNN_OBS_LEGACY").is_none()
+}
 pub fn replace(name: &str) -> bool {
     full() || std::env::var("HNN_OBS_ABLATION").is_ok_and(|v| v == name)
 }
@@ -151,11 +154,7 @@ pub fn feed(game: &NativeGame) {
     let window = std::env::var("HNN_OBS_WINDOW")
         .ok()
         .and_then(|s| s.parse::<usize>().ok())
-        .unwrap_or(if std::env::var_os("HNN_OBS_RATE_LS").is_some() {
-            8
-        } else {
-            3
-        })
+        .unwrap_or(if improved() { 8 } else { 3 })
         .clamp(2, 8);
     CURRENT.with(|c| {
         let mut c = c.borrow_mut();
