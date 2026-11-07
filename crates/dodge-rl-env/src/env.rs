@@ -319,6 +319,15 @@ impl Slot {
     }
 }
 
+fn check_seed_count(seeds: Option<&[u32]>, expected: usize) -> Result<(), EnvError> {
+    match seeds {
+        Some(seeds) if seeds.len() != expected => {
+            Err(EnvError::Config("seeds must have one entry per reset slot"))
+        }
+        _ => Ok(()),
+    }
+}
+
 /// Persistent pool and stable simulation slots. Parallel failures retain all
 /// partially advanced games and poison the whole batch; no rollback is claimed.
 /// The initial construction performs the first fresh reset. `observations()`
@@ -550,9 +559,21 @@ impl VecDodgeEnv {
     /// validated first. Once mutation starts, failed fresh episodes are consumed
     /// and retained; a later explicit reset advances their episode counters.
     pub fn reset_done(&mut self, indices: &[usize]) -> Result<ResetBatch, EnvError> {
+        self.reset_done_seeded(indices, None)
+    }
+
+    /// `reset_done`, optionally starting each game on the caller's seed.
+    /// `seeds`, when given, has one entry per index. Lengths, bounds, duplicates
+    /// and live slots are all checked before any slot changes.
+    pub fn reset_done_seeded(
+        &mut self,
+        indices: &[usize],
+        seeds: Option<&[u32]>,
+    ) -> Result<ResetBatch, EnvError> {
         if self.poisoned {
             return Err(EnvError::Poisoned);
         }
+        check_seed_count(seeds, indices.len())?;
         let mut unique = std::collections::BTreeSet::new();
         for &index in indices {
             let slot = self.slots.get(index).ok_or(EnvError::SlotIndex(index))?;
@@ -563,18 +584,37 @@ impl VecDodgeEnv {
                 return Err(EnvError::SlotNotEnded(index));
             }
         }
-        self.reset_indices(indices, false)
+        self.reset_indices(indices, seeds, false)
     }
 
     pub fn reset_all(&mut self) -> Result<ResetBatch, EnvError> {
-        let indices: Vec<_> = (0..self.slots.len()).collect();
-        self.reset_indices(&indices, true)
+        self.reset_all_seeded(None)
     }
 
-    fn reset_indices(&mut self, indices: &[usize], all: bool) -> Result<ResetBatch, EnvError> {
+    /// `reset_all`, optionally starting slot `i` on `seeds[i]`.
+    pub fn reset_all_seeded(&mut self, seeds: Option<&[u32]>) -> Result<ResetBatch, EnvError> {
+        check_seed_count(seeds, self.slots.len())?;
+        let indices: Vec<_> = (0..self.slots.len()).collect();
+        self.reset_indices(&indices, seeds, true)
+    }
+
+    fn reset_indices(
+        &mut self,
+        indices: &[usize],
+        explicit: Option<&[u32]>,
+        all: bool,
+    ) -> Result<ResetBatch, EnvError> {
         let seeds = indices
             .iter()
-            .map(|&index| {
+            .enumerate()
+            .map(|(position, &index)| {
+                if let Some(explicit) = explicit {
+                    return Ok(SeedMetadata::explicit(
+                        index,
+                        self.slots[index].seed.episode,
+                        explicit[position],
+                    ));
+                }
                 let episode = self.slots[index]
                     .seed
                     .episode
