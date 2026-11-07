@@ -8,6 +8,7 @@ use crate::critic::{CRITIC_FEATURE_COUNT, encode_critic_features};
 use crate::features::{History, Observation, ObservationBatch};
 use crate::seed::{SEED_EXCLUSION_VERSION, SeedMetadata, normalize_seed_exclusions, seed_for};
 use crate::slot_state::SlotState;
+use crate::trace_view::{SampleView, TraceView, latest_sample};
 use crate::velocity_flow::{VELOCITY_FLOW_SIZE, encode_velocity_flow};
 use crate::{EnvConfig, EnvError, MOTION_VERSION, ObservationKind, SEED_STREAM_VERSION, StepInfo};
 
@@ -128,8 +129,12 @@ impl Slot {
         native.patterns_enabled = config.patterns_enabled;
         native.powerups_enabled = config.powerups_enabled;
         native.training = config.training.options();
+        let mut game = NativeGame::new(native);
+        if config.trace {
+            game.set_trace_enabled(true);
+        }
         Self {
-            game: NativeGame::new(native),
+            game,
             seed,
             history: History::default(),
             observation: None,
@@ -404,6 +409,25 @@ impl VecDodgeEnv {
     pub fn slot_state(&self, slot: usize) -> Result<SlotState, EnvError> {
         let slot = self.slots.get(slot).ok_or(EnvError::SlotIndex(slot))?;
         Ok(SlotState::read(&slot.game))
+    }
+
+    /// Turn the gameplay trace on or off for games started by later resets.
+    /// Games already running keep their setting; nothing in a game changes.
+    pub fn set_trace_enabled(&mut self, enabled: bool) {
+        self.config.trace = enabled;
+    }
+
+    /// One slot trace, `None` while that game trace is off.
+    pub fn slot_trace(&self, slot: usize) -> Result<Option<TraceView>, EnvError> {
+        let slot = self.slots.get(slot).ok_or(EnvError::SlotIndex(slot))?;
+        Ok(TraceView::read(&slot.game))
+    }
+
+    /// One slot latest frame sample, `None` while its trace is off or before
+    /// the first gameplay frame.
+    pub fn slot_sample(&self, slot: usize) -> Result<Option<SampleView>, EnvError> {
+        let slot = self.slots.get(slot).ok_or(EnvError::SlotIndex(slot))?;
+        Ok(latest_sample(&slot.game))
     }
 
     pub fn observations(&self) -> Result<ObservationBatch, EnvError> {

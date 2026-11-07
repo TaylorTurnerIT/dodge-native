@@ -11,9 +11,9 @@ use pyo3::{
 
 use crate::{
     BatchInfo, CRITIC_FEATURE_COUNT, CRITIC_FEATURE_VERSION, CRITIC_GROUPS, CounterBatch,
-    Diagnostics, EnvConfig, EnvError, EpisodeInfo, ObservationBatch, ObservationKind, ResetBatch,
-    SeedMetadata, SeedMode, SlotState, StepBatch, StepInfo, TrainingConfig, VELOCITY_FLOW_SIZE,
-    VELOCITY_FLOW_VERSION, VecDodgeEnv,
+    DeathView, Diagnostics, EnvConfig, EnvError, EpisodeInfo, ObservationBatch, ObservationKind,
+    RectView, ResetBatch, SampleView, SeedMetadata, SeedMode, SlotState, StepBatch, StepInfo,
+    TraceView, TrainingConfig, VELOCITY_FLOW_SIZE, VELOCITY_FLOW_VERSION, VecDodgeEnv,
 };
 
 const ENTITY_SCHEMA_VERSION: &str = "dodge_global14_entity80x16_v2_r2";
@@ -338,6 +338,116 @@ fn slot_state<'py>(py: Python<'py>, value: SlotState) -> PyResult<Bound<'py, PyD
     Ok(state)
 }
 
+fn sample_dict<'py>(py: Python<'py>, s: SampleView) -> PyResult<Bound<'py, PyDict>> {
+    let entry = PyDict::new(py);
+    entry.set_item("frame", s.frame)?;
+    entry.set_item("x", s.x)?;
+    entry.set_item("y", s.y)?;
+    entry.set_item("vx", s.vx)?;
+    entry.set_item("vy", s.vy)?;
+    entry.set_item("lethal_rect_gap", s.lethal_rect_gap)?;
+    entry.set_item("pending_rect_gap", s.pending_rect_gap)?;
+    entry.set_item("enemy_gap", s.enemy_gap)?;
+    entry.set_item("enemies", s.enemies)?;
+    entry.set_item("pattern_id", s.pattern_id)?;
+    Ok(entry)
+}
+
+fn rects_list<'py>(py: Python<'py>, rects: Vec<RectView>) -> PyResult<Bound<'py, PyList>> {
+    let list = PyList::empty(py);
+    for rect in rects {
+        list.append(rect)?;
+    }
+    Ok(list)
+}
+
+fn death_dict<'py>(py: Python<'py>, death: DeathView) -> PyResult<Bound<'py, PyDict>> {
+    let entry = PyDict::new(py);
+    entry.set_item("cause", death.cause)?;
+    entry.set_item("frame", death.frame)?;
+    match death.killer {
+        None => entry.set_item("killer", py.None())?,
+        Some(killer) => {
+            let item = PyDict::new(py);
+            item.set_item("personality", killer.personality)?;
+            item.set_item("x", killer.x)?;
+            item.set_item("y", killer.y)?;
+            item.set_item("size", killer.size)?;
+            item.set_item("fyou_spawned", killer.fyou_spawned)?;
+            item.set_item("age", killer.age)?;
+            entry.set_item("killer", item)?;
+        }
+    }
+    entry.set_item("enemies_alive", death.enemies_alive)?;
+    let player = PyDict::new(py);
+    player.set_item("x", death.player.x)?;
+    player.set_item("y", death.player.y)?;
+    player.set_item("vx", death.player.vx)?;
+    player.set_item("vy", death.player.vy)?;
+    player.set_item("size", death.player.size)?;
+    entry.set_item("player", player)?;
+    match death.active_pattern {
+        None => entry.set_item("active_pattern", py.None())?,
+        Some(pattern) => {
+            let item = PyDict::new(py);
+            item.set_item("id", pattern.id)?;
+            item.set_item("type", pattern.pattern_type)?;
+            item.set_item("start", pattern.start)?;
+            item.set_item("since", pattern.since)?;
+            entry.set_item("active_pattern", item)?;
+        }
+    }
+    entry.set_item("rects", rects_list(py, death.rects)?)?;
+    entry.set_item("killer_path", death.killer_path)?;
+    let r = death.recent;
+    let recent = PyDict::new(py);
+    recent.set_item("frame", r.frame)?;
+    recent.set_item("x", r.x)?;
+    recent.set_item("y", r.y)?;
+    recent.set_item("vx", r.vx)?;
+    recent.set_item("vy", r.vy)?;
+    recent.set_item("lethal_rect_gap", r.lethal_rect_gap)?;
+    recent.set_item("pending_rect_gap", r.pending_rect_gap)?;
+    recent.set_item("enemy_gap", r.enemy_gap)?;
+    recent.set_item("enemies", r.enemies)?;
+    recent.set_item("pattern_id", r.pattern_id)?;
+    entry.set_item("recent", recent)?;
+    Ok(entry)
+}
+
+fn trace_dict<'py>(py: Python<'py>, trace: TraceView) -> PyResult<Bound<'py, PyDict>> {
+    let result = PyDict::new(py);
+    result.set_item("frame", trace.frame)?;
+    let triggers = PyList::empty(py);
+    for trigger in trace.fyou_triggers {
+        let item = PyDict::new(py);
+        item.set_item("frame", trigger.frame)?;
+        item.set_item("spawned", trigger.spawned)?;
+        triggers.append(item)?;
+    }
+    result.set_item("fyou_triggers", triggers)?;
+    let patterns = PyList::empty(py);
+    for span in trace.patterns {
+        let item = PyDict::new(py);
+        item.set_item("id", span.id)?;
+        item.set_item("type", span.pattern_type)?;
+        item.set_item("start", span.start)?;
+        item.set_item("end", span.end)?;
+        item.set_item("x", span.x)?;
+        item.set_item("y", span.y)?;
+        item.set_item("rects", rects_list(py, span.rects)?)?;
+        item.set_item("rects_frame", span.rects_frame)?;
+        patterns.append(item)?;
+    }
+    result.set_item("patterns", patterns)?;
+    match trace.death {
+        None => result.set_item("death", py.None())?,
+        Some(death) => result.set_item("death", death_dict(py, death)?)?,
+    }
+    result.set_item("contacts", trace.contacts)?;
+    Ok(result)
+}
+
 fn step_batch<'py>(py: Python<'py>, value: StepBatch) -> PyResult<Bound<'py, PyDict>> {
     let out = PyDict::new(py);
     out.set_item("observations", observation(py, value.observations)?)?;
@@ -393,6 +503,10 @@ fn batch_info<'py>(py: Python<'py>, value: BatchInfo) -> PyResult<Bound<'py, PyD
     out.set_item("observation_kind", observation_name(c.observation))?;
     out.set_item("step_info", step_info_name(c.step_info))?;
     out.set_item("critic_features", c.critic_features)?;
+    // Only present when on, so default output is unchanged.
+    if c.trace {
+        out.set_item("trace", true)?;
+    }
     out.set_item("critic_feature_version", CRITIC_FEATURE_VERSION)?;
     out.set_item("critic_feature_count", CRITIC_FEATURE_COUNT)?;
     out.set_item("velocity_flow_version", VELOCITY_FLOW_VERSION)?;
@@ -465,7 +579,7 @@ struct PyVecDodgeEnv {
 #[pymethods]
 impl PyVecDodgeEnv {
     #[new]
-    #[pyo3(signature = (batch_size=1, action_repeat=4, difficulty=2, patterns_enabled=true, powerups_enabled=true, raw_frame_cap=18_000, num_threads=1, chunk_size=8, render_pixels=false, auxiliary_targets=false, run_seed=0, seeds_by_slot=None, excluded_seed_ranges=None, initial_episode_indices=None, normal_enemies=true, kamikaze_enemies=true, spawn_rate_percent=100, lives=0, observation="entity", step_info="all", critic_features=false))]
+    #[pyo3(signature = (batch_size=1, action_repeat=4, difficulty=2, patterns_enabled=true, powerups_enabled=true, raw_frame_cap=18_000, num_threads=1, chunk_size=8, render_pixels=false, auxiliary_targets=false, run_seed=0, seeds_by_slot=None, excluded_seed_ranges=None, initial_episode_indices=None, normal_enemies=true, kamikaze_enemies=true, spawn_rate_percent=100, lives=0, observation="entity", step_info="all", critic_features=false, trace=false))]
     #[allow(clippy::too_many_arguments)]
     fn new(
         py: Python<'_>,
@@ -490,6 +604,7 @@ impl PyVecDodgeEnv {
         observation: &str,
         step_info: &str,
         critic_features: bool,
+        trace: bool,
     ) -> PyResult<Self> {
         let config = EnvConfig {
             batch_size,
@@ -516,6 +631,7 @@ impl PyVecDodgeEnv {
             observation: observation_kind(observation)?,
             step_info: step_info_kind(step_info)?,
             critic_features,
+            trace,
         };
         // Includes validation, seed preflight, NativeGame::new, bounded startup,
         // initial features, and optional rendering. No Python callbacks occur.
@@ -574,6 +690,35 @@ impl PyVecDodgeEnv {
             .detach(|| self.inner.reset_all_seeded(seeds.as_deref()))
             .map_err(env_error)?;
         reset_batch(py, value)
+    }
+
+    /// Turn the gameplay trace on or off for games that later resets start.
+    /// Games already running keep their setting; no game changes.
+    fn set_trace_enabled(&mut self, enabled: bool) {
+        self.inner.set_trace_enabled(enabled);
+    }
+
+    /// One slot gameplay trace (frame, fyou_triggers, patterns, death,
+    /// contacts), or None while its trace is off. Positions and gaps are
+    /// pixels; a missing gap or pattern is None.
+    fn slot_trace<'py>(
+        &self,
+        py: Python<'py>,
+        slot: usize,
+    ) -> PyResult<Option<Bound<'py, PyDict>>> {
+        let trace = self.inner.slot_trace(slot).map_err(env_error)?;
+        trace.map(|t| trace_dict(py, t)).transpose()
+    }
+
+    /// The latest frame sample of a slot (the keys of one death recent entry),
+    /// or None while its trace is off or before the first gameplay frame.
+    fn slot_sample<'py>(
+        &self,
+        py: Python<'py>,
+        slot: usize,
+    ) -> PyResult<Option<Bound<'py, PyDict>>> {
+        let sample = self.inner.slot_sample(slot).map_err(env_error)?;
+        sample.map(|s| sample_dict(py, s)).transpose()
     }
 
     /// One slot's raw game state: px, py, dpx, dpy, size, ftimer, fy, spd, frz,
