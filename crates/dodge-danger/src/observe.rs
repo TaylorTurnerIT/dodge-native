@@ -78,6 +78,18 @@ pub fn full() -> bool {
 pub(crate) fn improved() -> bool {
     std::env::var_os("HNN_OBS_LEGACY").is_none()
 }
+pub(crate) fn rate_enabled() -> bool {
+    improved()
+        && std::env::var("HNN_OBS_RATE_LS")
+            .ok()
+            .is_none_or(|v| v != "0")
+}
+pub(crate) fn centre_enabled() -> bool {
+    improved()
+        && std::env::var("HNN_OBS_BLAST_CENTRE")
+            .ok()
+            .is_none_or(|v| v != "0")
+}
 pub fn replace(name: &str) -> bool {
     full() || std::env::var("HNN_OBS_ABLATION").is_ok_and(|v| v == name)
 }
@@ -97,6 +109,9 @@ pub(crate) fn tempo_sample(rate: f64) {
     let bin = (frame / 500).min(15);
     TEMPO_COUNT[bin].fetch_add(1, Ordering::Relaxed);
     TEMPO_SUM[bin].fetch_add((rate * 1_000_000.0) as u64, Ordering::Relaxed);
+}
+pub(crate) fn frame() -> usize {
+    CURRENT.with(|c| c.borrow().frame)
 }
 
 /// Test-only comparison against engine labels. Values never feed the planner.
@@ -146,8 +161,8 @@ pub fn feed(game: &NativeGame) {
         return;
     }
     FRAMES.fetch_add(1, Ordering::Relaxed);
-    let serials: Vec<_> = game
-        .enemy_serials()
+    let serials: Vec<_> = std::env::var_os("HNN_OBS_DIAGNOSTIC")
+        .and_then(|_| game.enemy_serials())
         .map(|ids| {
             game.enemies()
                 .iter()
@@ -174,7 +189,7 @@ pub fn feed(game: &NativeGame) {
     let window = std::env::var("HNN_OBS_WINDOW")
         .ok()
         .and_then(|s| s.parse::<usize>().ok())
-        .unwrap_or(if improved() { 8 } else { 3 })
+        .unwrap_or(if rate_enabled() { 8 } else { 3 })
         .clamp(2, 8);
     CURRENT.with(|c| {
         let mut c = c.borrow_mut();
