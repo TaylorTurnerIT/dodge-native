@@ -1,6 +1,7 @@
 //! Frame-to-frame tracking using visible enemy geometry only.
 use std::cell::RefCell;
 use std::collections::VecDeque;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use dodge_core::NativeGame;
 
@@ -16,6 +17,7 @@ pub(crate) struct Sample {
 pub(crate) struct Track {
     pub samples: VecDeque<Sample>,
     pub inside: bool,
+    serial: Option<dodge_core::EnemySerial>,
 }
 
 impl Track {
@@ -51,7 +53,30 @@ struct Observation {
 thread_local! { static CURRENT: RefCell<Observation> = RefCell::new(Observation::default()); }
 
 pub fn enabled() -> bool {
+    full() || std::env::var("HNN_OBS_ABLATION").is_ok_and(|v| !v.is_empty())
+}
+pub fn full() -> bool {
     std::env::var("HNN_OBSERVED").is_ok_and(|v| v == "1")
+}
+pub fn replace(name: &str) -> bool {
+    full() || std::env::var("HNN_OBS_ABLATION").is_ok_and(|v| v == name)
+}
+static FRAMES: AtomicU64 = AtomicU64::new(0);
+static BODY_FRAMES: AtomicU64 = AtomicU64::new(0);
+static PRIOR: AtomicU64 = AtomicU64::new(0);
+static MATCHES: AtomicU64 = AtomicU64::new(0);
+static MISMATCHES: AtomicU64 = AtomicU64::new(0);
+/// Diagnostic counters only; identities are never used to choose a match.
+pub fn report() {
+    let frames = FRAMES.load(Ordering::Relaxed);
+    let bodies = BODY_FRAMES.load(Ordering::Relaxed);
+    eprintln!(
+        "observation: frames={frames} body_frames={bodies} prior_body_frames={} identity_matches={} identity_mismatches={} mismatches_per_1000_frames={:.4}",
+        PRIOR.load(Ordering::Relaxed),
+        MATCHES.load(Ordering::Relaxed),
+        MISMATCHES.load(Ordering::Relaxed),
+        1000.0 * MISMATCHES.load(Ordering::Relaxed) as f64 / frames.max(1) as f64
+    );
 }
 
 pub fn reset() {
@@ -63,6 +88,18 @@ pub fn feed(game: &NativeGame) {
     if !enabled() {
         return;
     }
+    FRAMES.fetch_add(1, Ordering::Relaxed);
+    let serials: Vec<_> = game
+        .enemy_serials()
+        .map(|ids| {
+            game.enemies()
+                .iter()
+                .zip(ids)
+                .filter(|(e, _)| e.personality < 2)
+                .map(|(_, id)| Some(*id))
+                .collect()
+        })
+        .unwrap_or_default();
     let samples: Vec<_> = game
         .enemies()
         .iter()
@@ -74,6 +111,7 @@ pub fn feed(game: &NativeGame) {
             kind: e.personality,
         })
         .collect();
+    BODY_FRAMES.fetch_add(samples.len() as u64, Ordering::Relaxed);
     let window = std::env::var("HNN_OBS_WINDOW")
         .ok()
         .and_then(|s| s.parse::<usize>().ok())
@@ -113,7 +151,19 @@ pub fn feed(game: &NativeGame) {
                 let mut track = matches[j].map(|i| old[i].clone()).unwrap_or_else(|| Track {
                     samples: VecDeque::new(),
                     inside: false,
+                    serial: None,
                 });
+                let serial = serials.get(j).copied().flatten();
+                if let (Some(old), Some(now)) = (track.serial, serial) {
+                    MATCHES.fetch_add(1, Ordering::Relaxed);
+                    if old != now {
+                        MISMATCHES.fetch_add(1, Ordering::Relaxed);
+                    }
+                }
+                track.serial = serial;
+                if track.samples.is_empty() {
+                    PRIOR.fetch_add(1, Ordering::Relaxed);
+                }
                 track.inside |= (1.0..=128.0).contains(&sample.x);
                 track.samples.push_back(sample);
                 while track.samples.len() > window {
@@ -127,4 +177,28 @@ pub fn feed(game: &NativeGame) {
 
 pub(crate) fn tracks() -> Vec<Track> {
     CURRENT.with(|c| c.borrow().tracks.clone())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn linear_fit_and_size_trend() {
+        let mut track = Track {
+            samples: VecDeque::new(),
+            inside: false,
+            serial: None,
+        };
+        assert_eq!(track.velocity(), (0.0, 0.0));
+        for i in 0..5 {
+            track.samples.push_back(Sample {
+                x: 4.0 + i as f64 * 0.5,
+                y: 9.0 - i as f64,
+                size: 5.0 - i as f64,
+                kind: -1,
+            });
+        }
+        assert_eq!(track.velocity(), (0.5, -1.0));
+        assert!(!track.growing());
+    }
 }

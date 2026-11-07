@@ -130,7 +130,7 @@ fn curve_at(points: &[[f64; 2]], x: f64) -> Option<f64> {
 impl PhysicsModel {
     /// Bounce speeds (static rectangle, moving rectangle) for the game as it stands now.
     fn bounce_speeds(&self, game: &NativeGame, law: &RectLaw) -> (f64, f64) {
-        let speed = if crate::observe::enabled() {
+        let speed = if crate::observe::replace("bounce") {
             return (law.bounce_static, law.bounce_moving);
         } else {
             game.privileged_view().speed.to_double()
@@ -278,7 +278,15 @@ fn read_rects(game: &NativeGame) -> Vec<RectBody> {
                     } else {
                         0.0
                     },
-                    moving: now[5] > 0.5,
+                    moving: if crate::observe::full() {
+                        (now[0] - before[0]).abs()
+                            + (now[1] - before[1]).abs()
+                            + (now[2] - before[2]).abs()
+                            + (now[3] - before[3]).abs()
+                            > 1e-6
+                    } else {
+                        now[5] > 0.5
+                    },
                 }
             })
             .collect()
@@ -522,10 +530,31 @@ fn gaussian() -> f64 {
 }
 
 fn read_bodies(game: &NativeGame) -> Vec<Body> {
-    let mut bodies = if crate::observe::enabled() {
+    let mut bodies = if crate::observe::full() {
         read_observed_bodies()
     } else {
-        read_exact_bodies(game)
+        let mut exact = read_exact_bodies(game);
+        if crate::observe::enabled() {
+            for (body, observed) in exact.iter_mut().zip(read_observed_bodies()) {
+                if crate::observe::replace("velocity") {
+                    body.vx = observed.vx / body.rate.abs().max(0.2);
+                    body.vy = observed.vy / body.rate.abs().max(0.2);
+                }
+                if crate::observe::replace("clock") {
+                    body.rate = 1.0;
+                }
+                if crate::observe::replace("growing") {
+                    body.growing = observed.growing;
+                }
+                if crate::observe::replace("dying") {
+                    body.dying = observed.dying;
+                }
+                if crate::observe::replace("inside") {
+                    body.inside = observed.inside;
+                }
+            }
+        }
+        exact
     };
     let sigma = noise_sigma();
     if sigma > 0.0 {
