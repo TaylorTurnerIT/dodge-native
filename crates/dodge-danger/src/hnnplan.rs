@@ -206,7 +206,13 @@ pub fn rect_snapshot(game: &NativeGame) -> RectSnapshot {
     let Some(pattern) = view.active_pattern else {
         return Vec::new();
     };
-    let moving = if pattern.pattern_type == 1 { 1.0 } else { 0.0 };
+    let moving = if crate::observe::full() {
+        0.0 // Movement is derived from consecutive rectangle boxes in read_rects.
+    } else if pattern.pattern_type == 1 {
+        1.0
+    } else {
+        0.0
+    };
     pattern
         .rects
         .iter()
