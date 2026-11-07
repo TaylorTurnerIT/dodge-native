@@ -65,6 +65,7 @@ impl Track {
 #[derive(Default)]
 struct Observation {
     tracks: Vec<Track>,
+    frame: usize,
 }
 thread_local! { static CURRENT: RefCell<Observation> = RefCell::new(Observation::default()); }
 
@@ -88,6 +89,15 @@ static MISMATCHES: AtomicU64 = AtomicU64::new(0);
 static DIAG_COUNT: [AtomicU64; 4] = [const { AtomicU64::new(0) }; 4];
 static DIAG_VELOCITY: [AtomicU64; 4] = [const { AtomicU64::new(0) }; 4];
 static DIAG_RATE: [AtomicU64; 4] = [const { AtomicU64::new(0) }; 4];
+static TEMPO_COUNT: [AtomicU64; 16] = [const { AtomicU64::new(0) }; 16];
+static TEMPO_SUM: [AtomicU64; 16] = [const { AtomicU64::new(0) }; 16];
+
+pub(crate) fn tempo_sample(rate: f64) {
+    let frame = CURRENT.with(|c| c.borrow().frame);
+    let bin = (frame / 500).min(15);
+    TEMPO_COUNT[bin].fetch_add(1, Ordering::Relaxed);
+    TEMPO_SUM[bin].fetch_add((rate * 1_000_000.0) as u64, Ordering::Relaxed);
+}
 
 /// Test-only comparison against engine labels. Values never feed the planner.
 pub(crate) fn diagnostic(category: usize, velocity_error: f64, rate_error: f64) {
@@ -112,6 +122,16 @@ pub fn report() {
             eprintln!("diagnostic {label}: count={count} velocity_mae_px_per_frame={:.5} rate_mape_percent={:.2}",
                 DIAG_VELOCITY[i].load(Ordering::Relaxed) as f64 / count as f64 / 1_000_000.0,
                 DIAG_RATE[i].load(Ordering::Relaxed) as f64 / count as f64 / 10_000.0);
+        }
+    }
+    for i in 0..16 {
+        let count = TEMPO_COUNT[i].load(Ordering::Relaxed);
+        if count > 0 {
+            eprintln!(
+                "tempo bin={} count={count} mean={:.5}",
+                i * 500,
+                TEMPO_SUM[i].load(Ordering::Relaxed) as f64 / count as f64 / 1_000_000.0
+            );
         }
     }
 }
@@ -158,6 +178,7 @@ pub fn feed(game: &NativeGame) {
         .clamp(2, 8);
     CURRENT.with(|c| {
         let mut c = c.borrow_mut();
+        c.frame += 1;
         let old = std::mem::take(&mut c.tracks);
         let mut candidates = Vec::new();
         for (i, track) in old.iter().enumerate() {

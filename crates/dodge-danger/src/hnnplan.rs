@@ -129,9 +129,22 @@ fn curve_at(points: &[[f64; 2]], x: f64) -> Option<f64> {
 
 impl PhysicsModel {
     /// Bounce speeds (static rectangle, moving rectangle) for the game as it stands now.
-    fn bounce_speeds(&self, game: &NativeGame, law: &RectLaw) -> (f64, f64) {
+    fn bounce_speeds(&self, game: &NativeGame, law: &RectLaw, bodies: &[Body]) -> (f64, f64) {
         let speed = if crate::observe::replace("bounce") {
-            return (law.bounce_static, law.bounce_moving);
+            if crate::observe::full() && std::env::var_os("HNN_OBS_BOUNCE_CURVE").is_some() {
+                let mut rates: Vec<_> = bodies
+                    .iter()
+                    .filter(|body| body.moves && body.kind == 0)
+                    .map(|body| body.rate)
+                    .collect();
+                rates.sort_by(f64::total_cmp);
+                let Some(speed) = rates.get(rates.len() / 2) else {
+                    return (law.bounce_static, law.bounce_moving);
+                };
+                *speed
+            } else {
+                return (law.bounce_static, law.bounce_moving);
+            }
         } else {
             game.privileged_view().speed.to_double()
         };
@@ -644,6 +657,9 @@ fn read_observed_bodies(model: &PhysicsModel) -> Vec<Body> {
     let mut population: Vec<_> = rates.iter().flatten().copied().collect();
     population.sort_by(f64::total_cmp);
     let prior = population.get(population.len() / 2).copied().unwrap_or(1.0);
+    if std::env::var_os("HNN_OBS_TEMPO_DATA").is_some() && !population.is_empty() {
+        crate::observe::tempo_sample(prior);
+    }
     tracks
         .into_iter()
         .zip(rates)
@@ -886,7 +902,7 @@ fn rollout(
     let mut enemies = bodies.to_vec();
     let mut rects = read_rects(game);
     let law = model.rect;
-    let speeds = law.map_or((0.0, 0.0), |law| model.bounce_speeds(game, &law));
+    let speeds = law.map_or((0.0, 0.0), |law| model.bounce_speeds(game, &law, bodies));
     let rect_count = rects.len();
     let mut cost = 0.0;
     let mut clearance = f64::INFINITY;
