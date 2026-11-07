@@ -650,6 +650,8 @@ fn read_observed_bodies(model: &PhysicsModel) -> Vec<Body> {
         .filter_map(|(track, estimate)| {
             let sample = *track.samples.back()?;
             let (mut vx, mut vy) = track.velocity();
+            let centre_correction =
+                sample.kind == -1 && std::env::var_os("HNN_OBS_BLAST_CENTRE").is_some();
             let rate = if use_rate {
                 estimate
                     .map_or(prior, |r| 0.5 * (r + prior))
@@ -662,9 +664,18 @@ fn read_observed_bodies(model: &PhysicsModel) -> Vec<Body> {
                     let previous = track.samples[track.samples.len() - 2];
                     vx = sample.x - previous.x;
                     vy = sample.y - previous.y;
+                    if centre_correction {
+                        let shift = (sample.size - previous.size) * 0.5;
+                        vx += shift;
+                        vy += shift;
+                    }
                 }
                 vx /= rate;
                 vy /= rate;
+            } else if centre_correction {
+                let shift = track.size_velocity() * 0.5;
+                vx += shift;
+                vy += shift;
             }
             let moves = sample.kind >= 0;
             Some(Body {

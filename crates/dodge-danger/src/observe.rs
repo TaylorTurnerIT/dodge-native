@@ -23,6 +23,20 @@ pub(crate) struct Track {
 }
 
 impl Track {
+    pub fn size_velocity(&self) -> f64 {
+        let n = self.samples.len();
+        if n < 2 {
+            return 0.0;
+        }
+        let mean = (n - 1) as f64 / 2.0;
+        let denom: f64 = (0..n).map(|i| (i as f64 - mean).powi(2)).sum();
+        self.samples
+            .iter()
+            .enumerate()
+            .map(|(i, s)| (i as f64 - mean) * s.size)
+            .sum::<f64>()
+            / denom
+    }
     pub fn velocity(&self) -> (f64, f64) {
         let n = self.samples.len();
         if n < 2 {
