@@ -6,12 +6,19 @@ use std::collections::BTreeMap;
 
 fn main() -> Result<(), String> {
     let args: Vec<_> = std::env::args().collect();
-    if args.len() != 3 {
-        return Err("usage: fidelity_hard MODEL DEATHS.ndjson".into());
+    if !(3..=4).contains(&args.len()) {
+        return Err("usage: fidelity_hard MODEL DEATHS.ndjson [DRIVER_MODEL]".into());
     }
     let model = hnnplan::PhysicsModel::from_json(
         &std::fs::read_to_string(&args[1]).map_err(|e| e.to_string())?,
     )?;
+    let driver = if args.len() == 4 {
+        hnnplan::PhysicsModel::from_json(
+            &std::fs::read_to_string(&args[3]).map_err(|e| e.to_string())?,
+        )?
+    } else {
+        model.clone()
+    };
     let text = std::fs::read_to_string(&args[2]).map_err(|e| e.to_string())?;
     let mut deaths = BTreeMap::new();
     for line in text.lines().filter(|line| !line.trim().is_empty()) {
@@ -188,7 +195,7 @@ fn main() -> Result<(), String> {
                         );
                     }
                 }
-                let (action, _) = hnnplan::choose(&model, &game, 36);
+                let (action, _) = hnnplan::choose(&driver, &game, 36);
                 history = hnnplan::rect_snapshot(&game);
                 if game
                     .advance_frame_headless(action.mask())

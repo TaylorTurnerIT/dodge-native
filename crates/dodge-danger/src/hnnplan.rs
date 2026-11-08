@@ -175,6 +175,9 @@ impl PhysicsModel {
 struct RectLaw {
     sh_step: f64,
     lethal_at: f64,
+    /// Complete static lethal plateau length, measured from observed trajectories.
+    #[serde(default)]
+    lethal_frames: u32,
     /// Speed an enemy leaves a full-progress rectangle at, measured per rectangle type
     /// (`hnn/bounce.py`). Zero turns the bounce off.
     #[serde(default)]
@@ -258,10 +261,14 @@ thread_local! {
     /// The previous frame's rectangles. The planner needs one frame of history to see how
     /// a rectangle is moving, because rectangle velocity is not part of what a player sees.
     static HISTORY: std::cell::RefCell<RectSnapshot> = const { std::cell::RefCell::new(Vec::new()) };
+    static RECT_AGES: std::cell::RefCell<(Option<u32>, RectSnapshot, Vec<Option<u32>>)> = const { std::cell::RefCell::new((None, Vec::new(), Vec::new())) };
 }
 
 /// Tell the planner what the rectangles looked like one frame ago.
 pub fn set_history(previous: RectSnapshot) {
+    if previous.is_empty() {
+        RECT_AGES.with(|slot| *slot.borrow_mut() = (None, Vec::new(), Vec::new()));
+    }
     HISTORY.with(|slot| *slot.borrow_mut() = previous);
 }
 
@@ -276,6 +283,7 @@ struct RectBody {
     vw: f64,
     vh: f64,
     progress: f64,
+    lethal_age: Option<u32>,
     /// +1 rising, -1 falling, 0 steady (from the change since the previous frame).
     trend: f64,
     moving: bool,
@@ -286,6 +294,22 @@ fn read_rects(game: &NativeGame) -> Vec<RectBody> {
     HISTORY.with(|slot| {
         let previous = slot.borrow();
         let known = previous.len() == current.len();
+        let ages = RECT_AGES.with(|slot| {
+            let mut track = slot.borrow_mut();
+            let frame = game.survival_frames();
+            if track.0 == Some(frame) && track.1 == current { return track.2.clone(); }
+            let consecutive = track.0.and_then(|f| f.checked_add(1)) == Some(frame)
+                && track.1 == *previous && known;
+            let ages: Vec<_> = current.iter().enumerate().map(|(index, now)| {
+                if !known || now[5] > 0.5 || now[4] < 1.999 { return None; }
+                let before = previous[index];
+                if before[..4] != now[..4] { return None; }
+                if before[4] < 1.999 { return Some(1); }
+                if consecutive { track.2.get(index).copied().flatten().map(|age| age + 1) } else { None }
+            }).collect();
+            *track = (Some(frame), current.clone(), ages.clone());
+            ages
+        });
         current
             .iter()
             .enumerate()
@@ -302,6 +326,7 @@ fn read_rects(game: &NativeGame) -> Vec<RectBody> {
                     vw: now[2] - before[2],
                     vh: now[3] - before[3],
                     progress: now[4],
+                    lethal_age: ages[index],
                     trend: if change > 1e-3 {
                         1.0
                     } else if change < -1e-3 {
@@ -1206,8 +1231,16 @@ fn rollout(
                     }
                 }
                 let was_lethal = rect_lethal(rect, &law);
+                if law.lethal_frames > 0 && !rect.moving && rect.lethal_age.is_some_and(|age| age >= law.lethal_frames) {
+                    rect.trend = -1.0;
+                }
                 rect.progress =
                     (rect.progress + rect.trend * law.sh_step).clamp(0.0, law.lethal_at);
+                if !rect.moving && rect.progress >= law.lethal_at - 1e-6 {
+                    rect.lethal_age = if was_lethal { rect.lethal_age.map(|age| age + 1) } else { Some(1) };
+                } else {
+                    rect.lethal_age = None;
+                }
                 if rect_lethal(rect, &law) {
                     gap = gap.min(rect_gap(px, py, size, rect));
                     // Measured from data: when a static rectangle turns lethal, 46 of 47

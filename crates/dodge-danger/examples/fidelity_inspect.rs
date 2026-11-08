@@ -4,12 +4,22 @@ use dodge_danger::{hnnplan, start_game};
 
 fn main() -> Result<(), String> {
     let a: Vec<_> = std::env::args().collect();
-    if a.len() != 7 {
-        return Err("usage: fidelity_inspect MODEL SEED DIFFICULTY FRAME SEQUENCE HORIZON".into());
+    if !(7..=8).contains(&a.len()) {
+        return Err(
+            "usage: fidelity_inspect MODEL SEED DIFFICULTY FRAME SEQUENCE HORIZON [DRIVER_MODEL]"
+                .into(),
+        );
     }
     let model = hnnplan::PhysicsModel::from_json(
         &std::fs::read_to_string(&a[1]).map_err(|e| e.to_string())?,
     )?;
+    let driver = if a.len() == 8 {
+        hnnplan::PhysicsModel::from_json(
+            &std::fs::read_to_string(&a[7]).map_err(|e| e.to_string())?,
+        )?
+    } else {
+        model.clone()
+    };
     let seed: u32 = a[2].parse().map_err(|_| "seed")?;
     let difficulty: u8 = a[3].parse().map_err(|_| "difficulty")?;
     let frame: u32 = a[4].parse().map_err(|_| "frame")?;
@@ -31,7 +41,7 @@ fn main() -> Result<(), String> {
     for _ in 0..frame {
         hnnplan::set_history(history.clone());
         dodge_danger::observe::feed(&game);
-        let (action, _) = hnnplan::choose(&model, &game, 36);
+        let (action, _) = hnnplan::choose(&driver, &game, 36);
         history = hnnplan::rect_snapshot(&game);
         if game
             .advance_frame_headless(action.mask())
