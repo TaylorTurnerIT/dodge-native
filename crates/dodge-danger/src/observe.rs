@@ -1197,6 +1197,11 @@ mod tests {
         assert!((fit.y - 17.8).abs() < 1e-8);
         assert!((fit.vy + 0.2).abs() < 1e-8);
         assert!(variance > 0.0);
+        let last = history.back().unwrap().observation.unwrap();
+        let track = Track { samples: VecDeque::from([last]), inside: true, id: 1, age: 12,
+            speed_factor: 1.0, serial: None, filter: None, horizon: history,
+            variance: 0.0, event_age: usize::MAX, missed: 0, kinds: VecDeque::new() };
+        assert!((pooled_horizon_rate(&[track]).unwrap() - 1.0).abs() < 1e-7);
     }
 
     #[test]
