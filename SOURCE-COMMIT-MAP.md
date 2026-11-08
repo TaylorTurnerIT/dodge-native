@@ -6,5 +6,6 @@
 | `2c97d3ff96ef578a94b21c76d9fa712af69c4633` | `70f730f7affa06a8f8e2b62197c2ec91ed9d2782` | Final core and RL environment source diff, with evidence files excluded. |
 | `e991ea8c2f41775ee7d9dfc43bdc96f3447005c3` | `80a6e335264e17d27f615d27d57e964c0c4ab950` | SpaceBot, its overlay and the bot registry (with m0.py) from LaunchSpark/DodgeAI main, under learning/dodge/heuristics. |
 | `08e728ab74698d0bd8561610ec967268b0065509` | `80a6e335264e17d27f615d27d57e964c0c4ab950` | PPO trainer from LaunchSpark/DodgeAI main: train_ppo.py, the env, policies, critic, rewards, seeds, schedule, retention, evaluate, lineage and resume modules, tools and tests, under learning/. Byte for byte; the commits after it adapt it to dodge_rl. |
+| `2f54a3279bbce1ff976b57169bd5c42b5ac0e814` | `80a6e335264e17d27f615d27d57e964c0c4ab950` | Training dashboard from LaunchSpark/DodgeAI main: dashboard.py, the backend modules (dashboard, charts, death_paths, pattern_replay, runfile), play.py, watch_ppo.py, render_run.py, their tests and the React/Vite web UI under learning/web. Byte for byte; the commits after it adapt it to dodge_rl. |
 
 This mapping is recorded in a later commit so it does not contain its own commit hash.

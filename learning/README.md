@@ -12,6 +12,7 @@ Python 3.9+ virtualenv):
 pip install ./crates/dodge-rl-env        # or: cd crates/dodge-rl-env && maturin develop --release
 pip install -r learning/requirements.txt  # numpy, pygame, pytest
 pip install -r learning/requirements-train.txt  # also torch, stable-baselines3 (training only)
+pip install -r learning/requirements-dashboard.txt  # training + fastapi, uvicorn, altair, httpx (dashboard)
 ```
 
 ## SpaceBot
@@ -69,12 +70,42 @@ The engine tests skip if `dodge_rl` is not installed. The checkpoint tests
 local models from `learning/artifacts/models` and skip when they are absent;
 set `DODGE_MODELS_DIR` to read them from another directory.
 
+## Dashboard
+
+A browser dashboard for training: live charts, the game, reward and training
+panels, model save/load, a new-model dialog, evaluation and death-path jobs, and
+a Heuristics dialog that opens a hand-written bot (SpaceBot, m0) in a window under
+the current game settings, with its own overlay if you ask for it.
+
+```sh
+pip install -r learning/requirements-dashboard.txt
+cd learning/web && pnpm install --frozen-lockfile && pnpm run build   # once
+cd .. && python dashboard.py                         # http://127.0.0.1:8765
+python dashboard.py --architecture velocity-flow-v2 --envs 32 --no-browser
+```
+
+`dashboard.py --help` lists the game-setting flags (they default to the last
+saved `game-config.json`), `--host`, `--port` and `--models-dir`. The backend
+serves the built page from `learning/web/dist`. For front-end work run
+`pnpm run dev` in `learning/web` (Vite on port 5173, proxying `/api` and the
+live socket to the dashboard on 8765); `pnpm run lint` checks the sources.
+
+The death-path and pattern-replay jobs record a frozen policy on fixed seeds
+with the engine trace (`slot_trace`) and replay any pattern appearance from its
+seed and decisions, drawing it with `render`. A game that reaches the frame cap
+ends as a truncation, and only an ended slot restarts, so a batch restarts its
+ended slots on throwaway seeds.
+
+Other tools: `watch_ppo.py MODEL.zip` watches a checkpoint play;
+`play.py` is for playing yourself; `watch_heuristic.py BOT --record game.mp4`
+or `--save-run game.run.gz` record a bot, and `render_run.py game.run.gz --out
+game.mp4` turns a saved run into a video. Runs saved on the old `dodge_native`
+engine cannot be rendered here: the new engine draws the player sprite larger,
+so their pixel checksums fail at the first frame. Save them again.
+
 ## Not ported yet
 
-Recording a window as video (`--record`) and saving a replayable run
-(`--save-run`, `render_run.py`), the Pygame/web dashboard, `watch_ppo.py`, the
-death-path and pattern-replay tools and
-the Colab setup are still in DodgeAI.
+The Colab setup (`colab/`, `colab_dashboard.py`) is still in DodgeAI.
 
 ## Credit
 
