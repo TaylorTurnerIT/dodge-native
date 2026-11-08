@@ -790,6 +790,7 @@ fn read_observed_bodies(model: &PhysicsModel, difficulty: u8) -> Vec<Body> {
                     } else {
                         sample.size
                     },
+                    uncertainty: 0.0,
                     kind: usize::from(sample.kind == 1),
                     rate: global * factor,
                     moves,
