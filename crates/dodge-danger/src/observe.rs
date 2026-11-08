@@ -172,6 +172,7 @@ fn horizon_fit(history: &VecDeque<HorizonSample>, variance: f64) -> Option<(Filt
     let (mut ox, mut oy, mut ovx, mut ovy) = (0.0, 0.0, 0.0, 0.0);
     let (mut n, mut sb, mut sbb, mut sx, mut sy, mut sbx, mut sby) =
         (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    let (mut sxx, mut syy) = (0.0, 0.0);
     for (i, item) in history.iter().enumerate() {
         if i > 0 {
             let force = history[i - 1].force;
@@ -187,6 +188,7 @@ fn horizon_fit(history: &VecDeque<HorizonSample>, variance: f64) -> Option<(Filt
             let y = sample.y - oy;
             n += 1.0; sb += basis; sbb += basis * basis;
             sx += x; sy += y; sbx += basis * x; sby += basis * y;
+            sxx += x * x; syy += y * y;
         }
     }
     let det = n * sbb - sb * sb;
@@ -195,7 +197,11 @@ fn horizon_fit(history: &VecDeque<HorizonSample>, variance: f64) -> Option<(Filt
     let vy = (n * sby - sb * sy) / det;
     let x = (sx - vx * sb) / n + basis * vx + ox;
     let y = (sy - vy * sb) / n + basis * vy + oy;
-    let pos_var = variance * (sbb - 2.0 * basis * sb + n * basis * basis) / det;
+    let ix = (sx - vx * sb) / n;
+    let iy = (sy - vy * sb) / n;
+    let residual = (sxx + syy - ix * sx - iy * sy - vx * sbx - vy * sby).max(0.0);
+    let fitted_variance = if n > 2.0 { (residual / (2.0 * (n - 2.0))).max(variance) } else { variance };
+    let pos_var = fitted_variance * (sbb - 2.0 * basis * sb + n * basis * basis) / det;
     Some((Filter { x, y, vx: velocity_basis * vx + ovx, vy: velocity_basis * vy + ovy }, pos_var.max(0.0)))
 }
 
