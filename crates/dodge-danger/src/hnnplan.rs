@@ -582,6 +582,7 @@ struct Body {
     vx: f64,
     vy: f64,
     size: f64,
+    uncertainty: f64,
     kind: usize,
     rate: f64,
     moves: bool,
