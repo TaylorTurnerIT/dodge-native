@@ -401,6 +401,7 @@ fn jitter_edges(frame: usize, seed: u64, index: usize, mut rect: [f64; 6]) -> [f
     rect
 }
 
+#[derive(Clone)]
 struct Noise {
     rng: u64,
     phantoms: Vec<(Sample, u8)>,
@@ -478,8 +479,8 @@ impl Noise {
     }
 }
 
-#[derive(Default)]
-struct Observation {
+#[derive(Clone, Default)]
+pub(crate) struct Observation {
     tracks: Vec<Track>,
     frame: usize,
     next_id: u64,
@@ -491,6 +492,8 @@ struct Observation {
     uncertainty: f64,
 }
 thread_local! { static CURRENT: RefCell<Observation> = RefCell::new(Observation::default()); }
+pub(crate) fn snapshot() -> Observation { CURRENT.with(|c| c.borrow().clone()) }
+pub(crate) fn restore(snapshot: Observation) { CURRENT.with(|c| *c.borrow_mut() = snapshot); }
 // Engine labels here are evaluation-only and never feed tracking or planning.
 thread_local! { static BOUNCE_LABELS: RefCell<HashMap<u64, (usize, f64, f64, usize)>> = RefCell::new(HashMap::new()); }
 

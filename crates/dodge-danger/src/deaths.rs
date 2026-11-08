@@ -265,6 +265,8 @@ fn study_game(config: &DangerConfig, seed: u32) -> Result<Option<DeathCase>, Str
     start_game(&mut game)?;
     let mut rng = PrivateRng::new(seed);
     let mut history: VecDeque<NativeGame> = VecDeque::with_capacity(HISTORY + 1);
+    let preserve_observations = std::env::var("HNN_DEATHS_OBS_SNAPSHOT").ok().as_deref() == Some("1");
+    let mut observations = VecDeque::with_capacity(HISTORY + 1);
     let mut frame = 0_u32;
     let goal = (PLAYFIELD / 2.0, PLAYFIELD / 2.0);
     let mut rect_memory = hnnplan::RectSnapshot::new();
@@ -279,6 +281,10 @@ fn study_game(config: &DangerConfig, seed: u32) -> Result<Option<DeathCase>, Str
         }
         hnnplan::set_history(rect_memory.clone());
         crate::observe::feed(&game);
+        if preserve_observations {
+            observations.push_back(crate::observe::snapshot());
+            if observations.len() > HISTORY { observations.pop_front(); }
+        }
         let decision = decide(
             &game,
             goal,
@@ -331,9 +337,13 @@ fn study_game(config: &DangerConfig, seed: u32) -> Result<Option<DeathCase>, Str
     } else {
         Vec::new()
     });
-    crate::observe::reset();
-    for state in &states[chosen.saturating_sub(4)..=chosen] {
-        crate::observe::feed(state);
+    if preserve_observations {
+        crate::observe::restore(observations[chosen].clone());
+    } else {
+        crate::observe::reset();
+        for state in &states[chosen.saturating_sub(4)..=chosen] {
+            crate::observe::feed(state);
+        }
     }
     analyse(
         model,
