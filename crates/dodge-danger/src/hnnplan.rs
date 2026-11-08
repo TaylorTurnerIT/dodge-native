@@ -1113,6 +1113,7 @@ fn apply_events(model: &PhysicsModel, enemies: &mut Vec<Body>) {
 fn hits(px: f64, py: f64, size: f64, body: &Body) -> bool {
     static MARGIN_K: OnceLock<f64> = OnceLock::new();
     static OBSERVED: OnceLock<bool> = OnceLock::new();
+    static SMOOTHER: OnceLock<bool> = OnceLock::new();
     let k = *MARGIN_K.get_or_init(|| {
         std::env::var("HNN_MARGIN_K")
             .ok()
@@ -1122,7 +1123,7 @@ fn hits(px: f64, py: f64, size: f64, body: &Body) -> bool {
             .clamp(0.0, 10.0)
     });
     let size = if k > 0.0 && *OBSERVED.get_or_init(crate::observe::full) {
-        size + k * if std::env::var("HNN_OBS_SMOOTHER").ok().as_deref() == Some("1") {
+        size + k * if *SMOOTHER.get_or_init(|| std::env::var("HNN_OBS_SMOOTHER").ok().as_deref() == Some("1")) {
             body.uncertainty
         } else {
             crate::observe::position_uncertainty()
