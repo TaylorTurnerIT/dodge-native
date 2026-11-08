@@ -1,8 +1,8 @@
 //! Frame-to-frame tracking using visible enemy geometry only.
 use std::cell::RefCell;
 use std::collections::VecDeque;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::OnceLock;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use dodge_core::NativeGame;
 use serde::Deserialize;
@@ -67,6 +67,114 @@ impl Track {
     }
 }
 
+#[derive(Clone, Copy)]
+struct NoiseConfig {
+    sigma: f64,
+    quantize: bool,
+    dropout: f64,
+    confusion: f64,
+    phantom_rate: f64,
+}
+
+impl NoiseConfig {
+    fn from_env() -> Option<Self> {
+        if std::env::var("HNN_NOISE").ok().as_deref() != Some("1") {
+            return None;
+        }
+        let number = |name: &str| {
+            std::env::var(name)
+                .ok()
+                .and_then(|v| v.parse::<f64>().ok())
+                .filter(|v| v.is_finite())
+                .unwrap_or(0.0)
+        };
+        Some(Self {
+            sigma: number("HNN_NOISE_SIGMA").max(0.0),
+            quantize: std::env::var("HNN_NOISE_QUANTIZE").ok().as_deref() == Some("1"),
+            dropout: number("HNN_NOISE_DROPOUT").clamp(0.0, 1.0),
+            confusion: number("HNN_NOISE_CONFUSION").clamp(0.0, 1.0),
+            phantom_rate: number("HNN_NOISE_PHANTOM_RATE").clamp(0.0, 1.0),
+        })
+    }
+}
+
+struct Noise {
+    rng: u64,
+    phantoms: Vec<(Sample, u8)>,
+}
+
+impl Default for Noise {
+    fn default() -> Self {
+        let seed = std::env::var("HNN_NOISE_SEED")
+            .ok()
+            .and_then(|v| v.parse::<u64>().ok())
+            .unwrap_or(1847);
+        Self {
+            rng: seed,
+            phantoms: Vec::new(),
+        }
+    }
+}
+
+impl Noise {
+    fn uniform(&mut self) -> f64 {
+        self.rng = self.rng.wrapping_add(0x9e3779b97f4a7c15);
+        let mut z = self.rng;
+        z = (z ^ (z >> 30)).wrapping_mul(0xbf58476d1ce4e5b9);
+        z = (z ^ (z >> 27)).wrapping_mul(0x94d049bb133111eb);
+        ((z ^ (z >> 31)) >> 11) as f64 / ((1_u64 << 53) as f64)
+    }
+    fn normal(&mut self) -> f64 {
+        let u = (1.0 - self.uniform()).max(f64::MIN_POSITIVE);
+        (-2.0 * u.ln()).sqrt() * (std::f64::consts::TAU * self.uniform()).cos()
+    }
+    fn apply(
+        &mut self,
+        config: NoiseConfig,
+        samples: Vec<(Sample, Option<dodge_core::EnemySerial>)>,
+        player: (f64, f64),
+    ) -> Vec<(Sample, Option<dodge_core::EnemySerial>)> {
+        let mut out = Vec::new();
+        for (mut sample, serial) in samples {
+            // Explosions are not enemy detections, but their geometry is still visible.
+            if sample.kind >= 0 && self.uniform() < config.dropout {
+                continue;
+            }
+            sample.x += config.sigma * self.normal();
+            sample.y += config.sigma * self.normal();
+            if config.quantize {
+                sample.x = sample.x.round();
+                sample.y = sample.y.round();
+                sample.size = sample.size.round();
+            }
+            if sample.kind >= 0 && self.uniform() < config.confusion {
+                sample.kind = 1 - sample.kind;
+            }
+            out.push((sample, serial));
+        }
+        if self.uniform() < config.phantom_rate {
+            let sample = Sample {
+                x: 128.0 * self.uniform(),
+                y: 128.0 * self.uniform(),
+                size: 8.0,
+                kind: if self.uniform() < 0.5 { 0 } else { 1 },
+                player_x: player.0,
+                player_y: player.1,
+            };
+            let lifetime = 1 + (self.uniform() * 3.0) as u8;
+            self.phantoms.push((sample, lifetime));
+        }
+        for (sample, left) in &mut self.phantoms {
+            sample.player_x = player.0;
+            sample.player_y = player.1;
+            out.push((*sample, None));
+            *left -= 1;
+        }
+        self.phantoms.retain(|(_, left)| *left > 0);
+        out
+    }
+}
+
 #[derive(Default)]
 struct Observation {
     tracks: Vec<Track>,
@@ -74,6 +182,7 @@ struct Observation {
     next_id: u64,
     global_rate: f64,
     rate_frame: usize,
+    noise: Noise,
 }
 thread_local! { static CURRENT: RefCell<Observation> = RefCell::new(Observation::default()); }
 
@@ -190,9 +299,11 @@ pub fn report() {
     for (i, label) in ["new", "abrupt", "blast", "other"].iter().enumerate() {
         let count = DIAG_COUNT[i].load(Ordering::Relaxed);
         if count > 0 {
-            eprintln!("diagnostic {label}: count={count} velocity_mae_px_per_frame={:.5} rate_mape_percent={:.2}",
+            eprintln!(
+                "diagnostic {label}: count={count} velocity_mae_px_per_frame={:.5} rate_mape_percent={:.2}",
                 DIAG_VELOCITY[i].load(Ordering::Relaxed) as f64 / count as f64 / 1_000_000.0,
-                DIAG_RATE[i].load(Ordering::Relaxed) as f64 / count as f64 / 10_000.0);
+                DIAG_RATE[i].load(Ordering::Relaxed) as f64 / count as f64 / 10_000.0
+            );
         }
     }
     for i in 0..16 {
@@ -282,6 +393,11 @@ pub fn feed(game: &NativeGame) {
             player_y: game.player().y.to_double(),
         })
         .collect();
+    let samples: Vec<_> = samples
+        .into_iter()
+        .enumerate()
+        .map(|(i, sample)| (sample, serials.get(i).copied().flatten()))
+        .collect();
     BODY_FRAMES.fetch_add(samples.len() as u64, Ordering::Relaxed);
     let window = std::env::var("HNN_OBS_WINDOW")
         .ok()
@@ -291,6 +407,15 @@ pub fn feed(game: &NativeGame) {
     CURRENT.with(|c| {
         let mut c = c.borrow_mut();
         c.frame += 1;
+        let samples = if let Some(config) = NoiseConfig::from_env() {
+            c.noise.apply(
+                config,
+                samples,
+                (game.player().x.to_double(), game.player().y.to_double()),
+            )
+        } else {
+            samples
+        };
         let old = std::mem::take(&mut c.tracks);
         let mut next_id = c.next_id;
         let mut candidates = Vec::new();
@@ -304,7 +429,7 @@ pub fn feed(game: &NativeGame) {
             } else {
                 track.velocity()
             };
-            for (j, sample) in samples.iter().enumerate() {
+            for (j, (sample, _)) in samples.iter().enumerate() {
                 if sample.kind == last.kind {
                     let distance = (sample.x - last.x - vx).hypot(sample.y - last.y - vy);
                     if distance <= 2.0 {
@@ -325,7 +450,7 @@ pub fn feed(game: &NativeGame) {
         c.tracks = samples
             .into_iter()
             .enumerate()
-            .map(|(j, sample)| {
+            .map(|(j, (sample, serial))| {
                 let mut track = matches[j].map(|i| old[i].clone()).unwrap_or_else(|| Track {
                     samples: VecDeque::new(),
                     inside: false,
@@ -347,7 +472,6 @@ pub fn feed(game: &NativeGame) {
                         track.speed_factor = (track.speed_factor + change).clamp(0.05, 1.0);
                     }
                 }
-                let serial = serials.get(j).copied().flatten();
                 if let (Some(old), Some(now)) = (track.serial, serial) {
                     MATCHES.fetch_add(1, Ordering::Relaxed);
                     if old != now {
@@ -411,11 +535,7 @@ fn affine(input: &[f64], weights: &[Vec<f64>], bias: &[f64], tanh: bool) -> Vec<
         .zip(bias)
         .map(|(row, b)| {
             let value = row.iter().zip(input).map(|(w, x)| w * x).sum::<f64>() + b;
-            if tanh {
-                value.tanh()
-            } else {
-                value
-            }
+            if tanh { value.tanh() } else { value }
         })
         .collect()
 }
@@ -510,6 +630,49 @@ pub(crate) fn infer(tracks: &[Track]) -> (f64, Vec<Option<(f64, f64, f64)>>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn seeded_noise_is_repeatable_and_quantized() {
+        let config = NoiseConfig {
+            sigma: 0.5,
+            quantize: true,
+            dropout: 0.0,
+            confusion: 1.0,
+            phantom_rate: 0.0,
+        };
+        let sample = Sample {
+            x: 12.25,
+            y: 23.75,
+            size: 7.7,
+            kind: 0,
+            player_x: 0.0,
+            player_y: 0.0,
+        };
+        let mut a = Noise {
+            rng: 7,
+            phantoms: Vec::new(),
+        };
+        let mut b = Noise {
+            rng: 7,
+            phantoms: Vec::new(),
+        };
+        let x = a.apply(config, vec![(sample, None)], (0.0, 0.0))[0].0;
+        let y = b.apply(config, vec![(sample, None)], (0.0, 0.0))[0].0;
+        assert_eq!((x.x, x.y, x.size, x.kind), (y.x, y.y, y.size, y.kind));
+        assert_eq!(
+            (x.x.fract(), x.y.fract(), x.size, x.kind),
+            (0.0, 0.0, 8.0, 1)
+        );
+        let dropped = a.apply(
+            NoiseConfig {
+                dropout: 1.0,
+                ..config
+            },
+            vec![(sample, None)],
+            (0.0, 0.0),
+        );
+        assert!(dropped.is_empty());
+    }
+
     #[test]
     fn linear_fit_and_size_trend() {
         let mut track = Track {
