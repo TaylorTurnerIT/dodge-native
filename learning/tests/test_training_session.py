@@ -1,0 +1,1782 @@
+import faulthandler
+from pathlib import Path
+import sys
+import time
+
+import pytest
+import numpy as np
+
+pytest.importorskip("stable_baselines3")
+
+from dodge.telemetry import ModelEntry
+from dodge.observe import OBSERVATION_SIZE
+from dodge.policies import ARCHITECTURES
+from dodge.training import DashboardPPO, PPOTrainingSession
+
+from dodge.env import native_available
+
+pytestmark = pytest.mark.skipif(not native_available(), reason="dodge_rl not installed")
+
+
+class _Alive:
+    """A Popen stand-in that never exits."""
+    def poll(self):
+        return None
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _quiet_luajit_seh():
+    was_enabled = faulthandler.is_enabled()
+    faulthandler.disable()
+    yield
+    if was_enabled:
+        faulthandler.enable()
+
+
+def _wait_for(predicate, timeout=30):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if predicate():
+            return
+        time.sleep(0.05)
+    raise AssertionError("timed out waiting for background PPO session")
+
+
+def test_model_list_only_contains_ppo_checkpoints(tmp_path):
+    (tmp_path / "one.zip").write_bytes(b"placeholder")
+    (tmp_path / "old.demo.json").write_text("{}", encoding="utf-8")
+    library = tmp_path / "experiments" / "v2"
+    library.mkdir(parents=True)
+    (library / "vector-flow-v2.zip").write_bytes(b"placeholder")
+    internal = tmp_path / "watch"
+    internal.mkdir()
+    (internal / "temporary.zip").write_bytes(b"placeholder")
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    assert {entry.name for entry in session.available_models()} == {
+        "one", "vector-flow-v2"
+    }
+
+
+def test_training_enables_powerups_by_default(tmp_path):
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    assert session.env_kwargs["powerups"] is True
+    assert session.env_kwargs["normal_enemies"] is True
+    assert session.env_kwargs["kamikaze_enemies"] is True
+    assert session.env_kwargs["spawn_rate_percent"] == 100
+
+
+def test_session_can_wait_for_an_explicit_model_selection(tmp_path, monkeypatch):
+    session = PPOTrainingSession(model_dir=tmp_path, architecture=None,
+                                 autostart=True, device="cpu")
+    assert session.worker is None
+    assert session.model is None
+    assert session.data.status == "idle"
+    assert session.data.model_name == ""
+
+    checkpoint = tmp_path / "vector-flow-v2.zip"
+    checkpoint.write_bytes(b"checkpoint")
+    started = []
+    monkeypatch.setattr(session, "start", lambda: started.append(True))
+
+    session.load_model(ModelEntry("vector-flow-v2", checkpoint, "PPO"))
+
+    assert started == [True]
+    assert session.pending_load == checkpoint
+    assert session.data.model_name == "vector-flow-v2"
+
+
+def test_dashboard_ppo_reports_each_learning_minibatch():
+    import gymnasium as gym
+    from gymnasium import spaces
+
+    class TinyEnv(gym.Env):
+        observation_space = spaces.Box(0.0, 1.0, (4,), dtype=np.float32)
+        action_space = spaces.Discrete(2)
+
+        def reset(self, *, seed=None, options=None):
+            super().reset(seed=seed)
+            return np.zeros(4, dtype=np.float32), {}
+
+        def step(self, action):
+            return np.zeros(4, dtype=np.float32), 0.0, False, False, {}
+
+    progress = []
+    model = DashboardPPO(
+        "MlpPolicy",
+        TinyEnv(),
+        n_steps=8,
+        batch_size=4,
+        n_epochs=2,
+        device="cpu",
+        learning_tracker=lambda completed, total: progress.append((completed, total)),
+    )
+    model.learn(total_timesteps=8)
+
+    assert progress == [(0, 4), (1, 4), (2, 4), (3, 4), (4, 4)]
+
+
+def test_live_session_pauses_saves_and_resumes(tmp_path):
+    session = PPOTrainingSession(
+        seed=19, device="cpu",
+        model_dir=tmp_path / "models",
+        logs_dir=tmp_path / "logs",
+        total_steps=512,
+        rollout_steps=64,
+        # This exercises the session lifecycle, not a policy shape. mlp is the
+        # cheapest, and on CPU the default velocity-flow takes ~4x longer per
+        # forward because it never downsamples -- enough to time this out.
+        architecture="mlp",
+    )
+    try:
+        # Reward is recorded per finished episode, not per rollout, so wait for
+        # an episode to end rather than for the first rollout to close.
+        _wait_for(lambda: (session.data.update >= 1 and session.data.reward)
+                  or session.data.status == "error")
+        assert session.data.status != "error", repr(session.last_error)
+        assert session.data.reward
+        assert len(session.data.episode_length) == len(session.data.reward)
+        assert session.data.events["survival_frames"].total > 0
+
+        session.toggle_pause()
+        _wait_for(lambda: session.data.status == "paused")
+        path = session.save_model("paused policy")
+        assert path.exists()
+        exact_path, exact_update = session._save_to_path(
+            tmp_path / "models" / "exact-update.zip", return_update=True
+        )
+        assert exact_path.exists()
+        assert exact_update == session.data.update
+        assert exact_update > 0
+
+        session.toggle_pause()
+        _wait_for(lambda: session.data.status == "training")
+    finally:
+        session.close()
+    assert not session.worker.is_alive()
+
+
+def test_training_continues_after_autosave_boundary(tmp_path, monkeypatch):
+    from dodge import training
+
+    class StubEnv:
+        def __init__(self):
+            self.closed = False
+
+        def close(self):
+            self.closed = True
+
+    class StubModel:
+        n_steps = 64
+
+        def __init__(self, session):
+            self.session = session
+            self.learn_calls = []
+            self.saved = []
+
+        def learn(self, **kwargs):
+            self.learn_calls.append(kwargs)
+            if len(self.learn_calls) == 2:
+                self.session.shutdown_event.set()
+            return self
+
+        def save(self, path):
+            self.saved.append(path)
+            Path(path).write_bytes(b"checkpoint")
+
+    env = StubEnv()
+    session = training.PPOTrainingSession(
+        model_dir=tmp_path / "models", logs_dir=tmp_path / "logs",
+        total_steps=128, autostart=False, device="cpu",
+    )
+    # Not the working directory's training.json, which the stub can't take.
+    session.schedule_path = tmp_path / "training.json"
+    model = StubModel(session)
+    monkeypatch.setattr(training, "make_training_env", lambda *args, **kwargs: env)
+    monkeypatch.setattr(training, "architecture_name", lambda value: "hybrid-cnn")
+    monkeypatch.setattr(session, "_new_model", lambda value: model)
+
+    session._run()
+
+    assert len(model.learn_calls) == 2
+    assert [call["reset_num_timesteps"] for call in model.learn_calls] == [True, False]
+    assert len(model.saved) == 1
+    name = session.architecture
+    assert sorted(path.name for path in (tmp_path / "models").iterdir()) == [f"{name}.zip"]
+    assert session.active_model_name == name
+    assert session.data.status != "complete"
+    assert env.closed
+
+
+def _autosaving_session(tmp_path, monkeypatch, *, load=None):
+    """A session whose run autosaves once, then stops."""
+    from dodge import training
+
+    class StubEnv:
+        def close(self):
+            pass
+
+    class StubModel:
+        n_steps = 64
+        completed_updates = 0
+        num_timesteps = 0
+        gamma = 0.99
+
+        def __init__(self, session):
+            self.session = session
+            self.learn_calls = 0
+
+        def learn(self, **kwargs):
+            # The first chunk ends at an autosave; the second stops the run.
+            self.learn_calls += 1
+            if self.learn_calls == 2:
+                self.session.shutdown_event.set()
+
+        def save(self, path):
+            Path(path).write_bytes(b"new weights")
+
+    session = training.PPOTrainingSession(
+        model_dir=tmp_path, logs_dir=tmp_path / "logs",
+        total_steps=128, autostart=False, device="cpu",
+    )
+    session.schedule_path = tmp_path / "training.json"
+    model = StubModel(session)
+    monkeypatch.setattr(training, "make_training_env", lambda *args, **kwargs: StubEnv())
+    monkeypatch.setattr(training, "architecture_name", lambda value: "hybrid-cnn")
+    monkeypatch.setattr(session, "_new_model", lambda value: model)
+    monkeypatch.setattr(session, "_load_model", lambda path, env: model)
+    if load is not None:
+        session.pending_load = load
+        session.active_model_name = load.stem
+        session.active_model_path = load
+    return session, model
+
+
+def test_autosave_overwrites_the_loaded_checkpoint_in_place(tmp_path, monkeypatch):
+    loaded = tmp_path / "mine.zip"
+    loaded.write_bytes(b"old weights")
+    session, _ = _autosaving_session(tmp_path, monkeypatch, load=loaded)
+
+    session._run()
+
+    assert loaded.read_bytes() == b"new weights"
+    assert sorted(path.name for path in tmp_path.glob("*.zip")) == ["mine.zip"]
+    assert not list(tmp_path.glob(".*.tmp"))
+
+
+def test_a_fresh_model_never_autosaves_over_an_existing_checkpoint(tmp_path, monkeypatch):
+    session, _ = _autosaving_session(tmp_path, monkeypatch)
+    name = session.architecture
+    (tmp_path / f"{name}.zip").write_bytes(b"someone else's")
+
+    session._run()
+
+    assert (tmp_path / f"{name}.zip").read_bytes() == b"someone else's"
+    assert (tmp_path / f"{name}-2.zip").read_bytes() == b"new weights"
+    assert session.active_model_name == f"{name}-2"
+
+
+def test_each_update_appends_a_metrics_row_beside_the_model(tmp_path, monkeypatch):
+    import json
+
+    loaded = tmp_path / "mine.zip"
+    loaded.write_bytes(b"old weights")
+    session, model = _autosaving_session(tmp_path, monkeypatch, load=loaded)
+    for update in (1, 2):
+        model.completed_updates = update
+        session._record_metrics(model)
+
+    rows = [json.loads(line) for line in
+            (tmp_path / "mine.metrics.jsonl").read_text().splitlines()]
+    assert [row["update"] for row in rows] == [1, 2]
+    assert rows[0]["gamma"] == 0.99
+    assert set(rows[0]["events"]) == set(session.data.events)
+
+
+def test_watch_launches_immediately_from_an_existing_snapshot(tmp_path, monkeypatch):
+    from dodge.training import PPOTrainingSession, snapshot_name
+
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    session.model = object()
+    session.live_watch_dir.mkdir(parents=True)
+    (session.live_watch_dir / snapshot_name(12)).write_bytes(b"checkpoint")
+
+    commands = []
+    monkeypatch.setattr("dodge.training.subprocess.Popen",
+                        lambda command, cwd: commands.append(command) or _Alive())
+
+    assert session.watch_agent() is True
+    assert not session.watch_pending
+    assert commands and commands[0][commands[0].index("--current-update") + 1] == "12"
+    assert commands[0][commands[0].index("--live-dir") + 1] == str(session.live_watch_dir)
+
+
+def test_watch_heuristic_opens_the_bot_with_the_session_game_settings(tmp_path, monkeypatch):
+    from dodge.training import PPOTrainingSession
+
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    commands = []
+    monkeypatch.setattr("dodge.training.subprocess.Popen",
+                        lambda command, cwd: commands.append(command) or _Alive())
+
+    assert session.watch_heuristic("space") is True, "no model is needed"
+    command = commands[0]
+    assert command[1].endswith("watch_heuristic.py") and command[2] == "space"
+    difficulty = {1: "easy", 2: "normal", 3: "hard"}[session.env_kwargs["difficulty"]]
+    assert command[command.index("--difficulty") + 1] == difficulty
+    assert "--action-repeat" not in command, "heuristics decide every frame"
+    assert "--overlay" not in command, "overlays start off"
+
+    assert session.watch_heuristic("taylor-m0", overlay=True) is True
+    assert commands[1][2] == "taylor-m0" and "--overlay" in commands[1]
+
+    with pytest.raises(ValueError):
+        session.watch_heuristic("nonexistent")
+    assert len(commands) == 2
+
+
+def test_every_heuristic_plays_a_game_from_lane_state():
+    import numpy as np
+    from dodge.env import make_engine
+    from dodge.heuristics import BOTS
+
+    for _, make_bot in BOTS.values():
+        engine = make_engine(1, step_frames=1, execution="serial", difficulty=3,
+                             patterns=True, powerups=True)
+        engine.reset_all(seeds=[1_000_000])
+        bot = make_bot()
+        for _ in range(120):
+            state = engine.slot_state(0)
+            bot.observe(state)
+            action = bot.act(state)
+            assert 0 <= action <= 8
+            if engine.step(np.array([action], dtype=np.uint8))["terminated"][0]:
+                engine.reset_all(seeds=[1_000_000])
+        if hasattr(bot, "overlay"):
+            overlay = bot.overlay()
+            assert overlay.paths, "at least the bot's own plan"
+            for x0, y0, x1, y1, colour in overlay.boxes:
+                assert x0 <= x1 and y0 <= y1 and len(colour) == 3
+            for points, colour in overlay.paths:
+                assert len(points) >= 2 and all(len(p) == 2 for p in points)
+            assert overlay.field is None or overlay.field.ndim == 2
+
+
+def test_watch_with_no_snapshot_waits_for_the_next_safe_point(tmp_path, monkeypatch):
+    from dodge.training import PPOTrainingSession
+
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    session.model = object()
+    commands = []
+    monkeypatch.setattr("dodge.training.subprocess.Popen",
+                        lambda command, cwd: commands.append(command) or _Alive())
+
+    assert session.watch_agent() is False, "nothing to open yet"
+    assert session.watch_pending
+    assert commands == []
+
+    assert session.watch_agent() is False, "a second click does not queue twice"
+    assert session.save_requests.empty()
+
+    class Stub:
+        completed_updates = 3
+        def save(self, path):
+            path = Path(path)
+            if path.suffix == "":
+                path = path.with_suffix(".zip")
+            path.write_bytes(b"checkpoint")
+
+    session._on_post_update(Stub())
+    assert commands, "the pending watch launched at the safe point"
+    assert not session.watch_pending
+
+
+def test_watch_launches_while_paused_without_waiting_for_resume(tmp_path, monkeypatch):
+    """Snapshots used to be published only from _on_post_update, which only
+    runs inside train(). Clicking Watch while paused, with no prior
+    snapshot, must not have to wait for the user to resume training --
+    _should_stop's pause loop is one of the spec's listed service points."""
+    from dodge.training import PPOTrainingSession
+
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    session.model = object()
+    session.pause_event.set()
+
+    commands = []
+    monkeypatch.setattr("dodge.training.subprocess.Popen",
+                        lambda command, cwd: commands.append(command) or _Alive())
+
+    assert session.watch_agent() is False, "nothing to open yet"
+    assert session.watch_pending
+
+    class Stub:
+        completed_updates = 9
+        def save(self, path):
+            path = Path(path)
+            if path.suffix == "":
+                path = path.with_suffix(".zip")
+            path.write_bytes(b"checkpoint")
+
+    def fake_sleep(seconds):
+        # Stand in for the user releasing pause -- but only after this
+        # iteration of the loop has already had a chance to service the
+        # pending watch, which is exactly the behaviour under test.
+        session.pause_event.clear()
+
+    monkeypatch.setattr(time, "sleep", fake_sleep)
+
+    session._should_stop(Stub())
+
+    assert commands, "the pending watch launched during the pause, not after resume"
+    assert not session.watch_pending
+
+
+def test_pause_does_not_republish_for_an_already_running_watcher(tmp_path, monkeypatch):
+    """The pause loop spins roughly every 50ms while the update counter is
+    frozen. Servicing an already-running watcher there (not just a pending
+    watch request) rewrote the same update-XXXXXXXX.zip on every spin, and
+    flooded the event queue with a SessionEvent every time the rename lost
+    its race with the watcher's own open handle. A live watcher with nothing
+    new to see does not need a fresh snapshot while nothing is training."""
+    from dodge.training import PPOTrainingSession
+
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    session.model = object()
+    session.pause_event.set()
+    session.watchers = [_Alive()]
+
+    save_calls = []
+
+    class Stub:
+        completed_updates = 5
+        def save(self, path):
+            save_calls.append(path)
+            path = Path(path)
+            if path.suffix == "":
+                path = path.with_suffix(".zip")
+            path.write_bytes(b"checkpoint")
+
+    spins = []
+
+    def fake_sleep(seconds):
+        spins.append(1)
+        if len(spins) >= 5:
+            session.pause_event.clear()
+
+    monkeypatch.setattr(time, "sleep", fake_sleep)
+
+    session._should_stop(Stub())
+
+    assert len(spins) == 5, "the setup under test: several spins of the pause loop"
+    assert save_calls == [], \
+        "no watcher is waiting on a new snapshot while paused, so nothing should publish"
+
+
+def test_pause_still_services_a_pending_watch_exactly_once(tmp_path, monkeypatch):
+    """Finding 3 (Watch must launch while paused) must survive the fix above:
+    a genuinely pending watch -- one that has never had a snapshot -- still
+    gets exactly one publish and launch from the pause loop, even though a
+    merely-alive watcher is no longer serviced there."""
+    from dodge.training import PPOTrainingSession
+
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    session.model = object()
+    session.pause_event.set()
+
+    commands = []
+    monkeypatch.setattr("dodge.training.subprocess.Popen",
+                        lambda command, cwd: commands.append(command) or _Alive())
+
+    assert session.watch_agent() is False, "nothing to open yet"
+    assert session.watch_pending
+
+    save_calls = []
+
+    class Stub:
+        completed_updates = 9
+        def save(self, path):
+            save_calls.append(path)
+            path = Path(path)
+            if path.suffix == "":
+                path = path.with_suffix(".zip")
+            path.write_bytes(b"checkpoint")
+
+    spins = []
+
+    def fake_sleep(seconds):
+        spins.append(1)
+        session.pause_event.clear()
+
+    monkeypatch.setattr(time, "sleep", fake_sleep)
+
+    session._should_stop(Stub())
+
+    assert len(save_calls) == 1, "exactly one publish for the pending watch"
+    assert commands, "the watcher launched"
+    assert not session.watch_pending
+
+
+def test_watch_uses_unique_update_snapshot_and_random_seed(tmp_path, monkeypatch):
+    from dodge.training import snapshot_name
+
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    session.env_kwargs.update(
+        difficulty=3, patterns=True, powerups=False, action_repeat=5,
+        normal_enemies=False, kamikaze_enemies=False,
+        spawn_rate_percent=135,
+    )
+    session.model = object()
+    session.live_watch_dir.mkdir(parents=True)
+    (session.live_watch_dir / snapshot_name(37)).write_bytes(b"checkpoint")
+
+    commands = []
+    monkeypatch.setattr("dodge.training.subprocess.Popen",
+                        lambda command, cwd: commands.append(command) or _Alive())
+
+    assert session.watch_agent() is True
+    architecture = session.architecture
+    assert (session.live_watch_dir / snapshot_name(37)).exists()
+    command = commands[0]
+    assert command[command.index("--live-dir") + 1] == str(session.live_watch_dir)
+    assert command[command.index("--current-update") + 1] == "37"
+    assert command[command.index("--model-name") + 1] == architecture
+    assert command[command.index("--difficulty") + 1] == "hard"
+    assert command[command.index("--action-repeat") + 1] == "5"
+    assert "--patterns" in command
+    assert "--no-powerups" in command
+    assert "--no-normal-enemies" in command
+    assert "--no-kamikaze-enemies" in command
+    assert command[command.index("--spawn-rate-percent") + 1] == "135"
+    assert "--seed" in command, "nothing else covers seed plumbing into the watch command"
+
+
+def test_game_config_restarts_with_the_live_policy(tmp_path):
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    session.model = object()
+
+    class Stub:
+        completed_updates = 0
+        def save(self, path):
+            # SB3 only appends ".zip" when the given path has no suffix of
+            # its own; an unconditional append would hide a real bug where
+            # the caller hands SB3 a name that already looks like one.
+            path = Path(path)
+            if path.suffix == "":
+                path = path.with_suffix(".zip")
+            path.write_bytes(b"checkpoint")
+
+    assert session.configure_game(
+        difficulty=3, patterns=True, powerups=False, action_repeat=5
+    ) == "pending"
+
+    # The commit is not synchronous with the click -- it lands once the
+    # queued checkpoint is actually processed and on disk.
+    session._process_save_requests(Stub())
+    session.drain_events()
+
+    checkpoint = tmp_path / "runtime" / "game-config.zip"
+    assert session.pending_load == checkpoint
+    assert session.game_config() == {
+        "difficulty": 3,
+        "patterns": True,
+        "powerups": False,
+        "normal_enemies": True,
+        "kamikaze_enemies": True,
+        "spawn_rate_percent": 100,
+        "action_repeat": 5,
+        "lives": 0,
+        "max_episode_frames": None,
+    }
+    assert session.data.status == "reconfiguring"
+    assert session.restart_event.is_set()
+
+
+def test_game_config_waits_for_its_preservation_checkpoint(tmp_path):
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    session.model = object()
+    before = session.game_config()
+
+    assert session.configure_game(difficulty=3, patterns=False, powerups=True,
+                                  action_repeat=4, lives=0) == "pending"
+    assert session.game_config() == before, "not committed until the save lands"
+    assert not session.restart_event.is_set()
+
+    class Stub:
+        completed_updates = 5
+        def save(self, path):
+            path = Path(path)
+            if path.suffix == "":
+                path = path.with_suffix(".zip")
+            path.write_bytes(b"checkpoint")
+
+    session._process_save_requests(Stub())
+    session.drain_events()
+
+    assert session.game_config()["difficulty"] == 3
+    assert session.restart_event.is_set()
+
+
+def test_a_failed_preservation_checkpoint_leaves_the_config_alone(tmp_path):
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    session.model = object()
+    before = session.game_config()
+    session.configure_game(difficulty=3, patterns=False, powerups=True,
+                           action_repeat=4, lives=0)
+
+    class Boom:
+        completed_updates = 0
+        def save(self, path):
+            raise OSError("disk full")
+
+    session._process_save_requests(Boom())
+    events = session.drain_events()
+
+    assert session.game_config() == before
+    assert not session.restart_event.is_set()
+    assert any(not e.ok and e.kind == "config" for e in events)
+
+
+def test_load_model_is_not_hijacked_by_a_stale_pending_config(tmp_path, monkeypatch):
+    """A pending game-config commit must not fire after the user has already
+    chosen a different checkpoint to load.
+
+    _commit_pending_config used to assign pending_load unconditionally once
+    its checkpoint landed. If the user applies a config change and then picks
+    Load Model before that save is served, load_model's choice would be
+    silently overwritten by the stale config commit, restarting on the old
+    policy instead of the one the user actually clicked.
+    """
+    from dodge.telemetry import ModelEntry
+    from dodge.training import PPOTrainingSession
+
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    session.model = object()
+    monkeypatch.setattr(session, "start", lambda: None)
+
+    assert session.configure_game(
+        difficulty=3, patterns=True, powerups=False, action_repeat=5
+    ) == "pending"
+    assert session.pending_config is not None, "the setup under test"
+
+    chosen = tmp_path / "chosen.zip"
+    chosen.write_bytes(b"checkpoint")
+    session.load_model(ModelEntry("chosen", chosen, "PPO"))
+    assert session.pending_load == chosen
+    assert session.pending_config is None, "load_model must drop the stale config"
+
+    # The config save that was already queued still gets served -- it must
+    # not resurrect the config commit and steal pending_load back.
+    class Stub:
+        completed_updates = 5
+        def save(self, path):
+            path = Path(path)
+            if path.suffix == "":
+                path = path.with_suffix(".zip")
+            path.write_bytes(b"checkpoint")
+
+    session._process_save_requests(Stub())
+    session.drain_events()
+
+    assert session.pending_load == chosen, \
+        "the stale config commit must not have overwritten the chosen checkpoint"
+
+
+def test_reset_drops_a_pending_config(tmp_path):
+    """Same hazard as load_model: Reset must not let a config save queued
+    before the click restart training back into the config's checkpoint."""
+    from dodge.training import PPOTrainingSession
+
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    session.model = object()
+
+    assert session.configure_game(
+        difficulty=3, patterns=True, powerups=False, action_repeat=5
+    ) == "pending"
+    assert session.pending_config is not None, "the setup under test"
+
+    session.reset()
+
+    assert session.pending_config is None
+    assert session.pending_load is None
+
+
+def test_the_session_trains_on_one_batch_with_its_game_settings(tmp_path, monkeypatch):
+    """Every env is a lane of one Rust batch, built with the session's mechanics."""
+    from dodge import training
+
+    captured = {}
+    session = training.PPOTrainingSession(
+        model_dir=tmp_path, logs_dir=tmp_path, n_envs=4, autostart=False,
+        device="cpu", normal_enemies=False, kamikaze_enemies=False,
+        spawn_rate_percent=125, lives=2,
+    )
+
+    def fake_make_training_env(n_envs, seed, env_kwargs):
+        captured.update(n_envs=n_envs, seed=seed, env_kwargs=env_kwargs)
+        # Stop the loop: the failure is recorded and _run returns.
+        session.shutdown_event.set()
+        raise RuntimeError("stop before building")
+
+    monkeypatch.setattr(training, "make_training_env", fake_make_training_env)
+    session._run()
+    assert captured["n_envs"] == 4
+    assert captured["env_kwargs"]["normal_enemies"] is False
+    assert captured["env_kwargs"]["kamikaze_enemies"] is False
+    assert captured["env_kwargs"]["spawn_rate_percent"] == 125
+    assert captured["env_kwargs"]["lives"] == 2
+    assert session.data.status == "error"
+
+
+def _matching_vec_env(n_envs):
+    """A VecEnv with Dodge's spaces but no PICO-8 machine, for load tests."""
+    import gymnasium as gym
+    from gymnasium import spaces
+    from stable_baselines3.common.vec_env import DummyVecEnv
+
+    class SpacesOnlyEnv(gym.Env):
+        def __init__(self):
+            self.observation_space = spaces.Box(0.0, 1.0, (OBSERVATION_SIZE,),
+                                                dtype=np.float32)
+            self.action_space = spaces.Discrete(9)
+
+        def reset(self, *, seed=None, options=None):
+            super().reset(seed=seed)
+            return np.zeros(OBSERVATION_SIZE, dtype=np.float32), {}
+
+        def step(self, action):
+            return (np.zeros(OBSERVATION_SIZE, dtype=np.float32),
+                    0.0, False, False, {})
+
+    return DummyVecEnv([SpacesOnlyEnv for _ in range(n_envs)])
+
+
+@pytest.mark.parametrize("saved_envs,loaded_envs", [(1, 4), (4, 1), (4, 4)])
+def test_checkpoint_loads_into_a_different_env_count(tmp_path, saved_envs, loaded_envs):
+    """A checkpoint must not be locked to the env count that produced it.
+
+    set_env asserts the counts match, so changing --envs would otherwise make
+    every existing checkpoint unloadable.
+    """
+    from dodge.training import DashboardPPO, PPOTrainingSession
+
+    saved = DashboardPPO("MlpPolicy", _matching_vec_env(saved_envs),
+                         n_steps=8, batch_size=8, n_epochs=1, device="cpu")
+    path = tmp_path / "checkpoint.zip"
+    saved.save(path)
+
+    session = PPOTrainingSession(model_dir=tmp_path, logs_dir=tmp_path,
+                                 n_envs=loaded_envs, autostart=False,
+                                 device="cpu")
+    model = session._load_model(path, _matching_vec_env(loaded_envs))
+    assert model.n_envs == loaded_envs
+    assert model.get_env().num_envs == loaded_envs
+
+
+def test_loaded_checkpoint_adopts_the_session_buffer_size(tmp_path):
+    """Resuming must not inherit the checkpoint's own rollout length.
+
+    A model saved at n_steps=512 loaded into four envs would collect 2048
+    samples per update -- four times the intended buffer, and four times the
+    wait between learning steps.
+    """
+    from dodge.training import DashboardPPO, PPOTrainingSession
+
+    saved = DashboardPPO("MlpPolicy", _matching_vec_env(1),
+                         n_steps=512, batch_size=64, n_epochs=1, device="cpu")
+    path = tmp_path / "wide.zip"
+    saved.save(path)
+    assert saved.n_steps == 512
+
+    session = PPOTrainingSession(model_dir=tmp_path, logs_dir=tmp_path,
+                                 n_envs=4, rollout_steps=128, autostart=False,
+                                 device="cpu")
+    model = session._load_model(path, _matching_vec_env(4))
+    assert model.n_steps == 128
+    assert model.rollout_buffer.buffer_size == 128
+    assert model.n_envs * model.n_steps == 512
+
+
+def test_auto_device_only_reaches_for_a_gpu_where_it_helps(monkeypatch):
+    """The MLP update measured no faster on a GPU, so auto keeps it on the CPU.
+
+    An explicit choice is always honoured; only "auto" is opinionated.
+    """
+    from dodge import training
+
+    monkeypatch.setattr(training, "get_device", lambda name: f"resolved:{name}")
+    assert training.resolve_device("auto", "hybrid-cnn") == "resolved:auto"
+    assert training.resolve_device("auto", "mlp") == "resolved:cpu"
+    assert training.resolve_device("cuda", "mlp") == "resolved:cuda"
+    assert training.resolve_device("cpu", "hybrid-cnn") == "resolved:cpu"
+
+
+def test_rejects_a_non_positive_env_count(tmp_path):
+    from dodge.training import PPOTrainingSession
+    with pytest.raises(ValueError):
+        PPOTrainingSession(model_dir=tmp_path, n_envs=0, autostart=False, device="cpu")
+
+
+def test_rejects_a_non_positive_training_chunk(tmp_path):
+    from dodge.training import PPOTrainingSession
+    with pytest.raises(ValueError):
+        PPOTrainingSession(model_dir=tmp_path, total_steps=0,
+                           autostart=False, device="cpu")
+
+
+def test_save_and_load_set_the_active_model_name(tmp_path, monkeypatch):
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    monkeypatch.setattr(session, "_save_to_path", lambda path: path)
+    session.save_model("Patient Dodger")
+    assert session.active_model_name == "Patient-Dodger"
+    assert session.data.model_name == "Patient-Dodger"
+
+    loaded = ModelEntry("aggressive-v2", tmp_path / "aggressive-v2.zip", "PPO")
+    loaded.path.write_bytes(b"placeholder")
+    session.load_model(loaded)
+    assert session.active_model_name == "aggressive-v2"
+    assert session.data.model_name == "aggressive-v2"
+
+
+def test_checkpoint_without_player_channels_migrates(tmp_path):
+    """A hybrid checkpoint from before the player channels must still load.
+
+    Its grid convolution has 16 input channels against the current 18, which
+    is a hard shape error rather than something SB3 can reconcile.
+    """
+    import torch
+    from stable_baselines3.common.save_util import load_from_zip_file
+    from dodge.policies import HAZARD_CHANNELS, HYBRID_INPUT_CHANNELS, policy_kwargs
+    from dodge.training import GRID_CONV_WEIGHT, DashboardPPO, PPOTrainingSession
+
+    saved = DashboardPPO("MlpPolicy", _matching_vec_env(1), n_steps=8,
+                         batch_size=8, n_epochs=1, device="cpu",
+                         policy_kwargs=policy_kwargs("hybrid-cnn"))
+    # Narrow the grid convolution back to the pre-player shape.
+    state = saved.policy.state_dict()
+    for name in list(state):
+        if name.endswith(GRID_CONV_WEIGHT.split(".", 1)[-1]) and state[name].dim() == 4:
+            state[name] = state[name][:, :HAZARD_CHANNELS].clone()
+    path = tmp_path / "legacy.zip"
+    saved.save(path)
+    data, params, variables = load_from_zip_file(path, device="cpu")
+    params["policy"] = {name: value for name, value in state.items()}
+    data["num_timesteps"] = 4242
+    from stable_baselines3.common.save_util import save_to_zip_file
+    save_to_zip_file(path, data=data, params=params, pytorch_variables=variables)
+
+    session = PPOTrainingSession(model_dir=tmp_path, logs_dir=tmp_path,
+                                 n_envs=1, autostart=False, device="cpu")
+    model = session._load_model(path, _matching_vec_env(1))
+
+    weight = model.policy.features_extractor.grid_net[0].weight
+    assert weight.shape[1] == HYBRID_INPUT_CHANNELS
+    torch.testing.assert_close(weight[:, :HAZARD_CHANNELS],
+                               state[GRID_CONV_WEIGHT])
+    assert weight[:, HAZARD_CHANNELS:].abs().sum() > 0, "player weights initialised"
+    assert model.num_timesteps == 4242
+
+
+@pytest.mark.parametrize("n_envs,rollout_steps,expected", [
+    (8, 256, 128),   # the defaults: a 2048-sample buffer, 16 minibatches
+    (8, 64, 64),     # buffer 512 comfortably exceeds the target minibatch
+    (16, 32, 64),    # buffer is still 512 even though each env is short
+    (1, 8, 8),       # genuinely small buffer must clamp
+])
+def test_minibatch_size_follows_the_whole_buffer(tmp_path, monkeypatch,
+                                                 n_envs, rollout_steps, expected):
+    """The buffer is n_envs * rollout_steps, so clamping to steps alone was
+    shrinking the minibatch whenever envs were traded for steps."""
+    from dodge import training
+
+    captured = {}
+
+    class Recorder(training.DashboardPPO):
+        def __init__(self, *args, **kwargs):
+            captured.update(kwargs)
+            super().__init__(*args, **kwargs)
+
+    monkeypatch.setattr(training, "DashboardPPO", Recorder)
+    session = training.PPOTrainingSession(
+        model_dir=tmp_path, logs_dir=tmp_path, n_envs=n_envs,
+        rollout_steps=rollout_steps, autostart=False, device="cpu",
+    )
+    session._new_model(_matching_vec_env(n_envs))
+    assert captured["n_steps"] == rollout_steps
+    assert captured["batch_size"] == expected
+
+
+@pytest.mark.parametrize("architecture", ARCHITECTURES)
+def test_every_architecture_saves_and_loads_through_the_session(tmp_path, architecture):
+    """Loading must not special-case an architecture.
+
+    velocity-flow swaps the action head for a policy subclass, so it is the one
+    most likely to need a bespoke path. It does not: Stable-Baselines3 records
+    the policy class in the checkpoint, and the migration check keys off
+    hybrid-cnn's layer names, which a field policy simply does not have.
+    """
+    from stable_baselines3 import PPO
+
+    from dodge.critic import CRITIC_ARCHITECTURES
+    from dodge.env import DodgeVecEnv
+    from dodge.policies import architecture_name, policy_class, policy_kwargs
+    from dodge.training import PPOTrainingSession
+
+    wide = architecture in CRITIC_ARCHITECTURES
+    saved = PPO(policy_class(architecture),
+                DodgeVecEnv(n_envs=1, max_episode_frames=20, critic_features=wide),
+                n_steps=16, batch_size=8, seed=0, device="cpu",
+                policy_kwargs=policy_kwargs(architecture))
+    saved.save(tmp_path / architecture)
+
+    session = PPOTrainingSession(model_dir=tmp_path, logs_dir=tmp_path,
+                                 autostart=False, device="cpu", n_envs=1,
+                                 rollout_steps=16)
+    assert architecture in [entry.name for entry in session.available_models()]
+
+    env = DodgeVecEnv(n_envs=1, max_episode_frames=20, critic_features=wide)
+    try:
+        loaded = session._load_model(tmp_path / f"{architecture}.zip", env)
+        assert architecture_name(loaded) == architecture
+        assert loaded.n_steps == session.rollout_steps
+        observation = np.zeros((1, loaded.observation_space.shape[0]),
+                               dtype=np.float32)
+        action, _ = loaded.predict(observation, deterministic=True)
+        assert 0 <= int(action[0]) < 9
+    finally:
+        env.close()
+
+@pytest.mark.parametrize("architecture", ["velocity-flow", "mlp"])
+def test_new_policy_tool_makes_an_architecture_selectable(tmp_path, architecture):
+    """The Models panel lists files, and loading one switches architecture.
+
+    So an architecture with no checkpoint on disk is unreachable from the
+    dashboard -- there is nothing to click. This writes the starting point.
+    """
+
+    from dodge.env import DodgeVecEnv
+    from dodge.policies import architecture_name
+    from dodge.training import PPOTrainingSession
+    from tools.new_policy import main
+
+    assert main([architecture, "--models-dir", str(tmp_path)]) == 0
+
+    session = PPOTrainingSession(model_dir=tmp_path, logs_dir=tmp_path,
+                                 autostart=False, device="cpu", n_envs=1,
+                                 rollout_steps=16)
+    assert architecture in [entry.name for entry in session.available_models()]
+
+    env = DodgeVecEnv(n_envs=1, max_episode_frames=20)
+    try:
+        loaded = session._load_model(tmp_path / f"{architecture}.zip", env)
+        assert architecture_name(loaded) == architecture
+    finally:
+        env.close()
+
+
+def test_lives_are_configurable_but_never_reach_the_watch_window(tmp_path, monkeypatch):
+    """Lives are a training device only.
+
+    Watching has to show what the policy actually does, and a policy that gets
+    three free hits is not the one being shipped, so the watch command is built
+    without them however the trainer is configured.
+    """
+    from dodge.training import snapshot_name
+
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    assert session.game_config()["lives"] == 0, "off unless asked for"
+
+    assert session.configure_game(difficulty=1, patterns=False, powerups=True,
+                                  action_repeat=4, lives=3)
+    assert session.game_config()["lives"] == 3
+
+    session.model = object()
+    session.live_watch_dir.mkdir(parents=True)
+    (session.live_watch_dir / snapshot_name(1)).write_bytes(b"checkpoint")
+
+    commands = []
+    monkeypatch.setattr("dodge.training.subprocess.Popen",
+                        lambda command, cwd: commands.append(command) or _Alive())
+
+    assert session.watch_agent()
+
+    assert "--lives" not in commands[0]
+
+
+def test_negative_lives_are_rejected_by_the_session(tmp_path):
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    with pytest.raises(ValueError):
+        session.configure_game(difficulty=1, patterns=False, powerups=True,
+                               action_repeat=4, lives=-1)
+
+
+@pytest.mark.parametrize("spawn_rate", [49, 151])
+def test_out_of_range_spawn_rates_are_rejected_by_the_session(tmp_path, spawn_rate):
+    with pytest.raises(ValueError, match="between 50% and 150%"):
+        PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu",
+                           spawn_rate_percent=spawn_rate)
+
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    with pytest.raises(ValueError, match="between 50% and 150%"):
+        session.configure_game(
+            difficulty=1, patterns=True, powerups=True,
+            normal_enemies=True, kamikaze_enemies=True,
+            spawn_rate_percent=spawn_rate, action_repeat=4,
+        )
+
+
+def test_enemy_controls_are_staged_with_the_async_game_config(tmp_path):
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    session.model = object()
+    before = session.game_config()
+
+    assert session.configure_game(
+        difficulty=1, patterns=True, powerups=True,
+        normal_enemies=False, kamikaze_enemies=False,
+        spawn_rate_percent=125, action_repeat=4,
+    ) == "pending"
+    assert session.game_config() == before
+
+    class Stub:
+        completed_updates = 4
+
+        @staticmethod
+        def save(path):
+            path = Path(path)
+            if path.suffix == "":
+                path = path.with_suffix(".zip")
+            path.write_bytes(b"checkpoint")
+
+    session._process_save_requests(Stub())
+    session.drain_events()
+
+    assert session.game_config()["normal_enemies"] is False
+    assert session.game_config()["kamikaze_enemies"] is False
+    assert session.game_config()["spawn_rate_percent"] == 125
+
+
+def test_survival_time_measures_the_run_not_the_episode(tmp_path, monkeypatch):
+    """With lives on, an episode ends at every absorbed hit.
+
+    Charting those as survival time would silently redefine the dashboard's
+    headline metric as 'time between hits' and break comparability with every
+    curve recorded before lives existed.
+    """
+    from dodge.training import DashboardCallback
+
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    monkeypatch.setattr(session, "_should_stop", lambda model: False)
+    callback = DashboardCallback(session)
+    callback.model = None
+    callback.num_timesteps = 1
+    callback.n_calls = 1
+
+    def finish_episode(frames, run_frames, run_over, deaths, lives_spent):
+        callback.locals = {
+            "infos": [{"frames": frames, "run_frames": run_frames,
+                       "run_over": run_over, "score": 0.0,
+                       "training_events": {"deaths": deaths,
+                                           "lives_spent": lives_spent}}],
+            "dones": [True],
+            "rewards": np.array([1.0]),
+        }
+        callback._on_step()
+
+    finish_episode(frames=120, run_frames=120, run_over=False, deaths=0, lives_spent=1)
+    assert len(session.data.episode_length) == 0, "an absorbed hit does not end the run"
+    assert len(session.data.reward) == 1, "but it does end an episode"
+
+    finish_episode(frames=60, run_frames=180, run_over=True, deaths=1, lives_spent=0)
+
+    assert session.data.episode_length.as_list() == [pytest.approx(3.0)], "180 run frames"
+    assert session.data.events["lives_spent"].total == 1
+
+
+def test_training_runs_without_a_frame_cap(tmp_path):
+    """The cap capped difficulty, not just time.
+
+    Difficulty ramps with score, so an agent that reliably reached 60 seconds
+    never saw a harder game than 60 seconds reaches. Episode turnover, which is
+    what the cap was for, now comes from training lives instead.
+    """
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    assert session.env_kwargs["max_episode_frames"] is None
+
+
+def test_game_config_preserves_settings_it_does_not_manage(tmp_path):
+    """configure_game compares its dict against env_kwargs to decide whether to
+    restart, so a key it does not set must still survive the comparison."""
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False,
+                                 max_episode_frames=1200, device="cpu")
+
+    assert session.configure_game(difficulty=2, patterns=False, powerups=True,
+                                  action_repeat=4, lives=1)
+
+    assert session.game_config()["max_episode_frames"] == 1200
+    assert not session.configure_game(difficulty=2, patterns=False, powerups=True,
+                                      action_repeat=4, lives=1), "no change, no restart"
+
+
+def test_survival_time_is_banded_by_life(tmp_path, monkeypatch):
+    """Each run contributes one value per band, so the chart can stack them.
+
+    The bands have to sum to the run total, or the stack would say something
+    different from the trend line drawn over it.
+    """
+    from dodge.training import DashboardCallback
+
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    monkeypatch.setattr(session, "_should_stop", lambda model: False)
+    callback = DashboardCallback(session)
+    callback.model = None
+    callback.num_timesteps = 1
+    callback.n_calls = 1
+
+    def finish_episode(frames, run_frames, run_over):
+        callback.locals = {
+            "infos": [{"frames": frames, "run_frames": run_frames,
+                       "run_over": run_over, "score": 0.0,
+                       "training_events": {}}],
+            "dones": [True],
+            "rewards": np.array([1.0]),
+        }
+        callback._on_step()
+
+    finish_episode(frames=120, run_frames=120, run_over=False)    # first life, 2s
+    finish_episode(frames=60, run_frames=180, run_over=False)     # second life, 1s
+    finish_episode(frames=240, run_frames=420, run_over=True)     # last life, 4s
+
+    bands = [series.as_list() for series in session.data.life_lengths]
+    assert len(bands) == 6, "lives top out at 5, so a run has at most six"
+    assert bands[0] == [pytest.approx(2.0)]
+    assert bands[1] == [pytest.approx(1.0)]
+    assert bands[2] == [pytest.approx(4.0)]
+    assert bands[3] == [0.0], "a life never spent is a zero-height band"
+    assert sum(band[0] for band in bands) == pytest.approx(
+        session.data.episode_length.as_list()[0]), "the stack must equal the total"
+
+
+def test_v2_carries_its_own_hyperparameters():
+    """v1 has to keep today's settings, or it stops being a baseline for v2."""
+    from dodge.training import hyperparameters
+
+    v1, v2 = hyperparameters("velocity-flow"), hyperparameters("velocity-flow-v2")
+
+    assert (v1["gamma"], v1["n_epochs"], v1["vf_coef"], v1["target_kl"],
+            v1["max_grad_norm"]) == (0.995, 10, 0.5, None, 0.5)
+    assert (v2["gamma"], v2["n_epochs"], v2["vf_coef"], v2["target_kl"],
+            v2["max_grad_norm"]) == (0.997, 4, 1.0, 0.02, 2.0)
+
+
+def test_a_new_model_takes_the_tables_gradient_clip(tmp_path):
+    """SB3 clips at 0.5 unless told otherwise, and v2 was never told."""
+    from dodge.env import DodgeVecEnv
+
+    env = DodgeVecEnv(n_envs=1, max_episode_frames=20)
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu",
+                                 architecture="velocity-flow-v2", n_envs=1,
+                                 rollout_steps=64)
+    model = session._new_model(env)
+    env.close()
+    assert model.max_grad_norm == 2.0
+
+
+def test_v2_splits_the_buffer_into_larger_minibatches():
+    """v2 takes eight minibatches an epoch, so 256 at the default buffer --
+    the value every v2 curve so far was trained under."""
+    from dodge.training import minibatch_size
+
+    assert minibatch_size(2048, "velocity-flow") == 128
+    assert minibatch_size(2048, "velocity-flow-v2") == 256
+    assert minibatch_size(2048) == 128, "the default stays v1's"
+
+
+def test_completed_updates_survive_kl_early_stopping(tmp_path):
+    """target_kl breaks the epoch loop early, so _n_updates // n_epochs
+    under-counts. v2 sets it, and the number names every watch snapshot."""
+    from dodge.env import DodgeVecEnv
+    from dodge.training import DashboardPPO
+    from dodge.policies import policy_class, policy_kwargs
+
+    env = DodgeVecEnv(n_envs=1, max_episode_frames=20)
+    model = DashboardPPO(policy_class("mlp"), env, n_steps=16, batch_size=8,
+                         n_epochs=10, target_kl=0.0, device="cpu", seed=0,
+                         policy_kwargs=policy_kwargs("mlp"))
+    assert model.completed_updates is None, "sentinel meaning never counted"
+
+    model.learn(total_timesteps=32)
+
+    # target_kl=0.0 stops after the first epoch every time, so the old
+    # derivation would report 0 updates however many actually completed.
+    assert model.completed_updates == 2, "one per train() call"
+    assert model._n_updates < model.completed_updates * model.n_epochs
+    env.close()
+
+
+def test_the_session_reads_the_explicit_counter(tmp_path):
+    from dodge.training import PPOTrainingSession
+
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+
+    class Stub:
+        completed_updates = 7
+        _n_updates = 3
+        n_epochs = 10
+
+    assert session._completed_updates(Stub()) == 7
+
+
+def test_completed_updates_fallback_when_attribute_missing(tmp_path):
+    """A pre-counter model has no completed_updates attribute at all."""
+    from dodge.training import PPOTrainingSession
+
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+
+    class OldCheckpoint:
+        _n_updates = 120  # 12 epochs * 10 updates
+        n_epochs = 10
+
+    # Should fall back to derivation: 120 // 10 == 12
+    assert session._completed_updates(OldCheckpoint()) == 12
+
+
+def test_completed_updates_fallback_when_none(tmp_path):
+    """A fresh model or one explicitly set to None uses the derivation."""
+    from dodge.training import PPOTrainingSession
+
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+
+    class FreshModel:
+        completed_updates = None  # Sentinel value
+        _n_updates = 80   # 8 epochs * 10 updates
+        n_epochs = 10
+
+    # Should fall back to derivation: 80 // 10 == 8
+    assert session._completed_updates(FreshModel()) == 8
+
+
+def test_completed_updates_survives_save_and_load(tmp_path):
+    """A checkpoint preserves completed_updates through save and load."""
+    from dodge.training import DashboardPPO
+
+    # Create a model and train it briefly
+    saved = DashboardPPO("MlpPolicy", _matching_vec_env(1),
+                         n_steps=8, batch_size=8, n_epochs=1, device="cpu")
+    assert saved.completed_updates is None, "starts as sentinel"
+
+    saved.learn(total_timesteps=16)
+    assert saved.completed_updates == 2, "incremented twice (two updates)"
+
+    # Save and load
+    path = tmp_path / "checkpoint.zip"
+    saved.save(path)
+
+    loaded = DashboardPPO.load(path, env=_matching_vec_env(1), device="cpu")
+    # The loaded model preserves its counter from the checkpoint
+    assert loaded.completed_updates == 2, "counter preserved after load"
+
+    # Continue training
+    loaded.learn(total_timesteps=8)
+    assert loaded.completed_updates == 3, "counter continues incrementing"
+
+
+def test_the_post_update_hook_runs_after_the_optimizer_hook_is_off():
+    """A save taken while the optimizer step is patched would capture a model
+    mid-update, so the hook has to fire after train() has fully unwound."""
+    from dodge.env import DodgeVecEnv
+    from dodge.training import DashboardPPO
+    from dodge.policies import policy_class, policy_kwargs
+
+    env = DodgeVecEnv(n_envs=1, max_episode_frames=20)
+    seen = []
+    model = DashboardPPO(policy_class("mlp"), env, n_steps=16, batch_size=8,
+                         n_epochs=1, device="cpu", seed=0,
+                         policy_kwargs=policy_kwargs("mlp"))
+    model.set_post_update(lambda m: seen.append(
+        (m.completed_updates, m.policy.optimizer.step.__name__)))
+
+    model.learn(total_timesteps=32)
+
+    assert seen, "the hook never ran"
+    assert all(name == "step" for _, name in seen), "optimizer still patched"
+    assert [update for update, _ in seen] == [1, 2], "once per update, in order"
+    env.close()
+
+
+def test_a_failing_train_is_not_counted_and_does_not_reach_the_hook(monkeypatch):
+    """An update that raised is not a completed update, and a save taken from
+    the hook must never see a model whose train() blew up halfway."""
+    from stable_baselines3 import PPO
+    from dodge.env import DodgeVecEnv
+    from dodge.training import DashboardPPO
+    from dodge.policies import policy_class, policy_kwargs
+
+    env = DodgeVecEnv(n_envs=1, max_episode_frames=20)
+    calls = []
+    model = DashboardPPO(policy_class("mlp"), env, n_steps=16, batch_size=8,
+                         n_epochs=1, device="cpu", seed=0,
+                         policy_kwargs=policy_kwargs("mlp"))
+    model.set_post_update(lambda m: calls.append(m))
+
+    def explode(self):
+        raise RuntimeError("optimizer blew up")
+
+    monkeypatch.setattr(PPO, "train", explode)
+
+    with pytest.raises(RuntimeError, match="optimizer blew up"):
+        model.train()
+
+    assert calls == [], "the hook must not fire for a failed update"
+    assert model.completed_updates is None, "and a failure is not counted"
+    assert model.policy.optimizer.step.__name__ == "step", "hook restored"
+    env.close()
+
+
+def test_request_save_returns_before_the_save_happens(tmp_path):
+    """The caller is the Pygame event loop. It must not wait on the trainer."""
+    from dodge.training import PPOTrainingSession
+
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    session.model = object()          # non-None so the request is accepted
+
+    session.request_save(tmp_path / "async.zip", kind="save")
+
+    assert session.drain_events() == [], "nothing has been served yet"
+    assert session.save_requests.qsize() == 1
+
+
+def test_serving_a_request_emits_a_success_event(tmp_path):
+    from dodge.training import PPOTrainingSession, SessionEvent
+
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    session.model = object()
+    session.request_save(tmp_path / "async.zip", kind="save")
+
+    class Stub:
+        completed_updates = 4
+        def save(self, path):
+            # SB3 only appends ".zip" when the given path has no suffix of
+            # its own; an unconditional append would hide the exact bug this
+            # suite exists to catch.
+            path = Path(path)
+            if path.suffix == "":
+                path = path.with_suffix(".zip")
+            path.write_bytes(b"checkpoint")
+
+    session._process_save_requests(Stub())
+    events = session.drain_events()
+
+    assert len(events) == 1
+    assert events[0].ok and events[0].kind == "save" and events[0].update == 4
+    assert events[0].path == tmp_path / "async.zip"
+    assert session.drain_events() == [], "draining clears"
+
+
+def test_request_save_with_a_dotted_name_still_produces_a_zip(tmp_path):
+    """A model name containing a dot (e.g. "run2.5") must not confuse SB3's
+    "append .zip only when the suffix is empty" rule.
+
+    request_save used to strip ".zip" off the path with Path.with_suffix
+    before handing it to model.save, and rebuild the reported path the same
+    way afterwards. For "run2.5.zip" that leaves "run2.5" -- which Path
+    treats as already having the suffix ".5" -- so SB3 writes a bare "run2.5"
+    file with no extension at all, and the reconstructed report path is
+    "run2.zip", naming a file that was never written.
+    """
+    from dodge.training import PPOTrainingSession
+
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    session.model = object()
+    session.request_save(tmp_path / "run2.5.zip", kind="save")
+
+    class Stub:
+        completed_updates = 4
+        def save(self, path):
+            path = Path(path)
+            if path.suffix == "":
+                path = path.with_suffix(".zip")
+            path.write_bytes(b"checkpoint")
+
+    session._process_save_requests(Stub())
+    events = session.drain_events()
+
+    assert len(events) == 1 and events[0].ok
+    assert events[0].path == tmp_path / "run2.5.zip"
+    assert events[0].path.exists(), "the reported path must be the one actually written"
+    assert not (tmp_path / "run2.5").exists(), "must not fall back to a suffix-less file"
+    assert not (tmp_path / "run2.zip").exists(), "must not name the wrong stem"
+
+
+def test_a_failed_save_emits_an_error_event_rather_than_raising(tmp_path):
+    from dodge.training import PPOTrainingSession
+
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    session.model = object()
+    session.request_save(tmp_path / "async.zip", kind="save")
+
+    class Boom:
+        completed_updates = 0
+        def save(self, path):
+            raise OSError("disk full")
+
+    session._process_save_requests(Boom())
+    events = session.drain_events()
+
+    assert len(events) == 1 and not events[0].ok
+    assert "disk full" in events[0].message
+
+
+def test_successful_save_renames_the_active_model(tmp_path):
+    """The GUI's Save button now reaches request_save, not save_model, which
+    used to be the only place that renamed the active model. Without this,
+    saving "steady-bot" leaves the header and watch-window title still
+    showing the old architecture name."""
+    from dodge.training import PPOTrainingSession
+
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    session.model = object()
+    session.active_model_name = "hybrid-cnn"
+    session.data.model_name = "hybrid-cnn"
+    session.request_save(tmp_path / "steady-bot.zip", kind="save")
+
+    class Stub:
+        completed_updates = 4
+        def save(self, path):
+            path = Path(path)
+            if path.suffix == "":
+                path = path.with_suffix(".zip")
+            path.write_bytes(b"checkpoint")
+
+    session._process_save_requests(Stub())
+    session.drain_events()
+
+    assert session.active_model_name == "steady-bot"
+    assert session.data.model_name == "steady-bot"
+
+
+def test_a_failed_save_does_not_rename_the_active_model(tmp_path):
+    from dodge.training import PPOTrainingSession
+
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    session.model = object()
+    session.active_model_name = "hybrid-cnn"
+    session.data.model_name = "hybrid-cnn"
+    session.request_save(tmp_path / "steady-bot.zip", kind="save")
+
+    class Boom:
+        completed_updates = 0
+        def save(self, path):
+            raise OSError("disk full")
+
+    session._process_save_requests(Boom())
+    session.drain_events()
+
+    assert session.active_model_name == "hybrid-cnn"
+    assert session.data.model_name == "hybrid-cnn"
+
+
+def test_shutdown_completes_pending_requests_with_an_error(tmp_path):
+    from dodge.training import PPOTrainingSession
+
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    session.model = object()
+    session.request_save(tmp_path / "orphan.zip", kind="watch")
+
+    session._fail_save_requests(RuntimeError("training session closed"))
+    events = session.drain_events()
+
+    assert len(events) == 1 and not events[0].ok and events[0].kind == "watch"
+
+
+def test_request_save_mkdir_failure_emits_an_error_event_rather_than_raising(tmp_path):
+    """The caller is the Pygame event loop; mkdir runs synchronously in it
+    before any other error handling, so a bad path must not raise there."""
+    from dodge.training import PPOTrainingSession
+
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    session.model = object()
+    blocker = tmp_path / "blocker"
+    blocker.write_bytes(b"a file, not a directory")
+
+    session.request_save(blocker / "sub" / "async.zip", kind="save")
+
+    events = session.drain_events()
+    assert len(events) == 1 and not events[0].ok and events[0].kind == "save"
+    assert session.save_requests.qsize() == 0, "a path that can't even mkdir must not be queued"
+
+
+def test_request_save_after_close_emits_failure_event(tmp_path):
+    """A request_save after close() must not be orphaned but emit a failure event."""
+    from dodge.training import PPOTrainingSession
+
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    session.model = object()  # non-None so the request would normally be accepted
+    session.close()
+
+    session.request_save(tmp_path / "after_close.zip", kind="save")
+
+    events = session.drain_events()
+    assert len(events) == 1 and not events[0].ok and events[0].kind == "save"
+    assert "closed" in events[0].message
+    assert session.save_requests.qsize() == 0, "request must not be queued"
+
+
+def test_request_save_after_a_training_error_emits_failure_rather_than_stranding(tmp_path):
+    """_run fails every request queued before the error and then sleeps in
+    its error loop without ever calling _process_save_requests again. A
+    request queued after that point would sit in the queue forever -- no
+    toast, and the Save button left permanently disabled -- unless
+    request_save itself rejects it up front."""
+    from dodge.training import PPOTrainingSession
+
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    session.model = object()
+    session.last_error = RuntimeError("boom")
+    with session.lock:
+        session.data.status = "error"
+
+    session.request_save(tmp_path / "async.zip", kind="save")
+
+    events = session.drain_events()
+    assert len(events) == 1 and not events[0].ok and events[0].kind == "save"
+    assert "boom" in events[0].message
+    assert session.save_requests.qsize() == 0, "must not be queued for a drain that will never come"
+
+
+def test_snapshot_names_sort_lexicographically_with_the_update(tmp_path):
+    from dodge.training import snapshot_name
+
+    assert snapshot_name(7) == "update-00000007.zip"
+    assert sorted([snapshot_name(9), snapshot_name(10)]) == [
+        snapshot_name(9), snapshot_name(10)]
+
+
+def test_newest_snapshot_ignores_partial_and_malformed_files(tmp_path):
+    from dodge.training import newest_snapshot, snapshot_name
+
+    (tmp_path / snapshot_name(3)).write_bytes(b"x")
+    (tmp_path / snapshot_name(11)).write_bytes(b"x")
+    (tmp_path / ".update-00000099.zip.tmp").write_bytes(b"partial")
+    (tmp_path / "velocity-flow-latest.zip").write_bytes(b"mutable")
+
+    assert newest_snapshot(tmp_path) == (tmp_path / snapshot_name(11), 11)
+    assert newest_snapshot(tmp_path, after=11) is None
+    assert newest_snapshot(tmp_path, after=3) == (tmp_path / snapshot_name(11), 11)
+    assert newest_snapshot(tmp_path / "missing") is None
+
+
+def test_publishing_renames_atomically_and_keeps_three(tmp_path):
+    from dodge.training import PPOTrainingSession, newest_snapshot
+
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+    live = session.live_watch_dir
+
+    class Stub:
+        completed_updates = 0
+        def save(self, path):
+            # SB3 only appends ".zip" when the given path has no suffix of
+            # its own; a stub that appended unconditionally would hide a bug
+            # where the real code hands SB3 a name that already looks like
+            # it has one.
+            path = Path(path)
+            if path.suffix == "":
+                path = path.with_suffix(".zip")
+            path.write_bytes(b"checkpoint")
+
+    model = Stub()
+    for update in range(1, 6):
+        model.completed_updates = update
+        session._publish_snapshot(model)
+
+    names = sorted(p.name for p in live.glob("update-*.zip"))
+    assert names == ["update-00000003.zip", "update-00000004.zip",
+                     "update-00000005.zip"], "newest three retained"
+    assert not list(live.glob(".*")), "no temporary files left behind"
+    assert newest_snapshot(live)[1] == 5
+
+
+def test_retention_survives_a_locked_file(tmp_path, monkeypatch):
+    """A watcher reading an old snapshot locks it on Windows. Failing to
+    delete it must not take training down."""
+    from dodge.training import PPOTrainingSession
+    import pathlib
+
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+
+    class Stub:
+        completed_updates = 0
+        def save(self, path):
+            # SB3 only appends ".zip" when the given path has no suffix of
+            # its own; a stub that appended unconditionally would hide a bug
+            # where the real code hands SB3 a name that already looks like
+            # it has one.
+            path = Path(path)
+            if path.suffix == "":
+                path = path.with_suffix(".zip")
+            path.write_bytes(b"checkpoint")
+
+    real_unlink = pathlib.Path.unlink
+
+    def locked(self, *a, **k):
+        if self.name.startswith("update-"):
+            raise PermissionError("file in use")
+        return real_unlink(self, *a, **k)
+
+    monkeypatch.setattr(pathlib.Path, "unlink", locked)
+    model = Stub()
+    for update in range(1, 6):
+        model.completed_updates = update
+        session._publish_snapshot(model)     # must not raise
+
+    assert len(list(session.live_watch_dir.glob("update-*.zip"))) == 5
+
+
+def test_snapshots_are_published_only_while_a_watcher_is_alive(tmp_path):
+    from dodge.training import PPOTrainingSession
+
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
+
+    class Stub:
+        completed_updates = 1
+        def save(self, path):
+            path = Path(path)
+            if path.suffix == "":
+                path = path.with_suffix(".zip")
+            path.write_bytes(b"checkpoint")
+
+    model = Stub()
+    session._on_post_update(model)
+    assert not list(session.live_watch_dir.glob("update-*.zip")) \
+        if session.live_watch_dir.exists() else True, "no watcher, no snapshot"
+
+    class Alive:
+        def poll(self):
+            return None
+
+    class Exited:
+        def poll(self):
+            return 0
+
+    session.watchers = [Alive()]
+    model.completed_updates = 2
+    session._on_post_update(model)
+    assert len(list(session.live_watch_dir.glob("update-*.zip"))) == 1
+
+    session.watchers = [Exited()]
+    assert session._watchers_alive() is False
+    assert session.watchers == [], "exited handles are pruned"
+    model.completed_updates = 3
+    session._on_post_update(model)
+    assert len(list(session.live_watch_dir.glob("update-*.zip"))) == 1, \
+        "publishing stops once the last watcher is gone"
+
+
+def test_loading_applies_the_architectures_hyperparameters(tmp_path):
+    """The table only ever reached _new_model, and the Models panel is the only
+    way to pick an architecture -- so every real v2 run loaded a checkpoint and
+    silently kept whatever schedule it was seeded with. A live v2 run was found
+    at 10 epochs and batch 64: 320 optimizer steps an update against v2's 32.
+    """
+    from dodge.env import DodgeVecEnv
+    from dodge.training import hyperparameters, minibatch_size
+
+    stale = tmp_path / "stale-v2.zip"
+    env = DodgeVecEnv(n_envs=1, max_episode_frames=20)
+    session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu",
+                                 architecture="velocity-flow-v2", n_envs=1,
+                                 rollout_steps=64)
+    seeded = session._new_model(env)
+    # Exactly the shape found on disk: v2's network, v1's schedule and worse.
+    seeded.n_epochs, seeded.batch_size = 10, 64
+    seeded.target_kl, seeded.vf_coef, seeded.ent_coef = None, 0.5, 0.0
+    seeded.max_grad_norm, seeded.gamma = 0.5, 0.99
+    seeded.save(stale)
+
+    loaded = session._load_model(stale, env)
+    env.close()
+
+    want = hyperparameters("velocity-flow-v2")
+    assert loaded.n_epochs == want["n_epochs"] == 4
+    assert loaded.target_kl == want["target_kl"] == 0.02
+    assert loaded.vf_coef == want["vf_coef"] == 1.0
+    assert loaded.batch_size == minibatch_size(1 * 64, "velocity-flow-v2")
+    assert loaded.ent_coef == want["ent_coef"]
+    assert loaded.gamma == want["gamma"] == 0.997
+    assert loaded.max_grad_norm == want["max_grad_norm"] == 2.0
+
+
+def test_a_loaded_checkpoint_logs_to_tensorboard(tmp_path):
+    """The v2 seed carried tensorboard_log=None, so 1,856 updates of real
+    training produced no log at all and every diagnosis had to guess."""
+    from dodge.env import DodgeVecEnv
+
+    path = tmp_path / "seed.zip"
+    env = DodgeVecEnv(n_envs=1, max_episode_frames=20)
+    session = PPOTrainingSession(model_dir=tmp_path, logs_dir=tmp_path / "tb",
+                                 autostart=False, device="cpu",
+                                 architecture="velocity-flow-v2", n_envs=1,
+                                 rollout_steps=64)
+    seeded = session._new_model(env)
+    seeded.tensorboard_log = None
+    seeded.save(path)
+
+    loaded = session._load_model(path, env)
+    env.close()
+
+    assert loaded.tensorboard_log == str(tmp_path / "tb")
+
+
+def test_a_seeded_checkpoint_is_born_with_its_architectures_schedule(tmp_path):
+    """new_policy wrote n_steps=64, batch_size=64 and no tensorboard log, and
+    those values then rode into every run that loaded the seed."""
+    from stable_baselines3.common.save_util import load_from_zip_file
+    from dodge.training import hyperparameters
+    from tools.new_policy import main
+
+    assert main(["velocity-flow-v2", "--models-dir", str(tmp_path)]) == 0
+    data, _, _ = load_from_zip_file(tmp_path / "velocity-flow-v2.zip", device="cpu")
+
+    want = hyperparameters("velocity-flow-v2")
+    assert data["n_epochs"] == want["n_epochs"]
+    assert data["gamma"] == want["gamma"]
+    assert data["target_kl"] == want["target_kl"]
+    assert data["vf_coef"] == want["vf_coef"]
+    assert data["ent_coef"] == want["ent_coef"]
+
+
+def test_the_cli_trainer_uses_the_architecture_table(tmp_path, monkeypatch):
+    """train_ppo.py hardcoded n_epochs=10, gamma=0.995 and called
+    minibatch_size without the architecture -- so --architecture
+    velocity-flow-v2 there gave v2's network on v1's schedule."""
+    import train_ppo
+    from dodge.training import hyperparameters, minibatch_size
+
+    captured = {}
+
+    class FakePPO:
+        def __init__(self, policy, env, **kwargs):
+            captured.update(kwargs)
+            # What train_ppo reads back to log the update's schedule.
+            self.__dict__.update(kwargs, n_envs=8)
+
+        def learn(self, *a, **k):
+            return self
+
+        def save(self, path):
+            pass
+
+    monkeypatch.setattr(train_ppo, "PPO", FakePPO)
+    monkeypatch.setattr(train_ppo, "make_training_env",
+                        lambda *a, **k: type("E", (), {"close": lambda self: None})())
+
+    train_ppo.main([
+        "--architecture", "velocity-flow-v2", "--steps", "1", "--envs", "8",
+        "--rollout-steps", "256", "--models-dir", str(tmp_path),
+        "--logs-dir", str(tmp_path / "tb"),
+    ])
+
+    want = hyperparameters("velocity-flow-v2")
+    assert captured["n_epochs"] == want["n_epochs"] == 4
+    assert captured["gamma"] == want["gamma"] == 0.997
+    assert captured["max_grad_norm"] == want["max_grad_norm"] == 2.0
+    assert captured["target_kl"] == want["target_kl"] == 0.02
+    assert captured["vf_coef"] == want["vf_coef"] == 1.0
+    assert captured["batch_size"] == minibatch_size(8 * 256, "velocity-flow-v2") == 256
