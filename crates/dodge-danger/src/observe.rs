@@ -706,6 +706,7 @@ pub fn feed(game: &NativeGame) {
         .map(|(i, sample)| (sample, serials.get(i).copied().flatten()))
         .collect();
     BODY_FRAMES.fetch_add(samples.len() as u64, Ordering::Relaxed);
+    CURRENT.with(|c| c.borrow_mut().frame += 1);
     let rectangles = if smoother_enabled() { crate::hnnplan::rect_snapshot(game) } else { Vec::new() };
     let window = std::env::var("HNN_OBS_WINDOW")
         .ok()
@@ -720,7 +721,6 @@ pub fn feed(game: &NativeGame) {
         .clamp(2, 16);
     CURRENT.with(|c| {
         let mut c = c.borrow_mut();
-        c.frame += 1;
         let samples = if let Some(config) = NoiseConfig::from_env() {
             c.noise.apply(
                 config,
