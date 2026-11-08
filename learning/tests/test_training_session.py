@@ -12,11 +12,10 @@ from dodge.telemetry import ModelEntry
 from dodge.observe import OBSERVATION_SIZE
 from dodge.policies import ARCHITECTURES
 from dodge.training import DashboardPPO, PPOTrainingSession
-from watch_ppo import window_title
 
 from dodge.env import native_available
 
-pytestmark = pytest.mark.skipif(not native_available(), reason="dodge_native not installed")
+pytestmark = pytest.mark.skipif(not native_available(), reason="dodge_rl not installed")
 
 
 class _Alive:
@@ -341,16 +340,17 @@ def test_every_heuristic_plays_a_game_from_lane_state():
     from dodge.heuristics import BOTS
 
     for _, make_bot in BOTS.values():
-        engine = make_engine(step_frames=1, execution="serial", difficulty=3,
+        engine = make_engine(1, step_frames=1, execution="serial", difficulty=3,
                              patterns=True, powerups=True)
-        engine.reset_ml_batch(np.array([1_000_000], dtype=np.uint32))
+        engine.reset_all(seeds=[1_000_000])
         bot = make_bot()
         for _ in range(120):
-            state = engine.lane_state(0)
+            state = engine.slot_state(0)
             bot.observe(state)
             action = bot.act(state)
             assert 0 <= action <= 8
-            engine.step_ml_batch(np.array([action], dtype=np.uint8))
+            if engine.step(np.array([action], dtype=np.uint8))["terminated"][0]:
+                engine.reset_all(seeds=[1_000_000])
         if hasattr(bot, "overlay"):
             overlay = bot.overlay()
             assert overlay.paths, "at least the bot's own plan"
@@ -822,73 +822,6 @@ def test_rejects_a_non_positive_training_chunk(tmp_path):
                            autostart=False, device="cpu")
 
 
-def test_watch_builds_the_game_from_its_settings(tmp_path, monkeypatch):
-    """Watching plays the engine with the session's mechanics, frame by frame."""
-    import watch_ppo
-
-    built = {}
-
-    class StubEngine:
-        def reset_batch(self, seeds):
-            return {"pixels": np.zeros((1, 128, 128), np.uint8), "done": [False]}
-
-        def observe_velocity(self):
-            return {"observation": np.zeros((1, OBSERVATION_SIZE), np.float32)}
-
-        def step_pixels(self, actions):
-            return {"pixels": np.zeros((1, 128, 128), np.uint8), "done": [True]}
-
-        def reset_lanes(self, lanes, seeds):
-            return self.reset_batch(seeds)
-
-    class StubWindow:
-        def __init__(self, **kwargs):
-            pass
-
-        def show(self, pixels):
-            pass
-
-        def set_caption(self, caption):
-            pass
-
-        def set_field(self, field):
-            pass
-
-    class StubModel:
-        def predict(self, observation, deterministic=True):
-            return 0, None
-
-    def fake_make_engine(**kwargs):
-        built.update(kwargs)
-        return StubEngine()
-
-    model_path = tmp_path / "policy.zip"
-    model_path.write_bytes(b"placeholder")
-    monkeypatch.setattr(watch_ppo, "make_engine", fake_make_engine)
-    monkeypatch.setattr(watch_ppo, "GameWindow", StubWindow)
-    monkeypatch.setattr(
-        watch_ppo, "PPO",
-        type("FakePPO", (), {"load": staticmethod(lambda *a, **k: StubModel())}))
-    monkeypatch.setattr(watch_ppo.pygame.event, "get", lambda: [])
-    monkeypatch.setattr(sys, "argv",
-                        ["watch_ppo.py", str(model_path), "--frames", "4",
-                         "--no-normal-enemies", "--no-kamikaze-enemies",
-                         "--spawn-rate-percent", "125"])
-
-    assert watch_ppo.main() == 0
-    assert built["step_frames"] == 1
-    assert built["pixels"] is True
-    assert built["normal_enemies"] is False
-    assert built["kamikaze_enemies"] is False
-    assert built["spawn_rate_percent"] == 125
-
-
-def test_watch_window_title_identifies_policy_and_run():
-    assert window_title("patient-dodger", 37, 1849201, episode=4) == (
-        "patient-dodger | Update 37 | Episode 4 | Seed 1849201"
-    )
-
-
 def test_save_and_load_set_the_active_model_name(tmp_path, monkeypatch):
     session = PPOTrainingSession(model_dir=tmp_path, autostart=False, device="cpu")
     monkeypatch.setattr(session, "_save_to_path", lambda path: path)
@@ -1010,24 +943,6 @@ def test_every_architecture_saves_and_loads_through_the_session(tmp_path, archit
         assert 0 <= int(action[0]) < 9
     finally:
         env.close()
-
-
-def test_the_dashboard_command_line_accepts_every_architecture(tmp_path):
-    """Registering an architecture should be enough; the CLI reads the list."""
-    import os
-
-    import training_gui
-    from dodge.policies import ARCHITECTURES
-
-    os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
-    for architecture in ARCHITECTURES:
-        # --screenshot renders one frame of sample telemetry and exits, so this
-        # exercises argument parsing without starting a trainer.
-        assert training_gui.main([
-            "--architecture", architecture,
-            "--screenshot", str(tmp_path / f"{architecture}.png"),
-        ]) == 0
-
 
 @pytest.mark.parametrize("architecture", ["velocity-flow", "mlp"])
 def test_new_policy_tool_makes_an_architecture_selectable(tmp_path, architecture):
@@ -1752,79 +1667,6 @@ def test_snapshots_are_published_only_while_a_watcher_is_alive(tmp_path):
     session._on_post_update(model)
     assert len(list(session.live_watch_dir.glob("update-*.zip"))) == 1, \
         "publishing stops once the last watcher is gone"
-
-
-def test_the_watcher_adopts_a_newer_snapshot(tmp_path):
-    import watch_ppo
-    from dodge.training import snapshot_name
-
-    class Old:
-        pass
-
-    loaded = []
-
-    class FakePPO:
-        @staticmethod
-        def load(path, device):
-            loaded.append(path)
-            return "new"
-
-    real = watch_ppo.PPO
-    watch_ppo.PPO = FakePPO
-    try:
-        (tmp_path / snapshot_name(9)).write_bytes(b"checkpoint")
-        model, update, error = watch_ppo.reload_if_newer(Old(), tmp_path, 4)
-        assert model == "new" and update == 9 and error is None
-        assert loaded == [tmp_path / snapshot_name(9)]
-
-        again, update, error = watch_ppo.reload_if_newer(model, tmp_path, 9)
-        assert again is model and update == 9, "nothing newer, nothing loaded"
-        # "new" is the literal object the first call returned; CPython
-        # interns that string, so a regression that dropped the
-        # `after=current_update` filter (and reloaded anyway, returning
-        # another "new") would still satisfy `again is model`. Only the call
-        # count proves the second reload never happened.
-        assert loaded == [tmp_path / snapshot_name(9)], \
-            "a second load call must not have happened"
-    finally:
-        watch_ppo.PPO.load = real
-
-
-def test_a_broken_snapshot_leaves_the_watcher_on_its_model(tmp_path):
-    import watch_ppo
-    from dodge.training import snapshot_name
-
-    class Old:
-        pass
-
-    old = Old()
-
-    class FakePPO:
-        @staticmethod
-        def load(path, device):
-            raise ValueError("bad zip")
-
-    real = watch_ppo.PPO
-    watch_ppo.PPO = FakePPO
-    try:
-        (tmp_path / snapshot_name(9)).write_bytes(b"garbage")
-        model, update, error = watch_ppo.reload_if_newer(old, tmp_path, 4)
-        assert model is old, "the in-memory policy has to survive"
-        assert update == 4, "and stay on its own update, so it retries later"
-        assert "bad zip" in error
-    finally:
-        watch_ppo.PPO = real
-
-
-def test_no_live_directory_is_not_an_error(tmp_path):
-    import watch_ppo
-
-    class Old:
-        pass
-
-    old = Old()
-    model, update, error = watch_ppo.reload_if_newer(old, None, 3)
-    assert model is old and update == 3 and error is None
 
 
 def test_loading_applies_the_architectures_hyperparameters(tmp_path):

@@ -15,7 +15,7 @@ from dodge.training import (DashboardPPO, PPOTrainingSession,
 from tools.new_policy import main as new_policy_main
 
 pytestmark = [
-    pytest.mark.skipif(not native_available(), reason="dodge_native not installed"),
+    pytest.mark.skipif(not native_available(), reason="dodge_rl not installed"),
     pytest.mark.skipif(CRITIC_FEATURE_COUNT == 0,
                        reason="the native engine has no critic features"),
 ]

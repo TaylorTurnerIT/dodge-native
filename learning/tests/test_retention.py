@@ -11,7 +11,7 @@ from dodge.lineage import sidecar_paths
 from dodge.rewards import RewardConfig
 
 pytestmark = pytest.mark.skipif(not native_available(),
-                                reason="dodge_native with observe_velocity not installed")
+                                reason="dodge_rl not installed")
 
 GAME = {"difficulty": 3, "patterns": True, "powerups": True, "normal_enemies": True,
         "kamikaze_enemies": True, "spawn_rate_percent": 100, "action_repeat": 4,

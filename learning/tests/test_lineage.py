@@ -11,7 +11,7 @@ from dodge.env import native_available
 from dodge.rewards import RewardConfig
 
 pytestmark = pytest.mark.skipif(not native_available(),
-                                reason="dodge_native with observe_velocity not installed")
+                                reason="dodge_rl not installed")
 
 
 @pytest.fixture(autouse=True)
@@ -47,8 +47,8 @@ class Clock:
 
 
 def test_a_checkpoint_gets_a_state_sidecar_and_a_manifest(tmp_path):
-    import dodge_native
-    from dodge.lineage import sidecar_paths
+    from dodge_rl import _native
+    from dodge.lineage import manifest_native_binary, sidecar_paths
     from dodge.resume import CheckpointWriter
 
     model, env = small_model()
@@ -80,12 +80,14 @@ def test_a_checkpoint_gets_a_state_sidecar_and_a_manifest(tmp_path):
 
     versions = manifest["versions"]
     assert set(versions) >= {"python", "numpy", "torch", "stable_baselines3"}
-    native = manifest["dodge_native"]
+    assert "dodge_native" not in manifest
+    native = manifest["dodge_rl"]
+    assert manifest_native_binary(manifest) == native
     from pathlib import Path
     binary = Path(native["path"])
     assert binary.suffix in (".pyd", ".so")
     assert native["sha256"] == sha(binary)
-    assert Path(dodge_native.dodge_native.__file__).resolve() == binary.resolve()
+    assert Path(_native.__file__).resolve() == binary.resolve()
 
     git = manifest["git"]
     assert re.fullmatch(r"[0-9a-f]{40}", git["commit"])
@@ -148,3 +150,10 @@ def test_non_sb3_models_are_saved_without_sidecars(tmp_path):
     assert saved == [tmp_path / "stub"]
     assert path == tmp_path / "stub.zip"
     assert not (tmp_path / "stub.manifest.json").exists()
+
+
+def test_a_manifest_from_before_dodge_rl_still_reports_its_binary():
+    from dodge.lineage import manifest_native_binary
+    old = {"dodge_native": {"path": "x.pyd", "sha256": "ab"}}
+    assert manifest_native_binary(old) == {"path": "x.pyd", "sha256": "ab"}
+    assert manifest_native_binary({"dodge_native": None}) is None

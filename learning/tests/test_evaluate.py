@@ -9,7 +9,7 @@ from dodge.evaluate import (EvalResult, engine_settings, evaluate_model,
                             evaluate_policy, quarter_means)
 
 pytestmark = pytest.mark.skipif(not native_available(),
-                                reason="dodge_native with observe_velocity not installed")
+                                reason="dodge_rl not installed")
 
 GAME = dict(step_frames=4, difficulty=3, patterns=True, powerups=True)
 

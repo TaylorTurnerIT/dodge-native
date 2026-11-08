@@ -11,7 +11,7 @@ from dodge.lineage import sha256_file, sidecar_paths
 from dodge.rewards import RewardConfig
 
 pytestmark = pytest.mark.skipif(not native_available(),
-                                reason="dodge_native with observe_velocity not installed")
+                                reason="dodge_rl not installed")
 
 
 @pytest.fixture(autouse=True)

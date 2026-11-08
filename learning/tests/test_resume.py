@@ -10,7 +10,7 @@ from dodge.env import native_available
 from dodge.rewards import RewardConfig
 
 pytestmark = pytest.mark.skipif(not native_available(),
-                                reason="dodge_native with observe_velocity not installed")
+                                reason="dodge_rl not installed")
 
 SEGMENT = 3
 N_ENVS = 2

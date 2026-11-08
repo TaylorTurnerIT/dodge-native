@@ -9,7 +9,7 @@ from dodge.observe import OBSERVATION_SIZE, observe
 from dodge.rewards import RewardConfig
 
 pytestmark = pytest.mark.skipif(not native_available(),
-                                reason="dodge_native with observe_velocity not installed")
+                                reason="dodge_rl not installed")
 
 
 @pytest.fixture(autouse=True)
@@ -242,25 +242,32 @@ def _reference_globals(state):
 
 def test_the_engine_observation_matches_the_reference_encoder():
     """dodge/observe.py is the specification; the engine must match it exactly."""
-    engine = make_engine(difficulty=3, patterns=True, powerups=True)
     lanes = 8
-    engine.reset_ml_batch(np.arange(lanes, dtype=np.uint32) + 500)
+    engine = make_engine(lanes, difficulty=3, patterns=True, powerups=True)
+    first = engine.reset_all(seeds=np.arange(lanes, dtype=np.uint32) + 500)
     rng = np.random.default_rng(1)
     checked = 0
+
+    def check(native, rows):
+        nonlocal checked
+        for row, lane in enumerate(rows):
+            expected = observe(SimpleNamespace(
+                globals=_reference_globals(engine.slot_state(int(lane)))))
+            np.testing.assert_array_equal(native[row], expected)
+            checked += 1
+
+    check(first["observations"]["observation"], range(lanes))
     for step in range(900):
         if step % 8 == 0:
             actions = rng.integers(0, 9, lanes, dtype=np.uint8)
-        done = engine.step_ml_batch(actions)["done"]
+        stepped = engine.step(actions)
         if step % 13 == 0:
-            native = engine.observe_velocity()["observation"]
-            for lane in range(lanes):
-                expected = observe(SimpleNamespace(
-                    globals=_reference_globals(engine.lane_state(lane))))
-                np.testing.assert_array_equal(native[lane], expected)
-                checked += 1
-        finished = np.flatnonzero(done).astype(np.uint32)
+            check(stepped["observations"]["observation"], range(lanes))
+        finished = np.flatnonzero(stepped["terminated"] | stepped["truncated"])
         if len(finished):
-            engine.reset_ml_lanes(finished, finished + 9_000 + step)
+            fresh = engine.reset_done(finished, seeds=finished + 9_000 + step)
+            check(fresh["observations"]["observation"],
+                  fresh["observations"]["indices"])
     assert checked > 400
 
 

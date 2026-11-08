@@ -1,5 +1,9 @@
 """DodgeVecEnv must report exactly what the original implementation reported.
 
+(The frozen original now runs on dodge_rl, so its games, and so the numbers
+these tests compare, are the new engine's. It differs from the optimised env
+only in how it builds the infos and restarts games.)
+
 The step was rewritten for throughput. These tests run it side by side with
 the frozen original (tests/reference_env.py) on fixed seeds and fixed action
 sequences, across lane counts, action repeats, training lives and frame caps,
@@ -30,7 +34,7 @@ from dodge.telemetry import DashboardSnapshot
 from .reference_env import ReferenceDodgeVecEnv
 
 pytestmark = pytest.mark.skipif(not native_available(),
-                                reason="dodge_native with observe_velocity not installed")
+                                reason="dodge_rl not installed")
 
 
 @pytest.fixture(autouse=True)
@@ -108,11 +112,10 @@ def full_infos(infos):
     return list(infos)
 
 
-def make_pair(config, restart_observe):
+def make_pair(config):
     settings = {key: value for key, value in config.items() if key != "steps"}
     reference = ReferenceDodgeVecEnv(**settings, **GAME)
     candidate = DodgeVecEnv(**settings, **GAME)
-    candidate._restart_observe = restart_observe
     return reference, candidate
 
 
@@ -136,19 +139,11 @@ def assert_step_identical(expected, actual, step):
             assert infos_a[lane] == {}
 
 
-# A restarted game's first observation comes either from re-observing the
-# whole batch or from the nursery engine; "auto" picks by measured cost, so
-# both are also forced on the configs that restart the most games.
-CASES = ([(name, "auto") for name in CONFIGS]
-         + [(name, mode) for name in ("64-lanes", "16-lanes-repeat-4-cap")
-            for mode in ("nursery", "batch")])
-
-
-@pytest.mark.parametrize("name, restart_observe", CASES)
-def test_step_is_bit_identical_to_the_original(name, restart_observe, _weights_and_clock):
+@pytest.mark.parametrize("name", list(CONFIGS))
+def test_step_is_bit_identical_to_the_original(name, _weights_and_clock):
     clock = _weights_and_clock
     config = CONFIGS[name]
-    reference, candidate = make_pair(config, restart_observe)
+    reference, candidate = make_pair(config)
     steps = config["steps"]
     actions = action_sequence(config["n_envs"], steps, config["seed"])
 
@@ -223,7 +218,7 @@ def test_dashboard_and_sb3_aggregates_are_unchanged(name, _weights_and_clock):
     both must arrive at the same numbers."""
     clock = _weights_and_clock
     config = CONFIGS[name]
-    reference, candidate = make_pair(config, "auto")
+    reference, candidate = make_pair(config)
     steps = config["steps"]
     actions = action_sequence(config["n_envs"], steps, config["seed"] + 1)
     callbacks = {"reference": make_callback(), "candidate": make_callback()}

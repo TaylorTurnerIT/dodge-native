@@ -58,7 +58,7 @@ class ReferenceDodgeVecEnv(DodgeVecEnv):
             self._previous = fresh
         else:
             for key, values in fresh.items():
-                self._previous[key][lanes] = values[lanes]
+                self._previous[key][lanes] = values
 
     def _start_episodes(self, lanes):
         self._episode_started[lanes] = time.monotonic()
@@ -76,8 +76,7 @@ class ReferenceDodgeVecEnv(DodgeVecEnv):
     def _start_all(self, seeds):
         self.reward_config = rewards.load(self.reward_config_path)
         self._game_seeds[:] = seeds
-        self.engine.reset_ml_batch(self._game_seeds)
-        state = self.engine.observe_velocity()
+        state = self._state(self.engine.reset_all(seeds=self._game_seeds))
         self._previous = None
         self._start_runs(np.arange(self.num_envs), state)
         self.reset_infos = [{"seed": int(seed), "score": 0.0, "frames": 0, "run_frames": 0}
@@ -87,9 +86,9 @@ class ReferenceDodgeVecEnv(DodgeVecEnv):
     def step_wait(self):
         lanes = self.num_envs
         weights = self.reward_config
-        stepped = self.engine.step_ml_batch(self._actions)
-        frames = stepped["frames_advanced"].astype(np.int64)
-        state = self.engine.observe_velocity()
+        stepped = self.engine.step(self._actions)
+        frames = stepped["elapsed_raw_frames"].astype(np.int64)
+        state = self._state(stepped)
         self._run_frames += frames
         self._episode_frames += frames
         self.total_frames += int(frames.sum())
@@ -120,9 +119,9 @@ class ReferenceDodgeVecEnv(DodgeVecEnv):
                   + weights.uncontrolled_score_weight * uncontrolled
                   - weights.death_penalty * (lives_spent + dead))
         terminated = dead | (lives_spent > 0)
-        truncated = (np.zeros(lanes, dtype=bool) if self.max_episode_frames is None
-                     else (self._run_frames >= self.max_episode_frames) & ~terminated)
-        run_over = dead | truncated
+        # The frame cap is the engine's: a capped game has ended, and restarts.
+        truncated = stepped["truncated"] & ~terminated
+        run_over = dead | stepped["truncated"]
         done = terminated | truncated
         self._episode_reward += reward
         self._previous = now
@@ -183,9 +182,8 @@ class ReferenceDodgeVecEnv(DodgeVecEnv):
         restart = np.flatnonzero(run_over).astype(np.uint32)
         if len(restart):
             seeds = self._draw_seeds(restart)
-            self.engine.reset_ml_lanes(restart, seeds)
-            fresh = self.engine.observe_velocity()
+            fresh = self._state(self.engine.reset_done(restart, seeds=seeds), restart)
             self._start_runs(restart, fresh)
             observation = observation.copy()
-            observation[restart] = fresh["observation"][restart]
+            observation[restart] = fresh["observation"]
         return observation, reward.astype(np.float32), done, infos
