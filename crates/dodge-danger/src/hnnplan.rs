@@ -178,6 +178,9 @@ struct RectLaw {
     /// Complete static lethal plateau length, measured from observed trajectories.
     #[serde(default)]
     lethal_frames: u32,
+    /// Continue observed two-frame size oscillations.
+    #[serde(default)]
+    size_oscillation: bool,
     /// Speed an enemy leaves a full-progress rectangle at, measured per rectangle type
     /// (`hnn/bounce.py`). Zero turns the bounce off.
     #[serde(default)]
@@ -261,6 +264,7 @@ thread_local! {
     /// The previous frame's rectangles. The planner needs one frame of history to see how
     /// a rectangle is moving, because rectangle velocity is not part of what a player sees.
     static HISTORY: std::cell::RefCell<RectSnapshot> = const { std::cell::RefCell::new(Vec::new()) };
+    static RECT_SIZE_HISTORY: std::cell::RefCell<(Option<u32>, RectSnapshot, Vec<[f64; 2]>, Vec<[bool; 2]>)> = const { std::cell::RefCell::new((None, Vec::new(), Vec::new(), Vec::new())) };
     static RECT_AGES: std::cell::RefCell<(Option<u32>, RectSnapshot, Vec<Option<u32>>)> = const { std::cell::RefCell::new((None, Vec::new(), Vec::new())) };
 }
 
@@ -268,6 +272,7 @@ thread_local! {
 pub fn set_history(previous: RectSnapshot) {
     if previous.is_empty() {
         RECT_AGES.with(|slot| *slot.borrow_mut() = (None, Vec::new(), Vec::new()));
+        RECT_SIZE_HISTORY.with(|slot| *slot.borrow_mut() = (None, Vec::new(), Vec::new(), Vec::new()));
     }
     HISTORY.with(|slot| *slot.borrow_mut() = previous);
 }
@@ -282,6 +287,7 @@ struct RectBody {
     vy: f64,
     vw: f64,
     vh: f64,
+    oscillating: [bool; 2],
     progress: f64,
     lethal_age: Option<u32>,
     /// +1 rising, -1 falling, 0 steady (from the change since the previous frame).
@@ -294,6 +300,24 @@ fn read_rects(game: &NativeGame) -> Vec<RectBody> {
     HISTORY.with(|slot| {
         let previous = slot.borrow();
         let known = previous.len() == current.len();
+        let oscillations = RECT_SIZE_HISTORY.with(|slot| {
+            let mut track = slot.borrow_mut();
+            let frame = game.survival_frames();
+            if track.0 == Some(frame) && track.1 == current { return track.3.clone(); }
+            let consecutive = track.0.and_then(|f| f.checked_add(1)) == Some(frame)
+                && track.1 == *previous && known;
+            let deltas: Vec<_> = current.iter().enumerate().map(|(i, now)| {
+                let before = if known { previous[i] } else { *now };
+                [now[2] - before[2], now[3] - before[3]]
+            }).collect();
+            let flags: Vec<_> = deltas.iter().enumerate().map(|(i, delta)| {
+                let old = track.2.get(i).copied().unwrap_or([0.0; 2]);
+                std::array::from_fn(|axis| consecutive && delta[axis].abs() > 0.05
+                    && (old[axis] + delta[axis]).abs() < 0.001)
+            }).collect();
+            *track = (Some(frame), current.clone(), deltas, flags.clone());
+            flags
+        });
         let ages = RECT_AGES.with(|slot| {
             let mut track = slot.borrow_mut();
             let frame = game.survival_frames();
@@ -325,6 +349,7 @@ fn read_rects(game: &NativeGame) -> Vec<RectBody> {
                     vy: now[1] - before[1],
                     vw: now[2] - before[2],
                     vh: now[3] - before[3],
+                    oscillating: oscillations[index],
                     progress: now[4],
                     lethal_age: ages[index],
                     trend: if change > 1e-3 {
@@ -1187,6 +1212,10 @@ fn rollout(
             for rect in &mut rects {
                 rect.x += rect.vx;
                 rect.y += rect.vy;
+                if law.size_oscillation {
+                    if rect.oscillating[0] { rect.vw = -rect.vw; }
+                    if rect.oscillating[1] { rect.vh = -rect.vh; }
+                }
                 rect.w = (rect.w + rect.vw).max(0.0);
                 rect.h = (rect.h + rect.vh).max(0.0);
                 if let (true, Some(crush)) = (rect.moving, &model.crush) {
