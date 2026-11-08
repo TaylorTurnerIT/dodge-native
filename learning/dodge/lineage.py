@@ -5,7 +5,8 @@ Each SB3 checkpoint `X.zip` gets `X.manifest.json` beside it, recording:
 * sha256 of the model zip and of its state sidecar (`X.state.pt`);
 * the full configuration actually in force -- the model's hyperparameters,
   the env's settings and the reward configuration's contents;
-* runtime versions, and the sha256 of the installed `dodge_native` binary;
+* runtime versions, and the sha256 of the installed `dodge_rl` binary (under the key `dodge_rl`;
+  manifests written before the move to dodge_rl have it under `dodge_native`);
 * the git commit of this code, and whether the tree was dirty;
 * the parent checkpoint's sha256 and its manifest's sha256, so a lineage
   chains back through every checkpoint it passed through;
@@ -22,6 +23,8 @@ import os
 from pathlib import Path
 import platform
 import subprocess
+
+from . import engine
 
 STATE_SUFFIX = ".state.pt"
 MANIFEST_SUFFIX = ".manifest.json"
@@ -68,13 +71,20 @@ def runtime_versions():
 
 
 def native_binary():
-    """The installed dodge_native extension and its sha256, or None."""
-    try:
-        from dodge_native import dodge_native as extension
-    except ImportError:
+    """The installed dodge_rl extension and its sha256, or None."""
+    binary = engine.binary_path()
+    if binary is None:
         return None
-    path = Path(extension.__file__).resolve()
+    path = Path(binary).resolve()
     return {"path": str(path), "sha256": sha256_file(path)}
+
+
+def manifest_native_binary(manifest):
+    """The engine binary a manifest records, whichever engine wrote it.
+
+    Manifests from before the move to dodge_rl keep it under `dodge_native`.
+    """
+    return manifest.get("dodge_rl") or manifest.get("dodge_native")
 
 
 def git_state(root=PROJECT_ROOT):
@@ -173,7 +183,7 @@ def write_manifest(checkpoint, *, config, counters, parent, wall_clock_seconds,
         "state_sha256": sha256_file(state_path) if state_path.exists() else None,
         "config": jsonable(config),
         "versions": runtime_versions(),
-        "dodge_native": native_binary(),
+        "dodge_rl": native_binary(),
         "git": git_state(),
         "parent": parent,
         "counters": jsonable(counters),
