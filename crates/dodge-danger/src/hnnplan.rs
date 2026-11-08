@@ -1071,6 +1071,20 @@ fn apply_events(model: &PhysicsModel, enemies: &mut Vec<Body>) {
 }
 
 fn hits(px: f64, py: f64, size: f64, body: &Body) -> bool {
+    static MARGIN_K: OnceLock<f64> = OnceLock::new();
+    let k = *MARGIN_K.get_or_init(|| {
+        std::env::var("HNN_MARGIN_K")
+            .ok()
+            .and_then(|value| value.parse::<f64>().ok())
+            .filter(|value| value.is_finite())
+            .unwrap_or(0.0)
+            .clamp(0.0, 10.0)
+    });
+    let size = if k > 0.0 && crate::observe::full() {
+        size + k * crate::observe::position_uncertainty()
+    } else {
+        size
+    };
     px + size - 1.0 > body.x
         && py + size - 1.0 > body.y
         && px - size + 1.0 < body.x + body.size
