@@ -25,6 +25,126 @@ pub(crate) struct Track {
     pub age: usize,
     pub speed_factor: f64,
     pub(crate) serial: Option<dodge_core::EnemySerial>,
+    filter: Option<Filter>,
+    missed: usize,
+    kinds: VecDeque<i8>,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct Filter {
+    x: f64,
+    y: f64,
+    vx: f64,
+    vy: f64,
+}
+
+#[derive(Deserialize)]
+struct ForceLayer {
+    weights: Vec<Vec<f64>>,
+    bias: Vec<f64>,
+}
+#[derive(Deserialize)]
+struct FilterPhysics {
+    layers: Vec<ForceLayer>,
+    gamma: f64,
+}
+static FILTER_PHYSICS: OnceLock<FilterPhysics> = OnceLock::new();
+
+/// Register the same learned physics used by the planner for the optional filter.
+pub fn install_filter_physics(text: &str) -> Result<(), String> {
+    if std::env::var("HNN_OBS_FILTER").ok().as_deref() != Some("1") {
+        return Ok(());
+    }
+    let model = serde_json::from_str(text).map_err(|e| format!("filter physics: {e}"))?;
+    FILTER_PHYSICS
+        .set(model)
+        .map_err(|_| "filter physics already installed".to_string())
+}
+
+impl FilterPhysics {
+    fn force(&self, dx: f64, dy: f64, kind: usize) -> (f64, f64) {
+        let mut input = vec![0.0; 7];
+        input[0] = dx / 64.0;
+        input[1] = dy / 64.0;
+        input[2 + kind.min(1)] = 1.0;
+        let mut activations = vec![input];
+        for (index, layer) in self.layers.iter().enumerate() {
+            let values = layer
+                .weights
+                .iter()
+                .zip(&layer.bias)
+                .map(|(row, bias)| {
+                    let x = row
+                        .iter()
+                        .zip(&activations[index])
+                        .map(|(w, v)| w * v)
+                        .sum::<f64>()
+                        + bias;
+                    if index + 1 == self.layers.len() {
+                        x
+                    } else {
+                        x.tanh()
+                    }
+                })
+                .collect();
+            activations.push(values);
+        }
+        let mut gradient = vec![1.0];
+        for index in (0..self.layers.len()).rev() {
+            if index + 1 != self.layers.len() {
+                for (g, v) in gradient.iter_mut().zip(&activations[index + 1]) {
+                    *g *= 1.0 - v * v;
+                }
+            }
+            let mut prev = vec![0.0; activations[index].len()];
+            for (row, upstream) in self.layers[index].weights.iter().zip(&gradient) {
+                for (value, weight) in prev.iter_mut().zip(row) {
+                    *value += weight * upstream;
+                }
+            }
+            gradient = prev;
+        }
+        (-gradient[0] / 64.0, -gradient[1] / 64.0)
+    }
+}
+
+impl Filter {
+    fn predict(self, sample: Sample, rate: f64) -> Self {
+        let (mut vx, mut vy) = (self.vx, self.vy);
+        if sample.kind >= 0 {
+            if let Some(model) = FILTER_PHYSICS.get() {
+                let (fx, fy) = model.force(
+                    self.x - sample.player_x,
+                    self.y - sample.player_y,
+                    usize::from(sample.kind == 1),
+                );
+                vx = (1.0 - model.gamma) * vx + rate * rate * fx;
+                vy = (1.0 - model.gamma) * vy + rate * rate * fy;
+            }
+        }
+        Self {
+            x: self.x + vx,
+            y: self.y + vy,
+            vx,
+            vy,
+        }
+    }
+    fn update(mut self, sample: Sample) -> Self {
+        let (dx, dy) = (sample.x - self.x, sample.y - self.y);
+        self.x += 0.6 * dx;
+        self.y += 0.6 * dy;
+        self.vx += 0.18 * dx;
+        self.vy += 0.18 * dy;
+        self
+    }
+}
+
+fn option_usize(name: &str, default: usize, max: usize) -> usize {
+    std::env::var(name)
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(default)
+        .min(max)
 }
 
 impl Track {
@@ -454,6 +574,14 @@ pub fn feed(game: &NativeGame) {
             samples
         };
         let old = std::mem::take(&mut c.tracks);
+        let filter_enabled = std::env::var("HNN_OBS_FILTER").ok().as_deref() == Some("1");
+        let keep = option_usize("HNN_OBS_KEEP", 0, 10);
+        let kind_window = option_usize("HNN_OBS_KIND_WINDOW", 1, 15).max(1);
+        let rate = if c.global_rate > 0.0 {
+            c.global_rate.clamp(0.3, 4.0)
+        } else {
+            1.0
+        };
         let mut next_id = c.next_id;
         let mut candidates = Vec::new();
         for (i, track) in old.iter().enumerate() {
@@ -466,11 +594,19 @@ pub fn feed(game: &NativeGame) {
             } else {
                 track.velocity()
             };
+            let predicted = track.filter.map(|f| f.predict(*last, rate));
             for (j, (sample, _)) in samples.iter().enumerate() {
-                if sample.kind == last.kind {
-                    let distance = (sample.x - last.x - vx).hypot(sample.y - last.y - vy);
-                    if distance <= 2.0 {
-                        candidates.push((distance, i, j));
+                if sample.kind == last.kind
+                    || (kind_window > 1 && sample.kind >= 0 && last.kind >= 0)
+                {
+                    let (x, y) = predicted.map_or((last.x + vx, last.y + vy), |f| (f.x, f.y));
+                    let distance = (sample.x - x).hypot(sample.y - y);
+                    if distance <= if filter_enabled || keep > 0 { 3.5 } else { 2.0 } {
+                        candidates.push((
+                            distance + if sample.kind != last.kind { 0.2 } else { 0.0 },
+                            i,
+                            j,
+                        ));
                     }
                 }
             }
@@ -487,7 +623,7 @@ pub fn feed(game: &NativeGame) {
         c.tracks = samples
             .into_iter()
             .enumerate()
-            .map(|(j, (sample, serial))| {
+            .map(|(j, (mut sample, serial))| {
                 let mut track = matches[j].map(|i| old[i].clone()).unwrap_or_else(|| Track {
                     samples: VecDeque::new(),
                     inside: false,
@@ -499,8 +635,37 @@ pub fn feed(game: &NativeGame) {
                     age: 0,
                     speed_factor: 1.0,
                     serial: None,
+                    filter: None,
+                    missed: 0,
+                    kinds: VecDeque::new(),
                 });
                 track.age += 1;
+                track.missed = 0;
+                if kind_window > 1 && sample.kind >= 0 {
+                    track.kinds.push_back(sample.kind);
+                    while track.kinds.len() > kind_window {
+                        track.kinds.pop_front();
+                    }
+                    let ones = track.kinds.iter().filter(|&&kind| kind == 1).count();
+                    sample.kind = if ones * 2 > track.kinds.len() { 1 } else { 0 };
+                }
+                if filter_enabled && sample.kind >= 0 {
+                    let filter = track
+                        .filter
+                        .map(|f| {
+                            f.predict(*track.samples.back().unwrap_or(&sample), rate)
+                                .update(sample)
+                        })
+                        .unwrap_or(Filter {
+                            x: sample.x,
+                            y: sample.y,
+                            vx: 0.0,
+                            vy: 0.0,
+                        });
+                    sample.x = filter.x;
+                    sample.y = filter.y;
+                    track.filter = Some(filter);
+                }
                 if sample.kind == 1 {
                     if let Some(before) = track.samples.back() {
                         let distance =
@@ -527,12 +692,50 @@ pub fn feed(game: &NativeGame) {
                 track
             })
             .collect();
+        if keep > 0 {
+            for (i, track) in old.iter().enumerate() {
+                if used_old[i] || track.missed >= keep {
+                    continue;
+                }
+                let mut track = track.clone();
+                let Some(mut sample) = track.samples.back().copied() else {
+                    continue;
+                };
+                let predicted = track.filter.map(|f| f.predict(sample, rate));
+                if let Some(filter) = predicted {
+                    sample.x = filter.x;
+                    sample.y = filter.y;
+                    track.filter = Some(filter);
+                } else {
+                    let (vx, vy) = track.velocity();
+                    sample.x += vx;
+                    sample.y += vy;
+                }
+                sample.player_x = game.player().x.to_double();
+                sample.player_y = game.player().y.to_double();
+                track.samples.push_back(sample);
+                while track.samples.len() > window {
+                    track.samples.pop_front();
+                }
+                track.missed += 1;
+                track.serial = None;
+                c.tracks.push(track);
+            }
+        }
         c.next_id = next_id;
     });
 }
 
 pub(crate) fn tracks() -> Vec<Track> {
-    CURRENT.with(|c| c.borrow().tracks.clone())
+    let min_age = option_usize("HNN_OBS_MIN_AGE", 1, 20).max(1);
+    CURRENT.with(|c| {
+        c.borrow()
+            .tracks
+            .iter()
+            .filter(|track| track.age >= min_age)
+            .cloned()
+            .collect()
+    })
 }
 
 #[derive(Deserialize)]
@@ -723,6 +926,35 @@ mod tests {
     }
 
     #[test]
+    fn filter_force_and_residual_update() {
+        let physics = FilterPhysics {
+            gamma: 0.1,
+            layers: vec![ForceLayer {
+                weights: vec![vec![64.0, -128.0, 0.0, 0.0, 0.0, 0.0, 0.0]],
+                bias: vec![0.0],
+            }],
+        };
+        assert_eq!(physics.force(1.0, 2.0, 0), (-1.0, 2.0));
+        let sample = Sample {
+            x: 10.0,
+            y: 20.0,
+            size: 4.0,
+            kind: 0,
+            player_x: 0.0,
+            player_y: 0.0,
+        };
+        let state = Filter {
+            x: 8.0,
+            y: 18.0,
+            vx: 0.0,
+            vy: 0.0,
+        }
+        .update(sample);
+        assert!((state.x - 9.2).abs() < 1e-9 && (state.vx - 0.36).abs() < 1e-9);
+        assert!((state.y - 19.2).abs() < 1e-9 && (state.vy - 0.36).abs() < 1e-9);
+    }
+
+    #[test]
     fn linear_fit_and_size_trend() {
         let mut track = Track {
             samples: VecDeque::new(),
@@ -731,6 +963,9 @@ mod tests {
             age: 0,
             speed_factor: 1.0,
             serial: None,
+            filter: None,
+            missed: 0,
+            kinds: VecDeque::new(),
         };
         assert_eq!(track.velocity(), (0.0, 0.0));
         for i in 0..5 {

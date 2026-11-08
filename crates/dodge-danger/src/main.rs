@@ -325,6 +325,7 @@ where
                 let path = next_value(&mut values, "--physics-model")?;
                 let text = std::fs::read_to_string(&path)
                     .map_err(|error| format!("could not read {path}: {error}"))?;
+                dodge_danger::observe::install_filter_physics(&text)?;
                 dodge_danger::hnnplan::install(dodge_danger::hnnplan::PhysicsModel::from_json(
                     &text,
                 )?)?;
