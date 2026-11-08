@@ -1091,6 +1091,8 @@ pub struct Rollout {
     pub snapshot: Vec<[f64; 3]>,
     /// Initial enemy indices corresponding to the snapshot. Births have no index.
     pub snapshot_ids: Vec<Option<usize>>,
+    /// Rectangles after the requested diagnostic horizon, in observed order.
+    pub snapshot_rects: RectSnapshot,
     /// Samples every four frames when requested, up to the first hit.
     pub samples: Vec<Vec<[f64; 4]>>,
 }
@@ -1118,6 +1120,7 @@ fn rollout(
     let mut first_hit = None;
     let mut snapshot = Vec::new();
     let mut snapshot_ids = Vec::new();
+    let mut snapshot_rects = Vec::new();
     let mut samples = Vec::new();
 
     for frame in 1..=horizon {
@@ -1289,6 +1292,7 @@ fn rollout(
             }
         }
         if frame == snapshot_at {
+            snapshot_rects = rects.iter().map(|rect| [rect.x, rect.y, rect.w, rect.h, rect.progress, if rect.moving { 1.0 } else { 0.0 }]).collect();
             snapshot_ids = enemies.iter().map(|body| body.diagnostic_id).collect();
             snapshot = enemies
                 .iter()
@@ -1325,6 +1329,7 @@ fn rollout(
         first_hit,
         snapshot,
         snapshot_ids,
+        snapshot_rects,
         samples,
     }
 }

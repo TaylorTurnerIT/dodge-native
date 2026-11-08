@@ -184,10 +184,23 @@ fn main() -> Result<(), String> {
                                 .iter()
                                 .filter(|id| truth.contains_key(id))
                                 .count();
+                            let truth_rects = hnnplan::rect_snapshot(&sim);
+                            let mut rect_errors = Vec::new();
+                            let mut rect_lethal_disagreements = 0;
+                            if truth_rects.len() == rects.len() && truth_rects.len() == imagined.snapshot_rects.len() {
+                                for (a, b) in truth_rects.iter().zip(&imagined.snapshot_rects) {
+                                    rect_errors.push((0..4).map(|i| (a[i] - b[i]).abs()).fold(0.0_f64, f64::max));
+                                    let actual_lethal = a[5] > 0.5 || a[4] >= 1.999999;
+                                    let predicted_lethal = b[5] > 0.5 || b[4] >= 1.999999;
+                                    rect_lethal_disagreements += usize::from(actual_lethal != predicted_lethal);
+                                }
+                            }
                             snapshots.push(json!({"horizon": horizon, "engine_count": truth.len(), "model_count": imagined.snapshot.len(),
                                 "engine_new": truth.len() - initial_survivors, "engine_missing_initial": initial_serials.len() - initial_survivors,
                                 "model_new": imagined.snapshot_ids.iter().filter(|id| id.is_none()).count(),
-                                "position_errors": position_errors, "explosion_size_errors": explosion_size_errors}));
+                                "position_errors": position_errors, "explosion_size_errors": explosion_size_errors,
+                                "engine_rect_count": truth_rects.len(), "model_rect_count": imagined.snapshot_rects.len(),
+                                "rect_errors": rect_errors, "rect_lethal_disagreements": rect_lethal_disagreements}));
                         }
                         println!(
                             "{}",
