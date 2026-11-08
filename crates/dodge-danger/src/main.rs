@@ -60,6 +60,11 @@ fn run() -> Result<(), String> {
         let total: u64 = rows.iter().map(|row| u64::from(row.1)).sum();
         let died = rows.iter().filter(|row| row.2).count();
         let worst = rows.iter().map(|row| row.1).min().unwrap_or(0);
+        if std::env::var("HNN_SURVIVAL_ROWS").ok().as_deref() == Some("1") {
+            for (seed, frames, dead) in &rows {
+                println!("survival_seed {seed} {frames} {}", u8::from(*dead));
+            }
+        }
         println!(
             "{} D{}: mean {:.0} frames, min {}, died {}/{} (cap {})",
             options.policy.name(),
