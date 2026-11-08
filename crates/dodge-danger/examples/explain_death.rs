@@ -19,6 +19,11 @@ fn main() -> Result<(), String> {
         &std::fs::read_to_string(&a[1]).map_err(|e| e.to_string())?,
     )?;
     hnnplan::install(model.clone())?;
+    let driver = if let Some(path) = a.get(7) {
+        hnnplan::PhysicsModel::from_json(&std::fs::read_to_string(path).map_err(|e| e.to_string())?)?
+    } else {
+        model.clone()
+    };
     let seed: u32 = a[2].parse().map_err(|_| "seed")?;
     let difficulty: u8 = a[3].parse().map_err(|_| "difficulty")?;
     let patterns = a[4] == "1";
@@ -39,14 +44,16 @@ fn main() -> Result<(), String> {
     for _ in 0..stop {
         hnnplan::set_history(memory.clone());
         dodge_danger::observe::feed(&game);
-        let (action, _) = hnnplan::choose(&model, &game, 36);
+        let (action, _) = hnnplan::choose(&driver, &game, 36);
         memory = hnnplan::rect_snapshot(&game);
         game.advance_frame_headless(action.mask())
             .map_err(|e| e.to_string())?;
     }
     hnnplan::set_history(memory.clone());
     dodge_danger::observe::feed(&game);
-    let (action, costs) = hnnplan::choose(&model, &game, 36);
+    let (action, _) = hnnplan::choose(&driver, &game, 36);
+    let (candidate_action, costs) = hnnplan::choose(&model, &game, 36);
+    println!("candidate action {}", candidate_action.name());
     let index = Action::ALL.iter().position(|x| *x == action).unwrap_or(0);
     let player = game.player();
     println!(
@@ -207,7 +214,7 @@ fn main() -> Result<(), String> {
         }
         first = false;
         hnnplan::set_history(memory.clone());
-        let (action, _) = hnnplan::choose(&model, &game, 36);
+        let (action, _) = hnnplan::choose(&driver, &game, 36);
         memory = hnnplan::rect_snapshot(&game);
         let result = game
             .advance_frame_headless(action.mask())
