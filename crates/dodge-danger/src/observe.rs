@@ -52,6 +52,19 @@ fn smoother_enabled() -> bool {
     std::env::var("HNN_OBS_SMOOTHER").ok().as_deref() == Some("1")
 }
 
+fn smoother_physics() -> bool {
+    static ENABLED: OnceLock<bool> = OnceLock::new();
+    *ENABLED.get_or_init(|| std::env::var("HNN_OBS_PHYSICS_FIX").ok().as_deref() == Some("1"))
+}
+
+fn track_rate(rate: f64, kind: i8, factor: f64) -> f64 {
+    if smoother_physics() && kind == 1 { rate * factor } else { rate }
+}
+
+fn force_scale(rate: f64) -> f64 {
+    if smoother_physics() { rate } else { rate * rate }
+}
+
 fn measurement_variance() -> f64 {
     if std::env::var("HNN_NOISE").ok().as_deref() != Some("1") {
         return 1e-8;
@@ -71,6 +84,8 @@ struct ForceLayer {
 struct FilterPhysics {
     layers: Vec<ForceLayer>,
     gamma: f64,
+    #[serde(default)]
+    kamikaze_acceleration: Option<f64>,
 }
 static FILTER_PHYSICS: OnceLock<FilterPhysics> = OnceLock::new();
 
@@ -87,6 +102,12 @@ pub fn install_filter_physics(text: &str) -> Result<(), String> {
 
 impl FilterPhysics {
     fn force(&self, dx: f64, dy: f64, kind: usize) -> (f64, f64) {
+        if smoother_physics() && kind == 1 {
+            if let Some(acceleration) = self.kamikaze_acceleration {
+                let component = |offset: f64| if offset > 0.0 { -acceleration } else if offset < 0.0 { acceleration } else { 0.0 };
+                return (component(dx), component(dy));
+            }
+        }
         let mut input = vec![0.0; 7];
         input[0] = dx / 64.0;
         input[1] = dy / 64.0;
@@ -142,8 +163,8 @@ impl Filter {
                     self.y - sample.player_y,
                     usize::from(sample.kind == 1),
                 );
-                vx = (1.0 - model.gamma) * vx + rate * rate * fx;
-                vy = (1.0 - model.gamma) * vy + rate * rate * fy;
+                vx = (1.0 - model.gamma) * vx + force_scale(rate) * fx;
+                vy = (1.0 - model.gamma) * vy + force_scale(rate) * fy;
             }
         }
         Self {
@@ -217,7 +238,7 @@ fn pooled_horizon_rate(tracks: &[Track]) -> Option<f64> {
         for (i, item) in track.horizon.iter().enumerate() {
             if i > 0 {
                 let prev = track.horizon[i - 1];
-                let r2 = (prev.rate * prev.rate).max(0.04);
+                let r2 = force_scale(prev.rate).max(0.04);
                 vb *= decay; basis += vb;
                 vx = decay * vx + prev.force.0 / r2;
                 vy = decay * vy + prev.force.1 / r2;
@@ -243,7 +264,10 @@ fn pooled_horizon_rate(tracks: &[Track]) -> Option<f64> {
             denominator += fx[i] * fx[i] + fy[i] * fy[i];
         }
     }
-    (denominator > 1e-8).then(|| (numerator / denominator).clamp(0.04, 25.0).sqrt())
+    (denominator > 1e-8).then(|| {
+        let value = (numerator / denominator).clamp(0.04, 25.0);
+        if smoother_physics() { value } else { value.sqrt() }
+    })
 }
 
 impl Track {
@@ -771,7 +795,7 @@ pub fn feed(game: &NativeGame) {
             } else {
                 track.velocity()
             };
-            let predicted = track.filter.map(|f| f.predict(*last, rate));
+            let predicted = track.filter.map(|f| f.predict(*last, track_rate(rate, last.kind, track.speed_factor)));
             for (j, (sample, _)) in samples.iter().enumerate() {
                 if sample.kind == last.kind
                     || (kind_window > 1 && sample.kind >= 0 && last.kind >= 0)
@@ -842,7 +866,7 @@ pub fn feed(game: &NativeGame) {
                         }
                     }
                     let var = measurement_variance();
-                    if let Some(predicted) = track.filter.map(|f| f.predict(*track.samples.back().unwrap_or(&sample), rate)) {
+                    if let Some(predicted) = track.filter.map(|f| f.predict(*track.samples.back().unwrap_or(&sample), track_rate(rate, sample.kind, track.speed_factor))) {
                         if (sample.x - predicted.x).hypot(sample.y - predicted.y) > (2.0_f64).max(5.0 * (var + track.variance).sqrt()) {
                             track.horizon.clear();
                             track.event_age = 0;
@@ -850,7 +874,8 @@ pub fn feed(game: &NativeGame) {
                     }
                     let force = FILTER_PHYSICS.get().map_or((0.0, 0.0), |m| {
                         let (x, y) = m.force(sample.x - sample.player_x, sample.y - sample.player_y, usize::from(sample.kind == 1));
-                        (x * rate * rate, y * rate * rate)
+                        let scale = force_scale(track_rate(rate, sample.kind, track.speed_factor));
+                        (x * scale, y * scale)
                     });
                     track.horizon.push_back(HorizonSample { observation: Some(sample), force, rate });
                     let n = option_usize("HNN_OBS_HORIZON", 12, 16).max(2);
@@ -919,12 +944,13 @@ pub fn feed(game: &NativeGame) {
                 let Some(mut sample) = track.samples.back().copied() else {
                     continue;
                 };
-                let predicted = track.filter.map(|f| f.predict(sample, rate));
+                let predicted = track.filter.map(|f| f.predict(sample, track_rate(rate, sample.kind, track.speed_factor)));
                 if let Some(filter) = predicted {
                     if smooth {
                         let force = FILTER_PHYSICS.get().map_or((0.0, 0.0), |m| {
                             let (x, y) = m.force(sample.x - sample.player_x, sample.y - sample.player_y, usize::from(sample.kind == 1));
-                            (x * rate * rate, y * rate * rate)
+                            let scale = force_scale(track_rate(rate, sample.kind, track.speed_factor));
+                            (x * scale, y * scale)
                         });
                         track.horizon.push_back(HorizonSample { observation: None, force, rate });
                         let n = option_usize("HNN_OBS_HORIZON", 12, 16).max(2);
