@@ -1047,6 +1047,7 @@ fn apply_events(model: &PhysicsModel, enemies: &mut Vec<Body>) {
                     vx: 0.0,
                     vy: 0.0,
                     size: blast.start,
+                    uncertainty: body.uncertainty,
                     kind: 0,
                     rate: 1.0,
                     moves: false,
