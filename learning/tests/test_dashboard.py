@@ -176,3 +176,33 @@ def test_training_is_paused_while_death_paths_record(client):
     with dashboard.training_paused():
         pass
     assert session.pause_event.is_set()
+
+
+def test_heuristics_endpoint_lists_the_registered_bots(client):
+    from dodge.heuristics import BOTS
+    bots = client.get("/api/heuristics").json()
+    assert {bot["name"] for bot in bots} == set(BOTS) and "space" in {b["name"] for b in bots}
+    assert all(bot["label"] for bot in bots)
+
+
+def test_watch_heuristic_endpoint_opens_a_window_process(client, monkeypatch):
+    """The launch starts watch_heuristic.py on the dodge_rl engine; SDL's dummy
+    driver keeps the window off screen."""
+    pytest.importorskip("pygame")
+    from dodge import engine
+    if not engine.available():
+        pytest.skip("dodge_rl is not installed")
+    monkeypatch.setenv("SDL_VIDEODRIVER", "dummy")
+    response = client.post("/api/watch-heuristic", json={"bot": "space", "overlay": True})
+    assert response.status_code == 200 and response.json()["result"] is True
+    watchers = client.app.state.dashboard.session.watchers
+    assert watchers, "no window process was started"
+    try:
+        import time
+        time.sleep(1.5)
+        assert watchers[-1].poll() is None, "the watch window exited early"
+    finally:
+        for process in watchers:
+            process.terminate()
+            process.wait(timeout=10)
+    assert client.post("/api/watch-heuristic", json={"bot": "nope"}).status_code == 400
