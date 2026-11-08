@@ -45,6 +45,7 @@ struct Filter {
 struct HorizonSample {
     observation: Option<Sample>,
     force: (f64, f64),
+    rate: f64,
 }
 
 fn smoother_enabled() -> bool {
@@ -196,6 +197,47 @@ fn horizon_fit(history: &VecDeque<HorizonSample>, variance: f64) -> Option<(Filt
     let y = (sy - vy * sb) / n + basis * vy + oy;
     let pos_var = variance * (sbb - 2.0 * basis * sb + n * basis * basis) / det;
     Some((Filter { x, y, vx: velocity_basis * vx + ovx, vy: velocity_basis * vy + ovy }, pos_var.max(0.0)))
+}
+
+// Joint least squares projects position and force response off each track's
+// intercept and initial velocity, then pools the remaining acceleration evidence.
+fn pooled_horizon_rate(tracks: &[Track]) -> Option<f64> {
+    let decay = 1.0 - FILTER_PHYSICS.get().map_or(0.0, |m| m.gamma);
+    let (mut numerator, mut denominator) = (0.0, 0.0);
+    for track in tracks {
+        if track.horizon.len() < 8 || track.event_age < 8 || track.samples.back().is_none_or(|s| s.kind != 0) { continue; }
+        let (mut basis, mut vb, mut x, mut y, mut vx, mut vy) = (0.0, 1.0, 0.0, 0.0, 0.0, 0.0);
+        let mut rows = Vec::new();
+        for (i, item) in track.horizon.iter().enumerate() {
+            if i > 0 {
+                let prev = track.horizon[i - 1];
+                let r2 = (prev.rate * prev.rate).max(0.04);
+                vb *= decay; basis += vb;
+                vx = decay * vx + prev.force.0 / r2;
+                vy = decay * vy + prev.force.1 / r2;
+                x += vx; y += vy;
+            }
+            if let Some(sample) = item.observation { rows.push((basis, x, y, sample.x, sample.y)); }
+        }
+        if rows.len() < 6 { continue; }
+        let n = rows.len() as f64;
+        let mb = rows.iter().map(|r| r.0).sum::<f64>() / n;
+        let denom = rows.iter().map(|r| (r.0 - mb).powi(2)).sum::<f64>();
+        if denom < 1e-9 { continue; }
+        let residuals = |column: usize| -> Vec<f64> {
+            let value = |r: &(f64,f64,f64,f64,f64)| match column { 1 => r.1, 2 => r.2, 3 => r.3, _ => r.4 };
+            let mean = rows.iter().map(&value).sum::<f64>() / n;
+            let slope = rows.iter().map(|r| (r.0 - mb) * (value(r) - mean)).sum::<f64>() / denom;
+            rows.iter().map(|r| value(r) - mean - slope * (r.0 - mb)).collect()
+        };
+        let fx = residuals(1); let fy = residuals(2);
+        let px = residuals(3); let py = residuals(4);
+        for i in 0..rows.len() {
+            numerator += fx[i] * px[i] + fy[i] * py[i];
+            denominator += fx[i] * fx[i] + fy[i] * fy[i];
+        }
+    }
+    (denominator > 1e-8).then(|| (numerator / denominator).clamp(0.04, 25.0).sqrt())
 }
 
 impl Track {
@@ -497,7 +539,7 @@ pub(crate) fn global_rate(measured: Option<f64>, prior: f64) -> f64 {
         let mut c = c.borrow_mut();
         if c.rate_frame != c.frame {
             if smoother_enabled() {
-                if let Some(value) = measured {
+                if let Some(value) = pooled_horizon_rate(&c.tracks) {
                     let residual = (value - prior).clamp(-0.5 * prior, 0.5 * prior);
                     c.rate_correction = 0.99 * c.rate_correction + 0.01 * residual;
                 }
@@ -774,7 +816,7 @@ pub fn feed(game: &NativeGame) {
                         let (x, y) = m.force(sample.x - sample.player_x, sample.y - sample.player_y, usize::from(sample.kind == 1));
                         (x * rate * rate, y * rate * rate)
                     });
-                    track.horizon.push_back(HorizonSample { observation: Some(sample), force });
+                    track.horizon.push_back(HorizonSample { observation: Some(sample), force, rate });
                     let n = option_usize("HNN_OBS_HORIZON", 12, 16).max(2);
                     while track.horizon.len() > n { track.horizon.pop_front(); }
                     let (filter, variance) = horizon_fit(&track.horizon, var).unwrap_or((Filter { x: sample.x, y: sample.y, vx: 0.0, vy: 0.0 }, var));
@@ -841,7 +883,7 @@ pub fn feed(game: &NativeGame) {
                             let (x, y) = m.force(sample.x - sample.player_x, sample.y - sample.player_y, usize::from(sample.kind == 1));
                             (x * rate * rate, y * rate * rate)
                         });
-                        track.horizon.push_back(HorizonSample { observation: None, force });
+                        track.horizon.push_back(HorizonSample { observation: None, force, rate });
                         let n = option_usize("HNN_OBS_HORIZON", 12, 16).max(2);
                         while track.horizon.len() > n { track.horizon.pop_front(); }
                         track.variance += measurement_variance() * 0.1 + 0.0001;
@@ -1147,7 +1189,7 @@ mod tests {
             let t = t as f64;
             let sample = Sample { x: 10.0 + 0.4 * t + 0.01 * t * (t + 1.0),
                 y: 20.0 - 0.2 * t, size: 4.0, kind: 0, player_x: 0.0, player_y: 0.0 };
-            history.push_back(HorizonSample { observation: if t == 6.0 { None } else { Some(sample) }, force: (0.02, 0.0) });
+            history.push_back(HorizonSample { observation: if t == 6.0 { None } else { Some(sample) }, force: (0.02, 0.0), rate: 1.0 });
         }
         let (fit, variance) = horizon_fit(&history, 1.0 / 12.0).unwrap();
         assert!((fit.x - 15.72).abs() < 1e-8);
