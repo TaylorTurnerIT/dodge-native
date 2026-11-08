@@ -602,7 +602,16 @@ fn read_bodies(model: &PhysicsModel, game: &NativeGame) -> Vec<Body> {
         let view = game.privileged_view();
         let true_global = view.speed.to_double() * view.freeze_rate.to_double();
         crate::observe::label_error(0, predicted_global, true_global);
-        for ((body, exact), track) in bodies.iter().zip(read_exact_bodies(game)).zip(tracks) {
+        // Serial identities are used only to align diagnostics, never to choose a track.
+        let truth: std::collections::BTreeMap<_, _> = game.enemy_serials().into_iter().flatten()
+            .zip(game.enemies()).filter(|(_, enemy)| enemy.personality < 2)
+            .map(|(serial, _)| *serial).zip(read_exact_bodies(game)).collect();
+        let estimates: std::collections::BTreeMap<_, _> = tracks.iter().zip(&bodies)
+            .map(|(track, body)| (track.id, body)).collect();
+        for track in &tracks {
+            let Some((body, exact)) = estimates.get(&track.id).zip(track.serial.and_then(|id| truth.get(&id))) else {
+                continue;
+            };
             if body.moves {
                 crate::observe::label_error(1, body.vx, exact.vx);
                 crate::observe::label_error(1, body.vy, exact.vy);

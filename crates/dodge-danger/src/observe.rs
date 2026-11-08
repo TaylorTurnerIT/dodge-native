@@ -24,7 +24,7 @@ pub(crate) struct Track {
     pub id: u64,
     pub age: usize,
     pub speed_factor: f64,
-    serial: Option<dodge_core::EnemySerial>,
+    pub(crate) serial: Option<dodge_core::EnemySerial>,
 }
 
 impl Track {
