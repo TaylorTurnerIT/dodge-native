@@ -28,6 +28,7 @@ pub(crate) struct Track {
     filter: Option<Filter>,
     horizon: VecDeque<HorizonSample>,
     variance: f64,
+    event_age: usize,
     missed: usize,
     kinds: VecDeque<i8>,
 }
@@ -202,6 +203,7 @@ impl Track {
         if smoother_enabled() { self.filter.map(|f| (f.vx, f.vy)) } else { None }
     }
     pub(crate) fn position_sigma(&self) -> f64 { self.variance.max(0.0).sqrt() }
+    pub(crate) fn recent_event(&self) -> bool { self.event_age < 8 }
 }
 
 fn option_usize(name: &str, default: usize, max: usize) -> usize {
@@ -446,6 +448,8 @@ static MISMATCHES: AtomicU64 = AtomicU64::new(0);
 static DIAG_COUNT: [AtomicU64; 4] = [const { AtomicU64::new(0) }; 4];
 static DIAG_VELOCITY: [AtomicU64; 4] = [const { AtomicU64::new(0) }; 4];
 static DIAG_RATE: [AtomicU64; 4] = [const { AtomicU64::new(0) }; 4];
+static SITUATION: [[AtomicU64; 5]; 3] = [const { [const { AtomicU64::new(0) }; 5] }; 3];
+static RATE_PERCENT: [AtomicU64; 2] = [const { AtomicU64::new(0) }; 2];
 static TEMPO_COUNT: [AtomicU64; 16] = [const { AtomicU64::new(0) }; 16];
 static TEMPO_SUM: [AtomicU64; 16] = [const { AtomicU64::new(0) }; 16];
 // Diagnostic-only sums: count, prediction, truth, squares, product, absolute error.
@@ -516,6 +520,18 @@ pub(crate) fn diagnostic(category: usize, velocity_error: f64, rate_error: f64) 
     DIAG_VELOCITY[category].fetch_add((velocity_error * 1_000_000.0) as u64, Ordering::Relaxed);
     DIAG_RATE[category].fetch_add((rate_error * 1_000_000.0) as u64, Ordering::Relaxed);
 }
+/// Matched engine labels are used only for reporting accuracy and coverage.
+pub(crate) fn smoother_diagnostic(category: usize, velocity: f64, position: f64, covered: bool) {
+    let s = &SITUATION[category];
+    s[0].fetch_add(1, Ordering::Relaxed);
+    add_float(&s[1], velocity);
+    add_float(&s[2], position);
+    s[3].fetch_add(u64::from(covered), Ordering::Relaxed);
+}
+pub(crate) fn global_rate_diagnostic(predicted: f64, truth: f64) {
+    RATE_PERCENT[0].fetch_add(1, Ordering::Relaxed);
+    add_float(&RATE_PERCENT[1], (predicted - truth).abs() / truth.abs().max(0.01));
+}
 /// Diagnostic counters only; identities are never used to choose a match.
 pub fn report() {
     let frames = FRAMES.load(Ordering::Relaxed);
@@ -537,6 +553,18 @@ pub fn report() {
             );
         }
     }
+    for (i, name) in ["free", "event", "near_player"].iter().enumerate() {
+        let s = &SITUATION[i];
+        let n = s[0].load(Ordering::Relaxed) as f64;
+        if n > 0.0 {
+            eprintln!("smoother {name}: count={n} velocity_component_mae={:.5} position_component_mae={:.5} box_2sigma_fraction={:.5}",
+                f64::from_bits(s[1].load(Ordering::Relaxed)) / n,
+                f64::from_bits(s[2].load(Ordering::Relaxed)) / n,
+                s[3].load(Ordering::Relaxed) as f64 / n);
+        }
+    }
+    let n = RATE_PERCENT[0].load(Ordering::Relaxed) as f64;
+    if n > 0.0 { eprintln!("smoother global_rate_mape_percent={:.5}", 100.0 * f64::from_bits(RATE_PERCENT[1].load(Ordering::Relaxed)) / n); }
     for i in 0..16 {
         let count = TEMPO_COUNT[i].load(Ordering::Relaxed);
         if count > 0 {
@@ -719,10 +747,12 @@ pub fn feed(game: &NativeGame) {
                     filter: None,
                     horizon: VecDeque::new(),
                     variance: 0.0,
+                    event_age: usize::MAX,
                     missed: 0,
                     kinds: VecDeque::new(),
                 });
                 track.age += 1;
+                track.event_age = track.event_age.saturating_add(1);
                 track.missed = 0;
                 if kind_window > 1 && sample.kind >= 0 {
                     track.kinds.push_back(sample.kind);
@@ -737,6 +767,7 @@ pub fn feed(game: &NativeGame) {
                     if let Some(predicted) = track.filter.map(|f| f.predict(*track.samples.back().unwrap_or(&sample), rate)) {
                         if (sample.x - predicted.x).hypot(sample.y - predicted.y) > (2.0_f64).max(5.0 * (var + track.variance).sqrt()) {
                             track.horizon.clear();
+                            track.event_age = 0;
                         }
                     }
                     let force = FILTER_PHYSICS.get().map_or((0.0, 0.0), |m| {
@@ -1121,6 +1152,7 @@ mod tests {
             filter: None,
             horizon: VecDeque::new(),
             variance: 0.0,
+            event_age: usize::MAX,
             missed: 0,
             kinds: VecDeque::new(),
         };
