@@ -156,7 +156,7 @@ fn main() -> Result<(), String> {
             let p = sim.player();
             let (px, py) = (p.x.to_double(), p.y.to_double());
             println!(
-                "  detail +{n}{} player ({px:.1},{py:.1}) model enemies {} engine enemies {}",
+                "  detail +{n}{} player ({px:.5},{py:.5}) model enemies {} engine enemies {}",
                 if r.dead { " DEAD" } else { "" },
                 imagined.snapshot.len(),
                 sim.enemies().iter().filter(|e| e.personality < 2).count()
@@ -188,7 +188,7 @@ fn main() -> Result<(), String> {
                         )
                     });
                 println!(
-                    "     enemy kind {} at ({ex:.1},{ey:.1}) v ({:.2},{:.2}) size {:.0} dying {} | {near}",
+                    "     enemy kind {} at ({ex:.5},{ey:.5}) v ({:.5},{:.5}) size {:.5} dying {} | {near}",
                     e.personality,
                     e.vx.to_double(),
                     e.vy.to_double(),
