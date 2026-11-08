@@ -874,7 +874,12 @@ pub fn feed(game: &NativeGame) {
                     }
                     let var = measurement_variance();
                     if let Some(predicted) = track.filter.map(|f| f.predict(*track.samples.back().unwrap_or(&sample), track_rate(rate, sample.kind, track.speed_factor))) {
-                        if (sample.x - predicted.x).hypot(sample.y - predicted.y) > (2.0_f64).max(5.0 * (var + track.variance).sqrt()) {
+                        let threshold = if std::env::var("HNN_OBS_EVENT_SENSITIVE").ok().as_deref() == Some("1") {
+                            (0.3_f64).max(3.0 * (var + track.variance).sqrt())
+                        } else {
+                            (2.0_f64).max(5.0 * (var + track.variance).sqrt())
+                        };
+                        if (sample.x - predicted.x).hypot(sample.y - predicted.y) > threshold {
                             track.horizon.clear();
                             track.event_age = 0;
                         }
