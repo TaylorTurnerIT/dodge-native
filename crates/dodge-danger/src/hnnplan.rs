@@ -1032,7 +1032,7 @@ fn rollout(
     model: &PhysicsModel,
     game: &NativeGame,
     bodies: &[Body],
-    direction: (f64, f64),
+    directions: &[(f64, f64)],
     horizon: u32,
     snapshot_at: u32,
 ) -> Rollout {
@@ -1064,6 +1064,11 @@ fn rollout(
             first_hit = Some(frame);
             break;
         }
+        let direction = directions
+            .get((frame - 1) as usize)
+            .or_else(|| directions.last())
+            .copied()
+            .unwrap_or((0.0, 0.0));
         pvx = 0.8 * pvx + 0.5 * direction.0;
         pvy = 0.8 * pvy + 0.5 * direction.1;
         px = (px + pvx).clamp(2.0, 125.0);
@@ -1254,9 +1259,25 @@ pub fn imagine(
         model,
         game,
         &read_bodies(model, game),
-        direction,
+        &[direction],
         horizon,
         snapshot_at,
+    )
+}
+
+/// Diagnostic rollout under a sequence of action indices, one per frame.
+pub fn imagine_actions(model: &PhysicsModel, game: &NativeGame, actions: &[usize]) -> Rollout {
+    let directions: Vec<_> = actions
+        .iter()
+        .map(|i| DIRECTIONS.get(*i).copied().unwrap_or((0.0, 0.0)))
+        .collect();
+    rollout(
+        model,
+        game,
+        &read_bodies(model, game),
+        &directions,
+        actions.len() as u32,
+        0,
     )
 }
 
@@ -1323,7 +1344,7 @@ pub fn choose(model: &PhysicsModel, game: &NativeGame, horizon: u32) -> (Action,
     let mut costs = [0.0; 9];
     let mut best = 0;
     for (index, direction) in DIRECTIONS.iter().enumerate() {
-        costs[index] = rollout(model, game, &bodies, *direction, horizon, 0).cost;
+        costs[index] = rollout(model, game, &bodies, &[*direction], horizon, 0).cost;
         if index == 0 {
             costs[index] += 0.25;
         }
@@ -1357,7 +1378,7 @@ pub fn stream_imagination(
                 model,
                 game,
                 &bodies,
-                *direction,
+                &[*direction],
                 horizon,
                 if capture { u32::MAX } else { 0 },
             );
