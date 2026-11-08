@@ -1,9 +1,13 @@
 """Dodge on the native Rust engine: batched games, observation and reward.
 
-Every environment is one lane of a single Rust batch (TaylorTurnerIT's
-dodge-ai-3 engine, built from the velocity-flow branch), stepped in one call at
-a few hundred thousand frames a second. The engine also computes the
-VelocityFlow observation; the reward is computed here.
+Every environment is one slot of a single dodge_rl batch (dodge-rl-env's
+VecDodgeEnv, reached only through dodge.engine), stepped in one call at a few
+hundred thousand frames a second. The engine also computes the VelocityFlow
+observation; the reward is computed here.
+
+A batch steps only slots whose game is still running. A slot whose game ended
+-- by death, or by reaching the engine's frame cap -- is restarted with
+`reset_done`, which hands back the observations of just those slots.
 """
 
 from dataclasses import asdict
@@ -18,20 +22,15 @@ from stable_baselines3.common.vec_env.base_vec_env import VecEnv
 from . import rewards
 from .actions import ACTION_MASKS
 from .critic import WIDE_OBSERVATION_SIZE
+from .engine import (INSTALL_HINT, MAX_ACTION_REPEAT, SPAWN_RATE_PERCENT_MAX,  # noqa: F401
+                     SPAWN_RATE_PERCENT_MIN, available as native_available,
+                     make_engine, validate_spawn_rate_percent)
 from .seeds import ExplicitSeeds, SeedStream
 from .observe import ARENA_SIZE, OBSERVATION_SIZE
-
-try:
-    import dodge_native
-except ImportError:  # pragma: no cover - depends on the local build
-    dodge_native = None
 
 
 # How much of the half-arena pays full survival credit.
 CENTRE_PLATEAU = 0.6
-
-SPAWN_RATE_PERCENT_MIN = 50
-SPAWN_RATE_PERCENT_MAX = 150
 
 # The engine's codes for the first lethal contact of a game.
 DEATH_CAUSES = {
@@ -42,29 +41,6 @@ DEATH_CAUSES = {
     4: "static_rect",
     5: "moving_rect",
 }
-
-INSTALL_HINT = ("dodge_native is not installed: build the velocity-flow branch of "
-                "dodge-ai-3 with maturin (see README)")
-
-
-def native_available():
-    return dodge_native is not None and hasattr(dodge_native.NativeBatchEnv,
-                                                "observe_velocity")
-
-
-def validate_spawn_rate_percent(value):
-    """Return an integer spawn percentage in the supported curriculum range."""
-    try:
-        numeric = float(value)
-        integer = int(numeric)
-    except (TypeError, ValueError, OverflowError):
-        raise ValueError("spawn rate must be an integer percentage") from None
-    if numeric != integer:
-        raise ValueError("spawn rate must be an integer percentage")
-    if not SPAWN_RATE_PERCENT_MIN <= integer <= SPAWN_RATE_PERCENT_MAX:
-        raise ValueError(f"spawn rate must be between {SPAWN_RATE_PERCENT_MIN}% "
-                         f"and {SPAWN_RATE_PERCENT_MAX}%")
-    return integer
 
 
 def center_survival_scalar(x, y, screen_width=ARENA_SIZE, edge_penalty=0.5):
@@ -118,42 +94,6 @@ def center_survival_scalars(x, y, screen_width=ARENA_SIZE, edge_penalty=0.5):
     taper = np.minimum((distance - CENTRE_PLATEAU) / (1.0 - CENTRE_PLATEAU), 1.0)
     tapered = np.maximum(0.0, 1.0 - edge_penalty * taper)
     return np.where(distance <= CENTRE_PLATEAU, 1.0, tapered)
-
-
-MAX_ACTION_REPEAT = 5
-
-
-def make_engine(*, step_frames=1, difficulty=1, patterns=False, powerups=False,
-                normal_enemies=True, kamikaze_enemies=True, spawn_rate_percent=100,
-                lives=0, pixels=False, execution="parallel", ml=None):
-    """A Rust batch with the game settings applied.
-
-    Each step holds the action for `step_frames` frames, stopping a lane early
-    at the frame it dies. `ml` (default: not `pixels`) starts games through the
-    ML reset; with `pixels` too, rendered steps replay the ML engine's games.
-    """
-    if not native_available():
-        raise RuntimeError(INSTALL_HINT)
-    if int(difficulty) not in (1, 2, 3):
-        raise ValueError("difficulty must be 1 (easy), 2 (normal), or 3 (hard)")
-    if not 1 <= step_frames <= MAX_ACTION_REPEAT:
-        raise ValueError(f"action_repeat must be between 1 and {MAX_ACTION_REPEAT}")
-    if lives < 0:
-        raise ValueError("lives cannot be negative")
-    return dodge_native.NativeBatchEnv(
-        step_frames=int(step_frames),
-        execution=execution,
-        board=False,
-        pixels=pixels,
-        ml=(not pixels) if ml is None else bool(ml),
-        difficulty=int(difficulty),
-        patterns_enabled=bool(patterns),
-        powerups_enabled=bool(powerups),
-        normal_enemies=bool(normal_enemies),
-        kamikaze_enemies=bool(kamikaze_enemies),
-        spawn_rate_percent=validate_spawn_rate_percent(spawn_rate_percent),
-        lives=int(lives),
-    )
 
 
 # The keys of info["training_events"], in the order they appear there.
@@ -278,22 +218,16 @@ class DodgeVecEnv(VecEnv):
             spaces.Discrete(len(ACTION_MASKS)),
         )
         self.critic_features = bool(critic_features)
-        self._engine_settings = dict(
-            step_frames=action_repeat,
+        # The frame cap is the engine's: a game that reaches it ends as
+        # truncated, mid-decision if need be, and is restarted from there.
+        self.engine = make_engine(
+            n_envs, step_frames=action_repeat,
             difficulty=difficulty, patterns=patterns, powerups=powerups,
             normal_enemies=normal_enemies, kamikaze_enemies=kamikaze_enemies,
             spawn_rate_percent=spawn_rate_percent, lives=lives,
+            execution=execution, max_frames=max_episode_frames,
+            critic_features=critic_features,
         )
-        self.engine = make_engine(**self._engine_settings, execution=execution)
-        # A second, small engine that starts restarted games on their own, so
-        # their first observation costs a few lanes' encoding rather than the
-        # whole batch's. See _fresh_games.
-        self._nursery = None
-        # "auto" picks whichever of the two is cheaper, from the timings
-        # below; "nursery" and "batch" force one, for the parity tests.
-        self._restart_observe = "auto"
-        self._observe_seconds = None
-        self._nursery_lane_seconds = None
         self.action_repeat = int(action_repeat)
         self.max_episode_frames = max_episode_frames
         # Resolved here rather than as a default argument so the location can
@@ -429,9 +363,28 @@ class DodgeVecEnv(VecEnv):
             "reward_config": asdict(self.reward_config),
         }
 
+    @staticmethod
+    def _state(result, lanes=None):
+        """A step's or reset's observation and counters as one dict of arrays.
+
+        Rows follow `lanes` when given -- the slots a `reset_done` restarted --
+        and are every slot in order otherwise.
+        """
+        observations = result["observations"]
+        state = {"observation": observations["observation"],
+                 "critic": observations["critic"], **result["counters"]}
+        if lanes is not None:
+            order = np.asarray(observations["indices"], dtype=np.int64)
+            lanes = np.asarray(lanes, dtype=np.int64)
+            if not np.array_equal(order, lanes):
+                rows = np.argsort(order)[np.argsort(np.argsort(lanes))]
+                state = {key: value[rows] for key, value in state.items()
+                         if value is not None}
+        return state
+
     def _counters(self, state):
-        # copy=False: observe_velocity returns fresh arrays, so the ones
-        # already of the right type need no copy of their own.
+        # copy=False: the engine returns fresh arrays, so the ones already of
+        # the right type need no copy of their own.
         return {
             "score": state["score"].astype(np.float64, copy=False),
             "kills": state["uncontrolled_kills"].astype(np.int64),
@@ -477,8 +430,7 @@ class DodgeVecEnv(VecEnv):
         # Picked up per reset so a dashboard edit reaches the next episodes.
         self.reward_config = rewards.load(self.reward_config_path)
         self._game_seeds[:] = seeds
-        self.engine.reset_ml_batch(self._game_seeds)
-        state = self.engine.observe_velocity(critic=self.critic_features)
+        state = self._state(self.engine.reset_all(seeds=self._game_seeds))
         self._previous = None
         self._start_runs(np.arange(self.num_envs), self._counters(state))
         self.reset_infos = [{"seed": int(seed), "score": 0.0, "frames": 0, "run_frames": 0}
@@ -488,75 +440,20 @@ class DodgeVecEnv(VecEnv):
     def step_async(self, actions):
         self._actions = np.asarray(actions, dtype=np.uint8).reshape(self.num_envs)
 
-    def _step_engine(self, actions):
-        # The same step as step_ml_batch, without encoding the 225-value ML
-        # observation this env never reads.
-        step = getattr(self.engine, "step_ml_positions_batch", None)
-        return (step or self.engine.step_ml_batch)(actions)
-
     def _observation(self, state):
         """The env's observation rows: the actor's, then the critic's if asked."""
         if not self.critic_features:
             return state["observation"]
         return np.hstack([state["observation"], state["critic"]])
 
-    def _observe(self):
-        """observe_velocity, timed for _fresh_games' choice."""
-        started = time.perf_counter()
-        state = self.engine.observe_velocity(critic=self.critic_features)
-        elapsed = time.perf_counter() - started
-        self._observe_seconds = (elapsed if self._observe_seconds is None
-                                 else 0.9 * self._observe_seconds + 0.1 * elapsed)
-        return state
-
-    def _fresh_games(self, lanes, seeds):
-        """Start `lanes` on `seeds`; their first observations and counters.
-
-        Observing the whole batch again to read a few restarted lanes costs
-        every lane's encoding. A game's start depends only on the settings
-        and its seed, so the nursery -- a second engine on the same settings
-        -- can start the same games on their own and encode only them. That
-        costs a reset per lane on top of the batch's own, so it is used only
-        while the measured costs say it is the cheaper of the two.
-        """
-        started = time.perf_counter()
-        self.engine.reset_ml_lanes(lanes, seeds)
-        reset_lane = (time.perf_counter() - started) / len(lanes)
-        mode = self._restart_observe
-        if mode == "auto":
-            per_lane = (self._nursery_lane_seconds if self._nursery_lane_seconds is not None
-                        else reset_lane)
-            mode = ("nursery" if self._observe_seconds is not None
-                    and len(lanes) * per_lane < self._observe_seconds else "batch")
-        if mode == "batch":
-            if self._nursery_lane_seconds is not None:
-                # Drift back towards the batch's own reset cost, so one slow
-                # nursery call cannot rule the nursery out for good.
-                self._nursery_lane_seconds = (0.9 * self._nursery_lane_seconds
-                                              + 0.1 * reset_lane)
-            fresh = self._observe()
-            observation = self._observation(fresh)[lanes]
-            counters = {key: values[lanes] for key, values in self._counters(fresh).items()}
-            return observation, counters
-        if self._nursery is None:
-            # Serial: it holds a handful of lanes, too few to split.
-            self._nursery = make_engine(**self._engine_settings, execution="serial")
-        started = time.perf_counter()
-        self._nursery.reset_ml_batch(seeds)
-        fresh = self._nursery.observe_velocity(critic=self.critic_features)
-        elapsed = (time.perf_counter() - started) / len(lanes)
-        self._nursery_lane_seconds = (elapsed if self._nursery_lane_seconds is None
-                                      else 0.9 * self._nursery_lane_seconds + 0.1 * elapsed)
-        return self._observation(fresh), self._counters(fresh)
-
     def step_wait(self):
         lanes = self.num_envs
         weights = self.reward_config
         # The engine holds each action for action_repeat frames and stops a
-        # lane early at the frame it dies.
-        stepped = self._step_engine(self._actions)
-        frames = stepped["frames_advanced"].astype(np.int64)
-        state = self._observe()
+        # lane early at the frame it dies or reaches the frame cap.
+        stepped = self.engine.step(self._actions)
+        frames = stepped["elapsed_raw_frames"].astype(np.int64)
+        state = self._state(stepped)
         self._run_frames += frames
         self._episode_frames += frames
         self.total_frames += int(frames.sum())
@@ -592,14 +489,12 @@ class DodgeVecEnv(VecEnv):
                   + weights.uncontrolled_score_weight * uncontrolled
                   - weights.death_penalty * (lives_spent + dead))
         # The cap bounds the game, not the episode, so a run that keeps
-        # absorbing hits cannot hold one seed forever.
-        if self.max_episode_frames is None:
-            truncated = np.zeros(lanes, dtype=bool)
-            run_over, done = dead, terminated
-        else:
-            truncated = (self._run_frames >= self.max_episode_frames) & ~terminated
-            run_over = dead | truncated
-            done = terminated | truncated
+        # absorbing hits cannot hold one seed forever. A game the engine
+        # truncated has ended whatever else the step did, so it restarts.
+        capped = stepped["truncated"]
+        truncated = capped & ~terminated
+        run_over = dead | capped
+        done = terminated | truncated
         self._episode_reward += reward
         self._previous = now
 
@@ -667,8 +562,10 @@ class DodgeVecEnv(VecEnv):
             restart = ended[run_over[ended]].astype(np.uint32)
             if len(restart):
                 seeds = self._draw_seeds(restart)
-                fresh_observation, fresh = self._fresh_games(restart, seeds)
-                self._start_runs(restart, fresh)
+                fresh_state = self._state(
+                    self.engine.reset_done(restart, seeds=seeds), restart)
+                fresh_observation = self._observation(fresh_state)
+                self._start_runs(restart, self._counters(fresh_state))
                 # Every terminal observation was copied out above, so the
                 # step's own array can take the restarted games' rows.
                 observation[restart] = fresh_observation
@@ -676,11 +573,10 @@ class DodgeVecEnv(VecEnv):
 
     def lane_state(self, lane):
         """Lane `lane`'s raw game state under the cartridge's own names."""
-        return self.engine.lane_state(int(lane))
+        return self.engine.slot_state(int(lane))
 
     def close(self):
         self.engine = None
-        self._nursery = None
 
     def get_attr(self, attr_name, indices=None):
         return [getattr(self, attr_name) for _ in self._get_indices(indices)]
@@ -706,9 +602,9 @@ def play_games(policy, seeds, *, frame_cap=None, progress=None, **game_settings)
     seed, in the same shape DodgeVecEnv reports as info["run"].
     """
     seeds = np.asarray(seeds, dtype=np.uint32)
-    engine = make_engine(**game_settings)
-    engine.reset_ml_batch(seeds)
     count = len(seeds)
+    engine = make_engine(count, max_frames=frame_cap, **game_settings)
+    state = DodgeVecEnv._state(engine.reset_all(seeds=seeds))
     results = [None] * count
     frames = np.zeros(count, dtype=np.int64)
     pattern_frames = np.zeros(count, dtype=np.int64)
@@ -716,22 +612,22 @@ def play_games(policy, seeds, *, frame_cap=None, progress=None, **game_settings)
     previous_pattern = np.full(count, -1, dtype=np.int64)
     filler = 2**31
     finished_count = 0
+    observation = state["observation"]
     while finished_count < count:
-        state = engine.observe_velocity()
-        actions = np.asarray(policy(state["observation"], engine.lane_state),
+        actions = np.asarray(policy(observation, engine.slot_state),
                              dtype=np.uint8).reshape(count)
-        stepped = engine.step_ml_batch(actions)
-        advanced = stepped["frames_advanced"].astype(np.int64)
+        stepped = engine.step(actions)
+        advanced = stepped["elapsed_raw_frames"].astype(np.int64)
         frames += advanced
-        state = engine.observe_velocity()
+        state = DodgeVecEnv._state(stepped)
+        observation = state["observation"]
         pattern = state["pattern_id"].astype(np.int64)
         pattern_frames += advanced * (pattern >= 0)
         for lane in np.flatnonzero((pattern >= 0) & (pattern != previous_pattern)):
             met = encounters[lane]
             met[int(pattern[lane])] = met.get(int(pattern[lane]), 0) + 1
         previous_pattern = pattern
-        capped = frames >= frame_cap if frame_cap is not None else np.zeros(count, bool)
-        ended = np.flatnonzero(state["dead"] | capped)
+        ended = np.flatnonzero(state["dead"] | stepped["truncated"])
         for lane in ended:
             if results[lane] is None:
                 results[lane] = {
@@ -748,10 +644,14 @@ def play_games(policy, seeds, *, frame_cap=None, progress=None, **game_settings)
                 finished_count += 1
                 if progress is not None:
                     progress(finished_count, count)
-        if len(ended):
-            restart = ended.astype(np.uint32)
-            engine.reset_ml_lanes(restart, np.arange(filler, filler + len(restart),
-                                                     dtype=np.uint32))
-            filler += len(restart)
-            previous_pattern[restart] = -1
+        if len(ended) and finished_count < count:
+            # Only ended slots can restart, and a batch steps only running
+            # ones: every ended slot, finished or not, plays a throwaway game.
+            fresh = DodgeVecEnv._state(engine.reset_done(
+                ended, seeds=np.arange(filler, filler + len(ended), dtype=np.uint32)),
+                ended)
+            filler += len(ended)
+            observation = observation.copy()
+            observation[ended] = fresh["observation"]
+            previous_pattern[ended] = -1
     return results

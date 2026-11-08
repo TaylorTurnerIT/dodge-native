@@ -13,7 +13,7 @@ import random
 
 import numpy as np
 
-from .env import DEATH_CAUSES, make_engine
+from .env import DEATH_CAUSES, DodgeVecEnv, make_engine
 
 
 def quarter_means(frames):
@@ -98,33 +98,37 @@ def evaluate_policy(policy, seeds, *, frame_cap=None, **game_settings):
     count = len(seeds)
     if count == 0:
         raise ValueError("no seeds to evaluate")
-    engine = make_engine(**game_settings)
-    engine.reset_ml_batch(seeds)
+    engine = make_engine(count, max_frames=frame_cap, **game_settings)
+    state = DodgeVecEnv._state(engine.reset_all(seeds=seeds))
     alive = np.ones(count, dtype=bool)
     frames = np.zeros(count, dtype=np.int64)
     scores = np.zeros(count, dtype=float)
     died = np.zeros(count, dtype=bool)
     causes = [None] * count
-    state = engine.observe_velocity()
+    filler = 2**31
     while alive.any():
         lanes = np.flatnonzero(alive)
+        # A batch steps every slot, so the finished ones idle on throwaway games.
         actions = np.zeros(count, dtype=np.uint8)
         actions[lanes] = np.asarray(policy(state["observation"][lanes]),
                                     dtype=np.uint8).reshape(len(lanes))
-        stepped = engine.step_batch_active(actions, alive)
-        frames[np.asarray(stepped["lane_ids"], dtype=np.int64)] += \
-            np.asarray(stepped["frames_advanced"], dtype=np.int64)
-        state = engine.observe_velocity()
-        ended = state["dead"].astype(bool)
-        if frame_cap is not None:
-            ended = ended | (frames >= frame_cap)
-        finished = alive & ended
+        stepped = engine.step(actions)
+        frames[lanes] += stepped["elapsed_raw_frames"].astype(np.int64)[lanes]
+        state = DodgeVecEnv._state(stepped)
+        over = state["dead"].astype(bool) | stepped["truncated"]
+        finished = alive & over
         for lane in np.flatnonzero(finished):
             scores[lane] = float(state["score"][lane])
             died[lane] = bool(state["dead"][lane])
             causes[lane] = (DEATH_CAUSES.get(int(state["death_cause"][lane]))
                             if died[lane] else None)
         alive &= ~finished
+        ended = np.flatnonzero(over)
+        if len(ended) and alive.any():
+            # Only ended slots can restart.
+            engine.reset_done(ended, seeds=np.arange(filler, filler + len(ended),
+                                                     dtype=np.uint32))
+            filler += len(ended)
     return EvalResult(seeds=[int(seed) for seed in seeds], frames=frames,
                       scores=scores, died=[bool(d) for d in died], causes=causes)
 

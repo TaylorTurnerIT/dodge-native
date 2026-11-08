@@ -1,6 +1,6 @@
 """The VelocityFlow observation, as a reference encoder.
 
-The engine computes this observation natively (`observe_velocity`); this module
+The engine computes this observation natively; this module
 is the specification it is tested against, reading game state under the
 cartridge's own names.
 
