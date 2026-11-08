@@ -1149,7 +1149,14 @@ fn rollout(
         Some(view.speed.to_double() * view.freeze_rate.to_double())
     };
     let mut rects = read_rects(game);
-    let law = model.rect;
+    let law = model.rect.map(|mut law| {
+        static RECT_RULES: OnceLock<bool> = OnceLock::new();
+        if !*RECT_RULES.get_or_init(|| std::env::var("HNN_RECT_RULES").as_deref() != Ok("0")) {
+            law.lethal_frames = 0;
+            law.size_oscillation = false;
+        }
+        law
+    });
     let speeds = law.map_or((0.0, 0.0), |law| model.bounce_speeds(game, &law, bodies));
     let rect_count = rects.len();
     let mut cost = 0.0;
