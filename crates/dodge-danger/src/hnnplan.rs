@@ -68,6 +68,8 @@ pub struct PhysicsModel {
     layers: Vec<Layer>,
     gamma: f64,
     #[serde(default)]
+    kamikaze_acceleration: Option<f64>,
+    #[serde(default)]
     collision: Option<Collision>,
     #[serde(default)]
     blast: Option<Blast>,
@@ -491,6 +493,10 @@ impl PhysicsModel {
     /// The force from the table (bilinear). Falls back to the network if there is no table.
     #[inline]
     fn force_fast(&self, dx: f64, dy: f64, kind: usize) -> (f64, f64) {
+        if kind == 1 && let Some(acceleration) = self.kamikaze_acceleration {
+            let component = |offset: f64| if offset > 0.0 { -acceleration } else if offset < 0.0 { acceleration } else { 0.0 };
+            return (component(dx), component(dy));
+        }
         let Some(table) = &self.table else {
             return self.force(dx, dy, kind);
         };
@@ -1531,6 +1537,7 @@ mod tests {
         let mut model = PhysicsModel {
             layers: vec![layer(7, 12, 0.1), layer(12, 12, 0.7), layer(12, 1, 1.3)],
             gamma: 0.01,
+            kamikaze_acceleration: None,
             collision: None,
             blast: None,
             rect: None,
