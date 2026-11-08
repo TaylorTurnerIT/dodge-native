@@ -559,8 +559,14 @@ pub fn feed(game: &NativeGame) {
     let window = std::env::var("HNN_OBS_WINDOW")
         .ok()
         .and_then(|s| s.parse::<usize>().ok())
-        .unwrap_or(if rate_enabled() { 8 } else { 3 })
-        .clamp(2, 8);
+        .unwrap_or(if learned() {
+            learned_model().history.max(8)
+        } else if rate_enabled() {
+            8
+        } else {
+            3
+        })
+        .clamp(2, 16);
     CURRENT.with(|c| {
         let mut c = c.borrow_mut();
         c.frame += 1;
@@ -780,10 +786,9 @@ fn affine(input: &[f64], weights: &[Vec<f64>], bias: &[f64], tanh: bool) -> Vec<
         .collect()
 }
 
-/// Global tempo and per-track velocity/factor from visible geometry only.
-pub(crate) fn infer(tracks: &[Track]) -> (f64, Vec<Option<(f64, f64, f64)>>) {
+fn learned_model() -> &'static LearnedModel {
     static MODEL: OnceLock<LearnedModel> = OnceLock::new();
-    let model = MODEL.get_or_init(|| {
+    MODEL.get_or_init(|| {
         let path = std::env::var("HNN_OBS_MODEL")
             .unwrap_or_else(|_| format!("{}/models/observed.json", env!("CARGO_MANIFEST_DIR")));
         let result = std::fs::read_to_string(&path)
@@ -792,7 +797,12 @@ pub(crate) fn infer(tracks: &[Track]) -> (f64, Vec<Option<(f64, f64, f64)>>) {
                 serde_json::from_str::<LearnedModel>(&text).map_err(|e| e.to_string())
             });
         match result {
-            Ok(model) if model.format == "observed_estimator_v1" && model.history == 5 => model,
+            Ok(model)
+                if (model.format == "observed_estimator_v1" && model.history == 5)
+                    || (model.format == "observed_estimator_v2" && model.history == 9) =>
+            {
+                model
+            }
             Ok(_) => {
                 eprintln!("unsupported observed estimator model");
                 std::process::exit(2)
@@ -802,12 +812,18 @@ pub(crate) fn infer(tracks: &[Track]) -> (f64, Vec<Option<(f64, f64, f64)>>) {
                 std::process::exit(2)
             }
         }
-    });
+    })
+}
+
+/// Global tempo and per-track velocity/factor from visible geometry only.
+pub(crate) fn infer(tracks: &[Track]) -> (f64, Vec<Option<(f64, f64, f64)>>) {
+    let model = learned_model();
     let w = &model.state;
+    let delta_count = 2 * (model.history - 1);
     let frame = frame() as f64;
     let mut embedded = Vec::new();
     for (index, track) in tracks.iter().enumerate() {
-        if track.samples.len() < 5 {
+        if track.samples.len() < model.history {
             continue;
         }
         let n = track.samples.len();
@@ -815,8 +831,8 @@ pub(crate) fn infer(tracks: &[Track]) -> (f64, Vec<Option<(f64, f64, f64)>>) {
         if !(0..=1).contains(&last.kind) {
             continue;
         }
-        let mut x = Vec::with_capacity(16);
-        for i in n - 4..n {
+        let mut x = Vec::with_capacity(delta_count + 8);
+        for i in n - (model.history - 1)..n {
             x.push(track.samples[i].x - track.samples[i - 1].x);
             x.push(track.samples[i].y - track.samples[i - 1].y);
         }
@@ -852,15 +868,23 @@ pub(crate) fn infer(tracks: &[Track]) -> (f64, Vec<Option<(f64, f64, f64)>>) {
     for (index, x, h) in embedded {
         let h = affine(&h, &w.local_w, &w.local_b, true);
         let local = affine(&h, &w.local_output_w, &w.local_output_b, false);
-        let factor = if x[10] > 0.5 {
+        let factor = if x[delta_count + 2] > 0.5 {
             2.0 / (1.0 + (-local[2]).exp())
         } else {
             1.0
         };
         let rate = (global * factor).max(0.05);
+        let (dx, dy) = if model.history == 9 {
+            (
+                (x[delta_count - 6] + x[delta_count - 4] + x[delta_count - 2]) / 3.0,
+                (x[delta_count - 5] + x[delta_count - 3] + x[delta_count - 1]) / 3.0,
+            )
+        } else {
+            (x[6], x[7])
+        };
         predictions[index] = Some((
-            x[6] / rate + 0.1 * local[0].tanh(),
-            x[7] / rate + 0.1 * local[1].tanh(),
+            dx / rate + 0.1 * local[0].tanh(),
+            dy / rate + 0.1 * local[1].tanh(),
             factor,
         ));
     }
