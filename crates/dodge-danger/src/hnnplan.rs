@@ -930,6 +930,7 @@ fn read_observed_bodies(model: &PhysicsModel, difficulty: u8) -> Vec<Body> {
                 } else {
                     sample.size
                 },
+                uncertainty: track.position_sigma(),
                 kind: usize::from(sample.kind == 1),
                 rate,
                 moves,
