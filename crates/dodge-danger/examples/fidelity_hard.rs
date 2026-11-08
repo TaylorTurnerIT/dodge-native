@@ -184,6 +184,11 @@ fn main() -> Result<(), String> {
                                 .iter()
                                 .filter(|id| truth.contains_key(id))
                                 .count();
+                            let engine_spawns = truth.iter().filter(|(id, enemy)| !initial_serials.contains(id) && enemy.personality >= 0).count();
+                            let engine_explosions = truth.iter().filter(|(id, enemy)| !initial_serials.contains(id) && enemy.personality == -1).count();
+                            let model_initial: Vec<_> = imagined.snapshot_ids.iter().filter_map(|id| id.and_then(|i| initial_serials.get(i).copied())).collect();
+                            let engine_only_initial = initial_serials.iter().filter(|id| truth.contains_key(id) && !model_initial.contains(id)).count();
+                            let model_only_initial = model_initial.iter().filter(|id| !truth.contains_key(id)).count();
                             let truth_rects = hnnplan::rect_snapshot(&sim);
                             let mut rect_errors = Vec::new();
                             let mut rect_lethal_disagreements = 0;
@@ -198,6 +203,8 @@ fn main() -> Result<(), String> {
                             snapshots.push(json!({"horizon": horizon, "engine_count": truth.len(), "model_count": imagined.snapshot.len(),
                                 "engine_new": truth.len() - initial_survivors, "engine_missing_initial": initial_serials.len() - initial_survivors,
                                 "model_new": imagined.snapshot_ids.iter().filter(|id| id.is_none()).count(),
+                                "engine_spawn_survivors": engine_spawns, "engine_new_explosions": engine_explosions,
+                                "engine_only_initial": engine_only_initial, "model_only_initial": model_only_initial,
                                 "position_errors": position_errors, "explosion_size_errors": explosion_size_errors,
                                 "engine_rect_count": truth_rects.len(), "model_rect_count": imagined.snapshot_rects.len(),
                                 "rect_errors": rect_errors, "rect_lethal_disagreements": rect_lethal_disagreements}));
