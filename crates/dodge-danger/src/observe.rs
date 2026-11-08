@@ -279,6 +279,9 @@ fn pooled_horizon_rate(tracks: &[Track]) -> Option<f64> {
 
 impl Track {
     pub(crate) fn smoothed_velocity(&self) -> Option<(f64, f64)> {
+        if std::env::var("HNN_OBS_HYBRID").ok().as_deref() == Some("1") && measurement_variance() <= 1e-8 {
+            return None;
+        }
         if smoother_enabled() && std::env::var("HNN_OBS_HAND_VELOCITY").ok().as_deref() != Some("1") { self.filter.map(|f| (f.vx, f.vy)) } else { None }
     }
     pub(crate) fn position_sigma(&self) -> f64 { self.variance.max(0.0).sqrt() }
