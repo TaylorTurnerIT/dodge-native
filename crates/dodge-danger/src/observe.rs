@@ -81,11 +81,18 @@ struct ForceLayer {
     bias: Vec<f64>,
 }
 #[derive(Deserialize)]
+struct FilterKamikazeRate {
+    radius: f64,
+    step: f64,
+}
+#[derive(Deserialize)]
 struct FilterPhysics {
     layers: Vec<ForceLayer>,
     gamma: f64,
     #[serde(default)]
     kamikaze_acceleration: Option<f64>,
+    #[serde(default)]
+    kamikaze_rate: Option<FilterKamikazeRate>,
 }
 static FILTER_PHYSICS: OnceLock<FilterPhysics> = OnceLock::new();
 
@@ -913,7 +920,11 @@ pub fn feed(game: &NativeGame) {
                     if let Some(before) = track.samples.back() {
                         let distance =
                             (before.x - sample.player_x).hypot(before.y - sample.player_y);
-                        let change = if distance <= 26.0 { -0.007 } else { 0.007 };
+                        let (radius, step) = if smoother_physics() {
+                            FILTER_PHYSICS.get().and_then(|m| m.kamikaze_rate.as_ref())
+                                .map_or((26.0, 0.007), |law| (law.radius, law.step))
+                        } else { (26.0, 0.007) };
+                        let change = if distance <= radius { -step } else { step };
                         track.speed_factor = (track.speed_factor + change).clamp(0.05, 1.0);
                     }
                 }
@@ -1227,6 +1238,7 @@ mod tests {
         let physics = FilterPhysics {
             gamma: 0.1,
             kamikaze_acceleration: None,
+            kamikaze_rate: None,
             layers: vec![ForceLayer {
                 weights: vec![vec![64.0, -128.0, 0.0, 0.0, 0.0, 0.0, 0.0]],
                 bias: vec![0.0],
