@@ -913,6 +913,10 @@ fn read_observed_bodies(model: &PhysicsModel, difficulty: u8) -> Vec<Body> {
                 vx += shift;
                 vy += shift;
             }
+            if let Some((smoothed_x, smoothed_y)) = track.smoothed_velocity() {
+                vx = smoothed_x / rate;
+                vy = smoothed_y / rate;
+            }
             let moves = sample.kind >= 0;
             Some(Body {
                 x: sample.x,
