@@ -340,6 +340,8 @@ struct Observation {
     global_rate: f64,
     rate_frame: usize,
     noise: Noise,
+    uncertainty_frame: usize,
+    uncertainty: f64,
 }
 thread_local! { static CURRENT: RefCell<Observation> = RefCell::new(Observation::default()); }
 
@@ -741,6 +743,31 @@ pub(crate) fn tracks() -> Vec<Track> {
             .filter(|track| track.age >= min_age)
             .cloned()
             .collect()
+    })
+}
+
+/// Pooled position uncertainty proxy from the tracked second differences.
+pub fn position_uncertainty() -> f64 {
+    CURRENT.with(|c| {
+        let mut c = c.borrow_mut();
+        if c.uncertainty_frame == c.frame {
+            return c.uncertainty;
+        }
+        let mut sum = 0.0;
+        let mut count = 0;
+        for track in &c.tracks {
+            let samples: Vec<_> = track.samples.iter().collect();
+            for triple in samples.windows(3) {
+                let (a, b, d) = (triple[0], triple[1], triple[2]);
+                let dx = d.x - 2.0 * b.x + a.x;
+                let dy = d.y - 2.0 * b.y + a.y;
+                sum += (dx * dx + dy * dy) / 12.0;
+                count += 1;
+            }
+        }
+        c.uncertainty = if count > 0 { (sum / count as f64).sqrt() } else { 0.5 };
+        c.uncertainty_frame = c.frame;
+        c.uncertainty
     })
 }
 
