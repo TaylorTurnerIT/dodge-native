@@ -19,54 +19,42 @@ import os
 
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 
-import dodge_native
-import numpy as np
 import pygame
 
 from dodge.display import GameWindow
+from dodge.engine import Engine
 from dodge.runfile import open_video, pixels_crc, read_run, unpack_overlay
 
 
 MB_PER_SECOND = 0.12    # measured: 90 s of play with the overlay, CRF 32, 9.7 MB
 
 
-def make_engine(*, step_frames, difficulty, patterns, powerups, normal_enemies,
-                kamikaze_enemies, spawn_rate_percent, pixels, execution):
-    """dodge.env.make_engine's engine, built without importing dodge.env: that
-    pulls in stable-baselines3 and torch, which take longer to load than most
-    renders take to run."""
-    return dodge_native.NativeBatchEnv(
-        step_frames=int(step_frames), execution=execution, board=False, pixels=pixels,
-        ml=not pixels, difficulty=int(difficulty), patterns_enabled=bool(patterns),
-        powerups_enabled=bool(powerups), normal_enemies=bool(normal_enemies),
-        kamikaze_enemies=bool(kamikaze_enemies),
-        spawn_rate_percent=int(spawn_rate_percent), lives=0)
-
-
 def render(path, out, speed=1.0, overlay=True, scale=5, fps=60, crf=32):
     """Write `out`; return (source frames, video frames)."""
     settings, records = read_run(path)
-    engine_settings = {k: v for k, v in settings.items() if k not in ("bot", "label")}
+    # Runs saved before the move to dodge_rl also name the old engine's options
+    # (step_frames, pixels, execution); only the game's own settings carry over.
+    engine_settings = {k: v for k, v in settings.items() if k in Engine.SETTINGS}
     window = GameWindow(scale=scale)
     font = pygame.font.Font(None, max(18, 6 * scale))
     label = None if speed == 1 else font.render(f"{speed:g}x", True, (255, 241, 232))
     writer = open_video(out, fps, crf)
-    engine, pixels = None, None
+    engine = None
     source = written = 0
     first = True
     for record in records:
         if record[0] == "game":
-            seed = np.array([record[1]], dtype=np.uint32)
+            seed = record[1]
             # the same calls the watcher made, so the same games come out
             if first:
-                engine = make_engine(**engine_settings)
-                pixels = engine.reset_batch(seed)["pixels"][0]
+                engine = Engine(seed=seed, **engine_settings)
                 first = False
             else:
-                pixels = engine.reset_lanes(np.array([0], dtype=np.uint32), seed)["pixels"][0]
+                engine.reset(seed)
             window.set_field(None)
             continue
         _, action, crc, packed = record
+        pixels = engine.frame()
         if pixels_crc(pixels) != crc:
             raise SystemExit(f"replay drifted from the saved game at frame {source:,}")
         shown = unpack_overlay(packed) if overlay else None
@@ -79,7 +67,7 @@ def render(path, out, speed=1.0, overlay=True, scale=5, fps=60, crf=32):
                 window.window.blit(label, (window.window.get_width() - label.get_width() - 6, 6))
             writer.append_data(pygame.surfarray.array3d(window.window).transpose(1, 0, 2))
             written += 1
-        pixels = engine.step_pixels(np.array([action], dtype=np.uint8))["pixels"][0]
+        engine.step(action)
         source += 1
     writer.close()
     pygame.quit()

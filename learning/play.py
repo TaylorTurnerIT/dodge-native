@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Play Dodge yourself on the native engine.
+"""Play Dodge yourself on the dodge_rl engine.
 
     python play.py                     # normal difficulty, patterns and powerups
     python play.py --difficulty hard   # the setting training uses
@@ -14,12 +14,11 @@ import argparse
 import secrets
 import sys
 
-import numpy as np
 import pygame
 
 from dodge.actions import ACTION_MASKS, DOWN, LEFT, RIGHT, UP
 from dodge.display import GameWindow
-from dodge.env import make_engine
+from dodge.engine import DIFFICULTIES, Engine
 
 
 # PICO-8 button index -> keys that press it
@@ -67,13 +66,10 @@ def main():
     args = parser.parse_args()
 
     window = GameWindow(scale=args.scale)
-    engine = make_engine(
-        step_frames=1, pixels=True, execution="serial",
-        difficulty={"easy": 1, "normal": 2, "hard": 3}[args.difficulty],
-        patterns=args.patterns, powerups=args.powerups,
-    )
     seed = args.seed if args.seed is not None else secrets.randbelow(2**31 - 1)
-    frame = engine.reset_batch(np.array([seed], dtype=np.uint32))
+    engine = Engine(seed=seed, difficulty=DIFFICULTIES[args.difficulty],
+                    patterns=args.patterns, powerups=args.powerups)
+    done = False
     clock = pygame.time.Clock()
 
     running = True
@@ -86,15 +82,14 @@ def main():
                 running = False
 
         mask = button_mask(pygame.key.get_pressed())
-        if frame["done"][0]:
+        if done:
             # The last frame stays up until the player asks for another game.
             if mask & RESTART:
-                seed = secrets.randbelow(2**31 - 1)
-                frame = engine.reset_lanes(np.array([0], dtype=np.uint32),
-                                           np.array([seed], dtype=np.uint32))
+                engine.reset(secrets.randbelow(2**31 - 1))
+                done = False
         else:
-            frame = engine.step_pixels(np.array([action_for(mask)], dtype=np.uint8))
-        window.show(frame["pixels"][0])
+            done = engine.step(action_for(mask))
+        window.show(engine.frame())
         clock.tick(60)
 
         frames_run += 1

@@ -3,10 +3,18 @@
 
 Run from the learning/ directory. Press O to show or hide the bot's own overlay
 (its predictions, its plan, any map it keeps), if it draws one; Esc closes the
-window. With --headless no window opens (and pygame is not needed) and the bot
-plays as fast as it can decide, printing how long each game lasted."""
+window.
+
+--save-run game.run.gz saves the game (seed, actions, the overlay of every
+frame) so render_run.py can turn it into a video later at any speed, size, or
+with the overlay on or off, without the bot deciding again. --record game.mp4
+saves what the window shows as a video directly. Either one stops after one game
+by default. With --headless no window opens (and, unless recording, pygame is not
+needed) and the bot plays as fast as it can decide, printing how long each game
+lasted."""
 
 import argparse
+import os
 import secrets
 
 from dodge.engine import DIFFICULTIES, Engine
@@ -37,27 +45,46 @@ def main(argv=None):
     parser.add_argument("--fps", type=int, default=60)
     parser.add_argument("--overlay", action=argparse.BooleanOptionalAction, default=False,
                         help="start with the bot's overlay shown (O toggles it)")
+    parser.add_argument("--record", metavar="PATH", default=None,
+                        help="save the window as a video (.mp4), at --fps")
+    parser.add_argument("--save-run", metavar="PATH", default=None,
+                        help="save the game for render_run.py (.run.gz)")
     parser.add_argument("--games", type=int, default=None,
-                        help="stop after this many games (default: never)")
+                        help="stop after this many games (default: 1 when saving, "
+                             "else never)")
     parser.add_argument("--max-frames", type=int, default=None,
                         help="stop after this many frames in all")
     parser.add_argument("--headless", action="store_true",
-                        help="no window: play as fast as the bot can decide")
+                        help="no window, no frame limit: for recording")
     args = parser.parse_args(argv)
+    saving = bool(args.record or args.save_run)
+    games = args.games if args.games is not None else (1 if saving else None)
+    if args.headless:
+        os.environ["SDL_VIDEODRIVER"] = "dummy"
 
     label, make_bot = BOTS[args.bot]
     seed = args.seed if args.seed is not None else secrets.randbelow(2**31 - 1)
-    engine = Engine(
-        seed=seed, difficulty=DIFFICULTIES[args.difficulty], patterns=args.patterns,
+    settings = dict(
+        difficulty=DIFFICULTIES[args.difficulty], patterns=args.patterns,
         powerups=args.powerups, normal_enemies=args.normal_enemies,
         kamikaze_enemies=args.kamikaze_enemies, spawn_rate_percent=args.spawn_rate_percent)
+    engine = Engine(seed=seed, **settings)
 
-    window = clock = pygame = None
-    if not args.headless:
+    # Drawing needs pygame; a headless run that only saves its run file does not.
+    draw = not args.headless or bool(args.record)
+    window = clock = pygame = writer = run = None
+    if draw:
         import pygame
         from dodge.display import GameWindow
         window = GameWindow(scale=args.scale)
         clock = pygame.time.Clock()
+    if args.record:
+        from dodge.runfile import open_video
+        writer = open_video(args.record, args.fps)
+    if args.save_run:
+        from dodge.runfile import RunWriter
+        run = RunWriter(args.save_run, dict(settings, bot=args.bot, label=label))
+        run.game(seed)
 
     bot = make_bot()
     episode, frames, total_frames = 1, 0, 0
@@ -80,12 +107,21 @@ def main(argv=None):
         state = engine.lane_state(0)
         bot.observe(state)
         action = bot.act(state)
-        if window:
-            # Drawn over the frame the decision was made from, so predictions
-            # start where things are now.
-            overlay = bot.overlay() if show_overlay and hasattr(bot, "overlay") else None
-            window.set_field(None if overlay is None else overlay.field)
-            window.show(engine.frame(), overlay)
+        # Drawn over the frame the decision was made from, so predictions start
+        # where things are now. A saved run keeps every frame's overlay, so the
+        # render can show it or not.
+        want = show_overlay or run is not None
+        overlay = bot.overlay() if want and hasattr(bot, "overlay") else None
+        pixels = engine.frame() if draw or run is not None else None
+        if run is not None:
+            run.frame(action, pixels, overlay)
+        if draw:
+            shown = overlay if show_overlay else None
+            window.set_field(None if shown is None else shown.field)
+            window.show(pixels, shown)
+        if writer is not None:
+            writer.append_data(pygame.surfarray.array3d(window.window).transpose(1, 0, 2))
+        if not args.headless:
             clock.tick(args.fps)
         done = engine.step(action)
         frames += 1
@@ -97,15 +133,23 @@ def main(argv=None):
             window.set_caption(window_title(label, seed, episode, frames, show_overlay))
         if done:
             print(f"{label}: seed {seed} lasted {frames:,} frames", flush=True)
-            if args.games is not None and episode >= args.games:
+            if games is not None and episode >= games:
                 break
             episode += 1
             frames = 0
             seed = seed + 1 if args.next_seed == "increment" else secrets.randbelow(2**31 - 1)
             engine.reset(seed)
             bot = make_bot()
+            if run is not None:
+                run.game(seed)
             if window:
                 window.set_caption(window_title(label, seed, episode, frames, show_overlay))
+    if writer is not None:
+        writer.close()
+        print(f"saved {args.record}")
+    if run is not None:
+        run.close()
+        print(f"saved {args.save_run} ({total_frames:,} frames)")
     if pygame:
         pygame.quit()
     return 0

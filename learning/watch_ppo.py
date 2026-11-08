@@ -5,13 +5,12 @@ import argparse
 from pathlib import Path
 import secrets
 
-import numpy as np
 import pygame
 import torch
 from stable_baselines3 import PPO
 
 from dodge.display import GameWindow
-from dodge.env import make_engine
+from dodge.engine import DIFFICULTIES, Engine
 from dodge.training import newest_snapshot
 
 
@@ -92,14 +91,13 @@ def main():
                         caption=window_title(model_name, current_update, seed))
     # One frame per step, holding each decision for --action-repeat frames
     # here, so every frame is drawn even when decisions are coarser.
-    engine = make_engine(
-        step_frames=1, pixels=True, execution="serial",
-        difficulty={"easy": 1, "normal": 2, "hard": 3}[args.difficulty],
+    engine = Engine(
+        seed=seed, observation="velocity_flow",
+        difficulty=DIFFICULTIES[args.difficulty],
         patterns=args.patterns, powerups=args.powerups,
         normal_enemies=args.normal_enemies, kamikaze_enemies=args.kamikaze_enemies,
         spawn_rate_percent=args.spawn_rate_percent,
     )
-    frame = engine.reset_batch(np.array([seed], dtype=np.uint32))
     # Only velocity-flow has a field to show. Computed once per decision and
     # left in place for the frames it is held, so watching costs one extra
     # forward pass per decision rather than one per frame.
@@ -117,21 +115,21 @@ def main():
             break
 
         if held == 0:
-            observation = engine.observe_velocity()["observation"][0]
+            observation = engine.observe()
             if field_source is not None:
                 with torch.no_grad():
                     tensor, _ = model.policy.obs_to_tensor(observation)
                     window.set_field(field_source.field(tensor)[0, 0].cpu().numpy())
             action, _ = model.predict(observation, deterministic=not args.sample)
             held = args.action_repeat
-        frame = engine.step_pixels(np.array([int(action)], dtype=np.uint8))
+        done = engine.step(action)
         held -= 1
-        window.show(frame["pixels"][0])
+        window.show(engine.frame())
         clock.tick(60)
         frames += 1
         if args.frames is not None and frames >= args.frames:
             running = False
-        if frame["done"][0]:
+        if done:
             episode += 1
             held = 0
             model, new_update, error = reload_if_newer(
@@ -143,8 +141,7 @@ def main():
                 # The extractor belongs to the old policy object.
                 field_source = field_source_of(model, args.field)
             seed = secrets.randbelow(2**31 - 1)
-            frame = engine.reset_lanes(np.array([0], dtype=np.uint32),
-                                       np.array([seed], dtype=np.uint32))
+            engine.reset(seed)
             window.set_caption(window_title(model_name, current_update, seed, episode + 1))
     pygame.quit()
     return 0

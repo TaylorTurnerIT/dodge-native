@@ -66,3 +66,17 @@ def test_unmapped_keys_are_ignored():
 def test_holding_both_keys_of_the_same_button_is_still_one_bit():
     mask = button_mask(_pressed(pygame.K_LEFT, pygame.K_a))
     assert mask == 1 << 0
+
+
+def test_play_runs_a_few_frames_on_the_engine():
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    from dodge import engine
+    if not engine.available():
+        pytest.skip("dodge_rl is not installed")
+    root = Path(__file__).resolve().parents[1]
+    result = subprocess.run([sys.executable, str(root / "play.py"), "--frames", "30"],
+                            cwd=root, capture_output=True, text=True, timeout=120)
+    assert result.returncode == 0, result.stderr
