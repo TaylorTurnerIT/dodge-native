@@ -706,6 +706,7 @@ pub fn feed(game: &NativeGame) {
         .map(|(i, sample)| (sample, serials.get(i).copied().flatten()))
         .collect();
     BODY_FRAMES.fetch_add(samples.len() as u64, Ordering::Relaxed);
+    let rectangles = if smoother_enabled() { crate::hnnplan::rect_snapshot(game) } else { Vec::new() };
     let window = std::env::var("HNN_OBS_WINDOW")
         .ok()
         .and_then(|s| s.parse::<usize>().ok())
@@ -811,6 +812,16 @@ pub fn feed(game: &NativeGame) {
                     sample.kind = if ones * 2 > track.kinds.len() { 1 } else { 0 };
                 }
                 if smooth && sample.kind >= 0 {
+                    if let Some(previous) = track.samples.back() {
+                        let overlaps = |s: &Sample, r: &[f64; 6]| {
+                            s.x + s.size > r[0] && s.x < r[0] + r[2]
+                                && s.y + s.size > r[1] && s.y < r[1] + r[3]
+                        };
+                        if rectangles.iter().any(|r| !overlaps(previous, r) && overlaps(&sample, r)) {
+                            track.horizon.clear();
+                            track.event_age = 0;
+                        }
+                    }
                     let var = measurement_variance();
                     if let Some(predicted) = track.filter.map(|f| f.predict(*track.samples.back().unwrap_or(&sample), rate)) {
                         if (sample.x - predicted.x).hypot(sample.y - predicted.y) > (2.0_f64).max(5.0 * (var + track.variance).sqrt()) {
