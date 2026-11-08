@@ -1108,7 +1108,11 @@ fn hits(px: f64, py: f64, size: f64, body: &Body) -> bool {
             .clamp(0.0, 10.0)
     });
     let size = if k > 0.0 && *OBSERVED.get_or_init(crate::observe::full) {
-        size + k * crate::observe::position_uncertainty()
+        size + k * if std::env::var("HNN_OBS_SMOOTHER").ok().as_deref() == Some("1") {
+            body.uncertainty
+        } else {
+            crate::observe::position_uncertainty()
+        }
     } else {
         size
     };
