@@ -1141,6 +1141,23 @@ mod tests {
     }
 
     #[test]
+    fn horizon_fit_recovers_accelerated_motion_with_a_missing_detection() {
+        let mut history = VecDeque::new();
+        for t in 0..12 {
+            let t = t as f64;
+            let sample = Sample { x: 10.0 + 0.4 * t + 0.01 * t * (t + 1.0),
+                y: 20.0 - 0.2 * t, size: 4.0, kind: 0, player_x: 0.0, player_y: 0.0 };
+            history.push_back(HorizonSample { observation: if t == 6.0 { None } else { Some(sample) }, force: (0.02, 0.0) });
+        }
+        let (fit, variance) = horizon_fit(&history, 1.0 / 12.0).unwrap();
+        assert!((fit.x - 15.72).abs() < 1e-8);
+        assert!((fit.vx - 0.62).abs() < 1e-8);
+        assert!((fit.y - 17.8).abs() < 1e-8);
+        assert!((fit.vy + 0.2).abs() < 1e-8);
+        assert!(variance > 0.0);
+    }
+
+    #[test]
     fn linear_fit_and_size_trend() {
         let mut track = Track {
             samples: VecDeque::new(),
