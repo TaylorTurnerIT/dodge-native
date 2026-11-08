@@ -8,6 +8,15 @@
 use dodge_core::{Action, NativeConfig, NativeGame};
 use dodge_danger::{hnnplan, start_game};
 
+fn pair_frame(game: &NativeGame, action: &str, frame: u32) {
+    let view = game.privileged_view();
+    let rate = view.speed.to_double() * view.freeze_rate.to_double();
+    let enemies: Vec<_> = game.enemies().iter().filter(|e| e.personality < 2).map(|e| {
+        serde_json::json!([e.x.to_double(), e.y.to_double(), e.vx.to_double(), e.vy.to_double(), e.size.to_double(), e.personality, rate * e.speed.to_double(), e.is_dying])
+    }).collect();
+    println!("pair-data {}", serde_json::json!({"action": action, "frame": frame, "enemies": enemies, "rects": hnnplan::rect_snapshot(game)}));
+}
+
 fn main() -> Result<(), String> {
     let a: Vec<String> = std::env::args().collect();
     if a.len() < 7 {
@@ -77,12 +86,12 @@ fn main() -> Result<(), String> {
         let im = hnnplan::imagine(&model, &game, i, 36, 0);
         let mut sim = game.clone();
         let mut killed = None;
+        let pair_data = std::env::var_os("EXPLAIN_PAIRS").is_some();
+        if pair_data { pair_frame(&sim, act.name(), 0); }
         for f in 1..=36_u32 {
-            if sim
-                .advance_frame_headless(act.mask())
-                .map_err(|e| e.to_string())?
-                .dead
-            {
+            let result = sim.advance_frame_headless(act.mask()).map_err(|e| e.to_string())?;
+            if pair_data { pair_frame(&sim, act.name(), f); }
+            if result.dead {
                 killed = Some(f);
                 break;
             }
