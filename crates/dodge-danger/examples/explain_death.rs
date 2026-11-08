@@ -205,6 +205,25 @@ fn main() -> Result<(), String> {
             }
         }
     }
+    if let (Ok(name), Ok(frame)) = (std::env::var("EXPLAIN_ACTION"), std::env::var("EXPLAIN_FRAME")) {
+        let n: u32 = frame.parse().map_err(|_| "EXPLAIN_FRAME")?;
+        let i = Action::ALL.iter().position(|a| a.name() == name).ok_or("EXPLAIN_ACTION")?;
+        let mut sim = game.clone();
+        for _ in 0..n {
+            sim.advance_frame_headless(Action::ALL[i].mask()).map_err(|e| e.to_string())?;
+        }
+        let imagined = hnnplan::imagine(&model, &game, i, 36, n);
+        let p = sim.player();
+        println!("probe {name} +{n}: player {:.5} {:.5}", p.x.to_double(), p.y.to_double());
+        for (i, body) in imagined.snapshot.iter().enumerate() {
+            println!("  model {i}: {body:?}");
+        }
+        for (i, body) in sim.enemies().iter().filter(|e| e.personality < 2).enumerate() {
+            println!("  engine {i}: {:.5} {:.5} size {:.5} kind {} dying {}", body.x.to_double(), body.y.to_double(), body.size.to_double(), body.personality, body.is_dying);
+        }
+        println!("  model rectangles {:?}", imagined.snapshot_rects);
+        println!("  engine rectangles {:?}", hnnplan::rect_snapshot(&sim));
+    }
     // Does this replay reach the recorded death?
     let mut frame = stop;
     let mut first = true;
