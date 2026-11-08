@@ -103,6 +103,14 @@ fn main() -> Result<(), String> {
                         e.personality == 1
                             && (e.x.to_double() - px).hypot(e.y.to_double() - py) < 25.0
                     });
+                    let initial_serials: Vec<_> = game
+                        .enemy_serials()
+                        .ok_or("enemy identity unavailable")?
+                        .iter()
+                        .zip(game.enemies())
+                        .filter(|(_, e)| e.personality < 2)
+                        .map(|(serial, _)| *serial)
+                        .collect();
                     let mut rng =
                         u64::from(seed) ^ (u64::from(frame) << 32) ^ u64::from(difficulty);
                     for seq in 0..29 {
@@ -121,6 +129,7 @@ fn main() -> Result<(), String> {
                         let predicted = hnnplan::imagine_actions(&model, &game, &actions).first_hit;
                         let mut sim = game.clone();
                         let mut actual = None;
+                        let mut snapshots = Vec::new();
                         for (n, index) in actions.iter().enumerate() {
                             if sim
                                 .advance_frame_headless(Action::ALL[*index].mask())
@@ -130,10 +139,52 @@ fn main() -> Result<(), String> {
                                 actual = Some(n + 1);
                                 break;
                             }
+                            let horizon = (n + 1) as u32;
+                            if ![4, 8, 12, 24, 36].contains(&horizon)
+                                || predicted.is_some_and(|hit| hit <= horizon)
+                            {
+                                continue;
+                            }
+                            let imagined =
+                                hnnplan::imagine_actions_at(&model, &game, &actions, horizon);
+                            let serials =
+                                sim.enemy_serials().ok_or("enemy identity unavailable")?;
+                            let truth: BTreeMap<_, _> = serials
+                                .iter()
+                                .zip(sim.enemies())
+                                .filter(|(_, enemy)| enemy.personality < 2)
+                                .map(|(serial, enemy)| (*serial, enemy))
+                                .collect();
+                            let mut position_errors = Vec::new();
+                            let mut explosion_size_errors = Vec::new();
+                            for (body, id) in imagined.snapshot.iter().zip(&imagined.snapshot_ids) {
+                                let Some(enemy) = id
+                                    .and_then(|id| initial_serials.get(id))
+                                    .and_then(|id| truth.get(id))
+                                else {
+                                    continue;
+                                };
+                                position_errors.push(
+                                    (body[0] - enemy.x.to_double())
+                                        .hypot(body[1] - enemy.y.to_double()),
+                                );
+                                if enemy.personality == -1 {
+                                    explosion_size_errors
+                                        .push((body[2] - enemy.size.to_double()).abs());
+                                }
+                            }
+                            let initial_survivors = initial_serials
+                                .iter()
+                                .filter(|id| truth.contains_key(id))
+                                .count();
+                            snapshots.push(json!({"horizon": horizon, "engine_count": truth.len(), "model_count": imagined.snapshot.len(),
+                                "engine_new": truth.len() - initial_survivors, "engine_missing_initial": initial_serials.len() - initial_survivors,
+                                "model_new": imagined.snapshot_ids.iter().filter(|id| id.is_none()).count(),
+                                "position_errors": position_errors, "explosion_size_errors": explosion_size_errors}));
                         }
                         println!(
                             "{}",
-                            json!({"seed": seed, "difficulty": difficulty, "frame": frame, "sequence": seq, "engine_hit": actual, "model_hit": predicted, "near_wall": near_wall, "near_rectangle": near_rect, "enemy_contact": contact, "kamikaze_near": kamikaze, "pre_death": pre, "speed": game.privileged_view().speed.to_double()})
+                            json!({"seed": seed, "difficulty": difficulty, "frame": frame, "sequence": seq, "engine_hit": actual, "model_hit": predicted, "near_wall": near_wall, "near_rectangle": near_rect, "enemy_contact": contact, "kamikaze_near": kamikaze, "pre_death": pre, "speed": game.privileged_view().speed.to_double(), "snapshots": snapshots})
                         );
                     }
                 }
