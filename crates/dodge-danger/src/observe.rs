@@ -98,6 +98,43 @@ impl NoiseConfig {
     }
 }
 
+/// Jitter rectangle edges consistently across all planner queries in a frame.
+pub(crate) fn jitter_rectangle(index: usize, rect: [f64; 6]) -> [f64; 6] {
+    if !full()
+        || std::env::var("HNN_NOISE").ok().as_deref() != Some("1")
+        || std::env::var("HNN_NOISE_RECT").ok().as_deref() != Some("1")
+    {
+        return rect;
+    }
+    let seed = std::env::var("HNN_NOISE_SEED")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .unwrap_or(1847);
+    jitter_edges(frame(), seed, index, rect)
+}
+
+fn jitter_edges(frame: usize, seed: u64, index: usize, mut rect: [f64; 6]) -> [f64; 6] {
+    let mut state = seed
+        ^ (frame as u64).wrapping_mul(0x9e3779b97f4a7c15)
+        ^ (index as u64).wrapping_mul(0xbf58476d1ce4e5b9);
+    let mut offset = || {
+        state = state.wrapping_add(0x9e3779b97f4a7c15);
+        let mut z = state;
+        z = (z ^ (z >> 30)).wrapping_mul(0xbf58476d1ce4e5b9);
+        z = (z ^ (z >> 27)).wrapping_mul(0x94d049bb133111eb);
+        ((z ^ (z >> 31)) % 3) as f64 - 1.0
+    };
+    let left = rect[0] + offset();
+    let top = rect[1] + offset();
+    let right = rect[0] + rect[2] + offset();
+    let bottom = rect[1] + rect[3] + offset();
+    rect[0] = left;
+    rect[1] = top;
+    rect[2] = (right - left).max(0.0);
+    rect[3] = (bottom - top).max(0.0);
+    rect
+}
+
 struct Noise {
     rng: u64,
     phantoms: Vec<(Sample, u8)>,
@@ -671,6 +708,18 @@ mod tests {
             (0.0, 0.0),
         );
         assert!(dropped.is_empty());
+    }
+
+    #[test]
+    fn rectangle_jitter_is_seeded_and_bounds_each_edge() {
+        let rect = [10.0, 20.0, 30.0, 40.0, 1.0, 0.0];
+        let noisy = jitter_edges(42, 1847, 2, rect);
+        assert_eq!(noisy, jitter_edges(42, 1847, 2, rect));
+        assert!((noisy[0] - rect[0]).abs() <= 1.0);
+        assert!((noisy[1] - rect[1]).abs() <= 1.0);
+        assert!((noisy[0] + noisy[2] - rect[0] - rect[2]).abs() <= 1.0);
+        assert!((noisy[1] + noisy[3] - rect[1] - rect[3]).abs() <= 1.0);
+        assert_eq!(&noisy[4..], &rect[4..]);
     }
 
     #[test]

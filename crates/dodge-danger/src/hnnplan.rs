@@ -240,15 +240,16 @@ pub fn rect_snapshot(game: &NativeGame) -> RectSnapshot {
     pattern
         .rects
         .iter()
-        .map(|rect| {
-            [
+        .enumerate()
+        .map(|(index, rect)| {
+            crate::observe::jitter_rectangle(index, [
                 rect.x.to_double(),
                 rect.y.to_double(),
                 rect.width.to_double(),
                 rect.height.to_double(),
                 rect.sh.to_double(),
                 moving,
-            ]
+            ])
         })
         .collect()
 }
@@ -524,6 +525,8 @@ struct Body {
     dying: bool,
     /// Collision predictions use a one-frame-ahead feature; keep the body for that frame.
     collision_delay: bool,
+    /// Index of the initial observed enemy, used only in diagnostics.
+    diagnostic_id: Option<usize>,
     /// Has been seen between x = 1 and x = 128. Only such enemies bounce off the arena edge.
     inside: bool,
 }
@@ -726,6 +729,7 @@ fn read_observed_bodies(model: &PhysicsModel, difficulty: u8) -> Vec<Body> {
                     growing: track.growing(),
                     dying: false,
                     collision_delay: false,
+                    diagnostic_id: None,
                     inside: track.inside,
                 })
             })
@@ -860,6 +864,7 @@ fn read_observed_bodies(model: &PhysicsModel, difficulty: u8) -> Vec<Body> {
                 growing: track.growing(),
                 dying: false,
                 collision_delay: false,
+                    diagnostic_id: None,
                 inside: track.inside,
             })
         })
@@ -892,6 +897,7 @@ fn read_exact_bodies(game: &NativeGame) -> Vec<Body> {
                 growing: enemy.isizing,
                 dying: enemy.is_dying,
                 collision_delay: false,
+                    diagnostic_id: None,
                 inside: enemy.inside,
             }
         })
@@ -973,6 +979,7 @@ fn apply_events(model: &PhysicsModel, enemies: &mut Vec<Body>) {
                     growing: true,
                     dying: false,
                     collision_delay: false,
+                    diagnostic_id: None,
                     inside: true,
                 });
             }
@@ -1032,6 +1039,8 @@ pub struct Rollout {
     pub first_hit: Option<u32>,
     /// Enemy `x, y, size` after `snapshot_at` frames, in the engine's enemy order.
     pub snapshot: Vec<[f64; 3]>,
+    /// Initial enemy indices corresponding to the snapshot. Births have no index.
+    pub snapshot_ids: Vec<Option<usize>>,
     /// Samples every four frames when requested, up to the first hit.
     pub samples: Vec<Vec<[f64; 4]>>,
 }
@@ -1058,6 +1067,7 @@ fn rollout(
     let mut clearance = f64::INFINITY;
     let mut first_hit = None;
     let mut snapshot = Vec::new();
+    let mut snapshot_ids = Vec::new();
     let mut samples = Vec::new();
 
     for frame in 1..=horizon {
@@ -1217,6 +1227,7 @@ fn rollout(
             }
         }
         if frame == snapshot_at {
+            snapshot_ids = enemies.iter().map(|body| body.diagnostic_id).collect();
             snapshot = enemies
                 .iter()
                 .map(|body| [body.x, body.y, body.size])
@@ -1251,6 +1262,7 @@ fn rollout(
         cost,
         first_hit,
         snapshot,
+        snapshot_ids,
         samples,
     }
 }
@@ -1276,18 +1288,20 @@ pub fn imagine(
 
 /// Diagnostic rollout under a sequence of action indices, one per frame.
 pub fn imagine_actions(model: &PhysicsModel, game: &NativeGame, actions: &[usize]) -> Rollout {
+    imagine_actions_at(model, game, actions, 0)
+}
+
+/// Diagnostic rollout with a snapshot of identified initial bodies at one frame.
+pub fn imagine_actions_at(model: &PhysicsModel, game: &NativeGame, actions: &[usize], snapshot_at: u32) -> Rollout {
     let directions: Vec<_> = actions
         .iter()
         .map(|i| DIRECTIONS.get(*i).copied().unwrap_or((0.0, 0.0)))
         .collect();
-    rollout(
-        model,
-        game,
-        &read_bodies(model, game),
-        &directions,
-        actions.len() as u32,
-        0,
-    )
+    let mut bodies = read_bodies(model, game);
+    for (index, body) in bodies.iter_mut().enumerate() {
+        body.diagnostic_id = Some(index);
+    }
+    rollout(model, game, &bodies, &directions, actions.len() as u32, snapshot_at)
 }
 
 /// First frame on which a player standing still at `(px, py)` is hit, from learned rollouts.
