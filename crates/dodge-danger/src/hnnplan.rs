@@ -690,7 +690,8 @@ fn read_bodies(model: &PhysicsModel, game: &NativeGame) -> Vec<Body> {
                 if std::env::var("HNN_OBS_SMOOTHER").ok().as_deref() == Some("1") {
                     let sample = track.samples.back().unwrap();
                     let near = (sample.x - sample.player_x).hypot(sample.y - sample.player_y) < 26.0;
-                    let category = if near { 2 } else if track.recent_event() { 1 } else { 0 };
+                    let bounced = crate::observe::diagnostic_wall_bounce(track.id, exact.x, exact.y, exact.size, exact.vx, exact.vy);
+                    let category = if bounced { 3 } else if near { 2 } else if track.recent_event() { 1 } else { 0 };
                     let ex = (body.x - exact.x).abs();
                     let ey = (body.y - exact.y).abs();
                     let evx = (body.vx * body.rate - exact.vx * exact.rate).abs();
