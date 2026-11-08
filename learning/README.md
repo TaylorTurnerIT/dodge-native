@@ -103,10 +103,6 @@ game.mp4` turns a saved run into a video. Runs saved on the old `dodge_native`
 engine cannot be rendered here: the new engine draws the player sprite larger,
 so their pixel checksums fail at the first frame. Save them again.
 
-## Not ported yet
-
-The Colab setup (`colab/`, `colab_dashboard.py`) is still in DodgeAI.
-
 ## Credit
 
 SpaceBot, its overlay and the other files under `dodge/` come from
