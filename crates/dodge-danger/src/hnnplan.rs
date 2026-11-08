@@ -191,6 +191,9 @@ struct RectLaw {
     /// Continue observed two-frame size oscillations.
     #[serde(default)]
     size_oscillation: bool,
+    /// Observed transverse target for 24-by-64 moving rectangles.
+    #[serde(default)]
+    narrow_target: Option<f64>,
     /// Speed an enemy leaves a full-progress rectangle at, measured per rectangle type
     /// (`hnn/bounce.py`). Zero turns the bounce off.
     #[serde(default)]
@@ -1266,6 +1269,13 @@ fn rollout(
         apply_events(model, &mut enemies);
         if let Some(law) = law {
             for rect in &mut rects {
+                if let Some(target) = law.narrow_target.filter(|_| rect.moving) {
+                    if (rect.w - 24.0).abs() < 0.01 && (rect.h - 64.0).abs() < 0.01 {
+                        rect.vy = if target == rect.y { 0.0 } else { (target - rect.y).signum() * rect.vy.abs() };
+                    } else if (rect.w - 64.0).abs() < 0.01 && (rect.h - 24.0).abs() < 0.01 {
+                        rect.vx = if target == rect.x { 0.0 } else { (target - rect.x).signum() * rect.vx.abs() };
+                    }
+                }
                 rect.x += rect.vx;
                 rect.y += rect.vy;
                 if law.size_oscillation {
