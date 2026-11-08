@@ -26,6 +26,8 @@ pub(crate) struct Track {
     pub speed_factor: f64,
     pub(crate) serial: Option<dodge_core::EnemySerial>,
     filter: Option<Filter>,
+    horizon: VecDeque<HorizonSample>,
+    variance: f64,
     missed: usize,
     kinds: VecDeque<i8>,
 }
@@ -36,6 +38,26 @@ struct Filter {
     y: f64,
     vx: f64,
     vy: f64,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct HorizonSample {
+    observation: Option<Sample>,
+    force: (f64, f64),
+}
+
+fn smoother_enabled() -> bool {
+    std::env::var("HNN_OBS_SMOOTHER").ok().as_deref() == Some("1")
+}
+
+fn measurement_variance() -> f64 {
+    if std::env::var("HNN_NOISE").ok().as_deref() != Some("1") {
+        return 1e-8;
+    }
+    let sigma = std::env::var("HNN_NOISE_SIGMA").ok()
+        .and_then(|v| v.parse::<f64>().ok()).unwrap_or(0.0).max(0.0);
+    let quant = std::env::var("HNN_NOISE_QUANTIZE").ok().as_deref() == Some("1");
+    (sigma * sigma + if quant { 1.0 / 12.0 } else { 0.0 }).max(1e-8)
 }
 
 #[derive(Deserialize)]
@@ -52,7 +74,7 @@ static FILTER_PHYSICS: OnceLock<FilterPhysics> = OnceLock::new();
 
 /// Register the same learned physics used by the planner for the optional filter.
 pub fn install_filter_physics(text: &str) -> Result<(), String> {
-    if std::env::var("HNN_OBS_FILTER").ok().as_deref() != Some("1") {
+    if std::env::var("HNN_OBS_FILTER").ok().as_deref() != Some("1") && !smoother_enabled() {
         return Ok(());
     }
     let model = serde_json::from_str(text).map_err(|e| format!("filter physics: {e}"))?;
@@ -137,6 +159,49 @@ impl Filter {
         self.vy += 0.18 * dy;
         self
     }
+}
+
+// Fit the start position and velocity over a finite history. The force sequence is
+// evaluated at observed positions; friction and force are integrated each frame.
+fn horizon_fit(history: &VecDeque<HorizonSample>, variance: f64) -> Option<(Filter, f64)> {
+    let gamma = FILTER_PHYSICS.get().map_or(0.0, |m| m.gamma);
+    let decay = 1.0 - gamma;
+    let (mut basis, mut velocity_basis) = (0.0, 1.0);
+    let (mut ox, mut oy, mut ovx, mut ovy) = (0.0, 0.0, 0.0, 0.0);
+    let (mut n, mut sb, mut sbb, mut sx, mut sy, mut sbx, mut sby) =
+        (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    for (i, item) in history.iter().enumerate() {
+        if i > 0 {
+            let force = history[i - 1].force;
+            velocity_basis *= decay;
+            basis += velocity_basis;
+            ovx = decay * ovx + force.0;
+            ovy = decay * ovy + force.1;
+            ox += ovx;
+            oy += ovy;
+        }
+        if let Some(sample) = item.observation {
+            let x = sample.x - ox;
+            let y = sample.y - oy;
+            n += 1.0; sb += basis; sbb += basis * basis;
+            sx += x; sy += y; sbx += basis * x; sby += basis * y;
+        }
+    }
+    let det = n * sbb - sb * sb;
+    if det < 1e-9 { return None; }
+    let vx = (n * sbx - sb * sx) / det;
+    let vy = (n * sby - sb * sy) / det;
+    let x = (sx - vx * sb) / n + basis * vx + ox;
+    let y = (sy - vy * sb) / n + basis * vy + oy;
+    let pos_var = variance * (sbb - 2.0 * basis * sb + n * basis * basis) / det;
+    Some((Filter { x, y, vx: velocity_basis * vx + ovx, vy: velocity_basis * vy + ovy }, pos_var.max(0.0)))
+}
+
+impl Track {
+    pub(crate) fn smoothed_velocity(&self) -> Option<(f64, f64)> {
+        if smoother_enabled() { self.filter.map(|f| (f.vx, f.vy)) } else { None }
+    }
+    pub(crate) fn position_sigma(&self) -> f64 { self.variance.max(0.0).sqrt() }
 }
 
 fn option_usize(name: &str, default: usize, max: usize) -> usize {
@@ -583,7 +648,8 @@ pub fn feed(game: &NativeGame) {
         };
         let old = std::mem::take(&mut c.tracks);
         let filter_enabled = std::env::var("HNN_OBS_FILTER").ok().as_deref() == Some("1");
-        let keep = option_usize("HNN_OBS_KEEP", 0, 10);
+        let smooth = smoother_enabled();
+        let keep = option_usize("HNN_OBS_KEEP", if smooth { 5 } else { 0 }, 10);
         let kind_window = option_usize("HNN_OBS_KIND_WINDOW", 1, 15).max(1);
         let rate = if c.global_rate > 0.0 {
             c.global_rate.clamp(0.3, 4.0)
@@ -609,7 +675,7 @@ pub fn feed(game: &NativeGame) {
                 {
                     let (x, y) = predicted.map_or((last.x + vx, last.y + vy), |f| (f.x, f.y));
                     let distance = (sample.x - x).hypot(sample.y - y);
-                    if distance <= if filter_enabled || keep > 0 { 3.5 } else { 2.0 } {
+                    if distance <= if filter_enabled || smooth || keep > 0 { 3.5 } else { 2.0 } {
                         candidates.push((
                             distance + if sample.kind != last.kind { 0.2 } else { 0.0 },
                             i,
@@ -644,6 +710,8 @@ pub fn feed(game: &NativeGame) {
                     speed_factor: 1.0,
                     serial: None,
                     filter: None,
+                    horizon: VecDeque::new(),
+                    variance: 0.0,
                     missed: 0,
                     kinds: VecDeque::new(),
                 });
@@ -657,7 +725,26 @@ pub fn feed(game: &NativeGame) {
                     let ones = track.kinds.iter().filter(|&&kind| kind == 1).count();
                     sample.kind = if ones * 2 > track.kinds.len() { 1 } else { 0 };
                 }
-                if filter_enabled && sample.kind >= 0 {
+                if smooth && sample.kind >= 0 {
+                    let var = measurement_variance();
+                    if let Some(predicted) = track.filter.map(|f| f.predict(*track.samples.back().unwrap_or(&sample), rate)) {
+                        if (sample.x - predicted.x).hypot(sample.y - predicted.y) > (2.0_f64).max(5.0 * (var + track.variance).sqrt()) {
+                            track.horizon.clear();
+                        }
+                    }
+                    let force = FILTER_PHYSICS.get().map_or((0.0, 0.0), |m| {
+                        let (x, y) = m.force(sample.x - sample.player_x, sample.y - sample.player_y, usize::from(sample.kind == 1));
+                        (x * rate * rate, y * rate * rate)
+                    });
+                    track.horizon.push_back(HorizonSample { observation: Some(sample), force });
+                    let n = option_usize("HNN_OBS_HORIZON", 12, 16).max(2);
+                    while track.horizon.len() > n { track.horizon.pop_front(); }
+                    let (filter, variance) = horizon_fit(&track.horizon, var).unwrap_or((Filter { x: sample.x, y: sample.y, vx: 0.0, vy: 0.0 }, var));
+                    sample.x = filter.x;
+                    sample.y = filter.y;
+                    track.filter = Some(filter);
+                    track.variance = variance;
+                } else if filter_enabled && sample.kind >= 0 {
                     let filter = track
                         .filter
                         .map(|f| {
@@ -711,6 +798,16 @@ pub fn feed(game: &NativeGame) {
                 };
                 let predicted = track.filter.map(|f| f.predict(sample, rate));
                 if let Some(filter) = predicted {
+                    if smooth {
+                        let force = FILTER_PHYSICS.get().map_or((0.0, 0.0), |m| {
+                            let (x, y) = m.force(sample.x - sample.player_x, sample.y - sample.player_y, usize::from(sample.kind == 1));
+                            (x * rate * rate, y * rate * rate)
+                        });
+                        track.horizon.push_back(HorizonSample { observation: None, force });
+                        let n = option_usize("HNN_OBS_HORIZON", 12, 16).max(2);
+                        while track.horizon.len() > n { track.horizon.pop_front(); }
+                        track.variance += measurement_variance() * 0.1 + 0.0001;
+                    }
                     sample.x = filter.x;
                     sample.y = filter.y;
                     track.filter = Some(filter);
@@ -1015,6 +1112,8 @@ mod tests {
             speed_factor: 1.0,
             serial: None,
             filter: None,
+            horizon: VecDeque::new(),
+            variance: 0.0,
             missed: 0,
             kinds: VecDeque::new(),
         };
