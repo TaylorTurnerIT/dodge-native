@@ -11,6 +11,7 @@ Python 3.9+ virtualenv):
 ```sh
 pip install ./crates/dodge-rl-env        # or: cd crates/dodge-rl-env && maturin develop --release
 pip install -r learning/requirements.txt  # numpy, pygame, pytest
+pip install -r learning/requirements-train.txt  # also torch, stable-baselines3 (training only)
 ```
 
 ## SpaceBot
@@ -32,18 +33,48 @@ easy|normal|hard`, `--patterns`, `--no-powerups`, `--no-normal-enemies`,
 `python watch_heuristic.py taylor-m0` runs the other registered bot.
 A hard-difficulty game can last tens of thousands of frames.
 
+## Training
+
+`train_ppo.py` trains a PPO policy on the VelocityFlow observation, with
+Stable-Baselines3 and the batched `dodge_rl` engine.
+
+```sh
+cd learning
+python train_ppo.py --steps 250000 --envs 64 --difficulty hard --patterns --action-repeat 1     --name my-run --models-dir artifacts/models
+python train_ppo.py --resume artifacts/models/my-run.zip --envs 64 --name my-run-2 ...
+```
+
+Each checkpoint `X.zip` gets `X.state.pt` and `X.manifest.json` beside it
+(hyperparameters, env settings, reward weights, the `dodge_rl` binary's sha256
+under the manifest key `dodge_rl`, the git commit and the parent checkpoint).
+A resume restores the optimizer and the seed stream, and needs the same number
+of envs. Reward weights come from `rewards.json` and the Training panel's
+`training.json`, both local files that are not committed. `--help` lists the
+rest: `--preset`, `--architecture`, `--retain-every`, `--budget-seconds`, ...
+
+The engine ends a game at the `raw_frame_cap` and restarts it on a seed from
+DodgeAI's own seed stream (`dodge/seeds.py`). Games follow this repository's
+`dodge-core`, so survival numbers differ from the old `dodge_native` engine's;
+the observation, critic features and counters are encoded identically, so old
+checkpoints load and play.
+
 ## Tests
 
 ```sh
 python -m pytest learning/tests -q
 ```
 
-The SpaceBot tests skip if `dodge_rl` is not installed.
+The engine tests skip if `dodge_rl` is not installed. The checkpoint tests
+(`test_policy_parity.py`, `test_velocity_trunk.py` and `test_checkpoint_smoke.py`) read
+local models from `learning/artifacts/models` and skip when they are absent;
+set `DODGE_MODELS_DIR` to read them from another directory.
 
 ## Not ported yet
 
 Recording a window as video (`--record`) and saving a replayable run
-(`--save-run`, `render_run.py`) are still in DodgeAI.
+(`--save-run`, `render_run.py`), the Pygame/web dashboard, `watch_ppo.py`, the
+death-path and pattern-replay tools and
+the Colab setup are still in DodgeAI.
 
 ## Credit
 
