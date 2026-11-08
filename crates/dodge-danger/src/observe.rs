@@ -855,7 +855,14 @@ pub fn feed(game: &NativeGame) {
                     track.horizon.push_back(HorizonSample { observation: Some(sample), force, rate });
                     let n = option_usize("HNN_OBS_HORIZON", 12, 16).max(2);
                     while track.horizon.len() > n { track.horizon.pop_front(); }
-                    let (filter, variance) = horizon_fit(&track.horizon, var).unwrap_or((Filter { x: sample.x, y: sample.y, vx: 0.0, vy: 0.0 }, var));
+                    let (mut filter, mut variance) = horizon_fit(&track.horizon, var).unwrap_or((Filter { x: sample.x, y: sample.y, vx: 0.0, vy: 0.0 }, var));
+                    // A noise-free measurement fixes position exactly, even when
+                    // model mismatch biases the horizon fit's position estimate.
+                    if var <= 1e-8 && std::env::var("HNN_OBS_EXACT_POS").ok().as_deref() == Some("1") {
+                        filter.x = sample.x;
+                        filter.y = sample.y;
+                        variance = 0.0;
+                    }
                     sample.x = filter.x;
                     sample.y = filter.y;
                     track.filter = Some(filter);
