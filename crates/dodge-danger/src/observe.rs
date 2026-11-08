@@ -404,6 +404,7 @@ struct Observation {
     next_id: u64,
     global_rate: f64,
     rate_frame: usize,
+    rate_correction: f64,
     noise: Noise,
     uncertainty_frame: usize,
     uncertainty: f64,
@@ -491,7 +492,13 @@ pub(crate) fn global_rate(measured: Option<f64>, prior: f64) -> f64 {
     CURRENT.with(|c| {
         let mut c = c.borrow_mut();
         if c.rate_frame != c.frame {
-            if c.global_rate <= 0.0 {
+            if smoother_enabled() {
+                if let Some(value) = measured {
+                    let residual = (value - prior).clamp(-0.5 * prior, 0.5 * prior);
+                    c.rate_correction = 0.99 * c.rate_correction + 0.01 * residual;
+                }
+                c.global_rate = prior + 0.2 * c.rate_correction;
+            } else if c.global_rate <= 0.0 {
                 c.global_rate = measured.unwrap_or(prior);
             } else {
                 let target = measured.map_or(prior, |r| 0.98 * r + 0.02 * prior);
