@@ -887,6 +887,10 @@ pub fn feed(game: &NativeGame) {
                         } else {
                             (2.0_f64).max(5.0 * (var + track.variance).sqrt())
                         };
+                        let threshold = std::env::var("HNN_OBS_EVENT_THRESHOLD").ok()
+                            .and_then(|v| v.parse::<f64>().ok())
+                            .filter(|v| v.is_finite() && *v > 0.0)
+                            .map_or(threshold, |v| v.max(3.0 * (var + track.variance).sqrt()));
                         if (sample.x - predicted.x).hypot(sample.y - predicted.y) > threshold {
                             track.horizon.clear();
                             track.event_age = 0;
