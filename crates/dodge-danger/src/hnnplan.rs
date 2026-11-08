@@ -964,6 +964,7 @@ fn read_exact_bodies(game: &NativeGame) -> Vec<Body> {
                 } else {
                     enemy.size.to_double()
                 },
+                uncertainty: 0.0,
                 kind: usize::from(enemy.personality == 1),
                 rate: step * enemy.speed.to_double(),
                 moves,
