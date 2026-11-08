@@ -161,6 +161,11 @@ fn main() -> Result<(), String> {
                 imagined.snapshot.len(),
                 sim.enemies().iter().filter(|e| e.personality < 2).count()
             );
+            for (i, m) in imagined.snapshot.iter().enumerate() {
+                if (m[0] - px).hypot(m[1] - py) <= 22.0 {
+                    println!("     model enemy {i} at ({:.5},{:.5}) size {:.5} initial {:?}", m[0], m[1], m[2], imagined.snapshot_ids.get(i).copied().flatten());
+                }
+            }
             for e in sim.enemies().iter().filter(|e| e.personality < 2) {
                 let (ex, ey) = (e.x.to_double(), e.y.to_double());
                 if (ex - px).hypot(ey - py) > 22.0 {
