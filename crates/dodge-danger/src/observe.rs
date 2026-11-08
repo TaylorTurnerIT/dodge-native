@@ -279,7 +279,7 @@ fn pooled_horizon_rate(tracks: &[Track]) -> Option<f64> {
 
 impl Track {
     pub(crate) fn smoothed_velocity(&self) -> Option<(f64, f64)> {
-        if smoother_enabled() { self.filter.map(|f| (f.vx, f.vy)) } else { None }
+        if smoother_enabled() && std::env::var("HNN_OBS_HAND_VELOCITY").ok().as_deref() != Some("1") { self.filter.map(|f| (f.vx, f.vy)) } else { None }
     }
     pub(crate) fn position_sigma(&self) -> f64 { self.variance.max(0.0).sqrt() }
     pub(crate) fn recent_event(&self) -> bool { self.event_age < 8 }
@@ -577,7 +577,7 @@ pub(crate) fn global_rate(measured: Option<f64>, prior: f64) -> f64 {
     CURRENT.with(|c| {
         let mut c = c.borrow_mut();
         if c.rate_frame != c.frame {
-            if smoother_enabled() {
+            if smoother_enabled() && std::env::var("HNN_OBS_HAND_RATE").ok().as_deref() != Some("1") {
                 if let Some(value) = pooled_horizon_rate(&c.tracks) {
                     let residual = (value - prior).clamp(-0.5 * prior, 0.5 * prior);
                     c.rate_correction = 0.99 * c.rate_correction + 0.01 * residual;
