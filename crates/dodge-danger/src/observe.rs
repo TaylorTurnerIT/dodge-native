@@ -1,6 +1,6 @@
 //! Frame-to-frame tracking using visible enemy geometry only.
 use std::cell::RefCell;
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::sync::OnceLock;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -460,6 +460,8 @@ struct Observation {
     uncertainty: f64,
 }
 thread_local! { static CURRENT: RefCell<Observation> = RefCell::new(Observation::default()); }
+// Engine labels here are evaluation-only and never feed tracking or planning.
+thread_local! { static BOUNCE_LABELS: RefCell<HashMap<u64, (usize, f64, f64, usize)>> = RefCell::new(HashMap::new()); }
 
 pub fn enabled() -> bool {
     full() || std::env::var("HNN_OBS_ABLATION").is_ok_and(|v| !v.is_empty())
@@ -496,7 +498,7 @@ static MISMATCHES: AtomicU64 = AtomicU64::new(0);
 static DIAG_COUNT: [AtomicU64; 4] = [const { AtomicU64::new(0) }; 4];
 static DIAG_VELOCITY: [AtomicU64; 4] = [const { AtomicU64::new(0) }; 4];
 static DIAG_RATE: [AtomicU64; 4] = [const { AtomicU64::new(0) }; 4];
-static SITUATION: [[AtomicU64; 5]; 3] = [const { [const { AtomicU64::new(0) }; 5] }; 3];
+static SITUATION: [[AtomicU64; 5]; 4] = [const { [const { AtomicU64::new(0) }; 5] }; 4];
 static RATE_PERCENT: [AtomicU64; 2] = [const { AtomicU64::new(0) }; 2];
 static TEMPO_COUNT: [AtomicU64; 16] = [const { AtomicU64::new(0) }; 16];
 static TEMPO_SUM: [AtomicU64; 16] = [const { AtomicU64::new(0) }; 16];
@@ -568,6 +570,22 @@ pub(crate) fn diagnostic(category: usize, velocity_error: f64, rate_error: f64) 
     DIAG_VELOCITY[category].fetch_add((velocity_error * 1_000_000.0) as u64, Ordering::Relaxed);
     DIAG_RATE[category].fetch_add((rate_error * 1_000_000.0) as u64, Ordering::Relaxed);
 }
+pub(crate) fn diagnostic_wall_bounce(id: u64, x: f64, y: f64, size: f64, vx: f64, vy: f64) -> bool {
+    let now = frame();
+    BOUNCE_LABELS.with(|labels| {
+        let mut labels = labels.borrow_mut();
+        let state = labels.entry(id).or_insert((now, vx, vy, 0));
+        if state.0 != now {
+            let near_x = x <= 1.0 || x >= 126.0 - size;
+            let near_y = y <= 1.0 || y >= 126.0 - size;
+            if now == state.0 + 1 && ((near_x && state.1 * vx < 0.0) || (near_y && state.2 * vy < 0.0)) {
+                state.3 = now;
+            }
+            state.0 = now; state.1 = vx; state.2 = vy;
+        }
+        state.3 > 0 && now.saturating_sub(state.3) < 8
+    })
+}
 /// Matched engine labels are used only for reporting accuracy and coverage.
 pub(crate) fn smoother_diagnostic(category: usize, velocity: f64, position: f64, covered: bool) {
     let s = &SITUATION[category];
@@ -601,7 +619,7 @@ pub fn report() {
             );
         }
     }
-    for (i, name) in ["free", "event", "near_player"].iter().enumerate() {
+    for (i, name) in ["free", "event", "near_player", "wall_bounce"].iter().enumerate() {
         let s = &SITUATION[i];
         let n = s[0].load(Ordering::Relaxed) as f64;
         if n > 0.0 {
@@ -668,6 +686,7 @@ pub fn reset() {
         eprintln!("probe-reset");
     }
     CURRENT.with(|c| *c.borrow_mut() = Observation::default());
+    BOUNCE_LABELS.with(|labels| labels.borrow_mut().clear());
 }
 
 /// Record one state per frame, before any planner queries for that frame.
