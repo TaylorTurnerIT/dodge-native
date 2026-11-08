@@ -1,0 +1,15 @@
+[build-system]
+requires = ["maturin>=1.5,<2"]
+build-backend = "maturin"
+
+[project]
+name = "dodge-rl"
+version = "0.1.0"
+description = "Python binding for the dodge-rl-env batched Dodge environment"
+requires-python = ">=3.9"
+dependencies = ["numpy"]
+
+[tool.maturin]
+module-name = "dodge_rl._native"
+python-source = "python"
+features = ["extension-module"]
