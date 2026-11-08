@@ -673,6 +673,9 @@ fn read_bodies(model: &PhysicsModel, game: &NativeGame) -> Vec<Body> {
         let view = game.privileged_view();
         let true_global = view.speed.to_double() * view.freeze_rate.to_double();
         crate::observe::label_error(0, predicted_global, true_global);
+        if std::env::var("HNN_OBS_SMOOTHER").ok().as_deref() == Some("1") {
+            crate::observe::global_rate_diagnostic(predicted_global, true_global);
+        }
         // Serial identities are used only to align diagnostics, never to choose a track.
         let truth: std::collections::BTreeMap<_, _> = game.enemy_serials().into_iter().flatten()
             .zip(game.enemies()).filter(|(_, enemy)| enemy.personality < 2)
