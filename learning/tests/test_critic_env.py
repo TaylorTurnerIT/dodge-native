@@ -7,7 +7,7 @@ from dodge.critic import CRITIC_FEATURE_VERSION, WIDE_OBSERVATION_SIZE
 from dodge.env import DodgeVecEnv, make_engine, native_available
 from dodge.observe import OBSERVATION_SIZE
 
-pytestmark = pytest.mark.skipif(not native_available(), reason="needs dodge_native")
+pytestmark = pytest.mark.skipif(not native_available(), reason="needs dodge_rl")
 
 SETTINGS = dict(difficulty=3, patterns=True, powerups=True, action_repeat=1)
 
@@ -28,10 +28,8 @@ def test_actor_columns_match_the_plain_env():
                 assert info["terminal_observation"].shape == (WIDE_OBSERVATION_SIZE,)
 
 
-@pytest.mark.parametrize("mode", ["nursery", "batch"])
-def test_restarted_lane_carries_its_new_games_features(mode):
+def test_restarted_lane_carries_its_new_games_features():
     env = DodgeVecEnv(n_envs=4, seed=3, critic_features=True, **SETTINGS)
-    env._restart_observe = mode
     env.reset()
     rng = np.random.default_rng(1)
     for _ in range(5000):
@@ -41,9 +39,9 @@ def test_restarted_lane_carries_its_new_games_features(mode):
     else:
         pytest.fail("no lane died")
     lane = int(np.flatnonzero(done)[0])
-    reference = make_engine(**{**env._engine_settings}, execution="serial")
-    reference.reset_ml_batch(np.full(4, env.game_seeds[lane], dtype=np.uint32))
-    expected = reference.observe_velocity(critic=True)
+    reference = make_engine(1, step_frames=1, difficulty=3, patterns=True, powerups=True,
+                            execution="serial", critic_features=True)
+    expected = reference.reset_all(seeds=[int(env.game_seeds[lane])])["observations"]
     assert np.array_equal(observation[lane, OBSERVATION_SIZE:], expected["critic"][0])
 
 
@@ -54,5 +52,5 @@ def test_observation_space_is_wide():
 
 
 def test_the_engine_reports_its_critic_layout_version():
-    import dodge_native
-    assert dodge_native.CRITIC_FEATURE_VERSION == CRITIC_FEATURE_VERSION >= 1
+    from dodge_rl import _native
+    assert _native.CRITIC_FEATURE_VERSION == CRITIC_FEATURE_VERSION >= 1

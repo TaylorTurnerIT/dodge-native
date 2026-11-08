@@ -191,15 +191,15 @@ def test_a_real_side_entering_pattern_is_no_longer_a_blind_window():
     """
     from dodge.env import make_engine, native_available
     if not native_available():
-        pytest.skip("dodge_native not installed")
+        pytest.skip("dodge_rl not installed")
 
-    engine = make_engine(difficulty=1, patterns=True, powerups=False,
+    engine = make_engine(1, difficulty=1, patterns=True, powerups=False,
                          normal_enemies=False, kamikaze_enemies=False)
-    engine.reset_ml_batch(np.array([3], dtype=np.uint32))
+    engine.reset_all(seeds=[3])
     # Wander so the anti-camping check never fires either.
     for frame in range(8000):
-        engine.step_ml_batch(np.array([1 if frame % 120 < 60 else 2], dtype=np.uint8))
-        state = engine.lane_state(0)
+        stepped = engine.step(np.array([1 if frame % 120 < 60 else 2], dtype=np.uint8))
+        state = engine.slot_state(0)
         pattern = state["cp"]
         if pattern is None or pattern["tpe"] != 1 or pattern["timer"] >= 125:
             continue
@@ -208,7 +208,7 @@ def test_a_real_side_entering_pattern_is_no_longer_a_blind_window():
             continue
         assert not (0 <= rect["x"] < 128 and 0 <= rect["y"] < 128), \
             "the setup under test: the rect itself is still off-screen"
-        categories = engine.observe_velocity()["observation"][0][
+        categories = stepped["observations"]["observation"][0][
             PLAYER_VALUES:PLAYER_VALUES + CELL_COUNT] * CELL_TYPES
         assert np.isclose(categories, HAZARD_WARNING).any(), \
             "a telegraph the player can see must reach the observation"

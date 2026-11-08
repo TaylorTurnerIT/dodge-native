@@ -8,7 +8,7 @@ pytest.importorskip("stable_baselines3")
 from dodge.env import native_available
 from dodge.telemetry import EVENT_KEYS
 
-pytestmark = pytest.mark.skipif(not native_available(), reason="dodge_native not installed")
+pytestmark = pytest.mark.skipif(not native_available(), reason="dodge_rl not installed")
 
 
 # --- the update schedule ----------------------------------------------------

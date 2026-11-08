@@ -15,6 +15,7 @@ the test compare the change against itself, so don't.
 """
 
 import copy
+import os
 from pathlib import Path
 
 import numpy as np
@@ -22,7 +23,10 @@ import torch
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = Path(__file__).resolve().parent / "data" / "policy_parity.npz"
-CHECKPOINT = ROOT / "artifacts" / "models" / "velocity-flow-v2-latest.zip"
+# The checkpoint is local data, never committed; DODGE_MODELS_DIR points the
+# tests at a models directory outside this tree.
+MODELS = Path(os.environ.get("DODGE_MODELS_DIR", ROOT / "artifacts" / "models"))
+CHECKPOINT = MODELS / "velocity-flow-v2-latest.zip"
 
 SAMPLE_SEEDS = (0, 1, 7)
 # Rollout-sized calls, then the whole set at once: a per-batch-size fast path

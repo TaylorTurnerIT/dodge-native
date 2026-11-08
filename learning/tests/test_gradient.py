@@ -11,7 +11,7 @@ from dodge.gradient import (CAMP_FRAMES, ControllerConfig, GameState,
 from dodge.env import native_available
 
 pytestmark = pytest.mark.skipif(not native_available(),
-                                reason="dodge_native not installed")
+                                reason="dodge_rl not installed")
 
 
 def _state(enemies, camp_timer=0.0, px=64.0, py=64.0):
@@ -23,15 +23,15 @@ def _state(enemies, camp_timer=0.0, px=64.0, py=64.0):
 
 def _engine():
     from dodge.env import make_engine
-    engine = make_engine(difficulty=1)
-    engine.reset_ml_batch(np.array([5], dtype=np.uint32))
+    engine = make_engine(1, difficulty=1)
+    engine.reset_all(seeds=[5])
     return engine
 
 
 def _step(engine, action, frames=1):
     for _ in range(frames):
-        engine.step_ml_batch(np.array([action], dtype=np.uint8))
-    return engine.lane_state(0)
+        engine.step(np.array([action], dtype=np.uint8))
+    return engine.slot_state(0)
 
 
 def test_player_model_matches_the_engine():

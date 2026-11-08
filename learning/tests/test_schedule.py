@@ -50,7 +50,7 @@ def test_the_rate_steps_to_the_next_stage_below(rate, expected):
 def _session(tmp_path, monkeypatch):
     from dodge.env import native_available
     if not native_available():
-        pytest.skip("dodge_native not installed")
+        pytest.skip("dodge_rl not installed")
     from dodge.training import PPOTrainingSession, make_training_env
 
     session = PPOTrainingSession(model_dir=tmp_path / "models", logs_dir=tmp_path / "logs",
