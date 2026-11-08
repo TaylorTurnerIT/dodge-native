@@ -63,12 +63,20 @@ struct Blast {
     peak: f64,
 }
 
+#[derive(Clone, Copy, Debug, Deserialize)]
+struct KamikazeRate {
+    radius: f64,
+    step: f64,
+}
+
 #[derive(Clone, Debug, Deserialize)]
 pub struct PhysicsModel {
     layers: Vec<Layer>,
     gamma: f64,
     #[serde(default)]
     kamikaze_acceleration: Option<f64>,
+    #[serde(default)]
+    kamikaze_rate: Option<KamikazeRate>,
     #[serde(default)]
     collision: Option<Collision>,
     #[serde(default)]
@@ -1132,6 +1140,14 @@ fn rollout(
     let (mut px, mut py) = (player.x.to_double(), player.y.to_double());
     let (mut pvx, mut pvy) = (player.vx.to_double(), player.vy.to_double());
     let mut enemies = bodies.to_vec();
+    let global_rate = if crate::observe::full() {
+        let mut rates: Vec<_> = bodies.iter().filter(|body| body.moves && body.kind == 0).map(|body| body.rate).collect();
+        rates.sort_by(f64::total_cmp);
+        rates.get(rates.len() / 2).copied()
+    } else {
+        let view = game.privileged_view();
+        Some(view.speed.to_double() * view.freeze_rate.to_double())
+    };
     let mut rects = read_rects(game);
     let law = model.rect;
     let speeds = law.map_or((0.0, 0.0), |law| model.bounce_speeds(game, &law, bodies));
@@ -1190,6 +1206,15 @@ fn rollout(
                 }
             }
             if body.moves {
+                if body.kind == 1 && let (Some(law), Some(global)) = (model.kamikaze_rate, global_rate) {
+                    if (body.x - px).hypot(body.y - py) <= law.radius {
+                        body.rate -= law.step * global;
+                    } else if body.rate < global {
+                        body.rate += law.step * global;
+                    } else {
+                        body.rate = global;
+                    }
+                }
                 let (fx, fy) = model.force_fast(body.x - px, body.y - py, body.kind);
                 body.vx += fx - model.gamma * body.vx;
                 body.vy += fy - model.gamma * body.vy;
@@ -1538,6 +1563,7 @@ mod tests {
             layers: vec![layer(7, 12, 0.1), layer(12, 12, 0.7), layer(12, 1, 1.3)],
             gamma: 0.01,
             kamikaze_acceleration: None,
+            kamikaze_rate: None,
             collision: None,
             blast: None,
             rect: None,
