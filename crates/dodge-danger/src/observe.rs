@@ -49,12 +49,17 @@ struct HorizonSample {
 }
 
 fn smoother_enabled() -> bool {
-    std::env::var("HNN_OBS_SMOOTHER").ok().as_deref() == Some("1")
+    std::env::var("HNN_OBS_SMOOTHER").ok().as_deref() == Some("1") && !hybrid_clean_fallback()
+}
+
+fn hybrid_clean_fallback() -> bool {
+    std::env::var("HNN_OBS_HYBRID").ok().as_deref() == Some("1")
+        && std::env::var("HNN_NOISE").ok().as_deref() != Some("1")
 }
 
 fn smoother_physics() -> bool {
     static ENABLED: OnceLock<bool> = OnceLock::new();
-    *ENABLED.get_or_init(|| std::env::var("HNN_OBS_PHYSICS_FIX").ok().as_deref() == Some("1"))
+    *ENABLED.get_or_init(|| std::env::var("HNN_OBS_PHYSICS_FIX").ok().as_deref() == Some("1") && !hybrid_clean_fallback())
 }
 
 fn track_rate(rate: f64, kind: i8, factor: f64) -> f64 {
@@ -279,9 +284,6 @@ fn pooled_horizon_rate(tracks: &[Track]) -> Option<f64> {
 
 impl Track {
     pub(crate) fn smoothed_velocity(&self) -> Option<(f64, f64)> {
-        if std::env::var("HNN_OBS_HYBRID").ok().as_deref() == Some("1") && measurement_variance() <= 1e-8 {
-            return None;
-        }
         if smoother_enabled() && std::env::var("HNN_OBS_HAND_VELOCITY").ok().as_deref() != Some("1") { self.filter.map(|f| (f.vx, f.vy)) } else { None }
     }
     pub(crate) fn position_sigma(&self) -> f64 { self.variance.max(0.0).sqrt() }
@@ -790,7 +792,7 @@ pub fn feed(game: &NativeGame) {
         let filter_enabled = std::env::var("HNN_OBS_FILTER").ok().as_deref() == Some("1");
         let smooth = smoother_enabled();
         let keep = option_usize("HNN_OBS_KEEP", if smooth { 5 } else { 0 }, 10);
-        let kind_window = option_usize("HNN_OBS_KIND_WINDOW", 1, 15).max(1);
+        let kind_window = if hybrid_clean_fallback() { 1 } else { option_usize("HNN_OBS_KIND_WINDOW", 1, 15).max(1) };
         let rate = if c.global_rate > 0.0 {
             c.global_rate.clamp(0.3, 4.0)
         } else {
