@@ -1226,6 +1226,7 @@ mod tests {
     fn filter_force_and_residual_update() {
         let physics = FilterPhysics {
             gamma: 0.1,
+            kamikaze_acceleration: None,
             layers: vec![ForceLayer {
                 weights: vec![vec![64.0, -128.0, 0.0, 0.0, 0.0, 0.0, 0.0]],
                 bias: vec![0.0],
