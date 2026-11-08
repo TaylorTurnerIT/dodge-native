@@ -73,9 +73,8 @@ def replay(recording, appearance_id):
     appearance = recording.appearances[appearance_id]
     settings = {key: value for key, value in recording.settings.items() if key != "frame_cap"}
     repeat = int(settings.pop("step_frames", 1))
-    engine = make_engine(**settings, step_frames=1, pixels=True, ml=True, execution="serial")
-    engine.set_trace_enabled(True)
-    engine.reset_ml_batch(np.array([appearance["seed"]], dtype=np.uint32))
+    engine = make_engine(1, trace=True, execution="serial", step_frames=1, **settings)
+    engine.reset_all(seeds=np.array([appearance["seed"]], dtype=np.uint32))
     first, last = _window(appearance)
     frames, samples = [], []
     frame, dead = 0, False
@@ -83,21 +82,20 @@ def replay(recording, appearance_id):
         action = np.array([decision], dtype=np.uint8)
         # The recording held each decision for `repeat` frames, stopping at death.
         for _ in range(repeat):
-            if frame + 1 >= first:
-                stepped = engine.step_pixels(action)
-                sample = engine.lane_sample(0)
-                frame = sample["frame"]
-                if first <= frame <= last:
-                    frames.append(stepped["pixels"][0].copy())
+            stepped = engine.step(action)
+            frame += int(stepped["elapsed_raw_frames"][0])
+            dead = bool(stepped["terminated"][0] or stepped["truncated"][0])
+            # Frames before the window are only simulated; the window is drawn,
+            # the death frame included.
+            if first <= frame <= last:
+                sample = engine.slot_sample(0)
+                if sample is not None:
+                    frames.append(engine.render([0])[0].copy())
                     samples.append(_sample(sample))
-            else:
-                stepped = engine.step_ml_batch(action)
-                frame += int(stepped["frames_advanced"][0])
-            dead = bool(stepped["done"][0])
             if dead or frame >= last:
                 break
         if dead or frame >= last:
             break
-    reason = _mismatch(appearance, engine.lane_trace(0), frame, dead)
+    reason = _mismatch(appearance, engine.slot_trace(0), frame, dead)
     pixels = np.stack(frames) if frames else np.zeros((0, 128, 128), dtype=np.uint8)
     return Replay(frames=pixels, samples=samples, matched=reason is None, reason=reason)

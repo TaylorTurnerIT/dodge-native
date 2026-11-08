@@ -5,7 +5,7 @@ import dataclasses
 import numpy as np
 import pytest
 
-pytest.importorskip("dodge_native")
+pytest.importorskip("dodge_rl")
 
 from dodge.death_paths import record  # noqa: E402
 from dodge.pattern_replay import Replay, replay  # noqa: E402

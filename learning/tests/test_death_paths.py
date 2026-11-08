@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-pytest.importorskip("dodge_native")
+pytest.importorskip("dodge_rl")
 
 from dodge.death_paths import Recording, record  # noqa: E402
 from tests.dodger import dodge  # noqa: E402

@@ -108,11 +108,22 @@ def make_engine(batch_size, *, step_frames=1, difficulty=1, patterns=False,
 
 
 class Engine:
-    """A single game, held one frame per step, with exact state and rendering."""
+    """A single game, held one frame per step, with exact state and rendering.
+
+    Besides the bots' `lane_state`, it serves the tools that watch or replay one
+    game: `frame()` draws the current screen (the death frame included),
+    `observe()` reads the VelocityFlow observation a policy acts on, and `trace()`
+    and `sample()` read the gameplay trace when the engine was built with
+    `trace=True`.
+    """
+
+    # The settings a saved run records and a replay restores.
+    SETTINGS = ("difficulty", "patterns", "powerups", "normal_enemies", "kamikaze_enemies",
+                "spawn_rate_percent", "lives")
 
     def __init__(self, *, seed, difficulty=3, patterns=False, powerups=True,
                  normal_enemies=True, kamikaze_enemies=True, spawn_rate_percent=100,
-                 lives=0):
+                 lives=0, observation="entity", trace=False):
         if VecDodgeEnv is None:
             raise RuntimeError(INSTALL_HINT)
         self._env = VecDodgeEnv(
@@ -122,13 +133,14 @@ class Engine:
             raw_frame_cap=2**32 - 1,
             normal_enemies=bool(normal_enemies), kamikaze_enemies=bool(kamikaze_enemies),
             spawn_rate_percent=int(spawn_rate_percent), lives=int(lives),
-            observation="entity", step_info="none",
+            observation=observation, step_info="none", trace=bool(trace),
         )
+        self._observation = None
         self.reset(seed)
 
     def reset(self, seed):
         """Start a new game on this seed."""
-        self._env.reset_all(seeds=[int(seed)])
+        self._observation = self._env.reset_all(seeds=[int(seed)])["observations"]
 
     def lane_state(self, lane=0):
         """The game's raw state dict (px, py, enemies, cp, ...) for the bots."""
@@ -138,7 +150,20 @@ class Engine:
         """The current screen as a (128, 128) uint8 array of palette indices."""
         return self._env.render([0])[0]
 
+    def observe(self):
+        """The current observation row (VelocityFlow engines only)."""
+        return self._observation["observation"][0]
+
+    def trace(self):
+        """The game's gameplay trace so far (None unless built with `trace=True`)."""
+        return self._env.slot_trace(0)
+
+    def sample(self):
+        """The latest frame's trace sample (None before the first gameplay frame)."""
+        return self._env.slot_sample(0)
+
     def step(self, action):
         """Advance one frame; True when that frame ended the game."""
         out = self._env.step(np.array([int(action)], dtype=np.uint8))
+        self._observation = out["observations"]
         return bool(out["terminated"][0] or out["truncated"][0])

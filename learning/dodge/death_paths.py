@@ -1,7 +1,7 @@
 """Record every pattern appearance in a block of games, for the death-path viewer.
 
 A frozen policy plays a block of fixed seeds with the engine's gameplay trace
-on (Taylor Turner's recorder, `dodge_native` `lane_trace`). When a game ends,
+on (Taylor Turner's recorder, `dodge_rl` `slot_trace`). When a game ends,
 by death or by the frame cap, its trace gives every pattern appearance in it:
 the pattern, when it started and ended, the player's path through it, its
 rectangles, and how it ended. A death outside any pattern becomes an
@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from .env import make_engine
+from .env import DodgeVecEnv, make_engine
 
 # Encounters before a pattern's death rate is ranked.
 MIN_RANKED = 5
@@ -162,9 +162,11 @@ def record(policy, seeds, *, frame_cap=18_000, progress=None, time_limit=None,
     """
     seeds = np.asarray(seeds, dtype=np.uint32)
     count = len(seeds)
-    engine = make_engine(**game_settings)
-    engine.set_trace_enabled(True)
-    engine.reset_ml_batch(seeds)
+    # The engine ends a game at the frame cap (a truncation), and only an ended
+    # game can restart, so the batch resets every ended slot at once.
+    engine = make_engine(count, max_frames=frame_cap, trace=True, **game_settings)
+    state = DodgeVecEnv._state(engine.reset_all(seeds=seeds))
+    observations, scores = state["observation"], state["score"]
     decisions = [bytearray() for _ in range(count)]
     frames = np.zeros(count, dtype=np.int64)
     done = np.zeros(count, dtype=bool)
@@ -175,37 +177,36 @@ def record(policy, seeds, *, frame_cap=18_000, progress=None, time_limit=None,
     cut_short = 0
     while finished < count:
         if time_limit is not None and clock() - started >= time_limit:
-            scores = engine.observe_velocity()["score"]
             for lane in np.flatnonzero(~done):
-                trace = engine.lane_trace(int(lane))
+                trace = engine.slot_trace(int(lane))
                 appearances.extend(_appearances(int(seeds[lane]), trace, float(scores[lane])))
                 cut_short += 1
             break
-        observations = engine.observe_velocity()["observation"]
-        actions = np.asarray(policy(observations, engine.lane_state),
+        actions = np.asarray(policy(observations, engine.slot_state),
                              dtype=np.uint8).reshape(count)
         for lane in np.flatnonzero(~done):
             decisions[lane].append(int(actions[lane]))
-        stepped = engine.step_ml_batch(actions)
-        frames += stepped["frames_advanced"]
-        over = np.asarray(stepped["done"], dtype=bool)
-        # Finished lanes run throwaway games; a death there only needs a reset.
-        restart = np.flatnonzero(done & over).tolist()
-        ending = np.flatnonzero(~done & (over | (frames >= frame_cap)))
-        if len(ending):
-            scores = engine.observe_velocity()["score"]
-            for lane in ending:
-                trace = engine.lane_trace(int(lane))
+        stepped = engine.step(actions)
+        frames += stepped["elapsed_raw_frames"]
+        state = DodgeVecEnv._state(stepped)
+        observations, scores = state["observation"], state["score"]
+        ended = np.flatnonzero(stepped["terminated"] | stepped["truncated"])
+        for lane in ended:
+            if not done[lane]:
+                trace = engine.slot_trace(int(lane))
                 appearances.extend(_appearances(int(seeds[lane]), trace, float(scores[lane])))
                 done[lane] = True
                 finished += 1
-                restart.append(int(lane))
                 if progress is not None:
                     progress(finished, count)
-        if restart:
-            lanes = np.array(restart, dtype=np.uint32)
-            engine.reset_ml_lanes(lanes, np.arange(filler, filler + len(lanes), dtype=np.uint32))
-            filler += len(lanes)
+        if len(ended) and finished < count:
+            # Finished games run throwaway games on filler seeds so the batch
+            # stays whole; a death there only needs a reset.
+            fresh = DodgeVecEnv._state(engine.reset_done(
+                ended, seeds=np.arange(filler, filler + len(ended), dtype=np.uint32)), ended)
+            filler += len(ended)
+            observations = observations.copy()
+            observations[ended] = fresh["observation"]
     for index, appearance in enumerate(appearances):
         appearance["id"] = index
     return Recording(
