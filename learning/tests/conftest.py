@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import pytest
 
-from dodge import schedule
+from dodge import game_settings, rewards, schedule
 
 
 @pytest.fixture(autouse=True)
@@ -18,3 +18,5 @@ def _isolated_training_panel(tmp_path, monkeypatch):
     to set and park the run in its error loop.
     """
     monkeypatch.setattr(schedule, "CONFIG_PATH", tmp_path / "training.json")
+    monkeypatch.setattr(rewards, "CONFIG_PATH", tmp_path / "rewards.json")
+    monkeypatch.setattr(game_settings, "CONFIG_PATH", tmp_path / "game-config.json")

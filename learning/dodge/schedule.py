@@ -81,16 +81,18 @@ def next_stage(learning_rate):
     return lower[0] if lower else None
 
 
-def exists(path=CONFIG_PATH):
+def exists(path=None):
+    path = CONFIG_PATH if path is None else path
     return Path(path).exists()
 
 
-def load(path=CONFIG_PATH):
+def load(path=None):
     """Read the config, falling back to defaults for anything missing.
 
     A malformed file yields defaults rather than raising, as rewards.load does:
     training must not die because a hand edit left a trailing comma.
     """
+    path = CONFIG_PATH if path is None else path
     path = Path(path)
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
@@ -104,7 +106,8 @@ def load(path=CONFIG_PATH):
     return TrainingConfig(**values).clamped()
 
 
-def save(config, path=CONFIG_PATH):
+def save(config, path=None):
+    path = CONFIG_PATH if path is None else path
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")

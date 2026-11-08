@@ -53,13 +53,14 @@ def _clean(key, value):
     return None
 
 
-def load(path=CONFIG_PATH):
+def load(path=None):
     """Read the saved settings, falling back to defaults for anything missing.
 
     A malformed or absent file yields defaults rather than raising: the
     dashboard must not fail to launch because a hand edit left a trailing
     comma.
     """
+    path = CONFIG_PATH if path is None else path
     path = Path(path)
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
@@ -77,8 +78,9 @@ def load(path=CONFIG_PATH):
     return config
 
 
-def save(config, path=CONFIG_PATH):
+def save(config, path=None):
     """Write the panel's settings, ignoring any other key it was handed."""
+    path = CONFIG_PATH if path is None else path
     path = Path(path)
     stored = {key: _clean(key, config[key]) if key in config else None
               for key in DEFAULTS}

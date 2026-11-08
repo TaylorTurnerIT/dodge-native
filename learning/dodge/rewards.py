@@ -71,12 +71,13 @@ UNCONTROLLED_SCORE_PER_ENEMY = 0.5
 RENAMED = {"center_bonus": "edge_penalty"}
 
 
-def load(path=CONFIG_PATH):
+def load(path=None):
     """Read the config, falling back to defaults for anything missing.
 
     A malformed or absent file yields defaults rather than raising: training
     must not die because a hand edit left a trailing comma.
     """
+    path = CONFIG_PATH if path is None else path
     path = Path(path)
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
@@ -91,7 +92,8 @@ def load(path=CONFIG_PATH):
     return RewardConfig(**values).clamped()
 
 
-def save(config, path=CONFIG_PATH):
+def save(config, path=None):
+    path = CONFIG_PATH if path is None else path
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
