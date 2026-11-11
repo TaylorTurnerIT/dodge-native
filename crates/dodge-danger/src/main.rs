@@ -326,6 +326,7 @@ where
             "--deaths" => deaths = true,
             "--survival" => survival = true,
             "--physics" => config.physics = true,
+            "--native-pixels" => config.native_pixels = true,
             "--physics-model" => {
                 let path = next_value(&mut values, "--physics-model")?;
                 let text = std::fs::read_to_string(&path)
@@ -442,6 +443,7 @@ fn usage() -> String {
            --model PATH         load a learned model (adds it to --compare; use --policy learned)\n\
            --drive-model PATH   load a model and play its actions; the policy still labels\n\
            --physics            with --dataset: add each enemy's raw velocity and clock rate (ph)\n\
+           --native-pixels     include 128x128 indexed native renderer output in frame records\n\
            --physics-model PATH load a learned enemy model; adds the hnn policy to --compare\n\
            --deaths             play --seeds games with the hnn policy, explain each death (NDJSON)\n\
            --survival           play --seeds games with --policy in parallel; print the mean survival\n\

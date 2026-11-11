@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dodge Danger Hamiltonian</title>
+<style>
+  :root {
+    --bg: #060912;
+    --bg-2: #0a1020;
+    --panel: rgba(11, 18, 32, 0.88);
+    --panel-solid: #0b1220;
+    --line: #223049;
+    --line-soft: rgba(51, 65, 85, 0.55);
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --dim: #64748b;
+    --cyan: #22d3ee;
+    --cyan-soft: #67e8f9;
+    --rose: #fb7185;
+    --amber: #fbbf24;
+    --emerald: #34d399;
+    --violet: #a78bfa;
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    font-family: var(--sans);
+    color: var(--text);
+    background:
+      radial-gradient(1000px 520px at 8% -10%, rgba(34, 211, 238, 0.10), transparent 62%),
+      radial-gradient(900px 500px at 96% 0%, rgba(251, 113, 133, 0.09), transparent 58%),
+      radial-gradient(900px 600px at 50% 110%, rgba(52, 211, 153, 0.05), transparent 62%),
+      var(--bg);
+    font-size: 12px;
+    -webkit-font-smoothing: antialiased;
+    overflow-y: auto;
+    user-select: none;
+  }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: #0a1020; }
+  ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+  .shell {
+    width: 100%;
+    max-width: 1220px;
+    margin: 0 auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 14px;
+    border: 1px solid var(--line-soft);
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.94), rgba(9, 14, 26, 0.9));
+    box-shadow: 0 10px 34px rgba(0, 0, 0, 0.32);
+  }
+  .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+  .mark {
+    width: 40px; height: 40px; flex: none;
+    border-radius: 12px;
+    display: grid; place-items: center;
+    background: linear-gradient(135deg, #fbbf24, #fb7185 58%, #a78bfa);
+    box-shadow: 0 0 24px rgba(251, 113, 133, 0.22);
+    color: #0b0710;
+  }
+  .mark svg { width: 23px; height: 23px; }
+  .brand h1 { margin: 0; font-size: 15.5px; letter-spacing: -0.025em; color: #fff; }
+  .brand p { margin: 2px 0 0; color: var(--muted); font-size: 10.5px; line-height: 1.4; }
+  .badges { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 8px; border-radius: 999px;
+    border: 1px solid var(--line);
+    background: rgba(10, 16, 30, 0.88);
+    color: var(--muted);
+    font: 600 9px var(--mono);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .badge b { color: var(--text); font-weight: 700; }
+  .badge.is-cyan { border-color: rgba(34, 211, 238, 0.35); color: var(--cyan-soft); background: rgba(34, 211, 238, 0.08); }
+  .badge.is-rose { border-color: rgba(251, 113, 133, 0.35); color: #fda4af; background: rgba(251, 113, 133, 0.08); }
+  .badge.is-amber { border-color: rgba(251, 191, 36, 0.35); color: #fcd34d; background: rgba(251, 191, 36, 0.08); }
+  .badge.is-emerald { border-color: rgba(52, 211, 153, 0.35); color: #6ee7b7; background: rgba(52, 211, 153, 0.08); }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 342px;
+    gap: 10px;
+    align-items: start;
+  }
+
+  .stage {
+    position: relative;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background:
+      radial-gradient(700px 500px at 50% 40%, rgba(30, 41, 59, 0.32), transparent 70%),
+      #04070d;
+    overflow: hidden;
+    box-shadow: 0 18px 52px rgba(0, 0, 0, 0.36), inset 0 0 80px rgba(2, 6, 23, 0.7);
+    min-width: 0;
+  }
+  .stage::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: 16px;
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.06);
+  }
+  canvas#view { display: block; width: 100%; aspect-ratio: 1 / 1; }
+
+  .stage-badge {
+    position: absolute;
+    top: 10px; left: 10px;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 9px;
+    border-radius: 999px;
+    border: 1px solid rgba(34, 211, 238, 0.28);
+    background: rgba(4, 10, 19, 0.78);
+    color: var(--cyan-soft);
+    font: 700 9px var(--mono);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    backdrop-filter: blur(8px);
+  }
+  .stage-status {
+    position: absolute;
+    top: 10px; right: 10px;
+    padding: 5px 9px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: rgba(4, 10, 19, 0.78);
+    color: var(--muted);
+    font: 700 9px var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    backdrop-filter: blur(8px);
+  }
+  .stage-status.is-alive { color: #6ee7b7; border-color: rgba(52, 211, 153, 0.3); }
+  .stage-status.is-dead { color: #fda4af; border-color: rgba(251, 113, 133, 0.35); }
+  .stage-closest {
+    position: absolute;
+    top: 42px; left: 50%;
+    transform: translateX(-50%);
+    padding: 5px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(251, 191, 36, 0.45);
+    background: rgba(30, 20, 4, 0.86);
+    color: #fde68a;
+    font: 700 9px var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0;
+    transition: opacity 0.18s ease;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .stage-closest.is-visible { opacity: 1; }
+
+  .legend {
+    position: absolute;
+    left: 10px; bottom: 10px;
+    display: flex; flex-wrap: wrap; gap: 8px 12px;
+    max-width: calc(100% - 20px);
+    padding: 7px 9px;
+    border-radius: 10px;
+    border: 1px solid var(--line-soft);
+    background: rgba(4, 10, 19, 0.78);
+    color: var(--muted);
+    font: 600 9px var(--sans);
+    backdrop-filter: blur(8px);
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+  .dot { width: 8px; height: 8px; border-radius: 3px; display: inline-block; }
+  .dot.player { background: #e0faff; box-shadow: 0 0 7px #67e8f9; border-radius: 50%; }
+  .dot.normal { background: var(--rose); }
+  .dot.kami { background: var(--amber); }
+  .dot.goal { background: transparent; border: 1.5px dashed var(--emerald); border-radius: 50%; }
+  .line-sample { width: 14px; height: 0; border-top: 1.5px dashed var(--cyan); display: inline-block; }
+
+  .hud { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .panel {
+    border: 1px solid var(--line-soft);
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(9, 14, 26, 0.88));
+    padding: 11px 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  }
+  .panel-head {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+    color: var(--muted);
+    font: 700 8.5px var(--mono);
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .panel-head .mono { color: var(--dim); letter-spacing: 0.04em; text-transform: none; font-weight: 600; }
+  .big-time {
+    display: flex; align-items: baseline; gap: 5px;
+    margin: 0 0 8px;
+  }
+  .big-time b { font: 700 28px var(--mono); letter-spacing: -0.04em; color: #fff; line-height: 1; }
+  .big-time small { color: var(--dim); font: 600 10px var(--mono); }
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .stat {
+    padding: 7px 8px;
+    border-radius: 9px;
+    border: 1px solid rgba(51, 65, 85, 0.45);
+    background: rgba(2, 6, 23, 0.45);
+    min-width: 0;
+  }
+  .stat.wide { grid-column: 1 / -1; }
+  .stat span { display: block; color: var(--dim); font: 700 8px var(--sans); letter-spacing: 0.07em; text-transform: uppercase; }
+  .stat b { display: block; margin-top: 2px; color: var(--text); font: 700 12px var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stat b.is-good { color: #6ee7b7; }
+  .stat b.is-warn { color: #fcd34d; }
+  .stat b.is-bad { color: #fda4af; }
+  .stat small { color: var(--dim); font: 600 9px var(--mono); }
+
+  .energy-row {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding: 7px 9px;
+    border-radius: 9px;
+    border: 1px solid rgba(34, 211, 238, 0.22);
+    background: rgba(34, 211, 238, 0.055);
+  }
+  .energy-row span { color: var(--cyan-soft); font: 700 9px var(--mono); letter-spacing: 0.1em; }
+  .energy-row b { font: 700 18px var(--mono); color: #fff; }
+  .energy-parts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 6px; }
+  .energy-parts div { padding: 5px 6px; border-radius: 7px; background: rgba(2, 6, 23, 0.4); border: 1px solid rgba(51, 65, 85, 0.35); }
+  .energy-parts span { display: block; color: var(--dim); font: 700 7.5px var(--sans); letter-spacing: 0.06em; text-transform: uppercase; }
+  .energy-parts b { display: block; margin-top: 1px; color: var(--muted); font: 700 10px var(--mono); }
+  .note { margin-top: 7px; color: var(--dim); font-size: 9.5px; line-height: 1.45; }
+
+  .cost-list { display: flex; flex-direction: column; gap: 3px; }
+  .cost-row {
+    display: grid;
+    grid-template-columns: 74px minmax(0, 1fr) 42px;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 4px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+  }
+  .cost-row.is-chosen { background: rgba(34, 211, 238, 0.075); border-color: rgba(34, 211, 238, 0.18); }
+  .cost-name { color: var(--dim); font: 600 8.5px var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cost-row.is-chosen .cost-name { color: var(--cyan-soft); }
+  .cost-track { height: 5px; border-radius: 999px; background: rgba(51, 65, 85, 0.45); overflow: hidden; }
+  .cost-fill { display: block; height: 100%; width: 0; border-radius: 999px; background: rgba(148, 163, 184, 0.45); transition: width 0.12s linear; }
+  .cost-row.is-chosen .cost-fill { background: linear-gradient(90deg, #22d3ee, #34d399); box-shadow: 0 0 8px rgba(34, 211, 238, 0.4); }
+  .cost-val { color: var(--dim); font: 600 8px var(--mono); text-align: right; }
+  .cost-row.is-chosen .cost-val { color: var(--cyan-soft); }
+
+  .transport {
+    border: 1px solid var(--line-soft);
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(9, 14, 26, 0.9));
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.24);
+  }
+  .transport-row { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+  .transport-row .spacer { flex: 1 1 auto; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+    border: 1px solid #334155;
+    background: #1e293b;
+    color: #e2e8f0;
+    border-radius: 9px;
+    padding: 6px 10px;
+    font: 600 10.5px var(--sans);
+    cursor: pointer;
+    transition: background 0.14s, border-color 0.14s, color 0.14s, transform 0.1s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: #334155; border-color: #475569; }
+  .btn:active { transform: translateY(1px); }
+  .btn:disabled { opacity: 0.4; cursor: default; transform: none; }
+  .btn-primary {
+    background: linear-gradient(135deg, #67e8f9, #22d3ee 55%, #0ea5e9);
+    border-color: transparent;
+    color: #041018;
+    font-weight: 800;
+    box-shadow: 0 0 16px rgba(34, 211, 238, 0.2);
+  }
+  .btn-icon { width: 30px; padding-left: 0; padding-right: 0; font-size: 11px; }
+  .speed { display: inline-flex; align-items: center; gap: 6px; color: var(--dim); font: 700 8.5px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
+  .speed select {
+    appearance: none;
+    border: 1px solid #334155;
+    background: #0b1220;
+    color: var(--text);
+    border-radius: 7px;
+    padding: 5px 8px;
+    font: 600 10px var(--mono);
+    cursor: pointer;
+  }
+  .kbd {
+    display: inline-block;
+    padding: 1px 4px;
+    border-radius: 4px;
+    border: 1px solid #334155;
+    background: #0b1220;
+    color: var(--muted);
+    font: 600 8px var(--mono);
+  }
+  .hint { color: var(--dim); font-size: 9px; line-height: 1.4; }
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1 1 260px;
+    min-width: 120px;
+    height: 4px;
+    border-radius: 999px;
+    background: #1e293b;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 13px; height: 13px;
+    border-radius: 50%;
+    background: var(--cyan-soft);
+    border: 2px solid #041018;
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.55);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 13px; height: 13px;
+    border-radius: 50%;
+    background: var(--cyan-soft);
+    border: 2px solid #041018;
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.55);
+  }
+  .scrub-label { min-width: 82px; color: var(--muted); font: 600 9px var(--mono); text-align: right; }
+  .toggles { gap: 6px 14px; }
+  .toggle {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--muted);
+    font: 600 9.5px var(--sans);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .toggle input { accent-color: var(--cyan); width: 12px; height: 12px; cursor: pointer; }
+
+  .empty {
+    display: grid; place-items: center;
+    min-height: 420px;
+    padding: 24px;
+    color: var(--muted);
+    text-align: center;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 940px) {
+    .layout { grid-template-columns: 1fr; }
+    .hud { display: grid; grid-template-columns: 1fr 1fr; align-items: start; }
+    .hud .panel:first-child { grid-column: 1 / -1; }
+  }
+  @media (max-width: 640px) {
+    .shell { padding: 8px; }
+    .topbar { align-items: flex-start; flex-direction: column; }
+    .badges { justify-content: flex-start; }
+    .hud { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .legend { font-size: 8px; gap: 5px 9px; }
+    .transport-row .hint { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .status-dot { box-shadow: none; }
+    .btn, .cost-fill { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <div class="brand">
+      <div class="mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3 4 6.5v5.2c0 4.4 3.1 8.2 8 9.3 4.9-1.1 8-4.9 8-9.3V6.5L12 3Z"/>
+          <path d="M7.5 13.2c1.2-2.1 2.7-3.2 4.5-3.2s3.3 1.1 4.5 3.2"/>
+          <path d="M9 15.5c.9-1.2 1.9-1.8 3-1.8s2.1.6 3 1.8"/>
+        </svg>
+      </div>
+      <div>
+        <h1>Dodge Danger Hamiltonian</h1>
+        <p>Learned model and exact lookahead · live game</p>
+      </div>
+    </div>
+    <div class="badges">
+      <span class="badge is-cyan"><span class="status-dot"></span><b id="badgePolicy">lookahead</b></span>
+      <span class="badge">seed <b id="badgeSeed">—</b></span>
+      <span class="badge">difficulty <b id="badgeDifficulty">—</b></span>
+      <span class="badge">horizon <b id="badgeHorizon">—</b></span>
+      <span class="badge is-amber" id="badgePatterns">patterns off</span>
+    </div>
+  </header>
+
+  <div class="layout">
+    <section class="stage" aria-label="Dodge danger field playback">
+      <canvas id="view"></canvas>
+        <div class="stage-badge" id="stageBadge">lookahead · 36f</div>
+      <div class="stage-status is-alive" id="stageStatus">alive</div>
+      <div class="stage-closest" id="stageClosest">closest call</div>
+      <div class="legend">
+        <span><i class="dot player"></i>player</span>
+        <span><i class="dot normal"></i>normal</span>
+        <span><i class="dot kami"></i>kamikaze</span>
+        <span id="pathLegend"><i class="line-sample"></i>planned path</span>
+      </div>
+    </section>
+
+    <aside class="hud">
+      <div class="panel" id="modelPanel" style="display:none">
+        <div class="panel-head"><span>Learned world model</span></div>
+        <div class="note">Enemy motion uses a learned port-Hamiltonian model (friction ~0.9898 recovered from data), learned collision, explosion and spawn rules, and bounce rules measured from observed frames. The planner rolls it forward <span id="modelHorizon">36</span> frames for 9 actions.</div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span>State</span><span class="mono" id="frameLabel">0 / 0</span></div>
+        <div class="big-time"><b id="timeValue">0.00</b><small>s</small><span class="hint" id="statusHint">at cap</span></div>
+        <div class="stat-grid">
+          <div class="stat"><span>Action</span><b id="actionValue">—</b></div>
+          <div class="stat" title="Time to hit for the chosen action, measured by replaying the REAL engine. A diagnostic only: the hnn planner does not use it, and it is not the model's own prediction."><span>Engine TTC (diagnostic)</span><b id="ttcValue">—</b></div>
+          <div class="stat"><span>Model predicted hit</span><b id="modelHitValue">—</b></div>
+          <div class="stat" title="Measured in the real engine, diagnostic only."><span>Clearance (engine)</span><b id="clearanceValue">—</b></div>
+          <div class="stat"><span>Enemies</span><b id="enemyValue">—</b></div>
+          <div class="stat wide" id="goalStat"><span>Goal · maximin TTC</span><b id="goalValue">—</b></div>
+        </div>
+      </div>
+
+      <div class="panel" id="energyPanel">
+        <div class="panel-head"><span>Energy proxy</span><span class="mono">H = T + V</span></div>
+        <div class="energy-row"><span>H</span><b id="energyValue">—</b></div>
+        <div class="energy-parts">
+          <div><span>T</span><b id="kineticValue">—</b></div>
+          <div><span>V danger</span><b id="dangerValue">—</b></div>
+          <div><span>V goal</span><b id="goalPotValue">—</b></div>
+        </div>
+        <div class="note">Diagnostic scalar, not a conserved quantity. The planner is a receding-horizon controller, not a pure Hamiltonian flow.</div>
+      </div>
+
+      <div class="panel" id="costPanel">
+        <div class="panel-head"><span id="costTitle">Nine-action cost</span><span class="mono" id="costHead">lower is better</span></div>
+        <div class="cost-list" id="costList"></div>
+        <div class="note" id="costNote">Only the lookahead policy scores all nine actions.</div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="transport">
+    <div class="transport-row">
+      <button class="btn btn-primary" id="playBtn" aria-label="Play or pause">Pause</button>
+      <button class="btn btn-icon" id="prevBtn" aria-label="Previous frame">◀</button>
+      <button class="btn btn-icon" id="nextBtn" aria-label="Next frame">▶</button>
+      <button class="btn" id="closestBtn" aria-label="Jump to closest call">Closest call</button>
+      <button class="btn" id="compareBtn" style="display:none">Switch to exact lookahead</button>
+      <button class="btn" id="restartBtn" aria-label="Restart the live run" style="display:none">Restart run</button>
+      <label class="speed">Speed
+        <select id="speedSelect">
+          <option value="0.25">0.25×</option>
+          <option value="0.5">0.5×</option>
+          <option value="1" selected>1×</option>
+          <option value="2">2×</option>
+          <option value="4">4×</option>
+        </select>
+      </label>
+      <span class="spacer"></span>
+      <span class="hint" id="keyHint"><span class="kbd">space</span> play · <span class="kbd">←</span><span class="kbd">→</span> step · <span class="kbd">o</span> danger overlay · <span class="kbd">t</span> trail</span>
+    </div>
+    <div class="transport-row">
+      <input id="scrub" type="range" min="0" max="0" value="0" aria-label="Frame">
+      <span class="scrub-label" id="scrubLabel">0 / 0</span>
+    </div>
+    <div class="transport-row toggles">
+      <label class="toggle"><input type="checkbox" id="toggleOverlay"> <span id="overlayLabel">Danger overlay · arrival heat, enemy paths, chosen path</span></label>
+      <label class="toggle"><input type="checkbox" id="toggleTrail" checked> Player trail</label>
+      <span class="spacer"></span>
+      <span class="hint" id="runNote">Heat is the lookahead arrival field: red means an enemy arrives soon if you stop there.</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const TRACE = /*__TRACE__*/null;
+
+function showStageMessage(text) {
+  const stage = document.querySelector(".stage");
+  stage.innerHTML = '<div class="empty"></div>';
+  stage.querySelector(".empty").textContent = text;
+}
+
+// The dashboard embeds a capped trace produced by the native Rust engine.
+function run(trace) {
+  "use strict";
+
+  const meta = trace.meta;
+  const result = trace.result;
+  const frames = trace.frames;
+  let lastFrame = frames.length - 1;
+  // Global index of frames[0]. A live run keeps only a rolling window.
+  let frameBase = 0;
+  const horizon = meta.horizon;
+  const playfield = meta.playfield || 128;
+  const fps = meta.fps || 60;
+
+  const ACTIONS = ["neutral", "left", "right", "up", "down", "up_left", "up_right", "down_left", "down_right"];
+  const GLYPHS = {
+    neutral: "·", left: "←", right: "→", up: "↑", down: "↓",
+    up_left: "↖", up_right: "↗", down_left: "↙", down_right: "↘"
+  };
+
+  const canvas = document.getElementById("view");
+  const ctx = canvas.getContext("2d");
+  canvas.tabIndex = 0;
+  canvas.setAttribute("aria-label", "Dodge game playback. Click here to use playback shortcuts.");
+  canvas.addEventListener("pointerdown", () => canvas.focus());
+
+  const nativeFrameCanvas = document.createElement("canvas");
+
+  const heatByFrame = [];
+  let runningHeat = null;
+  for (let i = 0; i < frames.length; i += 1) {
+    if (frames[i].h) runningHeat = frames[i].h;
+    heatByFrame.push(runningHeat);
+  }
+
+  let closestFrame = -1;
+  let closestClearance = Infinity;
+  for (let i = 0; i < frames.length; i += 1) {
+    const c = frames[i].c;
+    if (Number.isFinite(c) && c < closestClearance) {
+      closestClearance = c;
+      closestFrame = i;
+    }
+  }
+
+  const state = {
+    frame: 0,
+    playing: true,
+    speed: 1,
+    showOverlay: false,
+    showTrail: false,
+    lastTime: 0,
+    accumulator: 0,
+    lastHudFrame: -1
+  };
+
+  const el = (id) => document.getElementById(id);
+  const fmt = (value, digits) => {
+    if (!Number.isFinite(value)) return "—";
+    return value.toFixed(digits === undefined ? 1 : digits);
+  };
+  const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
+
+  el("badgePolicy").textContent = meta.policy;
+  el("badgeSeed").textContent = String(meta.seed);
+  el("badgeDifficulty").textContent = String(meta.difficulty);
+  el("badgeHorizon").textContent = horizon + "f";
+  el("badgePatterns").textContent = meta.patterns ? "patterns on" : "patterns off";
+  el("badgePatterns").className = "badge " + (meta.patterns ? "is-rose" : "is-emerald");
+  el("stageBadge").textContent = meta.policy + " · " + horizon + "f";
+  const isPotential = meta.field === "potential";
+  const isHnn = meta.policy === "hnn";
+  el("modelPanel").style.display = isHnn ? "" : "none";
+  for (const id of ["goalStat", "energyPanel"]) {
+    el(id).style.display = isHnn ? "none" : "";
+  }
+  el("costTitle").textContent = isHnn ? "Nine-action cost (model)" : "Nine-action cost";
+  el("modelHorizon").textContent = String(horizon);
+  el("runNote").textContent = isPotential
+    ? "Heat is the landscape V that the controller rolls down: bright is high, dark is low. The green ring marks the lowest basin."
+    : isHnn
+    ? "Imagined enemies and action costs come from the model. TTC and clearance are engine diagnostics."
+    : meta.patterns || meta.powerups
+    ? "Patterns or powerups are on: the heat field is approximate because it models homing enemies only."
+    : "Heat is the lookahead arrival field: red means an enemy arrives soon if you stop there.";
+  el("overlayLabel").textContent = isHnn
+    ? "Danger overlay · model enemy paths; selected-action replay preview"
+    : "Danger overlay · arrival heat, velocity paths, chosen-action engine rollout";
+
+  const status = el("stageStatus");
+  function setStatus() {
+    if (result.dead && state.frame >= lastFrame) {
+      status.textContent = "Game over · " + result.survival_frames + " frames survived";
+      status.className = "stage-status is-dead";
+      el("statusHint").textContent = "died";
+    } else {
+      status.textContent = "survived to cap · " + (result.survival_frames / fps).toFixed(1) + "s";
+      status.className = "stage-status is-alive";
+      el("statusHint").textContent = "at cap";
+    }
+  }
+  setStatus();
+
+  const scrub = el("scrub");
+  scrub.max = String(Math.max(0, lastFrame));
+  scrub.value = "0";
+  el("scrubLabel").textContent = "0 / " + lastFrame;
+  el("closestBtn").disabled = closestFrame < 0;
+
+  // Build the nine-action cost rows once.
+  const costRows = [];
+  const costList = el("costList");
+  ACTIONS.forEach((name) => {
+    const row = document.createElement("div");
+    row.className = "cost-row";
+    const label = document.createElement("span");
+    label.className = "cost-name";
+    label.textContent = GLYPHS[name] + " " + name.replace("_", " ");
+    const track = document.createElement("span");
+    track.className = "cost-track";
+    const fill = document.createElement("span");
+    fill.className = "cost-fill";
+    track.appendChild(fill);
+    const value = document.createElement("span");
+    value.className = "cost-val";
+    value.textContent = "—";
+    row.appendChild(label);
+    row.appendChild(track);
+    row.appendChild(value);
+    costList.appendChild(row);
+    costRows.push({ name, row, fill, value });
+  });
+
+  function resizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const size = Math.max(1, Math.round(rect.width * dpr));
+    if (canvas.width !== size || canvas.height !== size) {
+      canvas.width = size;
+      canvas.height = size;
+    }
+    ctx.setTransform(canvas.width / playfield, 0, 0, canvas.height / playfield, 0, 0);
+    ctx.imageSmoothingEnabled = true;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+  }
+
+  function heatColor(t) {
+    // t = danger, 0 = safe, 1 = immediate. Inferno-ish ramp.
+    const stops = [
+      [0.00, 9, 14, 28, 0.00],
+      [0.10, 19, 38, 86, 0.18],
+      [0.30, 20, 116, 184, 0.42],
+      [0.54, 34, 211, 238, 0.62],
+      [0.74, 251, 191, 36, 0.78],
+      [0.90, 251, 113, 133, 0.9],
+      [1.00, 255, 246, 246, 1.0]
+    ];
+    let a = stops[0];
+    let b = stops[stops.length - 1];
+    for (let i = 0; i < stops.length - 1; i += 1) {
+      if (t >= stops[i][0] && t <= stops[i + 1][0]) {
+        a = stops[i];
+        b = stops[i + 1];
+        break;
+      }
+    }
+    const span = Math.max(0.0001, b[0] - a[0]);
+    const k = clamp((t - a[0]) / span, 0, 1);
+    return [
+      Math.round(a[1] + (b[1] - a[1]) * k),
+      Math.round(a[2] + (b[2] - a[2]) * k),
+      Math.round(a[3] + (b[3] - a[3]) * k),
+      a[4] + (b[4] - a[4]) * k
+    ];
+  }
+
+  const heatCache = new Map();
+  function heatCanvas(heat) {
+    if (heatCache.has(heat)) return heatCache.get(heat);
+    const off = document.createElement("canvas");
+    off.width = heat.w;
+    off.height = heat.h;
+    const offCtx = off.getContext("2d");
+    const image = offCtx.createImageData(heat.w, heat.h);
+    const data = image.data;
+    for (let i = 0; i < heat.a.length; i += 1) {
+      const arrival = (heat.a[i] / 255) * horizon;
+      const danger = 1 - clamp(arrival / horizon, 0, 1);
+      const color = heatColor(danger);
+      const o = i * 4;
+      data[o] = color[0];
+      data[o + 1] = color[1];
+      data[o + 2] = color[2];
+      data[o + 3] = Math.round(color[3] * 255);
+    }
+    offCtx.putImageData(image, 0, 0);
+    heatCache.set(heat, off);
+    return off;
+  }
+
+  function sampleArrival(heat, x, y) {
+    if (!heat || !heat.a || !heat.w || !heat.h) return null;
+    const gx = clamp(Math.floor((x / playfield) * heat.w), 0, heat.w - 1);
+    const gy = clamp(Math.floor((y / playfield) * heat.h), 0, heat.h - 1);
+    const q = heat.a[gy * heat.w + gx];
+    return (q / 255) * horizon;
+  }
+
+  function boxGap(px, py, ps, ex, ey, es) {
+    const pl = px - ps + 1;
+    const pr = px + ps - 1;
+    const pt = py - ps + 1;
+    const pb = py + ps - 1;
+    const elft = ex;
+    const er = ex + es;
+    const et = ey;
+    const eb = ey + es;
+    const gx = Math.max(elft - pr, pl - er, 0);
+    const gy = Math.max(et - pb, pt - eb, 0);
+    return Math.hypot(gx, gy);
+  }
+
+  function minClearance(player, enemies) {
+    let best = Infinity;
+    for (const e of enemies) {
+      best = Math.min(best, boxGap(player[0], player[1], player[4], e[0], e[1], e[4]));
+    }
+    return best;
+  }
+
+  function energyParts(frame) {
+    const p = frame.p;
+    const kinetic = 0.5 * (p[2] * p[2] + p[3] * p[3]);
+    const heat = heatByFrame[state.frame];
+    const arrival = sampleArrival(heat, p[0], p[1]);
+    const gap = minClearance(p, frame.e);
+    const ttcTerm = arrival === null ? 0 : 5 * Math.exp(-arrival / 12);
+    const nearTerm = Number.isFinite(gap) ? 0.5 * Math.exp(-gap / 6) : 0;
+    const danger = ttcTerm + nearTerm;
+    const goalDistance = Math.hypot(frame.g[0] - p[0], frame.g[1] - p[1]);
+    const goal = 0.02 * goalDistance;
+    return { kinetic, danger, goal, total: kinetic + danger + goal, arrival, gap, goalDistance };
+  }
+
+  function drawTrail(frameIndex) {
+    if (!state.showTrail) return;
+    const start = Math.max(0, frameIndex - 110);
+    ctx.save();
+    ctx.lineWidth = 0.42;
+    for (let i = start + 1; i <= frameIndex; i += 1) {
+      const a = frames[i - 1].p;
+      const b = frames[i].p;
+      const alpha = 0.04 + 0.3 * ((i - start) / Math.max(1, frameIndex - start));
+      ctx.strokeStyle = "rgba(103, 232, 249, " + alpha.toFixed(3) + ")";
+      ctx.beginPath();
+      ctx.moveTo(a[0], a[1]);
+      ctx.lineTo(b[0], b[1]);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawPlannedPath(frame) {
+    if (!state.showOverlay || !frame.path || frame.path.length < 2) return;
+    ctx.save();
+    ctx.strokeStyle = "rgba(34, 211, 238, 0.62)";
+    ctx.lineWidth = 0.3;
+    ctx.setLineDash([1.5, 1.35]);
+    ctx.beginPath();
+    for (let i = 0; i < frame.path.length; i += 1) {
+      const p = frame.path[i];
+      if (i === 0) ctx.moveTo(p[0], p[1]);
+      else ctx.lineTo(p[0], p[1]);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "rgba(103, 232, 249, 0.7)";
+    for (let i = 2; i < frame.path.length; i += 3) {
+      const p = frame.path[i];
+      ctx.beginPath();
+      ctx.arc(p[0], p[1], 0.45, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawModelEnemyPaths(frame) {
+    const samples = frame.model_ghosts && frame.model_ghosts[0];
+    if (!state.showOverlay || !Array.isArray(samples) || samples.length < 2) return;
+    ctx.save();
+    ctx.strokeStyle = "rgba(251, 191, 36, 0.72)";
+    ctx.lineWidth = 0.28;
+    const count = Math.max(0, ...samples.map((sample) => sample.length));
+    for (let body = 0; body < count; body += 1) {
+      ctx.beginPath();
+      let started = false;
+      for (const sample of samples) {
+        const point = sample[body];
+        if (!point || point[3] < 0) continue;
+        const x = point[0] + point[2] * 0.5;
+        const y = point[1] + point[2] * 0.5;
+        if (!started) { ctx.moveTo(x, y); started = true; }
+        else ctx.lineTo(x, y);
+      }
+      if (started) ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  const nativePalette = [
+    [0,0,0],[29,43,83],[126,37,83],[0,135,81],[171,82,54],[95,87,79],[194,195,199],[255,241,232],
+    [255,0,77],[255,163,0],[255,236,39],[0,228,54],[41,173,255],[131,118,156],[255,119,168],[255,204,170]
+  ];
+  function drawNativeFrame(frame) {
+    if (typeof frame.native_pixels !== "string" || frame.native_pixels.length !== 128 * 128) return;
+    const image = ctx.createImageData(128, 128);
+    for (let i = 0; i < frame.native_pixels.length; i += 1) {
+      const color = nativePalette[Number.parseInt(frame.native_pixels[i], 16)] || nativePalette[0];
+      const offset = i * 4;
+      image.data[offset] = color[0];
+      image.data[offset + 1] = color[1];
+      image.data[offset + 2] = color[2];
+      image.data[offset + 3] = 255;
+    }
+    nativeFrameCanvas.width = 128;
+    nativeFrameCanvas.height = 128;
+    nativeFrameCanvas.getContext("2d").putImageData(image, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(nativeFrameCanvas, 0, 0, playfield, playfield);
+    ctx.imageSmoothingEnabled = true;
+  }
+
+  function drawEnemyPaths(frame) {
+    if (!state.showOverlay) return;
+    ctx.save();
+    ctx.strokeStyle = "rgba(251, 191, 36, 0.65)";
+    ctx.fillStyle = "rgba(253, 230, 138, 0.85)";
+    ctx.lineWidth = 0.22;
+    for (const [x, y, vx, vy, size] of frame.e) {
+      const cx = x + size * 0.5, cy = y + size * 0.5;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + vx * 36, cy + vy * 36);
+      ctx.stroke();
+      for (const t of [12, 24, 36]) {
+        ctx.beginPath();
+        ctx.arc(cx + vx * t, cy + vy * t, 0.55, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
+  function render(now) {
+    const frame = frames[state.frame];
+    if (!frame) return;
+    ctx.save();
+    ctx.setTransform(canvas.width / playfield, 0, 0, canvas.height / playfield, 0, 0);
+    ctx.clearRect(0, 0, playfield, playfield);
+    drawNativeFrame(frame);
+
+    const heat = heatByFrame[state.frame];
+    if (state.showOverlay && heat) {
+      ctx.save();
+      ctx.globalAlpha = 0.92;
+      ctx.drawImage(heatCanvas(heat), 0, 0, playfield, playfield);
+      ctx.restore();
+    }
+
+    if (isHnn) drawModelEnemyPaths(frame);
+    else drawEnemyPaths(frame);
+    drawPlannedPath(frame);
+    if (state.showTrail) drawTrail(state.frame);
+    ctx.restore();
+
+    if (state.lastHudFrame !== state.frame) {
+      updateHud(frame);
+      state.lastHudFrame = state.frame;
+    }
+    el("stageClosest").className = "stage-closest" + (state.frame === closestFrame ? " is-visible" : "");
+  }
+
+  function setText(id, text) {
+    const node = el(id);
+    if (node) node.textContent = text;
+  }
+
+  function updateHud(frame) {
+    const t = (frameBase + state.frame) / fps;
+    const where = (frameBase + state.frame) + " / " + (frameBase + lastFrame);
+    setText("frameLabel", where);
+    setText("timeValue", t.toFixed(2));
+    setText("scrubLabel", where);
+    setText("actionValue", GLYPHS[frame.a] + " " + frame.a.replace("_", " "));
+    setText("ttcValue", frame.t > horizon ? "> " + horizon + "f" : Math.round(frame.t) + "f");
+    const hit = frame.model_hits && frame.model_hits[ACTIONS.indexOf(frame.a)];
+    setText("modelHitValue", !frame.model_hits ? "—" : hit === null ? "none" : hit + " frames");
+    const clearance = frame.c;
+    setText("clearanceValue", clearance >= 998 ? "—" : clearance.toFixed(2) + " px");
+    const clearanceNode = el("clearanceValue");
+    clearanceNode.className = clearance >= 998 ? "" : clearance < 2 ? "is-bad" : clearance < 5 ? "is-warn" : "is-good";
+    setText("enemyValue", String(frame.e.length));
+
+    const parts = energyParts(frame);
+    const goalTtc = parts.arrival === null ? null : Math.round(parts.arrival);
+    setText("goalValue", "(" + frame.g[0].toFixed(1) + ", " + frame.g[1].toFixed(1) + ")" + (goalTtc === null ? "" : " · " + goalTtc + "f"));
+    setText("energyValue", parts.total.toFixed(3));
+    setText("kineticValue", parts.kinetic.toFixed(3));
+    setText("dangerValue", parts.danger.toFixed(3));
+    setText("goalPotValue", parts.goal.toFixed(3));
+
+    if (Array.isArray(frame.costs) && frame.costs.length === 9) {
+      el("costNote").textContent = isHnn
+        ? "Cost of each action, planned by rolling the learned enemy model forward. Lower is better."
+        : isPotential
+        ? "Slope of V along each direction. Negative is downhill. The chosen action is the steepest descent."
+        : "Lower cost is better. The chosen action is highlighted.";
+      costRows.forEach((row, index) => {
+        const value = frame.costs[index];
+        row.value.textContent = value.toFixed(1);
+        row.row.classList.toggle("is-chosen", row.name === frame.a);
+      });
+      const finite = frame.costs.filter((value) => Number.isFinite(value));
+      const min = Math.min(...finite);
+      const max = Math.max(...finite);
+      const span = Math.max(0.0001, max - min);
+      costRows.forEach((row, index) => {
+        const value = frame.costs[index];
+        const quality = Number.isFinite(value) ? (max - value) / span : 0;
+        row.fill.style.width = (10 + 90 * clamp(quality, 0, 1)).toFixed(1) + "%";
+      });
+    } else {
+      el("costNote").textContent = "This policy does not score all nine actions. Switch to lookahead to see the search.";
+      costRows.forEach((row) => {
+        row.value.textContent = "—";
+        row.fill.style.width = "0%";
+        row.row.classList.toggle("is-chosen", row.name === frame.a);
+      });
+    }
+
+    const progress = lastFrame > 0 ? (state.frame / lastFrame) * 100 : 0;
+    scrub.value = String(state.frame);
+    scrub.style.background = "linear-gradient(90deg, #22d3ee " + progress.toFixed(1) + "%, #1e293b " + progress.toFixed(1) + "%)";
+  }
+
+  function step(delta) {
+    setPlaying(false);
+    state.frame = clamp(state.frame + delta, 0, lastFrame);
+    state.lastHudFrame = -1;
+  }
+
+  function setPlaying(value) {
+    state.playing = value;
+    el("playBtn").textContent = value ? "Pause" : "Play";
+  }
+
+  el("playBtn").addEventListener("click", () => {
+    if (!state.playing && state.frame >= lastFrame) state.frame = 0;
+    setPlaying(!state.playing);
+  });
+  el("prevBtn").addEventListener("click", () => step(-1));
+  el("nextBtn").addEventListener("click", () => step(1));
+  el("closestBtn").addEventListener("click", () => {
+    if (closestFrame < 0) return;
+    state.playing = false;
+    setPlaying(false);
+    state.frame = closestFrame;
+    state.lastHudFrame = -1;
+  });
+  el("speedSelect").addEventListener("change", (event) => {
+    state.speed = Number(event.target.value) || 1;
+  });
+  scrub.addEventListener("input", (event) => {
+    state.playing = false;
+    setPlaying(false);
+    state.frame = clamp(Number(event.target.value), 0, lastFrame);
+    state.lastHudFrame = -1;
+  });
+  el("toggleOverlay").addEventListener("change", (event) => { state.showOverlay = event.target.checked; });
+  el("toggleTrail").addEventListener("change", (event) => { state.showTrail = event.target.checked; });
+
+  window.addEventListener("keydown", (event) => {
+    if (event.target && ["INPUT", "SELECT", "TEXTAREA"].includes(event.target.tagName)) return;
+    if (event.code === "Space") {
+      event.preventDefault();
+      if (!state.playing && state.frame >= lastFrame) state.frame = 0;
+      setPlaying(!state.playing);
+    } else if (event.code === "ArrowLeft") {
+      event.preventDefault();
+      step(-1);
+    } else if (event.code === "ArrowRight") {
+      event.preventDefault();
+      step(1);
+    } else if (event.key === "o" || event.key === "O") {
+      state.showOverlay = !state.showOverlay;
+      el("toggleOverlay").checked = state.showOverlay;
+    } else if (event.key === "t" || event.key === "T") {
+      state.showTrail = !state.showTrail;
+      el("toggleTrail").checked = state.showTrail;
+    }
+  });
+
+  function loop(now) {
+    if (!state.lastTime) state.lastTime = now;
+    const dt = Math.min(0.1, (now - state.lastTime) / 1000);
+    state.lastTime = now;
+    if (state.playing && frames.length > 0) {
+      state.accumulator += dt * fps * state.speed;
+      const advance = Math.floor(state.accumulator);
+      if (advance > 0) {
+        state.accumulator -= advance;
+        state.frame += advance;
+        if (state.frame > lastFrame) {
+          if (result.dead) {
+            state.frame = lastFrame;
+            setPlaying(false);
+          } else {
+            state.frame = 0;
+          }
+        }
+        state.lastHudFrame = -1;
+      }
+    } else {
+      state.accumulator = 0;
+    }
+    setStatus();
+    render(now);
+    requestAnimationFrame(loop);
+  }
+
+  const resizeObserver = new ResizeObserver(() => {
+    resizeCanvas();
+    state.lastHudFrame = -1;
+  });
+  resizeObserver.observe(canvas.parentElement);
+
+  resizeCanvas();
+  if (frames.length > 0) updateHud(frames[0]);
+  setPlaying(true);
+  requestAnimationFrame(loop);
+}
+
+(function boot() {
+  if (TRACE && Array.isArray(TRACE.frames) && TRACE.frames.length > 0) {
+    run(TRACE);
+  } else {
+    showStageMessage("No native trace was embedded. Build and run the Part II dashboard app.");
+  }
+})();
+</script>
+</body>
+</html>
