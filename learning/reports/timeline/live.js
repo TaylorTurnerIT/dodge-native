@@ -49,7 +49,8 @@
   })().catch(e => { console.error("wasm", e); });
   const workerBytes = Uint8Array.from(atob(WORKER_B64), c => c.charCodeAt(0));
   const workerUrl = URL.createObjectURL(new Blob([workerBytes], { type: "text/javascript" }));
-  const workerLimit = (navigator.hardwareConcurrency || 2) - 2;
+  const workerLimit = Math.max(0, Math.min(2, (navigator.hardwareConcurrency || 2) - 2));
+  let activeWorkers = 0;
 
   const keys = new Set();
   function humanMask() {
@@ -94,6 +95,9 @@
       this.workerReady = false;
       this.workerStarting = false;
       this.workerActive = false;
+      this.workerGeneration = 0;
+      this.workerSlot = false;
+      this.deadFor = 0;
       this.inFlight = false;
       this.snapshot = null;
       this.seed = +(root.dataset.seed || (group && group.seed) || 1);
@@ -105,8 +109,6 @@
       this.min = root.dataset.hud === "min";
       this.id = -1;
       this.values = [];
-            this.metrics = { bot: this.kind, seed: this.seed, gameFrames: 0, simMs: 0, mainMs: 0, workerMs: 0, ticks: 0 };
-      this.root.__dodgeMetrics = this.metrics;
       this.build();
     }
 
@@ -165,7 +167,7 @@
         const ob = btn("overlay", () => {
           this.overlayOn = !this.overlayOn;
           ob.setAttribute("aria-pressed", String(this.overlayOn));
-        }, "Show the policy's internals");
+        }, "Show policy path, field and goal");
         ob.setAttribute("aria-pressed", String(this.overlayOn));
       }
     }
@@ -215,46 +217,47 @@
 
     start() {
       this.stop();
+      this.banner.hidden = true;
       if (this.workerBacked) {
         this.workerActive = true;
         this.dead = false;
         this.deadFor = 0;
         this.cost = null;
         this.rate = 0;
-        this.metrics = { bot: this.kind, seed: this.seed, gameFrames: 0, simMs: 0, mainMs: 0, workerMs: 0, ticks: 0 };
-        this.root.__dodgeMetrics = this.metrics;
         this.inFlight = false;
         this.snapshot = null;
+        this.deadFor = 0;
+        ++this.workerGeneration;
+        if (!this.workerSlot && activeWorkers < workerLimit) { activeWorkers++; this.workerSlot = true; }
+        if (!this.workerSlot) { this.workerBacked = false; return this.start(); }
         if (!this.worker && workerLimit > 0) {
-          this.worker = new Worker(workerUrl);
+          try { this.worker = new Worker(workerUrl); }
+          catch (e) { this.releaseWorker(); this.workerBacked = false; return this.start(); }
           this.worker.onmessage = ({ data }) => {
             if (data.type === "ready") {
               this.workerReady = true;
-              if (this.workerStarting && this.workerActive) this.worker.postMessage({ type: "start", seed: this.seed });
+              if (this.workerStarting && this.workerActive) this.worker.postMessage({ type: "start", seed: this.seed, generation: this.workerGeneration });
               this.workerStarting = false;
               return;
             }
+            if (!this.workerActive) return;
+            if (data.generation !== this.workerGeneration) return;
+            if (data.type === "error") { this.workerFailed(); return; }
             if (data.type !== "frame") return;
             this.inFlight = false;
             this.snapshot = data;
             this.dead = data.info[2] === 1;
             this.cost = data.frames ? data.mainMs / data.frames : this.cost;
             this.rate = data.frames;
-            this.metrics.gameFrames += data.frames;
-            this.metrics.simMs += data.simMs;
-            this.metrics.workerMs += data.mainMs;
-            this.metrics.ticks++;
             const drawAt = performance.now();
             this.draw();
-            const drawMs = performance.now() - drawAt;
-            this.metrics.mainMs += drawMs;
-            this.metrics.last = { frames: data.frames, simMs: data.simMs, workerMs: data.mainMs, mainMs: drawMs };
           };
-          this.worker.onerror = e => console.error("belief worker", e.message);
+          this.worker.onerror = e => { console.error("belief worker", e.message); this.workerFailed(); };
           const workerWasm = Uint8Array.from(atob(WASM_B64), c => c.charCodeAt(0));
-          this.worker.postMessage({ type: "init", wasm: workerWasm }, [workerWasm.buffer]);
+          try { this.worker.postMessage({ type: "init", wasm: workerWasm }, [workerWasm.buffer]); }
+          catch (e) { this.workerFailed(); return; }
         }
-        if (this.workerReady) this.worker.postMessage({ type: "start", seed: this.seed });
+        if (this.workerReady) this.worker.postMessage({ type: "start", seed: this.seed, generation: this.workerGeneration });
         else this.workerStarting = true;
         if (this.seedLabel) this.seedLabel.textContent = "seed " + this.seed;
         return;
@@ -267,8 +270,6 @@
       this.rate = 0;
       this.values = [];
       this.acc = 0;
-      this.metrics = { bot: this.kind, seed: this.seed, gameFrames: 0, simMs: 0, mainMs: 0, ticks: 0 };
-      this.root.__dodgeMetrics = this.metrics;
       this.banner.hidden = true;
       if (this.seedLabel) this.seedLabel.textContent = "seed " + this.seed;
       this.draw();
@@ -281,14 +282,26 @@
 
     stop() {
       if (this.workerBacked) {
+        this.workerGeneration++;
         this.workerActive = false;
         if (this.worker && this.workerReady) this.worker.postMessage({ type: "stop" });
         this.snapshot = null;
         this.inFlight = false;
+        this.releaseWorker();
         return;
       }
       if (wasm && this.id >= 0) wasm.sim_destroy(this.id);
       this.id = -1;
+    }
+
+    releaseWorker() { if (this.workerSlot) { this.workerSlot = false; activeWorkers = Math.max(0, activeWorkers - 1); } }
+    workerFailed() {
+      this.workerGeneration++;
+      this.workerActive = false;
+      if (this.worker) { this.worker.terminate(); this.worker = null; }
+      this.workerReady = false; this.workerStarting = false; this.inFlight = false;
+      this.releaseWorker(); this.workerBacked = false;
+      if (wasm) this.start();
     }
 
     currentSpeed() {
@@ -297,9 +310,10 @@
 
     tick(budget) {
       if (this.workerBacked) {
+        if (this.dead) { if (++this.deadFor > 150 && !this.group) this.restart(this.seed + 1); return; }
         if (!this.workerReady || this.inFlight || this.dead || !this.snapshot) return;
         this.inFlight = true;
-        this.worker.postMessage({ type: "tick", budget, speed: this.currentSpeed(), mask: 0 });
+        this.worker.postMessage({ type: "tick", generation: this.workerGeneration, budget, speed: this.currentSpeed(), mask: 0 });
         return;
       }
       if (this.id < 0) return;
@@ -339,21 +353,16 @@
         this.rate = n;
       }
       this.draw();
-      this.metrics.gameFrames += n;
-      this.metrics.simMs += simMs;
-      this.metrics.mainMs += performance.now() - t0;
-      this.metrics.ticks++;
-      this.metrics.last = { frames: n, simMs, mainMs: performance.now() - t0, drawMs: performance.now() - simDone };
     }
 
     draw() {
       if (this.workerBacked ? !this.snapshot : this.id < 0) return;
       // slice 0, the nearest future: what watch_ppo.py draws (field(...)[0, 0])
       const dims = this.workerBacked ? 0 : (this.overlayOn || this.compass ? wasm.sim_inspect(this.id, 0) : 0);
-      const w = Math.floor(dims / 65536);
-      const h = dims % 65536;
+      const w = this.workerBacked ? this.snapshot.width : Math.floor(dims / 65536);
+      const h = this.workerBacked ? this.snapshot.height : dims % 65536;
       if (this.overlayOn && w && h) {
-        this.setField(new Float32Array(wasm.memory.buffer, wasm.sim_overlay(this.id), w * h), h, w);
+        this.setField(this.workerBacked ? this.snapshot.field : new Float32Array(wasm.memory.buffer, wasm.sim_overlay(this.id), w * h), h, w);
       } else {
         this.setField(null);
       }
@@ -388,10 +397,10 @@
       const o = this.octx;
       o.clearRect(0, 0, 512, 512);
       const k = 512 / 128;
-      if (this.overlayOn && dims) {
-        const n = wasm.sim_path_len(this.id);
+      if (this.overlayOn && (this.workerBacked ? w && h : dims)) {
+        const n = this.workerBacked ? this.snapshot.path.length / 2 : wasm.sim_path_len(this.id);
         if (n > 1) {
-          const p = new Float32Array(wasm.memory.buffer, wasm.sim_path(this.id), 2 * n);
+          const p = this.workerBacked ? this.snapshot.path : new Float32Array(wasm.memory.buffer, wasm.sim_path(this.id), 2 * n);
           o.strokeStyle = "#fff1e8";
           o.lineWidth = 3;
           o.beginPath();
@@ -419,7 +428,7 @@
         const finite = Array.from(s).filter(Number.isFinite);
         const lo = Math.min(...finite);
         const hi = Math.max(...finite);
-        const chosen = new Float64Array(wasm.memory.buffer, wasm.sim_info(this.id), 16)[4];
+        const chosen = info[4];
         COMPASS.forEach((a, i) => {
           const cell = this.cells[i];
           let t = 0;
@@ -525,7 +534,6 @@
   }
 
   function frame() {
-    window.__DODGE_RAF_COUNT = (window.__DODGE_RAF_COUNT || 0) + 1;
     if (active && !document.hidden) {
       const budget = Math.max(4, 14 / active.all.length);
       for (const l of active.all) l.tick(budget);
