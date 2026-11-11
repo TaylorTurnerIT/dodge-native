@@ -4,6 +4,7 @@
    left. */
 (function () {
   const WASM_B64 = "/*WASM_B64*/";
+  const WORKER_B64 = "/*WORKER_B64*/";
   const BOTS = { human: 0, m0: 1, space: 2, cnn: 3, belief: 4, lookahead: 5, landscape: 6, random: 7 };
   // A deck may rename bots on screen by setting window.DODGE_NAMES before this script runs.
   const NAMES = Object.assign({ human: "You", m0: "M0", space: "SpaceBot", cnn: "CNN v2-best", belief: "Belief planner", lookahead: "Lookahead", landscape: "Landscape", random: "Random" }, window.DODGE_NAMES || {});
@@ -46,6 +47,9 @@
     const { instance } = await WebAssembly.instantiate(bin, {});
     wasm = instance.exports;
   })().catch(e => { console.error("wasm", e); });
+  const workerBytes = Uint8Array.from(atob(WORKER_B64), c => c.charCodeAt(0));
+  const workerUrl = URL.createObjectURL(new Blob([workerBytes], { type: "text/javascript" }));
+  const workerLimit = (navigator.hardwareConcurrency || 2) - 2;
 
   const keys = new Set();
   function humanMask() {
@@ -85,6 +89,13 @@
       this.group = group;
       this.kind = root.dataset.bot;
       this.bot = BOTS[this.kind];
+      this.workerBacked = this.kind === "belief" && workerLimit > 0;
+      this.worker = null;
+      this.workerReady = false;
+      this.workerStarting = false;
+      this.workerActive = false;
+      this.inFlight = false;
+      this.snapshot = null;
       this.seed = +(root.dataset.seed || (group && group.seed) || 1);
       this.speed = root.dataset.speed || "1";
       this.overlayOn = root.dataset.overlay === "on";
@@ -94,6 +105,8 @@
       this.min = root.dataset.hud === "min";
       this.id = -1;
       this.values = [];
+            this.metrics = { bot: this.kind, seed: this.seed, gameFrames: 0, simMs: 0, mainMs: 0, workerMs: 0, ticks: 0 };
+      this.root.__dodgeMetrics = this.metrics;
       this.build();
     }
 
@@ -201,8 +214,52 @@
     }
 
     start() {
-      if (!wasm) return;
       this.stop();
+      if (this.workerBacked) {
+        this.workerActive = true;
+        this.dead = false;
+        this.deadFor = 0;
+        this.cost = null;
+        this.rate = 0;
+        this.metrics = { bot: this.kind, seed: this.seed, gameFrames: 0, simMs: 0, mainMs: 0, workerMs: 0, ticks: 0 };
+        this.root.__dodgeMetrics = this.metrics;
+        this.inFlight = false;
+        this.snapshot = null;
+        if (!this.worker && workerLimit > 0) {
+          this.worker = new Worker(workerUrl);
+          this.worker.onmessage = ({ data }) => {
+            if (data.type === "ready") {
+              this.workerReady = true;
+              if (this.workerStarting && this.workerActive) this.worker.postMessage({ type: "start", seed: this.seed });
+              this.workerStarting = false;
+              return;
+            }
+            if (data.type !== "frame") return;
+            this.inFlight = false;
+            this.snapshot = data;
+            this.dead = data.info[2] === 1;
+            this.cost = data.frames ? data.mainMs / data.frames : this.cost;
+            this.rate = data.frames;
+            this.metrics.gameFrames += data.frames;
+            this.metrics.simMs += data.simMs;
+            this.metrics.workerMs += data.mainMs;
+            this.metrics.ticks++;
+            const drawAt = performance.now();
+            this.draw();
+            const drawMs = performance.now() - drawAt;
+            this.metrics.mainMs += drawMs;
+            this.metrics.last = { frames: data.frames, simMs: data.simMs, workerMs: data.mainMs, mainMs: drawMs };
+          };
+          this.worker.onerror = e => console.error("belief worker", e.message);
+          const workerWasm = Uint8Array.from(atob(WASM_B64), c => c.charCodeAt(0));
+          this.worker.postMessage({ type: "init", wasm: workerWasm }, [workerWasm.buffer]);
+        }
+        if (this.workerReady) this.worker.postMessage({ type: "start", seed: this.seed });
+        else this.workerStarting = true;
+        if (this.seedLabel) this.seedLabel.textContent = "seed " + this.seed;
+        return;
+      }
+      if (!wasm) return;
       this.id = wasm.sim_create(this.bot, this.seed >>> 0, 3, 1, 1);
       this.dead = false;
       this.deadFor = 0;
@@ -210,6 +267,8 @@
       this.rate = 0;
       this.values = [];
       this.acc = 0;
+      this.metrics = { bot: this.kind, seed: this.seed, gameFrames: 0, simMs: 0, mainMs: 0, ticks: 0 };
+      this.root.__dodgeMetrics = this.metrics;
       this.banner.hidden = true;
       if (this.seedLabel) this.seedLabel.textContent = "seed " + this.seed;
       this.draw();
@@ -221,6 +280,13 @@
     }
 
     stop() {
+      if (this.workerBacked) {
+        this.workerActive = false;
+        if (this.worker && this.workerReady) this.worker.postMessage({ type: "stop" });
+        this.snapshot = null;
+        this.inFlight = false;
+        return;
+      }
       if (wasm && this.id >= 0) wasm.sim_destroy(this.id);
       this.id = -1;
     }
@@ -230,6 +296,12 @@
     }
 
     tick(budget) {
+      if (this.workerBacked) {
+        if (!this.workerReady || this.inFlight || this.dead || !this.snapshot) return;
+        this.inFlight = true;
+        this.worker.postMessage({ type: "tick", budget, speed: this.currentSpeed(), mask: 0 });
+        return;
+      }
       if (this.id < 0) return;
       if (this.dead) {
         if (++this.deadFor > 150 && !this.group) this.restart(this.seed + 1);
@@ -239,32 +311,45 @@
       const mask = this.kind === "human" ? humanMask() : 0;
       const t0 = performance.now();
       let n = 0;
+      let simMs = 0;
       if (speed === "max") {
         while (performance.now() - t0 < budget) {
           n++;
-          if (wasm.sim_step(this.id, mask, 1)) { this.dead = true; break; }
+          const stepAt = performance.now();
+          const dead = wasm.sim_step(this.id, mask, 1);
+          simMs += performance.now() - stepAt;
+          if (dead) { this.dead = true; break; }
         }
       } else {
         this.acc += +speed;
         while (this.acc >= 1) {
           this.acc -= 1;
           n++;
-          if (wasm.sim_step(this.id, mask, 1)) { this.dead = true; break; }
+          const stepAt = performance.now();
+          const dead = wasm.sim_step(this.id, mask, 1);
+          simMs += performance.now() - stepAt;
+          if (dead) { this.dead = true; break; }
           if (performance.now() - t0 > budget) { this.acc = 0; break; }
         }
       }
+      const simDone = performance.now();
       if (n > 0) {
         const per = (performance.now() - t0) / n;
         this.cost = this.cost == null ? per : this.cost * 0.9 + per * 0.1;
         this.rate = n;
       }
       this.draw();
+      this.metrics.gameFrames += n;
+      this.metrics.simMs += simMs;
+      this.metrics.mainMs += performance.now() - t0;
+      this.metrics.ticks++;
+      this.metrics.last = { frames: n, simMs, mainMs: performance.now() - t0, drawMs: performance.now() - simDone };
     }
 
     draw() {
-      if (this.id < 0) return;
+      if (this.workerBacked ? !this.snapshot : this.id < 0) return;
       // slice 0, the nearest future: what watch_ppo.py draws (field(...)[0, 0])
-      const dims = this.overlayOn || this.compass ? wasm.sim_inspect(this.id, 0) : 0;
+      const dims = this.workerBacked ? 0 : (this.overlayOn || this.compass ? wasm.sim_inspect(this.id, 0) : 0);
       const w = Math.floor(dims / 65536);
       const h = dims % 65536;
       if (this.overlayOn && w && h) {
@@ -273,7 +358,7 @@
         this.setField(null);
       }
       // GameWindow.compose: palette lookup, then the field on background pixels
-      const px = new Uint8Array(wasm.memory.buffer, wasm.sim_render(this.id), 16384);
+      const px = this.workerBacked ? this.snapshot.pixels : new Uint8Array(wasm.memory.buffer, wasm.sim_render(this.id), 16384);
       const d = this.img.data;
       const field = this.fieldRgb;
       for (let i = 0; i < 16384; i++) {
@@ -291,7 +376,7 @@
       }
       this.ctx.putImageData(this.img, 0, 0);
       // views are re-made after every call: memory can grow and detach them
-      const info = new Float64Array(wasm.memory.buffer, wasm.sim_info(this.id), 16);
+      const info = this.workerBacked ? this.snapshot.info : new Float64Array(wasm.memory.buffer, wasm.sim_info(this.id), 16);
       const frames = info[0];
       this.hudFrames.innerHTML = `<b>${frames.toLocaleString("en-US")}</b> frames · ${(frames / 60).toFixed(1)} s`;
       if (this.hudScore) this.hudScore.innerHTML = `score <b>${Math.round(info[1])}</b>`;
@@ -317,7 +402,7 @@
           }
           o.stroke();
         }
-        const info2 = new Float64Array(wasm.memory.buffer, wasm.sim_info(this.id), 16);
+        const info2 = this.workerBacked ? info : new Float64Array(wasm.memory.buffer, wasm.sim_info(this.id), 16);
         if ((this.kind === "lookahead" || this.kind === "landscape") && info2[10]) {
           const gx = info2[10] * k;
           const gy = info2[11] * k;
@@ -330,7 +415,7 @@
         }
       }
       if (this.compass) {
-        const s = new Float32Array(wasm.memory.buffer, wasm.sim_scores(this.id), 9);
+        const s = this.workerBacked ? this.snapshot.scores : new Float32Array(wasm.memory.buffer, wasm.sim_scores(this.id), 9);
         const finite = Array.from(s).filter(Number.isFinite);
         const lo = Math.min(...finite);
         const hi = Math.max(...finite);
@@ -347,7 +432,7 @@
         });
       }
       if (this.spark) {
-        const val = new Float64Array(wasm.memory.buffer, wasm.sim_info(this.id), 16)[5];
+        const val = (this.workerBacked ? info : new Float64Array(wasm.memory.buffer, wasm.sim_info(this.id), 16))[5];
         if (Number.isFinite(val)) {
           this.values.push(val);
           if (this.values.length > 300) this.values.shift();
@@ -372,7 +457,7 @@
         }
       }
       if (this.dead) {
-        const cause = CAUSES[new Float64Array(wasm.memory.buffer, wasm.sim_info(this.id), 16)[3]] || "unknown";
+        const cause = CAUSES[(this.workerBacked ? info : new Float64Array(wasm.memory.buffer, wasm.sim_info(this.id), 16))[3]] || "unknown";
         this.banner.hidden = false;
         this.banner.textContent = `Hit by ${cause} at ${frames.toLocaleString("en-US")} frames` + (this.group ? "" : " · next seed shortly");
       }
@@ -440,6 +525,7 @@
   }
 
   function frame() {
+    window.__DODGE_RAF_COUNT = (window.__DODGE_RAF_COUNT || 0) + 1;
     if (active && !document.hidden) {
       const budget = Math.max(4, 14 / active.all.length);
       for (const l of active.all) l.tick(budget);
