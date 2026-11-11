@@ -771,6 +771,11 @@ impl NativeGame {
         self.settings.difficulty
     }
 
+    /// The difficulty mode the player chose (1 to 3). It is a visible game setting.
+    pub const fn difficulty(&self) -> u8 {
+        self.settings.difficulty
+    }
+
     pub const fn survival_frames(&self) -> u32 {
         self.survival_frames
     }
