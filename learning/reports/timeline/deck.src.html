@@ -117,6 +117,12 @@ svg .val { font-family: var(--font-mono); font-size: 14px; }
 .lesson h3 { font-size: 25px; }
 .lesson p { font-size: 20px; color: var(--muted); margin-top: 3px; }
 
+.lessons.compact { gap: 11px; }
+.lessons.compact .lesson { grid-template-columns: 34px 1fr; gap: 10px; }
+.lessons.compact .lesson::before { font-size: 20px; }
+.lessons.compact .lesson h3 { font-size: 20px; }
+.lessons.compact .lesson p { font-size: 16px; margin-top: 1px; }
+
 .callout { border-left: 4px solid var(--danger); padding: 4px 0 4px 18px; display: grid; gap: 6px; }
 .callout code { font-family: var(--font-mono); font-size: 18px; color: var(--peach); }
 
@@ -144,7 +150,10 @@ svg .val { font-family: var(--font-mono); font-size: 14px; }
 
 /* live games */
 .live { display: grid; gap: 10px; align-content: start; min-width: 0; }
-.live-screen { position: relative; width: 100%; aspect-ratio: 1; max-width: 100%; background: #000; border: 3px solid var(--line); }
+.live-screen { position: relative; width: 100%; aspect-ratio: 1; max-width: min(100%, 390px); background: #000; border: 3px solid var(--line); }
+.live-row.n2 .live-screen { max-width: min(100%, 370px); }
+section[data-state="title"] .live-screen { max-width: min(100%, 470px); }
+.live-row.n4 .live-screen { max-width: min(100%, 270px); }
 .live-screen canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .live-screen canvas.game { image-rendering: pixelated; }
 .live-banner { position: absolute; left: 0; right: 0; bottom: 0; padding: 8px 10px; background: rgba(13, 18, 38, 0.86); font-size: 15px; color: var(--fg); font-family: var(--font-mono); }
@@ -167,8 +176,66 @@ svg .val { font-family: var(--font-mono); font-size: 14px; }
 .live-row.n4 { grid-template-columns: repeat(4, 1fr); gap: 16px; }
 .group-ctl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .spark { width: 100%; height: 46px; display: block; }
+.acts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.acts div { border-top: 3px solid var(--line); padding-top: 6px; font-size: 15px; line-height: 1.35; color: var(--muted); }
+.acts b { display: block; font-family: var(--font-display); font-weight: 400; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--peach); margin-bottom: 2px; }
+.eyebrow .act { color: var(--peach); }
+.eyebrow .act::after { content: "·"; margin-left: 14px; color: var(--muted); }
 .kbd { font-family: var(--font-mono); font-size: 14px; border: 1px solid var(--line); padding: 1px 6px; color: var(--peach); }
 table.data.tight td, table.data.tight th { padding: 5px 8px; font-size: 16px; }
+
+/* model intro: left half = how it works and how well, right half = it plays.
+   --c on .model sets the owner's colour (l-c Lucas, t-c Taylor). */
+.model { display: grid; grid-template-columns: 1fr 1fr; gap: 44px; height: 100%; }
+.model > * { min-width: 0; }
+.model-info { display: grid; grid-template-rows: auto auto auto 1fr auto; gap: 15px; align-content: start; }
+.model .lede { font-size: 20px; color: var(--muted); max-width: none; }
+.model .node ul { font-size: 15px; gap: 2px; }
+.model .bias-cols .node { padding: 9px 12px; }
+.pipe.mini .node { padding: 8px 10px; gap: 4px; }
+.pipe.mini .node h4 { font-size: 13px; }
+.pipe.mini .node p { font-size: 14.5px; line-height: 1.25; }
+.pipe.mini .ar { flex-basis: 22px; font-size: 18px; }
+
+.bias { display: grid; gap: 10px; align-content: start; }
+.spectrum { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; font-size: 14px; color: var(--muted); }
+.spectrum > span { display: inline-flex; align-items: center; gap: 8px; }
+.spectrum .sw { width: 18px; height: 10px; }
+.spectrum-track { position: relative; height: 18px; margin: 0 7px; }
+.spectrum-track::before { content: ""; position: absolute; left: 0; right: 0; top: 8px; height: 2px; background: var(--line); }
+.spectrum-track i { position: absolute; top: 4px; width: 2px; height: 10px; margin-left: -1px; background: var(--line); }
+.spectrum-track b { position: absolute; left: var(--pos); top: 2px; width: 14px; height: 14px; margin-left: -7px; background: var(--c); transform: rotate(45deg); }
+.bias-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+.perf { display: grid; gap: 10px; }
+.perf-row { display: flex; align-items: baseline; gap: 16px; }
+.perf-big { font-size: 64px; font-weight: 600; line-height: 1; color: var(--peach); }
+.perf-what { display: grid; gap: 2px; font-size: 18px; }
+.perf-what span { font-size: 15px; color: var(--muted); }
+.scale { display: grid; gap: 4px; }
+.scale-track { position: relative; height: 14px; background: var(--panel); border: 1px solid var(--line); margin-bottom: 18px; }
+.scale-track b { position: absolute; left: 0; top: 0; bottom: 0; width: var(--p); background: var(--c); }
+.scale-track i { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--fg); }
+.scale-track i span { position: absolute; top: 24px; left: 50%; transform: translateX(-50%); font-family: var(--font-mono); font-style: normal; font-size: 12px; color: var(--muted); white-space: nowrap; }
+.scale-track i:first-child span, .scale-track b + i span { transform: none; left: -1px; }
+.scale-axis { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.perf-cond { display: flex; flex-wrap: wrap; gap: 6px; }
+.perf-cond .cond { margin: 0; }
+
+.model-live { display: grid; justify-items: end; align-content: start; }
+.model-live .live { width: 100%; max-width: 540px; grid-template-columns: 1fr auto; column-gap: 16px; }
+.model-live .live > .live-hud, .model-live .live > .live-screen { grid-column: 1 / -1; }
+.model-live .live-screen { box-sizing: border-box; }
+.model-live .live > .live-ctl { align-self: start; }
+/* the CNN adds a value trace beside its compass: give controls and trace their own rows */
+.model-live .live:has(.spark) { max-width: 470px; row-gap: 8px; }
+.model-live .live:has(.spark) > * { grid-column: 1 / -1; }
+.model h2 .mk { color: var(--c); vertical-align: 6px; }
+.perf.none .perf-big { color: var(--muted); }
+.model-off { display: grid; gap: 10px; width: 100%; max-width: 540px; }
+.model-off .screen { aspect-ratio: 1; box-sizing: border-box; border: 3px dashed var(--line); background: repeating-linear-gradient(0deg, #000 0 3px, #070b1c 3px 4px); display: grid; place-content: center; gap: 16px; padding: 56px; text-align: center; }
+.model-off .screen strong { font-family: var(--font-display); font-weight: 400; font-size: 24px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--c); }
+.model-off .screen p { font-size: 19px; color: var(--muted); }
 
 @media (prefers-reduced-motion: reduce) { .reveal .slides section { transition: none !important; } }
 </style>
@@ -190,20 +257,20 @@ table.data.tight td, table.data.tight th { padding: 5px 8px; font-size: 16px; }
     </div>
     <div class="live l-c" data-bot="space" data-seed="2" data-overlay="off" data-controls="none" data-hud="min" data-speed="1" aria-label="SpaceBot playing Dodge live"></div>
   </div>
-  <aside class="notes">Dodge is Artridge's PICO-8 cartridge (CC BY-NC-SA). Two parallel efforts, merged into one repository (dodge-native) in November. Taylor's path ran from open-loop genetic search (Aug 16) through waypoint DQN, image DDQN and a latent world model to native entity-transformer PPO. The game on the right is not a video: it is dodge-native's Rust engine compiled to WebAssembly, played live by SpaceBot.</aside>
+  <aside class="notes">Dodge is Artridge's PICO-8 cartridge (CC BY-NC-SA). Two parallel efforts, merged into one repository (dodge-native) in November. Taylor's path ran from open-loop genetic search (Aug 17) through waypoint DQN, image DDQN and a latent world model to native entity-transformer PPO. The game on the right is not a video: it is dodge-native's Rust engine compiled to WebAssembly, played live by SpaceBot.</aside>
 </section>
 
 <!-- 2 ─ Reading the numbers -->
 <section>
   <div class="frame">
     <div class="head">
-      <div class="eyebrow"><span class="who both">Read first</span></div>
+      <div class="eyebrow"><span class="who both">Read first</span><span class="act">Act I</span></div>
       <h2>How to read the numbers</h2>
     </div>
     <div class="split" style="grid-template-columns: 1.1fr 1fr;">
       <div class="keys">
         <div class="key"><span class="big">1 frame</span><p>One game update at 60 fps. Every result is <b>frames survived</b>.</p></div>
-        <div class="key"><span class="big">18,000</span><p>The usual cap: 5 minutes of play. A capped mean is a lower bound. Some early runs capped at 256 or 2,000.</p></div>
+        <div class="key"><span class="big">18,000</span><p>The usual cap (5 minutes of play). A capped mean is a lower bound. Some early runs capped at 256 or 2,000.</p></div>
         <div class="key"><span class="big">D2 · D3</span><p>Cartridge difficulty: normal and hard.</p></div>
         <div class="key"><span class="big">Q1</span><p>The worst quarter of games. It shows how often a policy dies early.</p></div>
       </div>
@@ -219,304 +286,347 @@ table.data.tight td, table.data.tight th { padding: 5px 8px; font-size: 16px; }
           <div class="eyebrow">Engines</div>
           <p style="font-size:19px"><span class="cond" style="margin:0">cartridge</span> Python runtime running the cartridge's own Lua (Lucas, Aug–Oct)</p>
           <p style="font-size:19px"><span class="cond" style="margin:0">rl-learning</span> Taylor's Python game, then a native Rust boundary from Sep 1</p>
-          <p style="font-size:19px"><span class="cond" style="margin:0">dodge-ai-3</span> Taylor's Rust surface from Sep 11; Lucas trained on it Oct 30 – Nov 5. Easier: blasts killed enemies.</p>
-          <p style="font-size:19px"><span class="cond" style="margin:0">dodge-native</span> Taylor's Rust port, matched to the cartridge</p>
+          <p style="font-size:19px"><span class="cond" style="margin:0">dodge-ai-3</span> Taylor's Rust engine from Sep 11; Lucas trained on it Oct 30 – Nov 5. Easier: no <code class="num">p != -1</code> check, so blasts killed enemies.</p>
+          <p style="font-size:19px"><span class="cond" style="margin:0">dodge-native</span> Taylor's Rust port, matched to the cartridge on Nov 4. The shared bench.</p>
         </div>
       </div>
     </div>
   </div>
-  <aside class="notes">Numbers from different engines, difficulties or seed sets are not directly comparable. Each result carries a tag with its conditions. The last section puts everything on one engine.</aside>
+  <aside class="notes">Numbers from different engines, difficulties or seed sets are not directly comparable. Each result carries a tag with its conditions. The cartridge excludes blasts from enemy-vs-enemy collision; dodge-ai-3 lacked that check and dodge-native added it on Nov 4. The last act puts everything on one engine.</aside>
 </section>
 
 <!-- 3 ─ Overview timeline -->
 <section>
   <div class="frame" style="gap:14px">
     <div class="head">
-      <div class="eyebrow"><span class="who both">Overview</span><span>The axis breaks between Oct 1 and Oct 22</span></div>
+      <div class="eyebrow"><span class="who both">Overview</span><span class="act">Act I</span><span>The axis breaks between Oct 1 and Oct 22</span></div>
       <h2>Two projects, one game</h2>
     </div>
-    <div class="chart" id="timeline" role="img" aria-label="Timeline of all policies by person and date"></div>
-  </div>
-  <aside class="notes">Top lane is Lucas's DodgeAI, bottom lane is Taylor's work across rl-learning, dodge-ai-3 and dodge-native. Taylor's August and September went through evolution, imitation, DQN and a world model; most of the action after that is in the two weeks from Oct 24.</aside>
-</section>
-
-<!-- 4 ─ Lucas I -->
-<section>
-  <div class="frame">
-    <div class="head">
-      <div class="eyebrow"><span class="who lucas">Lucas</span><span>Aug 11 – 13</span></div>
-      <h2>A game in Python, then a run of architectures</h2>
-    </div>
-    <div class="entries two">
-      <div class="entry"><div class="when">Aug 11</div><div class="body">
-        <h3><span class="mk infra l"></span>Python PICO-8 runtime</h3>
-        <p>The cartridge's own Lua runs headless under LuaJIT. Playable the next day.</p></div></div>
-      <div class="entry"><div class="when">Aug 13</div><div class="body">
-        <h3><span class="mk hand l"></span>Gradient field bot</h3>
-        <p>Analytic danger map; simulate the 9 moves, take the safest.</p>
-        <p class="res"><b>126</b> frames: idles at spawn and sets off the anti-camping guard <span class="cond">cartridge · D3 · 128 seeds</span></p></div></div>
-      <div class="entry"><div class="when">Aug 12</div><div class="body">
-        <h3><span class="mk learned l"></span>MLP + PPO</h3>
-        <p>First training env: 4, then 8 parallel games, tunable reward weights.</p></div></div>
-      <div class="entry"><div class="when">Aug 13</div><div class="body">
-        <h3><span class="mk learned l"></span>field-cnn</h3>
-        <p>Learn a danger field over the arena instead of an action head; the player follows it.</p></div></div>
-      <div class="entry"><div class="when">Aug 13</div><div class="body">
-        <h3><span class="mk learned l"></span>Hybrid CNN</h3>
-        <p>Grid with a player channel, plus nearest-threat geometry and closing speed.</p></div></div>
-      <div class="entry"><div class="when">Aug 13</div><div class="body">
-        <h3><span class="mk learned l"></span>VelocityFlow</h3>
-        <p>A velocity raster replaces the frame stack. Every later CNN builds on it.</p></div></div>
-    </div>
-  </div>
-  <aside class="notes">21 commits on Aug 13 alone. No evaluation was saved for the MLP or the hybrid CNN; their checkpoints (mlp.zip, hybrid-cnn.zip) still exist.</aside>
-</section>
-
-<!-- 5 ─ Lucas II -->
-<section>
-  <div class="frame">
-    <div class="head">
-      <div class="eyebrow"><span class="who lucas">Lucas</span><span>Aug 23 – Oct 29</span></div>
-      <h2>velocity-flow-v2</h2>
-    </div>
-    <div class="split" style="grid-template-columns: 0.85fr 1.15fr;">
-      <div class="entries">
-        <div class="entry"><div class="when">Aug 23</div><div class="body">
-          <h3><span class="mk learned l"></span>velocity-flow-v2</h3>
-          <p>A critic that can see the grid, a cheaper conv trunk, and training lives with no frame cap.</p></div></div>
-        <div class="entry"><div class="when">Sep 25</div><div class="body">
-          <h3><span class="mk learned l"></span>Shared checkpoints</h3>
-          <p>can-reach-100 (5,691 updates), v2 (8,855), v2-latest (21,051).</p></div></div>
-        <div class="entry"><div class="when">Oct 29</div><div class="body">
-          <h3><span class="mk learned l"></span>Fresh-seed evaluation</h3>
-          <p class="res">Deciding every frame instead of every 4 added <b>1,805</b> frames of mean.</p></div></div>
-      </div>
-      <div style="display:grid; gap:10px;">
-        <table class="data">
-          <thead><tr><th>Policy</th><th>Games</th><th>Q1</th><th>Median</th><th>Mean</th><th>Best</th></tr></thead>
-          <tbody>
-            <tr class="hi"><td>v2-latest, 1 frame</td><td>512</td><td>1,180</td><td>3,600</td><td>3,922</td><td>15,235</td></tr>
-            <tr><td>v2-latest, 4 frames</td><td>512</td><td>601</td><td>1,790</td><td>2,118</td><td>8,668</td></tr>
-            <tr><td>can-reach-100</td><td>256</td><td>824</td><td>3,292</td><td>3,208</td><td>9,709</td></tr>
-            <tr><td>Random</td><td>256</td><td>110</td><td>188</td><td>196</td><td>541</td></tr>
-            <tr><td>Gradient field</td><td>128</td><td>119</td><td>119</td><td>126</td><td>259</td></tr>
-          </tbody>
-        </table>
-        <p class="muted" style="font-size:15px">Argmax actions, fresh seeds. Q1 is the mean of the worst 25% of games. <span class="cond">cartridge · D3</span></p>
+    <div style="display:grid; gap:10px; align-content:start">
+      <div class="chart" id="timeline" role="img" aria-label="Timeline of all policies by person and date"></div>
+      <div class="acts">
+        <div><b>Act II</b>Weights do everything: state, pixels or tokens straight to 9 buttons</div>
+        <div><b>Act III</b>The player's own physics moves into code; weights draw a map or pick a place</div>
+        <div><b>Act IV</b>Threat physics moves into code too: heuristics and search</div>
+        <div><b>Act V</b>Teach search back to a network, then one engine for everyone</div>
       </div>
     </div>
   </div>
-  <aside class="notes">These numbers ran the real cartridge Lua, so they are the most faithful old results. v2-latest: no game reached the cap; longest 15,235 frames.</aside>
+  <aside class="notes">Top lane is Lucas's DodgeAI, bottom lane is Taylor's work across rl-learning, dodge-ai-3 and dodge-native. The rest of the deck is ordered by what each approach moved out of the weights and into fixed code, not by date or by person; each slide's eyebrow says which act it belongs to.</aside>
 </section>
 
-<!-- Architecture: velocity-flow-v2 -->
-<section>
-  <div class="arch">
-    <div class="head">
-      <div class="eyebrow"><span class="who lucas">Lucas</span><span>How it works</span></div>
-      <h2>velocity-flow-v2: a learned danger map</h2>
-    </div>
-    <p class="lede">The network never picks a move. It draws where danger will be; fixed arithmetic turns that map into a move.</p>
-    <div class="dia l-c">
-      <div class="node"><h4>Observation</h4>
-        <p>One frame on a 32×32 grid of 4px cells.</p>
-        <p class="dim">11 channels: 8 object types, player, x and y velocity</p>
-        <p class="dim">+ 10 numbers: player position, velocity, nearest-threat geometry</p></div>
-      <div class="ar">→</div>
-      <div class="node"><h4>Conv trunk</h4>
-        <p>3×3 conv at 32×32, then three at 16×16, one dilated to reach across the arena. A 4×4 pooled summary is blended back so every cell sees the whole arena.</p>
-        <p class="dim">11 → 32 → 64 → 64 → 32 channels · ~80k weights</p></div>
-      <div class="ar">→</div>
-      <div class="node"><h4>Danger field</h4>
-        <p>A 1×1 conv gives six danger maps, one per moment in the future.</p>
-        <p class="dim">+4, 12, 24, 48, 72, 108 frames</p></div>
-      <div></div><div></div><div class="ar">↓</div><div></div><div class="ar">↓</div>
-      <div class="node note"><p class="muted" style="font-size:16px">Because the output is a picture, the field can be drawn behind the game while you watch it play.</p></div>
-      <div></div>
-      <div class="node"><h4>Critic</h4>
-        <p>Trunk channel means, an 8×4×4 coarse map of the arena, and the player numbers go into a small MLP.</p>
-        <p class="dim">32 + 128 + 10 → 64 → 64 → value</p></div>
-      <div></div>
-      <div class="node fixed"><h4>Controller</h4>
-        <p>For each of the 9 moves, look up where it takes the player at each future frame and read that frame's map there. Sum the readings, then standardise across moves.</p>
-        <p class="dim">× learned sharpness → 9 action logits</p></div>
-    </div>
-    <div class="legend"><span><i class="sw"></i>Learned weights</span><span><i class="sw dash"></i>Fixed rule</span><span>PPO, γ 0.997, one decision per frame</span></div>
-  </div>
-  <aside class="notes">Lineage: MLP → hybrid CNN (87% of its weights in one flatten layer, which also died) → field-cnn (fully convolutional field) → VelocityFlow (velocity raster instead of a frame stack) → v2 (critic gets a coarse map; trunk middle at 16×16 for speed).</aside>
-</section>
-
-<!-- Live: velocity-flow-v2 -->
+<!-- Taylor A ─ Aug 17 – Sep 13 -->
 <section>
   <div class="frame">
     <div class="head">
-      <div class="eyebrow"><span class="who lucas">Lucas</span><span>Live · v2-best, update 24,000</span></div>
-      <h2>Watch the danger field think</h2>
-    </div>
-    <div class="split" style="grid-template-columns: 0.95fr 1.05fr; gap: 36px;">
-      <div class="live l-c" data-bot="cnn" data-seed="2" data-overlay="on" data-speed="1"></div>
-      <div class="side">
-        <p>Behind the action is the network's own danger field: slice 0 of six, its nearest-future forecast, on the 32 × 32 grid it actually predicts. Yellow is dangerous, purple is safe.</p>
-        <p>The compass is π(a | s) over the nine moves, and the trace is the critic's V(s). The action is the argmax, recomputed every frame.</p>
-        <p class="small">The same weights as the released checkpoint, re-implemented in Rust and compiled to WebAssembly. Against PyTorch on 400 recorded frames: largest log-probability error 1.7e-5, value error 1.9e-6, 400 of 400 actions equal. Full games on seeds 1–3 end at exactly 5,548, 10,504 and 1,506 frames in both. Every number here is computed on this laptop as you watch.</p>
-      </div>
-    </div>
-  </div>
-  <aside class="notes">Try seed 3 (dies at 1,506) against seed 2 (10,504). The field is drawn exactly as the training dashboard's watch window draws it (dodge/display.py): viridis on the background pixels only, colour range an exponential average of min / mean / max with the mean at mid-ramp, nearest-neighbour upscaling. The value trace dips before deaths the policy cannot avoid.</aside>
-</section>
-
-<!-- Taylor A ─ Aug 16 – 28 -->
-<section>
-  <div class="frame">
-    <div class="head">
-      <div class="eyebrow"><span class="who taylor">Taylor</span><span>Aug 16 – 28 · rl-learning</span></div>
-      <h2>Evolution first, then imitation and PPO</h2>
+      <div class="eyebrow"><span class="who taylor">Taylor</span><span class="act">Act II</span><span>Aug 17 – Sep 13 · rl-learning, dodge-ai-3</span></div>
+      <h2>Open loop, collapse and pixels</h2>
     </div>
     <div class="split" style="grid-template-columns: 1fr 1fr;">
       <div class="entries" style="gap:14px">
-        <div class="entry"><div class="when">Aug 16</div><div class="body">
-          <h3><span class="mk search t"></span>Genetic search</h3>
-          <p>The genome is a list of moves in 8 directions, each held 500 ms. Fitness: frames survived on seed 42. No network, no view of the game.</p>
-          <p class="res">Best saved run <b>1,822</b> frames, score 19.5 <span class="cond">seed 42 only</span></p></div></div>
-        <div class="entry"><div class="when">Aug 21</div><div class="body">
-          <h3><span class="mk search t"></span>NEAT</h3>
-          <p>Evolved networks that see game state; seed banks, parallel evaluation, resumable checkpoints.</p></div></div>
-        <div class="entry"><div class="when">Aug 23</div><div class="body">
-          <h3><span class="mk learned t"></span>Behaviour cloning</h3>
-          <p>A dataset of genomes and seed champions trains an MLP.</p></div></div>
+        <div class="entry"><div class="when">Aug 17</div><div class="body">
+          <h3><span class="mk search t"></span>Genetic search, no observation</h3>
+          <p>Evolve a fixed list of moves that survives one seed. It never looks at the screen. NEAT and behaviour cloning were built too, with no results saved.</p>
+          <p class="res">It memorised one seed and fell apart on replay</p></div></div>
         <div class="entry"><div class="when">Aug 28</div><div class="body">
-          <h3><span class="mk learned t"></span>Board PPO</h3>
-          <p>A CNN actor-critic learning straight from the board, with no cloned weights.</p>
-          <p class="res">50 of 1,000 planned updates, validation mean <b>181.2</b>; then the disk filled <span class="cond">10 seeds</span></p></div></div>
+          <h3><span class="mk learned t"></span>Board-CNN PPO</h3>
+          <p>A grid of object properties, through a CNN, straight to the 9 moves.</p>
+          <p class="res">It learned to stand still, every frame</p></div></div>
+        <div class="entry"><div class="when">Sep 5–13</div><div class="body">
+          <h3><span class="mk learned t"></span>Pixel DQN and image DDQN</h3>
+          <p>Raw screen frames straight to the 9 moves.</p>
+          <p class="res"><b>120–143</b> frames. The image DDQN's best, 254, is mostly the 256-frame cap.</p></div></div>
       </div>
       <figure class="chart" style="margin:0">
-        <div id="gafit" role="img" aria-label="Recorded fitness versus replayed survival for seven August 20 genetic-search winners"></div>
-        <figcaption>Seven Aug 20 winners. Outline: the fitness recorded during evolution. Filled: the same winner's saved seed-42 replay. None replayed its fitness; the cause is unverified.</figcaption>
+        <div id="galoop" role="img" aria-label="Genetic search loop: a population of move lists plays seed 42, the longest survivors are kept and mutated into the next generation"></div>
+        <figcaption>Genetic search. Each genome is a list of moves, each held for half a second. The best survivors are kept, mutated, and played again.</figcaption>
       </figure>
     </div>
   </div>
-  <aside class="notes">rl-learning's earlier generic genetic loop (97aff72) ran on a Wumpus-style environment; the Dodge loop came Aug 17–20 (e013820, 6514028, b7dcfaf, 645135f). NEAT environment milestone 9c95817; dataset and behaviour cloning 50af53c, f6dd35e, b315397; board PPO 95344d0. The PPO log ends with "No space left on device". The saved artifacts show training ran; they don't say who launched it.</aside>
+  <aside class="notes">Genetic search began Aug 17 (an Aug 16 GA commit is a Wumpus GA, not Dodge): 100 genomes of 8-direction moves, 5 elites, 5% mutation, seed 42 only. Aug 20 winners recorded up to 1,361 frames of fitness, but replaying the same seed turned 1,361 into 194; the cause was never recorded. NEAT and behaviour cloning exist in the code with no saved results. Board PPO (Aug 28) reached 181 frames on 10 validation seeds before the run stopped; on the native engine (Sep 3–4) it collapsed onto the neutral move at 188. Pixel DQN (Sep 5): 120 frames on holdout. Nature-style DDQN (Sep 9): 143 on its inner seeds. dodge-ai-3's image DDQN (Sep 11–13): reward is survival frames, and its best, 254 frames, had 5 of 8 episodes at the 256-frame cap on one training seed, so it shows the cap, not generalisation.</aside>
 </section>
 
-<!-- Architecture: genetic search -->
+<!-- Intro: entity transformer -->
 <section>
-  <div class="arch">
-    <div class="head">
-      <div class="eyebrow"><span class="who taylor">Taylor</span><span>Aug 16 – 20 · How it works</span></div>
-      <h2>Genetic search: a list of moves, played blind</h2>
-    </div>
-    <p class="lede">Open loop: the genome never looks at the screen. Evolution keeps the move lists that last longest on one seed.</p>
-    <div style="display:grid; gap:22px; align-content:start">
-      <div class="pipe t-c">
-        <div class="node"><h4>Genome</h4>
-          <p>Fixed startup commands, then a list of moves in 8 directions.</p>
-          <p class="dim">each move held 500 ms</p></div>
-        <div class="ar">→</div>
-        <div class="node fixed"><h4>Play</h4>
-          <p>Run headless on seed 42 until death.</p>
-          <p class="dim">fitness = frames survived</p></div>
-        <div class="ar">→</div>
-        <div class="node fixed"><h4>Select</h4>
-          <p>Keep the ranked elites; save and replay winners.</p></div>
-        <div class="ar">→</div>
-        <div class="node fixed"><h4>Mutate</h4>
-          <p>Each move mutates on its own; one random move is appended every generation.</p></div>
+  <div class="model t-c">
+    <div class="model-info">
+      <div class="head">
+        <div class="eyebrow"><span class="who taylor">Taylor</span><span class="act">Act II</span><span>Oct 24 – Nov 2 · dodge-native</span></div>
+        <h2><span class="mk learned"></span>&nbsp;The entity transformer</h2>
       </div>
-      <table class="data tight">
-        <thead><tr><th>Revision</th><th>Start moves</th><th>Population</th><th>Elites</th><th>Mutation</th><th>Planned epochs</th></tr></thead>
-        <tbody>
-          <tr><td>Aug 19 · e013820</td><td>3</td><td>10</td><td>1</td><td>0.10</td><td>2</td></tr>
-          <tr><td>Aug 20 · b7dcfaf</td><td>20</td><td>15</td><td>1</td><td>0.20</td><td>5</td></tr>
-          <tr style="color:var(--taylor)"><td>Aug 20 · 645135f</td><td>30</td><td>100</td><td>5</td><td>0.05</td><td>100</td></tr>
-        </tbody>
-      </table>
+      <p class="lede">Every object goes in as exact numbers; attention weighs them against each other, and the move comes straight out of the weights.</p>
+      <div class="bias">
+        <div class="pipe-label">Architecture</div>
+        <div class="pipe mini">
+          <div class="node fixed"><h4>Objects</h4><p>Player + up to 80 objects</p></div>
+          <div class="ar">→</div>
+          <div class="node"><h4>Transformer</h4><p>2 attention layers</p></div>
+          <div class="ar">→</div>
+          <div class="node"><h4>Heads</h4><p>A move and a value</p></div>
+          <div class="ar">→</div>
+          <div class="node fixed"><h4>Output</h4><p>1 of 9 moves</p></div>
+        </div>
+      </div>
+      <div class="bias">
+        <div class="pipe-label">Inductive bias</div>
+        <div class="spectrum" style="--pos: 10%" role="img" aria-label="Mostly learned">
+          <span><i class="sw"></i>All learned</span>
+          <div class="spectrum-track"><i style="left:0%"></i><i style="left:25%"></i><i style="left:50%"></i><i style="left:75%"></i><i style="left:100%"></i><b></b></div>
+          <span>All coded<i class="sw dash"></i></span>
+        </div>
+        <div class="bias-cols">
+          <div class="node fixed"><h4>Built in</h4>
+            <ul><li>Exact positions, no pixels</li><li>Objects as a set, in any order</li><li>How soon each object could hit</li></ul></div>
+          <div class="node"><h4>Learned</h4>
+            <ul><li>Which objects matter</li><li>Every move, from scratch</li><li>Signal: PPO, surviving and scoring</li></ul></div>
+        </div>
+      </div>
+      <div class="perf">
+        <div class="pipe-label">Performance · mean of the best</div>
+        <div class="perf-row">
+          <span class="perf-big num">4,366</span>
+          <div class="perf-what"><b>frames survived, on average</b><span>Checkpoint 420, picked by its worst quarter</span></div>
+        </div>
+        <div class="scale" style="--p: 24.3%" role="img" aria-label="4,366 of 18,000 frames, against random at 255 and M0 at 6,115">
+          <div class="scale-track"><b></b><i style="left: 1.4%"><span>Random</span></i><i style="left: 34%"><span>M0</span></i></div>
+          <div class="scale-axis"><span>0</span><span>18,000</span></div>
+        </div>
+        <div class="perf-cond"><span class="cond">dodge-native</span><span class="cond">512 games</span><span class="cond">development seeds</span></div>
+      </div>
     </div>
-    <div class="legend"><span><i class="sw"></i>Evolved</span><span><i class="sw dash"></i>Fixed rule</span><span>Fixed-seed results, not generalisation</span></div>
+    <div class="model-live">
+      <div class="model-off">
+        <div class="live-hud"><span class="live-name">Checkpoint 420</span><span>not in the browser</span></div>
+        <div class="screen"><strong>Can't play here</strong><p>Its weights need Taylor's private encoder to turn a game into their inputs, and that encoder isn't here.</p></div>
+      </div>
+    </div>
   </div>
-  <aside class="notes">Saved runs sometimes overrode these defaults. Six dated run directories planned 100 epochs but saved 25, 21, 34, 28, 0 and 21 epochs. The last populated run used population 50 and recorded best fitness 1,822 frames with score 19.5.</aside>
+  <aside class="notes">Mean 4,366, Q1 1,850 over 512 development games (Tuning slide). control12 had the higher mean, 4,533, but the Q1 rule kept 420. The Random (255) and M0 (6,115) markers are D2 means over 1,000 games, the same difficulty as checkpoint 420; the M0 slide itself now shows D3. About 321k weights, one player token and up to 80 object tokens.</aside>
 </section>
 
-<!-- Architecture: board PPO -->
+<!-- Architecture: entity transformer -->
 <section>
   <div class="arch">
     <div class="head">
-      <div class="eyebrow"><span class="who taylor">Taylor</span><span>Aug 28 · How it works</span></div>
-      <h2>Board PPO: the game state painted onto a grid</h2>
+      <div class="eyebrow"><span class="who taylor">Taylor</span><span class="act">Act II</span><span>Oct 24 · dodge-native · How it works</span></div>
+      <h2>The entity transformer: relational input, direct output</h2>
     </div>
-    <p class="lede">Not a screenshot: each channel is one property of one kind of object, painted into the cells it covers.</p>
-    <div class="pipe t-c">
-      <div class="node fixed"><h4>Board encoder</h4>
-        <p>Player: presence, x and y velocity, width, height. Enemies add their stage. Blasts add explosion and pattern flags. Overlapping velocities are averaged.</p>
-        <p class="dim">19 × 16 × 16 · 5 player + 6 enemy + 8 area channels</p></div>
+    <p class="lede">It sees a list of objects, and attention lets each one weigh the others. The output is still the nine moves, straight out of the weights.</p>
+    <div class="dia t-c" style="align-content:start; font-size:1.15em">
+
+      <div class="node"><h4>The player</h4>
+        <p>Where it is, how fast it moves, and the state of the game.</p></div>
+      <div class="ar">+</div>
+      <div class="node"><h4>Every object</h4>
+        <p>Each enemy, blast, powerup and pattern: where it is, how it moves, and how soon it could hit.</p></div>
       <div class="ar">→</div>
-      <div class="node"><h4>Conv trunk</h4>
-        <p>Three padded 3×3 convs with ReLU, max-pooling after the first two, then an adaptive average pool to 2×2.</p>
-        <p class="dim">32 → 64 → 128 channels</p></div>
-      <div class="ar">→</div>
-      <div class="node"><h4>Projection</h4>
-        <p>Flatten and project.</p>
-        <p class="dim">512 → 256, ReLU</p></div>
-      <div class="ar">→</div>
-      <div class="node"><h4>Heads</h4>
-        <p>Separate linear heads for the move and the value estimate.</p>
-        <p class="dim">9 action logits · 1 value</p></div>
+      <div class="node"><h4>Transformer</h4>
+        <p>Every object looks at every other one, and the player's token gathers what matters.</p></div>
+      <div></div><div></div><div></div><div></div><div class="ar">↓</div>
+      <div class="node note"><p class="muted" style="font-size:17px">It sees exact positions, no pixels. That made it the <b>teacher</b>: the plan was to copy it into a student that sees only the screen.</p></div>
+      <div></div>
+      <div class="node fixed"><h4>Training</h4>
+        <p>PPO, rewarded for staying alive and scoring.</p></div>
+      <div></div>
+      <div class="node"><h4>Output</h4>
+        <p>A move, and an estimate of how well the game is going.</p></div>
     </div>
-    <div class="legend"><span><i class="sw"></i>Learned weights</span><span><i class="sw dash"></i>Fixed rule</span><span>PPO on CPU · 4 frames per step · 256-step rollouts · 4 epochs</span></div>
+    <div class="legend"><span><i class="sw"></i>Learned weights</span><span><i class="sw dash"></i>Fixed rule</span><span>Best weights: checkpoint 420</span></div>
   </div>
-  <aside class="notes">50 updates and 12,800 steps of a planned 1,000 updates; last validation mean 181.2 frames on 10 seeds, a development result. The same board CNN ran again on the native engine from Sep 1 and collapsed onto the neutral move (next slide).</aside>
+  <aside class="notes">This is the model behind checkpoint 420: 2 transformer layers over one player token and up to 80 object tokens, about 321k weights, trained with PPO on a reward for staying alive and scoring. It sees exact geometry but no future spawns or hidden timers. The plan was to distill it into a student that sees only pixels. It hasn't been run on the shared bench or in this deck: the checkpoint file isn't in dodge-native.</aside>
+</section>
+
+<!-- Taylor ─ teacher against the gate -->
+<section>
+  <div class="frame">
+    <div class="head">
+      <div class="eyebrow"><span class="who taylor">Taylor</span><span class="act">Act II</span><span>Oct 24 – Nov 2</span></div>
+      <h2>A teacher that never got its student</h2>
+    </div>
+    <div class="split" style="grid-template-columns: 1.25fr 0.75fr; gap: 36px;">
+      <figure class="chart" style="margin:0">
+        <div id="teacher" role="img" aria-label="Entity transformer mean frames survived by date, October 24 to November 2, peaking at checkpoint 420"></div>
+        <figcaption>Each dot is one evaluation of the teacher. Panels and settings differ between runs, so read the trend, not single gaps. <span class="cond" style="margin:0">dodge-native</span></figcaption>
+      </figure>
+      <div class="side">
+        <p><b>Step 1:</b> train a teacher that sees exact positions.</p>
+        <p><b>Step 2:</b> copy it into a student that sees only the screen.</p>
+        <p>The teacher went from about 300 to about 4,400 frames in ten days. Checkpoint 420 was its best run; later tries at best tied it.</p>
+        <p>Step 2 never happened. Later discoveries, coded threat models and planners (Act IV), played better, and the work moved there.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">Each dot is one evaluation: Oct 24 first PPO updates (295 → 1,102), D2 curriculum 1,149, long D2 1,093; Oct 25 long-D2 best 2,240 and final 1,655; Oct 26 retained parent 324 at 2,939 and its continuation 3,098; Nov 1 checkpoint 420 at 4,366 and control12 at 4,533 (512 games); Nov 2 control12 continued, 3,831, and on fresh seeds 3,305. Panels and settings differ, so read the trend. The D1 curriculum run passed its D1 progress floor (not a qualification). Promotion gate: 3,060 frames and score 50 on 64 fixed D2 seeds; nothing was promoted. An earlier 100k-frame warm-start PPO run scored 196.9 on 10 smoke seeds, against random 260.9 and neutral-only 188.5, so that teacher was rejected. The Oct 27 seed-priority tests used sampled actions on 1,024 seeds and are on the next slide.</aside>
+</section>
+
+<!-- 7 ─ Taylor II -->
+<section>
+  <div class="frame">
+    <div class="head">
+      <div class="eyebrow"><span class="who taylor">Taylor</span><span class="act">Act II</span><span>Oct 27 – 30</span></div>
+      <h2>Hard-seed priority, then checkpoint 420</h2>
+    </div>
+    <div class="split" style="grid-template-columns: 1fr 1fr;">
+      <div class="entries">
+        <div class="entry"><div class="when">Oct 27</div><div class="body">
+          <h3><span class="mk learned t"></span>Hard-seed priority</h3>
+          <p>Train more on the seeds the model struggled with most, so those games give it more to learn from.</p>
+          <p class="res">It didn't work: uniform seeds did as well or better</p></div></div>
+        <div class="entry"><div class="when">Oct 28–30</div><div class="body">
+          <h3><span class="mk learned t"></span>Checkpoint 420</h3>
+          <p>The best run this architecture ever produced. Everything tried after it was worse.</p></div></div>
+      </div>
+      <figure class="chart" style="margin:0">
+        <div id="hardseed" role="img" aria-label="Q1 and mean frames for uniform seed sampling versus hard-seed priority"></div>
+        <figcaption>Frames survived over 1,024 games. Q1 is the average of the worst quarter. <span class="cond" style="margin:0">dodge-native</span></figcaption>
+      </figure>
+    </div>
+  </div>
+  <aside class="notes">Chart: one matched pair, 60-update models, sampled actions, D2 (uniform Q1 626, mean 2,142; priority 617, 2,108). The other two pairs pointed the same way on Q1. An opening curriculum (practice stopped at 1,000 frames) was also tried; the result was mixed. Checkpoint 420 came from a uniform run, continued and then resumed after an interruption; it was picked by Q1 and never promoted. "420" is a checkpoint label, not an update count.</aside>
+</section>
+
+<!-- 8 ─ Taylor III -->
+<section>
+  <div class="frame">
+    <div class="head">
+      <div class="eyebrow"><span class="who taylor">Taylor</span><span class="act">Act II</span><span>Oct 29 – Nov 2</span></div>
+      <h2>Tuning around checkpoint 420</h2>
+    </div>
+    <div class="split" style="grid-template-columns: 1fr 1fr;">
+      <div class="entries" style="gap:14px">
+        <div class="entry"><div class="when">Oct 29</div><div class="body">
+          <h3><span class="mk learned t"></span>Decide every frame, not every 4</h3>
+          <p class="res">Less than half as many early deaths</p></div></div>
+        <div class="entry"><div class="when">Oct 31</div><div class="body">
+          <h3><span class="mk learned t"></span>Clearance rays</h3>
+          <p>Extra inputs measuring the open space around the player.</p>
+          <p class="res">No clear gain</p></div></div>
+        <div class="entry"><div class="when">Nov 1</div><div class="body">
+          <h3><span class="mk learned t"></span>Train longer, keep the best</h3>
+          <p>An early checkpoint, control12, roughly tied 420. Longer training was worse.</p></div></div>
+        <div class="entry"><div class="when">Nov 2</div><div class="body">
+          <h3><span class="mk learned t"></span>Continue control12</h3>
+          <p class="res">Worse again: <b>−16%</b> mean, and <b>−27%</b> on fresh seeds</p></div></div>
+      </div>
+      <div style="display:grid; gap:10px;">
+        <table class="data">
+          <thead><tr><th>Candidate</th><th>Mean</th><th>Q1</th></tr></thead>
+          <tbody>
+            <tr><td>Control, update 72</td><td>3,806</td><td>1,037</td></tr>
+            <tr><td>Rays, update 72</td><td>3,698</td><td>1,142</td></tr>
+            <tr><td>Control, update 12</td><td>4,533</td><td>1,836</td></tr>
+            <tr style="color:var(--taylor)"><td>Checkpoint 420 ✓</td><td>4,366</td><td>1,850</td></tr>
+          </tbody>
+        </table>
+        <p class="muted" style="font-size:15px">Frames survived, 512 games each. <span class="cond">dodge-native</span></p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">Oct 29: opening deaths per 10k frames 0.64 at 1-frame decisions vs 1.46 at 4. Normal enemies cause 40–54% of deaths, static patterns up to 41% late in the game. Oct 31 rays: two paired runs, trained with no evaluation. Nov 1 table: one control/rays pair at 72 updates, 512 development games; control12 led on mean, the Q1 rule kept 420. No candidate passed the persistent-competitiveness rule, 420 and control12 included. An earlier 128-seed sampled check: rays 3,822 and 3,918, control 4,002 and 4,056, checkpoint 420 4,626. Nov 2: a lower learning rate took control12's mean 4,533 → 3,831; fresh seeds gave 3,305 (−27%), early deaths 7 → 34 of 512. The loop stopped there. Repeated selection on the same development panel is not fresh confirmation.</aside>
+</section>
+
+<!-- Intro: waypoint DQN -->
+<section>
+  <div class="model t-c">
+    <div class="model-info">
+      <div class="head">
+        <div class="eyebrow"><span class="who taylor">Taylor</span><span class="act">Act III</span><span>Sep 3 – 4 · rl-learning</span></div>
+        <h2><span class="mk learned"></span>&nbsp;The waypoint DQN</h2>
+      </div>
+      <p class="lede">Instead of a direction every frame, the network picks one of nine nearby places. Fixed code steers there and holds the choice.</p>
+      <div class="bias">
+        <div class="pipe-label">Architecture</div>
+        <div class="pipe mini">
+          <div class="node fixed"><h4>225 numbers</h4><p>Player + 24 threat slots</p></div>
+          <div class="ar">→</div>
+          <div class="node"><h4>Trunk</h4><p>2 dense layers of 256</p></div>
+          <div class="ar">→</div>
+          <div class="node"><h4>Dueling Q</h4><p>Value of 9 waypoints</p></div>
+          <div class="ar">→</div>
+          <div class="node fixed"><h4>Controller</h4><p>Steer there, hold it</p></div>
+        </div>
+      </div>
+      <div class="bias">
+        <div class="pipe-label">Inductive bias</div>
+        <div class="spectrum" style="--pos: 40%" role="img" aria-label="Partly coded: steering is fixed">
+          <span><i class="sw"></i>All learned</span>
+          <div class="spectrum-track"><i style="left:0%"></i><i style="left:25%"></i><i style="left:50%"></i><i style="left:75%"></i><i style="left:100%"></i><b></b></div>
+          <span>All coded<i class="sw dash"></i></span>
+        </div>
+        <div class="bias-cols">
+          <div class="node fixed"><h4>Built in</h4>
+            <ul><li>Threats sorted by time to contact</li><li>Steering toward a waypoint</li><li>Commitment: each pick held 32 frames</li></ul></div>
+          <div class="node"><h4>Learned</h4>
+            <ul><li>Which place is worth going to</li><li>Signal: Double DQN, 3-step returns</li></ul></div>
+        </div>
+      </div>
+      <div class="perf">
+        <div class="pipe-label">Performance · mean of the best</div>
+        <div class="perf-row">
+          <span class="perf-big num">845</span>
+          <div class="perf-what"><b>frames survived, on average</b><span>Best checkpoint on fresh seeds; 1,223 on the seeds that picked it</span></div>
+        </div>
+        <div class="scale" style="--p: 4.7%" role="img" aria-label="845 of 18,000 frames, against board PPO at 188">
+          <div class="scale-track"><b></b><i style="left: 1%"><span>Board PPO</span></i></div>
+          <div class="scale-axis"><span>0</span><span>18,000</span></div>
+        </div>
+        <div class="perf-cond"><span class="cond">rl-learning native</span><span class="cond">30 holdout games</span></div>
+      </div>
+    </div>
+    <div class="model-live">
+      <div class="model-off">
+        <div class="live-hud"><span class="live-name">Waypoint DQN</span><span>not in the browser</span></div>
+        <div class="screen"><strong>Can't play here</strong><p>It ran on rl-learning's engine and hasn't been ported to this one.</p></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">845 on 30 holdout seeds, none at the cap; 1,223 on the 10 inner seeds that picked the checkpoint; 1,006 on 70 training seeds. Board PPO on the same native game: holdout mean 188, collapsed to the neutral move. Random wasn't measured on this engine.</aside>
 </section>
 
 <!-- Taylor B ─ Sep 1 – 5 -->
 <section>
   <div class="frame">
     <div class="head">
-      <div class="eyebrow"><span class="who taylor">Taylor</span><span>Sep 1 – 5 · rl-learning</span></div>
-      <h2>A native engine and a waypoint DQN</h2>
+      <div class="eyebrow"><span class="who taylor">Taylor</span><span class="act">Act III</span><span>Sep 1 – 5 · rl-learning</span></div>
+      <h2>Commit to a place: the waypoint DQN</h2>
     </div>
     <div class="split" style="grid-template-columns: 1fr 1fr;">
       <div class="entries" style="gap:14px">
         <div class="entry"><div class="when">Sep 1</div><div class="body">
           <h3><span class="mk infra t"></span>Native Rust game</h3>
-          <p>rl-learning gets a native Rust boundary with 32 parallel lanes and render-free stepping. dodge-native starts as its own repository on Sep 3.</p></div></div>
-        <div class="entry"><div class="when">Sep 1–4</div><div class="body">
-          <h3><span class="mk learned t"></span>Native board PPO</h3>
-          <p class="res">Collapsed: neutral moves <b>8.2% → 100%</b>, entropy <b>2.197 → 0</b></p></div></div>
+          <p>The game ported to Rust, fast enough to train on many games at once.</p></div></div>
+        <div class="entry"><div class="when">Sep 3–4</div><div class="body">
+          <h3><span class="mk learned t"></span>Board PPO on the native game</h3>
+          <p class="res">Collapsed again: it learned to stand still</p></div></div>
         <div class="entry"><div class="when">Sep 4</div><div class="body">
-          <h3><span class="mk learned t"></span>Waypoint Double DQN</h3>
-          <p>Choose one of 9 nearby waypoints; a controller steers there for 8 decisions.</p>
-          <p class="res">Holdout mean <b>844.8</b>, median 679.5, worst 485 <span class="cond">30 seeds · 0 at cap</span></p></div></div>
-        <div class="entry"><div class="when">Sep 4</div><div class="body">
-          <h3><span class="mk learned t"></span>Overnight, with lives</h3>
-          <p>1 M macro steps, 3 lives, 5-step returns, −64 per life lost. No holdout run; its gate failed.</p></div></div>
+          <h3><span class="mk learned t"></span>Waypoint DQN</h3>
+          <p>Pick one of 9 nearby places; fixed code steers there and holds the choice.</p>
+          <p class="res">More than <b>4×</b> longer than board PPO</p></div></div>
       </div>
       <div style="display:grid; gap:10px;">
         <table class="data tight">
-          <thead><tr><th>Policy</th><th>Seeds</th><th>Mean</th></tr></thead>
+          <thead><tr><th>Policy</th><th>Mean frames</th></tr></thead>
           <tbody>
-            <tr><td>Board PPO, Aug 28</td><td>10 val</td><td>181.2</td></tr>
-            <tr><td>Native board PPO</td><td>holdout</td><td>188.2</td></tr>
-            <tr><td>Native PPO, p1-control</td><td>holdout</td><td>209.9</td></tr>
-            <tr><td>Waypoint DQN, picked</td><td>10 inner</td><td>1,223.2</td></tr>
-            <tr><td>Waypoint DQN</td><td>70 train</td><td>1,005.9</td></tr>
-            <tr style="color:var(--taylor)"><td>Waypoint DQN</td><td>30 holdout</td><td>844.8</td></tr>
-            <tr><td>Waypoint DQN, lives</td><td>10 inner</td><td>1,501.7</td></tr>
+            <tr><td>Board PPO</td><td>188</td></tr>
+            <tr><td>Waypoint DQN, on the seeds that picked it</td><td>1,223</td></tr>
+            <tr style="color:var(--taylor)"><td>Waypoint DQN, on fresh seeds</td><td>845</td></tr>
           </tbody>
         </table>
-        <p class="muted" style="font-size:15px">Frames survived. The checkpoint picked on 10 inner seeds lost 31% on fresh ones. Each row has its own cohort and settings. <span class="cond">rl-learning native</span></p>
+        <p class="muted" style="font-size:15px">The pick lost 31% on seeds it hadn't seen. <span class="cond">rl-learning native</span></p>
       </div>
     </div>
   </div>
-  <aside class="notes">Waypoint run: 200,000 global macro steps (the manifest's "updates_completed" is not a gradient-update count), 51.2 M aggregate lane decisions, at most 204.8 M frames. checkpoint-best is step 120,000, chosen by best_inner rather than the final weights; its hash matches the report. The report's 800-frame relevance gate passed. p1-control used different evaluation settings, so it is not a controlled comparison with baseline-p1. The overnight run's selected checkpoint was step 680,000; don't attach the production holdout to it. Campaign tooling and a Mojo experiment landed Sep 5 (d8981a2).</aside>
+  <aside class="notes">Sep 1: rl-learning gets a native Rust boundary with parallel lanes; dodge-native starts as its own repository on Sep 3. Native board PPO (Sep 3–4): neutral moves 8.2% → 100%, holdout mean 188. Waypoint DQN: 1,223 on the 10 inner seeds that picked the checkpoint, 1,006 on 70 training seeds, 845 on 30 holdout seeds (none at cap). 200,000 macro steps, about 198,001 learning updates. A p1-control PPO variant scored 210, but the records don't show its settings matched, so it isn't a controlled comparison. An overnight run with 3 lives scored 1,502 on inner seeds; it had no holdout run and its gate failed.</aside>
 </section>
 
 <!-- Architecture: waypoint DQN -->
 <section>
   <div class="arch">
     <div class="head">
-      <div class="eyebrow"><span class="who taylor">Taylor</span><span>Sep 3 – 4 · How it works</span></div>
+      <div class="eyebrow"><span class="who taylor">Taylor</span><span class="act">Act III</span><span>Sep 3 – 4 · How it works</span></div>
       <h2>Waypoint DQN: pick a place, not a direction</h2>
     </div>
-    <p class="lede">The network scores nine nearby targets; a fixed controller does the steering for the next eight decisions.</p>
+    <p class="lede">The network scores nine nearby targets; fixed code does the steering and holds the choice for 32 frames. Commitment beat the collapse.</p>
     <div class="pipe t-c">
       <div class="node fixed"><h4>Observation</h4>
         <p>Player position, velocity and size. 16 enemy and 8 blast slots, sorted by estimated time to contact, then distance: presence, time to contact, relative position, velocity, size, stage. Grid cell and overflow flags.</p>
@@ -534,111 +644,384 @@ table.data.tight td, table.data.tight th { padding: 5px 8px; font-size: 16px; }
         <p>Steer toward the chosen relative waypoint and hold it.</p>
         <p class="dim">9 waypoints · 8 decisions · 4 frames each</p></div>
     </div>
-    <div class="legend"><span><i class="sw"></i>Learned weights</span><span><i class="sw dash"></i>Fixed rule</span><span>Double DQN · 3-step returns · γ 0.99 · replay 100k · batch 256 · lr 1e-4 · target sync 1,000</span></div>
+    <div class="legend"><span><i class="sw"></i>Learned weights</span><span><i class="sw dash"></i>Fixed rule</span><span>Double DQN</span></div>
   </div>
-  <aside class="notes">A 5 × 5 waypoint grid, but nine relative-waypoint outputs, not 25. Empty slots are zero-filled. The manifest says the native encoder matched the Python reference. The best checkpoint's layers were inspected with a safe weights-only load.</aside>
+  <aside class="notes">Double DQN, 3-step returns, γ 0.99, replay 100k, batch 256, lr 1e-4, target sync 1,000. A 5 × 5 waypoint grid, but nine relative-waypoint outputs, not 25. Empty slots are zero-filled. The manifest says the native encoder matched the Python reference. The best checkpoint's layers were inspected with a safe weights-only load.</aside>
 </section>
 
-<!-- Taylor C ─ Sep 5 – 13 -->
+<!-- Intro: velocity-flow-v2 -->
+<section>
+  <div class="model l-c">
+    <div class="model-info">
+      <div class="head">
+        <div class="eyebrow"><span class="who lucas">Lucas</span><span class="act">Act III</span><span>Aug 23 – Nov 1 · DodgeAI</span></div>
+        <h2><span class="mk learned"></span>&nbsp;velocity-flow-v2</h2>
+      </div>
+      <p class="lede">The weights draw where danger will be. Fixed code knows exactly where each move takes the player, and reads the map there.</p>
+      <div class="bias">
+        <div class="pipe-label">Architecture</div>
+        <div class="pipe mini">
+          <div class="node fixed"><h4>Grid</h4><p>1 frame + velocity</p></div>
+          <div class="ar">→</div>
+          <div class="node"><h4>Conv trunk</h4><p>~80k weights</p></div>
+          <div class="ar">→</div>
+          <div class="node"><h4>Danger field</h4><p>6 slices of the future</p></div>
+          <div class="ar">→</div>
+          <div class="node fixed"><h4>Controller</h4><p>Player physics reads it</p></div>
+        </div>
+      </div>
+      <div class="bias">
+        <div class="pipe-label">Inductive bias</div>
+        <div class="spectrum" style="--pos: 55%" role="img" aria-label="Half and half: danger learned, player movement coded">
+          <span><i class="sw"></i>All learned</span>
+          <div class="spectrum-track"><i style="left:0%"></i><i style="left:25%"></i><i style="left:50%"></i><i style="left:75%"></i><i style="left:100%"></i><b></b></div>
+          <span>All coded<i class="sw dash"></i></span>
+        </div>
+        <div class="bias-cols">
+          <div class="node fixed"><h4>Built in</h4>
+            <ul><li>The cartridge's movement model</li><li>Velocity in, not stacked frames</li><li>Six fixed future times</li></ul></div>
+          <div class="node"><h4>Learned</h4>
+            <ul><li>Where danger will be, and when</li><li>How sharply to pick the safest</li><li>Signal: PPO, γ 0.997</li></ul></div>
+        </div>
+      </div>
+      <div class="perf">
+        <div class="pipe-label">Performance · mean of the best</div>
+        <div class="perf-row">
+          <span class="perf-big num">5,374</span>
+          <div class="perf-what"><b>frames survived, on average</b><span>v2-best on the shared bench; 8,881 on dodge-ai-3's seeds</span></div>
+        </div>
+        <div class="scale" style="--p: 29.9%" role="img" aria-label="5,374 of 18,000 frames, against random near 200 and SpaceBot at 14,399">
+          <div class="scale-track"><b></b><i style="left: 1.1%"><span>Random</span></i><i style="left: 80%"><span>SpaceBot</span></i></div>
+          <div class="scale-axis"><span>0</span><span>18,000 cap</span></div>
+        </div>
+        <div class="perf-cond"><span class="cond">dodge-native</span><span class="cond">D3</span><span class="cond">cap 18,000</span><span class="cond">20 games</span></div>
+      </div>
+    </div>
+    <div class="model-live">
+      <div class="live l-c" data-bot="cnn" data-seed="2" data-overlay="on" data-speed="1"></div>
+    </div>
+  </div>
+  <aside class="notes">v2-best is update 24,000. 5,374 is the shared bench (dodge-native, hard, seeds 1–20). 8,881 was its dev mean on dodge-ai-3, where blasts killed enemies, measured on the 256 seeds that picked it. Random on the bench sat with Flee and Potential between 150 and 205. The game on the right is the released weights rebuilt in Rust; the field is slice 0 of its danger forecast.</aside>
+</section>
+
+<!-- Live: velocity-flow-v2 -->
 <section>
   <div class="frame">
     <div class="head">
-      <div class="eyebrow"><span class="who taylor">Taylor</span><span>Sep 5 – 13 · rl-learning, dodge-ai-3</span></div>
-      <h2>Learning from pixels</h2>
+      <div class="eyebrow"><span class="who lucas">Lucas</span><span class="act">Act III</span><span>Live · v2-best</span></div>
+      <h2>Watch the danger field think</h2>
     </div>
-    <div class="entries two">
-      <div class="entry"><div class="when">Sep 5</div><div class="body">
-        <h3><span class="mk learned t"></span>Pixel DQN</h3>
-        <p>Four 128 × 128 grayscale frames, 12 lanes, 8-decision holds, one life.</p>
-        <p class="res">Holdout mean <b>120.4</b>, best 130 <span class="cond">2,875 updates</span></p></div></div>
-      <div class="entry"><div class="when">Sep 9</div><div class="body">
-        <h3><span class="mk learned t"></span>Nature-style image DDQN</h3>
-        <p>Four 84 × 84 frames, 9 direct moves, 32 lanes on a CUDA GPU.</p>
-        <p class="res">Best inner mean <b>143.4</b> at step 10,000 <span class="cond">20k steps</span></p></div></div>
-      <div class="entry"><div class="when">Sep 11</div><div class="body">
-        <h3><span class="mk learned t"></span>dodge-ai-3 image DDQN</h3>
-        <p>Four stacked 84 × 84 collision images: background 0, damage 96, hostile 192, player 255. Convs 32-64-64, then 3,136 → 512 and dueling heads.</p>
-        <p class="res"><b>1,689,258</b> weights, 95.1% in that one dense layer</p></div></div>
-      <div class="entry"><div class="when">Sep 11–13</div><div class="body">
-        <h3><span class="mk learned t"></span>25 runs analysed</h3>
-        <p>22 completed, 2 stopped, 1 failed. The best, lr1e4-scale, ran 750k cumulative steps.</p>
-        <p class="res">Mean reward <b>254.4</b> over 8 reused episodes; 5 of 8 hit the 256-frame cap <span class="cond">seed 42 · 1 lane</span></p></div></div>
+    <div class="split" style="grid-template-columns: 0.95fr 1.05fr; gap: 36px;">
+      <div class="live l-c" data-bot="cnn" data-seed="2" data-overlay="on" data-speed="1"></div>
+      <div class="side">
+        <p>Behind the action is the network's own danger field: slice 0 of six, its nearest-future forecast, on the 32 × 32 grid it actually predicts. Yellow is dangerous, purple is safe.</p>
+        <p>The compass is π(a | s) over the nine moves, and the trace is the critic's V(s). The action is the argmax, recomputed every frame.</p>
+        <p class="small">The released weights, rebuilt in Rust and running in this browser. It makes the same move as the PyTorch original on every frame tested, and full games end on the same frame.</p>
+      </div>
     </div>
   </div>
-  <aside class="notes">Images keep collision geometry but drop enemy subtypes and the rest of the state. The 254.4 is a capped candidate result from one training seed and reused evaluation episodes; it doesn't show generalisation or that the learning rate caused it. Resume restored network and optimizer but reset replay, RNG, environment and exploration. Reward-zero fractions were 0.002–0.012, so sparse reward was ruled out as the main problem. Two "fix" runs had zero target syncs despite 7,501 optimizer updates. Later branches (RGB, LSTM, danger maps, reward studies, spatial controllers) exist, but their names alone don't prove training. Sep 6–8 on the homelab: Colab recovery, resumed runs, waypoint practice and hyperparameter trials. The Tuvalu and homelab copies of rl-learning diverged after d8981a2 and neither holds all the history.</aside>
+  <aside class="notes">Parity with PyTorch: 400 of 400 recorded actions equal, and full games on seeds 1–3 end on the same frame (5,548, 10,504, 1,506). Try seed 3 against seed 2. The field is drawn the way the training dashboard draws it. The value trace dips before deaths the policy cannot avoid.</aside>
+</section>
+
+<!-- 4 ─ Lucas I -->
+<section>
+  <div class="frame">
+    <div class="head">
+      <div class="eyebrow"><span class="who lucas">Lucas</span><span class="act">Act III</span><span>Aug 11 – 13 · DodgeAI, cartridge</span></div>
+      <h2>The dense layer that died, and what replaced it</h2>
+    </div>
+    <div class="entries two">
+      <div class="entry"><div class="when">Aug 11</div><div class="body">
+        <h3><span class="mk infra l"></span>Cartridge runtime</h3>
+        <p>The cartridge's own Lua runs headless under LuaJIT. Playable the next day.</p></div></div>
+      <div class="entry"><div class="when">Aug 12</div><div class="body">
+        <h3><span class="mk learned l"></span>MLP and hybrid CNN</h3>
+        <p>Two stacked grids of the arena, through a CNN, flattened into one big dense layer, then the 9 moves.</p>
+        <p class="res">Most of the weights sat in that one layer, and it died</p></div></div>
+      <div class="entry"><div class="when">Aug 13</div><div class="body">
+        <h3><span class="mk learned l"></span>field-cnn</h3>
+        <p>No dense layer: the network draws a danger map, and fixed code that knows how the player moves reads it.</p>
+        <p class="res">A much better value estimate, and a map you can watch</p></div></div>
+      <div class="entry"><div class="when">Aug 13</div><div class="body">
+        <h3><span class="mk learned l"></span>VelocityFlow</h3>
+        <p>Two stacked frames barely differ, so give it one frame plus each object's velocity instead.</p>
+        <p class="res">Its forecast of where things will be got <b>5×</b> more accurate</p></div></div>
+    </div>
+  </div>
+  <aside class="notes">The hybrid CNN's flatten layer held 87% of its 644,842 weights; on a 2.3 M-step run every policy-trunk unit died, so it emitted one fixed distribution while entropy still looked healthy. field-cnn (90,851 weights): its critic explained 0.62–0.77 of return variance vs 0.33–0.49 after 10 updates, though it still survived less than the hybrid at that point. VelocityFlow's 24-frame projection error fell from 0.60 to 0.12 cells. No evaluation was saved for the MLP or the hybrid CNN.</aside>
+</section>
+
+<!-- Architecture: velocity-flow-v2 -->
+<section>
+  <div class="arch">
+    <div class="head">
+      <div class="eyebrow"><span class="who lucas">Lucas</span><span class="act">Act III</span><span>Aug 23 · How it works</span></div>
+      <h2>velocity-flow-v2: learned danger, coded player</h2>
+    </div>
+    <p class="lede">The weights draw where danger will be. Fixed code knows exactly where each move takes the player, and reads the map there.</p>
+    <div class="dia l-c">
+      <div class="node"><h4>Observation</h4>
+        <p>One frame on a 32×32 grid of 4px cells.</p>
+        <p class="dim">11 channels: 8 object types, player, x and y velocity</p>
+        <p class="dim">+ 10 numbers: player position, velocity, nearest-threat geometry</p></div>
+      <div class="ar">→</div>
+      <div class="node"><h4>Conv trunk</h4>
+        <p>3×3 conv at 32×32, then three at 16×16, one dilated to reach across the arena. A 4×4 pooled summary is blended back so every cell sees the whole arena.</p>
+        <p class="dim">11 → 32 → 64 → 64 → 32 channels · ~80k weights</p></div>
+      <div class="ar">→</div>
+      <div class="node"><h4>Danger field</h4>
+        <p>A 1×1 conv gives six danger maps, one per moment in the future.</p>
+        <p class="dim">+4, 12, 24, 48, 72, 108 frames</p></div>
+      <div></div><div></div><div class="ar">↓</div><div></div><div class="ar">↓</div>
+      <div class="node note"><p class="muted" style="font-size:16px">Built-in limits: the path ignores the player's current momentum; with a 4-frame hold the far slices all read about the same point 10 px out; standardising makes one move look bad even in an empty arena.</p></div>
+      <div></div>
+      <div class="node"><h4>Critic</h4>
+        <p>Trunk channel means, an 8×4×4 coarse map of the arena, and the player numbers go into a small MLP.</p>
+        <p class="dim">32 + 128 + 10 → 64 → 64 → value</p></div>
+      <div></div>
+      <div class="node fixed"><h4>Controller</h4>
+        <p>The cartridge's movement model, from rest with the button held 4 frames, gives each move's position at each slice's time. Read that slice there, weight by 0.985<sup>t</sup>, sum, standardise across moves.</p>
+        <p class="dim">× learned sharpness → 9 action logits</p></div>
+    </div>
+    <div class="legend"><span><i class="sw"></i>Learned weights</span><span><i class="sw dash"></i>Fixed rule</span><span>PPO, γ 0.997, one decision per frame</span></div>
+  </div>
+  <aside class="notes">Lineage: MLP → hybrid CNN → field-cnn → VelocityFlow → v2 (critic gets a coarse map; cheaper trunk). The movement model matches the live cartridge exactly over 24 frames. velocity-flow-v3 fixes the three built-in limits but hasn't been trained yet.</aside>
+</section>
+
+<!-- 5 ─ Lucas II -->
+<section>
+  <div class="frame">
+    <div class="head">
+      <div class="eyebrow"><span class="who lucas">Lucas</span><span class="act">Act III</span><span>Aug 23 – Oct 29</span></div>
+      <h2>velocity-flow-v2 on the real cartridge</h2>
+    </div>
+    <div class="split" style="grid-template-columns: 0.85fr 1.15fr;">
+      <div class="entries">
+        <div class="entry"><div class="when">Aug 23</div><div class="body">
+          <h3><span class="mk learned l"></span>velocity-flow-v2</h3>
+          <p>A critic that can see the arena, a cheaper network, and training on full games.</p></div></div>
+        <div class="entry"><div class="when">Sep 25</div><div class="body">
+          <h3><span class="mk learned l"></span>Shared checkpoints</h3>
+          <p>Saved models shared with Taylor. v2-latest is the longest-trained.</p></div></div>
+        <div class="entry"><div class="when">Oct 29</div><div class="body">
+          <h3><span class="mk learned l"></span>Fresh-seed evaluation</h3>
+          <p class="res">Deciding every frame instead of every 4 nearly doubled the mean</p></div></div>
+      </div>
+      <div style="display:grid; gap:10px;">
+        <table class="data">
+          <thead><tr><th>Policy</th><th>Q1</th><th>Mean</th></tr></thead>
+          <tbody>
+            <tr class="hi"><td>v2-latest, every frame</td><td>1,180</td><td>3,922</td></tr>
+            <tr><td>v2-latest, every 4 frames</td><td>601</td><td>2,118</td></tr>
+            <tr><td>can-reach-100, an earlier checkpoint</td><td>824</td><td>3,208</td></tr>
+            <tr><td>Random</td><td>110</td><td>196</td></tr>
+          </tbody>
+        </table>
+        <p class="muted" style="font-size:15px">Frames survived on fresh seeds. Q1 is the average of the worst quarter. <span class="cond">real cartridge</span></p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">These numbers ran the real cartridge Lua (D3, argmax actions), so they are the most faithful old results. Shared checkpoints and their training lengths: can-reach-100 at 5,691 PPO updates, v2 at 8,855, v2-latest at 21,051 (update counts, not frames). Games: 512 each for v2-latest, 256 for can-reach-100 and random. Medians 3,600, 1,790, 3,292, 188; best games 15,235, 8,668, 9,709, 541; no v2-latest game reached the cap. Every frame vs every 4: +1,804 frames of mean. A hand-written gradient-field bot scored 126 (128 games).</aside>
+</section>
+
+<!-- 9 ─ Lucas III -->
+<section>
+  <div class="frame">
+    <div class="head">
+      <div class="eyebrow"><span class="who lucas">Lucas</span><span class="act">Act III</span><span>Oct 30 – Nov 1</span></div>
+      <h2>Rust engine, a retention gate, v2-best</h2>
+    </div>
+    <div class="split" style="grid-template-columns: 0.9fr 1.1fr;">
+      <div class="entries">
+        <div class="entry"><div class="when">Oct 30</div><div class="body">
+          <h3><span class="mk infra l"></span>Training moves to Rust</h3>
+          <p>Taylor's dodge-ai-3 engine is fast enough to score every saved checkpoint on 256 test games and keep only a new best.</p></div></div>
+        <div class="entry"><div class="when">Oct 31</div><div class="body">
+          <h3><span class="mk learned l"></span>v2-best</h3>
+          <p class="res">Mean <b>8,881</b> frames on the games that picked it</p></div></div>
+        <div class="entry"><div class="when">Nov 1</div><div class="body">
+          <h3><span class="mk learned l"></span>Seven follow-up runs</h3>
+          <p>None beat v2-best.</p></div></div>
+      </div>
+      <figure class="chart" style="margin:0">
+        <div id="retention" role="img" aria-label="Dev mean survival by PPO update for velocity-flow-v2, Oct 30 to Nov 1"></div>
+        <figcaption>Dev-cohort mean by PPO update. Filled points were kept as the new best. The engine let blasts kill enemies, so these numbers run high.</figcaption>
+      </figure>
+    </div>
+  </div>
+  <aside class="notes">dodge-ai-3 ran 193,094 frames/s. v2-best is update 24,000: dev mean 8,881, Q1 3,312 (D3, cap 18,000). Follow-ups: fix, gn2, ent, ctl, ctl2, ctl3 and a longer candidate run (dev mean 7,374). Peak at update 24,000, then noisy decline. Same pattern Taylor saw: continuing past the peak made things worse. v2-best is the model released on dodge-native.</aside>
+</section>
+
+<!-- Intro: LeWM -->
+<section>
+  <div class="model t-c">
+    <div class="model-info">
+      <div class="head">
+        <div class="eyebrow"><span class="who taylor">Taylor</span><span class="act">Act IV</span><span>Sep 23 – 30 · dodge-ai-3</span></div>
+        <h2><span class="mk learned"></span>&nbsp;LeWM, a world model</h2>
+      </div>
+      <p class="lede">Don't learn to play; learn what happens next. Given the last few frames and a move, forecast the next frame in a compressed space.</p>
+      <div class="bias">
+        <div class="pipe-label">Architecture</div>
+        <div class="pipe mini">
+          <div class="node fixed"><h4>Input</h4><p>3 frames + moves</p></div>
+          <div class="ar">→</div>
+          <div class="node"><h4>Encoder</h4><p>Small vision transformer</p></div>
+          <div class="ar">→</div>
+          <div class="node"><h4>Predictor</h4><p>Next frame, given a move</p></div>
+          <div class="ar">→</div>
+          <div class="node fixed"><h4>Loss</h4><p>Against what happened</p></div>
+        </div>
+      </div>
+      <div class="bias">
+        <div class="pipe-label">Inductive bias</div>
+        <div class="spectrum" style="--pos: 5%" role="img" aria-label="Almost entirely learned">
+          <span><i class="sw"></i>All learned</span>
+          <div class="spectrum-track"><i style="left:0%"></i><i style="left:25%"></i><i style="left:50%"></i><i style="left:75%"></i><i style="left:100%"></i><b></b></div>
+          <span>All coded<i class="sw dash"></i></span>
+        </div>
+        <div class="bias-cols">
+          <div class="node fixed"><h4>Built in</h4>
+            <ul><li>Pixels in patches; no objects</li><li>Three frames of history</li><li>Only the training objective</li></ul></div>
+          <div class="node"><h4>Learned</h4>
+            <ul><li>A compressed state for each frame</li><li>The game's physics, in that space</li></ul></div>
+        </div>
+      </div>
+      <div class="perf none">
+        <div class="pipe-label">Performance · mean of the best</div>
+        <div class="perf-row">
+          <span class="perf-big num">—</span>
+          <div class="perf-what"><b>no survival number</b><span>It never drove a policy. Its forecasts of unseen games were best at 40,000 updates.</span></div>
+        </div>
+        <div class="scale" style="--p: 0%" role="img" aria-label="No survival result">
+          <div class="scale-track"><b></b></div>
+          <div class="scale-axis"><span>0</span><span>18,000</span></div>
+        </div>
+        <div class="perf-cond"><span class="cond">latent prediction only</span></div>
+      </div>
+    </div>
+    <div class="model-live">
+      <div class="model-off">
+        <div class="live-hud"><span class="live-name">LeWM</span><span>not in the browser</span></div>
+        <div class="screen"><strong>Nothing to watch</strong><p>It forecasts frames; it never chose a move. Its 40k–80k checkpoints are also missing.</p></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">Encoder ViT-Tiny on 224 × 224 inputs; predictor 6 layers. Prediction error relative to repeating the last frame was best at 40k updates (validation 0.1056), then got worse on unseen games while improving on training games, so the longer run was cancelled.</aside>
 </section>
 
 <!-- Architecture: LeWM -->
 <section>
   <div class="arch">
     <div class="head">
-      <div class="eyebrow"><span class="who taylor">Taylor</span><span>Sep 23 – 30 · How it works</span></div>
-      <h2>LeWM: a world model that predicts, not plays</h2>
+      <div class="eyebrow"><span class="who taylor">Taylor</span><span class="act">Act IV</span><span>Sep 23 – 30 · How it works</span></div>
+      <h2>LeWM: try to learn the physics</h2>
     </div>
-    <p class="lede">It learns to forecast the next latent state from frames and the move taken. It is not a policy, so it has no survival score.</p>
+    <p class="lede">If the policies' real problem is knowing where threats go, learn how the game moves. It learned to forecast the next frame, but it never played.</p>
     <div style="display:grid; gap:22px; align-content:start">
       <div class="pipe t-c">
         <div class="node fixed"><h4>Input</h4>
-          <p>Three history frames with the actions as extra channels.</p>
-          <p class="dim">224 × 224 · 14 px patches · 9 action channels</p></div>
+          <p>The last three frames and the moves taken.</p></div>
         <div class="ar">→</div>
         <div class="node"><h4>Encoder</h4>
-          <p>ViT-Tiny, randomly initialised.</p>
-          <p class="dim">width 192 · 12 blocks · 3 heads</p></div>
+          <p>A small vision transformer compresses each frame.</p></div>
         <div class="ar">→</div>
         <div class="node"><h4>Predictor</h4>
-          <p>Action-conditioned causal transformer over future latents.</p>
-          <p class="dim">6 layers · 16 heads × 64 · MLP 2,048</p></div>
+          <p>Given a move, predict the next compressed frame.</p></div>
         <div class="ar">→</div>
         <div class="node"><h4>Loss</h4>
-          <p>Two BatchNorm projectors; prediction loss plus SIGReg.</p></div>
+          <p>How far the prediction is from what actually happened.</p></div>
       </div>
-      <div class="split" style="grid-template-columns: 1fr 1fr; gap: 32px;">
-        <table class="data tight">
-          <thead><tr><th>Updates</th><th>Val pred / persist</th><th>Train pred / persist</th></tr></thead>
-          <tbody>
-            <tr style="color:var(--taylor)"><td>40k</td><td>0.1056</td><td>0.0690</td></tr>
-            <tr><td>60k</td><td>0.1141</td><td>0.0478</td></tr>
-            <tr><td>80k</td><td>0.1447</td><td>0.0492</td></tr>
-          </tbody>
-        </table>
-        <p style="font-size:18px">Error relative to just repeating the last frame; lower is better. Training error stayed low while validation error rose after 40k, so the stop rule cancelled the 160k continuation.</p>
+      <div class="keys">
+        <div class="key" style="grid-template-columns:150px 1fr"><span class="big">40k</span><p>Its forecasts of unseen games were best at 40,000 updates. After that it kept improving on its training games and got worse on new ones, so the longer run was cancelled.</p></div>
       </div>
     </div>
     <div class="legend"><span><i class="sw"></i>Learned weights</span><span><i class="sw dash"></i>Fixed rule</span><span>Measures latent prediction, not survival</span></div>
   </div>
-  <aside class="notes">Six audits of 12,288 train and 1,536 validation windows; validation used 512 episodes at three fixed offsets, which confounds family and action conclusions. Median validation prediction loss 0.0036 → 0.0023, win rate 0.58 → 0.59. These are report-backed: the 40k–80k checkpoints are missing from the checked locations. The Sep 30 initialization diagnostics (2 updates, 1 validation episode) don't measure the trained model. The Sep 26 launchspark-ppo-variant branch vendors Lucas's PPO with local integration changes; it is upstream-derived, not Taylor's own PPO.</aside>
+  <aside class="notes">Prediction error relative to repeating the last frame, validation / train: 40k 0.106 / 0.069, 60k 0.114 / 0.048, 80k 0.145 / 0.049. Validation rose while training fell, so the stop rule cancelled the 160k continuation. These numbers are from the saved reports; the 40k–80k checkpoints themselves are missing. LeWM never drove a policy.</aside>
 </section>
 
-<!-- 6 ─ Taylor I -->
+<!-- Intro: M0 -->
+<section>
+  <div class="model t-c">
+    <div class="model-info">
+      <div class="head">
+        <div class="eyebrow"><span class="who taylor">Taylor</span><span class="act">Act IV</span><span>Oct 26 · dodge-native</span></div>
+        <h2><span class="mk hand"></span>&nbsp;M0</h2>
+      </div>
+      <p class="lede">Try all nine moves 12 frames ahead against threats moving in straight lines, and keep the one that stays clear longest. Nothing is learned.</p>
+      <div class="bias">
+        <div class="pipe-label">Architecture</div>
+        <div class="pipe mini">
+          <div class="node fixed"><h4>9 moves</h4><p>Every direction + still</p></div>
+          <div class="ar">→</div>
+          <div class="node fixed"><h4>Player path</h4><p>Real movement, 12 frames</p></div>
+          <div class="ar">→</div>
+          <div class="node fixed"><h4>Threats</h4><p>Straight lines, 12 frames</p></div>
+          <div class="ar">→</div>
+          <div class="node fixed"><h4>Rank</h4><p>Longest clear wins</p></div>
+        </div>
+      </div>
+      <div class="bias">
+        <div class="pipe-label">Inductive bias</div>
+        <div class="spectrum" style="--pos: 100%" role="img" aria-label="Entirely coded">
+          <span><i class="sw"></i>All learned</span>
+          <div class="spectrum-track"><i style="left:0%"></i><i style="left:25%"></i><i style="left:50%"></i><i style="left:75%"></i><i style="left:100%"></i><b></b></div>
+          <span>All coded<i class="sw dash"></i></span>
+        </div>
+        <div class="bias-cols">
+          <div class="node fixed"><h4>Built in</h4>
+            <ul><li>The player's exact movement</li><li>Every threat keeps going straight</li><li>Order: powerup, survival, clearance</li></ul></div>
+          <div class="node"><h4>Learned</h4>
+            <ul><li>Nothing</li></ul></div>
+        </div>
+      </div>
+      <div class="perf">
+        <div class="pipe-label">Performance · mean of the best</div>
+        <div class="perf-row">
+          <span class="perf-big num">2,666</span>
+          <div class="perf-what"><b>frames survived, on average</b><span>On hard. On normal it averages 6,115</span></div>
+        </div>
+        <div class="scale" style="--p: 14.8%" role="img" aria-label="2,666 of 18,000 frames on hard, against v2-best at 5,374 on the shared bench and the belief planner at 13,298 in the same run">
+          <div class="scale-track"><b></b><i style="left: 29.9%"><span>v2-best</span></i><i style="left: 73.9%"><span>Belief</span></i></div>
+          <div class="scale-axis"><span>0</span><span>18,000 cap</span></div>
+        </div>
+        <div class="perf-cond"><span class="cond">dodge-native</span><span class="cond">D3</span><span class="cond">cap 18,000</span><span class="cond">12 games</span></div>
+      </div>
+    </div>
+    <div class="model-live">
+      <div class="live t-c" data-bot="m0" data-seed="2" data-overlay="off" data-speed="1"></div>
+    </div>
+  </div>
+  <aside class="notes">D3 from the planner chart: M0 2,666 against the belief planner's 13,298 in the same run, 12 games each, capped at 18,000. The v2-best marker is its shared-bench mean (5,374, D3, seeds 1–20), a different seed set, so read it as a rough guide. On hard, a 12-frame straight-line check alone does not beat the learned danger field; it takes imagined futures (belief planner) or the real steering rules (SpaceBot) to pass the CNN. On D2 over 1,000 games (4-frame decisions) M0 averages 6,115, against 255 for random and 188 for standing still. The game on the right is dodge-core's m0_policy.rs compiled to WebAssembly unchanged; the compass ranks the nine moves.</aside>
+</section>
+
+<!-- Live: M0 -->
 <section>
   <div class="frame">
     <div class="head">
-      <div class="eyebrow"><span class="who taylor">Taylor</span><span>Oct 24 – 26 · dodge-native</span></div>
-      <h2>A native teacher and a strong baseline</h2>
+      <div class="eyebrow"><span class="who taylor">Taylor</span><span class="act">Act IV</span><span>Live · M0</span></div>
+      <h2>M0 plays</h2>
     </div>
-    <div class="entries">
-      <div class="entry"><div class="when">Oct 26</div><div class="body">
-        <h3><span class="mk hand t"></span>M0: nearest-lethal box dodger</h3>
-        <p>For each move, predict the player's path and extrapolate every box 12 frames. Take a safely reachable powerup; otherwise maximise collision-free time and clearance.</p>
-        <p class="res">Mean <b>6,115</b> frames vs random <b>255</b> and standing still <b>188</b> <span class="cond">dodge-native · D2 · 1,000 games · 4-frame decisions</span></p></div></div>
-      <div class="entry"><div class="when">Oct 24</div><div class="body">
-        <h3><span class="mk learned t"></span>Entity-transformer teacher</h3>
-        <p>One global token plus 80 typed entity slots; width 128, 2 layers, 4 heads. PPO on 64 games × 256 steps. Reward: score + 0.01 per frame, −5 on death.</p>
-        <p class="res">Mean <b>295 → 1,102</b> frames in its first 48 updates <span class="cond">D2 · 64 dev seeds</span></p></div></div>
+    <div class="split" style="grid-template-columns: 0.95fr 1.05fr; gap: 36px;">
+      <div class="live t-c" data-bot="m0" data-seed="2" data-overlay="off" data-speed="1"></div>
+      <div class="side">
+        <p>No training at all. Every frame it tries each of the nine moves 12 frames ahead, assumes every threat keeps going in a straight line, and picks the move that stays clear longest.</p>
+        <p class="small">Taylor's own Rust, running unchanged in this browser.</p>
+      </div>
     </div>
   </div>
-  <aside class="notes">The teacher sees structured geometry, not pixels, but no future spawns or hidden timers. The long-term plan was a pixel student distilled from it. Its architecture is frozen in the Oct 24 source packet (archive SHA256 3b4b1e4f…, teacher and observation-builder hashes match its manifest).</aside>
+  <aside class="notes">dodge-core's m0_policy.rs, compiled to WebAssembly unchanged. When a game ends, the next seed starts.</aside>
 </section>
 
 <!-- Architecture: M0 -->
 <section>
   <div class="arch">
     <div class="head">
-      <div class="eyebrow"><span class="who taylor">Taylor</span><span>How it works</span></div>
-      <h2>M0: check every move 12 frames ahead</h2>
+      <div class="eyebrow"><span class="who taylor">Taylor</span><span class="act">Act IV</span><span>Oct 26 · How it works</span></div>
+      <h2>M0: code the threats as straight lines</h2>
     </div>
-    <p class="lede">A one-step look ahead with straight-line guesses. Every step is a fixed rule; nothing is learned.</p>
+    <p class="lede">Check every move 12 frames ahead against every threat box, extrapolated in a straight line. Nothing is learned.</p>
     <div class="pipe t-c">
       <div class="node fixed"><h4>9 moves</h4>
         <p>Neutral, 4 directions, 4 diagonals.</p></div>
@@ -654,270 +1037,89 @@ table.data.tight td, table.data.tight th { padding: 5px 8px; font-size: 16px; }
       <div class="node fixed"><h4>Rank</h4>
         <ul><li>A safely reachable powerup wins</li><li>Then the longest time without a collision</li><li>Then clearance to the nearest threat, then overall</li><li>Ties go to a fixed move order</li></ul></div>
     </div>
-    <div class="legend"><span>Reads full game state and remembers past positions</span><span>Deterministic: same history, same move</span></div>
+    <div class="legend"><span>Mean <b class="num" style="color:var(--peach)">6,115</b> frames on normal, against 255 for random; <b class="num" style="color:var(--peach)">2,666</b> on hard</span><span>Same situation, same move</span></div>
   </div>
-  <aside class="notes">Strong for its simplicity: 6,115 mean on D2 against 255 for random. It became the baseline every later planner builds on, and Lucas ported it to Python on Nov 4.</aside>
+  <aside class="notes">Strong for its simplicity: 6,115 mean on D2 against 255 for random and 188 for standing still (dodge-native, 1,000 games, 4-frame decisions). It became the baseline every later planner builds on, and Lucas ported it to Python on Nov 4.</aside>
 </section>
 
-<!-- Architecture: entity transformer -->
+<!-- Intro: belief planner -->
 <section>
-  <div class="arch">
-    <div class="head">
-      <div class="eyebrow"><span class="who taylor">Taylor</span><span>How it works</span></div>
-      <h2>The entity-transformer teacher</h2>
-    </div>
-    <p class="lede">Instead of a picture, it sees a list of objects, and attention lets each object weigh the others.</p>
-    <div class="dia t-c">
-      <div class="node"><h4>Global token</h4>
-        <p>Player position, velocity and size, freeze rate, speed, enemy count, score, pattern visibility, distances to walls.</p>
-        <p class="dim">14 → 128 linear</p></div>
-      <div class="ar">+</div>
-      <div class="node"><h4>Entity slots</h4>
-        <p>Each enemy, blast, powerup and pattern box: centre and half-size, relative position, motion, signed gaps, contact time, time until lethal. A type ID says what it is; a mask marks empty slots.</p>
-        <p class="dim">64 enemy + 16 box slots × 16 → 128 GELU → 128 + type embedding</p></div>
-      <div class="ar">→</div>
-      <div class="node"><h4>Transformer</h4>
-        <p>1 global + 80 entity tokens, pre-norm self-attention, no positional embedding, then a final LayerNorm on the global token.</p>
-        <p class="dim">2 layers · 4 heads · width 128 · FF 256</p></div>
-      <div></div><div></div><div></div><div></div><div class="ar">↓</div>
-      <div class="node note"><p class="muted" style="font-size:16px">No pixels, no future spawns, no hidden timers. 321,290 weights in all. The plan was to distill it later into a student that sees only the screen.</p></div>
-      <div></div>
-      <div class="node fixed"><h4>Training</h4>
-        <p>PPO on 64 games × 256 steps. Reward: score change + 0.01 per frame alive, −5 on death, all × 0.1.</p>
-        <p class="dim">γ 0.995 · λ 0.95 · lr 3e-4 · clip 0.2 · entropy 0.01 · 4 epochs × 512</p></div>
-      <div></div>
-      <div class="node"><h4>Heads</h4>
-        <p>Read from the global token: an actor gives the move, a critic estimates future reward.</p>
-        <p class="dim">128 → 128 GELU → 9 logits · 128 → 128 GELU → 1</p></div>
-    </div>
-    <div class="legend"><span><i class="sw"></i>Learned weights</span><span><i class="sw dash"></i>Fixed rule</span><span>Best weights: checkpoint 420</span></div>
-  </div>
-  <aside class="notes">This is the model behind checkpoint 420. It runs on Taylor's own encoder, which isn't in dodge-native yet, so it hasn't been run on the shared bench. The training settings are the Oct 24 packet's; later continuations lowered the learning rate.</aside>
-</section>
-
-<!-- Taylor ─ teacher against the gate -->
-<section>
-  <div class="frame">
-    <div class="head">
-      <div class="eyebrow"><span class="who taylor">Taylor</span><span>Oct 24 – 26</span></div>
-      <h2>The teacher against a promotion gate</h2>
-    </div>
-    <div class="split" style="grid-template-columns: 1.35fr 0.65fr; gap: 36px;">
-      <table class="data tight">
-        <thead><tr><th>Run</th><th>Updates</th><th>Mean frames</th><th>Outcome</th></tr></thead>
-        <tbody>
-          <tr><td>D1 curriculum, Oct 24</td><td>32</td><td>1,917.5</td><td style="text-align:left;font-family:var(--font-body)">57 of 64 at the 2,000 cap</td></tr>
-          <tr><td>D2 curriculum, Oct 24</td><td>104</td><td>1,148.8</td><td style="text-align:left;font-family:var(--font-body)">failed progress gate; time guard</td></tr>
-          <tr><td>Long D2, Oct 24</td><td>51</td><td>1,093.0</td><td style="text-align:left;font-family:var(--font-body)">below gate; 5 s guard stopped it</td></tr>
-          <tr><td>Long D2, Oct 25, best</td><td>384</td><td>2,240.0</td><td style="text-align:left;font-family:var(--font-body)">0 of 24 evaluations passed</td></tr>
-          <tr><td>Long D2, Oct 25, final</td><td>384</td><td>1,654.5</td><td style="text-align:left;font-family:var(--font-body)">finalization failed</td></tr>
-          <tr><td>Retained 324, Oct 26</td><td>—</td><td>2,939.4</td><td style="text-align:left;font-family:var(--font-body)">reference parent</td></tr>
-          <tr style="color:var(--taylor)"><td>Linear-LR continuation</td><td>60</td><td>3,098.1</td><td style="text-align:left;font-family:var(--font-body)">not promoted</td></tr>
-        </tbody>
-      </table>
-      <div class="side">
-        <p>The gate: <b class="num">3,060</b> frames and score <b class="num">50</b> on 64 fixed D2 seeds, argmax actions, patterns and powerups on.</p>
-        <p>None of the Oct 24–25 runs passed it. The 384-update run ended 26% below its own best checkpoint.</p>
-        <p>The Oct 26 continuations beat the 324 parent on mean, but neither was promoted or made eligible for further training.</p>
-        <p class="small">dodge-native · D2 unless noted. Checkpoint numbers are not update counts.</p>
+  <div class="model t-c">
+    <div class="model-info">
+      <div class="head">
+        <div class="eyebrow"><span class="who taylor">Taylor</span><span class="act">Act IV</span><span>Nov 5 · dodge-native</span></div>
+        <h2><span class="mk search"></span>&nbsp;The belief planner</h2>
+      </div>
+      <p class="lede">Try each move in a copy of the game, let M0 play on in a few imagined futures, and keep the move that survives longest on average.</p>
+      <div class="bias">
+        <div class="pipe-label">Architecture</div>
+        <div class="pipe mini">
+          <div class="node fixed"><h4>9 clones</h4><p>One per first move</p></div>
+          <div class="ar">→</div>
+          <div class="node fixed"><h4>4 futures</h4><p>Spawns guessed, not read</p></div>
+          <div class="ar">→</div>
+          <div class="node fixed"><h4>M0 plays on</h4><p>Up to 192 frames</p></div>
+          <div class="ar">→</div>
+          <div class="node fixed"><h4>Choose</h4><p>Best average survival</p></div>
+        </div>
+      </div>
+      <div class="bias">
+        <div class="pipe-label">Inductive bias</div>
+        <div class="spectrum" style="--pos: 100%" role="img" aria-label="Entirely coded">
+          <span><i class="sw"></i>All learned</span>
+          <div class="spectrum-track"><i style="left:0%"></i><i style="left:25%"></i><i style="left:50%"></i><i style="left:75%"></i><i style="left:100%"></i><b></b></div>
+          <span>All coded<i class="sw dash"></i></span>
+        </div>
+        <div class="bias-cols">
+          <div class="node fixed"><h4>Built in</h4>
+            <ul><li>The real game, cloned</li><li>M0 as the player in every future</li><li>A heavy penalty for dying</li></ul></div>
+          <div class="node"><h4>Learned</h4>
+            <ul><li>Nothing; the leaves could take a learned value later</li></ul></div>
+        </div>
+      </div>
+      <div class="perf">
+        <div class="pipe-label">Performance · mean of the best</div>
+        <div class="perf-row">
+          <span class="perf-big num">13,298+</span>
+          <div class="perf-what"><b>frames survived, on average</b><span>On hard. Capped, so a lower bound; run to death, 21,773</span></div>
+        </div>
+        <div class="scale" style="--p: 73.9%" role="img" aria-label="13,298 of 18,000 frames on hard, against M0 at 2,666 in the same run">
+          <div class="scale-track"><b></b><i style="left: 14.8%"><span>M0</span></i></div>
+          <div class="scale-axis"><span>0</span><span>18,000 cap</span></div>
+        </div>
+        <div class="perf-cond"><span class="cond">dodge-native</span><span class="cond">D3</span><span class="cond">cap 18,000</span><span class="cond">12 games</span></div>
       </div>
     </div>
+    <div class="model-live">
+      <div class="live t-c" data-bot="belief" data-seed="1" data-overlay="off" data-speed="1"></div>
+    </div>
   </div>
-  <aside class="notes">D1 also had a fresh 16-update pilot; its mean is capped, so it is a lower bound and not a qualification. D2 curriculum's last evaluated checkpoint was phase update 96; its interrupted final weights were ineligible. The Oct 24 long-D2 continuation started from accepted D1 checkpoint ce9c03c8…, added 51 updates and 3.39 M frames, and its verification took 5.005 s against a 5 s guard. The Oct 25 run: 43,808 optimizer steps, 6.29 M decisions, 25.1 M frames; best checkpoint 000050 (score 20.6), final 000058 (score 14.4); every episode ended in death; finalization failed after "Owned identity changed: worker". A separate retained-324 continuation reached cumulative update 432 with matching model, Adam and RNG state and 13,846 frozen input pins; it too was not competence-passed or promoted. An earlier warm-start PPO run used an unqualified teacher that averaged 196.9 frames, below random's 260.9.</aside>
+  <aside class="notes">D3 from the planner chart: M0 2,666, belief 13,298, 12 games each, capped at 18,000 (D2 was 5,644 and 16,049). Uncapped, D1–D3 were 27,817, 29,518 and 21,773. Uses privileged present and past state. Each decision clones the game 36 times, so it plays below real time in the browser; the browser settings are our reconstruction, not Taylor's exact configuration.</aside>
 </section>
 
-<!-- 7 ─ Taylor II -->
+<!-- Live: M0 vs belief -->
 <section>
   <div class="frame">
     <div class="head">
-      <div class="eyebrow"><span class="who taylor">Taylor</span><span>Oct 27 – 30</span></div>
-      <h2>Curriculum tests, then checkpoint 420</h2>
+      <div class="eyebrow"><span class="who taylor">Taylor</span><span class="act">Act IV</span><span>Live · same seed</span></div>
+      <h2>M0 against the belief planner</h2>
     </div>
-    <div class="split" style="grid-template-columns: 1fr 1fr;">
-      <div class="entries">
-        <div class="entry"><div class="when">Oct 27</div><div class="body">
-          <h3><span class="mk learned t"></span>Opening curriculum</h3>
-          <p>Practice stopped at 1,000 frames, against full games. 3 matched pairs.</p>
-          <p class="res">Opening survival <b>72.3%</b> vs <b>70.4%</b>: mixed across pairs</p></div></div>
-        <div class="entry"><div class="when">Oct 27</div><div class="body">
-          <h3><span class="mk learned t"></span>Hard-seed priority</h3>
-          <p>Half the games drawn from seeds an earlier policy lost early.</p>
-          <p class="res">Uniform sampling had the better Q1 in all 3 pairs</p></div></div>
-        <div class="entry"><div class="when">Oct 28–30</div><div class="body">
-          <h3><span class="mk learned t"></span>Checkpoint 420</h3>
-          <p>Uniform #2 was continued to cumulative update 792, then a recovery run resumed it. Checkpoint 420 sits 60 updates into that recovery, at cumulative update <span class="num">852</span>. Picked by Q1, it became the reference teacher; it was never promoted.</p></div></div>
-      </div>
-      <div style="display:grid; gap:10px;">
-        <table class="data">
-          <thead><tr><th>Pair</th><th>Sampling</th><th>Q1</th><th>Mean</th></tr></thead>
-          <tbody>
-            <tr><td>1</td><td style="text-align:left;font-family:var(--font-body)">Uniform</td><td>658</td><td>2,236</td></tr>
-            <tr><td>1</td><td style="text-align:left;font-family:var(--font-body)">Priority</td><td>606</td><td>2,077</td></tr>
-            <tr style="color:var(--taylor)"><td>2</td><td style="text-align:left;font-family:var(--font-body)">Uniform #2 ✓</td><td>664</td><td>2,208</td></tr>
-            <tr><td>2</td><td style="text-align:left;font-family:var(--font-body)">Priority</td><td>618</td><td>2,205</td></tr>
-            <tr><td>3</td><td style="text-align:left;font-family:var(--font-body)">Uniform</td><td>626</td><td>2,142</td></tr>
-            <tr><td>3</td><td style="text-align:left;font-family:var(--font-body)">Priority</td><td>617</td><td>2,108</td></tr>
-          </tbody>
-        </table>
-        <p class="muted" style="font-size:15px">60-update models, sampled actions <span class="cond">dodge-native · D2 · 1,024 seeds</span></p>
+    <div class="live-group" data-seed="1" data-speed="1">
+      <div class="group-ctl"></div>
+      <div class="live-row n2">
+        <div class="live t-c" data-bot="m0" data-overlay="off" data-controls="none"></div>
+        <div class="live t-c" data-bot="belief" data-overlay="off" data-controls="none"></div>
       </div>
     </div>
   </div>
-  <aside class="notes">Both interventions were small and mixed. In pair 1, opening priority was 7.1% lower in mean; the reported interval covers that one matched pair, not uncertainty across replicas. The closeout kept parent 324, promoted no candidate and left D5 unopened. Uniform #2 led Uniform #1 on Q1 by only 6 frames; it was a pick, not a significant win. "420" is a checkpoint coordinate: not 420 recovery updates, and not the lineage's full exposure, which includes discarded runs.</aside>
-</section>
-
-<!-- 8 ─ Taylor III -->
-<section>
-  <div class="frame">
-    <div class="head">
-      <div class="eyebrow"><span class="who taylor">Taylor</span><span>Oct 29 – Nov 2</span></div>
-      <h2>Tuning around checkpoint 420</h2>
-    </div>
-    <div class="split" style="grid-template-columns: 1fr 1fr;">
-      <div class="entries" style="gap:14px">
-        <div class="entry"><div class="when">Oct 29</div><div class="body">
-          <h3><span class="mk learned t"></span>1 vs 4 frames per decision</h3>
-          <p class="res">Opening deaths per 10k frames: <b>0.64</b> vs <b>1.46</b></p>
-          <p>Normal enemies cause 40–54% of deaths, static patterns up to 41% late in the game.</p></div></div>
-        <div class="entry"><div class="when">Oct 31</div><div class="body">
-          <h3><span class="mk learned t"></span>Clearance rays</h3>
-          <p>Ray features measuring open space around the player. Two paired replicas, 36 updates each, trained with no evaluation.</p></div></div>
-        <div class="entry"><div class="when">Nov 1</div><div class="body">
-          <h3><span class="mk learned t"></span>Train, measure, keep best</h3>
-          <p>A 72-update control/rays pair. control12 led on mean, but the Q1 rule kept 420. Neither continuation passed the competitiveness rule.</p></div></div>
-        <div class="entry"><div class="when">Nov 2</div><div class="body">
-          <h3><span class="mk learned t"></span>Continuing control12</h3>
-          <p class="res">LR 1e-5: mean <b>4,533 → 3,831</b>. Fresh seeds at 3e-5: <b>3,305</b> (−27%), early deaths 7 → 34 of 512.</p></div></div>
-      </div>
-      <div style="display:grid; gap:10px;">
-        <table class="data">
-          <thead><tr><th>Candidate</th><th>Mean</th><th>Q1</th></tr></thead>
-          <tbody>
-            <tr><td>Control, update 72</td><td>63.4 s</td><td>17.3 s</td></tr>
-            <tr><td>Rays, update 72</td><td>61.6 s</td><td>19.0 s</td></tr>
-            <tr><td>Control, update 12</td><td>75.6 s</td><td>30.6 s</td></tr>
-            <tr style="color:var(--taylor)"><td>Checkpoint 420 ✓</td><td>72.8 s</td><td>30.8 s</td></tr>
-          </tbody>
-        </table>
-        <p class="muted" style="font-size:15px">Nov 1, 512 development games per checkpoint. 72.8 s = 4,366 frames. <span class="cond">dodge-native · K1</span></p>
-      </div>
-    </div>
-  </div>
-  <aside class="notes">Nov 1 (DODGE-067): 4.72 M frames and 9,216 Adam steps per arm. One training pair and repeated selection on the same development panel are not fresh confirmation. Nov 2: DODGE-070 failed before startup and ran nothing. DODGE-071 (LR 1e-5): Q1 1,836 → 1,139 frames. DODGE-073 (fresh seeds, 3e-5): Q1 949; all six checks worse; control12 kept, loop stopped. An entropy-0.001 recipe was only prepared. An earlier 128-seed sampled check had put the rays arms at 63.7 and 65.3 s, controls at 66.7 and 67.6 s and checkpoint 420 at 77.1 s; the Oct 31 receipts themselves record no evaluation games. Nov 3: an observation-only heuristic advisor (no training, no checkpoint 420) averaged 309 frames at 4-frame and 467 at 1-frame decisions over 8 games.</aside>
-</section>
-
-<!-- 9 ─ Lucas III -->
-<section>
-  <div class="frame">
-    <div class="head">
-      <div class="eyebrow"><span class="who lucas">Lucas</span><span>Oct 30 – Nov 1</span></div>
-      <h2>Rust engine, a retention gate, v2-best</h2>
-    </div>
-    <div class="split" style="grid-template-columns: 0.9fr 1.1fr;">
-      <div class="entries">
-        <div class="entry"><div class="when">Oct 30</div><div class="body">
-          <h3><span class="mk infra l"></span>Training moves to Rust</h3>
-          <p>dodge-ai-3 runs 193,094 frames/s. A held-out cohort of 256 dev seeds scores each saved checkpoint, and only a new best is kept.</p></div></div>
-        <div class="entry"><div class="when">Oct 31</div><div class="body">
-          <h3><span class="mk learned l"></span>v2-best (update 24,000)</h3>
-          <p class="res">Dev mean <b>8,881</b>, Q1 <b>3,312</b> <span class="cond">dodge-ai-3 · D3 · cap 18,000</span></p></div></div>
-        <div class="entry"><div class="when">Nov 1</div><div class="body">
-          <h3><span class="mk learned l"></span>Seven follow-up runs</h3>
-          <p>fix, gn2, ent, ctl, ctl2, ctl3, and a longer candidate run (dev mean 7,374). None replaced v2-best.</p></div></div>
-      </div>
-      <figure class="chart" style="margin:0">
-        <div id="retention" role="img" aria-label="Dev mean survival by PPO update for velocity-flow-v2, Oct 30 to Nov 1"></div>
-        <figcaption>Dev-cohort mean by PPO update. Filled points were kept as the new best. The engine let blasts kill enemies, so these numbers run high.</figcaption>
-      </figure>
-    </div>
-  </div>
-  <aside class="notes">Peak at update 24,000, then noisy decline. Same pattern Taylor saw: continuing past the peak made things worse. v2-best is the model released on dodge-native.</aside>
-</section>
-
-<!-- Architecture: SpaceBot -->
-<section>
-  <div class="arch">
-    <div class="head">
-      <div class="eyebrow"><span class="who lucas">Lucas</span><span>Nov 4 – 5 · How it works</span></div>
-      <h2>SpaceBot: stay where there is room</h2>
-    </div>
-    <p class="lede">Simulate every threat with its real steering rule, then go where you can get to before anything else can.</p>
-    <div class="pipe l-c">
-      <div class="node fixed"><h4>9 plans</h4>
-        <p>Each move held for 24 frames.</p>
-        <p class="dim">every frame</p></div>
-      <div class="ar">→</div>
-      <div class="node fixed"><h4>Simulate</h4>
-        <p>The player exactly. Each enemy with its real rule: homing, friction, wall bounces, kamikaze slow-down. Blasts grow; pattern boxes are extrapolated.</p></div>
-      <div class="ar">→</div>
-      <div class="node fixed"><h4>Reject</h4>
-        <p>Drop every plan that collides with anything.</p></div>
-      <div class="ar">→</div>
-      <div class="node fixed"><h4>Room map</h4>
-        <p>On a 12×12 grid, how much sooner the player reaches each cell than any threat. Sum it, plus 0.3 × nearest clearance.</p>
-        <p class="dim">threats 60 frames out · capped at 30</p></div>
-      <div class="ar">→</div>
-      <div class="node fixed"><h4>Adjust</h4>
-        <ul><li>Powerups: explode 2.0, freeze 0.8, shrink 0.5</li><li>Pull toward safe powerups</li><li>Penalty for ending in a sweeping bar's path</li><li>Leave the centre before the anti-camping guard</li></ul></div>
-    </div>
-    <div class="legend"><span>Every step is a fixed rule; nothing is learned</span><span>Sees exact current state, not future spawns</span><span>No pattern-specific knowledge, no randomness</span></div>
-  </div>
-  <aside class="notes">Built Nov 4 alongside a Python port of Taylor's M0 (with Taylor's OK); powerups added Nov 5. Both can be watched in the dashboard with their own overlays.</aside>
-</section>
-
-<!-- Live: SpaceBot -->
-<section>
-  <div class="frame">
-    <div class="head">
-      <div class="eyebrow"><span class="who lucas">Lucas</span><span>Live</span></div>
-      <h2>SpaceBot's breathing room</h2>
-    </div>
-    <div class="split" style="grid-template-columns: 0.95fr 1.05fr; gap: 36px;">
-      <div class="live l-c" data-bot="space" data-seed="2" data-overlay="on" data-speed="1"></div>
-      <div class="side">
-        <p>Behind the action is its room map: how many frames each cell stays clear of every threat, measured from the end of the chosen plan and looking 120 frames ahead. Yellow is room, purple is none. The line is the 24-frame plan it just committed to.</p>
-        <p>The compass shows each plan's score; plans that collide inside 24 frames sink to the bottom.</p>
-        <p class="small">Ported from numpy to Rust loop for loop, including numpy's pairwise summation: one ulp in the room score decides ties. On two full games (seeds 2 and 3, 17,982 decisions) every action matches the Python bot. The room map is the Python overlay's own 48 × 48 field, bit-identical at 120 sampled frames.</p>
-      </div>
-    </div>
-  </div>
-  <aside class="notes">Seed 2 dies at 12,067 alive frames; seed 3 at 5,913. Seed 1 survives to the 18,000 cap.</aside>
-</section>
-
-<!-- 11 ─ Taylor IV -->
-<section>
-  <div class="frame">
-    <div class="head">
-      <div class="eyebrow"><span class="who taylor">Taylor</span><span>Nov 2 – 6</span></div>
-      <h2>Search planners</h2>
-    </div>
-    <div class="split" style="grid-template-columns: 1fr 1fr;">
-      <div class="entries">
-        <div class="entry"><div class="when">Nov 5</div><div class="body">
-          <h3><span class="mk search t"></span>Belief planner</h3>
-          <p>Sample possible futures, score each move by playing M0 onward, rank by expected survival. About 39 ms per decision.</p>
-          <p class="res">Run to death: means <b>27,817</b> · <b>29,518</b> · <b>21,773</b> for D1–D3</p></div></div>
-        <div class="entry"><div class="when">Nov 6</div><div class="body">
-          <h3><span class="mk search t"></span>Lookahead and Landscape</h3>
-          <p>Lookahead clones the game and simulates ahead, so it sees future spawns. Landscape rolls downhill on a hand-set danger Hamiltonian, H = ½‖p‖² + V(q).</p></div></div>
-        <div class="entry"><div class="when">Open</div><div class="body">
-          <h3><span class="mk learned t"></span>Not run yet</h3>
-          <p>Pixel student, supervised value net, checkpoint 420 on the shared bench.</p></div></div>
-      </div>
-      <figure class="chart" style="margin:0">
-        <div id="planner" role="img" aria-label="M0 versus belief planner mean survival at difficulties 1 to 3"></div>
-        <figcaption>Mean frames, 12 dev seeds per bar, capped at 18,000. The planner uses privileged present and past state. <span class="cond" style="margin:0">dodge-native</span></figcaption>
-      </figure>
-    </div>
-  </div>
-  <aside class="notes">Belief planner: 23 of 36 games hit the cap in the capped run; uncapped, all 36 died. These are small development cohorts.</aside>
+  <aside class="notes">Both run dodge-core's own Rust: m0_policy.rs and planner.rs. Belief here re-plans every 4 frames with 4 resampled futures and a 48-frame M0 rollout; that is our reconstruction, not Taylor's exact DODGE-083 configuration. Each decision clones the game 36 times, which is why it plays below real time in the browser (about 60 ms a frame natively too). The compass shows each move's expected frame-equivalent value. On seed 1, M0 dies at 714 frames; the belief planner reaches 6,916.</aside>
 </section>
 
 <!-- Architecture: belief planner -->
 <section>
   <div class="arch">
     <div class="head">
-      <div class="eyebrow"><span class="who taylor">Taylor</span><span>How it works</span></div>
+      <div class="eyebrow"><span class="who taylor">Taylor</span><span class="act">Act IV</span><span>How it works</span></div>
       <h2>The belief planner: M0 plus imagined futures</h2>
     </div>
     <p class="lede">Try each move in a copy of the game, let M0 play on in several possible futures, and keep the move that survives longest on average.</p>
@@ -934,7 +1136,7 @@ table.data.tight td, table.data.tight th { padding: 5px 8px; font-size: 16px; }
         <p class="dim">up to 192 frames</p></div>
       <div class="ar">→</div>
       <div class="node fixed"><h4>Score</h4>
-        <p>Alive frames + 0.001 × score change, −1,000 on death.</p></div>
+        <p>Frames survived, with a big penalty for dying.</p></div>
       <div class="ar">→</div>
       <div class="node fixed"><h4>Choose</h4>
         <p>Highest expected value wins; exact ties go to M0's own choice.</p>
@@ -942,33 +1144,273 @@ table.data.tight td, table.data.tight th { padding: 5px 8px; font-size: 16px; }
     </div>
     <div class="legend"><span>Every step is a fixed rule; nothing is learned</span><span>The future is approximated, so it is not fully clairvoyant</span><span>It overrode M0 on under 1% of decisions</span></div>
   </div>
-  <aside class="notes">Overrides were rare (0.15–0.80% of decisions), but those few choices more than doubled survival on every difficulty. The same code can also score leaves with a learned value estimate.</aside>
+  <aside class="notes">Score: alive frames + 0.001 × score change, −1,000 on death. Overrides were rare (0.15–0.80% of decisions), but those few choices more than doubled survival on every difficulty. The same code can also score leaves with a learned value estimate.</aside>
 </section>
 
-<!-- Live: M0 vs belief -->
+<!-- 11 ─ Taylor IV -->
 <section>
   <div class="frame">
     <div class="head">
-      <div class="eyebrow"><span class="who taylor">Taylor</span><span>Live · same seed</span></div>
-      <h2>M0 against the belief planner</h2>
+      <div class="eyebrow"><span class="who taylor">Taylor</span><span class="act">Act IV</span><span>Nov 2 – 6</span></div>
+      <h2>Search beats M0 at every difficulty</h2>
     </div>
-    <div class="live-group" data-seed="1" data-speed="1">
-      <div class="group-ctl"></div>
-      <div class="live-row n2">
-        <div class="live t-c" data-bot="m0" data-overlay="off" data-controls="none"></div>
-        <div class="live t-c" data-bot="belief" data-overlay="off" data-controls="none"></div>
+    <div class="split" style="grid-template-columns: 1fr 1fr;">
+      <div class="entries">
+        <div class="entry"><div class="when">Nov 5</div><div class="body">
+          <h3><span class="mk search t"></span>Belief planner</h3>
+          <p>Imagine a few possible futures, let M0 play each one out, and pick the move that survives longest on average.</p>
+          <p class="res">It outlasted M0 at every difficulty, by more as the game got harder</p></div></div>
+        <div class="entry"><div class="when">Nov 6</div><div class="body">
+          <h3><span class="mk search t"></span>Lookahead and Landscape</h3>
+          <p>Lookahead copies the whole game and plays ahead, so it sees the future. Landscape rolls the player downhill on a hand-made danger map.</p></div></div>
+      </div>
+      <figure class="chart" style="margin:0">
+        <div id="planner" role="img" aria-label="M0 versus belief planner mean survival at difficulties 1 to 3"></div>
+        <figcaption>Mean frames, 12 games per bar, capped at 18,000. D1–D3 are easy to hard. <span class="cond" style="margin:0">dodge-native</span></figcaption>
+      </figure>
+    </div>
+  </div>
+  <aside class="notes">About 39 ms per decision. Run to death (uncapped), means were 27,817, 29,518 and 21,773 for D1–D3. The planner uses privileged present and past state. Landscape's potential is a Hamiltonian, H = ½‖p‖² + V(q). Belief planner: 23 of 36 games hit the cap in the capped run; uncapped, all 36 died. These are small development cohorts. Not run yet: a pixel student, a supervised value net, and checkpoint 420 on the shared bench.</aside>
+</section>
+
+<!-- Intro: SpaceBot -->
+<section>
+  <div class="model l-c">
+    <div class="model-info">
+      <div class="head">
+        <div class="eyebrow"><span class="who lucas">Lucas</span><span class="act">Act IV</span><span>Nov 4 – 5 · DodgeAI</span></div>
+        <h2><span class="mk hand"></span>&nbsp;SpaceBot</h2>
+      </div>
+      <p class="lede">Simulate every threat with its real steering rule, then go where you can get to before anything else can.</p>
+      <div class="bias">
+        <div class="pipe-label">Architecture</div>
+        <div class="pipe mini">
+          <div class="node fixed"><h4>9 plans</h4><p>Each held 24 frames</p></div>
+          <div class="ar">→</div>
+          <div class="node fixed"><h4>Simulate</h4><p>Real enemy rules</p></div>
+          <div class="ar">→</div>
+          <div class="node fixed"><h4>Room map</h4><p>Who gets there first</p></div>
+          <div class="ar">→</div>
+          <div class="node fixed"><h4>Adjust</h4><p>Powerups, bars, centre</p></div>
+        </div>
+      </div>
+      <div class="bias">
+        <div class="pipe-label">Inductive bias</div>
+        <div class="spectrum" style="--pos: 100%" role="img" aria-label="Entirely coded">
+          <span><i class="sw"></i>All learned</span>
+          <div class="spectrum-track"><i style="left:0%"></i><i style="left:25%"></i><i style="left:50%"></i><i style="left:75%"></i><i style="left:100%"></i><b></b></div>
+          <span>All coded<i class="sw dash"></i></span>
+        </div>
+        <div class="bias-cols">
+          <div class="node fixed"><h4>Built in</h4>
+            <ul><li>Each enemy's real steering rule</li><li>Room: get there before any threat</li><li>Hand-set values for powerups</li></ul></div>
+          <div class="node"><h4>Learned</h4>
+            <ul><li>Nothing</li></ul></div>
+        </div>
+      </div>
+      <div class="perf">
+        <div class="pipe-label">Performance · mean of the best</div>
+        <div class="perf-row">
+          <span class="perf-big num">14,399+</span>
+          <div class="perf-what"><b>frames survived, on average</b><span>Shared bench; 10 of 20 games hit the cap</span></div>
+        </div>
+        <div class="scale" style="--p: 80%" role="img" aria-label="14,399 of 18,000 frames, against random near 200 and CNN v2-best at 5,374">
+          <div class="scale-track"><b></b><i style="left: 1.1%"><span>Random</span></i><i style="left: 29.9%"><span>v2-best</span></i></div>
+          <div class="scale-axis"><span>0</span><span>18,000 cap</span></div>
+        </div>
+        <div class="perf-cond"><span class="cond">dodge-native</span><span class="cond">D3</span><span class="cond">cap 18,000</span><span class="cond">20 games</span></div>
+      </div>
+    </div>
+    <div class="model-live">
+      <div class="live l-c" data-bot="space" data-seed="2" data-overlay="on" data-speed="1"></div>
+    </div>
+  </div>
+  <aside class="notes">Shared bench: dodge-native, hard, patterns and powerups on, seeds 1–20. It outlasts the CNN on 19 of 20 seeds. Behind the game is its room map, yellow for room and purple for none; the line is the 24-frame plan it committed to.</aside>
+</section>
+
+<!-- Live: SpaceBot -->
+<section>
+  <div class="frame">
+    <div class="head">
+      <div class="eyebrow"><span class="who lucas">Lucas</span><span class="act">Act IV</span><span>Live</span></div>
+      <h2>SpaceBot's breathing room</h2>
+    </div>
+    <div class="split" style="grid-template-columns: 0.95fr 1.05fr; gap: 36px;">
+      <div class="live l-c" data-bot="space" data-seed="2" data-overlay="on" data-speed="1"></div>
+      <div class="side">
+        <p>Behind the action is its room map: how many frames each cell stays clear of every threat, measured from the end of the chosen plan and looking 120 frames ahead. Yellow is room, purple is none. The line is the 24-frame plan it just committed to.</p>
+        <p>The compass shows each plan's score; plans that collide inside 24 frames sink to the bottom.</p>
+        <p class="small">Ported line for line from the Python bot. Over two full games it makes the same move on every frame.</p>
       </div>
     </div>
   </div>
-  <aside class="notes">Both run dodge-core's own Rust: m0_policy.rs and planner.rs. Belief here re-plans every 4 frames with 4 resampled futures and a 48-frame M0 rollout; that is our reconstruction, not Taylor's exact DODGE-083 configuration. Each decision clones the game 36 times, which is why it plays below real time in the browser (about 60 ms a frame natively too). The compass shows each move's expected frame-equivalent value. On seed 1, M0 dies at 714 frames; the belief planner reaches 6,916.</aside>
+  <aside class="notes">Ported from numpy to Rust loop for loop, including numpy's pairwise summation: one ulp in the room score decides ties. Seeds 2 and 3, 17,982 decisions, every action matches; the room map is the Python overlay's own 48 × 48 field, bit-identical at 120 sampled frames. Seed 2 dies at 12,067 alive frames; seed 3 at 5,913. Seed 1 survives to the 18,000 cap.</aside>
+</section>
+
+<!-- Architecture: SpaceBot -->
+<section>
+  <div class="arch">
+    <div class="head">
+      <div class="eyebrow"><span class="who lucas">Lucas</span><span class="act">Act IV</span><span>Nov 4 – 5 · How it works</span></div>
+      <h2>SpaceBot: code every threat's steering, then find room</h2>
+    </div>
+    <p class="lede">Simulate every threat with its real steering rule, then go where you can get to before anything else can.</p>
+    <div class="pipe l-c">
+      <div class="node fixed"><h4>9 plans</h4>
+        <p>Each move held for 24 frames.</p>
+        <p class="dim">every frame</p></div>
+      <div class="ar">→</div>
+      <div class="node fixed"><h4>Simulate</h4>
+        <p>The player exactly. Each enemy with its real rule: homing, friction, wall bounces, kamikaze slow-down. Blasts grow; pattern boxes are extrapolated.</p></div>
+      <div class="ar">→</div>
+      <div class="node fixed"><h4>Reject</h4>
+        <p>Rank plans by how late they first collide; only the safest go on to scoring.</p></div>
+      <div class="ar">→</div>
+      <div class="node fixed"><h4>Room map</h4>
+        <p>For each spot in the arena, how much sooner the player can get there than any threat. More room scores higher.</p></div>
+      <div class="ar">→</div>
+      <div class="node fixed"><h4>Adjust</h4>
+        <ul><li>Go for powerups that are safe to reach</li><li>Don't end up in a sweeping bar's path</li><li>Leave the centre before the anti-camping rule</li></ul></div>
+    </div>
+    <div class="legend"><span>Nothing is learned</span><span>Exact for the 24-frame plan, cautious beyond it</span><span>Can't see future spawns; patterns end most games</span></div>
+  </div>
+  <aside class="notes">Built Nov 4 alongside a Python port of Taylor's M0 (with Taylor's OK); powerups added Nov 5. Enemies are simulated with their real steering: homing, friction, wall bounces, kamikazes slowing near the player, enemies killing each other on contact. Plans are compared first by the earliest possible collision, then by expected collision, then by score. The room map uses a cautious reach box for each threat, so it is safe beyond the 24-frame plan but not exact.</aside>
+</section>
+
+<!-- Intro: Lookahead -->
+<section>
+  <div class="model t-c">
+    <div class="model-info">
+      <div class="head">
+        <div class="eyebrow"><span class="who taylor">Taylor</span><span class="act">Act IV</span><span>Nov 6 · dodge-native</span></div>
+        <h2><span class="mk search"></span>&nbsp;Lookahead</h2>
+      </div>
+      <p class="lede">Clone the whole game, random state included, and search the nine moves against the real future. It cheats on purpose: it's the ceiling.</p>
+      <div class="bias">
+        <div class="pipe-label">Architecture</div>
+        <div class="pipe mini">
+          <div class="node fixed"><h4>Clone</h4><p>Exact, spawns included</p></div>
+          <div class="ar">→</div>
+          <div class="node fixed"><h4>Heat field</h4><p>First hit per cell, 36 frames</p></div>
+          <div class="ar">→</div>
+          <div class="node fixed"><h4>Search</h4><p>Receding horizon</p></div>
+          <div class="ar">→</div>
+          <div class="node fixed"><h4>Move</h4><p>1 of 9</p></div>
+        </div>
+      </div>
+      <div class="bias">
+        <div class="pipe-label">Inductive bias</div>
+        <div class="spectrum" style="--pos: 100%" role="img" aria-label="Entirely coded">
+          <span><i class="sw"></i>All learned</span>
+          <div class="spectrum-track"><i style="left:0%"></i><i style="left:25%"></i><i style="left:50%"></i><i style="left:75%"></i><i style="left:100%"></i><b></b></div>
+          <span>All coded<i class="sw dash"></i></span>
+        </div>
+        <div class="bias-cols">
+          <div class="node fixed"><h4>Built in</h4>
+            <ul><li>The true future, spawns and all</li><li>Each enemy's homing rule</li><li>A 36-frame horizon</li></ul></div>
+          <div class="node"><h4>Learned</h4>
+            <ul><li>Nothing</li></ul></div>
+        </div>
+      </div>
+      <div class="perf">
+        <div class="pipe-label">Performance · mean of the best</div>
+        <div class="perf-row">
+          <span class="perf-big num">18,000</span>
+          <div class="perf-what"><b>frames survived, on average</b><span>Every game reached the cap; it sees the future</span></div>
+        </div>
+        <div class="scale" style="--p: 100%" role="img" aria-label="18,000 of 18,000 frames, against SpaceBot at 14,399">
+          <div class="scale-track"><b></b><i style="left: 80%"><span>SpaceBot</span></i></div>
+          <div class="scale-axis"><span>0</span><span>18,000 cap</span></div>
+        </div>
+        <div class="perf-cond"><span class="cond">dodge-native</span><span class="cond">D3</span><span class="cond">cap 18,000</span><span class="cond">20 games</span></div>
+      </div>
+    </div>
+    <div class="model-live">
+      <div class="live t-c" data-bot="lookahead" data-seed="1" data-overlay="on" data-speed="1"></div>
+    </div>
+  </div>
+  <aside class="notes">Clairvoyant, so a ceiling rather than a fair player. The heat field is the first frame a still player at each cell would be hit, from exact game clones, drawn as danger = 1 − arrival / horizon (yellow is dangerous). The crosshair is its current goal. Taylor's dodge-danger crate, vendored unchanged.</aside>
+</section>
+
+<!-- Intro: Landscape -->
+<section>
+  <div class="model t-c">
+    <div class="model-info">
+      <div class="head">
+        <div class="eyebrow"><span class="who taylor">Taylor</span><span class="act">Act IV</span><span>Nov 6 · dodge-native</span></div>
+        <h2><span class="mk search"></span>&nbsp;Landscape</h2>
+      </div>
+      <p class="lede">Treat the player as a ball with momentum and roll it downhill on a hand-made danger map, built only from what's on screen now.</p>
+      <div class="bias">
+        <div class="pipe-label">Architecture</div>
+        <div class="pipe mini">
+          <div class="node fixed"><h4>State</h4><p>The present only</p></div>
+          <div class="ar">→</div>
+          <div class="node fixed"><h4>Potential V</h4><p>Hand-shaped hills</p></div>
+          <div class="ar">→</div>
+          <div class="node fixed"><h4>Particle</h4><p>A ball with momentum</p></div>
+          <div class="ar">→</div>
+          <div class="node fixed"><h4>Roll</h4><p>Steer downhill</p></div>
+        </div>
+      </div>
+      <div class="bias">
+        <div class="pipe-label">Inductive bias</div>
+        <div class="spectrum" style="--pos: 100%" role="img" aria-label="Entirely coded">
+          <span><i class="sw"></i>All learned</span>
+          <div class="spectrum-track"><i style="left:0%"></i><i style="left:25%"></i><i style="left:50%"></i><i style="left:75%"></i><i style="left:100%"></i><b></b></div>
+          <span>All coded<i class="sw dash"></i></span>
+        </div>
+        <div class="bias-cols">
+          <div class="node fixed"><h4>Built in</h4>
+            <ul><li>Danger as tubes along enemy paths</li><li>Hand-set height and width per kind</li><li>The physics of a damped ball</li></ul></div>
+          <div class="node"><h4>Learned</h4>
+            <ul><li>Nothing; the learned potential replaces the hand-set hills</li></ul></div>
+        </div>
+      </div>
+      <div class="perf">
+        <div class="pipe-label">Performance · mean of the best</div>
+        <div class="perf-row">
+          <span class="perf-big num">1,875</span>
+          <div class="perf-what"><b>frames survived, on average</b><span>Shared bench</span></div>
+        </div>
+        <div class="scale" style="--p: 10.4%" role="img" aria-label="1,875 of 18,000 frames, against random near 200 and CNN v2-best at 5,374">
+          <div class="scale-track"><b></b><i style="left: 1.1%"><span>Random</span></i><i style="left: 29.9%"><span>v2-best</span></i></div>
+          <div class="scale-axis"><span>0</span><span>18,000 cap</span></div>
+        </div>
+        <div class="perf-cond"><span class="cond">dodge-native</span><span class="cond">D3</span><span class="cond">cap 18,000</span><span class="cond">20 games</span></div>
+      </div>
+    </div>
+    <div class="model-live">
+      <div class="live t-c" data-bot="landscape" data-seed="1" data-overlay="on" data-speed="1"></div>
+    </div>
+  </div>
+  <aside class="notes">A damped particle with H = ½‖p‖² + V(q), steering along −∇V. V is Gaussian tubes along predicted enemy paths, ridges at lethal boxes and walls, with hand-set A, w, σ per kind. The field on the right is that hand-set potential; the crosshair is its current goal.</aside>
+</section>
+
+<!-- Live: Lookahead vs Landscape -->
+<section>
+  <div class="frame">
+    <div class="head">
+      <div class="eyebrow"><span class="who taylor">Taylor</span><span class="act">Act IV</span><span>Live · same seed</span></div>
+      <h2>An exact field and a hand-shaped hill</h2>
+    </div>
+    <div class="live-group" data-seed="1" data-speed="2">
+      <div class="group-ctl"></div>
+      <div class="live-row n2">
+        <div class="live t-c" data-bot="lookahead" data-overlay="on" data-controls="none"></div>
+        <div class="live t-c" data-bot="landscape" data-overlay="on" data-controls="none"></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">Left: the heat field is the first frame a still player at each cell would be hit (36-frame horizon), from exact game clones. Right: the hand-set potential V(q). Both fields are drawn as danger = 1 − arrival / horizon, dodge-danger's own convention, through the same renderer as the other slides (yellow is dangerous). Crosshair is the current goal. Both are Taylor's dodge-danger crate, vendored unchanged plus a per-frame driver; games are identical to its own drive() loop.</aside>
 </section>
 
 <!-- Architecture: Lookahead and Landscape -->
 <section>
   <div class="arch" style="grid-template-rows:auto auto 1fr auto">
     <div class="head">
-      <div class="eyebrow"><span class="who taylor">Taylor</span><span>Nov 6 · How it works</span></div>
-      <h2>dodge-danger: Lookahead and Landscape</h2>
+      <div class="eyebrow"><span class="who taylor">Taylor</span><span class="act">Act IV</span><span>Nov 6 · How it works</span></div>
+      <h2>Lookahead and Landscape: a ceiling and a hill</h2>
     </div>
     <p class="lede">Two hand-built danger potentials. Lookahead is exact but cheats; Landscape is a cheap hand-shaped hill for the player to roll down.</p>
     <div class="two-pipes">
@@ -987,85 +1429,121 @@ table.data.tight td, table.data.tight th { padding: 5px 8px; font-size: 16px; }
       <div class="pipe-label">Landscape · fair, from current state</div>
       <div class="pipe t-c">
         <div class="node fixed"><h4>Particle</h4>
-          <p>The player as a damped particle: position q, momentum p.</p>
-          <p class="dim">H = ½‖p‖² + V(q)</p></div>
+          <p>The player as a ball with momentum.</p></div>
         <div class="ar">→</div>
         <div class="node fixed"><h4>Potential V</h4>
-          <p>Gaussian tubes along each enemy's predicted path, ridges at lethal boxes and walls, fixed corner and centre terms, a slight tilt to break symmetry.</p></div>
+          <p>A hand-made danger map: high along each enemy's path, at lethal boxes and at the walls.</p></div>
         <div class="ar">→</div>
         <div class="node fixed"><h4>Roll downhill</h4>
-          <p>Steer along −∇V.</p>
-          <p class="dim">hand-set A, w, σ per kind</p></div>
+          <p>Steer toward lower danger.</p></div>
       </div>
     </div>
     <div class="legend"><span>Nothing here is learned</span><span>The hand-set parameters in V are what a learned potential replaces (Nov 7)</span></div>
   </div>
-  <aside class="notes">Lookahead's heat field is also meant as ground truth for fitting a learned residual potential. That is where SpaceBot data could come in.</aside>
+  <aside class="notes">Landscape: a damped particle with H = ½‖p‖² + V(q), steering along −∇V; V is Gaussian tubes along predicted enemy paths, ridges at lethal boxes and walls, fixed corner and centre terms and a slight symmetry-breaking tilt, with hand-set A, w, σ per kind. Lookahead's heat field is also meant as ground truth for fitting a learned residual potential. That is where SpaceBot data could come in.</aside>
 </section>
 
-<!-- Live: Lookahead vs Landscape -->
+<!-- Intro: learned potential -->
 <section>
-  <div class="frame">
-    <div class="head">
-      <div class="eyebrow"><span class="who taylor">Taylor</span><span>Live · same seed</span></div>
-      <h2>An exact field and a hand-shaped hill</h2>
+  <div class="model t-c">
+    <div class="model-info">
+      <div class="head">
+        <div class="eyebrow"><span class="who taylor">Taylor</span><span class="act">Act V</span><span>Nov 7 – 8 · hnn-road-game</span></div>
+        <h2><span class="mk learned"></span>&nbsp;A learned potential</h2>
+      </div>
+      <p class="lede">Keep Landscape's roll downhill but learn the hill: small networks, one per kind of object, taught to match Lookahead from the present only.</p>
+      <div class="bias">
+        <div class="pipe-label">Architecture</div>
+        <div class="pipe mini">
+          <div class="node fixed"><h4>Features</h4><p>What's on screen now</p></div>
+          <div class="ar">→</div>
+          <div class="node"><h4>Object nets</h4><p>Enemies, boxes, arena</p></div>
+          <div class="ar">→</div>
+          <div class="node fixed"><h4>Sum</h4><p>One potential V</p></div>
+          <div class="ar">→</div>
+          <div class="node fixed"><h4>Act</h4><p>Head downhill</p></div>
+        </div>
+      </div>
+      <div class="bias">
+        <div class="pipe-label">Inductive bias</div>
+        <div class="spectrum" style="--pos: 60%" role="img" aria-label="More coded than learned: the hill's shape is learned, the rest is fixed">
+          <span><i class="sw"></i>All learned</span>
+          <div class="spectrum-track"><i style="left:0%"></i><i style="left:25%"></i><i style="left:50%"></i><i style="left:75%"></i><i style="left:100%"></i><b></b></div>
+          <span>All coded<i class="sw dash"></i></span>
+        </div>
+        <div class="bias-cols">
+          <div class="node fixed"><h4>Built in</h4>
+            <ul><li>Danger adds up object by object</li><li>Roll downhill on the sum</li><li>The present only: no future</li></ul></div>
+          <div class="node"><h4>Learned</h4>
+            <ul><li>Each object's share of the danger</li><li>Signal: Lookahead's action costs</li></ul></div>
+        </div>
+      </div>
+      <div class="perf none">
+        <div class="pipe-label">Performance · mean of the best</div>
+        <div class="perf-row">
+          <span class="perf-big num">—</span>
+          <div class="perf-what"><b>not played yet</b><span>Picks Lookahead's move 26% of the time, against 11% by chance</span></div>
+        </div>
+        <div class="scale" style="--p: 0%" role="img" aria-label="No survival result yet">
+          <div class="scale-track"><b></b></div>
+          <div class="scale-axis"><span>0</span><span>18,000</span></div>
+        </div>
+        <div class="perf-cond"><span class="cond">hnn-road-game</span><span class="cond">2,019 test states</span></div>
+      </div>
     </div>
-    <div class="live-group" data-seed="1" data-speed="2">
-      <div class="group-ctl"></div>
-      <div class="live-row n2">
-        <div class="live t-c" data-bot="lookahead" data-overlay="on" data-controls="none"></div>
-        <div class="live t-c" data-bot="landscape" data-overlay="on" data-controls="none"></div>
+    <div class="model-live">
+      <div class="model-off">
+        <div class="live-hud"><span class="live-name">Learned potential</span><span>not in the browser</span></div>
+        <div class="screen"><strong>Not played yet</strong><p>It has only been checked against Lookahead's map. A matching map is not yet a matching player.</p></div>
       </div>
     </div>
   </div>
-  <aside class="notes">Left: the heat field is the first frame a still player at each cell would be hit (36-frame horizon), from exact game clones. Right: the hand-set potential V(q). Both fields are drawn as danger = 1 − arrival / horizon, dodge-danger's own convention, through the same renderer as the other slides (yellow is dangerous). Crosshair is the current goal. Both are Taylor's dodge-danger crate, vendored unchanged plus a per-frame driver; games are identical to its own drive() loop.</aside>
+  <aside class="notes">Small tanh networks per object kind. Correlation with Lookahead's arrival field 0.852. Trained on about 208k frames, checked on 2,019 states, 819 of them just before a death. hnn-road-game is a separate project.</aside>
 </section>
 
 <!-- Architecture: learned potential -->
 <section>
   <div class="arch">
     <div class="head">
-      <div class="eyebrow"><span class="who taylor">Taylor</span><span>Nov 7 – 8 · hnn-road-game · How it works</span></div>
+      <div class="eyebrow"><span class="who taylor">Taylor</span><span class="act">Act V</span><span>Nov 7 – 8 · hnn-road-game · How it works</span></div>
       <h2>A learned potential, taught by Lookahead</h2>
     </div>
     <p class="lede">Replace Landscape's hand-set hill with small networks, one per kind of object, trained to reproduce Lookahead's action costs from current state only.</p>
     <div style="display:grid; gap:22px; align-content:start">
       <div class="pipe t-c">
         <div class="node fixed"><h4>Features</h4>
-          <p>Observed player, enemy and rectangle features. No clones, no future spawns.</p></div>
+          <p>What's on screen now: the player, enemies and boxes. No peeking at the future.</p></div>
         <div class="ar">→</div>
         <div class="node"><h4>Per-object nets</h4>
-          <ul><li>Enemy: <span class="num">11 → 64 → 64 → 1</span></li><li>Rectangle: <span class="num">5 → 32 → 1</span></li><li>Base: <span class="num">4 → 32 → 32 → 1</span></li></ul>
-          <p class="dim">Tanh hidden layers</p></div>
+          <p>One small network for enemies, one for boxes, one for the arena itself.</p></div>
         <div class="ar">→</div>
         <div class="node fixed"><h4>Sum</h4>
           <p>Every object's contribution adds into one potential V.</p></div>
         <div class="ar">→</div>
         <div class="node fixed"><h4>Act</h4>
-          <p>Choose the move from V's slopes and path costs.</p></div>
+          <p>Pick the move that heads downhill.</p></div>
       </div>
       <div class="split" style="grid-template-columns: 1fr 1fr; gap: 32px;">
         <div class="keys">
-          <div class="key" style="grid-template-columns:130px 1fr"><span class="big">0.852</span><p>Correlation with Lookahead's arrival field. Cross-entropy 0.197 against a constant baseline's 0.273.</p></div>
-          <div class="key" style="grid-template-columns:130px 1fr"><span class="big">26%</span><p>Validation agreement with the teacher's chosen move.</p></div>
+          <div class="key" style="grid-template-columns:130px 1fr"><span class="big">Close</span><p>Its danger map closely matches Lookahead's.</p></div>
+          <div class="key" style="grid-template-columns:130px 1fr"><span class="big">26%</span><p>How often it picks Lookahead's move, against 11% by chance.</p></div>
         </div>
         <div class="side">
-          <p>Trained on 208,320 frames, validated on 81,545, 8 epochs.</p>
-          <p>A fidelity check covered 2,019 states, 819 of them just before a death, and replayed 21 recorded deaths.</p>
-          <p class="small">These are imitation metrics. It has not yet been shown to survive longer.</p>
+          <p>A matching map is not yet a matching player.</p>
+          <p class="small">It has not been tested on survival yet.</p>
         </div>
       </div>
     </div>
     <div class="legend"><span><i class="sw"></i>Learned weights</span><span><i class="sw dash"></i>Fixed rule</span><span>Not the PPO actor; no link to the LeWM or checkpoint-420 lineages</span></div>
   </div>
-  <aside class="notes">hnn-road-game is a separate project with a nested dodge-native checkout on feature/danger-field. Commit 90fad13 (Nov 7, 14:19 CST) records scripts, logs and models; hnn/train_p1.log exports model_p1.json. The fidelity report (43e25ff) covers 400 D1, 400 D2 and 1,219 D3 states. Fidelity doesn't establish fewer deaths.</aside>
+  <aside class="notes">Small tanh networks per object kind. Correlation with Lookahead's arrival field 0.852. Trained on about 208k frames and checked on 2,019 states, 819 of them just before a death. hnn-road-game is a separate project. Matching the field doesn't establish fewer deaths; it hasn't been played yet.</aside>
 </section>
 
 <!-- Live: head to head -->
 <section>
   <div class="frame" style="gap:18px">
     <div class="head">
-      <div class="eyebrow"><span class="who both">Live · same seed, same engine</span></div>
+      <div class="eyebrow"><span class="who both">Live · same seed, same engine</span><span class="act">Act V</span></div>
       <h2>Four policies, one game</h2>
     </div>
     <div class="live-group" data-seed="3" data-speed="2">
@@ -1085,7 +1563,7 @@ table.data.tight td, table.data.tight th { padding: 5px 8px; font-size: 16px; }
 <section>
   <div class="frame">
     <div class="head">
-      <div class="eyebrow"><span class="who both">Both</span><span>Nov 6 – 9</span></div>
+      <div class="eyebrow"><span class="who both">Both</span><span class="act">Act V</span><span>Nov 6 – 9</span></div>
       <h2>One engine, one bench</h2>
     </div>
     <div class="split" style="grid-template-columns: 0.8fr 1.2fr;">
@@ -1095,6 +1573,7 @@ table.data.tight td, table.data.tight th { padding: 5px 8px; font-size: 16px; }
           <p style="font-size:20px">In the real cartridge, blasts never kill enemies. dodge-ai-3 let them, which made its game easier.</p>
         </div>
         <p style="font-size:20px">Everything was re-run on dodge-native: hard, patterns and powerups on, seeds 1–20, one decision per frame.</p>
+        <p style="font-size:20px">v2-best's <span class="num">8,881</span> was on dodge-ai-3, measured on the 256 seeds that picked it. Here, on 20 other seeds, it is <span class="num">5,374</span>.</p>
         <p class="res">SpaceBot outlasts the CNN on <b>19 of 20</b> seeds.</p>
       </div>
       <figure class="chart" style="margin:0">
@@ -1103,35 +1582,35 @@ table.data.tight td, table.data.tight th { padding: 5px 8px; font-size: 16px; }
       </figure>
     </div>
   </div>
-  <aside class="notes">Lookahead is clairvoyant and serves as a ceiling, not a fair player. Flee, Random and Potential all landed between about 150 and 205 frames.</aside>
+  <aside class="notes">Lookahead is clairvoyant and serves as a ceiling, not a fair player. Flee, Random and Potential all landed between about 150 and 205 frames. The 8,881 → 5,374 drop mixes three things: the blast rule (dodge-native matched the cartridge on Nov 4, with other parity fixes), picking v2-best on the same 256 seeds that scored it, and a small 20-seed panel. Running v2-best on dodge-native with the blast check switched off would isolate the rule.</aside>
 </section>
 
 <!-- 13 ─ SpaceBot uncapped -->
 <section>
   <div class="frame">
     <div class="head">
-      <div class="eyebrow"><span class="who lucas">Lucas</span><span>Nov 8</span></div>
+      <div class="eyebrow"><span class="who lucas">Lucas</span><span class="act">Act V</span><span>Nov 8</span></div>
       <h2>How long can SpaceBot last?</h2>
     </div>
     <div class="split" style="grid-template-columns: 1.2fr 0.8fr;">
       <figure class="chart" style="margin:0">
         <div id="uncapped" role="img" aria-label="SpaceBot frames survived per seed with patterns off, cap 60,000"></div>
-        <figcaption>Frames survived per seed, patterns off, cap 60,000 (16.7 minutes). <span class="cond" style="margin:0">dodge-native · D3</span></figcaption>
+        <figcaption>Frames survived per seed, patterns off, cap 60,000 frames (about 17 minutes). <span class="cond" style="margin:0">dodge-native · D3</span></figcaption>
       </figure>
       <div class="keys" style="align-content:start">
-        <div class="key" style="grid-template-columns:1fr"><span class="big">53,716</span><p>Seed 2: almost 15 minutes before the first hit.</p></div>
+        <div class="key" style="grid-template-columns:1fr"><span class="big">53,716</span><p>Frames on seed 2 before the first hit (almost 15 minutes).</p></div>
         <div class="key" style="grid-template-columns:1fr"><span class="big">2 of 5</span><p>Games still alive at the 60,000 cap.</p></div>
       </div>
     </div>
   </div>
-  <aside class="notes">Patterns are what usually end SpaceBot's games. Without them it plays for many minutes.</aside>
+  <aside class="notes">Patterns are what usually end SpaceBot's games. Without them it survives tens of thousands of frames.</aside>
 </section>
 
 <!-- Live: your turn -->
 <section data-human="1">
   <div class="frame" style="gap:18px">
     <div class="head">
-      <div class="eyebrow"><span class="who both">Live · your turn</span><span><span class="kbd">← ↑ → ↓</span> or <span class="kbd">WASD</span> to move · <span class="kbd">R</span> restart · <span class="kbd">PgDn</span> next slide</span></div>
+      <div class="eyebrow"><span class="who both">Live · your turn</span><span class="act">Act V</span><span><span class="kbd">← ↑ → ↓</span> or <span class="kbd">WASD</span> to move · <span class="kbd">R</span> restart · <span class="kbd">PgDn</span> next slide</span></div>
       <h2>You against SpaceBot</h2>
     </div>
     <div class="live-group" data-seed="4" data-speed="1">
@@ -1150,39 +1629,32 @@ table.data.tight td, table.data.tight th { padding: 5px 8px; font-size: 16px; }
   <div class="frame">
     <div class="head">
       <div class="eyebrow"><span class="who both">Both</span></div>
-      <h2>What the timeline says</h2>
+      <h2>What the timeline says, and what's next</h2>
     </div>
-    <div class="lessons">
-      <div class="lesson"><div><h3>Hand-written search leads</h3><p>SpaceBot and the belief planner both outlast every learned policy we have.</p></div></div>
-      <div class="lesson"><div><h3>Decide every frame</h3><p>Both projects found it on their own: 1,805 more frames of mean (Lucas), 2.3× fewer opening deaths (Taylor).</p></div></div>
-      <div class="lesson"><div><h3>Pick checkpoints on held-out seeds</h3><p>Training past the peak hurt in both projects: the Nov 1 follow-ups, and the −27% fresh continuation. The waypoint DQN's pick lost 31% on fresh seeds.</p></div></div>
-      <div class="lesson"><div><h3>One seed, or a few episodes, flatters</h3><p>Evolved move lists that scored 1,361 on seed 42 replayed for 194. The image DDQN's best is 8 reused, capped episodes.</p></div></div>
-      <div class="lesson"><div><h3>Curriculum, seed priority and rays didn't help</h3><p>All small, matched tests with mixed or negative results.</p></div></div>
-      <div class="lesson"><div><h3>The engine has to match the cartridge</h3><p>One blast rule changed every number, so old results were re-run.</p></div></div>
-    </div>
-  </div>
-</section>
-
-<!-- 15 ─ Next -->
-<section>
-  <div class="frame">
-    <div class="head">
-      <div class="eyebrow"><span class="who both">Next</span></div>
-      <h2>Where the learned models go from here</h2>
-    </div>
-    <div class="entries two">
-      <div class="entry"><div class="when">Teacher</div><div class="body">
-        <h3><span class="mk learned l"></span>Learn from SpaceBot</h3>
-        <p>Use SpaceBot as the teacher for the CNN (imitation), since it reaches late-game states the CNN rarely sees.</p></div></div>
-      <div class="entry"><div class="when">Potential</div><div class="body">
-        <h3><span class="mk learned t"></span>Let the learned potential play</h3>
-        <p>The Nov 7 fit tracks Lookahead's field (r 0.85) but picks its move only 26% of the time. Test its survival, and add SpaceBot games as off-policy data.</p></div></div>
-      <div class="entry"><div class="when">Cost</div><div class="body">
-        <h3><span class="mk hand l"></span>Tune SpaceBot's cost with RL</h3>
-        <p>Keep the planner and learn the weights it scores plans with.</p></div></div>
-      <div class="entry"><div class="when">Bench</div><div class="body">
-        <h3><span class="mk learned t"></span>Checkpoint 420 on the bench</h3>
-        <p>The entity encoder is now in dodge-rl-env; it needs the checkpoint and the model code to run here.</p></div></div>
+    <div class="split" style="grid-template-columns: 1.25fr 0.75fr; gap: 36px;">
+      <div class="lessons compact">
+        <div class="lesson"><div><h3>Move the physics into code</h3><p>Each big jump came when part of the game left the weights: the player's movement, then the threats'. Networks mapping straight to 9 buttons died of a dead layer, a collapse, or a gate they never passed.</p></div></div>
+        <div class="lesson"><div><h3>Give motion, don't make it inferred</h3><p>Handing the network each object's velocity made its forecasts 5× more accurate.</p></div></div>
+        <div class="lesson"><div><h3>Decide every frame</h3><p>Found in both projects: it nearly doubled Lucas's mean and halved Taylor's early deaths.</p></div></div>
+        <div class="lesson"><div><h3>More training often hurt</h3><p>v2-best, LeWM and checkpoint 420 all peaked, then got worse. Test on fresh seeds: the waypoint DQN's pick lost 31%.</p></div></div>
+        <div class="lesson"><div><h3>Check the engine and the seeds first</h3><p>One rule difference, and the seeds used to pick the model, sit between 8,881 and 5,374.</p></div></div>
+        <div class="lesson"><div><h3>A matching map isn't a matching move</h3><p>The learned potential matches Lookahead's map but picks the same move only 26% of the time.</p></div></div>
+      </div>
+      <div class="entries" style="gap:16px">
+        <div class="eyebrow">Next</div>
+        <div class="entry" style="grid-template-columns:1fr"><div class="body">
+          <h3><span class="mk learned l"></span>Train velocity-flow-v3</h3>
+          <p style="font-size:17px">Already built: carries momentum, spreads the far slices, drops per-state standardisation.</p></div></div>
+        <div class="entry" style="grid-template-columns:1fr"><div class="body">
+          <h3><span class="mk learned t"></span>Let the learned potential play</h3>
+          <p style="font-size:17px">Its first survival test, with SpaceBot games as extra data.</p></div></div>
+        <div class="entry" style="grid-template-columns:1fr"><div class="body">
+          <h3><span class="mk learned l"></span>Learn from SpaceBot</h3>
+          <p style="font-size:17px">Imitation for the CNN, which rarely reaches late-game states.</p></div></div>
+        <div class="entry" style="grid-template-columns:1fr"><div class="body">
+          <h3><span class="mk learned t"></span>Checkpoint 420 on the bench</h3>
+          <p style="font-size:17px">Needs the model code and checkpoint in dodge-native.</p></div></div>
+      </div>
     </div>
   </div>
 </section>
@@ -1191,15 +1663,11 @@ table.data.tight td, table.data.tight th { padding: 5px 8px; font-size: 16px; }
 <section>
   <div class="frame">
     <div class="head">
-      <div class="eyebrow"><span class="who both">Appendix</span><span>How the live slides work</span></div>
-      <h2>The deck runs the real engine</h2>
+      <div class="eyebrow"><span class="who both">Appendix</span><span>The live engine and the evidence</span></div>
+      <h2>What runs here, and where each result comes from</h2>
     </div>
-    <div class="split" style="grid-template-columns: 0.9fr 1.1fr; gap: 36px;">
-      <div class="side">
-        <p>dodge-core, the binding's VelocityFlow encoder and slot state, and Taylor's dodge-danger compile to one <span class="num">wasm32</span> module with SIMD: <span class="num" id="wasm-size">772 KB</span> including the CNN's weights, no imports, no JavaScript glue. The page reads the screen, stats and each policy's internals straight out of linear memory.</p>
-        <p>Python bots were ported, not approximated, and each port was checked against its original before it went on a slide. So was the danger-field renderer: dodge/display.py's set_field and compose, in numpy's float32 arithmetic with its pairwise sum, match the Python window on all 9.8 M colour values of 200 test fields.</p>
-        <p class="small">Costs are from Node 22 on this machine; the HUD on each slide shows the live figure in your browser.</p>
-      </div>
+    <div style="display:grid; gap:18px; align-content:start">
+      <p style="font-size:17px" class="muted">The live slides run dodge-core, the VelocityFlow encoder and dodge-danger as one <span class="num">wasm32</span> SIMD module (<span class="num" id="wasm-size">772 KB</span> with the CNN's weights). Every bot was ported, then checked against its original:</p>
       <table class="data tight">
         <thead><tr><th>Policy</th><th>Source</th><th>Check against original</th><th>ms / frame</th></tr></thead>
         <tbody>
@@ -1211,37 +1679,25 @@ table.data.tight td, table.data.tight th { padding: 5px 8px; font-size: 16px; }
           <tr><td>Belief planner</td><td style="text-align:left;font-family:var(--font-body)">dodge-core planner</td><td style="text-align:left;font-family:var(--font-body)">our settings (see notes)</td><td>73</td></tr>
         </tbody>
       </table>
-    </div>
-  </div>
-  <aside class="notes">All survival figures in the live HUDs are alive frames from the engine's own counter. SpaceBot numbers on the results slide counted the death frame too, so they read one higher.</aside>
-</section>
-
-<!-- Sources and attribution -->
-<section>
-  <div class="frame">
-    <div class="head">
-      <div class="eyebrow"><span class="who both">Appendix</span><span>Sources and attribution</span></div>
-      <h2>Where each result comes from</h2>
-    </div>
-    <div class="split" style="grid-template-columns: 1.1fr 0.9fr; gap: 36px;">
-      <table class="data tight">
-        <thead><tr><th>Repository</th><th style="text-align:left">Owner</th><th style="text-align:left">What it holds</th></tr></thead>
-        <tbody>
-          <tr><td>DodgeAI</td><td style="text-align:left;font-family:var(--font-body)" class="lucas">LaunchSpark</td><td style="text-align:left;font-family:var(--font-body)">Lucas's cartridge runtime, VelocityFlow CNNs, SpaceBot</td></tr>
-          <tr><td>rl-learning</td><td style="text-align:left;font-family:var(--font-body)" class="taylor">Taylor</td><td style="text-align:left;font-family:var(--font-body)">Genetic search, NEAT, cloning, board PPO, waypoint and pixel DQN</td></tr>
-          <tr><td>dodge-ai-3</td><td style="text-align:left;font-family:var(--font-body)" class="taylor">TaylorTurnerIT</td><td style="text-align:left;font-family:var(--font-body)">Image DDQN, LeWM; Lucas's Oct 30 – Nov 5 training</td></tr>
-          <tr><td>dodge-native</td><td style="text-align:left;font-family:var(--font-body)" class="taylor">TaylorTurnerIT</td><td style="text-align:left;font-family:var(--font-body)">Native engine, entity PPO, M0, planners, dodge-danger; now both projects</td></tr>
-          <tr><td>hnn-road-game</td><td style="text-align:left;font-family:var(--font-body)" class="taylor">Taylor</td><td style="text-align:left;font-family:var(--font-body)">Learned potential</td></tr>
-        </tbody>
-      </table>
-      <div class="side">
-        <p>dodge-ai-3's dashboard and rewards modules are adapted from DodgeAI, and its launchspark-ppo variant vendors Lucas's PPO. LaunchSpark-authored commits in dodge-native, such as VelocityFlow observations, critic features and caller-chosen reset seeds, stay Lucas's.</p>
-        <p>Commit authors record an identity, not who designed each change or launched each run. Results come from saved reports and receipts; they were not re-run for this deck.</p>
-        <p class="small">Missing: the LeWM 40k–80k checkpoints, full provenance for several DDQN runs, and runtime qualification for the planners. The Dodge cartridge is Artridge's.</p>
+      <div class="split" style="grid-template-columns: 1.15fr 0.85fr; gap: 32px;">
+        <table class="data tight">
+          <thead><tr><th>Repository</th><th style="text-align:left">Owner</th><th style="text-align:left">Holds</th></tr></thead>
+          <tbody>
+            <tr><td>DodgeAI</td><td style="text-align:left;font-family:var(--font-body)" class="lucas">LaunchSpark</td><td style="text-align:left;font-family:var(--font-body)">Cartridge runtime, VelocityFlow, SpaceBot</td></tr>
+            <tr><td>rl-learning</td><td style="text-align:left;font-family:var(--font-body)" class="taylor">Taylor</td><td style="text-align:left;font-family:var(--font-body)">Evolution, board PPO, waypoint and pixel DQN</td></tr>
+            <tr><td>dodge-ai-3</td><td style="text-align:left;font-family:var(--font-body)" class="taylor">TaylorTurnerIT</td><td style="text-align:left;font-family:var(--font-body)">Image DDQN, LeWM, Lucas's Rust training</td></tr>
+            <tr><td>dodge-native</td><td style="text-align:left;font-family:var(--font-body)" class="taylor">TaylorTurnerIT</td><td style="text-align:left;font-family:var(--font-body)">Engine, entity PPO, M0, planners; now both</td></tr>
+            <tr><td>hnn-road-game</td><td style="text-align:left;font-family:var(--font-body)" class="taylor">Taylor</td><td style="text-align:left;font-family:var(--font-body)">Learned potential</td></tr>
+          </tbody>
+        </table>
+        <div class="side" style="gap:10px">
+          <p style="font-size:16px">LaunchSpark-authored work, including the commits in dodge-native and the code dodge-ai-3 adapted from DodgeAI, stays Lucas's. Commit authors record an identity, not who launched each run.</p>
+          <p class="small">Results come from saved reports, not re-runs. Missing: LeWM's 40k–80k checkpoints, full provenance for several DDQN runs. The cartridge is Artridge's.</p>
+        </div>
       </div>
     </div>
   </div>
-  <aside class="notes">Taylor's history was reconstructed from three machines (Tuvalu, the homelab container, and a Mac), whose copies of rl-learning have different branch tips; neither rl-learning copy holds all of it. Taylor's DodgeRoyale is a fork of LaunchSpark/DodgeRoyale; the fork alone doesn't establish authorship of its contents.</aside>
+  <aside class="notes">Python bots were ported, not approximated, and checked action for action against the originals. The live HUDs count alive frames from the engine's own counter; SpaceBot numbers on the results slide counted the death frame too, so they read one higher. dodge-ai-3's dashboard and rewards modules are adapted from DodgeAI. Taylor's history was reconstructed from three machines.</aside>
 </section>
 
 </div>
@@ -1272,7 +1728,7 @@ table.data.tight td, table.data.tight th { padding: 5px 8px; font-size: 16px; }
 
   /* ── Overview timeline ───────────────────────────── */
   function timeline() {
-    const W = 1200, H = 540;
+    const W = 1200, H = 500;
     const svg = el("svg", { viewBox: `0 0 ${W} ${H}` }, document.getElementById("timeline"));
     const day = s => Date.UTC(2026, +s.slice(0, 2) - 1, +s.slice(3, 5)) / 864e5;
     const A0 = day("08-08"), A1 = day("10-01"), B0 = day("10-22"), B1 = day("11-10");
@@ -1312,7 +1768,7 @@ table.data.tight td, table.data.tight th { padding: 5px 8px; font-size: 16px; }
       ["11-08", "hand", "SpaceBot 14,399+"],
     ];
     const T = [
-      ["08-16", "search", "Genetic search"],
+      ["08-17", "search", "Genetic search"],
       ["08-21", "search", "NEAT"],
       ["08-23", "learned", "Behaviour cloning"],
       ["08-28", "learned", "Board PPO · 181"],
@@ -1356,29 +1812,98 @@ table.data.tight td, table.data.tight th { padding: 5px 8px; font-size: 16px; }
     lane(T, laneT, 1, css("--taylor"));
   }
 
-  /* ── Genetic search: recorded fitness vs replay ──── */
-  function gafit() {
-    const fit = [702, 613, 660, 665, 720, 932, 1361], rep = [461, 184, 160, 285, 327, 223, 194];
-    const W = 600, H = 400, m = { l: 58, r: 12, t: 34, b: 40 };
-    const svg = el("svg", { viewBox: `0 0 ${W} ${H}` }, document.getElementById("gafit"));
-    const Y = v => H - m.b - v / 1400 * (H - m.t - m.b);
-    for (let v = 0; v <= 1400; v += 350) {
+  /* ── Genetic search loop ─────────────────────────── */
+  function galoop() {
+    const W = 600, H = 400, c = css("--taylor"), fg = css("--fg"), mu = css("--muted"), bg = css("--bg");
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}` }, document.getElementById("galoop"));
+    const defs = el("defs", {}, svg);
+    const mk = el("marker", { id: "ga-head", viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto-start-reverse" }, defs);
+    el("path", { d: "M0,0 L10,5 L0,10 z", fill: c }, mk);
+
+    // one genome: a strip of held moves
+    const moves = ["→", "→", "↗", "↑", "↑", "↖", "←", "↙", "↓", "↓", "↘", "→", "↗", "↑"];
+    const cw = 36, sx = (W - moves.length * cw) / 2, sy = 30;
+    el("text", { x: W / 2, y: sy - 10, class: "axis-label", "text-anchor": "middle" }, svg, "one genome: a move for every half second");
+    moves.forEach((mv, i) => {
+      el("rect", { x: sx + i * cw, y: sy, width: cw - 4, height: 34, rx: 4, fill: "none", stroke: c, "stroke-width": 1.5 }, svg);
+      el("text", { x: sx + i * cw + (cw - 4) / 2, y: sy + 24, "text-anchor": "middle", "font-size": 20, fill: fg }, svg, mv);
+    });
+
+    // the loop
+    const bw = 210, bh = 74, L = 40, R = W - 40 - bw, T = 120, B = 290;
+    const boxes = [
+      [L, T, "Population", "100 move lists"],
+      [R, T, "Play seed 42", "score = frames survived"],
+      [R, B, "Keep the best", "the top 5 survive"],
+      [L, B, "Mutate", "change 5% of the moves"],
+    ];
+    for (const [x, y, h, p] of boxes) {
+      el("rect", { x, y, width: bw, height: bh, rx: 8, fill: bg, stroke: c, "stroke-width": 2, "stroke-dasharray": "7 5" }, svg);
+      el("text", { x: x + bw / 2, y: y + 31, "text-anchor": "middle", "font-size": 21, fill: fg }, svg, h);
+      el("text", { x: x + bw / 2, y: y + 56, "text-anchor": "middle", "font-size": 15, fill: mu }, svg, p);
+    }
+    const arrow = (x1, y1, x2, y2) => el("line", { x1, y1, x2, y2, stroke: c, "stroke-width": 2, "marker-end": "url(#ga-head)" }, svg);
+    arrow(L + bw + 8, T + bh / 2, R - 8, T + bh / 2);
+    arrow(R + bw / 2, T + bh + 8, R + bw / 2, B - 8);
+    arrow(R - 8, B + bh / 2, L + bw + 8, B + bh / 2);
+    arrow(L + bw / 2, B - 8, L + bw / 2, T + bh + 8);
+    el("text", { x: W / 2, y: (T + bh + B) / 2 + 6, "text-anchor": "middle", "font-size": 16, fill: mu }, svg, "every generation");
+  }
+
+  /* ── Entity teacher: mean frames over time ───────── */
+  function teacher() {
+    // [day offset from Oct 24, mean frames, is checkpoint 420]
+    const pts = [[0, 295], [0, 1102], [0, 1149], [0, 1093], [1, 2240], [1, 1655], [2, 2939], [2, 3098],
+                 [8, 4366, 1], [8, 4533], [9, 3831], [9, 3305]];
+    const W = 640, H = 400, m = { l: 62, r: 24, t: 24, b: 44 };
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}` }, document.getElementById("teacher"));
+    const X = d => m.l + 14 + d / 9 * (W - m.l - m.r - 28);
+    const Y = v => H - m.b - v / 5000 * (H - m.t - m.b);
+    for (let v = 0; v <= 5000; v += 1000) {
       el("line", { x1: m.l, y1: Y(v), x2: W - m.r, y2: Y(v), class: "grid" }, svg);
       el("text", { x: m.l - 8, y: Y(v) + 4, class: "axis-label", "text-anchor": "end" }, svg, fmt(v));
     }
-    const c = css("--taylor"), gw = (W - m.l - m.r) / fit.length, bw = 24;
-    fit.forEach((f, i) => {
-      const cx = m.l + gw * (i + 0.5), r = rep[i];
-      el("rect", { x: cx - bw - 2, y: Y(f), width: bw, height: Y(0) - Y(f), fill: "none", stroke: c, "stroke-width": 2 }, svg);
-      el("rect", { x: cx + 2, y: Y(r), width: bw, height: Y(0) - Y(r), fill: c }, svg);
-      el("text", { x: cx - bw / 2 - 2, y: Y(f) - 7, class: "val", "text-anchor": "middle", "font-size": 12 }, svg, fmt(f));
-      el("text", { x: cx + bw / 2 + 2, y: Y(r) - 7, class: "val", "text-anchor": "middle", "font-size": 12, fill: css("--muted") }, svg, fmt(r));
+    const days = ["Oct 24", "Oct 26", "Oct 28", "Oct 30", "Nov 1"];
+    days.forEach((t, i) => el("text", { x: X(i * 2), y: H - m.b + 22, class: "axis-label", "text-anchor": "middle" }, svg, t));
+    el("text", { x: m.l, y: m.t - 8, class: "axis-label" }, svg, "mean frames survived");
+    const c = css("--taylor");
+    // trend through each day's best evaluation
+    const trend = [0, 1, 2, 8, 9].map(d => [d, Math.max(...pts.filter(p => p[0] === d).map(p => p[1]))]);
+    el("path", { d: trend.map((p, i) => `${i ? "L" : "M"}${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(""), fill: "none", stroke: c, "stroke-width": 2, "stroke-opacity": 0.45 }, svg);
+    const seen = {};
+    for (const [d, v, hi] of pts) {
+      const k = seen[d] = (seen[d] || 0) + 1;
+      const x = X(d) + (k - 1) * 9 - 6;
+      el("circle", { cx: x, cy: Y(v), r: hi ? 7 : 4.5, fill: hi ? c : css("--bg"), stroke: c, "stroke-width": 2 }, svg);
+      if (hi) {
+        el("text", { x: x - 12, y: Y(v) - 16, class: "val", "text-anchor": "end", fill: css("--fg") }, svg, "checkpoint 420");
+      }
+    }
+  }
+
+  /* ── Hard-seed priority: uniform vs priority ─────── */
+  function hardseed() {
+    const data = [["Q1 · worst quarter", 626, 617], ["Mean", 2142, 2108]];
+    const W = 560, H = 380, m = { l: 62, r: 16, t: 34, b: 40 };
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}` }, document.getElementById("hardseed"));
+    const Y = v => H - m.b - v / 2500 * (H - m.t - m.b);
+    for (let v = 0; v <= 2500; v += 500) {
+      el("line", { x1: m.l, y1: Y(v), x2: W - m.r, y2: Y(v), class: "grid" }, svg);
+      el("text", { x: m.l - 8, y: Y(v) + 4, class: "axis-label", "text-anchor": "end" }, svg, fmt(v));
+    }
+    const gw = (W - m.l - m.r) / data.length, bw = 72;
+    data.forEach(([label, u, p], i) => {
+      const cx = m.l + gw * (i + 0.5);
+      for (const [v, col, x] of [[u, css("--muted"), cx - bw - 4], [p, css("--taylor"), cx + 4]]) {
+        el("rect", { x, y: Y(v), width: bw, height: Y(0) - Y(v), fill: col }, svg);
+        el("text", { x: x + bw / 2, y: Y(v) - 7, class: "val", "text-anchor": "middle" }, svg, fmt(v));
+      }
+      el("text", { x: cx, y: H - m.b + 24, class: "axis-label", "text-anchor": "middle" }, svg, label);
     });
-    el("text", { x: W - m.r, y: H - 10, class: "axis-label", "text-anchor": "end" }, svg, "seven winners, frames");
-    el("rect", { x: m.l + 4, y: 6, width: 12, height: 12, fill: "none", stroke: c, "stroke-width": 2 }, svg);
-    el("text", { x: m.l + 22, y: 17, class: "axis-label" }, svg, "recorded fitness");
-    el("rect", { x: m.l + 150, y: 6, width: 12, height: 12, fill: c }, svg);
-    el("text", { x: m.l + 168, y: 17, class: "axis-label" }, svg, "saved replay");
+    el("rect", { x: m.l + 4, y: 6, width: 12, height: 12, fill: css("--muted") }, svg);
+    el("text", { x: m.l + 22, y: 17, class: "axis-label" }, svg, "Uniform seeds");
+    el("rect", { x: m.l + 140, y: 6, width: 12, height: 12, fill: css("--taylor") }, svg);
+    el("text", { x: m.l + 158, y: 17, class: "axis-label" }, svg, "Hard-seed priority");
   }
 
   /* ── Retention chart ─────────────────────────────── */
@@ -1483,7 +2008,9 @@ table.data.tight td, table.data.tight th { padding: 5px 8px; font-size: 16px; }
 
   function build() {
     try { timeline(); } catch (e) { console.error(e); }
-    try { gafit(); } catch (e) { console.error(e); }
+    try { galoop(); } catch (e) { console.error(e); }
+    try { teacher(); } catch (e) { console.error(e); }
+    try { hardseed(); } catch (e) { console.error(e); }
     try { retention(); } catch (e) { console.error(e); }
     try { planner(); } catch (e) { console.error(e); }
     try { standings(); } catch (e) { console.error(e); }
