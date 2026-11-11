@@ -1,0 +1,28 @@
+[package]
+name = "dodge-web"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Dodge plus every bot, compiled to WebAssembly for the timeline deck"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "parity"
+path = "src/bin/parity.rs"
+
+[dependencies]
+dodge-core = { path = "../../../../crates/dodge-core" }
+dodge-rl-env = { path = "../../../../crates/dodge-rl-env", default-features = false }
+dodge-danger = { path = "danger" }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+
+# Its own workspace: this crate lives inside dodge-native's tree but is not a member.
+[workspace]
+members = ["danger"]
