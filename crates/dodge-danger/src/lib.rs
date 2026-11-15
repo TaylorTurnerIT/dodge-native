@@ -120,6 +120,8 @@ pub struct DangerConfig {
     pub drive_model: bool,
     /// Record each enemy's raw velocity and clock rate (for learning the physics).
     pub physics: bool,
+    /// Include native indexed pixels in output records. Off by default to preserve dataset costs.
+    pub native_pixels: bool,
     /// Hand-set shape of every term in the danger landscape.
     pub landscape: LandscapeParams,
 }
@@ -139,6 +141,7 @@ impl Default for DangerConfig {
             epsilon: 0.0,
             drive_model: false,
             physics: false,
+            native_pixels: false,
             landscape: LandscapeParams::default(),
         }
     }
@@ -208,6 +211,9 @@ pub struct HeatRecord {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct FrameRecord {
+    /// Native shared CPU renderer output, as row-major PICO-8 palette indices.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub native_pixels: Option<String>,
     /// Player x, y, vx, vy, size.
     pub p: [f32; 5],
     /// Enemy x, y, vx, vy, size, personality. `vx` and `vy` are pixels per frame,
@@ -508,6 +514,16 @@ fn drive(
                 None
             };
             let mut record = FrameRecord::new(&game, &decision, goal, heat, played, config.physics);
+            if config.native_pixels {
+                let mut native_pixels = [0_u8; dodge_core::FRAMEBUFFER_SIZE];
+                game.render_into(&mut native_pixels);
+                record.native_pixels = Some(
+                    native_pixels
+                        .iter()
+                        .map(|index| char::from_digit(u32::from(*index), 16).unwrap_or('0'))
+                        .collect(),
+                );
+            }
             if policy == PolicyKind::Hnn
                 && let (Some(model), Some(costs)) = (hnnplan::installed(), decision.costs)
             {
@@ -972,6 +988,7 @@ impl FrameRecord {
             }
         }
         Self {
+            native_pixels: None,
             p: [
                 player.x.to_f32(),
                 player.y.to_f32(),
@@ -1457,6 +1474,7 @@ mod tests {
     #[test]
     fn short_lookahead_episode_produces_trace() {
         let config = DangerConfig {
+            native_pixels: true,
             max_frames: 40,
             grid: 16,
             horizon: 12,
@@ -1467,7 +1485,32 @@ mod tests {
         let episode = run_episode(&config, PolicyKind::Lookahead, true).expect("episode");
         let trace = episode.trace.expect("trace");
         assert_eq!(trace.result.captured_frames, 40);
+        assert!(trace.frames.iter().all(|frame| {
+            frame
+                .native_pixels
+                .as_ref()
+                .is_some_and(|pixels| pixels.len() == dodge_core::FRAMEBUFFER_SIZE)
+        }));
         assert!(trace.frames.iter().any(|frame| frame.h.is_some()));
+    }
+
+    #[test]
+    fn trace_skips_renderer_pixels_unless_requested() {
+        let config = DangerConfig {
+            max_frames: 1,
+            grid: 8,
+            ..DangerConfig::default()
+        };
+        let trace = run_episode(&config, PolicyKind::Neutral, true)
+            .expect("episode")
+            .trace
+            .expect("trace");
+        assert!(
+            trace
+                .frames
+                .iter()
+                .all(|frame| frame.native_pixels.is_none())
+        );
     }
 }
 
