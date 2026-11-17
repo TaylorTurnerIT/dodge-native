@@ -79,8 +79,13 @@ pub struct FrameResult {
     pub snapshot: Snapshot,
 }
 
-trait EventSink {
+trait EventSink: DetailedEventSink {
     fn push(&mut self, event: FrameEvent);
+}
+
+trait DetailedEventSink {
+    fn detailed_enabled(&self) -> bool;
+    fn push_detailed(&mut self, frame: u32, event: crate::DetailedEventKind);
 }
 
 impl EventSink for Vec<FrameEvent> {
@@ -89,8 +94,68 @@ impl EventSink for Vec<FrameEvent> {
     }
 }
 
+impl DetailedEventSink for Vec<FrameEvent> {
+    fn detailed_enabled(&self) -> bool {
+        false
+    }
+    fn push_detailed(&mut self, _frame: u32, _event: crate::DetailedEventKind) {}
+}
+
 impl EventSink for () {
     fn push(&mut self, _event: FrameEvent) {}
+}
+
+impl DetailedEventSink for () {
+    fn detailed_enabled(&self) -> bool {
+        false
+    }
+    fn push_detailed(&mut self, _frame: u32, _event: crate::DetailedEventKind) {}
+}
+
+struct FrameEvents {
+    events: Vec<FrameEvent>,
+    detailed: Option<Vec<crate::DetailedEvent>>,
+}
+
+impl FrameEvents {
+    fn new(record_detailed: bool) -> Self {
+        Self {
+            events: Vec::new(),
+            detailed: record_detailed.then(Vec::new),
+        }
+    }
+}
+
+impl EventSink for FrameEvents {
+    fn push(&mut self, event: FrameEvent) {
+        self.events.push(event);
+    }
+}
+
+impl DetailedEventSink for FrameEvents {
+    fn detailed_enabled(&self) -> bool {
+        self.detailed.is_some()
+    }
+    fn push_detailed(&mut self, frame: u32, kind: crate::DetailedEventKind) {
+        if let Some(events) = &mut self.detailed {
+            events.push(crate::DetailedEvent { frame, kind });
+        }
+    }
+}
+
+struct DetailedOnlyFrameEvents(Vec<crate::DetailedEvent>);
+
+impl EventSink for DetailedOnlyFrameEvents {
+    fn push(&mut self, _event: FrameEvent) {}
+}
+
+impl DetailedEventSink for DetailedOnlyFrameEvents {
+    fn detailed_enabled(&self) -> bool {
+        true
+    }
+    fn push_detailed(&mut self, frame: u32, kind: crate::DetailedEventKind) {
+        self.0.push(crate::DetailedEvent { frame, kind });
+    }
 }
 
 /// Source-visible side effects emitted at one completed frame boundary.
@@ -357,7 +422,11 @@ impl NativeGame {
         self.transition_from = Mode::Menu;
         self.frame_audio.clear();
         self.death = crate::DeathDiagnostic::default();
-        self.trace = crate::RunTrace::begin(self.trace.enabled(), self.enemies.next_birth());
+        self.trace = crate::RunTrace::begin(
+            self.trace.enabled(),
+            self.trace.detailed_enabled(),
+            self.enemies.next_birth(),
+        );
         self.reset_training_state();
         self.snapshot()
     }
@@ -452,14 +521,17 @@ impl NativeGame {
         input_mask: u8,
         post_frame_mask: u8,
     ) -> Result<FrameResult, CoreError> {
-        let mut events = Vec::new();
+        let mut events = FrameEvents::new(self.trace.detailed_enabled());
         let (mode_before, reward) = self.prepare_frame(input_mask, post_frame_mask, &mut events)?;
+        if let Some(detailed) = events.detailed.take() {
+            self.trace.append_events(detailed);
+        }
         self.render_current_frame();
         let draw_snapshot = self.snapshot();
         self.finish_draw(mode_before, input_mask, post_frame_mask);
         let result = self.result_with_snapshot(
             reward,
-            events,
+            events.events,
             self.frame_audio.clone(),
             Snapshot::with_framebuffer_from_game(
                 self,
@@ -487,7 +559,14 @@ impl NativeGame {
         post_frame_mask: u8,
     ) -> Result<HeadlessResult, CoreError> {
         let score_before = self.score;
-        let (mode_before, reward) = self.prepare_frame(input_mask, post_frame_mask, &mut ())?;
+        let (mode_before, reward) = if self.trace.detailed_enabled() {
+            let mut events = DetailedOnlyFrameEvents(Vec::new());
+            let prepared = self.prepare_frame(input_mask, post_frame_mask, &mut events)?;
+            self.trace.append_events(events.0);
+            prepared
+        } else {
+            self.prepare_frame(input_mask, post_frame_mask, &mut ())?
+        };
         self.finish_draw(mode_before, input_mask, post_frame_mask);
         self.finish_transition_draw(mode_before);
         Ok(HeadlessResult {
@@ -688,12 +767,25 @@ impl NativeGame {
         self.death
     }
 
-    /// Enable the observation-only gameplay trace and restart it. Call before
-    /// gameplay begins; the trace never affects simulation and is absent from
-    /// snapshots and equality. Disabled games record nothing. Resets and
-    /// retries keep the setting; a restore starts disabled.
+    /// Enable the observation-only gameplay trace and restart its recording,
+    /// discarding all prior trace data. Call before gameplay begins; the trace
+    /// never affects simulation and is absent from snapshots and equality.
+    /// Disabling this keeps detailed events enabled and still starts fresh.
+    /// Resets and retries keep both settings; a restore starts disabled.
     pub fn set_trace_enabled(&mut self, enabled: bool) {
-        self.trace = crate::RunTrace::begin(enabled, self.enemies.next_birth());
+        let detailed = self.trace.detailed_enabled();
+        self.trace =
+            crate::RunTrace::begin(enabled || detailed, detailed, self.enemies.next_birth());
+    }
+
+    /// Enable detailed source-order events. This also enables the trace
+    /// container and restarts recording, discarding all prior trace data.
+    pub fn set_detailed_events_enabled(&mut self, enabled: bool) {
+        self.trace = crate::RunTrace::begin(
+            self.trace.enabled() || enabled,
+            enabled,
+            self.enemies.next_birth(),
+        );
     }
 
     /// Diagnostic-only gameplay trace; empty unless `set_trace_enabled(true)`.
@@ -949,13 +1041,13 @@ impl NativeGame {
         self.collision_check(events);
         self.update_player();
         self.update_particles();
-        self.update_freeze();
+        self.update_freeze_with_events(events);
         self.update_size();
         if !self.lifecycle.dead {
             self.spawn_enemies(events);
-            self.update_enemies();
+            self.update_enemies_with_events(events);
             let before = self.active_pattern;
-            self.update_pattern_schedule();
+            self.update_pattern_schedule_with_events(events);
             self.track_pattern_retry(before);
         }
         self.trace.end_frame(self.enemies.serials());
@@ -1061,7 +1153,11 @@ impl NativeGame {
             .collect::<Vec<_>>();
         self.lifecycle.dead = false;
         self.death = crate::DeathDiagnostic::default();
-        self.trace = crate::RunTrace::begin(self.trace.enabled(), self.enemies.next_birth());
+        self.trace = crate::RunTrace::begin(
+            self.trace.enabled(),
+            self.trace.detailed_enabled(),
+            self.enemies.next_birth(),
+        );
         self.reset_training_state();
         self.score = PicoFixed::ZERO;
         self.survival_frames = 0;
@@ -1136,10 +1232,11 @@ impl NativeGame {
         self.enemy_stats = stats;
     }
 
-    fn update_freeze(&mut self) {
+    fn update_freeze_with_events(&mut self, events: &mut impl EventSink) {
         if !self.freeze_active {
             return;
         }
+        let old_rate = self.freeze_rate;
         self.freeze_timer += 1;
         if self.freeze_timer <= 420 {
             self.freeze_rate = PicoFixed::from_f32(0.4);
@@ -1149,6 +1246,15 @@ impl NativeGame {
         if self.freeze_timer > 480 {
             self.freeze_active = false;
             self.freeze_rate = PicoFixed::ONE;
+        }
+        if old_rate != self.freeze_rate {
+            events.push_detailed(
+                self.trace.frame(),
+                crate::DetailedEventKind::SpeedChange {
+                    speed: self.speed.raw(),
+                    freeze_rate: self.freeze_rate.raw(),
+                },
+            );
         }
     }
 
@@ -1329,9 +1435,10 @@ impl NativeGame {
             return;
         }
         for spawn in self.spawns.clone() {
-            self.enemies
-                .push(EnemyState::normal(spawn.x, spawn.y, self.enemy_max_size));
+            let enemy = EnemyState::normal(spawn.x, spawn.y, self.enemy_max_size);
+            self.enemies.push(enemy);
             events.push(FrameEvent::EnemySpawn);
+            self.push_spawn_event(enemy, events);
         }
     }
 
@@ -1360,6 +1467,14 @@ impl NativeGame {
             };
             if collision {
                 events.push(FrameEvent::Collision);
+                if events.detailed_enabled() {
+                    events.push_detailed(
+                        self.trace.frame(),
+                        crate::DetailedEventKind::PlayerCollision {
+                            id: self.enemy_id(index),
+                        },
+                    );
+                }
                 if enemy.personality < 2 && self.lives_remaining == 0 {
                     self.trace_death(
                         crate::DeathCause::for_enemy_personality(enemy.personality),
@@ -1407,16 +1522,37 @@ impl NativeGame {
                         .sub(self.player.size)
                         < rect.y.add(rect.height).sub(PicoFixed::ONE)
                 {
+                    let pattern_id = pattern.id;
                     let cause = if pattern.pattern_type == 1 {
                         crate::DeathCause::MovingPatternRect
                     } else {
                         crate::DeathCause::StaticPatternRect
                     };
                     if self.lives_remaining > 0 && self.restart_active_pattern() {
+                        events.push_detailed(
+                            self.trace.frame(),
+                            crate::DetailedEventKind::PlayerPatternCollision { pattern_id },
+                        );
+                        events.push_detailed(
+                            self.trace.frame(),
+                            crate::DetailedEventKind::PatternRestart { id: pattern_id },
+                        );
                         self.spend_life();
                         break;
                     }
                     self.trace_death(cause, None);
+                    events.push_detailed(
+                        self.trace.frame(),
+                        crate::DetailedEventKind::PlayerPatternCollision { pattern_id },
+                    );
+                    events.push_detailed(
+                        self.trace.frame(),
+                        crate::DetailedEventKind::Death {
+                            subject: "player",
+                            id: None,
+                            cause: cause.as_str(),
+                        },
+                    );
                     self.die(cause);
                     events.push(FrameEvent::Death);
                     break;
@@ -1620,50 +1756,146 @@ impl NativeGame {
         self.trace.set_death(context);
     }
 
+    fn enemy_id(&self, index: usize) -> Option<u64> {
+        self.enemies.serials()?.get(index).map(|serial| serial.id())
+    }
+
     fn collide_enemy(&mut self, index: usize, enemy: EnemyState, events: &mut impl EventSink) {
+        let id = self.enemy_id(index);
         self.shatter(enemy.x, enemy.y);
         self.shake = self.shake.add(PicoFixed::from_f32(0.07));
         match enemy.personality {
             personality if personality < 2 => {
+                if events.detailed_enabled() {
+                    events.push_detailed(
+                        self.trace.frame(),
+                        crate::DetailedEventKind::Despawn {
+                            id,
+                            personality: enemy.personality,
+                            reason: "player_collision",
+                        },
+                    );
+                }
                 self.remove_enemy_at(index);
                 // An absorbed hit removes the enemy as usual and is not a death.
                 if !self.spend_life() {
+                    if events.detailed_enabled() {
+                        events.push_detailed(
+                            self.trace.frame(),
+                            crate::DetailedEventKind::Death {
+                                subject: "player",
+                                id,
+                                cause: crate::DeathCause::for_enemy_personality(enemy.personality)
+                                    .as_str(),
+                            },
+                        );
+                    }
                     self.die(crate::DeathCause::for_enemy_personality(enemy.personality));
                     events.push(FrameEvent::Death);
                 }
             }
             2 => {
                 self.telemetry.pickups[0] = self.telemetry.pickups[0].saturating_add(1);
+                if events.detailed_enabled() {
+                    events.push_detailed(
+                        self.trace.frame(),
+                        crate::DetailedEventKind::Powerup {
+                            id,
+                            kind: "explosion",
+                        },
+                    );
+                }
                 self.emit_sfx(60, None);
-                self.explode_powerup_enemy(index);
+                self.explode_powerup_enemy_with_events(index, events);
             }
             3 => {
                 self.telemetry.pickups[1] = self.telemetry.pickups[1].saturating_add(1);
+                if events.detailed_enabled() {
+                    events.push_detailed(
+                        self.trace.frame(),
+                        crate::DetailedEventKind::Powerup { id, kind: "freeze" },
+                    );
+                    events.push_detailed(
+                        self.trace.frame(),
+                        crate::DetailedEventKind::Despawn {
+                            id,
+                            personality: enemy.personality,
+                            reason: "powerup_pickup",
+                        },
+                    );
+                }
                 self.remove_enemy_at(index);
                 self.freeze_active = true;
                 self.freeze_timer = 0;
                 self.emit_sfx(62, None);
                 self.score = self.score.add(PicoFixed::ONE);
-                self.apply_difficulty(false);
+                self.apply_difficulty_with_events(false, events);
             }
             4 => {
                 self.telemetry.pickups[2] = self.telemetry.pickups[2].saturating_add(1);
+                if events.detailed_enabled() {
+                    events.push_detailed(
+                        self.trace.frame(),
+                        crate::DetailedEventKind::Powerup { id, kind: "shrink" },
+                    );
+                    events.push_detailed(
+                        self.trace.frame(),
+                        crate::DetailedEventKind::Despawn {
+                            id,
+                            personality: enemy.personality,
+                            reason: "powerup_pickup",
+                        },
+                    );
+                }
                 self.remove_enemy_at(index);
                 self.player.size = PicoFixed::from_int(2);
                 self.size_timer = PicoFixed::ZERO;
                 self.emit_sfx(61, None);
                 self.score = self.score.add(PicoFixed::ONE);
-                self.apply_difficulty(false);
+                self.apply_difficulty_with_events(false, events);
             }
             _ => {
+                if events.detailed_enabled() {
+                    events.push_detailed(
+                        self.trace.frame(),
+                        crate::DetailedEventKind::Despawn {
+                            id,
+                            personality: enemy.personality,
+                            reason: "removed",
+                        },
+                    );
+                }
                 self.remove_enemy_at(index);
             }
         }
     }
 
+    #[cfg(test)]
     fn explode_powerup_enemy(&mut self, index: usize) {
-        if index >= self.enemies.len() {
+        self.explode_powerup_enemy_with_events(index, &mut ());
+    }
+
+    fn explode_powerup_enemy_with_events(&mut self, index: usize, events: &mut impl EventSink) {
+        let Some(centre) = self.enemies.get(index).copied() else {
             return;
+        };
+        if events.detailed_enabled() {
+            let ids = self.enemies.serials().map(|serials| {
+                self.enemies
+                    .iter()
+                    .zip(serials)
+                    .filter(|(enemy, _)| enemy.personality != -1)
+                    .map(|(_, id)| id.id())
+                    .collect()
+            });
+            events.push_detailed(
+                self.trace.frame(),
+                crate::DetailedEventKind::Explosion {
+                    x: centre.x.raw(),
+                    y: centre.y.raw(),
+                    ids,
+                },
+            );
         }
         // PICO-8's `all(enemies)` iterator observes the source list mutation:
         // deleting the current entry advances the next entry into its slot,
@@ -1674,17 +1906,27 @@ impl NativeGame {
                 break;
             };
             if other.personality == 1 {
-                self.add_kamikaze(other);
+                self.add_kamikaze(other, events);
             } else if other.personality != -1 {
                 self.shatter(other.x, other.y);
             }
             if other.personality != -1 {
+                if events.detailed_enabled() {
+                    events.push_detailed(
+                        self.trace.frame(),
+                        crate::DetailedEventKind::Despawn {
+                            id: self.enemy_id(cursor),
+                            personality: other.personality,
+                            reason: "explosion",
+                        },
+                    );
+                }
                 self.remove_enemy_at(cursor);
             } else {
                 cursor += 1;
             }
             self.score = self.score.add(PicoFixed::ONE);
-            self.apply_difficulty(false);
+            self.apply_difficulty_with_events(false, events);
         }
     }
 
@@ -1793,6 +2035,32 @@ impl NativeGame {
             ..EnemyState::normal(x, y, max_size)
         });
         events.push(FrameEvent::EnemySpawn);
+        if let Some(enemy) = self.enemies.last().copied() {
+            self.push_spawn_event(enemy, events);
+        }
+    }
+
+    fn push_spawn_event(&self, enemy: EnemyState, events: &mut impl EventSink) {
+        if !events.detailed_enabled() {
+            return;
+        }
+        let id = self
+            .enemies
+            .serials()
+            .and_then(|serials| serials.last())
+            .map(|serial| serial.id());
+        events.push_detailed(
+            self.trace.frame(),
+            crate::DetailedEventKind::Spawn {
+                id,
+                personality: enemy.personality,
+                x: enemy.x.raw(),
+                y: enemy.y.raw(),
+                vx: enemy.vx.raw(),
+                vy: enemy.vy.raw(),
+                size: enemy.size.raw(),
+            },
+        );
     }
 
     fn random_personality(&mut self) -> i8 {
@@ -1964,7 +2232,12 @@ impl NativeGame {
         best
     }
 
+    #[cfg(test)]
     fn update_enemies(&mut self) {
+        self.update_enemies_with_events(&mut ());
+    }
+
+    fn update_enemies_with_events(&mut self, events: &mut impl EventSink) {
         let player = self.player;
         let mut index = 0;
         while index < self.enemies.len() {
@@ -2007,6 +2280,16 @@ impl NativeGame {
                 let remaining = current_life.sub(self.freeze_rate);
                 life = Some(remaining);
                 if remaining <= PicoFixed::ZERO {
+                    if events.detailed_enabled() {
+                        events.push_detailed(
+                            self.trace.frame(),
+                            crate::DetailedEventKind::Despawn {
+                                id: self.enemy_id(index),
+                                personality: original.personality,
+                                reason: "lifetime_expired",
+                            },
+                        );
+                    }
                     self.remove_enemy_at(index);
                     continue;
                 }
@@ -2022,8 +2305,18 @@ impl NativeGame {
             current.life = life;
 
             if original.is_dying {
+                if events.detailed_enabled() {
+                    events.push_detailed(
+                        self.trace.frame(),
+                        crate::DetailedEventKind::Despawn {
+                            id: self.enemy_id(index),
+                            personality: current.personality,
+                            reason: "killed",
+                        },
+                    );
+                }
                 self.enemies.remove(index);
-                self.resolve_enemy_death(current, x, y);
+                self.resolve_enemy_death(current, x, y, events);
                 continue;
             }
             if let Some(slot) = self.enemies.get_mut(index) {
@@ -2046,7 +2339,7 @@ impl NativeGame {
             }
 
             self.apply_pattern_enemy_collision(index, &mut vx, &mut vy, x, y, source_size);
-            self.apply_pattern_crush(index, x, y, source_size);
+            self.apply_pattern_crush(index, x, y, source_size, events);
 
             let Some(current_enemy) = self.enemies.get(index).copied() else {
                 break;
@@ -2078,16 +2371,55 @@ impl NativeGame {
                     && current_enemy.x.sub(current_offset) < other.x.add(other.size)
                     && current_enemy.y.sub(current_offset) < other.y.add(other.size)
                 {
+                    let first_was_dying =
+                        self.enemies.get(index).is_none_or(|enemy| enemy.is_dying);
+                    let second_was_dying = self
+                        .enemies
+                        .get(other_index)
+                        .is_none_or(|enemy| enemy.is_dying);
+                    let first_id = self.enemy_id(index);
+                    let second_id = self.enemy_id(other_index);
                     if let Some(current_enemy) = self.enemies.get_mut(index) {
                         current_enemy.is_dying = true;
                     }
                     if let Some(other_enemy) = self.enemies.get_mut(other_index) {
                         other_enemy.is_dying = true;
                     }
+                    if events.detailed_enabled() {
+                        events.push_detailed(
+                            self.trace.frame(),
+                            crate::DetailedEventKind::EnemyCollision {
+                                first_id,
+                                second_id,
+                            },
+                        );
+                    }
+                    if !first_was_dying && events.detailed_enabled() {
+                        events.push_detailed(
+                            self.trace.frame(),
+                            crate::DetailedEventKind::Death {
+                                subject: "enemy",
+                                id: first_id,
+                                cause: "enemy_collision",
+                            },
+                        );
+                    }
+                    if !second_was_dying && events.detailed_enabled() {
+                        events.push_detailed(
+                            self.trace.frame(),
+                            crate::DetailedEventKind::Death {
+                                subject: "enemy",
+                                id: second_id,
+                                cause: "enemy_collision",
+                            },
+                        );
+                    }
                 }
             }
 
             if current_enemy.inside && current_enemy.personality != -1 {
+                let bounce_y =
+                    y >= PicoFixed::from_int(129).sub(source_size) || y <= PicoFixed::from_int(-2);
                 if y >= PicoFixed::from_int(129).sub(source_size) {
                     vy = fixed_abs(vy).neg();
                 } else if y <= PicoFixed::from_int(-2) {
@@ -2097,6 +2429,23 @@ impl NativeGame {
                     vx = fixed_abs(vx).neg();
                 } else if x <= PicoFixed::from_int(-2) {
                     vx = fixed_abs(vx);
+                }
+                if events.detailed_enabled() {
+                    let id = self.enemy_id(index);
+                    if bounce_y {
+                        events.push_detailed(
+                            self.trace.frame(),
+                            crate::DetailedEventKind::Bounce { id, axis: "y" },
+                        );
+                    }
+                    if x >= PicoFixed::from_int(129).sub(source_size)
+                        || x <= PicoFixed::from_int(-2)
+                    {
+                        events.push_detailed(
+                            self.trace.frame(),
+                            crate::DetailedEventKind::Bounce { id, axis: "x" },
+                        );
+                    }
                 }
             }
 
@@ -2185,16 +2534,25 @@ impl NativeGame {
         }
     }
 
-    fn apply_pattern_crush(&mut self, index: usize, x: PicoFixed, y: PicoFixed, size: PicoFixed) {
+    fn apply_pattern_crush(
+        &mut self,
+        index: usize,
+        x: PicoFixed,
+        y: PicoFixed,
+        size: PicoFixed,
+        events: &mut impl EventSink,
+    ) {
         let Some(pattern_index) = self.active_pattern else {
             return;
         };
         let Some(pattern) = self.patterns.get(pattern_index) else {
             return;
         };
+        let pattern_id = pattern.id;
         let Some(enemy) = self.enemies.get(index) else {
             return;
         };
+        let already_dying = enemy.is_dying;
         if enemy.personality == -1 || !enemy.inside {
             return;
         }
@@ -2230,8 +2588,25 @@ impl NativeGame {
                 break;
             }
         }
-        if dying && let Some(enemy) = self.enemies.get_mut(index) {
-            enemy.is_dying = true;
+        if dying && !already_dying {
+            let id = self.enemy_id(index);
+            if let Some(enemy) = self.enemies.get_mut(index) {
+                enemy.is_dying = true;
+            }
+            if events.detailed_enabled() {
+                events.push_detailed(
+                    self.trace.frame(),
+                    crate::DetailedEventKind::PatternCrush { id, pattern_id },
+                );
+                events.push_detailed(
+                    self.trace.frame(),
+                    crate::DetailedEventKind::Death {
+                        subject: "enemy",
+                        id,
+                        cause: "pattern_crush",
+                    },
+                );
+            }
         }
     }
 
@@ -2240,9 +2615,10 @@ impl NativeGame {
         enemy: EnemyState,
         shatter_x: PicoFixed,
         shatter_y: PicoFixed,
+        events: &mut impl EventSink,
     ) {
         if enemy.personality == 1 {
-            self.add_kamikaze(enemy);
+            self.add_kamikaze(enemy, events);
         } else {
             self.shatter(shatter_x, shatter_y);
         }
@@ -2250,7 +2626,7 @@ impl NativeGame {
         self.score = self.score.add(SCORE_PER_SHATTER);
         self.uncontrolled_kills = self.uncontrolled_kills.saturating_add(1);
         self.shake = self.shake.add(PicoFixed::from_f32(0.07));
-        self.apply_difficulty(true);
+        self.apply_difficulty_with_events(true, events);
     }
 
     fn shatter(&mut self, x: PicoFixed, y: PicoFixed) {
@@ -2272,7 +2648,7 @@ impl NativeGame {
         }
     }
 
-    fn add_kamikaze(&mut self, enemy: EnemyState) {
+    fn add_kamikaze(&mut self, enemy: EnemyState, events: &mut impl EventSink) {
         if !self.enemy_allowed(-1) {
             return;
         }
@@ -2290,9 +2666,19 @@ impl NativeGame {
             isizing: true,
             life: Some(PicoFixed::from_int(60)),
         });
+        if let Some(spawned) = self.enemies.last().copied() {
+            self.push_spawn_event(spawned, events);
+        }
     }
 
+    #[cfg(test)]
     fn apply_difficulty(&mut self, half: bool) {
+        self.apply_difficulty_with_events(half, &mut ());
+    }
+
+    fn apply_difficulty_with_events(&mut self, half: bool, events: &mut impl EventSink) {
+        let old_speed = self.speed;
+        let old_freeze_rate = self.freeze_rate;
         let index = difficulty_index(self.settings.difficulty);
         let Some(curve) = DIFFICULTY_CURVES.get(index).copied() else {
             return;
@@ -2307,14 +2693,30 @@ impl NativeGame {
             pico_lerp(self.bounce_cap_static, curve.static_target, static_step);
         self.bounce_cap_moving =
             pico_lerp(self.bounce_cap_moving, curve.moving_target, moving_step);
+        if (old_speed != self.speed || old_freeze_rate != self.freeze_rate)
+            && events.detailed_enabled()
+        {
+            events.push_detailed(
+                self.trace.frame(),
+                crate::DetailedEventKind::SpeedChange {
+                    speed: self.speed.raw(),
+                    freeze_rate: self.freeze_rate.raw(),
+                },
+            );
+        }
     }
 
+    #[cfg(test)]
     fn update_pattern_schedule(&mut self) {
+        self.update_pattern_schedule_with_events(&mut ());
+    }
+
+    fn update_pattern_schedule_with_events(&mut self, events: &mut impl EventSink) {
         if !self.patterns_enabled {
             return;
         }
         if self.active_pattern.is_some() {
-            self.update_active_pattern();
+            self.update_active_pattern_with_events(events);
             return;
         }
         if self.freeze_active {
@@ -2347,6 +2749,13 @@ impl NativeGame {
         self.pattern_active = true;
         if let Some(pattern) = self.patterns.get(selected) {
             self.trace.pattern_start(pattern.id, pattern.pattern_type);
+            events.push_detailed(
+                self.trace.frame(),
+                crate::DetailedEventKind::PatternStart {
+                    id: pattern.id,
+                    pattern_type: pattern.pattern_type,
+                },
+            );
         }
         let variants = self
             .patterns
@@ -2367,15 +2776,27 @@ impl NativeGame {
         }
     }
 
+    #[cfg(test)]
     fn update_active_pattern(&mut self) {
+        self.update_active_pattern_with_events(&mut ());
+    }
+
+    fn update_active_pattern_with_events(&mut self, events: &mut impl EventSink) {
         let Some(pattern_index) = self.active_pattern else {
             return;
         };
         let increment = PicoFixed::from_f32(0.02).mul_fixed(self.freeze_rate);
         let Some(pattern_snapshot) = self.patterns.get(pattern_index).cloned() else {
+            let active_id = self.trace.active_span().map(|span| span.id);
             self.active_pattern = None;
             self.pattern_active = false;
             self.trace.pattern_end();
+            if let Some(id) = active_id {
+                events.push_detailed(
+                    self.trace.frame(),
+                    crate::DetailedEventKind::PatternEnd { id },
+                );
+            }
             return;
         };
         if let Some(pattern) = self.patterns.get_mut(pattern_index) {
@@ -2406,14 +2827,51 @@ impl NativeGame {
                 {
                     rect.collision_done = true;
                 }
-                for enemy in &mut self.enemies {
-                    if enemy.personality != -1
-                        && enemy.x.add(enemy.size) > rect_snapshot.x
-                        && enemy.y.add(enemy.size) > rect_snapshot.y
-                        && enemy.x < rect_snapshot.x.add(rect_snapshot.width)
-                        && enemy.y < rect_snapshot.y.add(rect_snapshot.height)
-                    {
-                        enemy.is_dying = true;
+                if events.detailed_enabled() {
+                    for index in 0..self.enemies.len() {
+                        let Some(enemy) = self.enemies.get(index).copied() else {
+                            continue;
+                        };
+                        if !enemy.is_dying
+                            && enemy.personality != -1
+                            && enemy.x.add(enemy.size) > rect_snapshot.x
+                            && enemy.y.add(enemy.size) > rect_snapshot.y
+                            && enemy.x < rect_snapshot.x.add(rect_snapshot.width)
+                            && enemy.y < rect_snapshot.y.add(rect_snapshot.height)
+                        {
+                            let id = self.enemy_id(index);
+                            if let Some(enemy) = self.enemies.get_mut(index) {
+                                enemy.is_dying = true;
+                            }
+                            if events.detailed_enabled() {
+                                events.push_detailed(
+                                    self.trace.frame(),
+                                    crate::DetailedEventKind::PatternCrush {
+                                        id,
+                                        pattern_id: pattern_snapshot.id,
+                                    },
+                                );
+                                events.push_detailed(
+                                    self.trace.frame(),
+                                    crate::DetailedEventKind::Death {
+                                        subject: "enemy",
+                                        id,
+                                        cause: "pattern_crush",
+                                    },
+                                );
+                            }
+                        }
+                    }
+                } else {
+                    for enemy in &mut self.enemies {
+                        if enemy.personality != -1
+                            && enemy.x.add(enemy.size) > rect_snapshot.x
+                            && enemy.y.add(enemy.size) > rect_snapshot.y
+                            && enemy.x < rect_snapshot.x.add(rect_snapshot.width)
+                            && enemy.y < rect_snapshot.y.add(rect_snapshot.height)
+                        {
+                            enemy.is_dying = true;
+                        }
                     }
                 }
             }
@@ -2574,6 +3032,12 @@ impl NativeGame {
             self.active_pattern = None;
             self.pattern_active = false;
             self.trace.pattern_end();
+            events.push_detailed(
+                self.trace.frame(),
+                crate::DetailedEventKind::PatternEnd {
+                    id: pattern_snapshot.id,
+                },
+            );
             self.friendly_enabled = true;
             self.spawns = initial_spawns();
         }
@@ -3035,8 +3499,8 @@ fn settings_row(cursor: u8) -> i16 {
 #[cfg(test)]
 mod tests {
     use super::{
-        ENEMY_SPEED_STEP, FrameEvent, INITIAL_PATTERN_DELAY_FRAMES, NativeGame, pico_cosine,
-        pico_sine, update_enemy_speed,
+        DetailedOnlyFrameEvents, ENEMY_SPEED_STEP, FrameEvent, INITIAL_PATTERN_DELAY_FRAMES,
+        NativeGame, pico_cosine, pico_sine, update_enemy_speed,
     };
     use crate::{
         Action, AudioEvent, BUTTON_X_MASK, CoreError, EnemyState, Mode, NativeConfig, PatternRect,
@@ -3426,10 +3890,44 @@ mod tests {
         });
         let initiating = game.enemies.first().copied();
         assert!(initiating.is_some());
-        let mut events = Vec::new();
+        let mut events = DetailedOnlyFrameEvents(Vec::new());
         if let Some(initiating) = initiating {
             game.collide_enemy(0, initiating, &mut events);
         }
+        assert!(matches!(
+            events.0.first().map(|event| &event.kind),
+            Some(crate::DetailedEventKind::Powerup {
+                id: Some(0),
+                kind: "explosion"
+            })
+        ));
+        assert!(matches!(
+            events.0.get(1).map(|event| &event.kind),
+            Some(crate::DetailedEventKind::Explosion {
+                ids: Some(ids),
+                ..
+            }) if ids == &vec![0, 1, 2, 3]
+        ));
+        let child_spawn = events.0.iter().position(|event| {
+            matches!(
+                event.kind,
+                crate::DetailedEventKind::Spawn { id: Some(4), .. }
+            )
+        });
+        let parent_despawn = events.0.iter().position(|event| {
+            matches!(
+                event.kind,
+                crate::DetailedEventKind::Despawn {
+                    id: Some(2),
+                    reason: "explosion",
+                    ..
+                }
+            )
+        });
+        assert!(
+            child_spawn
+                .is_some_and(|spawn| { parent_despawn.is_some_and(|despawn| spawn < despawn) })
+        );
 
         assert_eq!(game.score, PicoFixed::from_int(5));
         assert_eq!(game.enemies.len(), 1);
@@ -3498,6 +3996,174 @@ mod tests {
         assert_eq!(
             enemy.map(|value| value.x),
             Some(PicoFixed::from_raw(459_407))
+        );
+    }
+
+    #[test]
+    fn pattern_expansion_records_crush_and_enemy_death_once() {
+        let mut game = NativeGame::new(NativeConfig::new(42));
+        game.set_detailed_events_enabled(true);
+        start_game(&mut game);
+        game.enemies.push(EnemyState::normal(
+            PicoFixed::from_int(12),
+            PicoFixed::from_int(12),
+            PicoFixed::from_int(3),
+        ));
+        let enemy_id = game.enemy_id(0);
+        game.patterns = vec![crate::PatternState {
+            id: 7,
+            mins: PicoFixed::ZERO,
+            maxs: PicoFixed::from_int(100),
+            probability: PicoFixed::ONE,
+            variants: Vec::new(),
+            smooth: false,
+            pattern_type: 0,
+            bounce_cap: false,
+            spawn_enabled: false,
+            automatic_variant: None,
+            special: PicoFixed::ZERO,
+            counter: 0,
+            timer: PicoFixed::ZERO,
+            rects: vec![crate::PatternRect {
+                x: PicoFixed::from_int(10),
+                y: PicoFixed::from_int(10),
+                width: PicoFixed::from_int(10),
+                height: PicoFixed::from_int(10),
+                speed: PicoFixed::ZERO,
+                dx: PicoFixed::ZERO,
+                dy: PicoFixed::ZERO,
+                targets: Vec::new(),
+                target_index: 0,
+                wait: PicoFixed::ZERO,
+                shown: true,
+                sh: PicoFixed::from_int(2),
+                warnings: Vec::new(),
+                collision_done: false,
+                finished: false,
+            }],
+        }];
+        game.active_pattern = Some(0);
+
+        let mut events = DetailedOnlyFrameEvents(Vec::new());
+        game.update_pattern_schedule_with_events(&mut events);
+        assert_eq!(
+            events
+                .0
+                .iter()
+                .filter(|event| match &event.kind {
+                    crate::DetailedEventKind::PatternCrush { id, pattern_id } => {
+                        *id == enemy_id && *pattern_id == 7
+                    }
+                    _ => false,
+                })
+                .count(),
+            1
+        );
+        assert_eq!(
+            events
+                .0
+                .iter()
+                .filter(|event| match &event.kind {
+                    crate::DetailedEventKind::Death {
+                        subject,
+                        id: Some(id),
+                        cause,
+                    } => *subject == "enemy" && Some(*id) == enemy_id && *cause == "pattern_crush",
+                    _ => false,
+                })
+                .count(),
+            1
+        );
+
+        game.update_enemies_with_events(&mut events);
+        assert_eq!(
+            events
+                .0
+                .iter()
+                .filter(|event| matches!(event.kind, crate::DetailedEventKind::PatternCrush { .. }))
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    fn multi_enemy_overlap_emits_one_death_per_enemy() {
+        let mut game = NativeGame::new(NativeConfig::new(42));
+        game.set_detailed_events_enabled(true);
+        for _ in 0..3 {
+            game.enemies.push(EnemyState {
+                inside: true,
+                ..EnemyState::normal(
+                    PicoFixed::from_int(60),
+                    PicoFixed::from_int(60),
+                    PicoFixed::from_int(3),
+                )
+            });
+        }
+        let ids: Vec<_> = (0..game.enemies.len())
+            .filter_map(|index| game.enemy_id(index))
+            .collect();
+        let mut events = DetailedOnlyFrameEvents(Vec::new());
+
+        game.update_enemies_with_events(&mut events);
+
+        let mut deaths: Vec<_> = events
+            .0
+            .iter()
+            .filter_map(|event| match event.kind {
+                crate::DetailedEventKind::Death {
+                    subject: "enemy",
+                    id,
+                    cause: "enemy_collision",
+                } => id,
+                _ => None,
+            })
+            .collect();
+        deaths.sort_unstable();
+        assert_eq!(deaths, ids);
+    }
+
+    #[test]
+    fn identity_exhaustion_keeps_events_with_missing_enemy_ids() {
+        let mut game = NativeGame::new(NativeConfig::new(42));
+        game.set_detailed_events_enabled(true);
+        game.enemies = crate::enemy_rows::EnemyRows::last_birth_fixture();
+        for _ in 0..3 {
+            game.enemies.push(EnemyState {
+                inside: true,
+                ..EnemyState::normal(
+                    PicoFixed::from_int(60),
+                    PicoFixed::from_int(60),
+                    PicoFixed::from_int(3),
+                )
+            });
+        }
+        assert!(game.enemy_id(0).is_none());
+        let mut events = DetailedOnlyFrameEvents(Vec::new());
+
+        game.update_enemies_with_events(&mut events);
+
+        assert!(events.0.iter().any(|event| matches!(
+            event.kind,
+            crate::DetailedEventKind::EnemyCollision {
+                first_id: None,
+                second_id: None
+            }
+        )));
+        assert_eq!(
+            events
+                .0
+                .iter()
+                .filter(|event| matches!(
+                    event.kind,
+                    crate::DetailedEventKind::Death {
+                        subject: "enemy",
+                        id: None,
+                        cause: "enemy_collision"
+                    }
+                ))
+                .count(),
+            3
         );
     }
 
@@ -4126,6 +4792,7 @@ mod tests {
             },
             42,
         );
+        game.set_detailed_events_enabled(true);
         start_game(&mut game);
         game.should_collide = false;
         let mut lethal = None;
@@ -4159,6 +4826,23 @@ mod tests {
         assert!(result.is_ok_and(|value| !value.dead));
         assert_eq!(game.telemetry().lives_spent, 1);
         assert!(game.death_diagnostic().cause().is_none());
+        let events = game.run_trace().events();
+        let collision = events.iter().rposition(|event| {
+            matches!(
+                event.kind,
+                crate::DetailedEventKind::PlayerPatternCollision { .. }
+            )
+        });
+        let restart = events.iter().rposition(|event| {
+            matches!(event.kind, crate::DetailedEventKind::PatternRestart { .. })
+        });
+        assert!(collision.zip(restart).is_some_and(|(collision, restart)| {
+            collision < restart
+                && events
+                    .get(collision)
+                    .zip(events.get(restart))
+                    .is_some_and(|(collision, restart)| collision.frame == restart.frame)
+        }));
         // Restarted from its first frame, so no rectangle is lethal yet.
         let pattern = game
             .active_pattern

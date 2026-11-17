@@ -103,6 +103,10 @@ pub struct EnvConfig {
     /// Record Taylor Turner's gameplay trace for games started from now on.
     /// Read-only: it never changes a game. Default off.
     pub trace: bool,
+    /// Add stable enemy IDs to slot state and ordered engine events to traces.
+    /// Default off. This enables trace recording. Events are cumulative from
+    /// episode start through the latest frame, with no event-count cap.
+    pub event_trace: bool,
 }
 
 impl Default for EnvConfig {
@@ -126,6 +130,7 @@ impl Default for EnvConfig {
             step_info: StepInfo::All,
             critic_features: false,
             trace: false,
+            event_trace: false,
         }
     }
 }

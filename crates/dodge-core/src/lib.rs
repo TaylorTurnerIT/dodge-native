@@ -44,6 +44,7 @@ pub use trace::{
     ActivePatternAtDeath, DeathContext, ENEMY_HISTORY_FRAMES, EnemyPoint, FrameSample, FyouTrigger,
     KillerEnemy, PatternSpan, RECENT_FRAMES, RectAtDeath, RunTrace, SAMPLE_EVERY,
 };
+pub use trace::{DetailedEvent, DetailedEventKind};
 pub use value::{FEATURE_COUNT, FEATURE_SCHEMA, ValueFeatures, ValueModel, value_features};
 
 /// Workspace-level version of native state contract.
