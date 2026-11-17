@@ -130,8 +130,11 @@ impl Slot {
         native.powerups_enabled = config.powerups_enabled;
         native.training = config.training.options();
         let mut game = NativeGame::new(native);
-        if config.trace {
+        if config.trace || config.event_trace {
             game.set_trace_enabled(true);
+        }
+        if config.event_trace {
+            game.set_detailed_events_enabled(true);
         }
         Self {
             game,
@@ -348,6 +351,10 @@ pub struct VecDodgeEnv {
 }
 
 impl VecDodgeEnv {
+    pub fn event_trace_enabled(&self) -> bool {
+        self.config.event_trace
+    }
+
     pub fn new(config: EnvConfig) -> Result<Self, EnvError> {
         config.validate()?;
         let excluded_seed_ranges = normalize_seed_exclusions(&config.excluded_seed_ranges)?;
@@ -408,7 +415,10 @@ impl VecDodgeEnv {
     /// works on any slot, including ended and poisoned ones.
     pub fn slot_state(&self, slot: usize) -> Result<SlotState, EnvError> {
         let slot = self.slots.get(slot).ok_or(EnvError::SlotIndex(slot))?;
-        Ok(SlotState::read(&slot.game))
+        Ok(SlotState::read_with_ids(
+            &slot.game,
+            self.config.event_trace,
+        ))
     }
 
     /// The current 128x128 palette-index frame of each slot in `indices`
@@ -426,7 +436,8 @@ impl VecDodgeEnv {
         Ok(out)
     }
 
-    /// Turn the gameplay trace on or off for games started by later resets.
+    /// Turn the legacy gameplay trace on or off for games started by later
+    /// resets. `event_trace` keeps detailed tracing enabled when it is true.
     /// Games already running keep their setting; nothing in a game changes.
     pub fn set_trace_enabled(&mut self, enabled: bool) {
         self.config.trace = enabled;
@@ -435,7 +446,10 @@ impl VecDodgeEnv {
     /// One slot trace, `None` while that game trace is off.
     pub fn slot_trace(&self, slot: usize) -> Result<Option<TraceView>, EnvError> {
         let slot = self.slots.get(slot).ok_or(EnvError::SlotIndex(slot))?;
-        Ok(TraceView::read(&slot.game))
+        Ok(TraceView::read_with_events(
+            &slot.game,
+            self.config.event_trace,
+        ))
     }
 
     /// One slot latest frame sample, `None` while its trace is off or before

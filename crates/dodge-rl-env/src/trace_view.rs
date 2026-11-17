@@ -1,7 +1,7 @@
 //! A slot's gameplay trace in the units and shapes the source binding returns
 //! to Python: pixels as `f64`, a missing gap or pattern as `None`. Ported from
 //! TaylorTurnerIT/dodge-ai-3 velocity-flow (`trace_dict`, `sample_dict`).
-use dodge_core::{DeathContext, FrameSample, NativeGame, RectAtDeath, RunTrace};
+use dodge_core::{DeathContext, DetailedEvent, FrameSample, NativeGame, RectAtDeath, RunTrace};
 
 fn pixels(raw: i32) -> f64 {
     f64::from(raw) / 65536.0
@@ -197,10 +197,13 @@ pub struct TraceView {
     pub death: Option<DeathView>,
     /// Lethal contacts the engine processed on the fatal frame, by cause index.
     pub contacts: Vec<u16>,
+    /// Cumulative since reset; gameplay frames are 1-based, startup events use
+    /// frame 0, and transition events reuse the latest gameplay frame.
+    pub events: Option<Vec<DetailedEvent>>,
 }
 
 impl TraceView {
-    fn new(trace: &RunTrace, contacts: [u16; 6]) -> Self {
+    fn new(trace: &RunTrace, contacts: [u16; 6], include_events: bool) -> Self {
         Self {
             frame: trace.frame(),
             fyou_triggers: trace
@@ -227,15 +230,24 @@ impl TraceView {
                 .collect(),
             death: trace.death().map(DeathView::new),
             contacts: contacts.to_vec(),
+            events: include_events.then(|| trace.events().to_vec()),
         }
     }
 
     /// `None` while the game's trace is off.
     pub fn read(game: &NativeGame) -> Option<Self> {
+        Self::read_with_events(game, false)
+    }
+
+    pub fn read_with_events(game: &NativeGame, include_events: bool) -> Option<Self> {
         let trace = game.run_trace();
-        trace
-            .enabled()
-            .then(|| Self::new(trace, game.death_diagnostic().observed_contacts()))
+        trace.enabled().then(|| {
+            Self::new(
+                trace,
+                game.death_diagnostic().observed_contacts(),
+                include_events,
+            )
+        })
     }
 }
 

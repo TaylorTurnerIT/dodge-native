@@ -21,6 +21,77 @@ pub const ENEMY_HISTORY_FRAMES: usize = 60;
 /// Spacing of the whole-game samples used as a base rate.
 pub const SAMPLE_EVERY: u32 = 30;
 
+/// One source-order engine event. Fixed values are raw signed 16.16 units.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DetailedEvent {
+    pub frame: u32,
+    pub kind: DetailedEventKind,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum DetailedEventKind {
+    Spawn {
+        id: Option<u64>,
+        personality: i8,
+        x: i32,
+        y: i32,
+        vx: i32,
+        vy: i32,
+        size: i32,
+    },
+    Despawn {
+        id: Option<u64>,
+        personality: i8,
+        reason: &'static str,
+    },
+    Bounce {
+        id: Option<u64>,
+        axis: &'static str,
+    },
+    PlayerCollision {
+        id: Option<u64>,
+    },
+    EnemyCollision {
+        first_id: Option<u64>,
+        second_id: Option<u64>,
+    },
+    PatternCrush {
+        id: Option<u64>,
+        pattern_id: u8,
+    },
+    PlayerPatternCollision {
+        pattern_id: u8,
+    },
+    Explosion {
+        x: i32,
+        y: i32,
+        ids: Option<Vec<u64>>,
+    },
+    PatternStart {
+        id: u8,
+        pattern_type: u8,
+    },
+    PatternEnd {
+        id: u8,
+    },
+    PatternRestart {
+        id: u8,
+    },
+    Powerup {
+        id: Option<u64>,
+        kind: &'static str,
+    },
+    Death {
+        subject: &'static str,
+        id: Option<u64>,
+        cause: &'static str,
+    },
+    SpeedChange {
+        speed: i32,
+        freeze_rate: i32,
+    },
+}
+
 /// Player and surroundings at the end of one gameplay frame, in raw fixed units.
 /// Gaps are the Euclidean distance between the collision box edges (0 means
 /// overlapping); -1 means no such object.
@@ -150,6 +221,7 @@ pub struct DeathContext {
 #[derive(Clone, Debug, Default)]
 pub struct RunTrace {
     enabled: bool,
+    detailed_enabled: bool,
     frame: u32,
     dwell: u32,
     triggers: Vec<FyouTrigger>,
@@ -164,6 +236,7 @@ pub struct RunTrace {
     recent: VecDeque<FrameSample>,
     recent_enemies: VecDeque<(u32, Vec<EnemyPoint>)>,
     samples: Vec<FrameSample>,
+    events: Vec<DetailedEvent>,
 }
 
 impl PartialEq for RunTrace {
@@ -175,11 +248,13 @@ impl PartialEq for RunTrace {
 impl Eq for RunTrace {}
 
 impl RunTrace {
-    /// Start a fresh recording. `next_birth` is the next enemy birth ordinal,
-    /// or `None` when enemy identity metadata is already exhausted.
-    pub(crate) fn begin(enabled: bool, next_birth: Option<u64>) -> Self {
+    /// Start a fresh recording with the selected legacy and detailed streams.
+    /// `next_birth` is the next enemy birth ordinal, or `None` when enemy
+    /// identity metadata is already exhausted.
+    pub(crate) fn begin(enabled: bool, detailed_enabled: bool, next_birth: Option<u64>) -> Self {
         Self {
             enabled,
+            detailed_enabled,
             birth_base: next_birth.unwrap_or(0),
             identity_lost: next_birth.is_none(),
             ..Self::default()
@@ -188,6 +263,10 @@ impl RunTrace {
 
     pub const fn enabled(&self) -> bool {
         self.enabled
+    }
+
+    pub const fn detailed_enabled(&self) -> bool {
+        self.detailed_enabled
     }
 
     /// Gameplay frames elapsed since the recording began.
@@ -206,6 +285,14 @@ impl RunTrace {
     /// Samples every `SAMPLE_EVERY` frames across the whole game.
     pub fn samples(&self) -> &[FrameSample] {
         &self.samples
+    }
+
+    pub fn events(&self) -> &[DetailedEvent] {
+        &self.events
+    }
+
+    pub(crate) fn append_events(&mut self, events: Vec<DetailedEvent>) {
+        self.events.extend(events);
     }
 
     pub(crate) fn recent(&self) -> Vec<FrameSample> {

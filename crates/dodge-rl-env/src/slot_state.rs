@@ -7,6 +7,9 @@ use dodge_core::NativeGame;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct EnemyState {
+    /// Episode-local birth ordinal, present only with `event_trace` enabled.
+    /// `None` means identity metadata was exhausted and must not be inferred.
+    pub id: Option<u64>,
     pub x: f64,
     pub y: f64,
     pub s: f64,
@@ -57,12 +60,24 @@ pub struct SlotState {
 
 impl SlotState {
     pub fn read(game: &NativeGame) -> Self {
+        Self::read_with_ids(game, false)
+    }
+
+    pub fn read_with_ids(game: &NativeGame, ids_enabled: bool) -> Self {
         let player = game.player();
         let view = game.privileged_view();
         let enemies = game
             .enemies()
             .iter()
-            .map(|e| EnemyState {
+            .enumerate()
+            .map(|(index, e)| EnemyState {
+                id: if ids_enabled {
+                    game.enemy_serials()
+                        .and_then(|ids| ids.get(index))
+                        .map(|id| id.id())
+                } else {
+                    None
+                },
                 x: e.x.to_double(),
                 y: e.y.to_double(),
                 s: e.size.to_double(),

@@ -395,6 +395,41 @@ fn recording_a_trace_changes_nothing_in_the_game() -> Result<(), EnvError> {
 }
 
 #[test]
+fn event_records_are_cumulative_ordered_and_reset_scoped() -> Result<(), EnvError> {
+    let mut env = VecDodgeEnv::new(EnvConfig {
+        action_repeat: 1,
+        raw_frame_cap: 10_000,
+        event_trace: true,
+        ..EnvConfig::default()
+    })?;
+    let mut prior = Vec::new();
+    for _ in 0..100 {
+        env.step(&[0])?;
+        let trace = env.slot_trace(0)?.expect("event trace is enabled");
+        let current = trace.events.expect("events are exposed in event mode");
+        assert!(
+            current.starts_with(&prior),
+            "events are cumulative without redelivery"
+        );
+        assert!(
+            current
+                .windows(2)
+                .all(|pair| pair[0].frame <= pair[1].frame)
+        );
+        prior = current;
+    }
+    assert!(
+        prior
+            .iter()
+            .any(|event| matches!(event.kind, dodge_core::DetailedEventKind::Spawn { .. }))
+    );
+    assert!(prior.iter().all(|event| event.frame > 0));
+    env.reset_all()?;
+    assert!(env.slot_trace(0)?.unwrap().events.unwrap().is_empty());
+    Ok(())
+}
+
+#[test]
 fn set_trace_enabled_takes_effect_on_the_next_reset() -> Result<(), EnvError> {
     let mut env = VecDodgeEnv::new(env_config(false))?;
     env.set_trace_enabled(true);

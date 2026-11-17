@@ -18,6 +18,12 @@ pub struct EnemySerial {
 }
 
 impl EnemySerial {
+    /// Stable game-local birth ordinal. It starts at zero and continues across
+    /// `NativeGame` resets. Environment slots use a new game for each episode.
+    pub const fn id(self) -> u64 {
+        self.birth
+    }
+
     /// Birth ordinal within this game's namespace, for the observation-only trace.
     pub(crate) const fn birth(self) -> u64 {
         self.birth

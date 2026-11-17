@@ -286,7 +286,11 @@ fn counters<'py>(py: Python<'py>, value: CounterBatch) -> PyResult<Bound<'py, Py
 }
 
 /// `lane_state`'s dict: the same keys and value types, nested the same way.
-fn slot_state<'py>(py: Python<'py>, value: SlotState) -> PyResult<Bound<'py, PyDict>> {
+fn slot_state<'py>(
+    py: Python<'py>,
+    value: SlotState,
+    ids_enabled: bool,
+) -> PyResult<Bound<'py, PyDict>> {
     let state = PyDict::new(py);
     state.set_item("px", value.px)?;
     state.set_item("py", value.py)?;
@@ -300,6 +304,9 @@ fn slot_state<'py>(py: Python<'py>, value: SlotState) -> PyResult<Bound<'py, PyD
     let enemies = PyList::empty(py);
     for enemy in value.enemies {
         let entry = PyDict::new(py);
+        if ids_enabled {
+            entry.set_item("id", enemy.id)?;
+        }
         entry.set_item("x", enemy.x)?;
         entry.set_item("y", enemy.y)?;
         entry.set_item("s", enemy.s)?;
@@ -445,6 +452,106 @@ fn trace_dict<'py>(py: Python<'py>, trace: TraceView) -> PyResult<Bound<'py, PyD
         Some(death) => result.set_item("death", death_dict(py, death)?)?,
     }
     result.set_item("contacts", trace.contacts)?;
+    let events_enabled = trace.events.is_some();
+    let events = PyList::empty(py);
+    for event in trace.events.unwrap_or_default() {
+        let entry = PyDict::new(py);
+        entry.set_item("frame", event.frame)?;
+        match event.kind {
+            dodge_core::DetailedEventKind::Spawn {
+                id,
+                personality,
+                x,
+                y,
+                vx,
+                vy,
+                size,
+            } => {
+                entry.set_item("kind", "spawn")?;
+                entry.set_item("enemy_id", id)?;
+                entry.set_item("personality", personality)?;
+                entry.set_item("x", f64::from(x) / 65536.0)?;
+                entry.set_item("y", f64::from(y) / 65536.0)?;
+                entry.set_item("vx", f64::from(vx) / 65536.0)?;
+                entry.set_item("vy", f64::from(vy) / 65536.0)?;
+                entry.set_item("size", f64::from(size) / 65536.0)?;
+            }
+            dodge_core::DetailedEventKind::Despawn {
+                id,
+                personality,
+                reason,
+            } => {
+                entry.set_item("kind", "despawn")?;
+                entry.set_item("enemy_id", id)?;
+                entry.set_item("personality", personality)?;
+                entry.set_item("reason", reason)?;
+            }
+            dodge_core::DetailedEventKind::Bounce { id, axis } => {
+                entry.set_item("kind", "bounce")?;
+                entry.set_item("enemy_id", id)?;
+                entry.set_item("axis", axis)?;
+            }
+            dodge_core::DetailedEventKind::PlayerCollision { id } => {
+                entry.set_item("kind", "player_collision")?;
+                entry.set_item("enemy_id", id)?;
+            }
+            dodge_core::DetailedEventKind::EnemyCollision {
+                first_id,
+                second_id,
+            } => {
+                entry.set_item("kind", "enemy_collision")?;
+                entry.set_item("enemy_ids", vec![first_id, second_id])?;
+            }
+            dodge_core::DetailedEventKind::PatternCrush { id, pattern_id } => {
+                entry.set_item("kind", "pattern_crush")?;
+                entry.set_item("enemy_id", id)?;
+                entry.set_item("pattern_id", pattern_id)?;
+            }
+            dodge_core::DetailedEventKind::PlayerPatternCollision { pattern_id } => {
+                entry.set_item("kind", "player_pattern_collision")?;
+                entry.set_item("pattern_id", pattern_id)?;
+            }
+            dodge_core::DetailedEventKind::Explosion { x, y, ids } => {
+                entry.set_item("kind", "explosion")?;
+                entry.set_item("x", f64::from(x) / 65536.0)?;
+                entry.set_item("y", f64::from(y) / 65536.0)?;
+                entry.set_item("enemy_ids", ids)?;
+            }
+            dodge_core::DetailedEventKind::PatternStart { id, pattern_type } => {
+                entry.set_item("kind", "pattern_start")?;
+                entry.set_item("pattern_id", id)?;
+                entry.set_item("pattern_type", pattern_type)?;
+            }
+            dodge_core::DetailedEventKind::PatternEnd { id } => {
+                entry.set_item("kind", "pattern_end")?;
+                entry.set_item("pattern_id", id)?;
+            }
+            dodge_core::DetailedEventKind::PatternRestart { id } => {
+                entry.set_item("kind", "pattern_restart")?;
+                entry.set_item("pattern_id", id)?;
+            }
+            dodge_core::DetailedEventKind::Powerup { id, kind } => {
+                entry.set_item("kind", "powerup")?;
+                entry.set_item("enemy_id", id)?;
+                entry.set_item("effect", kind)?;
+            }
+            dodge_core::DetailedEventKind::Death { subject, id, cause } => {
+                entry.set_item("kind", "death")?;
+                entry.set_item("subject", subject)?;
+                entry.set_item("enemy_id", id)?;
+                entry.set_item("reason", cause)?;
+            }
+            dodge_core::DetailedEventKind::SpeedChange { speed, freeze_rate } => {
+                entry.set_item("kind", "speed_change")?;
+                entry.set_item("speed", f64::from(speed) / 65536.0)?;
+                entry.set_item("freeze_rate", f64::from(freeze_rate) / 65536.0)?;
+            }
+        }
+        events.append(entry)?;
+    }
+    if events_enabled {
+        result.set_item("events", events)?;
+    }
     Ok(result)
 }
 
@@ -506,6 +613,9 @@ fn batch_info<'py>(py: Python<'py>, value: BatchInfo) -> PyResult<Bound<'py, PyD
     // Only present when on, so default output is unchanged.
     if c.trace {
         out.set_item("trace", true)?;
+    }
+    if c.event_trace {
+        out.set_item("event_trace", true)?;
     }
     out.set_item("critic_feature_version", CRITIC_FEATURE_VERSION)?;
     out.set_item("critic_feature_count", CRITIC_FEATURE_COUNT)?;
@@ -579,7 +689,7 @@ struct PyVecDodgeEnv {
 #[pymethods]
 impl PyVecDodgeEnv {
     #[new]
-    #[pyo3(signature = (batch_size=1, action_repeat=4, difficulty=2, patterns_enabled=true, powerups_enabled=true, raw_frame_cap=18_000, num_threads=1, chunk_size=8, render_pixels=false, auxiliary_targets=false, run_seed=0, seeds_by_slot=None, excluded_seed_ranges=None, initial_episode_indices=None, normal_enemies=true, kamikaze_enemies=true, spawn_rate_percent=100, lives=0, observation="entity", step_info="all", critic_features=false, trace=false))]
+    #[pyo3(signature = (batch_size=1, action_repeat=4, difficulty=2, patterns_enabled=true, powerups_enabled=true, raw_frame_cap=18_000, num_threads=1, chunk_size=8, render_pixels=false, auxiliary_targets=false, run_seed=0, seeds_by_slot=None, excluded_seed_ranges=None, initial_episode_indices=None, normal_enemies=true, kamikaze_enemies=true, spawn_rate_percent=100, lives=0, observation="entity", step_info="all", critic_features=false, trace=false, event_trace=false))]
     #[allow(clippy::too_many_arguments)]
     fn new(
         py: Python<'_>,
@@ -605,6 +715,7 @@ impl PyVecDodgeEnv {
         step_info: &str,
         critic_features: bool,
         trace: bool,
+        event_trace: bool,
     ) -> PyResult<Self> {
         let config = EnvConfig {
             batch_size,
@@ -632,6 +743,7 @@ impl PyVecDodgeEnv {
             step_info: step_info_kind(step_info)?,
             critic_features,
             trace,
+            event_trace,
         };
         // Includes validation, seed preflight, NativeGame::new, bounded startup,
         // initial features, and optional rendering. No Python callbacks occur.
@@ -713,15 +825,41 @@ impl PyVecDodgeEnv {
         array(py, frames, &[indices.len(), 128, 128])
     }
 
-    /// Turn the gameplay trace on or off for games that later resets start.
-    /// Games already running keep their setting; no game changes.
+    /// Turn the legacy gameplay trace on or off for games that later resets
+    /// start. When `event_trace=True`, the legacy trace stays enabled and
+    /// setting this to False does not disable `slot_trace`. Games already
+    /// running keep their setting; no game changes.
     fn set_trace_enabled(&mut self, enabled: bool) {
         self.inner.set_trace_enabled(enabled);
     }
 
-    /// One slot gameplay trace (frame, fyou_triggers, patterns, death,
-    /// contacts), or None while its trace is off. Positions and gaps are
-    /// pixels; a missing gap or pattern is None.
+    /// One slot gameplay trace, or None while recording is off. With
+    /// `event_trace=True`, `events` is a cumulative snapshot since episode
+    /// reset and resets when the slot starts a new episode. Action-repeat
+    /// steps include each internal gameplay frame in engine order. Gameplay
+    /// frames are 1-based. Events before the first gameplay trace boundary use
+    /// frame 0; settings-transition updates reuse the latest gameplay frame.
+    /// Each read copies and converts the full event history, so frequent reads
+    /// cost more as the episode grows. Positions and velocities convert from
+    /// signed 16.16 fixed-point to pixels and pixels per gameplay frame.
+    /// Bounce records mark engine wall-reflection branches, including repeats
+    /// while an enemy remains beyond a wall. Events have no cap.
+    /// Event dictionaries contain `frame` and `kind`. Enemy records use
+    /// `enemy_id`; participant lists use `enemy_ids`. Kinds and fields are:
+    /// `spawn` (personality, x, y, vx, vy, size), `despawn` (personality,
+    /// reason), `bounce` (axis), `player_collision`, `enemy_collision`,
+    /// `pattern_crush` (pattern_id), `player_pattern_collision` (pattern_id),
+    /// `explosion` (x, y, enemy_ids), `pattern_start` (pattern_id,
+    /// pattern_type), `pattern_end` and `pattern_restart` (pattern_id),
+    /// `powerup` (effect), `death` (subject, enemy_id, reason), and
+    /// `speed_change` (speed, freeze_rate). Death subject is `player` or
+    /// `enemy`. For player death, enemy_id is the enemy cause when known. For
+    /// enemy death, it is the affected enemy. Player death can repeat when
+    /// multiple lethal contacts occur in one frame. `player_collision` also
+    /// records contact with a powerup. Missing identity or participant data is
+    /// Python None. Event coordinates, velocities, and sizes are f64 pixels or pixels
+    /// per gameplay frame, converted from signed 16.16 values. Speed and freeze
+    /// rate are unitless multipliers converted from signed 16.16 values.
     fn slot_trace<'py>(
         &self,
         py: Python<'py>,
@@ -744,11 +882,13 @@ impl PyVecDodgeEnv {
 
     /// One slot's raw game state: px, py, dpx, dpy, size, ftimer, fy, spd, frz,
     /// enemies (list of x, y, s, p, vx, vy, spd) and cp (None, or id, tpe,
-    /// timer and rects of x, y, w, h, sh, dx, dy, spd, warnings). A read only;
-    /// works on ended slots too. An unknown slot is a ValueError.
+    /// timer and rects of x, y, w, h, sh, dx, dy, spd, warnings). With
+    /// `event_trace=True`, each enemy also has an integer `id`, or None if the
+    /// engine identity namespace is exhausted. A read only; works on ended
+    /// slots too. An unknown slot is a ValueError.
     fn slot_state<'py>(&self, py: Python<'py>, slot: usize) -> PyResult<Bound<'py, PyDict>> {
         let value = self.inner.slot_state(slot).map_err(env_error)?;
-        slot_state(py, value)
+        slot_state(py, value, self.inner.event_trace_enabled())
     }
 
     fn episode_info<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {

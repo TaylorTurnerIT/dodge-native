@@ -126,3 +126,53 @@ fn an_ended_slot_still_reads() -> Result<(), EnvError> {
     assert_eq!(state, SlotState::read(env.test_game(0)));
     Ok(())
 }
+
+#[test]
+fn event_trace_ids_are_unique_stable_and_do_not_change_outcomes() -> Result<(), EnvError> {
+    let config = EnvConfig {
+        raw_frame_cap: 10_000,
+        ..EnvConfig::default()
+    };
+    let mut plain = VecDodgeEnv::new(config.clone())?;
+    let mut traced = VecDodgeEnv::new(EnvConfig {
+        event_trace: true,
+        ..config
+    })?;
+    let mut known = std::collections::BTreeMap::new();
+    let mut seen_ids = std::collections::BTreeSet::new();
+    for step in 0..100 {
+        let action = (step % 9) as i64;
+        let a = plain.step(&[action])?;
+        let b = traced.step(&[action])?;
+        assert_eq!(a.rewards, b.rewards);
+        assert_eq!(a.observations, b.observations);
+        assert_eq!(a.elapsed_raw_frames, b.elapsed_raw_frames);
+        assert_eq!(a.terminated, b.terminated);
+        assert_eq!(a.truncated, b.truncated);
+        let enemies = traced.slot_state(0)?.enemies;
+        assert_eq!(
+            plain.test_game(0).rng_checkpoint(),
+            traced.test_game(0).rng_checkpoint()
+        );
+        let ids: Vec<_> = enemies
+            .iter()
+            .map(|e| e.id.expect("event trace exposes IDs"))
+            .collect();
+        let unique: std::collections::BTreeSet<_> = ids.iter().copied().collect();
+        assert_eq!(ids.len(), unique.len());
+        for enemy in enemies {
+            let id = enemy.id.unwrap();
+            if let Some(previous) = known.get(&id) {
+                assert_eq!(*previous, enemy.p);
+            }
+            known.insert(id, enemy.p);
+            seen_ids.insert(id);
+        }
+        if b.terminated[0] || b.truncated[0] {
+            break;
+        }
+    }
+    assert!(!seen_ids.is_empty(), "the test seed must spawn enemies");
+    assert!(seen_ids.iter().copied().eq(0..seen_ids.len() as u64));
+    Ok(())
+}
