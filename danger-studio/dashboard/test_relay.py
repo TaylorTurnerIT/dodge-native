@@ -4,7 +4,11 @@ import json
 import os
 from pathlib import Path
 import tempfile
+import time
 import unittest
+from urllib.error import HTTPError
+from urllib.parse import urlencode
+from urllib.request import urlopen
 from unittest import mock
 
 import relay
@@ -84,6 +88,64 @@ time.sleep(30)
         terminal = instance.next({"sid": started["sid"]})
         self.assertTrue(terminal["ended"])
         self.assertEqual(terminal["frames"], [])
+
+    def request_keepalive(self, instance, token, sid):
+        query = urlencode({"k": token, "sid": sid})
+        with urlopen(f"{instance.base_url}/keepalive?{query}", timeout=2) as response:
+            return response.status, json.loads(response.read())
+
+    def test_keepalive_refreshes_valid_session_without_reading_output(self):
+        self.write_fake("""
+import json, time
+print(json.dumps({'meta': {'fake': True}}), flush=True)
+time.sleep(30)
+""")
+        instance, started = self.start(10)
+        session = instance._session
+        session.touched = time.monotonic() - 1
+
+        status, response = self.request_keepalive(instance, instance.token, started["sid"])
+
+        self.assertEqual(status, 200)
+        self.assertEqual(response, {"kept_alive": True})
+        self.assertGreater(session.touched, 0)
+        self.assertEqual(session.frames, 0)
+        self.assertEqual(session.lines.qsize(), 0)
+        self.assertIsNone(instance._reap_idle())
+        self.assertIs(instance._session, session)
+
+    def test_keepalive_rejects_bad_token_and_unknown_or_ended_sessions(self):
+        instance, started = self.start(10)
+        with self.assertRaises(HTTPError) as unauthorized:
+            self.request_keepalive(instance, "wrong-token", started["sid"])
+        self.assertEqual(unauthorized.exception.code, 403)
+        with self.assertRaises(HTTPError) as unknown:
+            self.request_keepalive(instance, instance.token, "wrong-sid")
+        self.assertEqual(unknown.exception.code, 400)
+
+        instance._session.ended = True
+        with self.assertRaises(HTTPError) as ended:
+            self.request_keepalive(instance, instance.token, started["sid"])
+        self.assertEqual(ended.exception.code, 400)
+
+        instance._session.ended = False
+        instance._session.touched = 0
+        with self.assertRaises(HTTPError) as expired:
+            self.request_keepalive(instance, instance.token, started["sid"])
+        self.assertEqual(expired.exception.code, 400)
+
+    def test_keepalive_does_not_change_idle_reaping(self):
+        instance, started = self.start(1_000_000)
+        session = instance._session
+        session.touched = 0
+
+        expired = instance._reap_idle()
+
+        self.assertIs(expired, session)
+        self.assertIsNone(instance._session)
+        with self.assertRaises(HTTPError) as stale:
+            self.request_keepalive(instance, instance.token, started["sid"])
+        self.assertEqual(stale.exception.code, 400)
 
 
 if __name__ == "__main__":

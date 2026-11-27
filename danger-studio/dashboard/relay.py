@@ -94,6 +94,8 @@ class Relay:
                         self._send(200, relay.start(query))
                     elif url.path == "/next":
                         self._send(200, relay.next(query))
+                    elif url.path == "/keepalive":
+                        self._send(200, relay.keepalive(query))
                     elif url.path == "/stop":
                         self._send(200, relay.stop(query))
                     else:
@@ -243,14 +245,28 @@ class Relay:
         session.stop()
         return {"stopped": True}
 
+    def keepalive(self, query):
+        with self._guard:
+            session = self._session
+            if not session or not secrets.compare_digest(query.get("sid", ""), session.sid):
+                raise ValueError("unknown or expired run")
+            with session.lock:
+                if session.ended or time.monotonic() - session.touched > IDLE_SECONDS:
+                    raise ValueError("unknown or expired run")
+                session.touched = time.monotonic()
+        return {"kept_alive": True}
+
     def _reap(self):
         while True:
             time.sleep(10)
-            with self._guard:
-                session = self._session
-                if session and time.monotonic() - session.touched > IDLE_SECONDS:
-                    self._session = None
-                else:
-                    session = None
+            session = self._reap_idle()
             if session:
                 session.stop()
+
+    def _reap_idle(self):
+        with self._guard:
+            session = self._session
+            if session and time.monotonic() - session.touched > IDLE_SECONDS:
+                self._session = None
+                return session
+        return None
