@@ -1512,6 +1512,34 @@ mod tests {
                 .all(|frame| frame.native_pixels.is_none())
         );
     }
+
+    #[test]
+    fn native_pixel_stream_emits_complete_renderer_frames() {
+        let config = DangerConfig {
+            native_pixels: true,
+            grid: 8,
+            horizon: 4,
+            heat_every: 2,
+            ..DangerConfig::default()
+        };
+        let mut count = 0;
+        let result = stream_episode(&config, PolicyKind::Neutral, Some(3), &mut |frame| {
+            let pixels = frame
+                .native_pixels
+                .as_deref()
+                .ok_or("native pixels missing")?;
+            if pixels.len() != dodge_core::FRAMEBUFFER_SIZE
+                || !pixels.bytes().all(|value| value.is_ascii_hexdigit())
+            {
+                return Err("native pixel frame has invalid dimensions or encoding".to_owned());
+            }
+            count += 1;
+            Ok(())
+        })
+        .expect("native pixel stream");
+        assert_eq!(count, 3);
+        assert_eq!(result.captured_frames, 3);
+    }
 }
 
 /// Worker threads for parallel runs. `DODGE_THREADS` sets it; otherwise all cores but four are
