@@ -129,7 +129,7 @@ time.sleep(30)
         self.assertEqual(ended.exception.code, 400)
 
         instance._session.ended = False
-        instance._session.touched = 0
+        instance._session.touched = time.monotonic() - relay.IDLE_SECONDS - 1
         with self.assertRaises(HTTPError) as expired:
             self.request_keepalive(instance, instance.token, started["sid"])
         self.assertEqual(expired.exception.code, 400)
@@ -137,7 +137,7 @@ time.sleep(30)
     def test_keepalive_does_not_change_idle_reaping(self):
         instance, started = self.start(1_000_000)
         session = instance._session
-        session.touched = 0
+        session.touched = time.monotonic() - relay.IDLE_SECONDS - 1
 
         expired = instance._reap_idle()
 
