@@ -500,6 +500,7 @@
 
 <script>
 const TRACE = /*__TRACE__*/null;
+const LIVE = /*__LIVE__*/null;
 
 function showStageMessage(text) {
   const stage = document.querySelector(".stage");
@@ -508,11 +509,11 @@ function showStageMessage(text) {
 }
 
 // The dashboard embeds a capped trace produced by the native Rust engine.
-function run(trace) {
+function run(trace, live) {
   "use strict";
 
   const meta = trace.meta;
-  const result = trace.result;
+  let result = trace.result || { dead: false, survival_frames: 0 };
   const frames = trace.frames;
   let lastFrame = frames.length - 1;
   // Global index of frames[0]. A live run keeps only a rolling window.
@@ -563,6 +564,67 @@ function run(trace) {
     lastHudFrame: -1
   };
 
+  async function pullLive() {
+    let sid = null;
+    try {
+      const params = new URLSearchParams({ k: live.token, policy: live.policy,
+        seed: String(live.seed), difficulty: String(live.difficulty) });
+      // HNN model loading is synchronous in the native CLI. Keep this request
+      // pending until the relay returns metadata or reports that the child exited.
+      const started = await fetch(live.base + "/start?" + params, { signal: AbortSignal.timeout(100000) }).then((response) => response.json());
+      if (!started.sid) throw new Error(started.error || "Could not start live stream");
+      sid = started.sid;
+      while (sid) {
+        const query = new URLSearchParams({ k: live.token, sid, n: "60" });
+        const batch = await fetch(live.base + "/next?" + query, { signal: AbortSignal.timeout(10000) }).then((response) => response.json());
+        if (batch.error) throw new Error(batch.error);
+        for (const frame of batch.frames || []) {
+          frames.push(frame);
+          if (frame.h) runningHeat = frame.h;
+          heatByFrame.push(runningHeat);
+          if (Number.isFinite(frame.c) && frame.c < closestClearance) {
+            closestClearance = frame.c;
+            closestFrame = frames.length - 1;
+          }
+        }
+        const excess = Math.max(0, frames.length - 1800);
+        if (excess) {
+          frames.splice(0, excess);
+          heatByFrame.splice(0, excess);
+          frameBase += excess;
+          state.frame = Math.max(0, state.frame - excess);
+          closestFrame = -1;
+          closestClearance = Infinity;
+          frames.forEach((frame, index) => {
+            if (Number.isFinite(frame.c) && frame.c < closestClearance) {
+              closestClearance = frame.c;
+              closestFrame = index;
+            }
+          });
+        }
+        lastFrame = frames.length - 1;
+        scrub.max = String(Math.max(0, lastFrame));
+        if (frames.length) updateHud(frames[state.frame]);
+        if (batch.result) result = batch.result;
+        if (batch.ended) {
+          sid = null;
+          setStatus();
+          break;
+        }
+        while (lastFrame - state.frame >= 120) {
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        }
+      }
+    } catch (error) {
+      showStageMessage("Live stream stopped: " + error.message);
+    } finally {
+      if (sid) {
+        const query = new URLSearchParams({ k: live.token, sid });
+        fetch(live.base + "/stop?" + query, { signal: AbortSignal.timeout(3000) }).catch(() => {});
+      }
+    }
+  }
+
   const el = (id) => document.getElementById(id);
   const fmt = (value, digits) => {
     if (!Number.isFinite(value)) return "—";
@@ -595,6 +657,7 @@ function run(trace) {
   el("overlayLabel").textContent = isHnn
     ? "Danger overlay · model enemy paths; selected-action replay preview"
     : "Danger overlay · arrival heat, velocity paths, chosen-action engine rollout";
+  el("pathLegend").lastChild.textContent = isHnn ? "engine replay preview" : "planned path";
 
   const status = el("stageStatus");
   function setStatus() {
@@ -603,9 +666,11 @@ function run(trace) {
       status.className = "stage-status is-dead";
       el("statusHint").textContent = "died";
     } else {
-      status.textContent = "survived to cap · " + (result.survival_frames / fps).toFixed(1) + "s";
+      status.textContent = live
+        ? result.capped ? "LIVE cap · " + (frameBase + lastFrame) + " frames" : "LIVE · " + (frameBase + lastFrame) + " frames"
+        : "survived to cap · " + (result.survival_frames / fps).toFixed(1) + "s";
       status.className = "stage-status is-alive";
-      el("statusHint").textContent = "at cap";
+      el("statusHint").textContent = live && !result.capped ? "streaming" : "at cap";
     }
   }
   setStatus();
@@ -706,6 +771,7 @@ function run(trace) {
     }
     offCtx.putImageData(image, 0, 0);
     heatCache.set(heat, off);
+    if (heatCache.size > 32) heatCache.delete(heatCache.keys().next().value);
     return off;
   }
 
@@ -1025,8 +1091,10 @@ function run(trace) {
           if (result.dead) {
             state.frame = lastFrame;
             setPlaying(false);
-          } else {
+          } else if (!live) {
             state.frame = 0;
+          } else {
+            state.frame = lastFrame;
           }
         }
         state.lastHudFrame = -1;
@@ -1049,11 +1117,15 @@ function run(trace) {
   if (frames.length > 0) updateHud(frames[0]);
   setPlaying(true);
   requestAnimationFrame(loop);
+  if (live) pullLive();
 }
 
 (function boot() {
   if (TRACE && Array.isArray(TRACE.frames) && TRACE.frames.length > 0) {
     run(TRACE);
+  } else if (LIVE) {
+    run({ meta: { policy: LIVE.policy, seed: LIVE.seed, difficulty: LIVE.difficulty,
+      horizon: 36, fps: 60, playfield: 128, field: LIVE.policy === "hnn" ? "hnn-arrival" : "arrival", patterns: false, powerups: false }, frames: [] }, LIVE);
   } else {
     showStageMessage("No native trace was embedded. Build and run the Part II dashboard app.");
   }

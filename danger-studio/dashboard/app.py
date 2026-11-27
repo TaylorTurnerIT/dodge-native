@@ -19,13 +19,14 @@ def _(mo):
     # Dodge Danger Studio
 
     Part II runs the native Rust game and displays its shared CPU-renderer frames.
-    Press **O** to show the arrival-time heat map, predicted enemy paths, and chosen-action path.
+    Choose recorded or live mode. Press **O** to show the arrival-time heat map, predicted enemy paths, and chosen-action path.
     """)
     return
 
 
 @app.cell
 def _(mo):
+    mode = mo.ui.dropdown(options={"Live": "live", "Recorded": "recorded"}, value="Live", label="Mode")
     policy = mo.ui.dropdown(
         options=["lookahead", "landscape", "hnn", "potential", "flee", "random", "neutral"],
         value="lookahead",
@@ -33,42 +34,57 @@ def _(mo):
     )
     seed = mo.ui.number(start=0, stop=4_000_000_000, step=1, value=42, label="Seed")
     difficulty = mo.ui.dropdown(options={"1": 1, "2": 2, "3": 3}, value="3", label="Difficulty")
-    frames = mo.ui.slider(start=120, stop=1200, step=120, value=120, show_value=True, label="Frames")
-    mo.hstack([policy, seed, difficulty, frames], wrap=True)
-    return difficulty, frames, policy, seed
+    frames = mo.ui.slider(start=120, stop=1200, step=120, value=120, show_value=True, label="Recorded frames")
+    mo.hstack([mode, policy, seed, difficulty, frames], wrap=True)
+    return difficulty, frames, mode, policy, seed
 
 
 @app.cell
-def _(difficulty, frames, mo, policy, seed):
+def _(difficulty, frames, mode, mo, policy, seed):
     import json
     import os
     from pathlib import Path
     import subprocess
 
+    from relay import get_relay
+
     def render_panel():
         studio = Path(__file__).resolve().parent
         root = studio.parents[1]
-        binary = root / "target" / "debug" / "dodge-danger"
+        binary = root / "target" / "release" / "dodge-danger"
         model = root / "models" / "physics.json"
         if not binary.is_file():
             return mo.callout(
-                mo.md(f"Build the native demo first: `cargo build -p dodge-danger` (missing {binary})"),
+                mo.md(f"Build the native demo first: `cargo build --release -p dodge-danger` (missing {binary})"),
                 kind="warn",
             )
 
-        args = [str(binary), "--policy", policy.value, "--seed", str(int(seed.value)),
+        if mode.value == "live":
+            relay = get_relay(str(binary), str(model))
+            html = (studio / "dodge_visualizer.html").read_text(encoding="utf-8")
+            html = html.replace("/*__TRACE__*/null", "null", 1)
+            live_config = json.dumps({
+                "base": relay.base_url, "token": relay.token, "policy": policy.value,
+                "seed": int(seed.value), "difficulty": int(difficulty.value),
+            }, separators=(",", ":")).replace("</", "<\\/")
+            html = html.replace("/*__LIVE__*/null", live_config, 1)
+            return mo.iframe(html, width="100%", height="900px")
+        if os.getloadavg()[0] > 8.0:
+            return mo.callout(mo.md("Recorded run paused because one-minute system load exceeds 8."), kind="warn")
+        args = ["nice", "-n", "19", str(binary), "--policy", policy.value, "--seed", str(int(seed.value)),
                 "--difficulty", str(difficulty.value), "--frames", str(int(frames.value)),
                 "--horizon", "36", "--native-pixels"]
         if policy.value == "hnn":
             args += ["--physics-model", str(model), "--grid", "12", "--goal-every", "16", "--heat-every", "16"]
         try:
             result = subprocess.run(args, capture_output=True, text=True, timeout=120,
-                                    env={**os.environ, "DODGE_THREADS": "4"})
+                                    env={**os.environ, "DODGE_THREADS": "2"})
             if result.returncode:
                 raise RuntimeError(result.stderr.strip() or "dodge-danger failed")
             payload = json.dumps(json.loads(result.stdout), separators=(",", ":")).replace("</", "<\\/")
             html = (studio / "dodge_visualizer.html").read_text(encoding="utf-8")
             html = html.replace("/*__TRACE__*/null", payload, 1)
+            html = html.replace("/*__LIVE__*/null", "null", 1)
             return mo.iframe(html, width="100%", height="900px")
         except Exception as error:
             return mo.callout(mo.md(f"**Could not run native Dodge.**\n\n```\n{error}\n```"), kind="danger")
